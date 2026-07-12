@@ -61,14 +61,6 @@ TSID 캐시 조회 → miss
 - **파드 이름 대신 서비스 이름을 쓴다.** 파드 이름(`my-order-7f9c-abcde`)은 재시작마다 바뀌지만, 서비스 이름(`my-order`)은 잘 바뀌지 않는다. 서비스 이름을 레이블로 쓰면 파드가 재시작돼도 시계열이 그대로 유지된다.
 - **자주 바뀌는 값은 지표가 아니라 로그·트레이스로 다룬다.** 세션 ID처럼 개별 요청을 추적해야 하는 값은 metric의 레이블이 아니라 로그나 트레이스에 담는 것이 옳다. 지표는 "집계"를 위한 것이고, 개별 식별자 추적은 로그·트레이스의 몫이다.
 
-```
-Worst:  http_requests_total{pod="my-order-7f9c-abcde", session_id="a1b2c3..."}
-                             └─ 재시작마다 폭발   └─ 요청마다 폭발
-
-Best:   http_requests_total{service="my-order"}      ← 안정적인 저카디널리티
-        session_id, pod 상세 → 로그/트레이스로 분리
-```
-
 ## 운영 감시 지표 — churn rate와 slow insert rate
 
 카디널리티는 배포 이후에도 계속 변하므로 **런타임에 감시해야 한다.** 두 지표가 핵심이다.
