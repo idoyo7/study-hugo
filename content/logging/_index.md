@@ -48,11 +48,11 @@ cascade:
 | **ClickHouse (self-hosted)** | 컬럼형 OLAP | 극단적 압축, 로그+트레이스+RUM 통합 흡수 | 통합 이유가 생겼을 때(D4) |
 | **HyperDX / ClickStack** | ClickHouse 위 UI 스택 | 웹 RUM·로그·트레이스 통합 프론트(턴키) | 웹 RUM 중계처 후보 |
 | **StarRocks** | 컬럼형 MPP OLAP | S3 위 stateless 컴퓨트가 강점, 그러나 로그·UI는 미성숙 | 별도 mandate 없으면 제외 |
-| **RUM 대안군** | Sentry/OpenReplay/Faro 등 | 셀프호스트 세션 리플레이 | 모바일은 아직 미성숙 |
+| **RUM 대안군** | Sentry/OpenReplay/Faro 등 | 셀프호스트 세션 리플레이 | → 별도 [RUM 내재화]({{< relref "../rum/_index.md" >}}) 도메인 |
 
 ## 블록 지도
 
 | 블록 | 내용 |
 |---|---|
-| [솔루션별 특징]({{< relref "01-solutions.md" >}}) | OpenSearch·Loki·VictoriaLogs·ClickHouse·HyperDX·StarRocks 장단점, ClickHouse vs StarRocks, RUM 대안군 |
+| [솔루션별 특징]({{< relref "01-solutions.md" >}}) | OpenSearch·Loki·VictoriaLogs·ClickHouse·HyperDX·StarRocks 장단점, ClickHouse vs StarRocks |
 | [우리 케이스 · 권장안]({{< relref "02-recommendation.md" >}}) | 최소 조합 아키텍처, 인건비 게이트, 저후회 시퀀싱, 하지 말 것, 결론 |

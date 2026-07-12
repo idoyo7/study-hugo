@@ -106,16 +106,6 @@ Linux Foundation MPP OLAP 엔진(Apache-2.0). Doris 포크를 vectorized exec + 
 
 > 정직한 단서 2개: (1) **둘 다 BM25/relevance 스코어링이 없다** — ES식 랭킹 검색이 진짜 필요하면 전용 검색층을 남겨라. (2) 공존한다면 split-brain(CH=관측성 logs+traces+RUM, SR=Iceberg 위 BI/mutable)이 자연스럽고, 공유 S3/Iceberg 레이크가 브릿지가 된다.
 
-## 7. RUM 대안군 — 셀프호스트 세션 리플레이의 현실
+## RUM 내재화 → 별도 도메인
 
-Datadog RUM이 RWoL(RUM without Limits) 재요율로 실질 ~2배 인상되면서 내재화를 검토하게 되는 영역. **RUM Measure는 retain 비율과 무관하게 ingest 100%에 과금**(Measure 단가 $0.15/1k)되고, 여기에 retain 프리미엄·세션 리플레이가 얹히면 RWoL 블렌디드 실효단가가 ~$0.42/1k까지 오른다 → 월 30M 세션이면 30M×$0.42/1k×12 ≈ **연 $153K** `[추정]`. 결론부터: **웹은 대안이 있고, 모바일은 아직 성숙하지 않았다.**
-
-| 옵션 | 모바일 리플레이 | 운영 부담 |
-|---|---|---|
-| Datadog 유지(모바일만) | 완전(crash/ANR 포함) | 0 |
-| Sentry self-hosted | 지원(v24.7.1≈2024-07~) | 컨테이너 20+개, 공식 문구 "low-volume/PoC용" |
-| OpenReplay | iOS/Android/RN 전부 **Beta** | Postgres+Redis+CH+Kafka+S3, ~10 서비스 |
-| PostHog self-host | — | 공식적으로 대규모 셀프호스트 비권장 |
-| Grafana Faro | 리플레이 없음(에러+Vitals만) | 낮음 — 기존 스택에 잘 붙음 |
-
-> 판단: 웹 리플레이는 HyperDX(rrweb)로 탈출 가능. **모바일 리플레이는 대안이 성숙할 때까지 Datadog 잔류**가 현실적. 계약 갱신 시점에 RUM 축소분을 반영해 전체 딜로 재협상(RUM만 빼면 잔여 제품 할인이 재요율될 수 있음).
+Datadog RUM(RWoL 재요율로 실질 ~2배 인상)에서 빠져나오는 웹/모바일 세션 리플레이 대안 — 웹은 HyperDX(rrweb)로 탈출 가능, 모바일은 대안 미성숙 — 은 [RUM 내재화]({{< relref "../rum/_index.md" >}}) 도메인에서 별도로 다룬다.
