@@ -39,6 +39,17 @@ vmstorage는 vminsert로부터 지표를 받아 **월별 파티션 단위로 저
 
 ### TSID 변환 — 정규화, 캐시, 캐시미스
 
+```mermaid
+flowchart TD
+  RAW["로우: metric name + labels"] --> CN["Canonical Name 정규화 → 64bit TSID"]
+  CN --> Q1{"TSID 캐시"}
+  Q1 -->|hit| T["TSID (빠른 경로)"]
+  Q1 -->|miss| Q2{"IndexDB 조회"}
+  Q2 -->|hit| T
+  Q2 -->|miss| N["New TSID 발급"]
+  N --> X["⚠ 남발 = 카디널리티 폭발"]
+```
+
 저장 전 모든 로우는 **TSID(64bit 정수, 시계열의 내부 ID)** 로 바뀐다. 변환은 두 단계다.
 
 1. 들어온 로우를 **Canonical Name으로 정규화**한다. 레이블 순서가 달라도 집합이 같으면 같은 형태가 되도록 정렬한 뒤, 그 정규화된 이름을 **64bit TSID**로 변환한다.
@@ -56,6 +67,13 @@ TSID 캐시 조회 → miss
 IndexDB에도 없으면 그 시계열은 **처음 보는 시계열**이므로 새 **`New TSID`** 를 발급한다. 이것이 흔히 말하는 "새 시계열이 만들어지는" 순간이다. `New TSID`가 짧은 시간에 폭발적으로 발급되는 상황이 곧 **카디널리티 폭발**인데, 그 원인·지표·설계 원칙은 [06 카디널리티]({{< relref "06-cardinality.md" >}})가 주인이다. 여기서는 발급 지점까지만 짚는다.
 
 ### 파티션 — 인메모리 → Small → Big
+
+```mermaid
+flowchart LR
+  IM["인메모리 파츠"] -->|플러시| SM["Small 파티션"]
+  SM -->|"머지 (Merge Multiplier ↑)"| BG["Big 파티션"]
+  IM -. 아주 큰 블록 .-> BG
+```
 
 vmstorage 내부의 데이터는 **인메모리 파트 → Small 파티션 → Big 파티션** 으로 굳어간다.
 
@@ -84,6 +102,13 @@ vmstorage 내부의 데이터는 **인메모리 파트 → Small 파티션 → B
 
 ### IndexDB 3단계 로테이션 — 단건 삭제 회피
 
+```mermaid
+flowchart LR
+  N["Next<br/>(다음 로테이션 준비)"] ==>|rotate| C["Current<br/>(실시간 수신)"]
+  C ==>|rotate| P["Previous<br/>(보존기간 내·쿼리 가능)"]
+  P ==>|rotate| D["통째로 드롭"]
+```
+
 IndexDB에는 시간이 지날수록 **삭제되거나 더 이상 수집되지 않는 시계열의 엔트리**가 누적된다. 그렇다고 엔트리를 하나씩 지우면 인덱스 자료구조 특성상 **단건 삭제 비용이 매우 크다.** 그래서 VM은 **IndexDB 자체를 통째로 굴려버린다.**
 
 버전 **1.133.0부터 3단계 로테이션**이 정착됐다.
@@ -101,6 +126,19 @@ Retention 기간에 도달하면 **Next → Current, Current → Previous, Previ
 VM의 메모리·스토리지 효율의 비결이 여기 있다. 원래 타임스탬프 8바이트 + 값 8바이트로 **데이터포인트 하나에 16바이트**가 필요하지만, VM은 Facebook이 2015년 발표한 **Gorilla 압축**의 계열 기법으로 이를 극단적으로 줄인다.
 
 ### Gauge → Delta, Counter → Delta-of-Delta
+
+```mermaid
+flowchart TD
+  subgraph GA["Gauge → Delta"]
+    G1["원본: 110, 105, 98, 110"] --> G2["저장: 110, -5, -7, +12"]
+  end
+  subgraph CO["Counter → Delta-of-Delta"]
+    C1["원본: 120, 130, 150, 170"] --> C2["차분: 10, 20, 20"]
+    C2 --> C3["차분의 차분: ≈ 0"]
+  end
+  G2 --> ZZ["ZigZag (부호 제거) → Varint (7bit + 연속플래그)"]
+  C3 --> ZZ
+```
 
 - **Gauge → Delta 인코딩**: 위아래로 변동하는 값. 첫 값만 남기고 나머지는 **차분(diff)** 만 저장한다. 원본 `110, 105, 98, 110, 103` → `110, -5, -7, +12, -7`. 8바이트짜리 값들이 1~2바이트로 줄어든다.
 - **Counter → Delta-of-Delta 인코딩**: 단조 증가하는 값. 원본 `120, 130, 140, 150...`의 1차 차분은 `100, 100, 100...`(거의 일정), 그 **차분의 차분(Delta-of-Delta)** 은 `0, 0, 0...`에 수렴한다. 그래서 **첫 값 + 첫 차분 뒤로는 "변화 없음"만 저장**하면 되어 압축률이 극단적으로 좋다. 뒤에 100개, 1000개를 이어 붙여도 크기가 거의 늘지 않는다.

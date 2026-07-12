@@ -11,6 +11,18 @@ weight: 5
 
 ## vmselect — Fanout 쿼리 엔진
 
+```mermaid
+flowchart LR
+  G["Grafana"] -->|PromQL/MetricsQL| V["vmselect"]
+  V -->|Fanout| S1["vmstorage-1"]
+  V -->|Fanout| S2["vmstorage-2"]
+  V -->|Fanout| S3["vmstorage-N"]
+  S1 --> MG["Merge → Sort → JSON"]
+  S2 --> MG
+  S3 --> MG
+  MG --> G
+```
+
 vmselect는 PromQL/MetricsQL 쿼리를 받아 **모든 vmstorage 노드에 던지고(Fanout)**, 돌아온 결과를 모아서 클라이언트에 반환하는 컴포넌트다. [02 아키텍처]({{< relref "02-architecture.md" >}})의 데이터 흐름에서 화살표가 반대로 향하는 쪽, 즉 읽기 경로의 진입점이다.
 
 전체 흐름은 세 단계다.

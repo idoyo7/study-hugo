@@ -39,6 +39,18 @@ Push는 폐쇄망, 푸시만 가능한 환경, 또는 배치 잡 같은 **단발
 
 ### 내부 7단계 파이프라인
 
+```mermaid
+flowchart TD
+  A["① 스크랩 / API 수신"] --> B["② 글로벌 릴레이블링"]
+  B --> C["③ dedup + 스트리밍 어그리게이션"]
+  C --> D["④ 샤딩 + 리플리케이션"]
+  D --> E["⑤ 퍼-리모트 튜닝<br/>리모트별 릴레이블·드랍·dedup"]
+  E --> F["⑥ Fast Queue (메모리)"]
+  F -->|가득 차면| P["Persistent Queue (디스크)"]
+  F --> H["⑦ 리모트 플러시 → vminsert"]
+  P --> H
+```
+
 스크랩되거나 푸시된 데이터가 vmagent 안에서 거치는 경로는 7단계다.
 
 ```
@@ -82,6 +94,15 @@ vminsert가 vmstorage에 붙을 때 다음 순서를 밟는다.
 
 ### 랑데부 해싱 — 왜 단순 해시가 아닌가
 
+```mermaid
+flowchart LR
+  M["시계열<br/>http_requests_total{method=get}"] --> SC["노드별 점수 = hash(이름 + 노드명)"]
+  SC --> A["node A · 0.82"]
+  SC --> B["node B · 0.45"]
+  SC --> C["node C · 0.91"]
+  C --> W["최고점 노드에만 저장"]
+```
+
 수많은 vmstorage 중 어느 노드로 보낼지가 핵심 문제다. 단순 모듈로/해시를 쓰면 노드가 하나 추가·삭제될 때 **거의 모든 시계열**이 원래 노드가 아닌 다른 노드로 옮겨간다. 리밸런싱 폭풍이 일어난다. 그래서 VM은 **랑데부 해싱(Rendezvous hashing)** 을 쓴다.
 
 원리는 간단하다. 지표 하나가 들어오면 **모든 스토리지 노드에 대해 점수를 매긴다.** 점수는 `"지표 이름 + 노드 이름"`을 합쳐 해시한 값이고, **가장 점수가 높은 노드에만** 보낸다.
@@ -108,6 +129,15 @@ metric: http_requests_total{method="get"}
 vminsert는 앞서 본 헬스 체크로 각 vmstorage 상태를 계속 파악하고 있다. 노드가 다운되면 그 사실을 인지해, 그 노드로 갈 지표를 **살아있는 노드들에 균등 분배(re-route)** 한다. 예를 들어 노드 1·2·3 중 2번이 죽으면, 2번으로 갈 지표를 1번과 3번에 나눠 넣는다. 노드가 복구되면 랑데부 해싱 규칙에 따라 원래 배치로 돌아간다.
 
 ### replicationFactor — 복제
+
+```mermaid
+flowchart TD
+  I["vminsert"] -->|primary 인덱스 i| P["vmstorage i"]
+  I -->|"복제 i+1 … i+N-1"| R["vmstorage i+1"]
+  H["헬스체크: 다운 노드 감지"] -->|re-route| RB["살아있는 노드로 균등 재분배"]
+  P -. 쿼리시 dedup .-> DED["vmselect 중복 제거"]
+  R -. 쿼리시 dedup .-> DED
+```
 
 한 시계열을 한 노드에만 한 번 저장하면, 그 노드가 죽는 순간 데이터가 유실된다. 이를 막기 위해 **`replicationFactor`** 를 둔다.
 

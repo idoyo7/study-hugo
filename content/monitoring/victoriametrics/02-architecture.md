@@ -11,6 +11,21 @@ VM 클러스터가 어떤 컴포넌트로 이루어지고 데이터가 어떻게
 
 ## 4개 컴포넌트의 데이터 흐름
 
+```mermaid
+flowchart LR
+  T["Targets<br/>node_exporter · /metrics"] -->|scrape| A["vmagent<br/>수집·1차 가공"]
+  A -->|remote_write| I["vminsert<br/>라우팅·샤딩"]
+  subgraph VS["vmstorage · n노드 (월별 파티션)"]
+    S1["vmstorage-1"]
+    S2["vmstorage-N"]
+  end
+  I --> S1
+  I --> S2
+  S1 --> Q["vmselect<br/>Fanout → Merge"]
+  S2 --> Q
+  Q -->|PromQL / MetricsQL| G["Grafana"]
+```
+
 VM 클러스터 버전은 4개의 핵심 컴포넌트로 구성된다. 대규모·고가용성(HA) 환경에서는 SingleNode가 아닌 클러스터 버전을 쓴다. 데이터가 **들어가는 길**(왼쪽 → 오른쪽)과 **빠지는 길**(오른쪽 → 왼쪽)을 하나의 흐름으로 보면 다음과 같다.
 
 ```
