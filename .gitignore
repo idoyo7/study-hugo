@@ -2,3 +2,6 @@
 /resources/
 .hugo_build.lock
 .omc/
+.omx/
+# 세션 툴이 cwd에 생성/동기화한 개인 파일 — 발행 대상 아님
+_work/
