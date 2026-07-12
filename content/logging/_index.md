@@ -42,17 +42,18 @@ cascade:
 
 | 솔루션 | 계열 | 한 줄 성격 | 우리 케이스 포지션 |
 |---|---|---|---|
-| **OpenSearch (EFK)** | 검색엔진(Lucene) | 강력한 풀텍스트 검색, 그러나 비용의 ~90%가 인스턴스 시간 | 현행 — tail 이전 + in-place 최적화 |
-| **Loki + Alloy** | 라벨 인덱스 + object storage | 저비용 로그 집계, 그러나 새 운영 모델 학습 부담 | 보류(SSD 모드 EOL 예정) |
-| **VictoriaLogs** | Victoria 패밀리 | VM과 동일한 운영 모델, 초경량 · 풀텍스트 | **추천 — 로그 내재화의 축** |
-| **ClickHouse (self-hosted)** | 컬럼형 OLAP | 극단적 압축, 로그+트레이스+RUM 통합 흡수 | 통합 이유가 생겼을 때(D4) |
-| **HyperDX / ClickStack** | ClickHouse 위 UI 스택 | 웹 RUM·로그·트레이스 통합 프론트(턴키) | 웹 RUM 중계처 후보 |
-| **StarRocks** | 컬럼형 MPP OLAP | S3 위 stateless 컴퓨트가 강점, 그러나 로그·UI는 미성숙 | 별도 mandate 없으면 제외 |
+| [**OpenSearch (EFK)**]({{< relref "01-opensearch.md" >}}) | 검색엔진(Lucene) | 강력한 풀텍스트 검색, 그러나 비용의 ~90%가 인스턴스 시간 | 현행 — tail 이전 + in-place 최적화 |
+| [**Loki + Alloy**]({{< relref "02-loki-alloy.md" >}}) | 라벨 인덱스 + object storage | 저비용 로그 집계, 그러나 새 운영 모델 학습 부담 | 보류(SSD 모드 EOL 예정) |
+| [**VictoriaLogs**]({{< relref "03-victorialogs.md" >}}) | Victoria 패밀리 | VM과 동일한 운영 모델, 초경량 · 풀텍스트 | **추천 — 로그 내재화의 축** |
+| [**ClickHouse (self-hosted)**]({{< relref "04-clickhouse.md" >}}) | 컬럼형 OLAP | 극단적 압축, 로그+트레이스+RUM 통합 흡수 | 통합 이유가 생겼을 때(D4) |
+| [**HyperDX / ClickStack**]({{< relref "05-hyperdx-clickstack.md" >}}) | ClickHouse 위 UI 스택 | 웹 RUM·로그·트레이스 통합 프론트(턴키) | 웹 RUM 중계처 후보 |
+| [**StarRocks**]({{< relref "06-starrocks.md" >}}) | 컬럼형 MPP OLAP | S3 위 stateless 컴퓨트가 강점, 그러나 로그·UI는 미성숙 | 별도 mandate 없으면 제외 |
 | **RUM 대안군** | Sentry/OpenReplay/Faro 등 | 셀프호스트 세션 리플레이 | → 별도 [RUM 내재화]({{< relref "../rum/_index.md" >}}) 도메인 |
 
 ## 블록 지도
 
 | 블록 | 내용 |
 |---|---|
-| [솔루션별 특징]({{< relref "01-solutions.md" >}}) | OpenSearch·Loki·VictoriaLogs·ClickHouse·HyperDX·StarRocks 장단점, ClickHouse vs StarRocks |
-| [우리 케이스 · 권장안]({{< relref "02-recommendation.md" >}}) | 최소 조합 아키텍처, 인건비 게이트, 저후회 시퀀싱, 하지 말 것, 결론 |
+| 솔루션별 페이지 | [OpenSearch]({{< relref "01-opensearch.md" >}}) · [Loki+Alloy]({{< relref "02-loki-alloy.md" >}}) · [VictoriaLogs]({{< relref "03-victorialogs.md" >}}) · [ClickHouse]({{< relref "04-clickhouse.md" >}}) · [HyperDX/ClickStack]({{< relref "05-hyperdx-clickstack.md" >}}) · [StarRocks]({{< relref "06-starrocks.md" >}}) |
+| [ClickHouse vs StarRocks]({{< relref "07-clickhouse-vs-starrocks.md" >}}) | 로그/관측성 한정 정면 비교(8축 요약·판정) |
+| [우리 케이스 · 권장안]({{< relref "08-recommendation.md" >}}) | 최소 조합 아키텍처, 인건비 게이트, 저후회 시퀀싱, 하지 말 것, 결론 |
