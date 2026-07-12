@@ -1,13 +1,13 @@
 ---
-title: "메트릭 400일 보관"
+title: "메트릭 장기보관 아키텍처 비교"
 weight: 2
 ---
 
-# 메트릭 400일 보관 — 아키텍처 비교와 권장안
+# 메트릭 장기보관 아키텍처 비교 — 400일 보관 권장안
 
 과거 장애 재조사를 위한 **메트릭 400일 보관** 아키텍처를 비교하고 권장안을 정리한 챕터다. 옵션별 비용·구성·제약을 같은 축으로 놓고, 왜 A안(VM OSS 아카이브)이 이 조건에서 최적인지까지 연결해서 읽도록 구성했다.
 
-> 자매 챕터: [VictoriaMetrics 지식베이스]({{< relref "../victoriametrics/_index.md" >}}) — 이 챕터의 A안이 쓰는 streamAggr·vmsingle·vmbackup·MetricsQL의 내부 동작은 그쪽에서 다룬다.
+> 자매 챕터: [VictoriaMetrics Deep Dive]({{< relref "../victoriametrics/_index.md" >}}) — 이 챕터의 A안이 쓰는 streamAggr·vmsingle·vmbackup·MetricsQL의 내부 동작은 그쪽에서 다룬다.
 
 ## 전제 (사용자 확정)
 

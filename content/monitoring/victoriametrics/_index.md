@@ -1,14 +1,14 @@
 ---
-title: "VictoriaMetrics"
+title: "VictoriaMetrics Deep Dive"
 weight: 1
 ---
 
-# VictoriaMetrics 지식베이스
+# VictoriaMetrics Deep Dive — 네이버 D2 발표 정독
 
 네이버 D2/DEVIEW의 VictoriaMetrics 발표 영상 2편과 텍스트 기사 2편을 하나로 병합해, 주제별 블록으로 재구성한 학습 지식베이스다. 데이터가 **들어와서 → 저장되고 → 쿼리로 나가기**까지의 내부 동작을 이해하고, 그 메커니즘이 **수천만~수십억 규모의 실전 운영**에서 어떻게 쓰이는지 연결해서 읽도록 구성했다.
 
 > 원본 출처와 전사 방법은 [08 소스맵]({{< relref "08-sources.md" >}}) 참고.
-> 자매 챕터: [메트릭 400일 보관 — 아키텍처 비교]({{< relref "../longterm-retention/_index.md" >}}) — 이 VM 내부 동작을 실제 장기보관 스택 결정에 적용한 사례.
+> 자매 챕터: [메트릭 장기보관 아키텍처 비교]({{< relref "../longterm-retention/_index.md" >}}) — 이 VM 내부 동작을 실제 장기보관 스택 결정에 적용한 사례.
 
 ## 블록 지도
 
