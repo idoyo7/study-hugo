@@ -23,21 +23,22 @@ weight: 1
 
 Istio(그리고 대부분의 메시)는 두 부분으로 나뉜다.
 
-```
-                    ┌──────────────────────────────┐
-   컨트롤 플레인      │           istiod             │  ← 설정을 계산해서 배포
-                    │  (Pilot · Citadel · Galley)   │
-                    └───────────────┬──────────────┘
-                          xDS(gRPC) │  설정 push (CDS/EDS/LDS/RDS/SDS)
-              ┌───────────────┬─────┴─────┬───────────────┐
-              ▼               ▼           ▼               ▼
-   데이터 플레인   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-              │ Pod A       │   │ Pod B       │   │  Gateway    │
-              │ ┌────┐ ┌───┐│   │ ┌────┐ ┌───┐│   │  ┌───────┐  │
-              │ │app │ │ E ││──▶│ │ E  │ │app││   │  │ Envoy │  │◀── 외부 트래픽
-              │ └────┘ └───┘│   │ └───┘ └────┘│   │  └───────┘  │
-              └─────────────┘   └─────────────┘   └─────────────┘
-                       E = Envoy 사이드카 프록시
+```mermaid
+flowchart TD
+  D["istiod · 컨트롤 플레인<br/>Pilot · Citadel · Galley 통합"]
+  subgraph PA["Pod A"]
+    appA["app"] --> EA["Envoy 사이드카"]
+  end
+  subgraph PB["Pod B"]
+    EB["Envoy 사이드카"] --> appB["app"]
+  end
+  EG["Ingress Gateway<br/>(Envoy)"]
+  ext["외부 트래픽"] --> EG
+  D -.->|"xDS: CDS/EDS/LDS/RDS/SDS"| EA
+  D -.-> EB
+  D -.-> EG
+  EG --> EA
+  EA -->|mTLS| EB
 ```
 
 - **데이터 플레인** — 실제 트래픽이 흐르는 길. 파드마다 **Envoy 프록시**가 사이드카로 붙어, 그 파드가 주고받는 **모든 트래픽을 가로챈다**. mTLS 암호화, 라우팅, 재시도, 지표 수집이 전부 이 Envoy에서 일어난다. 외부에서 들어오는 트래픽을 받는 **Gateway**도 결국 독립적으로 뜬 Envoy다.
@@ -51,8 +52,11 @@ Istio(그리고 대부분의 메시)는 두 부분으로 나뉜다.
 
 그래서 애플리케이션은 `http://other-service`로 평범하게 호출했다고 믿지만, 실제로는:
 
-```
-app → (iptables 가로채기) → 로컬 Envoy → [mTLS] → 상대 Pod Envoy → (iptables) → 상대 app
+```mermaid
+flowchart LR
+  app["app"] -->|"iptables 가로채기"| le["로컬 Envoy"]
+  le -->|mTLS| re["상대 Pod Envoy"]
+  re -->|iptables| ra["상대 app"]
 ```
 
 이 우회 덕분에 **애플리케이션 코드 한 줄 안 고치고** mTLS·재시도·트래픽 분할을 얹을 수 있다. 대신 모든 요청이 프록시를 두 번(발신 측·수신 측) 통과하므로 **지연과 자원이 추가된다** — 이게 뒤에 나오는 "메시의 비용"이다.

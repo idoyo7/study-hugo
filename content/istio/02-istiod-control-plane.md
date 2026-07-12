@@ -13,18 +13,13 @@ weight: 2
 
 istiod는 트래픽이 지나가는 곳이 아니다. 하는 일은 하나로 요약된다: **클러스터 상태를 감시해서, 각 Envoy 프록시가 알아야 할 설정을 계산해 내려보낸다.**
 
-```
- ┌────────────┐   watch    ┌─────────────────────────────┐
- │ Kube API   │ ─────────▶ │            istiod           │
- │ Service    │            │  1. 상태 수집 (services,      │
- │ Endpoint   │            │     endpoints, CRD)          │
- │ Pod        │            │  2. Envoy 설정으로 변환        │
- │ Istio CRD  │            │  3. xDS로 각 프록시에 push     │
- └────────────┘            └───────────────┬─────────────┘
-                                xDS(ADS/gRPC) │
-                        ┌──────────┬──────────┼──────────┐
-                        ▼          ▼          ▼          ▼
-                     Envoy₁     Envoy₂     Envoy₃  …  Envoyₙ
+```mermaid
+flowchart TD
+  K["Kube API<br/>Service · Endpoint · Pod · Istio CRD"] -->|watch| D["istiod<br/>1. 상태 수집 → 2. Envoy 설정 변환 → 3. push"]
+  D -->|"xDS (ADS/gRPC)"| E1["Envoy₁"]
+  D --> E2["Envoy₂"]
+  D --> E3["Envoy₃"]
+  D --> En["Envoyₙ"]
 ```
 
 프록시에 내려가는 설정은 **xDS**라는 프로토콜 묶음으로 전달된다. 종류별로:

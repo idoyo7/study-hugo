@@ -13,23 +13,13 @@ weight: 3
 
 메시 안에서 트래픽은 두 방향으로 흐르고, 이 둘은 통과하는 프록시가 다르다.
 
-```
-        [ 외부 클라이언트 ]
-               │  north-south (남북)
-               ▼
-        ┌──────────────┐
-        │   NLB / ALB  │
-        └──────┬───────┘
-               ▼
-      ┌──────────────────┐        ← Ingress Gateway (독립 Envoy)
-      │ istio-ingressgw  │           = 클러스터의 관문
-      └────────┬─────────┘
-               │  east-west (동서)
-     ┌─────────┼──────────┐
-     ▼         ▼          ▼
-  ┌──────┐  ┌──────┐  ┌──────┐    ← 각 파드의 사이드카 Envoy
-  │Pod+E │─▶│Pod+E │─▶│Pod+E │
-  └──────┘  └──────┘  └──────┘
+```mermaid
+flowchart TD
+  C["외부 클라이언트"] -->|"north-south (남북)"| LB["NLB / ALB"]
+  LB --> GW["istio-ingressgw<br/>Ingress Gateway · 독립 Envoy"]
+  GW -->|"east-west (동서)"| P1["Pod + 사이드카"]
+  P1 --> P2["Pod + 사이드카"]
+  P2 --> P3["Pod + 사이드카"]
 ```
 
 - **North-south(남북)** — 클러스터 **바깥**과 주고받는 트래픽. 외부 → 서비스 진입은 **Ingress Gateway**를, 서비스 → 외부는 Egress Gateway(쓸 경우)를 지난다.

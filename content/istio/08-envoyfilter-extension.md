@@ -65,8 +65,12 @@ nginx `limit_req`의 대응이 여기다. Istio는 레이트 리밋을 표준 CR
 
 클러스터 전역에서 **하나의 일관된 한도**가 필요하면, Envoy의 `envoy.filters.http.ratelimit` 필터가 매 요청을 **외부 Rate Limit Service(RLS)**(보통 Envoy ratelimit + Redis)에 물어본다.
 
-```
-요청 → Envoy → [ratelimit 필터] → RLS(Redis 카운터) → allow/deny
+```mermaid
+flowchart LR
+  req["요청"] --> envoy["Envoy"]
+  envoy --> rl["ratelimit 필터"]
+  rl --> rls["RLS (Redis 카운터)"]
+  rls -->|"allow / deny"| envoy
 ```
 
 - **장점**: 프록시 수와 무관하게 전역 정확도. 사용자·API키·경로별 descriptor로 세밀한 정책.

@@ -13,9 +13,12 @@ weight: 5
 
 메시에서 요청 하나는 프록시를 여러 번 지난다. 그래서 같은 "503"도 **어느 홉에서 났느냐**에 따라 원인이 완전히 다르다.
 
-```
-client → [ingress GW Envoy] → [source sidecar] → [dest sidecar] → app
-              ①                    ②                 ③            ④
+```mermaid
+flowchart LR
+  client["client"] --> gw["① ingress GW Envoy"]
+  gw --> ss["② source sidecar"]
+  ss --> ds["③ dest sidecar"]
+  ds --> app["④ app"]
 ```
 
 앱(④)이 낸 503과, dest 사이드카(③)가 "붙을 상대가 없어서" 낸 503은 전혀 다른 문제다. **이걸 가르는 게 Envoy의 response flag**다. Envoy 액세스 로그의 `%RESPONSE_FLAGS%` 필드에 두세 글자로 찍힌다.
