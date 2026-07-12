@@ -1,13 +1,14 @@
 ---
-title: "B안 — Thanos→S3"
+title: "Thanos"
 weight: 3
+aliases: ["/monitoring/longterm-retention/03-option-b-thanos/"]
 ---
 
-# B안 — Thanos Receive → S3 (cold 400d, compactor downsampling)
+# Thanos — Receive → S3 (cold 400d, compactor downsampling)
 
 VM hot을 단기로 유지하고 raw를 S3에 짧게 쌓은 뒤, Thanos compactor가 **사후에** 5m/1h 다운샘플 블록을 만들어 400d를 보관하는 안이다. **S3 내구성 + 사후 재계산 보험**을 얻는 대신 **stateful 컴포넌트 3~4종과 더 높은 저장비**를 치른다.
 
-> 관련 블록: [02 A안(권장)]({{< relref "02-option-a-vm-archive.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지 말 것]({{< relref "08-recommendation-and-pitfalls.md" >}})
+> 관련 블록: [02 VM 아카이브(권장)]({{< relref "02-vm-archive.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지 말 것]({{< relref "08-recommendation-and-pitfalls.md" >}})
 
 ## 아키텍처
 
@@ -45,7 +46,7 @@ Grafana(Prometheus 타입 DS) ◀─ Querier ◀─ Store Gateway (블록당 ~6M
 
 ## 비용 (시나리오 ②: raw 90d + 5m 집계 400d)
 
-시나리오 정의와 검증된 서울 단가는 [01 문제·2축]({{< relref "01-problem-and-axes.md" >}})·[06 단가]({{< relref "06-storage-pricing.md" >}})가 주인이다. 여기서는 B안 대입만 옮긴다.
+시나리오 정의와 검증된 서울 단가는 [01 문제·2축]({{< relref "01-problem-and-axes.md" >}})·[06 단가]({{< relref "06-storage-pricing.md" >}})가 주인이다. 여기서는 Thanos안 대입만 옮긴다.
 
 ```
 S3 = S × (1.5~2 B/sample) × (raw일수 + 400d × 1.2~1.8) × $0.025
@@ -62,7 +63,7 @@ S3 = S × (1.5~2 B/sample) × (raw일수 + 400d × 1.2~1.8) × $0.025
 | S3 요청비 (compactor 재작성 + Store GW GET) | +α (쿼리 패턴 의존, 미산입) |
 | **합계** | **~$780~1,200/mo + 컴퓨트 4종** |
 
-- 시나리오 ①(raw 400d 전 구간)이면 S3 12.3~16.4 TiB = $307~409 → 총 **~$680~800 + 컴퓨트**다. **raw를 통째로 400d 들고 가도 이 정도이므로, 이 지점이 B안의 "사후 재계산 보험"이 서는 근거다.**
+- 시나리오 ①(raw 400d 전 구간)이면 S3 12.3~16.4 TiB = $307~409 → 총 **~$680~800 + 컴퓨트**다. **raw를 통째로 400d 들고 가도 이 정도이므로, 이 지점이 Thanos안의 "사후 재계산 보험"이 서는 근거다.**
 - **S3 범위가 넓은 이유는 다운샘플링이 공간을 줄이지 않기 때문이다** — 공식 문서가 5m·1h 블록이 raw와 "약간 작거나 비슷한 크기"라 명시한다. 공존 구간은 **~3x**로 부풀고, 실제 절감은 오직 `--retention.resolution-raw` 단축(=raw 삭제)에서만 발생한다. 이 논점의 심층 대조는 [07]({{< relref "07-streamaggr-vs-downsampling.md" >}})이 주인이다.
 
 ## 쿼리 경로 — PromQL 전용
@@ -90,12 +91,12 @@ S3 = S × (1.5~2 B/sample) × (raw일수 + 400d × 1.2~1.8) × $0.025
 - **PromQL 전용** — MetricsQL 의존이 있거나 미확인이면 재작성 리스크.
 - Receive는 service 클러스터 부적합(hashring stateful).
 
-## 언제 B를 고르나
+## 언제 Thanos안을 고르나
 
 - raw의 **사후 재계산 보험**이 집계-확정 리스크보다 중요할 때.
 - S3 내구성이 조직 요구(감사 등)일 때.
 - Thanos 운영 경험·여력이 이미 있을 때(hashring·compactor halt·캐시 계층 상시 운영).
-- **A안에서 전환 가능하다** — 라우터의 RW#4 대상만 Thanos Receive로 갈아끼우면 되므로, 처음부터 B로 갈 필요는 없다. A안 구성과 가역성은 [02]({{< relref "02-option-a-vm-archive.md" >}}) 참조.
+- **VM 아카이브안에서 전환 가능하다** — 라우터의 RW#4 대상만 Thanos Receive로 갈아끼우면 되므로, 처음부터 Thanos안으로 갈 필요는 없다. VM 아카이브안 구성과 가역성은 [02]({{< relref "02-vm-archive.md" >}}) 참조.
 
 ## 출처
 

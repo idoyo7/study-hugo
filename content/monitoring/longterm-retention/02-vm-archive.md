@@ -1,13 +1,14 @@
 ---
-title: "A안 — VM OSS 아카이브"
+title: "VictoriaMetrics"
 weight: 2
+aliases: ["/monitoring/longterm-retention/02-option-a-vm-archive/"]
 ---
 
-# A안 ★권장 — VM 아카이브 tier (라우터 RW#4 + streamAggr 5m → vmsingle 400d)
+# VictoriaMetrics 아카이브 — 라우터 RW#4 + streamAggr 5m → vmsingle 400d
 
-기존 chain 라우터 vmagent에 remoteWrite 하나(RW#4)를 더하고, 그 URL에만 5m 스트림 집계를 걸어 전 메트릭을 별도 vmsingle-archive(400d, VM OSS만)로 흘려보내는 권장안이다. 신규 기술 0, 월 저장비 $385~416, D안 대비 약 70% 절감을 얻는다.
+기존 chain 라우터 vmagent에 remoteWrite 하나(RW#4)를 더하고, 그 URL에만 5m 스트림 집계를 걸어 전 메트릭을 별도 vmsingle-archive(400d, VM OSS만)로 흘려보내는 권장안이다. 신규 기술 0, 월 저장비 $385~416, 단순 확장안 대비 약 70% 절감을 얻는다.
 
-> 관련 블록: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [03 B안 Thanos]({{< relref "03-option-b-thanos.md" >}}), [05 D안 확장]({{< relref "05-option-d-expansion.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
+> 관련 블록: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
 
 ## 한 줄 요약
 
@@ -85,16 +86,16 @@ spec:
 
 + 선택: vmbackup S3-IA 콜드 사본 $12~37/mo.
 
-핵심은 **D안($1,642/mo) 대비 약 70% 절감**이라는 점이다. D안이 비싼 이유(gp3 단가 × RF2)는 [05 D안]({{< relref "05-option-d-expansion.md" >}})에서, 4안 종합 비용표·판단 트리는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})에서, 서울 리전 단가 상세는 [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}})에서 다룬다.
+핵심은 **단순 확장안($1,642/mo) 대비 약 70% 절감**이라는 점이다. 확장안이 비싼 이유(gp3 단가 × RF2)는 [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}})에서, 4안 종합 비용표·판단 트리는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})에서, 서울 리전 단가 상세는 [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}})에서 다룬다.
 
 ## 강점과 리스크
 
 **강점**
 
-- 4안 중 최저 비용(D 대비 ~70%↓), 신규 stateful 컴포넌트 1개(vmsingle)뿐이며 그마저 기존과 동일 기술스택 — **신규 기술 학습 0**.
+- 4안 중 최저 비용(확장안 대비 ~70%↓), 신규 stateful 컴포넌트 1개(vmsingle)뿐이며 그마저 기존과 동일 기술스택 — **신규 기술 학습 0**.
 - MetricsQL·기존 대시보드 쿼리 보존 → 의존도 미확인 리스크 소멸.
 - service 무상태 원칙 무영향. 기존 라우터 설계에 RW 하나 추가로 자연 결합.
-- **가역적** — RW#4 대상만 교체하면 B안으로 전환(아래 참조).
+- **가역적** — RW#4 대상만 교체하면 Thanos안으로 전환(아래 참조).
 
 **리스크**
 
@@ -110,7 +111,7 @@ streamAggr(사전 확정, 재계산 불가) vs Thanos downsampling(사후 재계
 
 ## 가역성 (탈출구)
 
-이 구조는 가역적이다. **RW#4는 언제든 Thanos Receive로 갈아끼울 수 있고**, 그렇게 하면 그대로 [03 B안]({{< relref "03-option-b-thanos.md" >}})으로 전환된다. 드라이런 실측에서 f가 예상을 크게 벗어나거나 "확정 집계가 재조사에 부족"이 드러나면 그 시점에 재평가하면 된다 — 즉 A안 채택이 B안을 영구 배제하지 않는다.
+이 구조는 가역적이다. **RW#4는 언제든 Thanos Receive로 갈아끼울 수 있고**, 그렇게 하면 그대로 [03 Thanos안]({{< relref "03-thanos-s3.md" >}})으로 전환된다. 드라이런 실측에서 f가 예상을 크게 벗어나거나 "확정 집계가 재조사에 부족"이 드러나면 그 시점에 재평가하면 된다 — 즉 VM 아카이브안 채택이 Thanos안을 영구 배제하지 않는다.
 
 ## 롤아웃
 

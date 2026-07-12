@@ -7,7 +7,7 @@ weight: 1
 
 이 블록은 메트릭 400일 보관의 문제를 정의하고, 비용을 자릿수 단위로 가르는 두 결정축(**무엇을 보관** / **어디에 저장**)을 정리한다. 시나리오별 저장량·비용 규모와 검증된 서울 리전 단가 요약표를 함께 싣는다.
 
-> 관련 블록: [00 인덱스]({{< relref "_index.md" >}}), [02 A안(권장)]({{< relref "02-option-a-vm-archive.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})
+> 관련 블록: [00 인덱스]({{< relref "_index.md" >}}), [02 VM 아카이브(권장)]({{< relref "02-vm-archive.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})
 
 ## 1. 문제 정의
 
@@ -37,8 +37,8 @@ weight: 1
 
 후보는 셋이다.
 
-- **vmagent streamAggr**(OSS, v1.87.0+) — 인제스트 시점에 5m 집계를 만들어 별도 장기 tier로 보낸다(사전 집계) → **A안**. 개념 상세는 [수집 (vmagent·vminsert)]({{< relref "../victoriametrics/03-ingestion.md" >}}).
-- **Thanos compactor downsampling** — S3에 raw 블록을 쌓고 사후에 5m/1h 블록을 만든다(사후 집계) → **B안**.
+- **vmagent streamAggr**(OSS, v1.87.0+) — 인제스트 시점에 5m 집계를 만들어 별도 장기 tier로 보낸다(사전 집계) → **VM 아카이브안**. 개념 상세는 [수집 (vmagent·vminsert)]({{< relref "../victoriametrics/03-ingestion.md" >}}).
+- **Thanos compactor downsampling** — S3에 raw 블록을 쌓고 사후에 5m/1h 블록을 만든다(사후 집계) → **Thanos안**.
 - **Mimir** — 다운샘플링이 OSS/GEM 어디에도 없다(3.0에서도 미추가) → 이 요구에서는 사실상 **탈락**.
 
 사전 집계 vs 사후 집계의 대비가 이 챕터의 핵심 논점이다. 판정과 비교표는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})에서 다룬다.
@@ -75,30 +75,30 @@ S ≈ 2.2×10¹⁰ samples/day (~254k samples/s)
 bytes/sample: VM ~1 B / Prom·Thanos 1.5~2 B / Mimir ~2 B (베스트케이스 0.4~0.8 B는 예산 근거 금지)
 
 hot 90d RF2 gp3 = 4,050 GiB × 0.0912 = $369/mo
-아카이브(A)     = δ × 400 × f × 단가  (f = 집계 축소율 0.1~0.3, 드라이런 실측 필요)
+아카이브(VM 아카이브안) = δ × 400 × f × 단가  (f = 집계 축소율 0.1~0.3, 드라이런 실측 필요)
 ```
 
 ### 시나리오 ① — 400d 전부 raw 30s
 
 | 옵션 | 저장 구성 | 월 저장비 |
 |---|---|---|
-| **D** 현 클러스터 확장 | 18.0 TiB gp3 RF2 | **$1,642** (헤드룸 미포함 하한) |
-| **A′** hot + VM raw 아카이브 | 9.0 TiB RF1 (sc1/st1) | **$485(sc1) / $787(st1)** |
-| **B** hot + Thanos raw 400d S3 | 12.3~16.4 TiB S3 + Receive 로컬 EBS | **~$680~800 + 컴퓨트** |
-| **C** hot + Mimir raw 400d S3 | ~16.4 TiB S3 | **~$740 + Kafka·컴퓨트** |
+| **단순 확장** — 현 클러스터 확장 | 18.0 TiB gp3 RF2 | **$1,642** (헤드룸 미포함 하한) |
+| **VM raw 아카이브** — hot + VM raw 아카이브 | 9.0 TiB RF1 (sc1/st1) | **$485(sc1) / $787(st1)** |
+| **Thanos** — hot + Thanos raw 400d S3 | 12.3~16.4 TiB S3 + Receive 로컬 EBS | **~$680~800 + 컴퓨트** |
+| **Mimir** — hot + Mimir raw 400d S3 | ~16.4 TiB S3 | **~$740 + Kafka·컴퓨트** |
 
 ### 시나리오 ② — raw 90d + 전 메트릭 5m 집계 400d (사용자 확정 시나리오)
 
 | 옵션 | 저장 구성 | 월 저장비 | 5m 구현 방식 |
 |---|---|---|---|
-| **A ★권장** | hot 90d $369 + 집계 0.9~2.7 TiB (sc1) | **$385~416** (st1 $415~507 / gp3 $451~615) | streamAggr(인제스트 시점, OSS) |
-| **B** | hot 90d $369 + S3 14.9~30.7 TiB | **$780~1,200 + 컴퓨트** | compactor downsampling(사후) |
-| **C** | (5m 불가 → raw 400d 강제) | **부적합** | 다운샘플링 부재 |
-| **D′ Ent** | `-downsampling.period=90d:5m` 한 줄 | **~$497 + 라이선스(비공개)** | Enterprise 다운샘플링 |
+| **VM아카이브 ★권장** | hot 90d $369 + 집계 0.9~2.7 TiB (sc1) | **$385~416** (st1 $415~507 / gp3 $451~615) | streamAggr(인제스트 시점, OSS) |
+| **Thanos** | hot 90d $369 + S3 14.9~30.7 TiB | **$780~1,200 + 컴퓨트** | compactor downsampling(사후) |
+| **Mimir** | (5m 불가 → raw 400d 강제) | **부적합** | 다운샘플링 부재 |
+| **확장+Ent** | `-downsampling.period=90d:5m` 한 줄 | **~$497 + 라이선스(비공개)** | Enterprise 다운샘플링 |
 
-시나리오 ②의 옵션 종합 비교표·판단 트리는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})이 주인이며, 권장 A안의 구성·가역성 상세는 [02 A안]({{< relref "02-option-a-vm-archive.md" >}})에서 다룬다.
+시나리오 ②의 옵션 종합 비교표·판단 트리는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})이 주인이며, 권장 VM 아카이브안의 구성·가역성 상세는 [02 VM 아카이브]({{< relref "02-vm-archive.md" >}})에서 다룬다.
 
-**불확실성 명시**: (i) 모든 수치는 3.6 TiB 100% 사용 상한 가정 — 실사용률로 선형 보정한다. (ii) A의 f=0.1~0.3 범위는 **드라이런 2주 실측이 확정치**(검증 필요). (iii) B의 S3 범위 하한/상한은 "5m·1h 블록이 raw와 비슷한 크기"라는 공식 문서 서술의 해석 범위다.
+**불확실성 명시**: (i) 모든 수치는 3.6 TiB 100% 사용 상한 가정 — 실사용률로 선형 보정한다. (ii) VM 아카이브안의 f=0.1~0.3 범위는 **드라이런 2주 실측이 확정치**(검증 필요). (iii) Thanos안의 S3 범위 하한/상한은 "5m·1h 블록이 raw와 비슷한 크기"라는 공식 문서 서술의 해석 범위다.
 
 ## 출처
 
