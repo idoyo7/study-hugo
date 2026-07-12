@@ -10,6 +10,6 @@ toc: false
 
 ## 도메인
 
-- **[모니터링]({{< relref "docs/monitoring/_index.md" >}})** — VictoriaMetrics 내부·운영, 메트릭 400일 장기 보관 아키텍처.
+- **[모니터링]({{< relref "monitoring/_index.md" >}})** — VictoriaMetrics 내부·운영, 메트릭 400일 장기 보관 아키텍처.
 
-> 로깅 · Datadog · Istio 등은 순차적으로 추가 예정.
+> 로깅 · APM(Datadog 최적화) · RUM 내재화 솔루션 — 순차적으로 추가 예정.
