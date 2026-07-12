@@ -1,0 +1,18 @@
+baseURL = '/'
+title = 'Ops Insights'
+theme = 'hugo-book'
+
+disableKinds = ['taxonomy', 'term']
+
+[markup]
+  [markup.goldmark.renderer]
+    unsafe = true
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 3
+
+[params]
+  BookTheme = 'auto'
+  BookToC = true
+  BookSection = 'docs'
+  BookRepo = 'https://github.com/idoyo7/study-hugo'
