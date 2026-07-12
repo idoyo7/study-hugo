@@ -1,7 +1,7 @@
 ---
 title: "Ops Insights"
 type: docs
-bookToc: false
+toc: false
 ---
 
 # Ops Insights

@@ -1,18 +1,39 @@
 baseURL = '/'
 title = 'Ops Insights'
-theme = 'hugo-book'
+theme = 'hextra'
+
+# Korean content
+locale = 'ko-KR'
+defaultContentLanguage = 'ko'
+hasCJKLanguage = true
 
 disableKinds = ['taxonomy', 'term']
 
 [markup]
   [markup.goldmark.renderer]
     unsafe = true
+  [markup.highlight]
+    # Hextra ships its own Chroma CSS (light/dark aware); classes required
+    noClasses = false
   [markup.tableOfContents]
     startLevel = 2
     endLevel = 3
 
 [params]
-  BookTheme = 'auto'
-  BookToC = true
-  BookSection = 'docs'
-  BookRepo = 'https://github.com/idoyo7/study-hugo'
+  [params.navbar]
+    displayTitle = true
+    displayLogo = false
+
+  [params.theme]
+    # light | dark | system
+    default = 'system'
+    displayToggle = true
+
+  [params.search]
+    enable = true
+    type = 'flexsearch'
+    [params.search.flexsearch]
+      # index page by: content | summary | heading | title
+      index = 'content'
+      # 'full' tokenization enables CJK substring search (Korean content)
+      tokenize = 'full'

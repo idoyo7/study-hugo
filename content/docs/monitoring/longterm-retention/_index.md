@@ -1,7 +1,6 @@
 ---
 title: "메트릭 400일 보관"
 weight: 2
-bookCollapseSection: true
 ---
 
 # 메트릭 400일 보관 — 아키텍처 비교와 권장안

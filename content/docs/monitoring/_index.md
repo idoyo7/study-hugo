@@ -1,7 +1,6 @@
 ---
 title: "모니터링"
 weight: 1
-bookCollapseSection: true
 ---
 
 # 모니터링

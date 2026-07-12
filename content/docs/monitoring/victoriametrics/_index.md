@@ -1,7 +1,6 @@
 ---
 title: "VictoriaMetrics"
 weight: 1
-bookCollapseSection: true
 ---
 
 # VictoriaMetrics 지식베이스
