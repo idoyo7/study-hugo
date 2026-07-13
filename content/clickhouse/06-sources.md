@@ -1,11 +1,11 @@
 ---
 title: "출처"
-weight: 5
+weight: 6
 ---
 
 # 출처 — ClickHouse 배포·오퍼레이터·운영사례 조사 자료
 
-이 표는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [프로덕션 운영사례]({{< relref "04-production-usecases.md" >}}) 네 페이지가 인용한 1차 조사 문서(배포 전략·스토리지 아키텍처, clickhouse-operator 채택, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강)의 `## 출처` 섹션을 모아 중복 제거하고 주제별로 분류했다. 조사 기준일은 **2026-07-13**(각 조사 문서 frontmatter `updated` 값)이다.
+이 표는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [프로덕션 운영사례]({{< relref "04-production-usecases.md" >}}), [데이터스토어 횡단 벤치마킹]({{< relref "05-local-nvme-datastore-patterns.md" >}}) 다섯 페이지가 인용한 1차 조사 문서(배포 전략·스토리지 아키텍처, clickhouse-operator 채택, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강, 로컬 NVMe 데이터스토어 횡단 조사)의 `## 출처` 섹션을 모아 중복 제거하고 주제별로 분류했다. 조사 기준일은 **2026-07-13~14**(각 조사 문서 frontmatter `updated` 값 — 데이터스토어 횡단 조사와 티어링 검증만 07-14)이다.
 
 개별 URL의 등급(확인됨/추정/미확인)은 원 조사 문서 본문의 인라인 태그를 따른다 — 이 표 자체는 출처 목록이며 등급을 재판정하지 않는다.
 
@@ -224,3 +224,34 @@ third-party 기술 블로그, 벤치마크/가격 계산기, 리뷰 사이트, G
 | HN — "HyperDX 프로덕션 사용 후기" | [news.ycombinator.com/item?id=44194775](https://news.ycombinator.com/item?id=44194775) |
 | HN — HyperDX vs ClickStack 혼란 | [news.ycombinator.com/item?id=44196718](https://news.ycombinator.com/item?id=44196718) |
 | HN — HyperDX/SigNoz ClickHouse 커플링 논의 | [news.ycombinator.com/item?id=45294103](https://news.ycombinator.com/item?id=45294103) |
+
+## 데이터스토어 횡단 벤치마킹
+
+[데이터스토어 횡단 벤치마킹]({{< relref "05-local-nvme-datastore-patterns.md" >}}) 페이지의 근거인 로컬 NVMe 1차 스토리지 조사(ScyllaDB·Cassandra / Kafka·스트리밍 / Elasticsearch·OpenSearch / Aerospike·LSM-KV) `## 출처`에서 시스템군별 대표 URL을 선별했다(전량 아님 — 각 시스템군의 1차·핵심 근거 위주). 전체 목록은 원 조사 문서(11-1~11-4) 참조.
+
+| 설명 | 링크 |
+|---|---|
+| ScyllaDB — Cloud instance recommendations(i3en/i4i/i7i/i8g) | [docs.scylladb.com/.../cloud-instance-recommendations](https://docs.scylladb.com/manual/stable/getting-started/cloud-instance-recommendations.html) |
+| ScyllaDB — Operator Storage(RAID0/XFS/Local CSI 자동) | [operator.docs.scylladb.com/.../storage](https://operator.docs.scylladb.com/stable/understand/storage.html) |
+| ScyllaDB — data streaming 25x(재수화 가속) | [scylladb.com/tech-talk/.../data-streaming-by-25x](https://www.scylladb.com/tech-talk/how-we-boosted-scylladb-data-streaming-by-25x/) |
+| Discord — How Discord Stores Trillions of Messages | [discord.com/blog/how-discord-stores-trillions-of-messages](https://discord.com/blog/how-discord-stores-trillions-of-messages) |
+| Netflix — datastore flash upgrades(스냅샷 플래싱) | [medium.com/@NetflixTechBlog/datastore-flash-upgrades](https://medium.com/@NetflixTechBlog/datastore-flash-upgrades-187f1e4ef859) |
+| Uber — How Uber Optimized Cassandra Operations At Scale | [uber.com/blog/how-uber-optimized-cassandra-operations-at-scale](https://www.uber.com/blog/how-uber-optimized-cassandra-operations-at-scale/) |
+| AWS — Best Practices for Cassandra on Amazon EC2(인스턴스 스토어) | [aws.amazon.com/blogs/big-data/.../cassandra-on-amazon-ec2](https://aws.amazon.com/blogs/big-data/best-practices-for-running-apache-cassandra-on-amazon-ec2/) |
+| Kafka — 3.9 Tiered Storage 공식 문서(KIP-405, RSM 미제공) | [kafka.apache.org/39/operations/tiered-storage](https://kafka.apache.org/39/operations/tiered-storage/) |
+| Redpanda — Tiered Storage / Shadow Indexing deep dive | [redpanda.com/blog/tiered-storage-architecture-shadow-indexing-deep-dive](https://www.redpanda.com/blog/tiered-storage-architecture-shadow-indexing-deep-dive) |
+| WarpStream — Zero Disks is Better (for Kafka)(diskless·cross-AZ) | [warpstream.com/blog/zero-disks-is-better-for-kafka](https://www.warpstream.com/blog/zero-disks-is-better-for-kafka) |
+| Grab — Kafka on Kubernetes, Reloaded(NVMe→EBS·재복제 hours→minutes) | [engineering.grab.com/kafka-on-kubernetes](https://engineering.grab.com/kafka-on-kubernetes) |
+| AWS — Amazon MSK Express brokers(관리형 모델 B 추정) | [docs.aws.amazon.com/msk/.../msk-broker-types-express](https://docs.aws.amazon.com/msk/latest/developerguide/msk-broker-types-express.html) |
+| OpenSearch — searchable snapshots(2.7 GA·Apache 2.0) | [opensearch.org/blog/searchable-snapshots](https://opensearch.org/blog/searchable-snapshots/) |
+| OpenSearch — remote-backed storage(OR1 오픈소스 등가물) | [opensearch.org/blog/remote-backed-storage](https://opensearch.org/blog/remote-backed-storage/) |
+| Elastic — searchable snapshots(Enterprise 유료) | [elastic.co/docs/.../searchable-snapshots](https://www.elastic.co/docs/deploy-manage/tools/snapshot-and-restore/searchable-snapshots) |
+| Uber — ELK→ClickHouse logging(2021-02) | [uber.com/us/en/blog/logging](https://www.uber.com/us/en/blog/logging/) |
+| Aerospike — i4i instances superior performance | [aerospike.com/blog/aws-i4i-instances-provide-superior-performance](https://aerospike.com/blog/aws-i4i-instances-provide-superior-performance-for-aerospike/) |
+| Aerospike — K8s Operator Storage provisioning(raw block/shadow) | [aerospike.com/docs/cloud/kubernetes/operator/.../Storage-provisioning](https://aerospike.com/docs/cloud/kubernetes/operator/2.4.0/Storage-provisioning) |
+| The Trade Desk — Aerospike 노드 500→60 통합 | [aerospike.com/resources/customer-stories/trade-desk](https://aerospike.com/resources/customer-stories/trade-desk/) |
+| CockroachDB — Production checklist(로컬 SSD 우수·RF 3→5) | [cockroachlabs.com/docs/stable/recommended-production-settings](https://www.cockroachlabs.com/docs/stable/recommended-production-settings) |
+| TiDB Operator — configure storage class(TiKV 로컬 SSD 권장) | [github.com/pingcap/docs-tidb-operator/.../configure-storage-class](https://github.com/pingcap/docs-tidb-operator/blob/master/en/configure-storage-class.md) |
+| Pinterest — TiDB adoption(i4i NVMe·MTTR로 EBS 검토) | [medium.com/pinterest-engineering/tidb-adoption-at-pinterest](https://medium.com/pinterest-engineering/tidb-adoption-at-pinterest-1130ab787a10) |
+| MongoDB — Atlas customize storage(NVMe·Cloud Backup 강제) | [mongodb.com/docs/atlas/customize-storage](https://www.mongodb.com/docs/atlas/customize-storage/) |
+| kubernetes-sigs — local-static-provisioner(local PV 공통 패턴) | [github.com/kubernetes-sigs/sig-storage-local-static-provisioner](https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner) |
