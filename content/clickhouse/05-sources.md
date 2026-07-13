@@ -31,6 +31,11 @@ weight: 5
 | 3세대 AWS Nitro SSD deep dive(re:Invent 2024 CMP334) | [reinvent.awsevents.com/.../CMP334](https://reinvent.awsevents.com/content/dam/reinvent/2024/slides/cmp/CMP334_Deep-dive-into-third-generation-AWS-Nitro-SSDs-.pdf) |
 | Savings Plans(Compute/EC2 Instance) 단가 | [aws.amazon.com/savingsplans/compute-pricing](https://aws.amazon.com/savingsplans/compute-pricing/) |
 | EC2 Reserved Instance pricing | [aws.amazon.com/ec2/pricing/reserved-instances/pricing](https://aws.amazon.com/ec2/pricing/reserved-instances/pricing/) |
+| OpenSearch UltraWarm storage(S3 단일 사본·immutable·rehydrate) | [docs.aws.amazon.com/.../ultrawarm.html](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ultrawarm.html) |
+| OpenSearch Under the Hood: OR1(동기 S3·segment replication·11 nines·zero RPO) | [aws.amazon.com/blogs/big-data/.../or1](https://aws.amazon.com/blogs/big-data/amazon-opensearch-service-under-the-hood-opensearch-optimized-instancesor1/) |
+| EKS Persistent Volumes for Instance Store(local-static-provisioner 공식 레시피) | [aws.amazon.com/blogs/containers/eks-persistent-volumes-for-instance-store](https://aws.amazon.com/blogs/containers/eks-persistent-volumes-for-instance-store/) |
+| EKS AMI — setup-local-disks(RAID0/mount·mdadm·mkfs.xfs·bind mount) | [github.com/awslabs/amazon-eks-ami/.../setup-local-disks](https://github.com/awslabs/amazon-eks-ami/blob/main/templates/al2023/runtime/bin/setup-local-disks) |
+| EKS AMI issue #2386(단일 디스크 RAID0 부팅 실패) | [github.com/awslabs/amazon-eks-ami/issues/2386](https://github.com/awslabs/amazon-eks-ami/issues/2386) |
 
 ## ClickHouse 공식
 
@@ -93,6 +98,7 @@ Altinity 자체 문서/저장소, ClickHouse Inc. 공식 operator, 대안 operat
 | issue #1602(신규 replica 스키마 auto-creation 미동작) | [github.com/Altinity/clickhouse-operator/issues/1602](https://github.com/Altinity/clickhouse-operator/issues/1602) |
 | Altinity KB — AWS EC2 Storage | [kb.altinity.com/.../aws-ec2-storage](https://kb.altinity.com/altinity-kb-setup-and-maintenance/aws-ec2-storage/) |
 | Altinity — MergeTree on S3 아키텍처 | [altinity.com/blog/clickhouse-mergetree-on-s3-intro-and-architecture](https://altinity.com/blog/clickhouse-mergetree-on-s3-intro-and-architecture) |
+| Altinity — MergeTree on S3, Administrative Best Practices(move_factor·prefer_not_to_merge·replica별 S3 경로) | [altinity.com/blog/clickhouse-mergetree-on-s3-administrative-best-practices](https://altinity.com/blog/clickhouse-mergetree-on-s3-administrative-best-practices) |
 | Altinity — DR tips & tricks | [altinity.com/webinarspage/.../disaster-recovery](https://altinity.com/webinarspage/clickhouse-disaster-recovery-tips-and-tricks-to-avoid-trouble-in-paradise) |
 | Altinity/clickhouse-backup(GitHub) | [github.com/Altinity/clickhouse-backup](https://github.com/Altinity/clickhouse-backup) |
 | Altinity operator 릴리즈노트(2025~2026) | [docs.altinity.com/releasenotes/altinity-kubernetes-operator-release-notes](https://docs.altinity.com/releasenotes/altinity-kubernetes-operator-release-notes/) |
@@ -186,6 +192,12 @@ third-party 기술 블로그, 벤치마크/가격 계산기, 리뷰 사이트, G
 | InfoQ — OpenEBS stateful workloads | [infoq.com/articles/openebs-stateful-workloads](https://www.infoq.com/articles/openebs-stateful-workloads/) |
 | Karpenter — instanceStorePolicy 문서 이슈 #7543 | [github.com/aws/karpenter-provider-aws/issues/7543](https://github.com/aws/karpenter-provider-aws/issues/7543) |
 | Karpenter — Bottlerocket RAID0 #8562 | [github.com/aws/karpenter-provider-aws/issues/8562](https://github.com/aws/karpenter-provider-aws/issues/8562) |
+| Karpenter — instanceStorePolicy 도입 릴리즈 v0.34.0(PR #4735) | [github.com/aws/karpenter-provider-aws/releases/tag/v0.34.0](https://github.com/aws/karpenter-provider-aws/releases/tag/v0.34.0) |
+| Karpenter — NodeClasses(instanceStorePolicy 동작·마운트) | [karpenter.sh/docs/concepts/nodeclasses](https://karpenter.sh/docs/concepts/nodeclasses/) |
+| Karpenter — 업그레이드 가이드(v1alpha5→v1, v0.32.x 경유) | [karpenter.sh/docs/upgrading/upgrade-guide](https://karpenter.sh/docs/upgrading/upgrade-guide/) |
+| kubernetes-sigs — local-static-provisioner(DB PV 표준) | [github.com/kubernetes-sigs/sig-storage-local-static-provisioner](https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner) |
+| DoubleCloud — S3-based ClickHouse hybrid storage(replica별 S3 사본) | [double.cloud/blog/.../s3-based-clickhouse-hybrid-storage](https://double.cloud/blog/posts/2022/11/how-s3-based-clickhouse-hybrid-storage-works-under-the-hood/) |
+| OneUptime — Hot/Cold Storage Tiers · TTL to cold storage | [oneuptime.com/.../clickhouse-hot-cold-storage-tiers](https://oneuptime.com/blog/post/2026-03-31-clickhouse-hot-cold-storage-tiers/view) |
 | Karpenter docs — Disruption | [karpenter.sh/docs/concepts/disruption](https://karpenter.sh/docs/concepts/disruption/) |
 | Cast AI — Karpenter best practices | [cast.ai/blog/karpenter-best-practices-10-tips](https://cast.ai/blog/karpenter-best-practices-10-tips-for-production-clusters/) |
 | Improvado — ClickHouse pricing 2026 TCO | [improvado.io/blog/clickhouse-warehousing-pricing](https://improvado.io/blog/clickhouse-warehousing-pricing) |

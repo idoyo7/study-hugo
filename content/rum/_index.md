@@ -9,6 +9,8 @@ cascade:
 
 RUM(Real User Monitoring)을 외부 SaaS 의존 없이 내재화하는 솔루션을 정리한다. 로그·메트릭 내재화와 같은 저장소·팀을 공유하는 흐름의 일부이므로, 큰 그림과 최소 조합은 [로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}}) 챕터의 D3(RUM 내재화) 결정과 함께 읽는다.
 
+**이 트랙의 기원** — 이 트랙의 시발점은 Datadog RUM 내재화다. 여기서 프론트엔드(`@hyperdx/browser`)와 백엔드(Java/Python OTel 재계측)로 trace를 병행 확장하고, 컨테이너 로그 수집까지 순차로 검토하는 **"RUM에서 시작해 아래로 자라는 스택"**이다. 그래서 istio access log의 *즉시* 내재화(D1)를 축으로 하는 VictoriaLogs 트랙([로깅 챕터]({{< relref "../logging/_index.md" >}}))과는 시발점부터 결이 다른 **별도 결정**이며, 로그+트레이스+RUM을 한 저장소로 합치는 D4(통합 저장소 — earn-it-last)와는 **조건이 성숙하면 수렴**하는 관계다.
+
 ## 왜 지금 — RWoL 재요율
 
 Datadog RUM이 **RWoL(RUM without Limits)** 재요율로 실질 ~2배 인상되면서 내재화를 검토하게 되는 영역이다. **RUM Measure는 retain 비율과 무관하게 ingest 100%에 과금**(Measure 단가 $0.15/1k)되고, 여기에 retain 프리미엄·세션 리플레이가 얹히면 RWoL 블렌디드 실효단가가 ~$0.42/1k까지 오른다 → 월 30M 세션이면 30M×$0.42/1k×12 ≈ **연 ~$151K** `[추정]`.

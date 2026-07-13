@@ -5,7 +5,7 @@ weight: 2
 
 # 스토리지 아키텍처 — 로컬 NVMe(i7i/i8g)
 
-"i7i 같은 로컬 스토리지를 크게 가져가는 구성이 실제 가능한가"에 대한 답은 **가능하고, 일정 조건에서는 EBS보다 명백히 낫다** — 단 "크게"의 상한은 디스크 용량이 아니라 **노드 소실 시 재수화 시간**이 정한다. 로컬 NVMe(instance store)는 network block storage보다 5~10배 빠르지만 `[벤치]` 휘발성이라, ClickHouse에서 내구성은 **디스크가 아니라 복제(replication)로 확보**한다. 즉 로컬 NVMe 전략의 본질은 "빠른 휘발성 디스크 + 멀티 AZ replica + S3 백업"의 3종 세트다. 이 페이지는 스토리지 4전략 비교 → i7i/i8g 상세 → 내구성 설계 → k8s local PV·Karpenter 운영 → 재수화까지를 의사결정 순서로 정리한다. managed vs self-host의 큰 그림과 달러 TCO는 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})가 담당한다.
+"i7i 같은 로컬 스토리지를 크게 가져가는 구성이 실제 가능한가"에 대한 답은 **가능하고, 일정 조건에서는 EBS보다 명백히 낫다** — 단 "크게"의 상한은 디스크 용량이 아니라 **노드 소실 시 재수화 시간**이 정한다. 로컬 NVMe(instance store)는 network block storage보다 5~10배 빠르지만 `[벤치]` 휘발성이라, ClickHouse에서 내구성은 **디스크가 아니라 복제(replication)로 확보**한다. 즉 로컬 NVMe 전략의 본질은 "빠른 휘발성 디스크 + 멀티 AZ replica + S3 백업"의 3종 세트다. 이 페이지는 스토리지 4전략 비교 → i7i/i8g 상세 → 내구성 설계 → 티어링(OpenSearch UltraWarm과의 구조 대응) → k8s local PV·Karpenter 운영 → 재수화까지를 의사결정 순서로 정리한다. managed vs self-host의 큰 그림과 달러 TCO는 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})가 담당한다.
 
 ## 스토리지 4전략 — 무엇을 고르나
 
@@ -85,20 +85,97 @@ self-host ClickHouse의 스토리지 매체는 네 갈래다. 로컬 NVMe만 놓
 
 **zero-copy replication은 프로덕션 금지다.** 22.8+부터 기본 비활성이며, mutation 중 데이터 손실(#39560)·merge 중 손상·TTL 이동 시 NOT_ENOUGH_SPACE·Keeper 부하 증가 등 이슈가 다수 보고됐다 `[확인됨]`. S3 tier를 쓰더라도 이 기능에 의존하지 말고, **각 replica가 자기 경로에 독립 저장하는 표준 RMT 복제**를 유지한다. (self-host가 SharedMergeTree를 못 쓴다는 제약과 그 배경은 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}) 참고.)
 
+## 티어링 설계 — OpenSearch와 같은 구조인가
+
+자연스러운 질문 하나: **"로컬 NVMe를 써도 실데이터는 gp3나 S3로 티어링해야 맞지 않나 — 지금 [OpenSearch]({{< relref "../logging/01-opensearch.md" >}})를 hot 10× i7i.4xlarge + UltraWarm 8노드로 굴리는 것과 같은 구조 아니냐"**. 답은 **절반은 맞고 절반은 위험한 오해**다 `[확인됨]`. "hot NVMe에 최근 데이터만 짧게, 오래된 데이터는 S3로 티어링"이라는 골격은 정확히 ClickHouse 관측성 표준이다(공식 플레이북이 *"recent 'hot' data on NVMe … moves data older than 7 days to object storage"*, TTL 예시 `INTERVAL 7 DAY TO VOLUME 'cold'`). 그러나 (a) gp3 중간(warm) 티어는 대체로 불필요하고, (b) UltraWarm과 self-host CH의 S3 티어는 **사본 경제가 정반대**이며, (c) "티어링하면 내구성이 해결된다"는 UltraWarm식 사고를 self-host에 그대로 옮기면 데이터를 잃는다.
+
+### 구조 대응표
+
+겉보기 유사하나 사본 경제·쿼리 경로가 결정적으로 다르다.
+
+| OpenSearch(현행 도메인) | ClickHouse self-host 대응 | 유사점 | 결정적 차이 |
+|---|---|---|---|
+| **Hot 데이터노드** 10× i7i.4xlarge.search(로컬 색인 + replica) | **hot 볼륨** = 로컬 NVMe(RMT replica) | 둘 다 로컬 매체 + replica로 내구성 | 거의 동일 — 직관이 옳다 |
+| **UltraWarm** 8노드(S3-backed + 캐시 레이어) | **S3 cold 볼륨**(`TTL MOVE TO VOLUME 'cold'` + filesystem cache) | 둘 다 오래된 데이터를 S3+로컬캐시로 | **사본 경제 반대**: UltraWarm=S3 단일 사본 / CH cold=replica별 사본 |
+| **OR1/OR2**(EBS primary + 동기 S3, 11 nines·zero RPO — 로컬 NVMe 아님, NVMe 관리형은 OI2) `[확인됨]` | **ClickHouse Cloud SharedMergeTree**(self-host 불가) | shared durable S3 + 컴퓨트 로컬 캐시 | self-host RMT로는 재현 불가 |
+
+핵심: **UltraWarm의 진짜 구조적 사촌은 self-host CH의 S3 cold가 아니라, S3 단일 사본 + 컴퓨트 캐시를 쓰는 ClickHouse Cloud SharedMergeTree / OpenSearch OR1**이다 — 둘 다 Cloud·관리형 전용이라 self-host로는 못 쓴다 `[확인됨]`. (SharedMergeTree가 Cloud 전용인 배경은 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}).)
+
+### 결정적 차이 — S3 사본 경제
+
+- **UltraWarm**은 warm 데이터를 S3에 **1벌**만 두고 warm 전용 노드가 그 공유 단일 사본을 캐시로 서빙하며 **replica가 필요 없다**(*"The durability of data in S3 removes the need for replicas … only one copy is needed"*) `[확인됨]` — shared-storage 모델.
+- **CH self-host의 S3 cold**는 cold 데이터도 **replica마다 자기 S3 경로에 사본**을 둔다(shared-nothing). RF2면 S3에도 2벌이고, zero-copy로 1벌로 줄이는 건 프로덕션 금지(위 §내구성 3종 세트)라 **UltraWarm식 절감이 성립하지 않는다** `[확인됨]`.
+- 따라서 "UltraWarm처럼 S3로 밀면 사본이 줄어 싸진다"는 기대는 **틀린다**. self-host의 절감은 **NVMe↔S3 GB단가 차이**에서만 오고 **사본 배수(RF)는 그대로** 지불한다.
+
+사본 경제 외에 두 지점이 더 다르다 `[확인됨]`. **쿼리 경로**: UltraWarm은 hot과 warm이 **물리적으로 다른 노드**라 warm 쿼리가 hot 노드를 굶기지 않는(리소스 격리) 반면, CH self-host의 hot(NVMe)·cold(S3) 볼륨은 **같은 서버**에 붙어 한 쿼리가 두 티어를 투명하게 가로질러 읽어 컴퓨트 격리가 없다. **rehydrate**: UltraWarm은 다시 쓰려면 `_hot` API로 명시적 승격(shard relocation)이 필요하지만, CH의 S3 cold는 rehydrate 개념 없이 **항상 online**이라 쿼리가 닿으면 캐시 미스 시 S3에서 읽어 로컬 캐시에 자동 적재된다(노드 소실 후 replica 복구=재수화는 별개 개념, 아래 §노드 소실과 재수화).
+
+### 티어링 ≠ 내구성
+
+가장 위험한 오해가 여기 있다. self-host RMT에서 셋은 목적이 다르며 혼동하면 데이터를 잃는다 `[확인됨]`:
+
+| 수단 | 목적 |
+|---|---|
+| **복제**(RMT replica, 멀티AZ) | 가용성 + 내구성(노드/AZ 소실 방어) |
+| **백업**(clickhouse-backup → S3 별도 버킷) | DR(실수 삭제·손상·논리 오류 복구) |
+| **티어링**(TTL MOVE → S3 cold) | 비용·보존 확장(GB단가↓) |
+
+- 티어링은 DR이 아니다. S3 cold로 옮긴 데이터도 **살아있는 테이블의 일부**라 `DROP`·잘못된 `ALTER`·논리 손상은 hot이든 cold든 똑같이 파괴한다 — 별도 백업만이 복구한다.
+- 그래서 cold 데이터의 물리 사본은 **replica 수(RF) + 백업(1)** 로 계상해야 공정하다. "S3니까 싸다"는 맞지만 "1벌이라 싸다"는 아니다 — UltraWarm 단일 사본 경제와 헷갈리지 말 것.
+
+### gp3의 자리 · 권고 설계
+
+- **gp3는 티어링 매체가 아니라 Keeper 데이터 디스크다**(영속 필요, 위 §내구성 3종 세트). 관측성 표준과 ClickHouse 공식 플레이북 모두 **hot NVMe + S3 cold 2티어**를 권하고 gp3 warm 중간 티어를 언급조차 않는다 — Altinity도 *"no reason to have more than 1-3 gp3 volume per node"*라며 볼륨 단순화를 권한다 `[확인됨]`. NVMe+gp3+S3 3티어를 동시에 굴릴 실익은 대개 없다(PostHog만 예외적으로 S3 없이 NVMe hot→EBS warm 2티어를 수동 운영 `[확인됨]`).
+- 권고 티어링 설계(내구성 3종 세트와 **별개로** 얹는다):
+
+```
+storage_policy 'hot_to_s3'
+  volume 'hot'  = 로컬 NVMe(i7i/i8g)                  ← 최근 데이터
+  volume 'cold' = S3 disk + cache disk(로컬 LRU 캐시)  ← 오래된 데이터
+
+TTL (관측성 예)
+  timestamp + INTERVAL 7   DAY TO VOLUME 'cold'   -- 7일 후 S3로 이동
+  timestamp + INTERVAL 365 DAY DELETE             -- 365일 후 삭제
+
+hot 볼륨 : move_factor 0.9 (안전판) — 주 이동은 위 시간기반 TTL
+S3 cold  : prefer_not_to_merge 미설정 — 병합은 hot에서 끝내고 이동
+캐시     : cache_on_write 활성 (없으면 cold 쿼리가 S3 지연에 직접 노출)
+```
+
+- **주 이동은 시간 기반 TTL MOVE**로 하고, `move_factor`는 hot이 가득 차 머지·인서트가 멈추는 것을 막는 안전판으로만 쓴다(어떤 파트가 먼저 갈지 보장 못 하고 갓 인서트한 데이터가 곧장 S3로 갈 수도 있다) `[확인됨]`. `prefer_not_to_merge=true`는 작은 파트 폭증 → TOO_MANY_PARTS를 부르니 기본값(false)을 유지한다 `[확인됨]`.
+
+사용자 명제를 조각별로 판정하면:
+
+| 명제 조각 | 판정 |
+|---|---|
+| "로컬 NVMe라도 실데이터를 전부 로컬에 두면 안 된다" | ✅ 맞다 — hot엔 최근 데이터만, 나머지는 티어링 |
+| "gp3 **혹은** S3에 티어링" | △ 절반 — 관측성/대규모는 S3, gp3는 Keeper용. 3티어는 불필요 |
+| "OpenSearch(hot i7i + UltraWarm)와 동일 구조" | ❌ 부정확 — UltraWarm=단일 사본 shared-storage, CH cold=replica별 shared-nothing |
+| (암묵) "S3로 티어링하면 내구성이 해결된다" | ❌ 위험 — 내구성은 복제+백업. cold도 RF배수로 중복 저장 |
+
 ## 로컬 PV를 k8s에 얹기
 
-**instanceStorePolicy: RAID0 (필수 첫 단추).** Karpenter EC2NodeClass에 `instanceStorePolicy: RAID0`를 설정하면 노드의 로컬 NVMe들이 자동으로 RAID0(`/dev/md/0`, 마운트 `/mnt/k8s-disks/0`)로 묶인다. **이 설정이 없으면 Karpenter가 instance-store를 스케줄링에서 아예 고려하지 않는다** `[확인됨]`. Bottlerocket은 Karpenter v1.1.0+부터 자동 구성된다.
+**instanceStorePolicy: RAID0 — ephemeral-storage 스케줄링 인식용.** Karpenter EC2NodeClass에 `instanceStorePolicy: RAID0`를 설정하면 노드의 로컬 NVMe들이 자동으로 RAID0(`/dev/md/0`, 마운트 `/mnt/k8s-disks/0`)로 묶여 kubelet의 **ephemeral-storage**로 인식된다 — 이 설정이 없으면 Karpenter가 instance-store를 스케줄링 시 고려하지 않는다 `[확인됨]`. 다만 이렇게 묶인 배열은 ephemeral일 뿐이라 **ClickHouse 데이터 PV에는 별도 provisioner가 필요**하고, 전용 데이터 노드라면 instanceStorePolicy를 아예 쓰지 않는 편이 낫다(아래 § 참조). Bottlerocket은 Karpenter v1.1.0+부터 자동 구성된다.
 
-그 위에 local PV provisioner를 얹는다. 공통적으로 로컬 스토리지는 **데이터 경로 오버헤드가 없어(컨테이너 없이 직접 쓰는 것과 동일 throughput)** 성능은 좋지만, **노드 장애 = 해당 볼륨/데이터 소실**이라는 성질은 도구가 바꿔주지 않는다 — 내구성은 위 3종 세트가 담당한다.
+마운트된 NVMe 위에 local PV provisioner를 얹는다. 공통적으로 로컬 스토리지는 **데이터 경로 오버헤드가 없어(컨테이너 없이 직접 쓰는 것과 동일 throughput)** 성능은 좋지만, **노드 장애 = 해당 볼륨/데이터 소실**이라는 성질은 도구가 바꿔주지 않는다 — 내구성은 위 3종 세트가 담당한다.
 
 | 도구 | 방식 | 스냅샷/LVM | 특징 |
 |---|---|---|---|
-| **Rancher local-path-provisioner** | hostPath 디렉토리 | 없음 | 가장 단순. RAID0 base(`/mnt/k8s-disks/0`) 위에 바로 |
+| **Rancher local-path-provisioner** | hostPath 디렉토리 | 없음 | 가장 단순. 마운트된 NVMe(단일 또는 RAID0) 위에 바로 |
 | **OpenEBS Hostpath LocalPV** | `/var/openebs/local` 하위 | 없음 | 설치 즉시 OOB, 오버헤드 없음 |
 | **OpenEBS LVM LocalPV** | 노드 LVM VG에서 LV | **LVM 스냅샷/thin** | 여러 NVMe를 VG로 묶고 PV 동적 할당·온라인 확장 |
 | **TopoLVM** | LVM + 용량 인식 스케줄링 | LVM | 용량 aware 스케줄링이 필요할 때 |
 
-권고 `[추정]`: 가장 단순하게는 **local-path-provisioner**(RAID0 base 위), **용량 인식 스케줄링·LVM 유연성**이 필요하면 **TopoLVM 또는 OpenEBS LVM LocalPV**. Altinity operator는 local StorageClass + node affinity를 지원하지만 노드 소실 재수화는 operator가 해결하지 않으므로 replica·백업 설계는 여전히 사용자 몫이다(operator 상세는 [clickhouse-operator]({{< relref "03-operator.md" >}})).
+권고 `[추정]`: 전용 데이터 노드에는 **설계 (A)**(아래 §) — instanceStorePolicy 없이 userData로 NVMe를 포맷·마운트한 뒤 **local-static-provisioner**(AWS 공식 DB PV 레시피)로 노출 — 가 깔끔하다. 더 단순하게는 **local-path-provisioner**(마운트 위에 바로), **용량 인식 스케줄링·LVM 유연성**이 필요하면 **TopoLVM 또는 OpenEBS LVM LocalPV**. Altinity operator는 local StorageClass + node affinity를 지원하지만 노드 소실 재수화는 operator가 해결하지 않으므로 replica·백업 설계는 여전히 사용자 몫이다(operator 상세는 [clickhouse-operator]({{< relref "03-operator.md" >}})).
+
+### instanceStorePolicy는 ephemeral — ClickHouse 데이터는 PV가 필요하다
+
+뉘앙스 하나를 못박는다. `instanceStorePolicy: RAID0`이 만드는 것은 **kubelet·containerd의 ephemeral-storage**(emptyDir·컨테이너 레이어·pod 로그)로 bind mount된 배열이지 **PersistentVolume이 아니다** `[확인됨]`. 반면 ClickHouse(Altinity operator)는 `volumeClaimTemplates` → StorageClass → **PV**를 요구한다. 그래서 로컬 NVMe를 ClickHouse **데이터**로 쓰려면 RAID0(또는 단일) 마운트 **위에 local PV provisioner를 얹어야** 한다 — 위 표의 도구들이 그 역할이다. DB 용도의 사실상 표준은 AWS 공식 레시피인 **local-static-provisioner + `WaitForFirstConsumer`**(1 PV = 1 디스크/배열이라 용량·성능 격리가 명확) `[확인됨]`.
+
+설계는 두 축이다 `[추정]`: **(A) NVMe를 PV 전용으로 헌납** — instanceStorePolicy를 쓰지 않고 userData로 포맷·마운트해 discovery 경로로만 노출하고 kubelet ephemeral은 루트 gp3에 둔다(전용 데이터 노드에 깔끔, 권장). **(B) 배열 공유** — instanceStorePolicy로 ephemeral을 NVMe에 얹고 같은 마운트 하위를 PV로도 노출; 물리 디스크는 같아 성능은 나오지만 **용량 이중계상**으로 capacity 관리가 꼬여 전용 노드엔 비권장.
+
+**도입 버전·구버전 우회 `[확인됨]`**: `instanceStorePolicy`는 Karpenter **v0.34.0(2024-02-06)** 부터 유효하고 **`EC2NodeClass`(v1beta1)에만 존재**한다 — 구버전 `AWSNodeTemplate`(v1alpha5)에는 필드 자체가 없다. 필드가 없거나 (A)를 택해 안 쓰기로 했다면 **`userData`로 NVMe를 직접 포맷·마운트**한다: AL2는 `/bin/setup-local-disks mount|raid0` 또는 수동 `mkfs.xfs`+`fstab`, AL2023은 nodeadm `NodeConfig`의 `localStorage.strategy: RAID0`(또는 MIME 스크립트), Bottlerocket은 `settings.bootstrap-commands`(단 Karpenter v1.1.0+는 자동 주입하므로 중복 시 부팅 실패). 이 **userData + local PV provisioner 조합은 v1alpha5를 포함한 전 Karpenter 버전에서 동작**한다.
+
+**단일 디스크 주의 `[확인됨]`**: i7i/i8g.4xlarge는 NVMe가 정확히 1×3,750GB다. RAID0는 ≥2 디스크 striping에서만 이득이라 단일 디스크엔 `mkfs.xfs` 후 직접 마운트가 단순·안전하고, 신형 AL2023 AMI(≥v20250620)에서 단일 NVMe RAID0가 노드 부팅에 실패하는 회귀(issue #2386)까지 있어 더욱 그렇다. striping용 RAID0는 8xlarge+(2디스크↑)에서만 쓴다 — 4xlarge를 shard/replica로 넓게 펴는 편이 재수화·blast radius 관점에서도 유리하다.
 
 ## Karpenter가 노드를 지우는 문제
 
@@ -111,6 +188,7 @@ self-host ClickHouse의 스토리지 매체는 네 갈래다. 로컬 NVMe만 놓
 - 노드 **expiration 비활성 또는 매우 길게**, PDB `maxUnavailable: 1`, disruption budget으로 rate limit.
 - taint(`dedicated=clickhouse:NoSchedule`) + toleration으로 전용 NodePool 격리, Keeper는 별도 소형 NodePool(gp3).
 - **완전 안정성 우선이면 Karpenter 대신 고정 ASG/노드그룹 + local PV**로 ClickHouse만 별도 운용한다 — 노드 IP·디스크 안정성이 올라간다. Karpenter의 탄력성보다 stateful 안정성이 중요하다면 이쪽이 정답이다.
+- **업그레이드는 로컬 NVMe 도입의 전제가 아니다** `[추정]`. `instanceStorePolicy`는 ephemeral 전용이라 ClickHouse PV에는 어차피 안 쓰고(위 §로컬 PV), userData + local PV provisioner는 v1alpha5 포함 전 버전에서 동작한다 — "로컬 디스크 때문에" Karpenter를 서둘러 올릴 이유는 없다. 다만 v1alpha5→v1 마이그레이션은 **v0.32.x를 반드시 경유**(alpha/beta dual, skip 불가)해 공수가 크므로, 지원종료·CVE 대응 업그레이드는 **스토리지 도입과 분리해 별도 유지보수로** 계획한다.
 
 ## 노드 소실과 재수화
 
@@ -129,9 +207,9 @@ self-host ClickHouse의 스토리지 매체는 네 갈래다. 로컬 NVMe만 놓
 ```
 AWS EKS
 ├─ NodePool: clickhouse-data (Karpenter, do-not-disrupt, On-Demand/1yr SP)
-│   ├─ i8g.4xl~8xl (또는 i7i) — instanceStorePolicy: RAID0 → /mnt/k8s-disks/0
+│   ├─ i8g.4xl~8xl (또는 i7i) — userData로 NVMe 포맷·마운트 (instanceStorePolicy 미설정)
 │   ├─ taint dedicated=clickhouse:NoSchedule
-│   ├─ local-path 또는 TopoLVM → local PV
+│   ├─ local-static-provisioner(또는 TopoLVM) → local PV
 │   └─ ClickHouse (Altinity operator, ReplicatedMergeTree)
 │       ├─ shard N × replica 2~3 (AZ 분산, anti-affinity + topologySpread)
 │       └─ storage_policy: hot=로컬 NVMe → cold=S3 (TTL MOVE)
@@ -151,6 +229,7 @@ AWS EKS
 - **인스턴스: i8g 우선.** i7i와 IOPS가 동률이고 ~9% 저렴하며 ClickHouse ARM64 궁합이 좋다. x86 의존 바이너리가 있으면 i7i, 초고밀도가 목적이면 i7ie/i3en.
 - **성능은 살 수 있다.** 원하는 수 GB/s·수십만 IOPS는 EBS로는 물리적으로 불가능하지만 로컬 NVMe로는 스토리지 한계비용 $0에 얻는다 — "로컬 스토리지를 크게"라는 요구의 물리적 해답은 로컬 NVMe self-host뿐이다.
 - **내구성은 3종 세트로 산다.** 멀티 AZ replica 2~3 + clickhouse-backup(S3, 주간full·일간incr) + Keeper(gp3 영속). zero-copy replication은 금지.
+- **티어링은 얹되 OpenSearch 경제를 기대하지 않는다.** hot NVMe(짧은 TTL) + S3 cold 2티어 + filesystem cache가 표준이고 gp3는 Keeper용이다. self-host는 shared-nothing이라 UltraWarm식 "S3 단일 사본" 절감이 없어 사본 배수(RF)를 그대로 내며, 티어링은 비용·보존 수단이지 내구성 대체가 아니다(우리 도메인 hot 10 + UltraWarm 8과의 구조 대응은 위 §티어링 설계).
 - **"크게"의 상한은 재수화가 정한다.** 노드당 데이터량과 replica 수의 균형, shard 확장으로 재수화 시간을 관리하고, TB당 재수화 시간은 스테이징에서 반드시 실측한다 `[미확인]`.
 - **Karpenter는 길들여서 쓰거나 고정 ASG로 대체한다.** do-not-disrupt(voluntary만 방지임을 인지) + On-Demand/SP + Spot 데이터 노드 금지 + PDB. 안정성이 최우선이면 고정 ASG.
 

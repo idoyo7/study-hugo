@@ -7,7 +7,7 @@ cascade:
 
 # ClickHouse 운영 — 채택을 전제했을 때의 how
 
-ClickHouse를 **어떻게 운영할지**를 다루는 도메인이다. "채택할 것인가"의 답은 이미 다른 곳에 있다 — 로깅 챕터의 **D4 결정은 "통합 저장소는 earn-it-last"**, 즉 로그만 놓고 보면 self-hosted ClickHouse를 1차 채택안으로 밀지 않는다([로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}}), [ClickHouse (self-hosted)]({{< relref "../logging/04-clickhouse.md" >}})). 이 챕터는 그 결정을 뒤집지 않는다. 대신 **전제가 다른 시나리오**를 가정한다: [RUM 내재화]({{< relref "../rum/_index.md" >}})와 범용 분석 니즈가 ClickHouse를 요구하고, 인프라 운영 인력이 이미 있는 경우의 **운영 전략(how)**.
+ClickHouse를 **어떻게 운영할지**를 다루는 도메인이다. "채택할 것인가"의 답은 이미 다른 곳에 있다 — 로깅 챕터의 **D4 결정은 "통합 저장소는 earn-it-last"**, 즉 로그만 놓고 보면 self-hosted ClickHouse를 1차 채택안으로 밀지 않는다([로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}}), [ClickHouse (self-hosted)]({{< relref "../logging/04-clickhouse.md" >}})). 이 챕터는 그 결정을 뒤집지 않는다. 대신 **전제가 다른 시나리오**를 가정한다: [RUM 내재화]({{< relref "../rum/_index.md" >}})와 범용 분석 니즈가 ClickHouse를 요구하고, 인프라 운영 인력이 이미 있는 경우의 **운영 전략(how)**. 그 RUM 대체 니즈 자체가 **"RUM에서 아래로 자라는 스택"**의 산물이다 — Datadog RUM 내재화를 시발점으로 FE(`@hyperdx/browser`)·BE(Java/Python OTel 재계측) trace를 병행 확장하고 컨테이너 로그 수집까지 검토하는 흐름이 성숙해 로그·트레이스·RUM을 한 저장소로 합칠 때 self-hosted CH가 무대에 오른다.
 
 ## 이 챕터의 위치 — 전제 차이
 
