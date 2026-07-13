@@ -9,7 +9,7 @@ cascade:
 
 > MSA 환경에서 로그·메트릭·RUM을 여러 저장소에 흩뿌리고 있는 팀이, **"이거랑 저거만 있으면 다 될 것 같은"** 최소 조합을 찾아가는 과정에서 검토한 솔루션들을 정리한 챕터다. Elasticsearch(OpenSearch) 기반 EFK 외에 애플리케이션 로깅을 어떤 방식으로 내재화할 수 있는지, 각 솔루션의 성격과 우리 케이스에서의 선택을 다룬다.
 
-> 자매 챕터: [VictoriaMetrics 지식베이스]({{< relref "../monitoring/victoriametrics/_index.md" >}}) · [메트릭 400일 보관]({{< relref "../monitoring/longterm-retention/_index.md" >}}) — 메트릭 계층은 그쪽에서, 로그·RUM 계층은 이 챕터에서 다룬다. istio 액세스 로그·APM·RUM의 단독 심화는 별도 도메인([Istio]({{< relref "../istio/_index.md" >}}) · [APM]({{< relref "../apm/_index.md" >}}) · [RUM 내재화]({{< relref "../rum/_index.md" >}}))에서 이어질 예정.
+> 자매 챕터: [VictoriaMetrics 지식베이스]({{< relref "../monitoring/victoriametrics/_index.md" >}}) · [메트릭 400일 보관]({{< relref "../monitoring/longterm-retention/_index.md" >}}) — 메트릭 계층은 그쪽에서, 로그·RUM 계층은 이 챕터에서 다룬다. istio 액세스 로그·APM·RUM의 단독 심화는 별도 도메인([Istio]({{< relref "../istio/_index.md" >}}) · [APM]({{< relref "../apm/_index.md" >}}) · [RUM 내재화]({{< relref "../rum/_index.md" >}}))에서 이어질 예정. ClickHouse를 채택하기로 했을 때의 운영 전략(배포·스토리지·operator)은 [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) 도메인에서 다룬다(D4의 채택 여부 판단과 전제가 다르다).
 
 ## 먼저, 이건 "하나의 큰 결정"이 아니다
 

@@ -16,7 +16,7 @@ weight: 4
 - **인프라 비용이 크게 낮다.** OpenSearch/ELK 대비 인프라 기준 큰 절감(대략 **7~15배** 보고 사례) `[벤더]`. Uber는 ELK 대비 **hardware >50% 절감** `[벤더]`, Didi는 **~30% 절감** `[벤더]`, 한 crypto-derivatives 플랫폼은 OTel 통합으로 관측성 청구를 high-six-figures에서 **~$50K(약 90% 절감)** `[벤더]`.
 - **통합 저장소 잠재력.** 로그·트레이스·이벤트를 한 스키마 계열로 다루고 SQL로 조회한다. TTL 티어링, materialized view, AggregatingMergeTree 같은 프리미티브로 pre-aggregation·다운샘플·hot→cold 이동을 엔진 안에서 처리한다. 로그 검색에 필요한 **풀텍스트 text index GA(2026-03)**, **native JSON GA(25.3)**도 이미 정식이다.
 - **PB 스케일에서 실전 검증됨.** Trip.com은 **4PB→50PB+**로 성장 `[벤더]`, Cloudflare는 quadrillion-row 스케일을 active-active로 운영. 성능·비용 방향성이 매우 큰 규모에서도 일관된다.
-- **넓은 생태계와 성숙한 운영 도구.** 드라이버/BI/OTel/Vector 연동이 풍부하다. **Altinity clickhouse-operator**는 약 8년간 사실상 표준(라인 0.27.x, 0.27.1은 2026-06-04·FIPS 지원), ClickHouse Inc.의 **공식 first-party operator**도 2026-01 등장했다. 조율 계층인 **ClickHouse Keeper**는 JVM/GC가 없어 ZooKeeper보다 가볍다 — Bonree는 교체로 **CPU/메모리 >75% 절감, IO·성능 ~8x** `[벤더]`. `clickhouse-backup`, Terraform EKS blueprint 등 도구가 갖춰져 있다.
+- **넓은 생태계와 성숙한 운영 도구.** 드라이버/BI/OTel/Vector 연동이 풍부하다. **Altinity clickhouse-operator**는 약 7년간 사실상 표준(라인 0.27.x, 0.27.1은 2026-06-04·FIPS 지원), ClickHouse Inc.의 **공식 first-party operator**도 2026-01 등장했다. 조율 계층인 **ClickHouse Keeper**는 JVM/GC가 없어 ZooKeeper보다 가볍다 — Bonree는 교체로 **CPU/메모리 >75% 절감, IO·성능 ~8x** `[벤더]`. `clickhouse-backup`, Terraform EKS blueprint 등 도구가 갖춰져 있다.
 - **유연한 스토리지 티어링.** EBS gp3(churn 이후 생존, snapshot 용이), 로컬 NVMe(최고 throughput·최저 latency; i7ie는 노드당 최대 **120 TB**, i3en 대비 실시간 성능 ~65%↑·I/O latency ~50%↓ `[벤더]`), TTL MOVE로 S3 콜드 티어까지 워크로드에 맞춰 조합할 수 있다.
 
 ## 약점 · 한계
@@ -40,3 +40,5 @@ StarRocks와의 정면 비교는 [ClickHouse vs StarRocks]({{< relref "07-clickh
 ## 우리 케이스에서는
 
 우리는 PLG 방치 이력이 있는 소규모 플랫폼 팀이고, self-hosted CH는 managed OpenSearch보다 운영 부담이 **더 크지 덜하지 않다** — 여기서 지배적 위험은 기술이 아니라 오너십이다. 명시적 오너 + 런북 + 정기 리뷰를 못 박을 수 없다면 관리형(ClickHouse Cloud / Altinity.Cloud) 견적과 반드시 비교해야 하고, volatile한 istio access log 경로에는 단일 바이너리로 임의 field를 처리하는 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})가 더 가벼운 후보다. 따라서 self-hosted CH를 1차 채택안으로 밀지 않는다.
+
+채택을 전제했을 때의 배포·스토리지·operator 운영 전략 심화(how)는 [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) 도메인 참조 — 여기(로그 내재화 관점의 채택 여부)와 전제가 다르다.

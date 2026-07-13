@@ -30,4 +30,4 @@ ClickHouse Inc.가 HyperDX를 인수(2025-03)해 **ClickStack**으로 출시(202
 
 ## 우리 케이스에서는
 
-로그는 더 가벼운 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})로 가고 ClickStack은 채택하지 않는다 — CH+MongoDB라는 운영 표면을 새로 얹는 비용이 이번 로그 규모에는 과하다. 통합 프론트를 욕심내기 전에 Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 확인해야 하며, 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택만 늘린다. RUM 내재화 자체는 [RUM 내재화]({{< relref "../rum/_index.md" >}}) 도메인에서 다룬다.
+로그는 더 가벼운 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})로 가고 ClickStack은 채택하지 않는다 — CH+MongoDB라는 운영 표면을 새로 얹는 비용이 이번 로그 규모에는 과하다. 통합 프론트를 욕심내기 전에 Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 확인해야 하며, 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택만 늘린다. RUM 내재화 자체는 [RUM 내재화]({{< relref "../rum/_index.md" >}}) 도메인에서 다룬다. HyperDX 플랫폼 심층 분석(아키텍처·배포 모드·접근통제 갭)과 Datadog RUM 커버리지 매트릭스는 [HyperDX / ClickStack 심층 분석]({{< relref "../rum/01-hyperdx-deep-dive.md" >}}) · [Datadog RUM 커버리지]({{< relref "../rum/02-datadog-rum-coverage.md" >}}) 참조.

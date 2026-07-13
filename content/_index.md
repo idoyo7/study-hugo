@@ -13,5 +13,6 @@ toc: false
 - **[모니터링]({{< relref "monitoring/_index.md" >}})** — VictoriaMetrics 내부·운영, 메트릭 400일 장기 보관 아키텍처.
 - **[로깅]({{< relref "logging/_index.md" >}})** — ES(OpenSearch) 외 로그 내재화(Loki·VictoriaLogs·ClickHouse·HyperDX·StarRocks), RUM 대안, OpenSearch 비용 최적화, 최소 조합 아키텍처.
 - **[APM (Datadog)]({{< relref "apm/_index.md" >}})** — Datadog APM 최적화. 작성 예정.
-- **[RUM 내재화]({{< relref "rum/_index.md" >}})** — Datadog RUM(RWoL) 탈출: 웹은 HyperDX, 모바일은 대안 미성숙, 셀프호스트 세션 리플레이 비교.
+- **[RUM 내재화]({{< relref "rum/_index.md" >}})** — Datadog RUM(RWoL) 탈출: 웹은 HyperDX, 모바일은 대안 미성숙. HyperDX 도입 실사·Datadog RUM 커버리지 매트릭스·dd 프로토콜 프록시 검증·전 제품군 대체 매트릭스·이관 로드맵.
 - **[Istio]({{< relref "istio/_index.md" >}})** — 서비스 메시 운영. 작성 예정.
+- **[ClickHouse 운영]({{< relref "clickhouse/_index.md" >}})** — RUM 내재화·범용 분석으로 ClickHouse를 채택했을 때의 운영 전략(how): managed vs self-host TCO, 로컬 NVMe+S3 스토리지, Altinity operator, 프로덕션 사례.
