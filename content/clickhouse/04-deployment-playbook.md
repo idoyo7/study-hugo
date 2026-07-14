@@ -129,6 +129,17 @@ spec:
 
 CHK가 pod ordinal별 `server_id`(Raft peer), quorum/startup, 4LW 라이브니스를 자동 관리한다(수동 STS 대비 Raft 실수 제거). `hostTemplates`로 포트를 바꾸지 않으면 operator CHK 관례 기본은 **zkPort 2181 / raftPort 9444**다(9181/9234는 독립형 Keeper의 네이티브 기본값) `[확인됨]`. CHK 전용 수명주기 필드로 `spec.suspend`(리컨사일 일시중지, CHI의 `stop`에 대응)가 있다 `[확인됨]`.
 
+**정족수 산술 — 왜 3, 언제 5** `[확인됨]`. Keeper는 데이터 경로가 아니라 소규모 조정 계층이지만, 정족수를 잃으면 replication 조정·DDL·INSERT가 전부 멈춰 **클러스터 전체의 쓰기 가용성이 정지하는 숨은 SPOF**다(장애 시나리오는 §5 'Keeper 정족수 상실'). 3/5노드·gp3·멀티 AZ 결정은 전부 이 SPOF를 방어하려는 것이다. Raft 과반은 `floor(N/2)+1`, 견디는 동시 유실은 `floor((N-1)/2)`다.
+
+| 노드 수 N | 과반(쓰기 가능 최소) | 견디는 동시 유실 | 비고 |
+|---|---|---|---|
+| 1 | 1 | 0 | 단일 장애 = 전면 정지. 금지 |
+| **3** | 2 | **1** | 프로덕션 최소, 3 AZ 각 1대 |
+| 4 | 3 | 1 | 3노드 대비 견딤 이득 없이 비용·복제 지연만↑ → 무의미 |
+| **5** | 3 | **2** | 높은 가용성. 재수화 위험 창 중 2차 장애 방어 |
+
+**홀수만 의미가 있다** — 짝수는 과반 임계가 한 칸 오르면서 견디는 개수는 그대로라 비용만 는다. **5노드는** 로컬 NVMe 재수화 위험 창(§5) 동안 Keeper까지 2차 장애로 흔들릴 여지를 없애거나, AZ를 3개 이상으로 넓게 펴 한 AZ 소실(2대까지 손실)에도 과반이 남게 할 때 택한다. Keeper 데이터가 gp3(영속)라 노드가 교체돼도 Raft 메타데이터가 보존돼, 데이터 경로(로컬 NVMe) 재수화와 Keeper 정족수 복구는 서로 독립적으로 다뤄진다.
+
 ### CHI — 범용 분석 클러스터 (로컬 NVMe, 데이터/로그 분리)
 
 2 shard × 2 replica, 데이터=로컬 NVMe(`fast-disks`), 로그=gp3, CHK 이름 참조, anti-affinity(hostname+zone 이중), `storageManagement` Retain, 볼륨 `securityContext` `[확인됨]`.
@@ -215,6 +226,58 @@ spec:
 
 `layout`을 선언하면 operator가 **`remote_servers`와 per-host `macros`(`{shard}`/`{replica}`/`{cluster}`)를 자동 렌더**하므로 config.d에 손으로 remote_servers를 쓸 필요가 없다 `[확인됨]`. 데이터 mountPath `/var/lib/clickhouse`는 확정, 로그 자동 mountPath는 슬롯명 기반 기본값이라 위처럼 `volumeMounts`에 명시하면 확실하다 `[추정]`.
 
+### RF 선택 — RF2 vs RF3 (임의 2대 유실을 견디나)
+
+위 예제의 `replicasCount: 2`(RF2)는 **shard당 replica 2벌**을 뜻하고, 이 값이 곧 "몇 대까지 죽어도 데이터가 사는가"를 정하는 가용성 결정이다. RMT는 shard 단위로 데이터를 나눠 갖고 replica끼리만 사본을 공유하므로, fault tolerance는 **shard 안에서** 센다 `[확인됨]`.
+
+| | RF2 | RF3 |
+|---|---|---|
+| shard당 사본 | 2 | 3 |
+| shard당 견디는 동시 유실 | **1대** | **2대** |
+| 재수화 창 중 잔여 사본 | 1(실질 RF1) | 2 |
+| 비용 배수(노드·NVMe·cross-AZ 복제) | ×2 | ×3 |
+
+**"아무 2대나 죽어도 안전"은 RF2로는 보장되지 않는다.** RF2 × shard 3 = 6대 구성에서 임의로 2대가 동시에 죽는 경우의 수는 `6C2 = 15`, 그중 하필 **같은 shard의 두 replica**인 조합은 shard마다 1쌍씩 3쌍 → `3/15 ≈ 20%`. 이 20%를 뽑으면 그 shard는 사본이 0이 되어 **데이터를 잃고**, 나머지 80%는 서로 다른 shard라 무사하다. RF3에서는 같은 shard 2대가 죽어도 1벌이 남아 이 손실 시나리오 자체가 사라진다 `[확인됨: 조합 산술]`.
+
+즉 RF 선택은 **확률적 안전 vs 비용**의 의사결정이다 `[추정]`. 플레이북 기본값을 RF2로 두는 근거는 비용 배수가 곧바로 ×1.5(RF2 대비)로 뛰고(노드·NVMe·AZ 간 복제 트래픽까지), 간헐·배치성 워크로드나 재수화 대상 데이터가 작아 위험 창이 짧으면 RF2의 20% 노출이 실무상 수용 가능하기 때문이다. 반대로 **RF3로 승급하는 트리거**는 ① "임의 2대 유실에도 무손실"이 요구사항일 때, ② 24/7 대규모 hot 데이터로 노드당 데이터가 커 재수화 위험 창(§5)이 길 때, ③ AZ 1개 소실 생존까지 원할 때(아래 '배치·분산 강제' 절)다. 이는 로컬 디스크를 쓰는 분산 시스템의 공통 처방과 같은 논리다 — 업계 횡단 근거(CockroachDB "로컬이면 RF 3→5", ClickHouse "로컬이면 2→3")는 [로컬 NVMe 데이터스토어 패턴]({{< relref "06-local-nvme-datastore-patterns.md" >}})에 정리돼 있다.
+
+### 쓰기 내구성 노브 — insert_quorum
+
+RF는 "몇 벌 두나"를 정하고, `insert_quorum`은 "쓰기를 **몇 벌 확정된 뒤** ack하나"를 정한다 — 다른 축이다. 기본 RMT 쓰기는 **비동기**로, Keeper 로그에 파트 등록 ack만 나면 클라이언트에 성공을 돌려주고 나머지 replica는 뒤따라 fetch한다([operator 페이지]({{< relref "03-operator.md" >}})의 "데이터 무손실 보장 지점") `[확인됨]`. 최고 가용성이지만, ack 직후 그 replica 노드가 소실되면 **아직 복제되지 않은 파트는 유실**될 수 있고 뒤처진 replica를 읽으면 stale 결과가 나온다.
+
+| 설정 | 효과 | 트레이드오프 |
+|---|---|---|
+| (기본, async, ack=1) | 최고 가용성·최저 지연 | ack 후 즉시 노드 소실 시 미복제 파트 손실 가능 |
+| `insert_quorum: 2` | 최소 2 replica 확정 후 ack → 내구성↑ | 확정 가능 replica가 정족수 미달이면 쓰기 **차단**(가용성↓) |
+| `insert_quorum_timeout` | quorum 대기 상한(ms) | 짧으면 쓰기 실패↑, 길면 쓰기 지연↑ |
+| `select_sequential_consistency: 1` | quorum 반영 전 데이터를 읽지 않음 | 읽기 지연·가용성 일부 희생 |
+
+이 셋은 서버 레벨(config.xml)이 아니라 **세션/유저 레벨** setting이라 `settings`(config.d)가 아니라 `configuration.profiles`(users.xml)에 넣어야 실제 적용된다 `[확인됨]` — `settings`에 두면 서버가 프로파일 기본값으로 인식하지 못해 무효가 된다(대비: 위 §3 티어링의 `storage_configuration`은 진짜 서버 레벨이라 `settings`가 맞다).
+
+```yaml
+spec:
+  configuration:
+    profiles:                                        # users.xml 프로파일 — 세션 레벨 노브는 여기에
+      default/insert_quorum: "2"                     # [확인됨] 최소 2 replica 확정 후 ack
+      default/insert_quorum_timeout: "60000"         # ms
+      default/select_sequential_consistency: "1"     # quorum 읽기 일관성(선택)
+```
+
+핵심은 **내구성 vs 가용성**의 의사결정이다 `[추정]`. 재수화 위험 창(§5)과 겹칠 때가 결정적이다 — RF2에서 한 replica가 재수화 중이면 그 shard의 확정 가능 replica는 1벌뿐이라, `insert_quorum: 2`를 걸어 뒀다면 창이 닫힐 때까지 그 shard로의 **쓰기가 막힌다**(내구성을 위해 가용성을 포기). 반대로 기본 async면 쓰기는 계속되지만 창 동안 들어온 파트는 단일 사본이라 창 중 2차 장애 시 함께 사라진다. RF3는 재수화 중에도 2벌이 남아 `insert_quorum: 2`를 유지한 채 쓰기와 내구성을 모두 지킬 여지가 있다 — insert_quorum을 실제로 켜려면 RF3가 짝이 되기 쉬운 이유다.
+
+### 배치·분산 강제 — 노드/AZ 1개 소실이 shard 전멸이 되지 않게
+
+replica를 2~3벌 두는 것만으로는 부족하다 — 그 사본들이 **서로 다른 고장 도메인**에 놓여야 한다. 기본 스케줄러·팩킹은 같은 shard의 replica들을 한 노드나 한 AZ에 몰 수 있고, 그러면 노드 1대(또는 AZ 1개) 사망이 그 shard 전멸로 번진다. 이를 우연이 아니라 **설계로 강제**하는 것이 위 CHI의 세 필드다 `[확인됨]`:
+
+| 기제 | 필드 | 막는 것 |
+|---|---|---|
+| hostname anti-affinity | `podDistribution: ShardAntiAffinity`(hostname) | 같은 shard replica의 **노드 co-location**(인과는 [operator 페이지]({{< relref "03-operator.md" >}})) |
+| AZ topology spread | `ShardAntiAffinity`(zone) + `topologySpreadConstraints` | 같은 shard replica의 **AZ 몰림** |
+| PDB | `pdbMaxUnavailable: 1` | **자발적** 중단이 같은 shard 2대를 동시에 내림 |
+
+- **AZ spread의 인과**: 각 shard의 replica가 서로 다른 AZ에 흩어져 있으면 AZ 하나가 통째로 죽어도 모든 shard가 최소 1사본을 다른 AZ에 남겨 클러스터가 산다. spread가 없으면 스케줄러가 한 shard의 replica들을 같은 AZ에 몰 수 있어 **AZ 1개 소실 = 그 shard 전멸**이다. 단 RF2를 3 AZ에 펴면 AZ 1개가 죽는 순간 **모든 shard가 동시에 RF1로 하락** — 전 클러스터가 한꺼번에 재수화 위험 창(§5)에 진입한다. "AZ 장애까지 무손실 생존"이 요구면 RF3 여지를 함께 본다(위 'RF 선택' 절).
+- **PDB가 막는 것은 자발적 중단뿐**: drain·롤링 업그레이드·Karpenter consolidation 세 vector가 같은 shard 2대를 동시에 내리는 것을 `maxUnavailable: 1`이 직렬화로 막는다. operator 자동 PDB는 `clusters[].layout`이 만든 host(=replica) 라벨 셀렉터를 대상으로 잡으므로, RF2 shard에서 "동시 1대만 down"이 실제 shard 단위로 보장되는지 배포 후 `kubectl get pdb -o yaml`로 셀렉터 범위를 확인한다 `[미확인]`. 다만 PDB는 **시간차 독립 하드웨어 장애의 2차 타격**까지는 못 막는다 — 그 방어는 RF3다(§5).
+
 ### 데이터/로그 볼륨 분리와 storageManagement
 
 **볼륨 분리** `[확인됨]`: VCT를 두 개 만들고 `dataVolumeClaimTemplate`(→ `/var/lib/clickhouse`)·`logVolumeClaimTemplate`(→ `/var/log/clickhouse-server`)에 각각 지정하면 operator가 자동 매핑한다. 로컬 볼륨은 **1 디스크=1 PV**라 같은 로컬 디스크를 data/log로 쪼갤 수 없으므로 **로그는 gp3로 빼서** 로컬 NVMe를 데이터 전용으로 지키는 것이 자연스럽다(같은 로컬 디스크 분할이 필요하면 TopoLVM 계열).
@@ -265,6 +328,7 @@ TTL toDateTime(timestamp) + INTERVAL 7 DAY TO VOLUME 'cold';
 | `clusters[].layout.shardsCount/replicasCount` | 토폴로지 격자 | 용량·내구성 스케일 | replica↑=자동, shard↑=수동 리샤딩(§5). 로컬 NVMe는 replica ≥ 2 하한 |
 | `zookeeper.keeper.name` | CHK 이름 참조 | 0.27.0+ 항상 권장 | 참조 CHK 엔드포인트 변경 시 의존 CHI 자동 재리컨사일 |
 | `settings` / `files` | config.xml / 임의 XML | 커스텀 설정·dictionary·티어링 | **반드시 이 필드로만** 주입. 외부 볼륨/ArgoCD 직접 마운트는 렌더 충돌 → CrashLoop(#1456) |
+| `insert_quorum` / `_timeout` / `select_sequential_consistency` | 쓰기 내구성(ack 전 확정 replica 수) | 미복제 손실을 못 견디는 쓰기 | **`profiles`(users.xml)로 주입**(세션 레벨 — `settings`에 두면 무효). 확정 replica 정족수 미달·재수화 창엔 쓰기 차단(가용성↓). RF3와 짝(§2 '쓰기 내구성 노브') |
 | `users`/`profiles`/`quotas` | users.xml | 계정·권한 | 시크릿은 `k8s_secret_password`로(평문 금지). 업그레이드 시 `clickhouse_operator` 프로파일 소실 주의(#1744) |
 | `podDistribution` + `topologySpreadConstraints` | 배치 강제 | AZ/노드 분산 | shard-aware는 podDistribution, AZ 균등 하드 제약(`whenUnsatisfiable: DoNotSchedule`)은 topologySpread. 병용 |
 | `reconcile.host.wait.replicas.new` | 신규 replica catch-up 대기 | scale-out·재수화 | `new: "yes"`로 따라잡을 때까지 다음 단계 대기 |
@@ -304,7 +368,31 @@ kubectl patch chi analytics -n clickhouse --type=merge \
 #    SYSTEM RESTART REPLICA db.table;  SYSTEM SYNC REPLICA db.table;
 ```
 
-무손실 재수화는 **shard당 replica ≥ 2 + anti-affinity**가 전제다. replica=2에서 1노드 소실 시 그 shard는 재수화 완료까지 단일 사본이므로 **동시에 여러 노드를 교체하지 말 것**(`pdbMaxUnavailable: 1`이 강제). 재수화 시간은 노드당 데이터를 작게(shard 수평 확장) 줄이고, TB당 정확한 소요는 스테이징에서 실측한다 `[미확인]`. 관련 필드: `reconcile.statefulSet.recreate.onDataLoss: recreate`, `host.drop.replicas.onLostVolume: "yes"` + `active: "no"`, 자동복구 `reconcile.recovery.from.aborted.onPodReady: retry`(0.27.1).
+무손실 재수화는 **shard당 replica ≥ 2 + anti-affinity**가 전제다. replica=2에서 1노드 소실 시 그 shard는 재수화 완료까지 단일 사본이므로 **동시에 여러 노드를 교체하지 말 것**(`pdbMaxUnavailable: 1`이 강제). 단 이는 **동시(자발적) 중단**만 막는다 — RF2에서 재수화 창(수 시간) 동안 그 shard는 실질 RF1(단일 사본)이라, 이 창 안에 같은 shard의 다른 replica가 **시간차 독립 하드웨어 장애**로 죽으면 shard가 소실된다. anti-affinity·PDB는 이 2차 타격을 못 막고, 유일한 방어는 **RF3**(창 동안에도 2사본 유지 → 2차 장애 생존)다(§2 'RF 선택' 절). 재수화 시간은 노드당 데이터를 작게(shard 수평 확장) 줄이고, TB당 정확한 소요는 스테이징에서 실측한다 `[미확인]`. 관련 필드: `reconcile.statefulSet.recreate.onDataLoss: recreate`, `host.drop.replicas.onLostVolume: "yes"` + `active: "no"`, 자동복구 `reconcile.recovery.from.aborted.onPodReady: retry`(0.27.1).
+
+### Keeper 정족수 상실
+
+Keeper가 과반을 잃으면(3노드 중 2대·5노드 중 3대 소실, 산술은 §2 CHK '정족수 산술') 클러스터는 조정 불능에 빠진다 — 노드 데이터가 멀쩡해도 **쓰기 경로가 멈춘다** `[확인됨]`. 데이터 경로가 아닌 소규모 조정 계층이 전체 쓰기 가용성의 SPOF가 되는 지점이다. 흩어진 서술(2노드 정족수 함정 [operator 페이지]({{< relref "03-operator.md" >}}), read-only 전락 [프로덕션 사례]({{< relref "05-production-usecases.md" >}}) 안티패턴 #5)을 이 절이 참조해 한 곳에 통합한다.
+
+| 멈추는 것 | 견디는 것 |
+|---|---|
+| replication 조정·신규 파트 등록·replica 동기화 정지 | 이미 로컬에 있는 파트에 대한 **read 쿼리** |
+| DDL(테이블 생성/변경) 차단 | 진행 중이던 조회의 완료 |
+| INSERT — 파트 등록 불가라 사실상 read-only 전락 | |
+
+복구는 '노드 소실 · 재수화' 런북과 동급으로:
+
+```bash
+# 1. 증상 식별 — CH가 read-only, DDL/INSERT 실패. Keeper 파드 상태·4LW로 리더 부재 확인
+kubectl get pods -l "clickhouse-keeper.altinity.com/chk=analytics-keeper" -n clickhouse -o wide  # [미확인] 라벨 키 배포 후 확인
+echo mntr | nc <keeper-pod> 2181 | grep zk_server_state    # leader/follower 확인(4LW, 0.27.0+)
+# 2. 남은 Keeper 노드와 gp3 데이터 보존 확인 — gp3 영속이라 Raft 로그/스냅샷 생존
+kubectl get pvc -l "clickhouse-keeper.altinity.com/chk=analytics-keeper" -n clickhouse
+# 3. 소실 노드 재프로비저닝 → CHK가 server_id·Raft peer 재구성 → 과반 복구 시 쓰기 자동 재개
+#    (CHK는 파드 복귀 시 자동 리컨사일; 수동 트리거가 필요하면 taskID patch [미확인: CHK 지원 여부 확인])
+```
+
+**gp3 영속이 핵심**이다 — Keeper 데이터를 로컬 NVMe에 뒀다면 노드 소실이 곧 Raft 메타데이터 소실이라 정족수 재구성이 훨씬 번거롭다(그래서 §1·§2에서 Keeper만은 gp3). 남은 노드가 과반을 유지하는 한(3노드에서 1대만 잃음) 쓰기는 애초에 멈추지 않고 잃은 노드만 교체되면 자동 복구된다. 과반을 이미 잃었다면 살아있는 노드의 최신 스냅샷에서 앙상블을 재구성한다. 이 시나리오는 로컬 NVMe 데이터 경로 재수화(위)와 **독립적**이다 — 데이터 노드가 멀쩡해도 Keeper 정족수만으로 전체 쓰기가 멈출 수 있고, 그 반대도 성립한다.
 
 ### reconcile hooks — pre/post SQL 자동화
 
