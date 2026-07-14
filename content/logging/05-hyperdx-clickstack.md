@@ -19,7 +19,7 @@ ClickHouse Inc.가 HyperDX를 인수(2025-03)해 **ClickStack**으로 출시(202
 
 - **네이티브 모바일 RUM이 없다(결정적).** 세션 리플레이는 rrweb 기반 브라우저 전용이고, iOS(Swift)/Android(Kotlin)/Flutter 퍼스트파티 SDK가 없다. 유일한 모바일 SDK인 `@hyperdx/otel-react-native`는 트레이스·에러·네트워크만 수집하고 리플레이가 없다. Datadog RUM의 **모바일** 부분은 ClickStack만으로 내재화할 수 없다.
 - **메트릭이 가장 약하다.** OTel 메트릭을 저장은 하지만 **PromQL이 없다**(SQL/Lucene only, PromQL은 로드맵). exemplars 부재 등으로 메트릭→트레이스 상관도 얕다. VictoriaMetrics/PromQL 대비 regression이다.
-- **알림·대시보드가 어리다.** 알림은 rule당 단일 임계값, anomaly detection 없음(로드맵), alert history 없음, IaC/Terraform 없음. 대시보드는 템플릿 변수 없음, chart aggregation 옵션 제한, 프리셋 라이브러리가 작다(SigNoz 30+·Grafana 생태계 대비 소수 `[추정]`). curated 대시보드보다 **ad-hoc 고카디널리티 탐색**에 강하다.
+- **알림·대시보드가 어리다.** 알림은 rule당 단일 임계값, anomaly detection 없음(로드맵), alert history 없음, IaC/Terraform 없음. 대시보드는 템플릿 변수 없음, chart aggregation 옵션 제한, 프리셋 라이브러리가 작다(SigNoz 30+·Grafana 생태계 대비 소수 `[추정]`). curated 대시보드보다 **ad-hoc 고카디널리티 탐색**에 강하다. (이 알림 서술은 2026 초 시점 스냅샷이다 — 이후 `GROUP BY`별 발화·SQL 기반 이상탐지(2026-05)가 추가됐다. 최신 성숙도는 [HyperDX / ClickStack 심층 분석]({{< relref "../rum/01-hyperdx-deep-dive.md" >}})의 기능 성숙도 매트릭스 참고.)
 - **운영 표면이 넓다.** 상태 저장용 **MongoDB**가 별도 데이터스토어로 붙고(구버전 insecure default 이력), 스케일에서는 ClickHouse ops(Keeper 기반 replication, sharding, part merge, TTL, async insert 배치)를 직접 떠안는다. 관리형 ClickStack은 아직 **Beta**. 첫 기동 시 app/API URL·CORS 설정이 흔한 트립 해저드다.
 - **대규모 레퍼런스가 얇다.** ClickHouse(DB) 채택 사례는 많지만(Netflix/eBay/Cloudflare 등), 패키지드 **ClickStack 자체**의 대규모 named 프로덕션 사례는 제품이 ~1년 되어 아직 적다.
 

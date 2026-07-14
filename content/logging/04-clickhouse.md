@@ -13,11 +13,11 @@ weight: 4
   - OTel 로그 벤치에서 **CH 내부 압축 ~16.3x**, **디스크 상 Elasticsearch 대비 ~4.95x 작음** `[벤치]` (ClickHouse blog, OSS v26.3, 2026-04-23; 1B/10B/50B rows 전 구간에서 유지).
   - 실무 관측치: 구조화 로그 **~10:1–20:1** `[추정/벤더]`, Uber는 보수적으로 **3x, 경우에 따라 30x** `[벤더]`. nginx류 반복성 높은 access log는 **>100x**(178x 인용 사례)까지 간다 `[벤더]`. 용량 계획용 raw→디스크 비율은 **8~12x가 보수적**이고 좋은 schema면 **10~30x** 도달 가능 `[추정]`.
 - **분석 쿼리 성능이 뛰어나다.** 대규모 병렬 컬럼 스캔과 벡터화 실행으로 aggregation·필터가 매우 빠르다. Uber는 단일 노드에서 **300K logs/s ≈ ES 노드의 약 10x** 처리, 타입드 schema로 **aggregation 50x 빠름** `[벤더]`. Trip.com은 ES 대비 **4~30x 빠른 쿼리**(P90 <300ms, P99 <1.5s) `[벤더]`, Cloudflare는 **96조(96T) 이벤트를 <2s에 스캔** `[벤더]`.
-- **인프라 비용이 크게 낮다.** OpenSearch/ELK 대비 인프라 기준 큰 절감(대략 **7~15배** 보고 사례) `[벤더]`. Uber는 ELK 대비 **hardware >50% 절감** `[벤더]`, Didi는 **~30% 절감** `[벤더]`, 한 crypto-derivatives 플랫폼은 OTel 통합으로 관측성 청구를 high-six-figures에서 **~$50K(약 90% 절감)** `[벤더]`.
+- **인프라 비용이 크게 낮다.** OpenSearch/ELK 대비 인프라 기준 큰 절감(대략 **7~15배** 보고 사례) `[벤더]`. Uber의 ELK 대비 **hardware >50% 절감** 주장은 2026-07 적대 검증에서 원문 근거 불충분으로 기각됐다(1-2) `[미확인]`. Didi는 **machine cost ~30% 절감**(2024-04 스냅샷, 엔지니어링·마이그레이션 비용 제외) `[벤더]`, 한 crypto-derivatives 플랫폼은 OTel 통합으로 관측성 청구를 high-six-figures에서 **~$50K(약 90% 절감)** `[벤더]`.
 - **통합 저장소 잠재력.** 로그·트레이스·이벤트를 한 스키마 계열로 다루고 SQL로 조회한다. TTL 티어링, materialized view, AggregatingMergeTree 같은 프리미티브로 pre-aggregation·다운샘플·hot→cold 이동을 엔진 안에서 처리한다. 로그 검색에 필요한 **풀텍스트 text index GA(2026-03)**, **native JSON GA(25.3)**도 이미 정식이다.
 - **PB 스케일에서 실전 검증됨.** Trip.com은 **4PB→50PB+**로 성장 `[벤더]`, Cloudflare는 quadrillion-row 스케일을 active-active로 운영. 성능·비용 방향성이 매우 큰 규모에서도 일관된다.
 - **넓은 생태계와 성숙한 운영 도구.** 드라이버/BI/OTel/Vector 연동이 풍부하다. **Altinity clickhouse-operator**는 약 7년간 사실상 표준(라인 0.27.x, 0.27.1은 2026-06-04·FIPS 지원), ClickHouse Inc.의 **공식 first-party operator**도 2026-01 등장했다. 조율 계층인 **ClickHouse Keeper**는 JVM/GC가 없어 ZooKeeper보다 가볍다 — Bonree는 교체로 **CPU/메모리 >75% 절감, IO·성능 ~8x** `[벤더]`. `clickhouse-backup`, Terraform EKS blueprint 등 도구가 갖춰져 있다.
-- **유연한 스토리지 티어링.** EBS gp3(churn 이후 생존, snapshot 용이), 로컬 NVMe(최고 throughput·최저 latency; i7ie는 노드당 최대 **120 TB**, i3en 대비 실시간 성능 ~65%↑·I/O latency ~50%↓ `[벤더]`), TTL MOVE로 S3 콜드 티어까지 워크로드에 맞춰 조합할 수 있다.
+- **유연한 스토리지 티어링.** EBS gp3(churn 이후 생존, snapshot 용이), 로컬 NVMe(최고 throughput·최저 latency; i7ie는 노드당 최대 **120 TB**, i3en 대비 실시간 성능 ~65%↑·I/O latency ~50%↓ `[벤더]`), TTL MOVE로 S3 콜드 티어까지 워크로드에 맞춰 조합할 수 있다. 인스턴스 패밀리 선택의 현재 권고(i8g 기본, i7i/i7ie는 대용량·x86 의존 시)는 [ClickHouse 스토리지 · 로컬 NVMe]({{< relref "../clickhouse/02-storage-local-nvme.md" >}}) 참고.
 
 ## 약점 · 한계
 
