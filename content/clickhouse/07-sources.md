@@ -98,7 +98,9 @@ Altinity 자체 문서/저장소, ClickHouse Inc. 공식 operator, 대안 operat
 | issue #1456(외부 config crashloop) | [github.com/Altinity/clickhouse-operator/issues/1456](https://github.com/Altinity/clickhouse-operator/issues/1456) |
 | issue #1500(scale-to-0 STS 삭제 시 미재생성) | [github.com/Altinity/clickhouse-operator/issues/1500](https://github.com/Altinity/clickhouse-operator/issues/1500) |
 | issue #1602(신규 replica 스키마 auto-creation 미동작) | [github.com/Altinity/clickhouse-operator/issues/1602](https://github.com/Altinity/clickhouse-operator/issues/1602) |
+| issue #1598(0.24.0 순차 재시작 → CHK 쿼럼 손실, v0.26.1에서 수정) | [github.com/Altinity/clickhouse-operator/issues/1598](https://github.com/Altinity/clickhouse-operator/issues/1598) |
 | Altinity KB — AWS EC2 Storage | [kb.altinity.com/.../aws-ec2-storage](https://kb.altinity.com/altinity-kb-setup-and-maintenance/aws-ec2-storage/) |
+| Altinity KubeCon 2023 — Kubernetes Storage로 수백 개 실시간 분석 DB 운영(PDF) | [altinity.com/wp-content/uploads/.../Adventures-in-Data...pdf](https://altinity.com/wp-content/uploads/2024/05/Adventures-in-Data-Leaning-on-Kubernetes-Storage-to-Run-Hundreds-of-Real-Time-Analytic-Databases.pdf) |
 | Altinity — MergeTree on S3 아키텍처 | [altinity.com/blog/clickhouse-mergetree-on-s3-intro-and-architecture](https://altinity.com/blog/clickhouse-mergetree-on-s3-intro-and-architecture) |
 | Altinity — MergeTree on S3, Administrative Best Practices(move_factor·prefer_not_to_merge·replica별 S3 경로) | [altinity.com/blog/clickhouse-mergetree-on-s3-administrative-best-practices](https://altinity.com/blog/clickhouse-mergetree-on-s3-administrative-best-practices) |
 | Altinity — DR tips & tricks | [altinity.com/webinarspage/.../disaster-recovery](https://altinity.com/webinarspage/clickhouse-disaster-recovery-tips-and-tricks-to-avoid-trouble-in-paradise) |
@@ -173,6 +175,7 @@ Altinity 자체 문서/저장소, ClickHouse Inc. 공식 operator, 대안 operat
 | Microsoft Clarity — Why we chose ClickHouse | [clarity.microsoft.com/blog/why-microsoft-clarity-chose-clickhouse](https://clarity.microsoft.com/blog/why-microsoft-clarity-chose-clickhouse/) |
 | ClickHouse blog — Clarity petabyte-scale behavior analytics | [clickhouse.com/blog/petabyte-scale-website-behavior-analytics](https://clickhouse.com/blog/petabyte-scale-website-behavior-analytics-using-clickhouse) |
 | ClickHouse blog — Anthropic(2025-07) | [clickhouse.com/blog/how-anthropic-is-using-clickhouse](https://clickhouse.com/blog/how-anthropic-is-using-clickhouse-to-scale-observability-for-ai-era) |
+| ClickHouse blog — OpenAI petabyte-scale observability | [clickhouse.com/blog/why-openai-uses-clickhouse-for-petabyte-scale-observability](https://clickhouse.com/blog/why-openai-uses-clickhouse-for-petabyte-scale-observability) |
 | ClickHouse blog — Netflix petabyte-scale logging | [clickhouse.com/blog/netflix-petabyte-scale-logging](https://clickhouse.com/blog/netflix-petabyte-scale-logging) |
 | ClickHouse 영상 — Netflix observability | [clickhouse.com/videos/netflix-observability](https://clickhouse.com/videos/netflix-observability) |
 | ClickHouse blog — Didi ES→ClickHouse 마이그레이션 | [clickhouse.com/blog/didi-migrates-from-elasticsearch](https://clickhouse.com/blog/didi-migrates-from-elasticsearch-to-clickHouse-for-a-new-generation-log-storage-system) |

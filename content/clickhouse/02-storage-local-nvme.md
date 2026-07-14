@@ -52,9 +52,11 @@ self-host ClickHouse의 스토리지 매체는 네 갈래다. 로컬 NVMe만 놓
 
 반대로 소규모(<5~10TB)·bursty·운영 인력 부족·강한 내구성 단순화 요구면 gp3나 managed가 합리적이다.
 
+> **반론도 있다 `[벤더]`.** Altinity는 ClickHouse가 보통 IOPS가 아닌 throughput-bound라 gp3 1~3개면 충분한 경우가 많다고 보며, 자체 벤치마크에서 EBS 기반 m6i.4xlarge가 로컬 NVMe i3.4xlarge를 캐시드 쿼리 전반에서 앞선 사례를 보고했다(원인은 스토리지가 아니라 **39% 빠른 CPU 클럭** — 데이터가 페이지 캐시에 오르면 디스크 종류보다 CPU 세대가 성능을 좌우한다). KubeCon 2023 발표의 권장 아키텍처도 스토리지/컴퓨트 분리형 EBS gp3였고 로컬 NVMe는 오브젝트 스토리지 캐시 계층으로 뒀다. 다만 이 반론의 실체는 **"구세대 로컬 NVMe(i3) vs 신세대 CPU+EBS(m6i)"** 비교이지 i7i/i8g(신세대 CPU+신세대 NVMe) 자체를 반박하는 것은 아니다 — 워킹셋이 페이지 캐시에 다 올라가는 워크로드에서는 로컬 NVMe 프리미엄이 무의미해진다는 신호로 읽어야 하고, 이 페이지의 로컬 NVMe-primary 권고를 뒤집지는 않는다.
+
 ## i7i / i8g — 로컬 NVMe 인스턴스 상세
 
-**i7i (2025-04-28 출시 `[확인됨]`)** 는 x86 스토리지 최적화 인스턴스의 현행 최강이다. **3세대 AWS Nitro SSD** + 5세대 Intel Xeon(Emerald Rapids) + DDR5, 로컬 NVMe **최대 45TB**, 네트워크 최대 100 Gbps `[확인됨]`. AWS는 이전 세대 i4i 대비 실시간 스토리지 성능 ~50%↑·I/O 지연 ~50%↓를 주장한다 `[벤더]`.
+**i7i (2025-04-28 출시 `[확인됨]`)** 는 x86 스토리지 최적화 인스턴스의 현행 최강이다. **3세대 AWS Nitro SSD**(상시 AES-256 암호화) + **5세대 Intel Xeon**(Emerald Rapids, 전코어 터보 3.2GHz) + DDR5, 최상위 **i7i.48xlarge**는 192 vCPU / 1,536 GiB RAM / 로컬 NVMe 45TB(12×3,750GB) / 네트워크 100Gbps / **EBS 대역폭 60Gbps**, 스토리지밀집형 **i7ie.48xlarge**는 120TB(16×7,500GB)까지 올라간다 `[확인됨]`. AWS는 이전 세대 i4i 대비 **컴퓨트 성능 ~23%↑·실시간 스토리지 성능 ~50%↑·I/O 지연 ~50%↓·지연 변동성 ~60%↓**를 주장하며, 이 % 수치들은 AWS 마케팅 자료 기준으로 절대 IOPS·처리량·가격은 공식 페이지에 없다 `[벤더]`.
 
 로컬 NVMe 성능의 결정적 사실: **3.75TB Nitro SSD 드라이브 1개 = random read 600,000 IOPS / write 330,000 IOPS**(4KB 블록, 큐 깊이 포화) `[확인됨]`. 총 IOPS는 드라이브 수에 **완전 선형**으로 증가한다. 요금도 vCPU당 단가가 사이즈 전체에서 동일해 가격 페널티 없이 필요한 NVMe·RAM으로만 사이즈를 고르면 된다.
 
@@ -97,7 +99,7 @@ self-host ClickHouse의 스토리지 매체는 네 갈래다. 로컬 NVMe만 놓
 {{< /callout >}}
 
 {{< callout type="error" >}}
-**zero-copy replication은 프로덕션 금지다.** 22.8+부터 기본 비활성이며, mutation 중 데이터 손실(#39560)·merge 중 손상·TTL 이동 시 NOT_ENOUGH_SPACE·Keeper 부하 증가 등 이슈가 다수 보고됐다 `[확인됨]`. S3 tier를 쓰더라도 이 기능에 의존하지 말고, **각 replica가 자기 경로에 독립 저장하는 표준 RMT 복제**를 유지한다. (self-host가 SharedMergeTree를 못 쓴다는 제약과 그 배경은 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}) 참고.)
+**zero-copy replication은 프로덕션 금지다.** 22.8+부터 기본 비활성이며, mutation 중 데이터 손실(#39560)·merge 중 손상·TTL 이동 시 NOT_ENOUGH_SPACE·Keeper 부하 증가 등 이슈가 다수 보고됐다 `[확인됨]`. 실사례로 issue #45346은 CH 22.3·4 리플리카·S3 구성에서 소스 파트가 ZooKeeper의 zero-copy 메타데이터엔 있으나 4개 리플리카 어디에도 물리적으로 없어 머지가 무한 정지된 사고를 보고했다 — ClickHouse 메인테이너 Milovidov가 'experimental feature'로 not-planned 종결했고, 그 라벨의 의미는 "프로덕션에 쓰면 안 되는 기능의 버그"라는 것이다(원 스택트레이스가 로그 로테이션으로 소실돼 정확한 root cause는 미확정 `[추정]` — 완전 진단이 아니라 보고된 인시던트로 취급). 공식 문서도 "zero-copy replication is not ready for production"이라 명시한다. S3 tier를 쓰더라도 이 기능에 의존하지 말고, **각 replica가 자기 경로에 독립 저장하는 표준 RMT 복제**를 유지한다. (self-host가 SharedMergeTree를 못 쓴다는 제약과 그 배경은 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}) 참고.)
 {{< /callout >}}
 
 ## 티어링 설계 — OpenSearch와 같은 구조인가

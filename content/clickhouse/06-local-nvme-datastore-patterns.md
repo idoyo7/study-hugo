@@ -97,7 +97,7 @@ weight: 6
 | **Aerospike** | **shadow device=모델 A의 원조**(EBS 동기 미러, RPO≈0) | **높음** — AKO + local-static-provisioner + raw block(volumeMode: Block) | roster 제외 → 새 노드 파티션 재동기화. shadow 있으면 같은 AZ에서 EBS→로컬 복원 |
 | **TiKV / TiDB** | TiDB Cloud(관리형)만 EBS+S3. self-host엔 네이티브 S3 티어 부재 | 중~높음 — TiDB Operator + local-volume-provisioner | Raft 재복제. **Pinterest는 MTTR 때문에 Graviton+EBS 전환 검토** |
 | **CockroachDB** | 네이티브 S3 데이터 티어 부재(백업은 S3) | 중 — cockroach-operator, ephemeral-only 수요 | 단기=Raft 무중단. 장기=자동 rebalance. **작은 노드·넓은 분산이 MTTR 최소화 원칙** |
-| **ClickHouse (self-host)** | **S3 cold tier(TTL MOVE)=모델 A, 코어 내장·성숙**. filesystem cache 필수. zero-copy 금지→사본 배수 유지 | 중 — Altinity operator + local-path/TopoLVM. Karpenter consolidation stateful 위험 | replica에서 파트 재fetch. **재수화 TB당 시간 미측정(벤치 필요)** `[미확인]`. drain→종료→stuck PV/PVC 청소→재수화 모니터→RF 검증 |
+| **ClickHouse (self-host)** | **S3 cold tier(TTL MOVE)=모델 A, 코어 내장·성숙**. filesystem cache 필수. zero-copy 금지(#45346)→사본 배수 유지 | 중 — Altinity operator + local-path/TopoLVM. Karpenter consolidation stateful 위험 | replica에서 파트 재fetch. **재수화 TB당 시간 미측정(벤치 필요)** `[미확인]`. drain→종료→stuck PV/PVC 청소→재수화 모니터→RF 검증 |
 
 ## 수렴점 5개와 시스템별 예외
 
