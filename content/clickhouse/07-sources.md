@@ -1,11 +1,11 @@
 ---
 title: "출처"
-weight: 6
+weight: 7
 ---
 
 # 출처 — ClickHouse 배포·오퍼레이터·운영사례 조사 자료
 
-이 표는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [프로덕션 운영사례]({{< relref "04-production-usecases.md" >}}), [데이터스토어 횡단 벤치마킹]({{< relref "05-local-nvme-datastore-patterns.md" >}}) 다섯 페이지가 인용한 1차 조사 문서(배포 전략·스토리지 아키텍처, clickhouse-operator 채택, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강, 로컬 NVMe 데이터스토어 횡단 조사)의 `## 출처` 섹션을 모아 중복 제거하고 주제별로 분류했다. 조사 기준일은 **2026-07-13~14**(각 조사 문서 frontmatter `updated` 값 — 데이터스토어 횡단 조사와 티어링 검증만 07-14)이다.
+이 표는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), [프로덕션 운영사례]({{< relref "05-production-usecases.md" >}}), [데이터스토어 횡단 벤치마킹]({{< relref "06-local-nvme-datastore-patterns.md" >}}) 여섯 페이지가 인용한 1차 조사 문서(배포 전략·스토리지 아키텍처, clickhouse-operator 채택, operator로 로컬 NVMe에 CH를 배포하는 실전 플레이북·CHI/CHK CRD 심층·local PV 연동·토폴로지 운영 런북, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강, 로컬 NVMe 데이터스토어 횡단 조사)의 `## 출처` 섹션을 모아 중복 제거하고 주제별로 분류했다. 조사 기준일은 **2026-07-13~15**(각 조사 문서 frontmatter `updated` 값 — 데이터스토어 횡단 조사·티어링 검증은 07-14, operator 배포 플레이북 시리즈는 07-15)이다.
 
 개별 URL의 등급(확인됨/추정/미확인)은 원 조사 문서 본문의 인라인 태그를 따른다 — 이 표 자체는 출처 목록이며 등급을 재판정하지 않는다.
 
@@ -125,6 +125,26 @@ Altinity 자체 문서/저장소, ClickHouse Inc. 공식 operator, 대안 operat
 | SigNoz charts #782(Altinity operator subchart 제안) | [github.com/SigNoz/charts/issues/782](https://github.com/SigNoz/charts/issues/782) |
 | langfuse-k8s #206(Bitnami 차트/이미지 변경) | [github.com/langfuse/langfuse-k8s/issues/206](https://github.com/langfuse/langfuse-k8s/issues/206) |
 
+## operator 배포·CRD·local PV
+
+[operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})과 그 근거 시리즈(operator로 로컬 NVMe에 CH를 배포하는 종합 플레이북, CHI/CHK CRD 필드 심층, local PV 연동 how-to, 토폴로지·운영 런북)가 **필드 수준 배포 근거**로 삼은 1차 URL. CRD 스키마·공식 예제 YAML·operator 자체 설정·local PV provisioner·백업/GitOps 연동 위주로, 위 `Altinity·operator` 표와 중복되는 URL은 제외했다.
+
+| 설명 | 링크 |
+|---|---|
+| operator 설치 번들 CRD(provisioner/reclaimPolicy/podDistribution/reconcile enum 원문) | [raw.githubusercontent.com/.../clickhouse-operator-install-bundle.yaml](https://raw.githubusercontent.com/Altinity/clickhouse-operator/master/deploy/operator/clickhouse-operator-install-bundle.yaml) |
+| custom_resource_explained.md(설정 렌더·config.d/users.d·remote_servers/macros 자동생성) | [github.com/Altinity/.../custom_resource_explained.md](https://github.com/Altinity/clickhouse-operator/blob/master/docs/custom_resource_explained.md) |
+| CHK max 예제(Keeper 전용 필드·suspend·pdbManaged) | [github.com/Altinity/.../99-clickhousekeeperinstallation-max.yaml](https://github.com/Altinity/clickhouse-operator/blob/master/docs/chk-examples/99-clickhousekeeperinstallation-max.yaml) |
+| 03-persistent-volume-08-tiered-s3(계층형 S3 디스크 예제) | [github.com/Altinity/.../03-persistent-volume-08-tiered-s3.yaml](https://github.com/Altinity/clickhouse-operator/blob/master/docs/chi-examples/03-persistent-volume-08-tiered-s3.yaml) |
+| 11-local-storage-01/02(hostPath 로컬 스토리지 예제) | [github.com/Altinity/.../11-local-storage-01-simple-host-path.yaml](https://github.com/Altinity/clickhouse-operator/blob/master/docs/chi-examples/11-local-storage-01-simple-host-path.yaml) |
+| operator_upgrade.md(minor 스킵 금지·CRD 별도 apply·keeper 참조·auto-recovery) | [raw.githubusercontent.com/.../operator_upgrade.md](https://raw.githubusercontent.com/Altinity/clickhouse-operator/master/docs/operator_upgrade.md) |
+| operator_configuration.md(watchNamespaces·reconcileThreadsNumber·self-config) | [github.com/Altinity/.../operator_configuration.md](https://github.com/Altinity/clickhouse-operator/blob/master/docs/operator_configuration.md) |
+| clickhouse-backup Examples.md(사이드카 env·CronJob·:7171 REST) | [github.com/Altinity/clickhouse-backup/.../Examples.md](https://github.com/Altinity/clickhouse-backup/blob/master/Examples.md) |
+| ArgoCD ignoreDifferences 설정 가이드(/status 무시·RespectIgnoreDifferences) | [oneuptime.com/.../argocd-configure-ignore-differences](https://oneuptime.com/blog/post/2026-02-26-argocd-configure-ignore-differences/view) |
+| k8s — Local volume(nodeAffinity·WaitForFirstConsumer) | [kubernetes.io/.../volumes/#local](https://kubernetes.io/docs/concepts/storage/volumes/#local) |
+| local-static-provisioner getting-started(discovery·storageClassMap) | [github.com/kubernetes-sigs/.../getting-started.md](https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner/blob/master/docs/getting-started.md) |
+| TopoLVM getting-started(VG·capacity-aware·allowVolumeExpansion) | [github.com/topolvm/.../getting-started.md](https://github.com/topolvm/topolvm/blob/main/docs/getting-started.md) |
+| OpenEBS LocalPV-LVM StorageClass(local.csi.openebs.io·volgroup) | [openebs.io/docs/.../lvm-create-storageclass](https://openebs.io/docs/user-guides/local-storage-user-guide/local-pv-lvm/configuration/lvm-create-storageclass) |
+
 ## 운영 사례 블로그·발표
 
 각 회사의 공식 엔지니어링 블로그/발표. 이 중 다수(Zomato·Netflix·Didi·Trip.com·GitLab·Tesla·Character.AI·Anthropic·Clarity·LogHouse)는 `clickhouse.com/blog`에 ClickHouse Inc.가 게재한 고객 케이스스터디로, 자사 제품 홍보 맥락의 편향 가능성을 감안해 읽어야 한다.
@@ -227,7 +247,7 @@ third-party 기술 블로그, 벤치마크/가격 계산기, 리뷰 사이트, G
 
 ## 데이터스토어 횡단 벤치마킹
 
-[데이터스토어 횡단 벤치마킹]({{< relref "05-local-nvme-datastore-patterns.md" >}}) 페이지의 근거인 로컬 NVMe 1차 스토리지 조사(ScyllaDB·Cassandra / Kafka·스트리밍 / Elasticsearch·OpenSearch / Aerospike·LSM-KV) `## 출처`에서 시스템군별 대표 URL을 선별했다(전량 아님 — 각 시스템군의 1차·핵심 근거 위주). 전체 목록은 원 조사 문서(11-1~11-4) 참조.
+[데이터스토어 횡단 벤치마킹]({{< relref "06-local-nvme-datastore-patterns.md" >}}) 페이지의 근거인 로컬 NVMe 1차 스토리지 조사(ScyllaDB·Cassandra / Kafka·스트리밍 / Elasticsearch·OpenSearch / Aerospike·LSM-KV) `## 출처`에서 시스템군별 대표 URL을 선별했다(전량 아님 — 각 시스템군의 1차·핵심 근거 위주). 전체 목록은 원 조사 문서(11-1~11-4) 참조.
 
 | 설명 | 링크 |
 |---|---|
