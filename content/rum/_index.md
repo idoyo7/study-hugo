@@ -13,7 +13,7 @@ RUM(Real User Monitoring)을 외부 SaaS 의존 없이 내재화하는 솔루션
 
 ## 왜 지금 — RWoL 재요율
 
-Datadog RUM이 **RWoL(RUM without Limits)** 재요율로 실질 ~2배 인상되면서 내재화를 검토하게 되는 영역이다. **RUM Measure는 retain 비율과 무관하게 ingest 100%에 과금**(Measure 단가 $0.15/1k)되고, 여기에 retain 프리미엄·세션 리플레이가 얹히면 RWoL 블렌디드 실효단가가 ~$0.42/1k까지 오른다 → 월 30M 세션이면 30M×$0.42/1k×12 ≈ **연 ~$151K** `[추정]`.
+Datadog RUM이 **RWoL(RUM without Limits)** 재요율로 실질 ~2배 인상되면서 내재화를 검토하게 되는 영역이다. **RUM Measure는 retain 비율과 무관하게 ingest 100%에 과금**(Measure 단가 $0.15/1k)되고, 여기에 retain 프리미엄·세션 리플레이가 얹히면 RWoL 블렌디드 실효단가가 ~$0.42/1k까지 오른다 → 월 30M 세션이면 30M×$0.42/1k×12 ≈ **연 ~$151K** `[추정]`. (블렌디드 단가는 Measure $0.15/1k + Investigate $3/1k + Session Replay $2.50/1k 컴포넌트 단가에 retain 비율 가정을 얹어 산출한 값이다 — 컴포넌트 단가 원문은 [Datadog 전 제품군 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}) 참고.)
 
 > 결론부터: **웹은 대안이 있고, 모바일은 아직 성숙하지 않았다.**
 

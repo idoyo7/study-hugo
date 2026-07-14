@@ -38,7 +38,7 @@ View에는 Core Web Vitals(LCP/FCP/CLS/**INP**/FID)와 navigation timing이, Act
 | **Error / Crash** | ✅ | otel-web error instrumentation + `attachToReactErrorBoundary` `[확인됨]` | 낮음 |
 | **Session Replay**(rrweb) | ✅ | `@hyperdx/otel-web-session-recorder`(rrweb), ClickStack에 리플레이 UI 내장 `[확인됨]` | 낮음(둘 다 rrweb 계열) |
 | **네트워크 본문·헤더 캡처** | ✅ | `advancedNetworkCapture: true` `[확인됨]` | 낮음 |
-| **프론트→백엔드 트레이스 연결** | ✅ | `tracePropagationTargets`(regex) → traceparent 전파 → 백엔드 span 조인 `[확인됨]` | 낮음(OTel 네이티브라 오히려 우수) |
+| **프론트→백엔드 트레이스 연결** | ✅ | `tracePropagationTargets`(정규식 배열)에 매칭되는 아웃바운드 요청에 **W3C traceparent 헤더**를 주입해 브라우저 스팬과 서버 스팬을 연결하고, 리플레이된 세션에서 백엔드 트레이스로 양방향 내비게이션까지 가능 `[확인됨 3-0]` | 낮음(OTel 네이티브라 오히려 우수) |
 | **좌절 신호**(rage/dead/error click) | ❌ | 네이티브 프리미티브 부재 `[확인됨: 부재]` → CH SQL 사후계산 또는 SDK 계측 | **높음** |
 | **퍼널 / 리텐션 / Pathways** | ❌ | Datadog도 RUM→Product Analytics로 분리, HyperDX에 턴키 없음 `[확인됨]` | **높음** |
 | **모바일 RUM**(iOS/Android/Flutter/RN) | ⚠️ RN만 | `@hyperdx/otel-react-native`(★4, Zipkin, signalfx 추종 포크)뿐 `[확인됨]` | **높음** |
@@ -97,9 +97,9 @@ HyperDX.init({
 });
 ```
 
-- **자동 수집**: 콘솔 로그, 세션 리플레이, XHR/Fetch/WebSocket, 예외/에러, PerformanceResourceTiming 기반 리소스 타이밍 `[확인됨]`. 기본 인테이크는 `https://in-otel.hyperdx.io`(OTLP HTTP), self-host는 `url` 옵션으로 자체 Collector 지정 `[확인됨]`.
+- **자동 수집**: 콘솔 로그, 세션 리플레이, XHR/Fetch/WebSocket, 예외/에러, PerformanceResourceTiming 기반 리소스 타이밍 `[확인됨]`. 기본 인테이크는 `https://in-otel.hyperdx.io`(OTLP HTTP), self-host는 `url` 옵션으로 자체 Collector 지정 `[확인됨]` — hyperdx-js `packages/browser/src/index.ts`의 `URL_BASE` 기본값을 `url` 인자로 오버라이드하는 방식으로 소스 코드 수준까지 검증됨 `[확인됨 3-0]`.
 - **네트워크 캡처 범위**: 기본은 요청 메타만, `advancedNetworkCapture`를 켜면 **헤더·본문 전체**를 캡처한다. 런타임 토글(`enableAdvancedNetworkCapture()`/`disable...`)도 있다 `[확인됨]`.
-- **세션 리플레이**: rrweb로 DOM mutation을 기록하고, ClickStack UI는 우측에 재구성 화면·좌측에 네트워크/콘솔/에러 타임라인을 표시한다. 특정 요청·에러를 클릭하면 **Trace 탭으로 이동해 백엔드 span·로그까지 추적**된다 `[확인됨]`. 모든 신호는 두 조인키로 상관된다 — **TraceId**(로그↔span), **rum.sessionId**(브라우저 세션↔서버 트레이스) `[확인됨]`. 이 replay→trace→log 조인이 대부분의 OSS 경쟁자가 못 따라오는 시그니처 강점이다.
+- **세션 리플레이**: rrweb 기반 DOM 이벤트 레코딩(비디오가 아님)으로 DOM 변경·마우스·클릭·스크롤·키입력·콘솔 로그·XHR/Fetch/WebSocket·JS 예외를 캡처해 브라우저에서 재구성한다 `[확인됨, ClickHouse 공식 문서]`. ClickStack UI는 우측에 재구성 화면·좌측에 네트워크/콘솔/에러 타임라인을 표시한다. 특정 요청·에러를 클릭하면 **Trace 탭으로 이동해 백엔드 span·로그까지 추적**된다 `[확인됨]`. 모든 신호는 두 조인키로 상관된다 — **TraceId**(로그↔span), **rum.sessionId**(브라우저 세션↔서버 트레이스) `[확인됨]`. 이 replay→trace→log 조인이 대부분의 OSS 경쟁자가 못 따라오는 시그니처 강점이다.
 - **커스텀 액션/속성 API**: `HyperDX.setGlobalAttributes({ userId, ... })`, `HyperDX.addAction('Form-Completed', { formId })`, `HyperDX.attachToReactErrorBoundary(ErrorBoundary)` `[확인됨]`. Datadog의 `addAction`/글로벌 컨텍스트에 대응하므로 커스텀 액션 계측은 이식 가능하다.
 
 핵심은 **RUM 대체가 프록시 변환이 아니라 SDK 교체라는 점**이다 — dd browser-sdk를 걷어내고 이 `init`으로 갈아끼운다. `datadogreceiver`는 브라우저 RUM intake(`/api/v2/rum`)를 아예 수신하지 않으므로 프록시 경로는 RUM에 부적합하다. 이 판단의 근거와 dd browser-sdk `proxy` 옵션의 과도기 활용법은 [dd 프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}})에서 다룬다.

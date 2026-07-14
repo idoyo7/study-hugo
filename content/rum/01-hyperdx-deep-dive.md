@@ -48,7 +48,7 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 | `otel_logs` | 로그/이벤트 | `TraceId` text index, 속성 bloom filter, `Body` 토큰 검색 |
 | `otel_traces` | 분산 트레이스 | **`rum.sessionId`를 컬럼으로 materialize + bloom filter** → 세션↔트레이스 조인 근거. `TraceId` bloom(0.001 FP), `Duration` minmax |
 | `otel_metrics_*` | 메트릭(gauge/sum/histogram/exp-hist/summary 타입별 분리) | Exemplar 배열 포함하나 쿼리 계층에 PromQL 없음(아래) |
-| `hyperdx_sessions` | 세션 리플레이(rrweb) | `otel_logs` 스키마 미러링, 리플레이는 장기 보존 성향(별도 TTL) |
+| `hyperdx_sessions` | 세션 리플레이(rrweb) | `otel_logs` 스키마를 미러링하되 독립 DDL·TTL을 갖는 전용 테이블 — `Body`=이벤트 페이로드, `LogAttributes`=메타데이터 맵, 기본 TTL **7일**(로그 테이블 14일과 별도), bloom_filter 인덱스 `[확인됨, ClickHouse 공식 문서]` |
 
 쿼리 계층은 **Lucene 스타일 검색**(`level:err`)과 **네이티브 ClickHouse SQL**을 함께 제공하고, `timestamp` 컬럼만 있으면 임의 스키마도 검색·상관·시각화된다(schema-agnostic) `[확인됨]`. 이 유연성이 BYO ClickHouse 모드를 가능케 하는 근거다.
 
@@ -58,14 +58,14 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 
 | 모드 | 권장 용도 | 프로덕션 | 실사 비고 |
 |---|---|:---:|---|
-| **Managed ClickStack**(ClickHouse Cloud) | 프로덕션/데모/PoC | ✅ | Cloud 호스팅·통합 인증. **RBAC/SSO는 여기에만** 있음 |
+| **Managed ClickStack**(ClickHouse Cloud) | 프로덕션/데모/PoC | ✅ | Cloud 호스팅·통합 인증(2025-08-06 Private Preview로 출시 `[확인됨]`). **RBAC/SSO는 여기에만** 있음 |
 | **All-in-One**(단일 Docker) | 데모/PoC | ❌ | CH+HyperDX+OTel+MongoDB 올인원. HA 없음 |
 | **Helm (Kubernetes)** | **프로덕션 on k8s** | ✅ | 아래 operator 주의 참조 |
 | **Docker Compose** | 로컬/PoC/단일 서버 | △ | fault tolerance 없음 |
 | **HyperDX Only (BYO ClickHouse)** | 기존 CH 사용자·커스텀 파이프라인 | △ | CH 미포함, **MongoDB 필수·인제스천 자기 책임** |
 | **Local Mode Only** | 데모/디버깅 | ❌ | 인증·영속성·알림 없음, 단일 사용자 |
 
-**Helm 경로의 operator 함정**: 활성 개발이 `ClickHouse/ClickStack-helm-charts`로 이관됐고, 이 차트는 **ClickHouse Inc.의 신규 공식 operator**(`ClickHouseCluster`/`KeeperCluster` CRD) + MongoDB Community Operator를 설치한다. 즉 Altinity operator(`ClickHouseInstallation`/CHI)가 아니다 `[확인됨]`. 범용 분석 CH를 Altinity로 운영한다면 한 클러스터에 **operator 2종이 공존**하게 되므로, 표준 Helm 경로를 그대로 따를지 vs 별도 operator 위에 CH를 세우고 HyperDX Only로 붙일지가 결정 사항이다. 상세는 [ClickHouse operator]({{< relref "../clickhouse/03-operator.md" >}}) 참조.
+**Helm 경로의 operator 함정**: 활성 개발이 `ClickHouse/ClickStack-helm-charts`로 이관됐고, K8s 설치는 **2개 차트**(`clickstack-operators` 먼저 → `clickstack` 순서)로 나뉜다 `[확인됨 3-0]`. 첫 차트가 **ClickHouse Inc.의 신규 공식 operator**(`ClickHouseCluster`/`KeeperCluster` CRD)와 MongoDB Community Operator(`MongoDBCommunity` CRD)를 설치해 ClickHouse·MongoDB를 모두 CRD로 관리한다 — plain StatefulSet이 아니다 `[확인됨]`. 즉 Altinity operator(`ClickHouseInstallation`/CHI)가 아니다 `[확인됨]`. 범용 분석 CH를 Altinity로 운영한다면 한 클러스터에 **operator 2종이 공존**하게 되므로, 표준 Helm 경로를 그대로 따를지 vs 별도 operator 위에 CH를 세우고 HyperDX Only로 붙일지가 결정 사항이다. 상세는 [ClickHouse operator]({{< relref "../clickhouse/03-operator.md" >}}) 참조.
 
 ### BYO ClickHouse("HyperDX Only") — 조건 정리
 
@@ -75,6 +75,7 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 - **인제스천은 전적으로 사용자 책임** — 자체 OTel Collector, 클라이언트 직접 인입, ClickHouse Kafka/S3 테이블 엔진, ETL, ClickPipes 중 선택 `[확인됨]`.
 - **임의 스키마 허용**(`timestamp`만 있으면) → 범용 분석용 ClickHouse에 관측성을 겸용하려는 니즈와 정합적 `[확인됨]`.
 - 기동은 `docker run -e MONGO_URI=... docker.hyperdx.io/hyperdx/hyperdx` 후 UI(8080)에서 외부 CH data source 등록 `[확인됨]`.
+- **프로덕션 노브**: 기본 데이터 TTL은 **3일**(`TABLES_TTL=72h`)로 짧아 프로덕션에서는 대개 변경이 필요하다. ClickHouse 사이징 가이드는 인제스트 워크로드 **10 MB/s당 1 vCPU**, 쿼리 워크로드 **1 QPS당 + 10 MB/s당 1 vCPU**를 권장한다(예: 100 MB/s 인제스트+쿼리 → 약 40 vCPU) `[벤더]`.
 
 ## 기능 성숙도 매트릭스
 
@@ -103,7 +104,7 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 | `hyperdxio/hyperdx` (UI+API) | **MIT** `[확인됨]` |
 | ClickHouse | Apache 2.0 `[확인됨]` |
 | OpenTelemetry Collector | Apache 2.0 `[확인됨]` |
-| `ClickHouse/ClickStack-helm-charts` | Apache 2.0 계열 `[추정]`(README 명시 확인 필요) |
+| `ClickHouse/ClickStack-helm-charts` | Apache 2.0 계열 `[추정]`(메인 `hyperdxio/hyperdx` 레포의 MIT는 LICENSE 파일로 `[확인됨]`이나, 이 helm-charts 레포 자체의 라이선스 파일은 이번 조사에서도 명시 확인되지 않음) |
 
 커뮤니티: `hyperdxio/hyperdx`는 **~9.7k stars·188 릴리스**(월 다수 릴리스의 빠른 케이던스), 활성 Discord `[확인됨]`. ClickHouse Inc.의 전담 Head of Observability 조직 백업으로 abandonware 리스크가 인수 전보다 낮아졌다 `[추정]`. 부모 레포 `ClickHouse/ClickStack`은 아티팩트 저장소 성격으로 릴리스 없음 `[확인됨]`.
 
