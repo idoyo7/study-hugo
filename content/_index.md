@@ -16,3 +16,4 @@ toc: false
 - **[RUM 내재화]({{< relref "rum/_index.md" >}})** — Datadog RUM(RWoL) 탈출: 웹은 HyperDX, 모바일은 대안 미성숙. HyperDX 도입 실사·Datadog RUM 커버리지 매트릭스·dd 프로토콜 프록시 검증·전 제품군 대체 매트릭스·이관 로드맵.
 - **[Istio]({{< relref "istio/_index.md" >}})** — 서비스 메시 운영. 작성 예정.
 - **[ClickHouse 운영]({{< relref "clickhouse/_index.md" >}})** — RUM 내재화·범용 분석으로 ClickHouse를 채택했을 때의 운영 전략(how): managed vs self-host TCO, 로컬 NVMe+S3 스토리지, Altinity operator, 프로덕션 사례.
+- **[HyperDX 내재화]({{< relref "hyperdx/_index.md" >}})** — HyperDX ClickStack 실전 자체 배포 청사진(EBS-first, RUM-only 월 0.7TB): 스택 토폴로지·MongoDB 최소 운영, gp3/io2 hot·S3 cold 티어링, operator 다운타임, Keeper, 복제·멀티마스터·failover, 3개월/1년 용량 산정.
