@@ -9,7 +9,7 @@ weight: 8
 
 각 조사가 다룬 범위는 ClickStack 4컴포넌트 배포 토폴로지와 MongoDB 최소 규모 운영, EBS(gp3/io2/io2 Block Express) hot 스토리지 선택, S3 cold 티어링 worked example, Altinity operator 기반 replication·sharding·다운타임 시나리오, ClickHouse Keeper 상세와 "큐가 아니다" 정정, 그리고 0.7TB/월 RUM 워크로드의 용량 산정이다.
 
-개별 URL의 등급(`[확인됨]`/`[추정]`/`[미확인]`/`[벤더]`/`[벤치]`)은 각 페이지 본문의 인라인 태그를 따른다 — 이 표 자체는 출처 목록이며 등급을 재판정하지 않는다. 기존 study-hugo 코퍼스(`content/clickhouse/*`, `content/rum/*`) 및 선행 research(`research/hyperdx-clickhouse/*`) 참조는 각 페이지에서 relref로 인라인 연결하며 외부 URL이 아니므로 아래 표에는 싣지 않았다.
+개별 URL의 등급(`✓`/`≈`/`?`/`Ⓥ`/`Ⓑ`)은 각 페이지 본문의 인라인 태그를 따른다 — 이 표 자체는 출처 목록이며 등급을 재판정하지 않는다. 기존 study-hugo 코퍼스(`content/clickhouse/*`, `content/rum/*`) 및 선행 research(`research/hyperdx-clickhouse/*`) 참조는 각 페이지에서 relref로 인라인 연결하며 외부 URL이 아니므로 아래 표에는 싣지 않았다.
 
 ## ClickStack · HyperDX 공식
 

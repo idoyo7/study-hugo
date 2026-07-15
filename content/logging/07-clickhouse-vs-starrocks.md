@@ -19,7 +19,7 @@ weight: 7
 | 축 | 승자 | 한 줄 |
 |---|---|---|
 | self-host storage/compute 분리 | **StarRocks** | S3 + stateless CN이 OSS 바이너리에 포함. CH 진짜 분리는 Cloud 전용 |
-| 단일 테이블 스캔·압축 | **ClickHouse** | 로그의 홈그라운드(MergeTree), ClickBench hot ~20~33%↑ `[벤치]` |
+| 단일 테이블 스캔·압축 | **ClickHouse** | 로그의 홈그라운드(MergeTree), ClickBench hot ~20~33%↑ `Ⓑ` |
 | JOIN·mutable·레이크하우스 | **StarRocks** | Primary-Key upsert, Iceberg 네이티브 |
 | 풀텍스트 index / JSON | **ClickHouse** | text index GA(2026-03) vs SR shared-data Beta |
 | K8s 탄력 스케일 | **StarRocks** | CN 오토스케일 vs CH 리샤딩 |

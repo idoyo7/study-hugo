@@ -57,3 +57,5 @@ cascade:
 | 솔루션별 페이지 | [OpenSearch]({{< relref "01-opensearch.md" >}}) · [Loki+Alloy]({{< relref "02-loki-alloy.md" >}}) · [VictoriaLogs]({{< relref "03-victorialogs.md" >}}) · [ClickHouse]({{< relref "04-clickhouse.md" >}}) · [HyperDX/ClickStack]({{< relref "05-hyperdx-clickstack.md" >}}) · [StarRocks]({{< relref "06-starrocks.md" >}}) |
 | [ClickHouse vs StarRocks]({{< relref "07-clickhouse-vs-starrocks.md" >}}) | 로그/관측성 한정 정면 비교(8축 요약·판정) |
 | [우리 케이스 · 권장안]({{< relref "08-recommendation.md" >}}) | 최소 조합 아키텍처, 인건비 게이트, 저후회 시퀀싱, 하지 말 것, 결론 |
+
+> **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻한다.

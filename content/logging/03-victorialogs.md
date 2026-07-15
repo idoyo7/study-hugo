@@ -18,11 +18,11 @@ VictoriaMetrics 패밀리의 로그 전용 저장소로, 단일 static Go 바이
 
 ## 강점
 
-- **압도적인 리소스 효율.** 벤더는 다른 솔루션(Elasticsearch·Loki) 대비 RAM 최대 30x, 디스크 최대 15x 적게 쓰고 인덱스 튜닝이 필요 없다고 주장하며 `[벤더]`, 압축률은 40x~80x typical(100TB→2.5TB) `[벤더]`, Loki 대비 풀텍스트 검색은 최대 1000x 빠르다고 한다 `[벤더]`. 독립성이 완전하진 않은(VictoriaLogs-friendly) 소규모 3rd-party 벤치에서도 500GB 기준 RAM ~1.3GiB vs Loki 6–7GiB, 디스크 318 vs 501 GiB, needle 검색 ~900ms vs ~12s, ingest 66 vs 20 MB/s로 방향이 일치한다 `[벤치]`. 단, 대규모(multi-TB/day) 독립 벤치는 아직 공개된 게 없다.
-- **낮은 운영 표면적.** 단일 바이너리 · ext4 로컬 디스크 · 설정 최소. 벤더는 단일 노드가 범용 하드웨어에서 수백 TB 스토리지와 초당 수백만 라인을 처리하며 single-node를 preferred 배포로 권장한다 `[벤더]`. 움직이는 부품이 적어 방치(rot)에 강한데, 로깅 스택이 기술보다 오너십 때문에 죽는다는 점에서 이는 실질적 이점이다.
+- **압도적인 리소스 효율.** 벤더는 다른 솔루션(Elasticsearch·Loki) 대비 RAM 최대 30x, 디스크 최대 15x 적게 쓰고 인덱스 튜닝이 필요 없다고 주장하며 `Ⓥ`, 압축률은 40x~80x typical(100TB→2.5TB) `Ⓥ`, Loki 대비 풀텍스트 검색은 최대 1000x 빠르다고 한다 `Ⓥ`. 독립성이 완전하진 않은(VictoriaLogs-friendly) 소규모 3rd-party 벤치에서도 500GB 기준 RAM ~1.3GiB vs Loki 6–7GiB, 디스크 318 vs 501 GiB, needle 검색 ~900ms vs ~12s, ingest 66 vs 20 MB/s로 방향이 일치한다 `Ⓑ`. 단, 대규모(multi-TB/day) 독립 벤치는 아직 공개된 게 없다.
+- **낮은 운영 표면적.** 단일 바이너리 · ext4 로컬 디스크 · 설정 최소. 벤더는 단일 노드가 범용 하드웨어에서 수백 TB 스토리지와 초당 수백만 라인을 처리하며 single-node를 preferred 배포로 권장한다 `Ⓥ`. 움직이는 부품이 적어 방치(rot)에 강한데, 로깅 스택이 기술보다 오너십 때문에 죽는다는 점에서 이는 실질적 이점이다.
 - **목적에 맞춘 LogsQL + 고카디널리티.** 풀텍스트 검색에 풍부한 pipe 모델(stats · sort · limit/offset · coalesce · filter · subquery)을 얹었고, user_id · trace_id · IP 같은 고카디널리티 필드를 사전 스키마 설계 없이 바로 쿼리한다(같은 필드가 Loki 라벨에는 독). live tailing 지원, 언어 자체도 활발히 성장 중(v1.51에 coalesce pipe 등).
 - **넓은 수집 호환.** fluent-bit / OTLP / syslog / **Loki push API**(Promtail · Grafana Alloy를 그대로 붙일 수 있음) / Filebeat / Fluentd / Logstash / Vector / Datadog agent / journald / Splunk(v1.50) / Elastic bulk API / native binary. 기존 collector fleet를 re-platform 없이 config 변경만으로 겨냥할 수 있다.
-- **자체 collector vlagent.** `victoria-logs-collector` Helm chart로 DaemonSet 배포, pod/container 로그를 메타데이터 enrich와 함께 auto-discover한다. backend down 시 persistent on-disk buffer, 여러 대상으로 replicate, jsonline으로 외부 sink(Fluent Bit · Vector · ClickHouse)로 fan-out까지 가능. 벤더 collector 벤치에서 vlagent ~143k logs/s vs Fluent Bit ~31.3k `[벤더/벤치]`.
+- **자체 collector vlagent.** `victoria-logs-collector` Helm chart로 DaemonSet 배포, pod/container 로그를 메타데이터 enrich와 함께 auto-discover한다. backend down 시 persistent on-disk buffer, 여러 대상으로 replicate, jsonline으로 외부 sink(Fluent Bit · Vector · ClickHouse)로 fan-out까지 가능. 벤더 collector 벤치에서 vlagent ~143k logs/s vs Fluent Bit ~31.3k `Ⓥ/Ⓑ`.
 - **Grafana · UI 통합.** Grafana가 signed한 공식 `victorialogs-datasource`가 마켓플레이스에 있어 one-click 설치, 2026년에도 활발히 유지보수된다(heatmap 패널, ad-hoc filter). 별도 설정 없는 built-in web UI로 ad-hoc 탐색과 live tail도 된다.
 - **VictoriaMetrics 패밀리와의 일관성.** 같은 flag 관습 · Helm chart 계열 · docs 스타일을 공유한다. 앞단 auth/routing/multitenancy에 vmauth/vmgateway를 쓸 수 있고, **vmalert가 LogsQL로 alert**를 걸 수 있어 metrics + logs를 하나의 alerting stack으로 묶는다. vlagent는 개념적으로 vmagent를 닮았다.
 

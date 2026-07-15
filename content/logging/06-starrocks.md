@@ -18,12 +18,12 @@ Linux Foundation MPP OLAP·실시간 분석 엔진(Apache-2.0). Apache Doris 포
 
 ## 강점
 
-- **다중테이블 JOIN·고동시성 — ClickHouse 대비 헤드라인 차별점.** Cascades CBO + 분산 shuffle join + 투명 MV 재작성이 정규화 스키마의 fan-out 질의를 겨냥한다. SSB **~1.87x**, TPC-H **3~5x** `[벤더]`. 사용자대면 대시보드처럼 동시 세션이 많은 워크로드가 sweet spot이다(다만 동시성은 무한 확장이 아니라 ~8 스트림 부근이 최적 `[벤치]`).
+- **다중테이블 JOIN·고동시성 — ClickHouse 대비 헤드라인 차별점.** Cascades CBO + 분산 shuffle join + 투명 MV 재작성이 정규화 스키마의 fan-out 질의를 겨냥한다. SSB **~1.87x**, TPC-H **3~5x** `Ⓥ`. 사용자대면 대시보드처럼 동시 세션이 많은 워크로드가 sweet spot이다(다만 동시성은 무한 확장이 아니라 ~8 스트림 부근이 최적 `Ⓑ`).
 - **shared-data(storage-compute 분리)가 OSS에 first-class GA.** FE(메타) + **stateless CN(Compute Node)** 구조로 1차 데이터가 **S3/GCS/Azure/MinIO에** 있고 CN은 로컬 hot 캐시만 쓴다. **CN을 초 단위로 add/remove, 리밸런스 없음.** v3.1 GA, 3.3~4.1로 성숙했으며 Cloud tax 없이 OSS 바이너리에 포함된다 — ClickHouse의 폐기·실험적 zero-copy-S3와 달리 정식 지원 설계다. 1st-party K8s Operator + Helm, AWS의 EKS + KEDA + Karpenter 탄력 레퍼런스까지 존재한다. "durable S3 위 ephemeral 컴퓨트"에 가장 정직하게 답하는 후보.
 - **Mutable/upsert에 강함.** Primary Key 테이블이 동기 upsert/delete/partial update를 지원해 읽기 시점에 즉시 정확하다(ClickHouse의 ReplacingMergeTree+FINAL 읽기 비용과 대비). Routine Load·Stream Load는 2PC로 **exactly-once**라 CDC(예: Flink CDC) 싱크에 적합하다.
 - **레이크하우스 네이티브.** Iceberg/Hive/Paimon Multi-Catalog를 CBO로 in-place 조회하고(99 TPC-DS 완주), 외부 카탈로그에 incremental MV + 투명 재작성을 건다. 한 엔진으로 lake-landed 테이블을 그대로 질의하는 시나리오가 강점.
 - **반정형/JSON·고카디널리티에 우수.** **FLAT JSON**(GA v4.0, 기본 on): 로드 시 고빈도 필드를 자동 감지해 네이티브 컬럼나 서브컬럼으로 승격하고 희소 필드는 compact binary JSON으로 유지 — 앱 로그의 혼합 스키마 현실에 잘 맞는다. 고카디널리티 차원에서 ClickHouse식 ORDER-BY-key 절벽도, Elasticsearch식 매핑 폭발도 없다.
-- **압축·경제성.** 컬럼나 코덱(RLE·dictionary·frame-of-reference·LZ4/ZSTD)으로 **~5:1–10:1, ES 대비 인프라 50~80% 절감** `[벤더]`. 게다가 MySQL 프로토콜 호환이라 기존 BI·드라이버를 즉시 재사용한다.
+- **압축·경제성.** 컬럼나 코덱(RLE·dictionary·frame-of-reference·LZ4/ZSTD)으로 **~5:1–10:1, ES 대비 인프라 50~80% 절감** `Ⓥ`. 게다가 MySQL 프로토콜 호환이라 기존 BI·드라이버를 즉시 재사용한다.
 
 ## 약점 · 한계
 
@@ -41,7 +41,7 @@ Linux Foundation MPP OLAP·실시간 분석 엔진(Apache-2.0). Apache Doris 포
 | | 워크로드 |
 |---|---|
 | **적합** | 고동시성·JOIN-heavy BI/대시보드; S3 위 진짜 storage/compute 분리가 하드 요구인 탄력 OLAP; Iceberg 레이크하우스 in-place 조회; mutable/CDC upsert(Primary Key) |
-| **부적합** | needle-in-haystack 단일 wide 테이블 로그 검색; 턴키 관측성 제품이 필요할 때; VM 운영지식 재사용이 중요할 때; 순수 append-only 로그 저장 경제성(ClickHouse가 단일테이블 스캔·압축서 근소~명확히 앞섬 — ClickBench hot ~20–33%↑, on-disk ~23%↓ `[벤치]`) |
+| **부적합** | needle-in-haystack 단일 wide 테이블 로그 검색; 턴키 관측성 제품이 필요할 때; VM 운영지식 재사용이 중요할 때; 순수 append-only 로그 저장 경제성(ClickHouse가 단일테이블 스캔·압축서 근소~명확히 앞섬 — ClickBench hot ~20–33%↑, on-disk ~23%↓ `Ⓑ`) |
 
 ## 우리 케이스에서는
 
