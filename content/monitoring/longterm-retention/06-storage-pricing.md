@@ -5,6 +5,14 @@ weight: 6
 
 # 06 · 스토리지 단가 & 볼륨 특성 — 서울 리전
 
+{{< callout type="info" >}}
+**한눈에**
+- 서울 리전 $/GB·월 서열: **sc1($0.0174) < S3 Standard($0.025) < st1($0.051) < gp3($0.0912)** — "S3라서 싸다"는 성립하지 않는다.
+- S3 IA/Glacier IR은 **GB당 리트리벌 수수료** 때문에 자주 읽는 primary 아카이브에 부적합하고, vmbackup 콜드 사본 전용이다.
+- 아카이브 볼륨은 **gp3로 시작해 IO 실측 후 st1/sc1로 최적화**한다 — sc1의 250 IOPS 상한이 미검증 리스크이고, 시나리오②의 절대액 차이(월 $66~199)가 작아 검증 전 채택은 금지.
+- bytes/sample 기준치: **VM ~1B, Prometheus/Thanos ~1.5~2B, Mimir ~2B** — 벤더 베스트케이스는 예산 근거로 쓰지 않는다.
+{{< /callout >}}
+
 이 블록은 서울 리전(ap-northeast-2) 스토리지 단가와 gp3/st1/sc1/S3의 성능·내구성 특성을 정리하고, 아카이브 볼륨 타입을 어떻게 고를지(gp3로 시작 → 실측 → st1/sc1 최적화)를 판단 구조로 제시한다. 단가 상세의 주인 블록이다.
 
 > 관련 블록: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [02 VM 아카이브 상세]({{< relref "02-vm-archive.md" >}}), [07 핵심논점·비용종합표]({{< relref "07-streamaggr-vs-downsampling.md" >}}) · VM: [스토리지·압축·retention]({{< relref "../victoriametrics/04-storage-and-compression.md" >}}), [vmbackup/대규모 운영]({{< relref "../victoriametrics/07-operations-at-scale.md" >}})

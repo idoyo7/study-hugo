@@ -5,11 +5,19 @@ weight: 7
 
 # 07 · nginx에서 Istio로 — rewrite·헤더·인가는 어디로 갔나
 
+{{< callout type="info" >}}
+**한눈에**
+- nginx가 **한 파일에 절차적**으로 하던 걸, Istio는 **관심사별 CRD에 선언적**으로 나눈다.
+- rewrite·헤더·CORS·타임아웃은 **VirtualService**로, TLS·수신 포트는 **Gateway**로 모인다.
+- 인가는 성격별로 갈린다: IP/워크로드는 **AuthorizationPolicy**, JWT는 **RequestAuthentication**+AuthorizationPolicy, `auth_request`류 외부 인가는 **ext_authz(CUSTOM)**.
+- 표준 CRD로 안 되는 레이트 리밋·저수준 조작은 [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})로 넘어간다.
+{{< /callout >}}
+
 > **왜 이 이야기.** nginx로 프록시를 운영하던 시절, 라우팅·rewrite·헤더 조작·접근 제어가 전부 `nginx.conf` **한 파일에 절차적으로** 모여 있었다. 메시로 오면서 이것들이 사라진 게 아니라 **여러 개의 선언적 CRD로 흩어졌다.** rewrite는 VirtualService로, `auth_request`는 AuthorizationPolicy·외부 인가로, 헤더 조작은 또 다른 필드로. 이 블록은 "nginx에서 하던 그것"이 Istio에서 어디로 갔는지를 대응표로 정리한다.
 
 > 관련 블록: [03 게이트웨이·TLS]({{< relref "03-gateway-node-isolation.md" >}}) · [04 설정 GitOps]({{< relref "04-config-as-code.md" >}}) · 표준 CRD로 안 되면 → [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})
 
-## 한눈에 — nginx 지시어 → Istio 리소스
+## 빠른 참조 — nginx 지시어 → Istio 리소스
 
 | nginx | 하던 일 | Istio 대응 |
 |---|---|---|

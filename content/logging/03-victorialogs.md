@@ -5,6 +5,15 @@ weight: 3
 
 # VictoriaLogs — VM을 이미 쓴다면 가장 자연스러운 선택
 
+{{< callout type="info" >}}
+**한눈에**
+- 단일 static Go 바이너리·외부 의존성 0 — 벤더 주장으로 RAM 최대 30x·디스크 최대 15x 절감, 소규모 3rd-party 벤치도 같은 방향을 확인한다.
+- **쿼리 가능한 오브젝트 스토리지 티어가 없다(headline gap).** 현재 local-disk-only이고 S3/GCS 백엔드는 로드맵 WIP·확정 일정 없음.
+- **클러스터 내 복제(HA)가 없다** — 진짜 HA는 독립 클러스터 2벌 + mirror가 필요해 스토리지 비용이 대략 2배가 된다.
+- 넓은 수집 호환(Loki push API 포함)과 **VictoriaMetrics와 동일한 운영 모델** — 이미 VM을 운영 중이면 학습·rot 비용이 0에 가깝다.
+- 우리 케이스: istio 로그부터 얹으면 오브젝트 스토리지 부재가 걸리지 않고, cold tail만 S3 Parquet로 분리하면 된다.
+{{< /callout >}}
+
 VictoriaMetrics 패밀리의 로그 전용 저장소로, 단일 static Go 바이너리 · 외부 의존성 0으로 돌아간다. 코어는 오픈소스(Apache-2.0)이고 일부 기능(vlagent의 Kafka 소스, 테넌트별 stats/quota 등)만 Enterprise-gated다. 단일 노드는 v1.0.0(2024-11-12)에서 GA("production-ready")에 도달했고, 클러스터 모드는 2025-06에 공개돼 아직 ~1년 된 젊은 축이다. 릴리스가 잦아(2026년에도 v1.50·v1.51 등 분기당 수 회) 활발하지만, 그만큼 버전 pin이 필요하다.
 
 ## 강점

@@ -5,6 +5,15 @@ weight: 5
 
 # HyperDX / ClickStack — ClickHouse 위의 통합 프론트
 
+{{< callout type="info" >}}
+**한눈에**
+- 로그·트레이스 검색이 강하다 — ClickHouse 컬럼 압축(Elasticsearch 대비 12~19x)과 native JSON의 이점을 그대로 받는다.
+- **replay → trace → log 상관이 시그니처 강점**이다 — 웹 프론트엔드 한정으로는 Datadog RUM을 현실성 있게 대체한다.
+- **네이티브 모바일 RUM이 없다(결정적).** iOS/Android/Flutter 퍼스트파티 SDK가 없고, 유일한 RN 포크도 세션 리플레이는 지원하지 않는다.
+- **메트릭이 가장 약하다** — OTel 메트릭을 저장은 하지만 PromQL이 없다(SQL/Lucene only).
+- 우리 케이스: 로그는 더 가벼운 VictoriaLogs로 가고 **ClickStack은 채택하지 않는다** — CH+MongoDB 운영 표면이 이번 로그 규모에는 과하다.
+{{< /callout >}}
+
 ClickHouse Inc.가 HyperDX를 인수(2025-03)해 **ClickStack**으로 출시(2025-05)한, ClickHouse를 백엔드로 하는 **OpenTelemetry-native 관측성 스택**이다. HyperDX UI/API + 전용 OTel Collector + ClickHouse + 상태 저장용 MongoDB의 조합으로 로그·트레이스·세션 리플레이를 한 화면에서 다룬다. 메인 repo는 **MIT 라이선스**(Grafana AGPL·SigNoz보다 관대)이고, ClickHouse Inc.가 정식 스튜어드로 월간 릴리스를 낼 만큼 개발 속도가 빠르다(~9.7k stars, 활발한 릴리스 라인).
 
 ## 강점

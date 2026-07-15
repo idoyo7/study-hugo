@@ -250,7 +250,7 @@ spec:
 | 재수화 창 중 잔여 사본 | 1(실질 RF1) | 2 |
 | 비용 배수(노드·NVMe·cross-AZ 복제) | ×2 | ×3 |
 
-**"아무 2대나 죽어도 안전"은 RF2로는 보장되지 않는다.** RF2 × shard 3 = 6대 구성에서 임의로 2대가 동시에 죽는 경우의 수는 `6C2 = 15`, 그중 하필 **같은 shard의 두 replica**인 조합은 shard마다 1쌍씩 3쌍 → `3/15 ≈ 20%`. 이 20%를 뽑으면 그 shard는 사본이 0이 되어 **데이터를 잃고**, 나머지 80%는 서로 다른 shard라 무사하다. RF3에서는 같은 shard 2대가 죽어도 1벌이 남아 이 손실 시나리오 자체가 사라진다 `[확인됨: 조합 산술]`.
+**"아무 2대나 죽어도 안전"은 RF2로는 보장되지 않는다.** RF2 × shard 3 = 6대 구성에서 임의로 2대가 동시에 죽는 경우의 수는 `6C2 = 15`, 그중 하필 **같은 shard의 두 replica**인 조합은 shard마다 1쌍씩 3쌍 → `3/15 ≈ 20%`. 이 20%를 뽑으면 그 shard는 사본이 0이 되어 **데이터를 잃고**, 나머지 80%는 서로 다른 shard라 무사하다. RF3에서는 같은 shard 2대가 죽어도 1벌이 남아 이 손실 시나리오 자체가 사라진다 `[확인됨(조합 산술)]`.
 
 즉 RF 선택은 **확률적 안전 vs 비용**의 의사결정이다 `[추정]`. 플레이북 기본값을 RF2로 두는 근거는 비용 배수가 곧바로 ×1.5(RF2 대비)로 뛰고(노드·NVMe·AZ 간 복제 트래픽까지), 간헐·배치성 워크로드나 재수화 대상 데이터가 작아 위험 창이 짧으면 RF2의 20% 노출이 실무상 수용 가능하기 때문이다. 반대로 **RF3로 승급하는 트리거**는 ① "임의 2대 유실에도 무손실"이 요구사항일 때, ② 24/7 대규모 hot 데이터로 노드당 데이터가 커 재수화 위험 창(§5)이 길 때, ③ AZ 1개 소실 생존까지 원할 때(아래 '배치·분산 강제' 절)다. 이는 로컬 디스크를 쓰는 분산 시스템의 공통 처방과 같은 논리다 — 업계 횡단 근거(CockroachDB "로컬이면 RF 3→5", ClickHouse "로컬이면 2→3")는 [로컬 NVMe 데이터스토어 패턴]({{< relref "07-local-nvme-datastore-patterns.md" >}})에 정리돼 있다.
 
@@ -496,7 +496,7 @@ spec:
 - [ ] **설정 주입**: 모든 config는 `settings`/`files`/`users`로만. 시크릿은 `k8s_secret_*`(평문 금지).
 - [ ] **티어링**: hot=로컬 NVMe → cold=S3 `storage_configuration`(+cache) + TTL MOVE TO VOLUME.
 - [ ] **PDB / 백업 / 모니터링**: `pdbMaxUnavailable: 1`; clickhouse-backup 사이드카(:7171)+CronJob `shard-{shard}` IRSA; metrics :8888/:7000/:7171 스크레이프.
-- [ ] **보안**: 전송구간 TLS를 켤 경우 `security.clickhouse.tls`(rootCASecretRef 등)로 선언, HTTPS **8443**·native **9440** secure 포트 노출 `[추정: 표준 CH secure 포트]`.
+- [ ] **보안**: 전송구간 TLS를 켤 경우 `security.clickhouse.tls`(rootCASecretRef 등)로 선언, HTTPS **8443**·native **9440** secure 포트 노출 `[추정(표준 CH secure 포트)]`.
 - [ ] **분리·재사용**: 관측성/범용을 별도 CHI(+노드풀), 공통은 CHIT `useTemplates`. ClickStack은 `clickhouse.enabled: false`로 외부 CH 연결.
 - [ ] **검증**: apply 후 파드 Running, `remote_servers`/macros 자동 생성, 스키마 전파, anti-affinity 배치, **노드 소실 리허설(스테이징)**.
 

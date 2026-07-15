@@ -6,6 +6,14 @@ aliases: ["/monitoring/longterm-retention/04-option-c-mimir/"]
 
 # Mimir — Grafana Mimir 장기 tier
 
+{{< callout type="info" >}}
+**한눈에**
+- Mimir는 **다운샘플링이 OSS·GEM·3.0 어디에도 없어** "5m 해상도 400d" 요구를 원리적으로 충족할 수 없다 — 이 시나리오에서 탈락.
+- 유일한 실현 형태는 **raw 400d 전부 S3** — 경제성이 시나리오 ①(전 구간 raw)로 되돌아가 월 **~$740 + Kafka·컴퓨트**.
+- 운영 footprint가 최대다 — distributor/ingester/compactor/store-gateway/querier/query-frontend에 3.0부터 Kafka 기본 의존까지 **8~10종**.
+- **PromQL 전용**이라 MetricsQL 상실은 Thanos안과 동일하다. 재검토는 대규모 멀티테넌시·Grafana 스택 표준화가 독립 목표일 때만.
+{{< /callout >}}
+
 S3 native 저장과 remote_write native 수신으로 매력적으로 보이지만, **다운샘플링이 존재하지 않아** "5m 해상도 400d" 요구를 원리적으로 충족할 수 없다. 이 블록은 Mimir안의 구조와 탈락 사유, 그리고 언제 재검토할 값어치가 있는지를 정리한다.
 
 > 관련 블록: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [02 VictoriaMetrics]({{< relref "02-vm-archive.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}}) · PromQL vs MetricsQL은 [VM 쿼리·컴포넌트]({{< relref "../victoriametrics/05-query-and-ops-components.md" >}})

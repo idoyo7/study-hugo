@@ -5,6 +5,15 @@ weight: 6
 
 # StarRocks — S3 위 stateless 컴퓨트, 그러나 로그엔 이르다
 
+{{< callout type="info" >}}
+**한눈에**
+- 헤드라인 차별점은 다중테이블 JOIN·고동시성이다(SSB ~1.87x, TPC-H 3~5x, ClickHouse 대비).
+- **shared-data(storage-compute 분리)가 OSS에 first-class GA**다 — S3/GCS/Azure/MinIO 위 stateless CN을 초 단위로 add/remove한다.
+- **로그의 핵심인 풀텍스트 inverted index가 가장 미성숙**하다 — 정작 쓸 shared-data 모드에서는 v4.1(2026) Beta다.
+- 턴키 관측성 UI가 전무하고 네이티브 OTLP 리시버가 없으며, 로그 스케일 프로덕션 레퍼런스가 사실상 0이다.
+- 우리 케이스: 로그 스토어로는 아직 얼리어답터 영역이라, S3 탄력성이 하드 요구인 별도 mandate가 없으면 숏리스트에서 제외한다.
+{{< /callout >}}
+
 Linux Foundation MPP OLAP·실시간 분석 엔진(Apache-2.0). Apache Doris 포크(Doris 자체는 Baidu Palo 포크)를 vectorized execution + Cascades 코스트기반 옵티마이저로 재설계했고, 창업사 CelerData가 2023-02 프로젝트를 Linux Foundation에 기증했다(상용 백커 유지). 최신 라인은 v4.0/4.1(2026)이며, 무게중심은 **서브초 BI·다중테이블 JOIN·레이크하우스 질의**이고 로그는 근래 inverted index로 열린 인접 용도다.
 
 ## 강점

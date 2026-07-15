@@ -5,6 +5,14 @@ weight: 8
 
 # 08 · EnvoyFilter — 표준 CRD로 안 되는 것들의 탈출구
 
+{{< callout type="info" >}}
+**한눈에**
+- EnvoyFilter는 istiod가 만든 **Envoy 설정을 직접 패치**하는 저수준 탈출구다 — `applyTo × context × operation`으로 읽는다.
+- **업그레이드 취약·폭발 반경·리뷰 난이도** 때문에 최후의 수단: 표준 CRD → 상위 API(Telemetry/WasmPlugin) → EnvoyFilter 순.
+- 레이트 리밋은 **local**(인스턴스별·무의존)과 **global**(전역정확·RLS 비용)로 성격이 다르다.
+- 쓴다면 `workloadSelector`로 좁게, 버전 핀·GitOps 리뷰·관측이 필수다.
+{{< /callout >}}
+
 > **왜 이 이야기.** [07]({{< relref "07-from-nginx-to-istio.md" >}})의 표준 CRD로 대부분은 해결된다. 하지만 정교한 레이트 리밋, 특정 Envoy HTTP 필터 삽입, 커스텀 요청 조작처럼 **VirtualService·AuthorizationPolicy의 어휘로는 표현 안 되는** 요구가 남는다. 그때 열리는 마지막 문이 **EnvoyFilter** — istiod가 생성한 Envoy 설정을 직접 패치하는 저수준 탈출구다. 강력한 만큼 위험하므로, 이 블록은 **무엇을 할 수 있는지**만큼 **왜 최후의 수단인지**를 함께 다룬다.
 
 > 관련 블록: [07 표준 CRD 매핑]({{< relref "07-from-nginx-to-istio.md" >}})(먼저 여기로) · [04 GitOps 리뷰]({{< relref "04-config-as-code.md" >}}) · [02 istiod가 만든 설정]({{< relref "02-istiod-control-plane.md" >}})

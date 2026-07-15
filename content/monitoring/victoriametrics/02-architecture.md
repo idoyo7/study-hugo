@@ -5,6 +5,14 @@ weight: 2
 
 # 02 · 아키텍처 — 4개 컴포넌트와 저장 원리
 
+{{< callout type="info" >}}
+**한눈에**
+- VM 클러스터는 **vmagent(수집) → vminsert(라우팅·샤딩) → vmstorage(저장, n노드) → vmselect(fanout+merge 쿼리)** 4컴포넌트로 흐른다.
+- **SingleNode**(간편, SPOF)와 **Cluster**(수평확장, `replicationFactor`로 유실 방지) 두 배포 모드 — vminsert/vmselect는 stateless라 k8s에, vmstorage는 stateful이라 물리 장비에 두는 편이 유리하다.
+- 대용량 write/read를 동시에 만족시키는 자료구조가 **LSM 트리**(append로 빠른 write, 정렬 유지로 빠른 read, merge는 백그라운드) — VM의 파티션 구조가 이 구체화다.
+- **IndexDB**(거의 불변, 지표이름+레이블 역색인)와 **DataDB**(TSID → timestamp+value, 계속 쌓임) 분리가 정규화로 압축 효율을 극대화한다.
+{{< /callout >}}
+
 VM 클러스터가 어떤 컴포넌트로 이루어지고 데이터가 어떻게 흐르는지, 그리고 그 밑을 떠받치는 두 가지 핵심 아이디어 — **LSM 트리**와 **IndexDB/DataDB 분리** — 를 정리한다. 각 컴포넌트의 내부 동작은 뒤 블록에서 하나씩 깊게 파고든다.
 
 > 관련 블록: [01 시계열과 VM]({{< relref "01-tsdb-and-victoriametrics.md" >}}) · [03 수집]({{< relref "03-ingestion.md" >}}) · [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [07 대규모 운영]({{< relref "07-operations-at-scale.md" >}})

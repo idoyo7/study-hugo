@@ -5,6 +5,14 @@ weight: 5
 
 # 05 쿼리·운영 컴포넌트 — vmselect / vmalert / vmauth
 
+{{< callout type="info" >}}
+**한눈에**
+- **vmselect**는 저장하지 않는 stateless 쿼리 엔진 — 모든 vmstorage에 **Fanout**으로 던지고 결과를 Merge·Sort해 반환한다.
+- 쿼리는 **3-Prefix**(태그→Metric ID→TSID→값·이름 복원)로 풀린다 — 쓰기 시점 정규화를 역방향으로 되짚는 대칭 구조다.
+- 메모리 관리 3포인트: 쿼리 시점 **dedup**, **Rollup Result Cache**(허용 메모리 12.5%, 최근 5분 제외), **Query Latency Offset**(기본 30초, 정확성↔실시간성 트레이드오프).
+- **vmalert**는 Recording rules로 무거운 집계를 미리 계산해 조회 부하를 쓰기 시점으로 옮기고, **vmauth**는 멀티 클러스터 앞단 라우팅 게이트웨이로 사용자 배포 없이 장애 전환을 가능케 한다.
+{{< /callout >}}
+
 데이터가 들어가는 길([03 수집]({{< relref "03-ingestion.md" >}})·[04 저장]({{< relref "04-storage-and-compression.md" >}}))을 다뤘으니, 이 블록은 **데이터가 빠지는 길**과 그 주변의 운영 컴포넌트를 본다. 쿼리 엔진 `vmselect`, 지표를 미리 계산해 두는 `vmalert`, 그리고 멀티 클러스터의 앞단을 지키는 라우팅 게이트웨이 `vmauth`다.
 
 > 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}), [03 수집]({{< relref "03-ingestion.md" >}}), [04 저장]({{< relref "04-storage-and-compression.md" >}}), [06 카디널리티]({{< relref "06-cardinality.md" >}}), [07 대규모 운영]({{< relref "07-operations-at-scale.md" >}})
