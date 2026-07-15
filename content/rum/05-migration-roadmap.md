@@ -18,22 +18,22 @@ RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument 
 
 ## Executive 판정 (6줄)
 
-- **프록시는 브릿지일 뿐이다.** OTel Collector `datadogreceiver`는 Datadog Agent intake(로그·인프라 메트릭·APM 트레이스)만 수신하고 **브라우저 RUM·세션 리플레이 intake는 수신 대상 자체가 아니다** `[확인됨]`. 프록시는 서버사이드 신호의 단기 무중단 다리로만 쓴다.
+- **프록시는 브릿지일 뿐이다.** OTel Collector `datadogreceiver`는 Datadog Agent intake(로그·인프라 메트릭·APM 트레이스)만 수신하고 **브라우저 RUM·세션 리플레이 intake는 수신 대상 자체가 아니다** `✓`. 프록시는 서버사이드 신호의 단기 무중단 다리로만 쓴다.
 - **RUM은 SDK 교체가 정답이다.** dd browser-sdk를 걷어내고 `@hyperdx/browser`로 교체한다. dd browser-sdk의 `proxy` 옵션은 변환용이 아니라 과도기 트래픽 통제용으로만 활용한다.
-- **ClickHouse는 self-host + Altinity operator로 간다.** i8g 로컬 NVMe + ReplicatedMergeTree가 기본형이다(상세는 clickhouse 챕터). SharedMergeTree는 Cloud 전용이라 self-host에서 재현 불가 `[확인됨]`.
+- **ClickHouse는 self-host + Altinity operator로 간다.** i8g 로컬 NVMe + ReplicatedMergeTree가 기본형이다(상세는 clickhouse 챕터). SharedMergeTree는 Cloud 전용이라 self-host에서 재현 불가 `✓`.
 - **메트릭 계층은 HyperDX로 몰지 않는다.** 메트릭·대시보드·모니터·SLO는 `VictoriaMetrics + Grafana + Sloth/Pyrra`로 분리 존치하고, Grafana가 ClickHouse도 조회해 단일 UI로 봉합한다.
-- **최대 리스크는 OSS 접근통제 공백이다.** OSS HyperDX는 SSO/RBAC/멀티테넌시/감사로그가 전무하며 RBAC는 Managed(ClickHouse Cloud) 전용으로만 GA됐다 `[확인됨]`. "앱 레벨 RBAC/SSO"와 "self-hosted EKS/NVMe"는 동시에 가질 수 없다.
-- **전례가 없으므로 PoC를 진입 게이트로 삼는다.** RUM 대체는 공개 프로덕션 전례가 없는 개척 경로다 `[미확인]`. 자체 PoC 성공을 Wave 1 컷오버의 필수 통과 조건으로 명문화한다.
+- **최대 리스크는 OSS 접근통제 공백이다.** OSS HyperDX는 SSO/RBAC/멀티테넌시/감사로그가 전무하며 RBAC는 Managed(ClickHouse Cloud) 전용으로만 GA됐다 `✓`. "앱 레벨 RBAC/SSO"와 "self-hosted EKS/NVMe"는 동시에 가질 수 없다.
+- **전례가 없으므로 PoC를 진입 게이트로 삼는다.** RUM 대체는 공개 프로덕션 전례가 없는 개척 경로다 `?`. 자체 PoC 성공을 Wave 1 컷오버의 필수 통과 조건으로 명문화한다.
 
 ## 리스크 Top 5
 
 | # | 리스크 | 영향 | 완화책 |
 |---|---|---|---|
-| **R1** | **OSS 접근통제 공백** — SSO/RBAC/멀티테넌시/감사로그 전무, RBAC는 Cloud 전용 GA `[확인됨]`. "앱 레벨 RBAC/SSO"와 "self-hosted"는 동시 불가 | 다수 팀 롤아웃 시 Datadog 대비 거버넌스 후퇴 | 단계적 하이브리드 — ① oauth2-proxy 경계 SSO ② 팀별 HyperDX 인스턴스(공유 CH) + ClickHouse row policy ③ 규제/감사 필수 팀만 Managed ClickStack. **MongoDB 인증 + NetworkPolicy 필수**(무인증 노출 삭제 공격 이력) |
-| **R2** | **RUM 대체 프로덕션 전례 부재** `[미확인]` — 기술 대등성은 높으나 검증된 전환 사례 없음. Datadog RUM→OTel/ClickHouse 인테이크 번역기의 공개 구현체·프로덕션 운영 사례도 2026-07 딥리서치 재검색(2회)에서 발견되지 않음 — 전량 자체 구축 전제 `[미확인]` | Wave 1 "리스크 낮음" 판정이 실제로는 위험 | PoC 성공을 Wave 1 진입 게이트로 필수화. dual-instrument로 CWV·에러·리플레이·프론트↔백엔드 트레이스 상관을 Datadog과 side-by-side 검증 후 컷오버 |
-| **R3** | **변환 파이프라인 미성숙 + CPU 세금** — `datadogreceiver`(전 신호 alpha), `clickhouseexporter` traces/logs beta·metrics alpha. 변환 CPU가 native 대비 최대 ~200배 `[벤치]`, delta metric 30~70% 손실(#44907) `[확인됨]` | 프록시 영구 의존 시 손실·비용·회귀 | 프록시는 로그/메트릭의 단기 브릿지로만. traces는 OTel 재계측, RUM은 SDK 교체. dual-write 후 **속성 단위 diff 검증**. 규모 결정 전 자체 벤치마크 필수 |
+| **R1** | **OSS 접근통제 공백** — SSO/RBAC/멀티테넌시/감사로그 전무, RBAC는 Cloud 전용 GA `✓`. "앱 레벨 RBAC/SSO"와 "self-hosted"는 동시 불가 | 다수 팀 롤아웃 시 Datadog 대비 거버넌스 후퇴 | 단계적 하이브리드 — ① oauth2-proxy 경계 SSO ② 팀별 HyperDX 인스턴스(공유 CH) + ClickHouse row policy ③ 규제/감사 필수 팀만 Managed ClickStack. **MongoDB 인증 + NetworkPolicy 필수**(무인증 노출 삭제 공격 이력) |
+| **R2** | **RUM 대체 프로덕션 전례 부재** `?` — 기술 대등성은 높으나 검증된 전환 사례 없음. Datadog RUM→OTel/ClickHouse 인테이크 번역기의 공개 구현체·프로덕션 운영 사례도 2026-07 딥리서치 재검색(2회)에서 발견되지 않음 — 전량 자체 구축 전제 `?` | Wave 1 "리스크 낮음" 판정이 실제로는 위험 | PoC 성공을 Wave 1 진입 게이트로 필수화. dual-instrument로 CWV·에러·리플레이·프론트↔백엔드 트레이스 상관을 Datadog과 side-by-side 검증 후 컷오버 |
+| **R3** | **변환 파이프라인 미성숙 + CPU 세금** — `datadogreceiver`(전 신호 alpha), `clickhouseexporter` traces/logs beta·metrics alpha. 변환 CPU가 native 대비 최대 ~200배 `Ⓑ`, delta metric 30~70% 손실(#44907) `✓` | 프록시 영구 의존 시 손실·비용·회귀 | 프록시는 로그/메트릭의 단기 브릿지로만. traces는 OTel 재계측, RUM은 SDK 교체. dual-write 후 **속성 단위 diff 검증**. 규모 결정 전 자체 벤치마크 필수 |
 | **R4** | **로컬 NVMe 노드 lifecycle** — 노드 소실/drain/업그레이드 시 데이터 재수화, Karpenter consolidation이 스토리지 지역성 무시하고 노드 제거 | 가용성·성능 저하, 최악의 경우 shard 장애 | replica ≥2 + anti-affinity(hostname) + PDB `maxUnavailable=1` + `do-not-disrupt` + On-Demand/SP(Spot 금지) + hot/cold tiering으로 노드당 데이터량 축소. 상세는 [clickhouse 챕터]({{< relref "../clickhouse/_index.md" >}}) |
-| **R5** | **메트릭/대시보드/모니터 이관 비용** — HyperDX(ClickHouse SQL) 타겟 자동 변환기 부재, PromQL/Grafana 타겟에만 도구 존재 | HyperDX로 메트릭 강행 시 공수 2~4배 팽창 `[추정]` | 메트릭 계층을 VM+Grafana+Sloth/Pyrra로 분리. AST 쿼리 변환기(→PromQL)·graang(대시보드)·무계측 dual-ship 활용. 이관 전 rationalization으로 자산 40~60% 감축 |
+| **R5** | **메트릭/대시보드/모니터 이관 비용** — HyperDX(ClickHouse SQL) 타겟 자동 변환기 부재, PromQL/Grafana 타겟에만 도구 존재 | HyperDX로 메트릭 강행 시 공수 2~4배 팽창 `≈` | 메트릭 계층을 VM+Grafana+Sloth/Pyrra로 분리. AST 쿼리 변환기(→PromQL)·graang(대시보드)·무계측 dual-ship 활용. 이관 전 rationalization으로 자산 40~60% 감축 |
 
 ## 2주 스프린트 체크리스트
 
@@ -79,11 +79,11 @@ RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument 
 ## 남은 오픈 퀘스천
 
 {{% details title="오픈 퀘스천 목록" closed="true" %}}
-- **dd 프록시 처리량/CPU/손실률 벤치마크** — 공개 부재, 자체 PoC로만 확정 가능 `[미확인]`(2026-07 딥리서치(소스 25·claim 60 검증)에서도 공개 실측치 미발견 — 전량 자체 벤치 전제).
-- **감사로그 GA 시점·배포 형태**(OSS vs Cloud) — RBAC 선례상 Cloud 전용일 가능성 `[미확인]`.
-- **HyperDX 쿼리 생성과 ClickHouse row policy 상호작용** — 집계/JOIN 시 정책 누수 여부 실증 필요 `[미확인]`.
-- **AST 변환기 PromQL 출력이 VictoriaMetrics(MetricsQL)와 100% 호환**되는지 — PoC 필요 `[미확인]`.
-- **Managed ClickStack RBAC가 "HyperDX only(BYO 자체 CH)"에 백포트될지** — 현재 근거상 아니오 `[미확인]`.
+- **dd 프록시 처리량/CPU/손실률 벤치마크** — 공개 부재, 자체 PoC로만 확정 가능 `?`(2026-07 딥리서치(소스 25·claim 60 검증)에서도 공개 실측치 미발견 — 전량 자체 벤치 전제).
+- **감사로그 GA 시점·배포 형태**(OSS vs Cloud) — RBAC 선례상 Cloud 전용일 가능성 `?`.
+- **HyperDX 쿼리 생성과 ClickHouse row policy 상호작용** — 집계/JOIN 시 정책 누수 여부 실증 필요 `?`.
+- **AST 변환기 PromQL 출력이 VictoriaMetrics(MetricsQL)와 100% 호환**되는지 — PoC 필요 `?`.
+- **Managed ClickStack RBAC가 "HyperDX only(BYO 자체 CH)"에 백포트될지** — 현재 근거상 아니오 `?`.
 - (CH 배포 측 오픈 퀘스천 — 재수화 TB당 소요 시간, i7i 순차 대역 실측 등 — 은 [clickhouse 챕터]({{< relref "../clickhouse/_index.md" >}})에서 다룬다.)
 {{% /details %}}
 
@@ -99,4 +99,4 @@ RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument 
 
 **착수 전 필수 확인**(RUM 도메인 공통): Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 측정한다 — 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택(CH+MongoDB)만 늘린다. 도메인 큰 그림은 [RUM 내재화]({{< relref "_index.md" >}}) 참고.
 
-> 근거 등급은 조사 문서의 판정을 승계한다. `[추정]`은 자릿수 추정, `[미확인]`은 공개 전례·검증 부재를 뜻한다. 조사 기준 2026-07.
+> 근거 등급은 조사 문서의 판정을 승계한다. `≈`은 자릿수 추정, `?`은 공개 전례·검증 부재를 뜻한다. 조사 기준 2026-07.
