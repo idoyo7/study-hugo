@@ -1,6 +1,6 @@
 ---
 title: "출처"
-weight: 8
+weight: 10
 ---
 
 # 출처 — HyperDX 내재화(실전 배포) 조사 자료

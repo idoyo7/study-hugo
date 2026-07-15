@@ -96,7 +96,7 @@ RUM 인제스트 경로에 **MongoDB는 없다** — 브라우저 SDK는 HyperDX
 | {{< relref "05-keeper.md" >}} | Keeper 상세: Raft·저장/비저장, **"큐가 아니다" 정정**, async_insert 세만틱, 유실 방지 설계 | 정족수 산술·CHK 매니페스트·쓰기 내구성 노브 → {{< relref "../clickhouse/04-deployment-playbook.md" >}} |
 | {{< relref "06-replication-failover.md" >}} | **복제 구조·멀티마스터·중단/failover**: RMT pull 복제, 승격 없는 failover, ZooKeeper/Keeper 복제 역할, split-brain 방지, RF2+consolidation 안전성 | 다운타임 물리 역학 → {{< relref "04-operator-topology-downtime.md" >}}, Keeper 자체 → {{< relref "05-keeper.md" >}} |
 | {{< relref "07-capacity-planning.md" >}} | **월 0.7TB RUM 워크드 모델**: 압축비·raw vs on-disk·3/6/12개월·hot/cold·RF·gp3 vs io2·TTL·비용 | RF 선택 확률·insert_quorum → {{< relref "../clickhouse/04-deployment-playbook.md" >}} |
-| {{< relref "08-sources.md" >}} | 출처 URL 모음(분류 표) | — |
+| {{< relref "10-sources.md" >}} | 출처 URL 모음(분류 표) | — |
 
 ## 자매 챕터
 
