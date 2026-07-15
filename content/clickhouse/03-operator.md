@@ -13,7 +13,7 @@ weight: 3
 - **배제 근거**: 공식 operator는 알파(`v1alpha1`), Bitnami는 폐기 경로, 순수 StatefulSet은 단일 노드만.
 {{< /callout >}}
 
-"Helm에서 clickhouse-operator를 쓸까 말까"는 이미 답이 정해진 질문이다. ClickHouse는 스토리지만 붙은 컨테이너가 아니라 **엄격한 토폴로지·설정 요구를 가진 분산 시스템**이라, replica가 2개 이상이거나 shard가 하나라도 생기는 순간 수동 StatefulSet은 remote_servers 관리·스키마 전파·롤링 순서·PDB·anti-affinity를 전부 손으로 짜야 해서 오류투성이가 된다 `[확인됨]`. 그래서 진짜 결정은 "operator를 쓸지"가 아니라 **"어느 operator를 쓸지"**다. 2026-07 기준 답은 **Altinity clickhouse-operator**다 — 7년+ 프로덕션 트랙레코드로 사실상 표준이고, 공식·Bitnami·수동 경로는 각각 미성숙·폐기·비효율의 이유로 밀린다.
+"Helm에서 clickhouse-operator를 쓸까 말까"는 이미 답이 정해진 질문이다. ClickHouse는 스토리지만 붙은 컨테이너가 아니라 **엄격한 토폴로지·설정 요구를 가진 분산 시스템**이라, replica가 2개 이상이거나 shard가 하나라도 생기는 순간 수동 StatefulSet은 remote_servers 관리·스키마 전파·롤링 순서·PDB·anti-affinity를 전부 손으로 짜야 해서 오류투성이가 된다 `[확인됨]`. 그래서 진짜 결정은 "operator를 쓸지"가 아니라 **"어느 operator를 쓸지"**다. 2026-07 기준 답은 **Altinity clickhouse-operator**다 — 7년+ 프로덕션 트랙레코드로 사실상 표준이고, 공식·Bitnami·수동 경로는 각각 미성숙·폐기·비효율의 이유로 밀린다. 이 페이지는 "어느 operator냐"까지만 다룬다 — 실제 배포 구성은 [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), 배포 후 스케일 in/out·롤링 업그레이드 같은 운영 실무는 [Altinity operator 운영]({{< relref "05-altinity-operations.md" >}})에서 이어간다.
 
 ## 프레이밍 전환 — 손익분기점은 replica≥2
 
@@ -111,4 +111,4 @@ ZooKeeper 별도 운영은 무겁고 신규 구축에서 권하지 않는다 —
 
 이 페이지의 권고(Altinity로 통일 + ClickStack 외부 CH 연결)는 **ClickHouse 채택이 이미 결정된 뒤에만** 발동한다. 로깅 챕터의 결정과 모순되지 않는다 — 로그는 VictoriaLogs로 가고([로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}})), 통합 저장소는 **earn-it-last**로 보류하는 D4는 여전히 유효하다. 전제가 다를 뿐이다: 로깅 챕터는 **로그 내재화** 관점(로그만의 규모·형태로 저장소 선택)이고, 이 페이지는 **RUM을 Datadog에서 빼내고 범용 분석까지 CH로 흡수하며 인프라 운영 인력이 이미 있는** 시나리오 관점이다. 그 결정이 서지 않으면 이 operator 논의 자체가 무의미하고 로깅 챕터의 판단이 우선한다.
 
-채택이 결정된 경우, operator는 **Altinity로 통일**한다 — replica≥2가 되는 순간 손익분기점을 넘고, 7년+ 트랙레코드가 알파 공식 operator·폐기 경로 Bitnami·수동 STS를 모두 앞선다. ClickStack은 `clickhouse.enabled: false`로 내장 CH를 끄고 Altinity가 관리하는 CH(또는 HyperDX only)를 참조하게 해, 관측성용과 범용 분석용 CH를 하나의 성숙한 operator로 수렴시킨다. 공식 operator는 스테이징에서 베타/GA 승격을 추적하다 재평가한다. operator 결정을 실제 매니페스트로 옮기는 배포 절차(CHK/CHI 필드, local PV 연동, 스케일·업그레이드·재수화 런북)는 [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})에서, 로컬 NVMe·티어링 등 스토리지 how는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})에서, 실운영 사례는 [프로덕션 운영 사례]({{< relref "05-production-usecases.md" >}})에서 이어진다. 시점 기준 2026-07.
+채택이 결정된 경우, operator는 **Altinity로 통일**한다 — replica≥2가 되는 순간 손익분기점을 넘고, 7년+ 트랙레코드가 알파 공식 operator·폐기 경로 Bitnami·수동 STS를 모두 앞선다. ClickStack은 `clickhouse.enabled: false`로 내장 CH를 끄고 Altinity가 관리하는 CH(또는 HyperDX only)를 참조하게 해, 관측성용과 범용 분석용 CH를 하나의 성숙한 operator로 수렴시킨다. 공식 operator는 스테이징에서 베타/GA 승격을 추적하다 재평가한다. operator 결정을 실제 매니페스트로 옮기는 배포 절차(CHK/CHI 필드, local PV 연동, 스케일·업그레이드·재수화 런북)는 [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})에서, 로컬 NVMe·티어링 등 스토리지 how는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})에서, 실운영 사례는 [프로덕션 운영 사례]({{< relref "06-production-usecases.md" >}})에서 이어진다. 시점 기준 2026-07.

@@ -14,7 +14,7 @@ weight: 4
 - **함정**: `insert_quorum` 계열은 `settings`가 아닌 `profiles`(users.xml)에, 모든 config는 `settings`/`files`/`users`로만 주입, Keeper 데이터는 절대 로컬 NVMe 금지(gp3).
 {{< /callout >}}
 
-앞의 두 페이지는 각각 "**어느** operator냐"([Altinity operator]({{< relref "03-operator.md" >}}))와 "**어떤** 스토리지 매체냐"([스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}))를 결정했다. 이 페이지는 그 둘을 **하나의 실행 가능한 배포 절차**로 묶는 캡스톤이다 — "AWS EKS 위에서 Altinity clickhouse-operator로 i7i/i8g 로컬 NVMe를 데이터 디스크 삼아 ReplicatedMergeTree 클러스터를 CHK/CHI 매니페스트 필드 수준까지 배포·운영하는 법". 앞 페이지가 **확정한 전제**(Altinity operator, self-host RMT, 로컬 NVMe hot + S3 cold, Keeper는 gp3 영속, i7i/i8g.4xlarge 단일 디스크 단위, `instanceStorePolicy`는 ephemeral이라 PV가 아님)는 재론하지 않고 그 위에 **필드·순서·값**을 얹는다. 개별 필드 근거는 [출처]({{< relref "07-sources.md" >}})의 operator·CRD·local PV 분류로 인용한다. 시점 기준 2026-07, operator **0.27.1**, CRD `clickhouse.altinity.com/v1` / `clickhouse-keeper.altinity.com/v1`.
+앞의 두 페이지는 각각 "**어느** operator냐"([Altinity operator]({{< relref "03-operator.md" >}}))와 "**어떤** 스토리지 매체냐"([스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}))를 결정했다. 이 페이지는 그 둘을 **하나의 실행 가능한 배포 절차**로 묶는 캡스톤이다 — "AWS EKS 위에서 Altinity clickhouse-operator로 i7i/i8g 로컬 NVMe를 데이터 디스크 삼아 ReplicatedMergeTree 클러스터를 CHK/CHI 매니페스트 필드 수준까지 배포·운영하는 법". 앞 페이지가 **확정한 전제**(Altinity operator, self-host RMT, 로컬 NVMe hot + S3 cold, Keeper는 gp3 영속, i7i/i8g.4xlarge 단일 디스크 단위, `instanceStorePolicy`는 ephemeral이라 PV가 아님)는 재론하지 않고 그 위에 **필드·순서·값**을 얹는다. 개별 필드 근거는 [출처]({{< relref "08-sources.md" >}})의 operator·CRD·local PV 분류로 인용한다. 시점 기준 2026-07, operator **0.27.1**, CRD `clickhouse.altinity.com/v1` / `clickhouse-keeper.altinity.com/v1`.
 
 > **표기**: `[확인됨]` = CRD 원문·공식 예제 YAML·릴리즈노트로 직접 검증. `[추정]` = 확정 사실에 기반한 설계 판단. `[미확인]` = 배포 후 실측·재확인 필요. 검증 못 한 YAML 필드는 `# [미확인]` 주석을 단다.
 
@@ -252,7 +252,7 @@ spec:
 
 **"아무 2대나 죽어도 안전"은 RF2로는 보장되지 않는다.** RF2 × shard 3 = 6대 구성에서 임의로 2대가 동시에 죽는 경우의 수는 `6C2 = 15`, 그중 하필 **같은 shard의 두 replica**인 조합은 shard마다 1쌍씩 3쌍 → `3/15 ≈ 20%`. 이 20%를 뽑으면 그 shard는 사본이 0이 되어 **데이터를 잃고**, 나머지 80%는 서로 다른 shard라 무사하다. RF3에서는 같은 shard 2대가 죽어도 1벌이 남아 이 손실 시나리오 자체가 사라진다 `[확인됨: 조합 산술]`.
 
-즉 RF 선택은 **확률적 안전 vs 비용**의 의사결정이다 `[추정]`. 플레이북 기본값을 RF2로 두는 근거는 비용 배수가 곧바로 ×1.5(RF2 대비)로 뛰고(노드·NVMe·AZ 간 복제 트래픽까지), 간헐·배치성 워크로드나 재수화 대상 데이터가 작아 위험 창이 짧으면 RF2의 20% 노출이 실무상 수용 가능하기 때문이다. 반대로 **RF3로 승급하는 트리거**는 ① "임의 2대 유실에도 무손실"이 요구사항일 때, ② 24/7 대규모 hot 데이터로 노드당 데이터가 커 재수화 위험 창(§5)이 길 때, ③ AZ 1개 소실 생존까지 원할 때(아래 '배치·분산 강제' 절)다. 이는 로컬 디스크를 쓰는 분산 시스템의 공통 처방과 같은 논리다 — 업계 횡단 근거(CockroachDB "로컬이면 RF 3→5", ClickHouse "로컬이면 2→3")는 [로컬 NVMe 데이터스토어 패턴]({{< relref "06-local-nvme-datastore-patterns.md" >}})에 정리돼 있다.
+즉 RF 선택은 **확률적 안전 vs 비용**의 의사결정이다 `[추정]`. 플레이북 기본값을 RF2로 두는 근거는 비용 배수가 곧바로 ×1.5(RF2 대비)로 뛰고(노드·NVMe·AZ 간 복제 트래픽까지), 간헐·배치성 워크로드나 재수화 대상 데이터가 작아 위험 창이 짧으면 RF2의 20% 노출이 실무상 수용 가능하기 때문이다. 반대로 **RF3로 승급하는 트리거**는 ① "임의 2대 유실에도 무손실"이 요구사항일 때, ② 24/7 대규모 hot 데이터로 노드당 데이터가 커 재수화 위험 창(§5)이 길 때, ③ AZ 1개 소실 생존까지 원할 때(아래 '배치·분산 강제' 절)다. 이는 로컬 디스크를 쓰는 분산 시스템의 공통 처방과 같은 논리다 — 업계 횡단 근거(CockroachDB "로컬이면 RF 3→5", ClickHouse "로컬이면 2→3")는 [로컬 NVMe 데이터스토어 패턴]({{< relref "07-local-nvme-datastore-patterns.md" >}})에 정리돼 있다.
 
 ### 쓰기 내구성 노브 — insert_quorum
 
@@ -389,7 +389,7 @@ kubectl patch chi analytics -n clickhouse --type=merge \
 
 ### Keeper 정족수 상실
 
-Keeper가 과반을 잃으면(3노드 중 2대·5노드 중 3대 소실, 산술은 §2 CHK '정족수 산술') 클러스터는 조정 불능에 빠진다 — 노드 데이터가 멀쩡해도 **쓰기 경로가 멈춘다** `[확인됨]`. 데이터 경로가 아닌 소규모 조정 계층이 전체 쓰기 가용성의 SPOF가 되는 지점이다. 흩어진 서술(2노드 정족수 함정 [operator 페이지]({{< relref "03-operator.md" >}}), read-only 전락 [프로덕션 사례]({{< relref "05-production-usecases.md" >}}) 안티패턴 #5)을 이 절이 참조해 한 곳에 통합한다.
+Keeper가 과반을 잃으면(3노드 중 2대·5노드 중 3대 소실, 산술은 §2 CHK '정족수 산술') 클러스터는 조정 불능에 빠진다 — 노드 데이터가 멀쩡해도 **쓰기 경로가 멈춘다** `[확인됨]`. 데이터 경로가 아닌 소규모 조정 계층이 전체 쓰기 가용성의 SPOF가 되는 지점이다. 흩어진 서술(2노드 정족수 함정 [operator 페이지]({{< relref "03-operator.md" >}}), read-only 전락 [프로덕션 사례]({{< relref "06-production-usecases.md" >}}) 안티패턴 #5)을 이 절이 참조해 한 곳에 통합한다.
 
 | 멈추는 것 | 견디는 것 |
 |---|---|
@@ -500,4 +500,4 @@ spec:
 - [ ] **분리·재사용**: 관측성/범용을 별도 CHI(+노드풀), 공통은 CHIT `useTemplates`. ClickStack은 `clickhouse.enabled: false`로 외부 CH 연결.
 - [ ] **검증**: apply 후 파드 Running, `remote_servers`/macros 자동 생성, 스키마 전파, anti-affinity 배치, **노드 소실 리허설(스테이징)**.
 
-이 배포도가 managed와 어떻게 갈리는지는 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), 실제 프로덕션 운영 사례는 [프로덕션 운영 사례]({{< relref "05-production-usecases.md" >}})에서 이어진다. 시점 기준 2026-07.
+이 배포도가 managed와 어떻게 갈리는지는 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), 실제 프로덕션 운영 사례는 [프로덕션 운영 사례]({{< relref "06-production-usecases.md" >}})에서 이어진다. 시점 기준 2026-07.
