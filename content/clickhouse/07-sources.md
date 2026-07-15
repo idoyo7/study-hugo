@@ -5,7 +5,9 @@ weight: 7
 
 # 출처 — ClickHouse 배포·오퍼레이터·운영사례 조사 자료
 
-이 표는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), [프로덕션 운영사례]({{< relref "05-production-usecases.md" >}}), [데이터스토어 횡단 벤치마킹]({{< relref "06-local-nvme-datastore-patterns.md" >}}) 여섯 페이지가 인용한 1차 조사 문서(배포 전략·스토리지 아키텍처, clickhouse-operator 채택, operator로 로컬 NVMe에 CH를 배포하는 실전 플레이북·CHI/CHK CRD 심층·local PV 연동·토폴로지 운영 런북, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강, 로컬 NVMe 데이터스토어 횡단 조사)의 `## 출처` 섹션을 모아 중복 제거하고 주제별로 분류했다. 조사 기준일은 **2026-07-13~15**(각 조사 문서 frontmatter `updated` 값 — 데이터스토어 횡단 조사·티어링 검증은 07-14, operator 배포 플레이북 시리즈는 07-15)이다.
+이 표는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), [프로덕션 운영사례]({{< relref "05-production-usecases.md" >}}), [데이터스토어 횡단 벤치마킹]({{< relref "06-local-nvme-datastore-patterns.md" >}}) 여섯 페이지가 인용한 1차 조사 문서의 `## 출처` 섹션을 모아 중복을 제거하고 주제별로 분류했다.
+
+그 1차 조사 문서가 다룬 범위는 배포 전략·스토리지 아키텍처, clickhouse-operator 채택, operator로 로컬 NVMe에 CH를 배포하는 실전 플레이북·CHI/CHK CRD 심층·local PV 연동·토폴로지 운영 런북, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강, 로컬 NVMe 데이터스토어 횡단 조사다. 조사 기준일은 **2026-07-13~15**이다(각 조사 문서 frontmatter `updated` 값 — 데이터스토어 횡단 조사·티어링 검증은 07-14, operator 배포 플레이북 시리즈는 07-15).
 
 개별 URL의 등급(확인됨/추정/미확인)은 원 조사 문서 본문의 인라인 태그를 따른다 — 이 표 자체는 출처 목록이며 등급을 재판정하지 않는다.
 

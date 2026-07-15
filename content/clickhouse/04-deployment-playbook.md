@@ -5,6 +5,15 @@ weight: 4
 
 # operator 배포 플레이북 — 로컬 NVMe 실전 구성
 
+{{< callout type="info" >}}
+**한눈에** — Altinity operator + EKS + 로컬 NVMe로 ReplicatedMergeTree 클러스터를 CHK/CHI 필드 수준까지 배포·운영하는 캡스톤.
+
+- **5계층**(노드 부트스트랩 → local PV provisioner → StorageClass → CHK/CHI 매니페스트 → Pod 스케줄)을 거치며, operator는 [4]~[5]만 담당한다.
+- **순서**: operator+CRD 설치 → StorageClass 2종 → CHK(Keeper 3노드, **gp3 영속**) Ready → CHI(shard×replica, **로컬 NVMe** `fast-disks`) → 배치 강제·PDB·백업.
+- **RF2 기본**, "임의 2대 유실에도 무손실"·AZ 소실 생존이 요구면 **RF3**로 승급(§2 'RF 선택').
+- **함정**: `insert_quorum` 계열은 `settings`가 아닌 `profiles`(users.xml)에, 모든 config는 `settings`/`files`/`users`로만 주입, Keeper 데이터는 절대 로컬 NVMe 금지(gp3).
+{{< /callout >}}
+
 앞의 두 페이지는 각각 "**어느** operator냐"([Altinity operator]({{< relref "03-operator.md" >}}))와 "**어떤** 스토리지 매체냐"([스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}))를 결정했다. 이 페이지는 그 둘을 **하나의 실행 가능한 배포 절차**로 묶는 캡스톤이다 — "AWS EKS 위에서 Altinity clickhouse-operator로 i7i/i8g 로컬 NVMe를 데이터 디스크 삼아 ReplicatedMergeTree 클러스터를 CHK/CHI 매니페스트 필드 수준까지 배포·운영하는 법". 앞 페이지가 **확정한 전제**(Altinity operator, self-host RMT, 로컬 NVMe hot + S3 cold, Keeper는 gp3 영속, i7i/i8g.4xlarge 단일 디스크 단위, `instanceStorePolicy`는 ephemeral이라 PV가 아님)는 재론하지 않고 그 위에 **필드·순서·값**을 얹는다. 개별 필드 근거는 [출처]({{< relref "07-sources.md" >}})의 operator·CRD·local PV 분류로 인용한다. 시점 기준 2026-07, operator **0.27.1**, CRD `clickhouse.altinity.com/v1` / `clickhouse-keeper.altinity.com/v1`.
 
 > **표기**: `[확인됨]` = CRD 원문·공식 예제 YAML·릴리즈노트로 직접 검증. `[추정]` = 확정 사실에 기반한 설계 판단. `[미확인]` = 배포 후 실측·재확인 필요. 검증 못 한 YAML 필드는 `# [미확인]` 주석을 단다.
@@ -72,7 +81,9 @@ reclaimPolicy: Delete
 parameters: { type: gp3 }
 ```
 
+{{% details title="곁가지 — provisioner 없이 직접 마운트 (hostPath / emptyDir)" closed="true" %}}
 **provisioner 없이 직접 마운트 — hostPath / emptyDir(로컬 강조)** `[확인됨]`. Altinity 공식 예제는 provisioner를 거치지 않는 로컬 경로도 시연한다: `11-local-storage-01/02-*-host-path`(hostPath 데이터 디렉토리 직접 마운트), `03-persistent-volume-09-with-template-emptydir`(노드 로컬 임시 볼륨). **hostPath**는 PV/provisioner 없이 노드 디렉토리를 그대로 붙여 PoC·단일 노드엔 최단 경로지만 node affinity·용량 회계·권한을 손으로 져야 한다. **emptyDir**은 파드 수명과 함께 사라져 stateful CH 데이터엔 부적합(rolling update 예제 전용). 프로덕션 로컬 NVMe는 provisioner 경로(local-static-provisioner)가 정석이고, hostPath/emptyDir은 "provisioner 세우기 전 빠른 검증"이나 재생성 가능 데이터에 한정한다 `[추정]`.
+{{% /details %}}
 
 ## 2. 핵심 배포 — CHK + CHI
 
@@ -127,7 +138,9 @@ spec:
           resources: { requests: { storage: 20Gi } }
 ```
 
+{{% details title="곁가지 — CHK 자동 관리 · 포트 기본값 · suspend" closed="true" %}}
 CHK가 pod ordinal별 `server_id`(Raft peer), quorum/startup, 4LW 라이브니스를 자동 관리한다(수동 STS 대비 Raft 실수 제거). `hostTemplates`로 포트를 바꾸지 않으면 operator CHK 관례 기본은 **zkPort 2181 / raftPort 9444**다(9181/9234는 독립형 Keeper의 네이티브 기본값) `[확인됨]`. CHK 전용 수명주기 필드로 `spec.suspend`(리컨사일 일시중지, CHI의 `stop`에 대응)가 있다 `[확인됨]`.
+{{% /details %}}
 
 **정족수 산술 — 왜 3, 언제 5** `[확인됨]`. Keeper는 데이터 경로가 아니라 소규모 조정 계층이지만, 정족수를 잃으면 replication 조정·DDL·INSERT가 전부 멈춰 **클러스터 전체의 쓰기 가용성이 정지하는 숨은 SPOF**다(장애 시나리오는 §5 'Keeper 정족수 상실'). 3/5노드·gp3·멀티 AZ 결정은 전부 이 SPOF를 방어하려는 것이다. Raft 과반은 `floor(N/2)+1`, 견디는 동시 유실은 `floor((N-1)/2)`다.
 
@@ -252,7 +265,9 @@ RF는 "몇 벌 두나"를 정하고, `insert_quorum`은 "쓰기를 **몇 벌 확
 | `insert_quorum_timeout` | quorum 대기 상한(ms) | 짧으면 쓰기 실패↑, 길면 쓰기 지연↑ |
 | `select_sequential_consistency: 1` | quorum 반영 전 데이터를 읽지 않음 | 읽기 지연·가용성 일부 희생 |
 
-이 셋은 서버 레벨(config.xml)이 아니라 **세션/유저 레벨** setting이라 `settings`(config.d)가 아니라 `configuration.profiles`(users.xml)에 넣어야 실제 적용된다 `[확인됨]` — `settings`에 두면 서버가 프로파일 기본값으로 인식하지 못해 무효가 된다(대비: 위 §3 티어링의 `storage_configuration`은 진짜 서버 레벨이라 `settings`가 맞다).
+{{< callout type="warning" >}}
+**함정 — insert_quorum 계열은 `profiles`(users.xml)에** `[확인됨]`. 이 셋은 서버 레벨(config.xml)이 아니라 **세션/유저 레벨** setting이라 `settings`(config.d)가 아니라 `configuration.profiles`(users.xml)에 넣어야 실제 적용된다 — `settings`에 두면 서버가 프로파일 기본값으로 인식하지 못해 무효가 된다(대비: §3 티어링의 `storage_configuration`은 진짜 서버 레벨이라 `settings`가 맞다).
+{{< /callout >}}
 
 ```yaml
 spec:
@@ -289,7 +304,9 @@ replica를 2~3벌 두는 것만으로는 부족하다 — 그 사본들이 **서
 | `provisioner` | `StatefulSet`(기본) \| `Operator` | **`StatefulSet`**. `Operator`는 CSI `allowVolumeExpansion` 환경에서 파드 재시작 없이 온라인 확장할 때만 — 로컬 NVMe는 물리적으로 확장 불가라 이점 없음 |
 | `reclaimPolicy` | `Retain` \| `Delete`(기본) | **`Retain`**. STS/CHI 삭제·`helm uninstall`에도 PVC 잔존 → 실수 삭제 방어. `stop: 1`은 Replicas=0으로 만들되 PVC intact |
 
-> **주의**: `Operator` provisioner + VCT 크기 변경 시 과거 데이터 손실 회귀(#1385/#457)가 있었다. 확장은 스테이징 검증 후에만 `[확인됨]`.
+{{< callout type="warning" >}}
+**주의**: `Operator` provisioner + VCT 크기 변경 시 과거 데이터 손실 회귀(#1385/#457)가 있었다. 확장은 스테이징 검증 후에만 `[확인됨]`.
+{{< /callout >}}
 
 ## 3. 필드 레벨 티어링 — hot NVMe → S3 cold
 

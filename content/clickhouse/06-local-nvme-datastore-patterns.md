@@ -5,9 +5,20 @@ weight: 6
 
 # 로컬 NVMe 하드 유저들 — 데이터스토어 횡단 벤치마킹
 
-이 페이지는 질문 하나에 답한다 — **"휘발성 로컬 NVMe를 1차 스토리지로 쓰고, 내구성은 복제로 확보하고, 오래된 데이터는 S3로 티어링한다"는 패턴이 업계에서 어디까지 표준인가.** [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})가 이 결정을 **ClickHouse에서 어떻게 구현하나(how)**를 다룬다면, 이 페이지는 ScyllaDB·Cassandra·Kafka·Redpanda·WarpStream류·ES/OpenSearch·Aerospike·TiKV/TiDB·CockroachDB **9개 시스템을 같은 잣대로 놓고** "업계가 어디까지 하나"를 보여주는 **외부 강화 근거**다. 결론부터: **로컬 NVMe 1차는 이단이 아니라 정설이고, ClickHouse + EKS + i7i/i8g 결정은 이 정설과 정확히 부합한다. 단 "복제만으로 충분"은 거짓이며 — 성숙한 시스템은 예외 없이 복제 위에 지속(durable) 티어를 하나 더 얹는다 — "S3 티어링하면 사본이 줄어 싸진다"는 UltraWarm식 기대는 self-host에서 틀린다.**
+{{< callout type="info" >}}
+**한눈에** — "휘발성 로컬 NVMe 1차 + 복제 내구성 + 오래된 데이터 S3 티어링"이 업계에서 어디까지 표준인지 9개 데이터스토어로 검증한 페이지다.
 
+- **로컬 NVMe 1차는 이단이 아니라 정설**이고, ClickHouse + EKS + i7i/i8g 결정은 이 정설과 정확히 부합한다.
+- 단 **"복제만으로 충분"은 거짓** — 성숙한 시스템은 예외 없이 복제 위에 지속(durable) 티어를 하나 더 얹는다.
+- **"S3 티어링하면 사본이 줄어 싸진다"는 UltraWarm식 기대는 self-host에서 틀린다** — shared-nothing이라 사본 배수가 유지된다.
+- 새로 벼릴 것은 재수화 MTTR 실측 · cross-AZ 비용 반영 · 사본 오해 교정 · local PV 노드 교체 런북뿐이다.
+{{< /callout >}}
+
+이 페이지는 질문 하나에 답한다 — **"휘발성 로컬 NVMe를 1차 스토리지로 쓰고, 내구성은 복제로 확보하고, 오래된 데이터는 S3로 티어링한다"는 패턴이 업계에서 어디까지 표준인가.** [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})가 이 결정을 **ClickHouse에서 어떻게 구현하나(how)**를 다룬다면, 이 페이지는 ScyllaDB·Cassandra·Kafka·Redpanda·WarpStream류·ES/OpenSearch·Aerospike·TiKV/TiDB·CockroachDB **9개 시스템을 같은 잣대로 놓고** "업계가 어디까지 하나"를 보여주는 **외부 강화 근거**다.
+
+{{% details title="근거 등급 태그 · 출처 규칙" closed="true" %}}
 근거 등급 태그는 입력 조사(11-1~11-4 및 종합)의 판정을 승계한다(`[확인됨]`·`[벤더]`·`[추정]`·`[미확인]`, 본 페이지의 신규 종합 판단은 `[종합]`). URL 출처는 이 페이지가 아니라 [출처]({{< relref "07-sources.md" >}})가 담당한다.
+{{% /details %}}
 
 ## 결론 먼저 — 세 층위로 나눈 표준
 
@@ -32,7 +43,9 @@ weight: 6
 | Netflix (Cassandra) | EBS 스냅샷 S3 플래싱(datastore flash upgrades) `[확인됨]` |
 | ClickHouse | **clickhouse-backup → S3**(주간 full + 일간 incremental) `[확인됨]` |
 
-즉 [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})의 "로컬 NVMe replica + S3 백업" 3종 세트는 사치가 아니라 **업계 최소선을 정확히 충족**하는 정본이다. "replica만 믿고 백업 생략"은 어떤 성숙한 시스템도 하지 않는다 `[종합]`.
+{{< callout type="warning" >}}
+즉 [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})의 "로컬 NVMe replica + S3 백업" 3종 세트는 사치가 아니라 **업계 최소선을 정확히 충족**하는 정본이다. **"replica만 믿고 백업 생략"은 어떤 성숙한 시스템도 하지 않는다** `[종합]`.
+{{< /callout >}}
 
 ### 표준이 갈라지는 것 — "S3 티어링"의 두 얼굴
 
@@ -98,12 +111,16 @@ weight: 6
 
 ### 시스템별 예외·특이점
 
+{{% details title="6개 시스템 각론 펼치기 — ScyllaDB · TiKV/TiDB · Kafka · Redpanda · ES/OpenSearch · Aerospike" closed="true" %}}
+
 - **ScyllaDB — 로컬 NVMe 자동화 성숙도 최고.** Operator가 RAID0/XFS/Local CSI/AZ=rack/orphaned cleanup을 프로덕션 기본으로 자동화한다 — Altinity operator가 벤치마킹할 정점 `[확인됨]`([operator 페이지]({{< relref "03-operator.md" >}})).
 - **TiKV/TiDB — 관리형만 후퇴.** self-host Operator는 TiKV에 로컬 SSD를 강력 권장하지만, **TiDB Cloud(관리형)만** EBS+S3로 재설계했다 — self-host 권고와 별개인 관리형 독자 결정이다. **PingCAP/Pinterest가 MTTR 때문에 Graviton+EBS 전환을 검토**하는 현장 증거는 로컬 NVMe self-host의 대표적 반례로 유효하다 `[확인됨]`.
 - **Kafka — diskless라는 별도 진화 축.** inter-AZ 트래픽이 클라우드 Kafka 비용의 **70~90%**라는 폭로가 WarpStream/AutoMQ/KIP-1150을 낳았다. 티어링(모델 A)이 못 줄이는 비용을 없애지만 지연을 희생 → ClickHouse엔 부적합하나 **cross-AZ 비용 경고는 그대로 유효** `[벤더]`.
 - **Redpanda — ClickHouse의 가장 닮은꼴.** 로컬 NVMe 1차 + S3 티어 + 로컬 캐시(`cache_service`) + 앱 계층 복제. "미업로드 세그먼트 로컬 삭제 방지"가 ClickHouse의 "병합 완료 후 S3 이동" 철학과 동일하다 `[확인됨]`.
 - **ES/OpenSearch — 라이선스 갈림길.** UltraWarm급 S3 티어링을 self-manage로 무료로 원하면 **OpenSearch가 유일한 무료 경로**(ES searchable snapshots는 Enterprise 유료)다. 그런데 그건 애초에 ClickHouse 전환 취지와 어긋난다 `[확인됨]`.
 - **Aerospike — shadow device = 모델 A의 원조.** 로컬 primary + EBS shadow 동기 write 미러(RPO≈0)로, clickhouse-backup(주기 백업, RPO=간격)보다 강한 지속성을 준다 `[확인됨]`.
+
+{{% /details %}}
 
 ## named 프로덕션 사례 (간결 인용)
 
@@ -120,7 +137,9 @@ weight: 6
 | **The Trade Desk** | Aerospike | 로컬 NVMe로 노드 500→60 통합(성능 밀도) | `[벤더]` |
 | **Criteo** | Aerospike | 1.2조 객체·50ms SLA를 로컬 SSD로 | `[벤더]` |
 
-핵심 독법 `[종합]`: **순수 자체운영의 최대 규모는 로컬 디스크 베어메탈**(위 사례 다수)이고, **Pinterest의 EBS 검토는 "로컬 NVMe가 MTTR로 되돌려지는 실제 힘"의 현장 증거**다. 우리는 이 반례를 런북으로 방어해야지, 없는 셈 쳐선 안 된다.
+{{< callout type="important" >}}
+**핵심 독법** `[종합]`: **순수 자체운영의 최대 규모는 로컬 디스크 베어메탈**(위 사례 다수)이고, **Pinterest의 EBS 검토는 "로컬 NVMe가 MTTR로 되돌려지는 실제 힘"의 현장 증거**다. 우리는 이 반례를 런북으로 방어해야지, 없는 셈 쳐선 안 된다.
+{{< /callout >}}
 
 ## 우리 케이스에서는
 

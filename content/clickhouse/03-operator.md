@@ -5,6 +5,14 @@ weight: 3
 
 # clickhouse-operator 선택 — '쓸까 말까'가 아니라 '어느 것이냐'
 
+{{< callout type="info" >}}
+**한눈에** — ClickHouse는 replica≥2·shard가 생기는 순간 수동 StatefulSet이 오류투성이가 되므로 operator는 사실상 필수다. "쓸까 말까"가 아니라 "어느 것이냐"의 문제이며, 2026-07 기준 답은 **Altinity clickhouse-operator**(7년+ 트랙레코드, 사실상 표준)다.
+
+- **손익분기점**: replica가 2개 이상 되는 순간 operator 이득이 러닝커브를 압도한다 `[추정]`.
+- **통일**: 관측성(ClickStack)·범용 분석 CH를 Altinity 하나로 수렴 — ClickStack은 `clickhouse.enabled: false`로 내장 CH를 끄고 Altinity 관리 외부 CH를 참조(옵션 ③).
+- **배제 근거**: 공식 operator는 알파(`v1alpha1`), Bitnami는 폐기 경로, 순수 StatefulSet은 단일 노드만.
+{{< /callout >}}
+
 "Helm에서 clickhouse-operator를 쓸까 말까"는 이미 답이 정해진 질문이다. ClickHouse는 스토리지만 붙은 컨테이너가 아니라 **엄격한 토폴로지·설정 요구를 가진 분산 시스템**이라, replica가 2개 이상이거나 shard가 하나라도 생기는 순간 수동 StatefulSet은 remote_servers 관리·스키마 전파·롤링 순서·PDB·anti-affinity를 전부 손으로 짜야 해서 오류투성이가 된다 `[확인됨]`. 그래서 진짜 결정은 "operator를 쓸지"가 아니라 **"어느 operator를 쓸지"**다. 2026-07 기준 답은 **Altinity clickhouse-operator**다 — 7년+ 프로덕션 트랙레코드로 사실상 표준이고, 공식·Bitnami·수동 경로는 각각 미성숙·폐기·비효율의 이유로 밀린다.
 
 ## 프레이밍 전환 — 손익분기점은 replica≥2
@@ -18,7 +26,9 @@ operator 추상화(CHI/CHK의 `configuration`/`templates` 구조, XML 렌더링 
 | 중규모 (수 shard × 2~3 replica) | 프로덕션 표준 | **operator 사실상 필수** `[확인됨]` |
 | 대규모 (수십 노드·다중 클러스터) | 대규모 프로덕션 | operator 필수 + 전용 노드·anti-affinity·PDB·Keeper 분리 필수 `[추정]` |
 
-> 주의: operator 간 마이그레이션(수동 STS→Altinity, Altinity↔공식)은 PVC/라벨/네이밍을 operator 기대값에 맞춰야 하는 non-trivial 작업이다 `[확인됨/추정]`. "단일 노드로 시작 → 나중에 operator"를 택하더라도 데이터를 처음부터 **ReplicatedMergeTree + clickhouse-backup(S3)** 형태로 두면 "새 operator 클러스터를 세우고 복제·복원으로 이전"하는 재구축 경로가 열려 이행 위험이 관리 가능해진다 `[추정]`.
+{{< callout type="warning" >}}
+operator 간 마이그레이션(수동 STS→Altinity, Altinity↔공식)은 PVC/라벨/네이밍을 operator 기대값에 맞춰야 하는 non-trivial 작업이다 `[확인됨/추정]`. "단일 노드로 시작 → 나중에 operator"를 택하더라도 데이터를 처음부터 **ReplicatedMergeTree + clickhouse-backup(S3)** 형태로 두면 "새 operator 클러스터를 세우고 복제·복원으로 이전"하는 재구축 경로가 열려 이행 위험이 관리 가능해진다 `[추정]`.
+{{< /callout >}}
 
 ## 선택지 전수 비교
 
@@ -30,7 +40,19 @@ operator 추상화(CHI/CHK의 `configuration`/`templates` 구조, XML 렌더링 
 | **순수 StatefulSet** | operator 없음 | (버전 무관) | △ 단일 노드만 | remote_servers·스키마·롤링·PDB·anti-affinity를 전부 수동. shard/replica 있으면 오류투성이 → 단일 노드/단일 replica·저빈도 변경 소규모에만 `[확인됨/추정]` |
 
 - **Altinity가 왜 표준인가**: GitHub ~2.5k stars·88 releases, Altinity.Cloud의 수백 개 설치를 이 operator가 관리 `[확인됨]`("전 세계 수만 대 서버 관리" 규모 수치 자체는 벤더 주장 `[추정]`). CHI 하나가 여러 클러스터의 토폴로지·설정·스토리지·템플릿을 선언하고, `layout`의 shard/replica 수만 바꿔 스케일 in/out + 자동 스키마 전파가 된다 `[확인됨]`.
-- **"성숙"의 실체는 프로덕션 운영 프리미티브다.** 단순히 오래됐다는 게 아니라, 프로덕션에서 아픈 지점을 릴리즈마다 다뤄 왔다는 뜻이다 `[확인됨]` — ① **롤링 업그레이드** 시 replica를 remote_servers에서 빼는 대신 low-priority로 설정해 분산쿼리 드롭을 최소화(0.26.0), ② Operator provisioner + `allowVolumeExpansion` CSI에서 **STS 재생성·파드 재시작 없이 볼륨 확장**, ③ `.spec.suspend`로 리컨사일 일시중지(0.26.0)·실패 파드 복귀 시 자동 리컨사일 재시작(0.27.0), ④ replica 삭제 시 활성 replica는 절대 drop하지 않는 안전장치(0.25.5), ⑤ Prometheus 메트릭 익스포트. 수동 STS로는 이 하나하나를 직접 구현해야 한다.
+
+{{% details title="'성숙'의 실체 — 릴리즈로 다뤄온 프로덕션 운영 프리미티브 (①~⑤)" closed="true" %}}
+단순히 오래됐다는 게 아니라, 프로덕션에서 아픈 지점을 릴리즈마다 다뤄 왔다는 뜻이다 `[확인됨]`.
+
+- ① **롤링 업그레이드** 시 replica를 remote_servers에서 빼는 대신 low-priority로 설정해 분산쿼리 드롭을 최소화(0.26.0)
+- ② Operator provisioner + `allowVolumeExpansion` CSI에서 **STS 재생성·파드 재시작 없이 볼륨 확장**
+- ③ `.spec.suspend`로 리컨사일 일시중지(0.26.0)·실패 파드 복귀 시 자동 리컨사일 재시작(0.27.0)
+- ④ replica 삭제 시 활성 replica는 절대 drop하지 않는 안전장치(0.25.5)
+- ⑤ Prometheus 메트릭 익스포트
+
+수동 STS로는 이 하나하나를 직접 구현해야 한다.
+{{% /details %}}
+
 - **공식 operator를 지금 안 쓰는 이유**: 설계는 현대적이지만 `v1alpha1`은 하위호환을 보장하지 않는다. 범용·미션크리티컬 CH를 알파 API에 얹는 것은 이르다 `[확인됨]`. 다만 ClickStack 표준 Helm 경로를 그대로 따르면 **자동으로 이 공식 operator를 쓰게 된다**(아래 §공존 문제).
 - **KubeBlocks/KubeDB** 같은 범용 DB operator도 존재하나(각각 addon·상용 라이선스), CH 전용 성숙도·트랙레코드에서 Altinity를 대체할 근거가 약해 이 결정에서는 제외 `[추정]`.
 
@@ -44,13 +66,18 @@ operator 추상화(CHI/CHK의 `configuration`/`templates` 구조, XML 렌더링 
 | ② 공식 operator로 통일 | ClickStack이 이미 쓰므로 하나로 수렴 | 공식 operator가 아직 알파 → 범용/미션크리티컬을 얹기엔 리스크 `[확인됨]` |
 | ③ **Altinity로 통일 + ClickStack 외부 CH 연결** | ClickStack `clickhouse.enabled: false`로 내장 CH를 끄고, Altinity가 관리하는 CH(또는 HyperDX only 모드)를 참조 | **가장 보수적·정합적** — 공식 문서도 프로덕션에선 CH 별도 관리 권고 `[확인됨]` |
 
-> **권고: 옵션 ③.** 관측성·범용 CH를 하나의 성숙한 operator(Altinity)로 수렴시키는 가장 깔끔한 형태다. ClickStack의 내장 CH를 끄고 Altinity가 관리하는 외부 CH를 바라보게 하면, 미션크리티컬 CH의 안정성을 알파 operator에 의존시키지 않으면서 관측성 스택도 유지된다. 공식 operator는 병렬로 스테이징에서 **베타/GA 승격을 추적하다가** 이후 재평가한다 `[추정]`.
+{{< callout type="important" >}}
+**권고: 옵션 ③.** 관측성·범용 CH를 하나의 성숙한 operator(Altinity)로 수렴시키는 가장 깔끔한 형태다. ClickStack의 내장 CH를 끄고 Altinity가 관리하는 외부 CH를 바라보게 하면, 미션크리티컬 CH의 안정성을 알파 operator에 의존시키지 않으면서 관측성 스택도 유지된다. 공식 operator는 병렬로 스테이징에서 **베타/GA 승격을 추적하다가** 이후 재평가한다 `[추정]`.
+{{< /callout >}}
 
 ## 운영 주의
 
 Altinity operator를 GitOps(ArgoCD)·Helm 워크플로에 얹을 때 반복되는 함정이다.
 
-- **설정은 반드시 CHI `settings`/`files`로만 주입한다.** operator가 관리하는 설정과 외부에서 주입한 config가 충돌하면 CH 파드가 CrashLoop에 빠진다 — ArgoCD로 Vault의 `named_collections.xml`을 외부 주입했다가 operator 렌더링과 충돌한 실제 이슈(#1456)가 있다 `[확인됨]`. 커스텀 `config.xml`은 `configuration.settings`(구조화) 또는 `configuration.files`(원본 XML)로, `users.xml`은 `configuration.users`/`profiles`/`quotas`로 선언하면 operator가 XML로 렌더링해 ConfigMap으로 마운트한다 `[확인됨]`.
+{{< callout type="warning" >}}
+**설정은 반드시 CHI `settings`/`files`로만 주입한다.** operator가 관리하는 설정과 외부에서 주입한 config가 충돌하면 CH 파드가 CrashLoop에 빠진다 — ArgoCD로 Vault의 `named_collections.xml`을 외부 주입했다가 operator 렌더링과 충돌한 실제 이슈(#1456)가 있다 `[확인됨]`. 커스텀 `config.xml`은 `configuration.settings`(구조화) 또는 `configuration.files`(원본 XML)로, `users.xml`은 `configuration.users`/`profiles`/`quotas`로 선언하면 operator가 XML로 렌더링해 ConfigMap으로 마운트한다 `[확인됨]`.
+{{< /callout >}}
+
 - **ArgoCD `ignoreDifferences`가 필요하다.** operator가 CR 상태를 계속 갱신하고 일부 필드(예: `resourceFieldRef.divisor`)를 채워 넣어 GitOps 도구가 **영구 OutOfSync diff**를 보이는 이슈가 있었다(0.27.1에서 수정) `[확인됨]`. operator는 **0.27.1+를 권장**하고, Altinity가 제공하는 argocd-examples를 참고해 diff/self-heal을 신중히 설정한다.
 - **PVC `reclaimPolicy`와 삭제 보호.** operator/Helm이 만든 PVC는 `helm uninstall`로 삭제되지 않는다(데이터 보호) `[확인됨]`. EBS 계열은 `reclaimPolicy: Retain`이 churn·재생성 시 데이터를 지키는 직접적 의미가 크고(문서 예제는 `Delete`), 로컬 NVMe에서는 데이터가 어차피 노드와 함께 사라지므로 "PVC를 지워도 STS만 재생성되게" 하는 운영상 보호 용도로 쓴다 `[추정]`.
 - **operator 업그레이드도 스테이징에서 검증한다.** operator 자체 업그레이드가 리컨사일 동작을 바꿔 예기치 않은 롤링 재시작을 유발할 수 있다 — RollingUpdate 중 CrashLoopBackOff(0.26.3 수정), 동시 config+version 업데이트 race(0.26.2 수정) 등 회귀 이력이 있다 `[확인됨]`. STS를 scale-to-0 없이 삭제하면 스키마가 재생성되지 않는 등 특정 조작 순서에서 나는 엣지 버그(#1500, #1602)가 있으니 스케일 순서 등 운영 룰을 지킨다 `[확인됨]`.
