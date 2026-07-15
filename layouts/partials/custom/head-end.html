@@ -1,0 +1,47 @@
+{{- /* 근거 표기 기호(✓ ≈ Ⓥ ? Ⓑ Σ) 색상 배지 — 본문 인라인 code 스팬만 대상, 코드블록(pre) 제외 */ -}}
+<style>
+  code.grade {
+    font-weight: 700;
+    font-size: 0.78em;
+    vertical-align: 0.08em;
+    border: none;
+  }
+  code.grade-confirmed { color: #15803d; background: rgba(22, 163, 74, 0.12); }
+  code.grade-est       { color: #b45309; background: rgba(217, 119, 6, 0.12); }
+  code.grade-vendor    { color: #1d4ed8; background: rgba(37, 99, 235, 0.10); }
+  code.grade-unknown   { color: #6b7280; background: rgba(107, 114, 128, 0.12); }
+  code.grade-bench     { color: #6d28d9; background: rgba(124, 58, 237, 0.10); }
+  code.grade-synth     { color: #0f766e; background: rgba(13, 148, 136, 0.12); }
+  html.dark code.grade-confirmed { color: #4ade80; background: rgba(74, 222, 128, 0.14); }
+  html.dark code.grade-est       { color: #fbbf24; background: rgba(251, 191, 36, 0.13); }
+  html.dark code.grade-vendor    { color: #60a5fa; background: rgba(96, 165, 250, 0.13); }
+  html.dark code.grade-unknown   { color: #9ca3af; background: rgba(156, 163, 175, 0.14); }
+  html.dark code.grade-bench     { color: #a78bfa; background: rgba(167, 139, 250, 0.13); }
+  html.dark code.grade-synth     { color: #2dd4bf; background: rgba(45, 212, 191, 0.13); }
+</style>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var CLASS_BY_SYMBOL = {
+      '✓': 'grade-confirmed',
+      '≈': 'grade-est',
+      'Ⓥ': 'grade-vendor',
+      '?': 'grade-unknown',
+      'Ⓑ': 'grade-bench',
+      'Σ': 'grade-synth',
+    };
+    // 기호(+선택적 ⁽부가설명⁾)를 /로 병기한 형태까지 허용: ✓, ✓⁽계산⁾, ✓/≈, ≈/✓⁽혼재⁾ ...
+    var GRADE_RE = /^([✓≈ⓋⒷΣ?])(⁽[^⁾]*⁾)?(\/[✓≈ⓋⒷΣ?](⁽[^⁾]*⁾)?)*$/;
+    document.querySelectorAll('article code').forEach(function (el) {
+      if (el.closest('pre')) return; // 코드블록 제외
+      var t = el.textContent.trim();
+      var m = t.match(GRADE_RE);
+      if (!m) return;
+      el.classList.add('grade', CLASS_BY_SYMBOL[m[1]]);
+      var full = { '✓': '확인됨', '≈': '추정', 'Ⓥ': '벤더 주장', '?': '미확인', 'Ⓑ': '퍼블릭 벤치마크', 'Σ': '종합 판단' };
+      el.title = t.split('/').map(function (part) {
+        var q = part.match(/⁽([^⁾]*)⁾/);
+        return full[part[0]] + (q ? ' (' + q[1] + ')' : '');
+      }).join(' / ');
+    });
+  });
+</script>
