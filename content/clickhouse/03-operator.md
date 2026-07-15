@@ -17,7 +17,7 @@ weight: 3
 
 ## 프레이밍 전환 — 손익분기점은 replica≥2
 
-operator 추상화(CHI/CHK의 `configuration`/`templates` 구조, XML 렌더링 규칙)에는 러닝커브가 있다 `[추정, 구조적 사실 기반]`. 그 비용을 이득이 넘어서는 지점이 **replica가 2개 이상이 되는 순간**이다 `[추정]` — 이때부터 자동 스키마 전파(새 replica에 DB/테이블 자동 생성), 안전한 롤링 업그레이드(replica를 분산쿼리에서 low-priority로 빼고 순차 교체), remote_servers 자동화, Keeper server_id 관리의 가치가 러닝커브를 압도한다 `[확인됨]`.
+operator 추상화(CHI/CHK의 `configuration`/`templates` 구조, XML 렌더링 규칙)에는 러닝커브가 있다 `[추정(구조적 사실 기반)]`. 그 비용을 이득이 넘어서는 지점이 **replica가 2개 이상이 되는 순간**이다 `[추정]` — 이때부터 자동 스키마 전파(새 replica에 DB/테이블 자동 생성), 안전한 롤링 업그레이드(replica를 분산쿼리에서 low-priority로 빼고 순차 교체), remote_servers 자동화, Keeper server_id 관리의 가치가 러닝커브를 압도한다 `[확인됨]`.
 
 | 규모 | 형태 | operator 판단 |
 |---|---|---|

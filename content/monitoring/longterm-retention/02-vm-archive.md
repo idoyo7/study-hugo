@@ -6,6 +6,14 @@ aliases: ["/monitoring/longterm-retention/02-option-a-vm-archive/"]
 
 # VictoriaMetrics 아카이브 — 라우터 RW#4 + streamAggr 5m → vmsingle 400d
 
+{{< callout type="info" >}}
+**한눈에**
+- 권장안: 기존 라우터 vmagent에 **RW#4를 추가**, streamAggr로 전 메트릭을 5m 집계해 별도 **vmsingle-archive**(400d, RF1)에 적재한다 — 신규 기술 0.
+- 월 **$385~416**, 단순 확장안($1,642) 대비 **~70% 절감**. hot(raw 90d)은 그대로 유지되고, `keep_metric_names`로 기존 쿼리·대시보드가 그대로 동작한다.
+- 리스크: 집계는 **인제스트 시점 확정**이라 사후 재계산 불가, **RF1**이라 vmbackup으로 이중화를 보완, 접미사 휴리스틱 오분류 가능성.
+- **가역적** — RW#4를 Thanos Receive로 교체하면 Thanos안으로 전환된다. 드라이런 2주로 집계 축소율(f)을 실측한 뒤 확정한다.
+{{< /callout >}}
+
 기존 chain 라우터 vmagent에 remoteWrite 하나(RW#4)를 더하고, 그 URL에만 5m 스트림 집계를 걸어 전 메트릭을 별도 vmsingle-archive(400d, VM OSS만)로 흘려보내는 권장안이다. 신규 기술 0, 월 저장비 $385~416, 단순 확장안 대비 약 70% 절감을 얻는다.
 
 > 관련 블록: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})

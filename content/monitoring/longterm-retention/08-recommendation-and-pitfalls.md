@@ -5,6 +5,14 @@ weight: 8
 
 # 08 · 권장안(VM OSS 아카이브) 종합 근거 · 업계 선례 · 하지 말 것 10선
 
+{{< callout type="info" >}}
+**한눈에**
+- 권장: **VM OSS 아카이브안**(라우터 RW#4 + streamAggr 5m → vmsingle-archive 400d) — 4안 중 **최저 비용**(월 $385~416), 가역적, service 무상태 무영향, 신규 기술 0, MetricsQL 보존.
+- 업계 선례("장기 = 집계만")로 뒷받침: **Criteo**(계층화 절감), **Uber M3**(1h/5y rollup), **MHI Vestas**(VM 13개월 안정 운영) — 방향성 근거일 뿐 예산 근거는 아니다.
+- 검증에서 기각된 함정 10선: VM에 S3 primary 기대 금지, vmbackup을 쿼리 가능한 아카이브로 착각 금지, Thanos downsampling을 저장 절감 수단으로 오인 금지, **아카이브 검증 전 hot retention 축소 금지** 등.
+- 진행 전 **드라이런 2주** 실측 필수 항목: 집계 축소율 f(가정 0.1~0.3), 카운터/게이지 오분류, 라우터 vmagent 메모리 증분, sc1/st1 부하.
+{{< /callout >}}
+
 400d 보관 결정의 최종 종합이다. VM 아카이브안을 왜 권장하는지의 근거를 한자리에 모으고, 업계 선례로 패턴을 뒷받침하며, 검증에서 기각된 함정 10개와 진행 전 드라이런 2주 실측 목록을 정리한다.
 
 > 관련 블록: [02 VM 아카이브 상세]({{< relref "02-vm-archive.md" >}}), [07 핵심논점·비용종합·판단트리]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [01 문제·2축]({{< relref "01-problem-and-axes.md" >}})

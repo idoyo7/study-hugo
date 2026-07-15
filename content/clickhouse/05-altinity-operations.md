@@ -5,6 +5,15 @@ weight: 5
 
 # Altinity operator 운영 — 규모별 구성·스케일링·롤링 업그레이드
 
+{{< callout type="info" >}}
+**한눈에**
+- 기준 버전은 **Altinity Kubernetes Operator 0.27.1**(2026-06-04) — 배포 이후 규모별 CHI/CHK 구성, 스케일 in/out, 3종 롤링 업그레이드(CH 버전·operator 자체·Keeper)를 다룬다.
+- **스케일 out**은 자동 리밸런싱·스키마 전파가 없다 — 새 shard는 신규 insert만 받고, 스키마는 수동 생성해야 한다(기존 shard의 replica 추가와는 다름).
+- **스케일 in**은 활성 replica가 자동 drop되지는 않지만, 미검증 DROP REPLICA 버그 리드가 있어 제거 전 체크리스트로 수동 확인이 필요하다.
+- **operator 자체 업그레이드는 minor 단계별로만**, CRD는 절대 삭제 금지 — 삭제 시 관리 중인 모든 CHI/CHK가 연쇄 삭제된다.
+- ClickHouse 버전 롤링은 **shard 내부는 순차, shard 간은 병렬** 가능하나 혼합 버전 호환 창은 약 1년(2 LTS 미만)이다.
+{{< /callout >}}
+
 [Altinity operator 선택]({{< relref "03-operator.md" >}})이 "어느 operator를 쓸지"를, [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})이 "로컬 NVMe 위에 처음 어떻게 배포하는지"(StorageClass·CHK/CHI 매니페스트 전문·티어링·노드 소실 재수화)를 다뤘다면, 이 페이지는 **배포 이후의 변경 관리** — 규모가 달라질 때의 구성 관점, 스케일 in/out, ClickHouse 버전·operator 자체·Keeper의 롤링 업그레이드 — 를 다룬다. 선택 근거·operator 2종 공존·Keeper 배치 근거·배포 매니페스트 상세는 반복하지 않고 relref로 위임한다. 기준 버전은 **Altinity Kubernetes Operator 0.27.1**(2026-06-04 릴리스)이며, 2026-07-15 확인 시점에도 최신 릴리스다 `[확인됨]`.
 
 ## 규모별 CHI/CHK 구성 패턴
@@ -100,16 +109,24 @@ spec:
 `layout.shardsCount`를 늘리고 `kubectl apply`로 재적용하면 operator가 새 shard의 StatefulSet/파드를 생성한다 `[확인됨]`. 여기서 반드시 알아야 할 것 두 가지.
 
 - **자동 리밸런싱은 없다.** ClickHouse는 기존 데이터를 새 shard로 자동 재분배하지 않는다. Distributed 테이블은 신규 insert만 전체 shard에 분산할 뿐이고, 과거 데이터는 원래 shard에 그대로 남는다 `[확인됨]`. 기존 데이터를 옮기려면 partition detach/attach, `INSERT ... SELECT`, 또는 clickhouse-copier를 수동으로 써야 한다 `[확인됨]`.
-- **신규 shard에 스키마가 자동 전파된다고 가정하지 마라.** "새 shard가 원래 shard와 같은 DB/테이블 구성을 자동으로 갖는다"는 주장은 딥리서치 적대검증에서 3-0으로 **기각**됐다 — 일반적인 경우 신규 shard에는 테이블 스키마를 별도로 생성해줘야 한다 `[확인됨, 기각 근거 반영]`. 이는 기존 shard에 **replica**를 추가하는 경우([operator 선택 페이지]({{< relref "03-operator.md" >}}) 기준 자동 스키마 전파가 `[확인됨]`)와 다르다 — 혼동하지 말 것.
+- **신규 shard에 스키마가 자동 전파된다고 가정하지 마라.** "새 shard가 원래 shard와 같은 DB/테이블 구성을 자동으로 갖는다"는 주장은 딥리서치 적대검증에서 3-0으로 **기각**됐다 — 일반적인 경우 신규 shard에는 테이블 스키마를 별도로 생성해줘야 한다 `[확인됨(기각 근거 반영)]`. 이는 기존 shard에 **replica**를 추가하는 경우([operator 선택 페이지]({{< relref "03-operator.md" >}}) 기준 자동 스키마 전파가 `[확인됨]`)와 다르다 — 혼동하지 말 것.
 
 ## 스케일 in
 
 replica/shard 제거는 scale-out보다 위험이 크다.
 
 - **활성(active) replica는 절대 자동으로 drop되지 않는다**(0.25.5 안전장치) — 상세는 [operator 선택 페이지]({{< relref "03-operator.md" >}}) 참조. drop 세부 동작은 `onDelete`/`onLostVolume`/`active` 플래그로 설정 가능하다(0.25.5 changelog) `[확인됨/추정]`.
-- **미해결 버그 리드(경고)**: GitHub 이슈 기반의 미검증 리드에 따르면, replica 제거 시 operator의 정리(cleanup) 로직이 shard의 첫 replica(`*-0`, `shard.FirstHost()`)를 통해 `SYSTEM DROP REPLICA`를 실행하도록 하드코딩돼 있어, 제거 대상이 `*-0`이 아니거나 `*-0` 자신이 마침 복구 중(재수화 중이라 Keeper 메타데이터가 없는 상태)이면 엉뚱한 replica 이름에 DROP 명령이 나가거나 명령 자체가 실패한다는 보고가 있다 `[추정]`. Kubernetes 상 StatefulSet/파드 자체는 정상적으로 정리되므로, 겉보기엔 scale-in이 끝난 것처럼 보여도 ZooKeeper/Keeper에 stale 메타데이터가 남을 수 있다는 뜻이다. 이 리드는 3-vote 검증을 거치지 않았으므로 실제 영향 범위는 도입 시점에 재확인이 필요하다.
-- **scale-in 전 체크리스트**: (1) 제거 대상 replica의 replication lag가 0에 수렴했는지 확인, (2) 제거 대상이 shard의 유일한 온라인 replica가 아닌지 확인, (3) `kubectl apply` 후 ZooKeeper/Keeper 경로(`/clickhouse/{cluster}/tables/...`)에 제거된 replica 흔적이 실제로 정리됐는지 수동 확인(위 미해결 리드 때문에 자동 정리를 100% 신뢰하지 않는다), (4) 노드 자체를 회수하기 전에 PVC `reclaimPolicy`가 `Retain`인지 재확인.
 - **볼륨 재프로비저닝이 필요한 경우**(디스크 손상 등으로 PV를 직접 지워야 할 때), 신뢰할 수 있는 절차로 보고된 것은 두 가지뿐이다 — ① PVC와 StatefulSet을 함께 삭제, ② PV 삭제 후 파드를 재시작해 PV unbind를 강제. 둘 다 operator가 스토리지와 스키마를 정상적으로 재생성한다고 보고됐다 `[확인됨/추정]`. 이 순서를 벗어난 임의 조작(예: STS는 그대로 두고 PV만 삭제)은 파드가 ephemeral 스토리지로 뜨거나 스키마가 비어있는 채로 남는 등 race condition을 유발한 사례가 있다 `[추정]`.
+
+{{< callout type="warning" >}}
+**미해결 버그 리드**: GitHub 이슈 기반의 미검증 리드에 따르면, replica 제거 시 operator의 정리(cleanup) 로직이 shard의 첫 replica(`*-0`, `shard.FirstHost()`)를 통해 `SYSTEM DROP REPLICA`를 실행하도록 하드코딩돼 있어, 제거 대상이 `*-0`이 아니거나 `*-0` 자신이 마침 복구 중(재수화 중이라 Keeper 메타데이터가 없는 상태)이면 엉뚱한 replica 이름에 DROP 명령이 나가거나 명령 자체가 실패한다는 보고가 있다 `[추정]`. Kubernetes 상 StatefulSet/파드 자체는 정상적으로 정리되므로, 겉보기엔 scale-in이 끝난 것처럼 보여도 ZooKeeper/Keeper에 stale 메타데이터가 남을 수 있다는 뜻이다. 이 리드는 3-vote 검증을 거치지 않았으므로 실제 영향 범위는 도입 시점에 재확인이 필요하다.
+
+**scale-in 전 체크리스트**:
+1. 제거 대상 replica의 replication lag가 0에 수렴했는지 확인
+2. 제거 대상이 shard의 유일한 온라인 replica가 아닌지 확인
+3. `kubectl apply` 후 ZooKeeper/Keeper 경로(`/clickhouse/{cluster}/tables/...`)에 제거된 replica 흔적이 실제로 정리됐는지 수동 확인(위 미해결 리드 때문에 자동 정리를 100% 신뢰하지 않는다)
+4. 노드 자체를 회수하기 전에 PVC `reclaimPolicy`가 `Retain`인지 재확인
+{{< /callout >}}
 
 ## ClickHouse 버전 롤링 업그레이드 런북
 
@@ -124,7 +141,9 @@ replica/shard 제거는 scale-out보다 위험이 크다.
 
 Altinity operator는 **minor 버전 단계별 업그레이드만 지원**한다(예: 0.26→0.27) — 여러 minor를 건너뛰는 경로는 CI로 검증되지 않으므로, 오래된 버전에서 온다면 단계별로 순차 업그레이드한다 `[확인됨]`.
 
+{{< callout type="error" >}}
 **절대 금지: CRD 삭제.** operator 업그레이드 중 어떤 경우에도 CustomResourceDefinition을 삭제하지 마라 — Kubernetes가 해당 CRD에 속한 모든 `chi`/`chk` 리소스를 연쇄 삭제하려 시도한다. 즉 관리 중인 모든 ClickHouse/Keeper 클러스터가 삭제 대상이 된다 `[확인됨]`.
+{{< /callout >}}
 
 알려진 업그레이드 함정 두 가지:
 
@@ -148,7 +167,7 @@ Altinity operator는 **minor 버전 단계별 업그레이드만 지원**한다(
 이 부분은 이번 딥리서치 라운드에서 전용 검증이 이뤄지지 않았다 `[미확인]` — 구체 구성(clickhouse-backup 사이드카→S3, PDB·모니터링 주입)은 [배포 플레이북 §운영 런북]({{< relref "04-deployment-playbook.md" >}})을 따르고, 아래는 기존 문서 근거로만 간결히 정리한다.
 
 - **메트릭**: operator/CH는 Prometheus 메트릭을 노출한다([operator 선택 페이지]({{< relref "03-operator.md" >}}) 기준 `[확인됨]`). 스케일 in/out·롤링 업그레이드 이벤트를 대시보드에서 추적하려면 CHI 리소스 상태(`Completed`/`InProgress`/`Aborted`)를 메트릭이나 이벤트로 별도 수집하는 편이 안전하다 `[추정]` — operator가 이 상태 전이를 Prometheus 메트릭으로 직접 노출하는지는 이번 조사에서 확인하지 못했다 `[미확인]`.
-- **백업**: clickhouse-backup 연계는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})에서 다룬 incremental 체인의 취약성(하나라도 손상되면 이후 복구 불가)이 operator 운영에도 그대로 적용된다 `[확인됨, 02 문서 기준]`. operator가 백업 스케줄링이나 restore 자체를 관리하지는 않으므로, 백업/restore drill은 별도 CronJob 등으로 직접 소유해야 한다 `[추정]`.
+- **백업**: clickhouse-backup 연계는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})에서 다룬 incremental 체인의 취약성(하나라도 손상되면 이후 복구 불가)이 operator 운영에도 그대로 적용된다 `[확인됨(02 문서 기준)]`. operator가 백업 스케줄링이나 restore 자체를 관리하지는 않으므로, 백업/restore drill은 별도 CronJob 등으로 직접 소유해야 한다 `[추정]`.
 - 이 영역은 클러스터 규모가 커질수록(특히 대규모 다중 클러스터) 운영 리스크가 커지는 지점이므로, 도입 전 별도 검증이 필요하다.
 
 ## 우리 케이스에서는

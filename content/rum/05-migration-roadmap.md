@@ -5,6 +5,15 @@ weight: 5
 
 # 마이그레이션 로드맵 — Datadog 이관 실행 계획
 
+{{< callout type="info" >}}
+**한눈에**
+- **rip-and-replace가 아니라 dual-write/dual-instrument → 병행 검증 → 단계적 컷오버**로 간다. 프록시는 서버사이드 신호(로그·메트릭·APM)의 단기 브릿지일 뿐이다.
+- **RUM은 SDK 교체가 정답**이다 — dd browser-sdk를 걷어내고 `@hyperdx/browser`로 교체한다.
+- **ClickHouse는 self-host + Altinity operator**(i8g 로컬 NVMe + ReplicatedMergeTree)로 가고, **메트릭은 HyperDX가 아니라 VictoriaMetrics+Grafana**로 분리 존치한다.
+- **최대 리스크는 OSS 접근통제 공백**(SSO/RBAC/멀티테넌시/감사로그 전무)이고, **RUM 대체는 공개 프로덕션 전례가 없다** — 자체 PoC 성공을 Wave 1 컷오버의 필수 게이트로 삼는다.
+- 실행은 2주 스프린트 6개로 쪼개고, 각 스프린트는 앞 게이트 통과를 조건으로 다음으로 넘어간다.
+{{< /callout >}}
+
 RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument → 병행 검증 → 단계적 컷오버**로 끌고 가는 실행 계획이다. 앞선 페이지들의 판정([HyperDX 심층]({{< relref "01-hyperdx-deep-dive.md" >}}), [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}}), [프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}}), [대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}))을 스프린트 단위 액션으로 접는다. ClickHouse 배포·스토리지·operator 상세는 [ClickHouse 자체 운영]({{< relref "../clickhouse/_index.md" >}}) 챕터로 위임하고, 이 페이지는 RUM/Datadog 이관 실행에 집중한다.
 
 ## Executive 판정 (6줄)
@@ -69,12 +78,14 @@ RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument 
 
 ## 남은 오픈 퀘스천
 
+{{% details title="오픈 퀘스천 목록" closed="true" %}}
 - **dd 프록시 처리량/CPU/손실률 벤치마크** — 공개 부재, 자체 PoC로만 확정 가능 `[미확인]`(2026-07 딥리서치(소스 25·claim 60 검증)에서도 공개 실측치 미발견 — 전량 자체 벤치 전제).
 - **감사로그 GA 시점·배포 형태**(OSS vs Cloud) — RBAC 선례상 Cloud 전용일 가능성 `[미확인]`.
 - **HyperDX 쿼리 생성과 ClickHouse row policy 상호작용** — 집계/JOIN 시 정책 누수 여부 실증 필요 `[미확인]`.
 - **AST 변환기 PromQL 출력이 VictoriaMetrics(MetricsQL)와 100% 호환**되는지 — PoC 필요 `[미확인]`.
 - **Managed ClickStack RBAC가 "HyperDX only(BYO 자체 CH)"에 백포트될지** — 현재 근거상 아니오 `[미확인]`.
 - (CH 배포 측 오픈 퀘스천 — 재수화 TB당 소요 시간, i7i 순차 대역 실측 등 — 은 [clickhouse 챕터]({{< relref "../clickhouse/_index.md" >}})에서 다룬다.)
+{{% /details %}}
 
 ## 우리 케이스에서는
 

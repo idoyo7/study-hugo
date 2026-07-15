@@ -5,6 +5,14 @@ weight: 3
 
 # 03. 수집 — vmagent와 vminsert
 
+{{< callout type="info" >}}
+**한눈에**
+- **vmagent**는 OTel·InfluxDB·Datadog 등 다양한 프로토콜을 받아 릴레이블·dedup·스트리밍 집계 후 `remote_write`로 내보내는 만능 어댑터다. Fast Queue(메모리)→Persistent Queue(디스크) 버퍼링으로 지표를 잃지 않는다.
+- **vminsert**는 저장하지 않고 **랑데부 해싱**으로 vmstorage에 라우팅만 한다 — 노드 추가 시 재배치가 약 1/(N+1)로 최소화돼 리밸런싱 폭풍을 피한다.
+- 노드 다운 시 **페일오버**(살아있는 노드로 균등 재분배), **`replicationFactor`**로 복제 후 vmselect 쿼리 시 **dedup** — 쓰기 시점 복제(안정성)와 읽기 시점 dedup(정확성)이 짝을 이룬다.
+- vminsert↔vmstorage 연결은 압축 방식을 협의하며, `rpc.disableCompression`으로 CPU↔대역폭 트레이드오프를 조절할 수 있다.
+{{< /callout >}}
+
 VM에서 데이터가 들어오는 두 관문을 다룬다. **vmagent**는 무엇이든 받아 정제하고 리모트로 흘려보내는 만능 어댑터이자 버퍼이고, **vminsert**는 그 데이터를 여러 vmstorage 노드로 흩뿌리는 라우팅 게이트웨이다.
 
 > 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [04 저장·압축]({{< relref "04-storage-and-compression.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [06 카디널리티]({{< relref "06-cardinality.md" >}}) · [07 초대규모 운영]({{< relref "07-operations-at-scale.md" >}})

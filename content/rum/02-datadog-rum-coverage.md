@@ -5,6 +5,15 @@ weight: 2
 
 # Datadog RUM 커버리지 — 어디까지 대체되나
 
+{{< callout type="info" >}}
+**한눈에**
+- RUM을 하나로 묶어 "대체된다/안 된다"고 답하면 틀린다 — **4개의 이질적 하위 제품**으로 쪼개야 판정이 선다.
+- **RUM-Core**(세션 리플레이+CWV/에러+트레이스 상관) 🟢 즉시(Wave 1) · **RUM-Frustration** 🟡 SQL 사후계산 · **RUM-PA**(퍼널/리텐션) 🔴 자작/PostHog 병행 · **RUM-Mobile** 🔴 OTel+Embrace/OpenReplay.
+- 대체는 **프록시가 아니라 `@hyperdx/browser` SDK 교체**다 — `datadogreceiver`는 브라우저 RUM intake(`/api/v2/rum`)를 아예 수신하지 않는다.
+- 좌절 신호·모바일 리플레이는 **네이티브 프리미티브 부재가 확인됨**(추측 격상 아님) — ClickHouse SQL(`sequenceMatch`/`windowFunnel`) 자작 또는 전용 툴이 필요하다.
+- **"Datadog RUM을 HyperDX로 대체한 공개 프로덕션 사례"는 찾지 못했다** → dual-instrument PoC 성공을 Wave 1 진입 게이트로 명문화한다.
+{{< /callout >}}
+
 "coverage가 어디까지 되나"에 답하는 페이지다. [HyperDX 심층 실사]({{< relref "01-hyperdx-deep-dive.md" >}})가 플랫폼 관점(연혁·아키텍처·거버넌스 갭)을 다뤘다면, 여기서는 **Datadog RUM의 기능을 하나씩 `@hyperdx/browser`와 대조**해 어디까지 1:1로 넘어오고 어디서 끊기는지를 커버리지 관점으로 확정한다.
 
 한 줄 결론: **RUM을 하나로 묶어 "대체된다/안 된다"고 답하면 틀린다.** RUM은 4개의 이질적 하위 제품이고, **웹 디버깅 코어(세션 리플레이·CWV·에러·트레이스 상관)는 🟢로 즉시 넘어오지만, 좌절 신호는 🟡(자작), 프로덕트 애널리틱스·모바일은 🔴(전용 툴)** 다. 이 분해가 [RUM 내재화 결론]({{< relref "_index.md" >}})의 "웹 YES / 모바일 NO"를 커버리지 레벨까지 심화한 형태다.
@@ -116,7 +125,9 @@ HyperDX.init({
 
 전례가 없는 이유는 구조적이다. ClickStack/HyperDX RUM 자체가 신생(HyperDX 인수 2025-03, ClickStack 출시 2025-05)이라 사례가 축적될 시간이 부족했고, HyperDX RUM이 디버깅형에 강하고 PA·모바일이 얕아 **"Datadog RUM 풀 대체 완료"라는 서사가 나오기 어려운 구조**다 `[추정]`.
 
-> **의사결정 함의**: Wave 1(RUM-Core) 리스크를 "낮음"으로만 표기하면 위험하다. **기술 대등성(높음) ↔ 검증된 전례(없음)를 분리 표기**하고, 대표 웹 페이지에 `@hyperdx/browser`를 **dual-instrument**로 병행 배포해 세션 리플레이·CWV·에러·트레이스 상관을 Datadog과 나란히 검증하는 **자체 PoC 성공을 Wave 1 진입 게이트로 명문화**한다 `[미확인 → PoC로 마감]`. 단계별 실행은 [마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}}) 참조.
+{{< callout type="important" >}}
+**의사결정 함의**: Wave 1(RUM-Core) 리스크를 "낮음"으로만 표기하면 위험하다. **기술 대등성(높음) ↔ 검증된 전례(없음)를 분리 표기**하고, 대표 웹 페이지에 `@hyperdx/browser`를 **dual-instrument**로 병행 배포해 세션 리플레이·CWV·에러·트레이스 상관을 Datadog과 나란히 검증하는 **자체 PoC 성공을 Wave 1 진입 게이트로 명문화**한다 `[미확인 → PoC로 마감]`. 단계별 실행은 [마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}}) 참조.
+{{< /callout >}}
 
 ## 우리 케이스에서는
 

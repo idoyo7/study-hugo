@@ -5,6 +5,14 @@ weight: 1
 
 # 01 · 시계열 데이터와 VictoriaMetrics
 
+{{< callout type="info" >}}
+**한눈에**
+- 시계열 = "언제 어떤 숫자가 찍혔나"의 연속 데이터. 지표는 **Counter/Gauge/Histogram/Summary** 4타입으로 나뉘고, Counter류 단조증가값이 압축이 가장 잘 된다.
+- "대용량"은 **시계열 개수**와 **보관 기간** 두 축이다. 수백만 개까지는 Prometheus 단일로 충분하나, 수천만~수십억 개부터는 별도 솔루션이 필요하다.
+- TSDB 계보: **Prometheus(2012) → Gorilla 압축(2015, Facebook) → Thanos/Cortex(Prometheus 확장)** vs **VictoriaMetrics(완전히 다른 계열)**.
+- VM은 **Prometheus 호환**(PromQL·remote_write 그대로)이면서 자체 벤치마크 기준 **메모리 5배·스토리지 7배** 효율을 주장하는 오픈소스 TSDB다.
+{{< /callout >}}
+
 시계열 데이터가 무엇이고 왜 "대용량"이 별도의 문제가 되는지, 그리고 그 문제를 푸는 도구로 VictoriaMetrics(이하 VM)가 어디에 서 있는지 정리한다. VM의 내부 컴포넌트 구조는 [02 아키텍처]({{< relref "02-architecture.md" >}})에서 이어 다룬다.
 
 > 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) · [06 카디널리티]({{< relref "06-cardinality.md" >}}) · [00 인덱스]({{< relref "_index.md" >}})

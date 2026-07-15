@@ -5,6 +5,14 @@ weight: 7
 
 # streamAggr(사전) vs Thanos downsampling(사후) — 핵심 논점
 
+{{< callout type="info" >}}
+**한눈에**
+- 실전 대결은 **streamAggr**(인제스트 시점 사전 집계, VM 아카이브안) 대 **Thanos compactor downsampling**(사후 집계, Thanos안) — Mimir는 다운샘플링 부재로 즉시 탈락.
+- **저장량 축이 결정적**: Thanos 다운샘플링은 공식 문서상 "공간 절감 없음"(공존 시 ~3x)인 반면, streamAggr는 raw의 **10~30%**로 실제 감소한다.
+- 의미론·자동성은 Thanos가 우위(사후 재계산 가능, 무설계 5-aggregate 보존)지만, 이 건의 조건(5m 허용 확정+비용 최소+신규 스택 회피)에서는 **streamAggr가 대체로 성립**한다.
+- 판정: **VM 아카이브안** 채택, 단 아카이브 검증 전까지 hot 90d raw retention 축소 금지 — **가역적**(RW#4를 Thanos Receive로 교체하면 언제든 전환).
+{{< /callout >}}
+
 이 블록은 400d 아카이브의 5m 해상도를 "누가 만드느냐"를 가른다. VM OSS의 **streamAggr**(인제스트 시점 사전 집계, VM 아카이브안)와 **Thanos compactor downsampling**(사후 집계, Thanos안)을 4축으로 대조하고, 판단 기준 트리와 시나리오 ② 비용 종합표(VM아카이브/Thanos/Mimir/확장/확장+Ent)를 확정한다. 비교표·판단 트리·비용 종합표의 주인 블록이다 — 다른 블록은 이리로 링크한다.
 
 > 관련 블록: [00 인덱스]({{< relref "_index.md" >}}), [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [02 VM 아카이브]({{< relref "02-vm-archive.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [04 Mimir]({{< relref "04-mimir.md" >}}), [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}}), [06 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})

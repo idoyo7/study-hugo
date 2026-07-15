@@ -6,6 +6,14 @@ aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 
 # VMCluster 확장 — 현행 클러스터 단순 확장 & Enterprise 다운샘플(확장+Ent)
 
+{{< callout type="info" >}}
+**한눈에**
+- **단순 확장안** = `retentionPeriod`만 400d로 늘리고 PVC 증설. 신규 컴포넌트·쿼리 변화 0으로 가장 단순하지만, gp3×RF2×raw 30s 과잉으로 4안 중 **최고가**(월 ~$1,642, 헤드룸 시 ~$2,000) — 다른 안의 비용 비교 기준선 역할이다.
+- **확장+Ent**(`-downsampling.period=90d:5m` 한 줄)는 저장비만 ~$497로 단순 확장안의 약 1/3이지만 **Enterprise 라이선스(비공개)**가 필요해 OSS 우선 제약상 참고용.
+- **다운샘플링은 시리즈 수를 줄이지 않는다**(공식 caveat) — 고카디널리티·고churn 워크로드에서는 저장 절감 효과가 제한적이다.
+- 확장+Ent는 **VM 아카이브안 운영이 검증 후에도 부담스러울 때**만 고려하는 대안이다.
+{{< /callout >}}
+
 현행 VMCluster를 그대로 400d로 늘리는 가장 단순한 길(단순 확장안)과, 그 위에 설정 한 줄로 다운샘플을 얹는 Enterprise 경로(확장+Ent)를 다룬다. 단순 확장안은 다른 옵션의 **비용 비교 기준선**이고, 확장+Ent는 OSS-우선 제약상 참고용이다.
 
 > 관련 블록: [02 VictoriaMetrics]({{< relref "02-vm-archive.md" >}}), [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})

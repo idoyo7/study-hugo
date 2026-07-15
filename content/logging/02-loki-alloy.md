@@ -5,6 +5,15 @@ weight: 2
 
 # Loki + Alloy — PLG를 ALG로 되살리기
 
+{{< callout type="info" >}}
+**한눈에**
+- object storage 네이티브 + 공격적 압축으로 장기 보존 비용이 낮다 — Lucene/OpenSearch 대비 **~10–15× 적은 스토리지**.
+- **카디널리티는 foot-gun**이다. 나쁜 라벨 하나가 수백만 스트림·ingester OOM으로 이어지고, structured metadata가 완화하지만 팀이 그 규율을 지켜야 한다.
+- **풀텍스트/미지값 검색이 느리다** — label+time으로 못 좁히면 brute-force decompress-scan이라, VictoriaLogs 대비 검색이 최대 십수 배 느리다는 벤치가 있다.
+- **promtail은 EOL 확정**(2026-03-02)이고 **Simple Scalable(SSD) 모드는 Loki 4.0에서 제거 예정**이다 — 지금 SSD 위에 새로 짓는 것은 sunset feature 위에 짓는 것.
+- 우리 케이스: istio access-log엔 잘 맞지만, **스택을 하나 더 얹는 것 자체가 방치(rot) 리스크**라 보류한다.
+{{< /callout >}}
+
 Grafana 진영의 로그 집계 스택(AGPLv3). 로그 **본문이 아니라 라벨 집합(스트림)만 인덱싱**하고, 압축 청크를 object storage에 얹어 값싸게 보존하는 설계다. 2018년 공개 후 3.7.x로 성숙했고(최신 패치 v3.7.3, 2026-06-24), promtail이 EOL되며 **Alloy**로 대체되어 PLG(Promtail-Loki-Grafana)가 ALG(Alloy-Loki-Grafana)로 재편됐다.
 
 ## 강점
@@ -27,7 +36,9 @@ Grafana 진영의 로그 집계 스택(AGPLv3). 로그 **본문이 아니라 라
 - **distributed 규모의 운영 부담.** ingester는 **~16GiB·replication factor 3**으로 여럿 운영하고 `[추정]`, acceptable latency를 위해 memcached 티어가 사실상 필수다. S3 request/re-flush 함정도 있다(flush 확인 실패로 같은 객체를 재전송해 request 비용이 **~250× 스파이크**한 오설정 사례) `[추정]`.
 - **Alloy DaemonSet 함정.** node-local discovery 누락 시 replica마다 cluster-wide로 pod를 중복 수집하고, custom taint에 tolerations가 없으면 그 노드의 로그를 조용히 잃는다. node churn + positions file까지 얽힌다 — **옛 PLG 스택이 썩은 원인일 가능성이 크다.**
 
+{{< callout type="warning" >}}
 **구조적 리스크:** promtail은 EOL 확정(2026-03-02, Loki 3.7.3부터 repo에서 제거)이고 Alloy가 유일한 first-party 경로다(`alloy convert`는 best-effort). 그리고 중간 규모용 **Simple Scalable Deployment(SSD, read/write/backend 3-target) 모드가 Loki 4.0에서 제거 예정**이다 — single-binary(monolithic)·distributed는 유지되지만, SSD가 사라지면 istio 규모는 HA-monolithic으로, 전체 앱 로그 규모는 distributed로 밀려 **2TB/day에는 편한 low-ops 중간 선택지가 사라진다.**
+{{< /callout >}}
 
 ## 적합 / 부적합
 

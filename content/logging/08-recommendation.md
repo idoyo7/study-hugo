@@ -5,6 +5,15 @@ weight: 8
 
 # 우리 케이스 — "이거랑 저거만 있으면"
 
+{{< callout type="info" >}}
+**한눈에**
+- 결론은 **수집 1개(OTel Collector) + 저장 패밀리 1개(Victoria) + Grafana**로 수렴한다 — RUM/APM은 별도 트랙으로 분리 판단.
+- **진짜 게이트는 기술이 아니라 인건비**다 — 신호 하나만 내재화하면 platform SRE 인건비가 절감을 상쇄하거나 초과한다.
+- 저후회 시퀀싱: Week 0 공짜 이득 → 키스톤(OTel Collector) → istio 부활(D1) → dual-write(D2) → OpenSearch 은퇴 → RUM 트랙(D3) → 선택적 통합(D4, earn-it-last).
+- 로그·메트릭·웹 RUM 세 신호가 **같은 팀·같은 컬럼나 스토어를 나눠 물어야** 통합 저장소(D4)가 성립한다.
+- "OpenSearch 40% RI 절감 기대", "메트릭을 CH/StarRocks에 억지로", "Loki SSD 신규 구축" 등 **7가지는 검증에서 기각**됐다.
+{{< /callout >}}
+
 각 솔루션의 성격은 앞의 솔루션별 페이지(OpenSearch·Loki·VictoriaLogs·ClickHouse·HyperDX·StarRocks)에서 다뤘다 — 목록은 [챕터 개요]({{< relref "_index.md" >}}) 참고. 여기서는 그걸 우리 환경에 얹어 최소 조합·게이트·마이그레이션 순서로 정리한다.
 
 발라내면 결론은 **수집 1개 + 저장 패밀리 1개 + Grafana**로 수렴한다. RUM/APM은 별도 트랙으로 분리해 판단한다.
@@ -39,7 +48,9 @@ weight: 8
 
 숫자로 확인해야 할 불편한 진실: OpenSearch 인프라 절감은 vs RI **~$205K/yr**, vs 온디맨드 **~$365K/yr `[추정]`**로 크다. 그러나 셀프호스트 스택을 제대로 운영할 **platform SRE 1.5~2명의 fully-loaded 비용이 ~$330~440K/yr** `[추정]`로, **온디맨드 기준($365K)이면 거의 상쇄**되고 문서가 실제로 모델링한 **RI 기준($205K)이면 인건비가 절감을 오히려 초과**한다.
 
-> **결론: 신호 하나만 내재화하면 수지가 안 맞는다.** logs + metrics + 웹 RUM 셋이 **같은 팀·같은 컬럼나 스토어를 나눠 물어야** 비로소 성립한다. 이것이 "여러 신호를 한 스택/한 팀에 수렴"시키는 통합 권고의 진짜 근거다. 그래서 D4(ClickHouse 통합)는 이 세 신호가 한곳에 모일 명분이 섰을 때 "earn it last"로 얹는다.
+{{< callout type="important" >}}
+**결론: 신호 하나만 내재화하면 수지가 안 맞는다.** logs + metrics + 웹 RUM 셋이 **같은 팀·같은 컬럼나 스토어를 나눠 물어야** 비로소 성립한다. 이것이 "여러 신호를 한 스택/한 팀에 수렴"시키는 통합 권고의 진짜 근거다. 그래서 D4(ClickHouse 통합)는 이 세 신호가 한곳에 모일 명분이 섰을 때 "earn it last"로 얹는다.
+{{< /callout >}}
 
 ## 저후회(low-regret) 시퀀싱
 
@@ -57,10 +68,13 @@ weight: 8
 
 ## 한 줄 결론
 
-> 로그 내재화의 축은 **OTel Collector(수집) + VictoriaLogs(저장) + Grafana(조회)**. 이미 VM을 잘 운영하고 있다면 이 조합이 학습 비용과 방치 리스크를 동시에 최소화한다. OpenSearch는 해체 전에 **tail 이전 + OR/RI in-place 최적화**로 먼저 다이어트하고, ClickHouse/HyperDX는 "여러 신호를 한 팀에 수렴"이라는 분명한 명분이 섰을 때 얹는 다음 챕터다. StarRocks는 S3 탄력성이 하드 요구인 별도 분석 플랫폼 mandate가 아닌 한 로그 숏리스트에서 빠지고, 모바일 RUM은 대안이 성숙할 때까지 Datadog에 남겨두는 것이 현실적이다.
+{{< callout type="important" >}}
+로그 내재화의 축은 **OTel Collector(수집) + VictoriaLogs(저장) + Grafana(조회)**. 이미 VM을 잘 운영하고 있다면 이 조합이 학습 비용과 방치 리스크를 동시에 최소화한다. OpenSearch는 해체 전에 **tail 이전 + OR/RI in-place 최적화**로 먼저 다이어트하고, ClickHouse/HyperDX는 "여러 신호를 한 팀에 수렴"이라는 분명한 명분이 섰을 때 얹는 다음 챕터다. StarRocks는 S3 탄력성이 하드 요구인 별도 분석 플랫폼 mandate가 아닌 한 로그 숏리스트에서 빠지고, 모바일 RUM은 대안이 성숙할 때까지 Datadog에 남겨두는 것이 현실적이다.
+{{< /callout >}}
 
 ## 하지 말 것 (검증에서 기각)
 
+{{% details title="검증에서 기각된 7가지 기대" closed="true" %}}
 1. OpenSearch "전체 클러스터 40% RI 절감" 기대 — UltraWarm 예약 불가로 블렌디드 상한 ~25%.
 2. 메트릭을 ClickHouse/StarRocks에 억지로 넣기 — 메트릭은 VM에.
 3. StarRocks를 "완전 ephemeral"로 오해 — FE 쿼럼은 stateful(PV 필수).
@@ -68,13 +82,16 @@ weight: 8
 5. 신호 하나만 내재화하고 ROI 기대 — 인건비가 상쇄, 여러 신호를 한 팀에 수렴시켜야 성립.
 6. HyperDX를 모바일 RUM 중계처로 — 모바일 세션 리플레이 SDK 없음(2026).
 7. 새로 짓는 Loki를 **Simple Scalable(SSD) 모드**로 — Loki 4.0 전 제거 예정(single-binary/monolithic은 유지).
+{{% /details %}}
 
 ## 참고 — 근거 출처
 
 이 챕터는 두 리서치 세트를 압축한 것이다(원본은 내부 리서치 저장소).
 
+{{% details title="근거 출처 상세" closed="true" %}}
 - **로깅/관측성 전략**: 4개 결정 프레이밍·인건비 게이트·저후회 로드맵, CH vs StarRocks 8축 매트릭스, OpenSearch RI·OR1/OR2 정정 모델, StarRocks 진단.
 - **솔루션별 딥다이브 + 팩트체크**: Loki+Alloy / VictoriaLogs / HyperDX·ClickStack / ClickHouse on EKS / OpenSearch 비용 / RUM 대안군, 각 주장별 적대적 검증.
 - **메트릭 장기보관**: [메트릭 400일 보관]({{< relref "../monitoring/longterm-retention/_index.md" >}}) 챕터(streamAggr vs Thanos downsampling).
 
-> 주의: 비용 수치는 AWS 리스트가 기반 파생 추정이며 실 계약 할인·트래픽·RI 커밋으로 교정 필요(서울 리전은 +12~23% 추정). `[벤더]`는 자기보고 벤치라 회의적으로, `[벤치]`는 퍼블릭 벤치마크, `[추정]`은 자릿수 추정이다. GA 이력·라이선스는 2026-07 시점 기준.
+주의: 비용 수치는 AWS 리스트가 기반 파생 추정이며 실 계약 할인·트래픽·RI 커밋으로 교정 필요(서울 리전은 +12~23% 추정). `[벤더]`는 자기보고 벤치라 회의적으로, `[벤치]`는 퍼블릭 벤치마크, `[추정]`은 자릿수 추정이다. GA 이력·라이선스는 2026-07 시점 기준.
+{{% /details %}}

@@ -5,6 +5,14 @@ weight: 5
 
 # 05 · 장애 이야기 — 메시가 낀 경로에서 간헐적 응답 이상 추적하기
 
+{{< callout type="info" >}}
+**한눈에**
+- 메시의 5xx는 **어느 홉에서 났느냐**가 전부고, 나침반은 Envoy **response flag**(UH/UF/UC/UO/NR…)다.
+- 추적 순서: **범위 축소 → flag 확인 → 설정 stale 여부(`istioctl proxy-status`) → mTLS → 라이프사이클 레이스 → 커넥션풀**.
+- 간헐적 5xx는 특히 **stale 엔드포인트**와 **배포 시점 라이프사이클 레이스**가 단골 원인이다.
+- 예방은 라이프사이클 훅 표준화, outlier detection, 컨트롤 플레인 수렴 관측, `response_flags` 대시보드 상시화.
+{{< /callout >}}
+
 > **그때 무슨 일이 있었나.** EKS의 한 서비스가 **간헐적으로 응답 이상**(산발적 5xx와 지연)을 냈다. 애플리케이션 로그는 멀쩡해 보이는데 클라이언트는 이따금 실패했다. 요청 경로에 메시가 껴 있으니, "앱이 문제냐"로 끝낼 수 없고 **앱 · 사이드카 · 컨트롤 플레인 · 네트워크**를 층으로 갈라 봐야 했다. 이 블록은 그 추적을 **순서 있는 체크리스트**로 정리한다 — 메시 장애의 나침반은 결국 **Envoy가 붙이는 response flag**다.
 
 > 관련 블록: [01 메시 기초]({{< relref "01-mesh-basics.md" >}}) · [02 컨트롤 플레인]({{< relref "02-istiod-control-plane.md" >}}) · [03 게이트웨이]({{< relref "03-gateway-node-isolation.md" >}})

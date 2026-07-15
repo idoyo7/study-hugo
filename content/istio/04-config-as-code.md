@@ -5,6 +5,14 @@ weight: 4
 
 # 04 · 설정을 코드로 — Istio Manifest를 Git으로 동기화하기
 
+{{< callout type="info" >}}
+**한눈에**
+- Istio 설정은 **설치 층**(Helm 권장, IstioOperator는 지양)과 **트래픽 층**(전부 CRD)으로 나뉜다.
+- 메시 CRD는 **적용 즉시 트래픽에 직결**된다 — 손 apply의 드리프트·추적불가·재현불가가 곧 장애 위험이다.
+- GitOps(Argo CD/Flux)로 **Git을 단일 진실**로 삼아 드리프트를 자동 복원하고, `istioctl analyze`로 사전 검증한다.
+- 컨트롤 플레인 업그레이드는 **revision 기반 카나리**로 폭발 반경을 줄인다.
+{{< /callout >}}
+
 > **그때 무슨 일이 있었나.** 메시 설정 — IstioOperator/Helm 값, Gateway, VirtualService, DestinationRule — 이 그때그때 `kubectl apply`로 손보아지면서, **클러스터의 실제 상태와 Git 저장소가 어긋나기** 시작했다. 누가 언제 무엇을 바꿨는지 추적이 안 되고, 재현·롤백이 불안했다. "Istio Manifest Sync" 과제는 이 **드리프트를 없애고 Git을 단일 진실로** 만드는 일이었다. 이 블록은 Istio 설정 방식, GitOps로 옮기는 이유, 그리고 메시 설정 특유의 위험을 다룬다.
 
 > 관련 블록: [02 컨트롤 플레인]({{< relref "02-istiod-control-plane.md" >}}) · [03 게이트웨이]({{< relref "03-gateway-node-isolation.md" >}}) · [05 장애 이야기]({{< relref "05-incident-intermittent-5xx.md" >}})
