@@ -27,7 +27,7 @@ HyperDX/ClickStack을 **"Datadog RUM 대체 + 통합 관측성 플랫폼" 후보
 
 ## 아키텍처 — 3 코어 + 1 필수 메타스토어
 
-3개 코어 컴포넌트에 **메타데이터 저장용 MongoDB가 필수 의존성**으로 붙는 것이 이 스택의 운영 표면을 규정한다. 관측성 데이터는 전부 ClickHouse에 들어가지만, 대시보드·저장검색·사용자·알림 같은 **앱 상태는 MongoDB에** 남는다 — 이 이원화가 BYO 모드에서도 사라지지 않는다.
+3개 코어 컴포넌트에 **메타데이터 저장용 MongoDB가 필수 의존성**으로 붙는 것이 이 스택의 운영 표면을 규정한다. 관측성 데이터는 전부 ClickHouse에 들어가지만, 대시보드·저장검색·사용자·알림 같은 **앱 상태는 MongoDB에** 남는다 — 이 이원화가 BYO 모드에서도 사라지지 않는다. MongoDB의 역할·부하 프로파일(관측 데이터 적재량이 아니라 사용자·설정 수에 비례)·배포 경로별 운영 형태는 [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}})에서 심화한다.
 
 | 컴포넌트 | 역할 | 라이선스 |
 |---|---|---|
@@ -122,7 +122,7 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 
 - **RBAC는 이미 GA됐으나 OSS로 오지 않았다.** 2026-04-01 RBAC 공지는 **Managed ClickStack(ClickHouse Cloud) 전용**이고, 사용자는 ClickHouse Cloud 조직 레벨에서 관리된다. OSS RBAC 요청 이슈 #1293은 **not planned로 CLOSED** `[확인됨]`. → "로드맵 GA를 기다린다"는 전략은 RBAC에 관한 한 **로드맵에 없는 것을 기다리는 것**이다.
 - **감사로그**는 아직 미출시이나, RBAC 선례를 보면 **Cloud 전용 착지 가능성이 높다** `[추정]`.
-- **운영 리스크**: HyperDX가 요구하는 MongoDB가 **기본 무인증으로 기동**돼 포트(27017)가 노출되자 스캐너에 데이터가 삭제된 자체 호스팅 실사례가 있다. 접근통제 설계에 **MongoDB 인증·NetworkPolicy 격리를 반드시 포함** `[확인됨]`.
+- **운영 리스크**: HyperDX가 요구하는 MongoDB가 **기본 무인증으로 기동**돼 포트(27017)가 노출되자 스캐너에 데이터가 삭제된 자체 호스팅 실사례가 있다. 접근통제 설계에 **MongoDB 인증·NetworkPolicy 격리를 반드시 포함** `[확인됨]`. 부하 프로파일·배포 경로별 운영 상세는 [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}}) 참고.
 
 > 결정적 트레이드오프: **"앱 레벨 RBAC/SSO/감사로그"와 "self-hosted EKS + 자체 ClickHouse"는 ClickStack 생태계에서 동시에 가질 수 없다.** RBAC/SSO는 Managed(Cloud)에만 있고 Managed는 self-host가 안 되기 때문이다. 무엇을 상위 제약으로 둘지가 나머지를 지배한다.
 

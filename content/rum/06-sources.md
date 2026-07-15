@@ -1,11 +1,11 @@
 ---
 title: "출처"
-weight: 6
+weight: 7
 ---
 
 # 출처 — RUM 섹션 조사 문서 원본 링크
 
-RUM 섹션(01~05)은 `research/hyperdx-clickhouse/` 아래 8개 조사 문서(01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 07-recommendation, 08-supplement-1~2·4~5)를 근거로 큐레이션했다. 이 페이지는 그 조사 문서들의 "## 출처" 섹션에 나열된 URL을 전부 수집·중복 제거해 주제별로 재정리한 것이다. 개별 URL이 본문 어느 주장을 뒷받침하는지는 각 조사 문서를 직접 대조해야 하며, 이 페이지는 색인 목적으로만 쓴다. 조사 기준 2026-07.
+RUM 섹션(01~05)은 `research/hyperdx-clickhouse/` 아래 8개 조사 문서(01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 07-recommendation, 08-supplement-1~2·4~5)를 근거로 큐레이션했다. 이 페이지는 그 조사 문서들의 "## 출처" 섹션에 나열된 URL을 전부 수집·중복 제거해 주제별로 재정리한 것이다. 개별 URL이 본문 어느 주장을 뒷받침하는지는 각 조사 문서를 직접 대조해야 하며, 이 페이지는 색인 목적으로만 쓴다. [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}})(07)는 별도 딥리서치(3-vote 적대검증, 2026-07-15) 기반이며 해당 근거 URL도 아래 표에 포함했다. 조사 기준 2026-07.
 
 ## HyperDX·ClickStack 공식
 
@@ -37,6 +37,7 @@ ClickHouse Inc./HyperDX가 직접 게시한 블로그·공식 문서·GitHub 레
 | [HyperDX Blog — Datadog alternatives](https://www.hyperdx.io/blog/datadog-alternatives) | 벤더 관점 대체 포지셔닝 |
 | [HyperDX Blog — Browser 기반 분산 트레이싱](https://www.hyperdx.io/blog/browser-based-distributed-tracing-with-opentelemetry) | otel-web 구현 배경 |
 | [GitHub hyperdxio/hyperdx](https://github.com/hyperdxio/hyperdx) | 메인 모노레포(UI+API) |
+| [GitHub hyperdxio/hyperdx — models/alertHistory.ts](https://github.com/hyperdxio/hyperdx/blob/main/packages/api/src/models/alertHistory.ts) | alertHistory 30일 TTL 인덱스 코드 근거 |
 | [GitHub ClickHouse/ClickStack](https://github.com/ClickHouse/ClickStack) | 스택 아티팩트 레포 |
 | [GitHub ClickHouse/ClickStack-helm-charts (README)](https://github.com/ClickHouse/ClickStack-helm-charts/blob/main/README.md) | 공식 Helm 차트(신규 위치) |
 | [GitHub hyperdxio/helm-charts (구 위치)](https://github.com/hyperdxio/helm-charts) | Helm 차트 이관 전 레포 |
