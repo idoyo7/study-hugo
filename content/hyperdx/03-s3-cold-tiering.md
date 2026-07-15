@@ -385,6 +385,8 @@ GROUP BY table, partition ORDER BY partition;
 
 ## 5. 함정 (worked example에서 반드시 경고)
 
+> 거꾸로 **S3 티어링을 쓰지 않는 선택지**(짧은 보존·staging·운영 단순성)는 [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}})이 다룬다 — 이 페이지의 `storage_configuration`·IRSA·cache·`move_factor`가 통째로 빠지는 변형이다.
+
 ### 5.1 part 메타데이터·cache가 로컬(EBS)을 먹는다 → 사이징 반영 `[확인됨]`
 
 `metadata_type=local`이라 **S3에 있는 part도 로컬 매핑 파일**(`metadata_path`)이 남고, `cache` disk(`s3_cache/path`)도 EBS를 쓴다. 즉 hot EBS PVC는 다음을 다 담아야 한다:

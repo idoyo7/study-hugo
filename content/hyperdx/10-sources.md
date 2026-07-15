@@ -5,7 +5,7 @@ weight: 10
 
 # 출처 — HyperDX 내재화(실전 배포) 조사 자료
 
-이 표는 [개요]({{< relref "_index.md" >}}), [스택 토폴로지·MongoDB 최소 규모]({{< relref "01-stack-topology.md" >}}), [hot 스토리지(EBS)]({{< relref "02-hot-storage-ebs.md" >}}), [S3 cold 티어링]({{< relref "03-s3-cold-tiering.md" >}}), [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}}), [Keeper]({{< relref "05-keeper.md" >}}), [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}}), [용량 산정]({{< relref "07-capacity-planning.md" >}}) 여덟 페이지가 인용한 1차 조사(R1~R7)의 `## 출처` 섹션을 모아 중복을 제거하고 주제별로 분류했다. 조사 기준일은 **2026-07-15**다.
+이 표는 [개요]({{< relref "_index.md" >}}), [스택 토폴로지·MongoDB 최소 규모]({{< relref "01-stack-topology.md" >}}), [hot 스토리지(EBS)]({{< relref "02-hot-storage-ebs.md" >}}), [S3 cold 티어링]({{< relref "03-s3-cold-tiering.md" >}}), [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}}), [Keeper]({{< relref "05-keeper.md" >}}), [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}}), [용량 산정]({{< relref "07-capacity-planning.md" >}}), [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}), [버전 호환·업그레이드]({{< relref "09-version-upgrade-compat.md" >}}) 열 페이지가 인용한 1차 조사(R1~R9)의 `## 출처` 섹션을 모아 중복을 제거하고 주제별로 분류했다. 조사 기준일은 **2026-07-16**다.
 
 각 조사가 다룬 범위는 ClickStack 4컴포넌트 배포 토폴로지와 MongoDB 최소 규모 운영, EBS(gp3/io2/io2 Block Express) hot 스토리지 선택, S3 cold 티어링 worked example, Altinity operator 기반 replication·sharding·다운타임 시나리오, ClickHouse Keeper 상세와 "큐가 아니다" 정정, 그리고 0.7TB/월 RUM 워크로드의 용량 산정이다.
 
@@ -165,5 +165,49 @@ third-party 기술 블로그·실사례·RUM 리플레이 벤더 문서·EBS 실
 | InfoQ — ClickHouse Keeper: Efficient ZooKeeper Alternative(C++·Raft·NuRaft 배경) | [infoq.com/news/2023/12/clickhouse-keeper-raft](https://www.infoq.com/news/2023/12/clickhouse-keeper-raft/) |
 | matduggan — ClickHouse is winning the Observability Wars(10~14x 압축·ES 2~3x 대비) | [matduggan.com/clickhouse-is-winning-the-observability-wars](https://matduggan.com/clickhouse-is-winning-the-observability-wars/) |
 | Tasrie — ClickStack setup(docker/helm/k8s) | [tasrieit.com/blog/clickstack-setup-guide-docker-helm-kubernetes-2026](https://tasrieit.com/blog/clickstack-setup-guide-docker-helm-kubernetes-2026) |
+
+## R8·R9 추가 — 블록 온리 튜닝·버전/업그레이드
+
+블록 스토리지 온리([08]({{< relref "08-block-only-tuning.md" >}}))·버전 호환·업그레이드([09]({{< relref "09-version-upgrade-compat.md" >}})) 조사에서 추가된 1차 출처.
+
+### ClickHouse 공식 (설정·업그레이드·백업)
+
+| 설명 | 링크 |
+|---|---|
+| MergeTree table settings(background/merge 풀·`ttl_only_drop_parts`·`merge_with_ttl_timeout`·`parts_to_throw_insert`) | [clickhouse.com/docs/operations/settings/merge-tree-settings](https://clickhouse.com/docs/operations/settings/merge-tree-settings) |
+| Server settings(`background_pool_size`·`background_merges_mutations_concurrency_ratio`) | [clickhouse.com/docs/operations/server-configuration-parameters/settings](https://clickhouse.com/docs/operations/server-configuration-parameters/settings) |
+| ClickHouse Upgrades(compatibility·업그레이드 정책·채널) | [clickhouse.com/docs/manage/updates](https://clickhouse.com/docs/manage/updates) |
+| `compatibility` 설정(정의·미변경 설정만 영향) | [clickhouse.com/docs/operations/settings/settings#compatibility](https://clickhouse.com/docs/operations/settings/settings#compatibility) |
+| 2025 changelog(v25.12 JSON·v25.11 String 직렬화 → 다운그레이드 하한) | [clickhouse.com/docs/whats-new/changelog/2025](https://clickhouse.com/docs/whats-new/changelog/2025) |
+| Backup/Restore 공식(`BACKUP ... TO`) | [clickhouse.com/docs/operations/backup/overview](https://clickhouse.com/docs/operations/backup/overview) |
+| issue #86837(25.8→25.3 marks 롤백 불가)·#68198·#68408(업그레이드 후 broken parts) | [github.com/ClickHouse/ClickHouse/issues/86837](https://github.com/ClickHouse/ClickHouse/issues/86837) |
+
+### Altinity · operator (스토리지 확장·업그레이드)
+
+| 설명 | 링크 |
+|---|---|
+| KB — Aggressive merges(`background_pool_size` 36·ratio·`max_bytes_to_merge_at_max_space_in_pool` ~150GB·주의) | [kb.altinity.com/.../altinity-kb-aggressive_merges](https://kb.altinity.com/altinity-kb-setup-and-maintenance/altinity-kb-aggressive_merges/) |
+| KB — Using the Kubernetes Operator(`storageManagement` provisioner·`allowVolumeExpansion`) | [kb.altinity.com/altinity-kb-kubernetes](https://kb.altinity.com/altinity-kb-kubernetes/) |
+| Blog — What's New in Altinity operator(provisioner Operator=STS 재생성 없이 온라인 확장) | [altinity.com/blog/whats-new-in-altinity-clickhouse-operator](https://altinity.com/blog/whats-new-in-altinity-clickhouse-operator) |
+| operator 릴리즈노트(0.27.0 Keeper GA·`async_replication` 기본→Keeper 25.3+) | [docs.altinity.com/releasenotes/...](https://docs.altinity.com/releasenotes/altinity-kubernetes-operator-release-notes/) |
+| operator 0.27.1 — Artifact Hub(CH 21.11+·K8s 1.25+) | [artifacthub.io/.../altinity-clickhouse-operator](https://artifacthub.io/packages/helm/altinity-clickhouse-operator/altinity-clickhouse-operator) |
+| KB — ClickHouse 버전/업그레이드(스테이징 다운그레이드 리허설·혼합버전 증상) | [kb.altinity.com/upgrade](https://kb.altinity.com/upgrade/) |
+| clickhouse-backup(업그레이드 전 백업·restore) | [github.com/Altinity/clickhouse-backup](https://github.com/Altinity/clickhouse-backup) |
+| issue #1263·#457 — CHI 재생성/AKS PVC 리사이즈 실패 사례 | [github.com/Altinity/clickhouse-operator/issues/1263](https://github.com/Altinity/clickhouse-operator/issues/1263) |
+
+### AWS EBS (Elastic Volumes·스냅샷 롤백)
+
+| 설명 | 링크 |
+|---|---|
+| Modify an EBS volume using Elastic Volumes | [docs.aws.amazon.com/ebs/.../ebs-modify-volume.html](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-modify-volume.html) |
+| Requirements for EBS volume modifications(OPTIMIZING 상태·수정 제약) | [docs.aws.amazon.com/ebs/.../modify-volume-requirements.html](https://docs.aws.amazon.com/ebs/latest/userguide/modify-volume-requirements.html) |
+| EBS Elastic Volumes 6시간 쿨다운 폐지·24h당 4회(2026-01-15) | [dev.classmethod.jp/.../ebs-elastic-volumes-4-modifications](https://dev.classmethod.jp/en/articles/ebs-elastic-volumes-4-modifications/) |
+| EBS 스냅샷 생성·복원(`create-volume --snapshot-id --volume-type gp3`) | [docs.aws.amazon.com/ebs/.../ebs-restoring-volume.html](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-restoring-volume.html) |
+
+### ClickStack (배포·업그레이드)
+
+| 설명 | 링크 |
+|---|---|
+| ClickStack HyperDX-only 배포(외부 CH·`MONGO_URI`) | [clickhouse.com/docs/.../clickstack/deployment/hyperdx-only](https://clickhouse.com/docs/use-cases/observability/clickstack/deployment/hyperdx-only) |
 
 시점 기준 2026-07.

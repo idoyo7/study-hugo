@@ -96,6 +96,8 @@ RUM 인제스트 경로에 **MongoDB는 없다** — 브라우저 SDK는 HyperDX
 | {{< relref "05-keeper.md" >}} | Keeper 상세: Raft·저장/비저장, **"큐가 아니다" 정정**, async_insert 세만틱, 유실 방지 설계 | 정족수 산술·CHK 매니페스트·쓰기 내구성 노브 → {{< relref "../clickhouse/04-deployment-playbook.md" >}} |
 | {{< relref "06-replication-failover.md" >}} | **복제 구조·멀티마스터·중단/failover**: RMT pull 복제, 승격 없는 failover, ZooKeeper/Keeper 복제 역할, split-brain 방지, RF2+consolidation 안전성 | 다운타임 물리 역학 → {{< relref "04-operator-topology-downtime.md" >}}, Keeper 자체 → {{< relref "05-keeper.md" >}} |
 | {{< relref "07-capacity-planning.md" >}} | **월 0.7TB RUM 워크드 모델**: 압축비·raw vs on-disk·3/6/12개월·hot/cold·RF·gp3 vs io2·TTL·비용 | RF 선택 확률·insert_quorum → {{< relref "../clickhouse/04-deployment-playbook.md" >}} |
+| {{< relref "08-block-only-tuning.md" >}} | **블록 스토리지 온리(무 S3)**: 단일 `default` 정책·TTL DELETE-only·gp3 온라인 확장·merge/background 풀 튜닝·블록온리 vs S3 선택 | hot gp3 스펙 → {{< relref "02-hot-storage-ebs.md" >}}, S3 티어링 → {{< relref "03-s3-cold-tiering.md" >}}, 사이징 → {{< relref "07-capacity-planning.md" >}} |
+| {{< relref "09-version-upgrade-compat.md" >}} | **버전 호환·업그레이드**: 6구성요소 호환 매트릭스·`compatibility` 설정·다운그레이드 비지원·EBS 스냅샷 롤백·ClickStack v1→v2 | 일반 CH/operator/Keeper 업그레이드 런북 → {{< relref "../clickhouse/05-altinity-operations.md" >}} |
 | {{< relref "10-sources.md" >}} | 출처 URL 모음(분류 표) | — |
 
 ## 자매 챕터
