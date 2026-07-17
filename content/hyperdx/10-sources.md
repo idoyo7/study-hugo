@@ -5,7 +5,7 @@ weight: 10
 
 # 출처 — HyperDX 내재화(실전 배포) 조사 자료
 
-이 표는 [개요]({{< relref "_index.md" >}}), [스택 토폴로지·MongoDB 최소 규모]({{< relref "01-stack-topology.md" >}}), [hot 스토리지(EBS)]({{< relref "02-hot-storage-ebs.md" >}}), [S3 cold 티어링]({{< relref "03-s3-cold-tiering.md" >}}), [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}}), [Keeper]({{< relref "05-keeper.md" >}}), [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}}), [용량 산정]({{< relref "07-capacity-planning.md" >}}), [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}), [버전 호환·업그레이드]({{< relref "09-version-upgrade-compat.md" >}}) 열 페이지가 인용한 1차 조사(R1~R9)의 `## 출처` 섹션을 모아 중복을 제거하고 주제별로 분류했다. 조사 기준일은 **2026-07-16**다.
+이 표는 [개요]({{< relref "_index.md" >}}), [스택 토폴로지·MongoDB 최소 규모]({{< relref "01-stack-topology.md" >}}), [hot 스토리지(EBS)]({{< relref "02-hot-storage-ebs.md" >}}), [S3 cold 티어링]({{< relref "03-s3-cold-tiering.md" >}}), [operator 토폴로지·다운타임]({{< relref "05-operator-topology-downtime.md" >}}), [Keeper]({{< relref "06-keeper.md" >}}), [복제·멀티마스터·failover]({{< relref "07-replication-failover.md" >}}), [용량 산정]({{< relref "09-capacity-planning.md" >}}), [블록 온리 튜닝]({{< relref "04-block-only-tuning.md" >}}), [버전 호환·업그레이드]({{< relref "08-version-upgrade-compat.md" >}}) 열 페이지가 인용한 1차 조사(R1~R9)의 `## 출처` 섹션을 모아 중복을 제거하고 주제별로 분류했다. 조사 기준일은 **2026-07-16**다.
 
 각 조사가 다룬 범위는 ClickStack 4컴포넌트 배포 토폴로지와 MongoDB 최소 규모 운영, EBS(gp3/io2/io2 Block Express) hot 스토리지 선택, S3 cold 티어링 worked example, Altinity operator 기반 replication·sharding·다운타임 시나리오, ClickHouse Keeper 상세와 "큐가 아니다" 정정, 그리고 0.7TB/월 RUM 워크로드의 용량 산정이다.
 
@@ -168,7 +168,7 @@ third-party 기술 블로그·실사례·RUM 리플레이 벤더 문서·EBS 실
 
 ## R8·R9 추가 — 블록 온리 튜닝·버전/업그레이드
 
-블록 스토리지 온리([08]({{< relref "08-block-only-tuning.md" >}}))·버전 호환·업그레이드([09]({{< relref "09-version-upgrade-compat.md" >}})) 조사에서 추가된 1차 출처.
+블록 스토리지 온리([08]({{< relref "04-block-only-tuning.md" >}}))·버전 호환·업그레이드([09]({{< relref "08-version-upgrade-compat.md" >}})) 조사에서 추가된 1차 출처.
 
 ### ClickHouse 공식 (설정·업그레이드·백업)
 
