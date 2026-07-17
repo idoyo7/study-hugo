@@ -89,6 +89,7 @@ RUM 인제스트 경로에 **MongoDB는 없다** — 브라우저 SDK는 HyperDX
 
 | 페이지 | 다루는 것 (새로 쓰는 것) | 주로 위임하는 것 |
 |---|---|---|
+| [HyperDX 직접 운영하기]({{< relref "operating/_index.md" >}}) | **운영 트랙(6부 하위 섹션)** — 아래 정본 문서들 위에서 "직접 운영하려면 어떤 순서로 무엇을 판단해야 하나"를 ①아키텍처 ②티어링 ③가용성 ④operator 패턴 ⑤규모 산정 ⑥의사결정 가이드로 실체화 | 남김없는 세부·근거는 아래 정본 01~09·출처 10 |
 | {{< relref "01-stack-topology.md" >}} | ClickStack 4컴포넌트 배포 토폴로지·데이터 흐름, OTel Collector 배치/사이징, **MongoDB 최소 규모 배포·운영** | 4컴포넌트/배포 6모드 → {{< relref "../rum/01-hyperdx-deep-dive.md" >}}, MongoDB 부하 프로파일 → {{< relref "../rum/07-hyperdx-mongodb.md" >}} |
 | {{< relref "02-hot-storage-ebs.md" >}} | **gp3 vs io2 vs io2 Block Express** 실전 상세, ClickHouse I/O 적합성, 왜 EBS-first, operator StorageClass/VolumeClaimTemplate | 로컬 NVMe 상세·EBS 대역 한계 → {{< relref "../clickhouse/02-storage-local-nvme.md" >}} |
 | {{< relref "03-s3-cold-tiering.md" >}} | **S3 cold worked example**: storage_configuration 전문·TTL MOVE DDL·IRSA·우리 RUM 테이블 튜닝 | 티어링≠내구성·zero-copy 금지 → {{< relref "../clickhouse/02-storage-local-nvme.md" >}} |
