@@ -14,7 +14,7 @@ weight: 1
 - **OpAMP(`:4320`)**: HyperDX api가 OpAMP 서버로 동작해 Collector 파이프라인 설정을 원격 관리한다.
 {{< /callout >}}
 
-이 페이지는 [운영 로드맵]({{< relref "../00-operating-hyperdx.md" >}}) 1부(솔루션 아키텍처)를 실체화한 것이다. 4컴포넌트의 정체성·배포 6모드·BYO("HyperDX Only") 개념 자체의 정본은 [HyperDX / ClickStack 심층 분석]({{< relref "../../rum/01-hyperdx-deep-dive.md" >}})이고, 포트·의존 방향·MongoDB 최소 배포 CR 전문은 [스택 토폴로지]({{< relref "../01-stack-topology.md" >}})가 정본이다. 이 페이지는 그 위에서 **"왜 표준 경로를 안 쓰고 무엇을 어떻게 조립하나"** — 즉 조립 순서와 BYO 분기의 실무 판단만 압축해서 다룬다. 세부 매니페스트·다운타임 시나리오는 재서술하지 않고 relref로 위임한다.
+이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 1부(솔루션 아키텍처)를 실체화한 것이다. 4컴포넌트의 정체성·배포 6모드·BYO("HyperDX Only") 개념 자체의 정본은 [HyperDX / ClickStack 심층 분석]({{< relref "../../rum/01-hyperdx-deep-dive.md" >}})이고, 포트·의존 방향·MongoDB 최소 배포 CR 전문은 [스택 토폴로지]({{< relref "../01-stack-topology.md" >}})가 정본이다. 이 페이지는 그 위에서 **"왜 표준 경로를 안 쓰고 무엇을 어떻게 조립하나"** — 즉 조립 순서와 BYO 분기의 실무 판단만 압축해서 다룬다. 세부 매니페스트·다운타임 시나리오는 재서술하지 않고 relref로 위임한다.
 
 ## 1. 왜 표준 2-Helm 경로를 그대로 안 쓰나 — operator 2종 공존 회피
 

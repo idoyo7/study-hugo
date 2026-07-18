@@ -15,7 +15,7 @@ weight: 2
 - **티어링은 내구성이 아니다.** 데이터 내구성은 멀티 AZ RF 복제 + 백업이 담당하고, cold(S3)도 `{replica}` 경로에 RF배수 사본을 두는 shared-nothing이다 — zero-copy replication은 금지.
 {{< /callout >}}
 
-이 페이지는 [운영 로드맵]({{< relref "../00-operating-hyperdx.md" >}}) 2부(데이터 티어링)를 실체화한 것이다. hot(gp3)·cold(S3 worked example)·block-only 대안의 정본은 각각 [hot 스토리지]({{< relref "../02-hot-storage-ebs.md" >}})·[S3 콜드 티어링]({{< relref "../03-s3-cold-tiering.md" >}})·[블록 온리 튜닝]({{< relref "../08-block-only-tuning.md" >}})이며, 이 페이지는 세 문서를 관통하는 **티어링 논지**(무엇을 왜 어디에 두나)를 하나로 묶어 판단 기준만 압축한다. 스펙·요금·XML 전문·산정식은 재서술하지 않고 relref로 위임한다.
+이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 2부(데이터 티어링)를 실체화한 것이다. hot(gp3)·cold(S3 worked example)·block-only 대안의 정본은 각각 [hot 스토리지]({{< relref "../02-hot-storage-ebs.md" >}})·[S3 콜드 티어링]({{< relref "../03-s3-cold-tiering.md" >}})·[블록 온리 튜닝]({{< relref "../08-block-only-tuning.md" >}})이며, 이 페이지는 세 문서를 관통하는 **티어링 논지**(무엇을 왜 어디에 두나)를 하나로 묶어 판단 기준만 압축한다. 스펙·요금·XML 전문·산정식은 재서술하지 않고 relref로 위임한다.
 
 ## 1. hot = 노드당 단일 gp3 — 스펙 산정 요지
 

@@ -1,6 +1,7 @@
 ---
 title: "HyperDX 직접 운영하기"
 weight: 0
+aliases: ["/hyperdx/00-operating-hyperdx/"]
 ---
 
 # HyperDX 직접 운영하기
