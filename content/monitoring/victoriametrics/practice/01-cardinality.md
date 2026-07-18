@@ -1,9 +1,10 @@
 ---
 title: "카디널리티"
-weight: 6
+weight: 1
+aliases: ["/monitoring/victoriametrics/06-cardinality/"]
 ---
 
-# 06 카디널리티 — 시계열 폭발의 원리와 설계 원칙
+# 01 · 카디널리티 — 시계열 폭발의 원리와 설계 원칙
 
 {{< callout type="info" >}}
 **한눈에**
@@ -15,7 +16,7 @@ weight: 6
 
 VM 운영에서 가장 자주 사고를 내는 개념이 **카디널리티**다. 이 블록은 "한 시계열이 무엇으로 정의되는가"에서 출발해, 카디널리티 폭발이 왜 곧 메모리·인덱스 폭발인지, 그리고 설계 단계에서 이를 어떻게 막는지를 본다.
 
-> 관련 블록: [04 저장]({{< relref "04-storage-and-compression.md" >}}), [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}), [07 대규모 운영]({{< relref "07-operations-at-scale.md" >}})
+> 관련 블록: [개념 04 저장]({{< relref "../concepts/04-storage-and-compression.md" >}}), [개념 05 쿼리·운영 컴포넌트]({{< relref "../concepts/05-query-and-ops-components.md" >}}), [02 대규모 운영]({{< relref "02-operations-at-scale.md" >}})
 
 ## 한 시계열 = 지표 이름 + 레이블 집합
 
@@ -42,7 +43,7 @@ http_requests_total{service="my-order", pod="my-order-7f9c-xyz12"}
 
 ## New TSID 폭발이 곧 카디널리티 폭발
 
-[04 저장]({{< relref "04-storage-and-compression.md" >}})에서 본 저장 경로를 떠올리자. vmstorage는 들어온 지표를 TSID로 변환하는데, 그 과정은 TSID 캐시 → IndexDB 순으로 조회하다가 **둘 다 없으면 처음 보는 시계열로 판단해 New TSID를 발급**한다.
+[개념 04 저장]({{< relref "../concepts/04-storage-and-compression.md" >}})에서 본 저장 경로를 떠올리자. vmstorage는 들어온 지표를 TSID로 변환하는데, 그 과정은 TSID 캐시 → IndexDB 순으로 조회하다가 **둘 다 없으면 처음 보는 시계열로 판단해 New TSID를 발급**한다.
 
 ```
 TSID 캐시 조회 → miss
@@ -50,7 +51,7 @@ TSID 캐시 조회 → miss
         → 처음 보는 시계열 → New TSID 발급 (인덱스 쓰기)
 ```
 
-여기서 결정적인 사실: **New TSID가 마구 발급되는 상황이 곧 카디널리티 폭발이다.** 레이블이 계속 새 값으로 바뀌면 매번 "처음 보는 시계열"이 되어 New TSID가 끝없이 찍힌다. 그리고 New TSID 발급은 단순히 데이터포인트 하나를 추가하는 것과 차원이 다르다 — **IndexDB에 새 엔트리를 쓰는 인덱스 연산**이라 CPU·메모리를 훨씬 많이 먹는다. 그래서 카디널리티 폭발은 곧바로 IndexDB 팽창과 메모리 압박, OOM 위험으로 이어진다(→ [07 대규모 운영]({{< relref "07-operations-at-scale.md" >}})에서 실제 vmstorage 메모리 한계로 나타난다).
+여기서 결정적인 사실: **New TSID가 마구 발급되는 상황이 곧 카디널리티 폭발이다.** 레이블이 계속 새 값으로 바뀌면 매번 "처음 보는 시계열"이 되어 New TSID가 끝없이 찍힌다. 그리고 New TSID 발급은 단순히 데이터포인트 하나를 추가하는 것과 차원이 다르다 — **IndexDB에 새 엔트리를 쓰는 인덱스 연산**이라 CPU·메모리를 훨씬 많이 먹는다. 그래서 카디널리티 폭발은 곧바로 IndexDB 팽창과 메모리 압박, OOM 위험으로 이어진다(→ [02 대규모 운영]({{< relref "02-operations-at-scale.md" >}})에서 실제 vmstorage 메모리 한계로 나타난다).
 
 ## Worst Case — 자주 바뀌는 값을 레이블로
 
@@ -80,7 +81,7 @@ TSID 캐시 조회 → miss
 
 **churn rate**는 앞서 본 New TSID 발급을 그대로 관측한 값이다. 자주 바뀌는 레이블이 들어오면 이 수치가 튄다. **slow insert rate**는 TSID 캐시가 메모리 부족으로 미스를 자주 내며 IndexDB 폴백이 잦아질 때 오른다 — 즉 활성 시계열이 메모리 캐시에 다 담기지 못하고 있다는 뜻이다. **지속적으로 10% 초과는 "메모리가 활성 시계열을 감당하지 못한다"는 명확한 경고**로 읽어야 한다.
 
-> 이 두 지표는 [07 대규모 운영]({{< relref "07-operations-at-scale.md" >}})의 12.5억 시계열 규모 무중단 장비 전환에서, -storageNode 목록을 어떻게 바꿔야 안전한지를 판단하는 실전 계기판으로 쓰인다. 목록을 통째로 교체하면 신규 장비의 모든 시계열이 New TSID로 재등록돼 churn이 폭등하고 클러스터가 OOM에 빠질 수 있기 때문이다.
+> 이 두 지표는 [02 대규모 운영]({{< relref "02-operations-at-scale.md" >}})의 12.5억 시계열 규모 무중단 장비 전환에서, -storageNode 목록을 어떻게 바꿔야 안전한지를 판단하는 실전 계기판으로 쓰인다. 목록을 통째로 교체하면 신규 장비의 모든 시계열이 New TSID로 재등록돼 churn이 폭등하고 클러스터가 OOM에 빠질 수 있기 때문이다.
 
 ## 출처
 

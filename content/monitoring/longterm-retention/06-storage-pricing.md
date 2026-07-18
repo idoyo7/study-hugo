@@ -15,7 +15,7 @@ weight: 6
 
 이 블록은 서울 리전(ap-northeast-2) 스토리지 단가와 gp3/st1/sc1/S3의 성능·내구성 특성을 정리하고, 아카이브 볼륨 타입을 어떻게 고를지(gp3로 시작 → 실측 → st1/sc1 최적화)를 판단 구조로 제시한다. 단가 상세의 주인 블록이다.
 
-> 관련 블록: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [02 VM 아카이브 상세]({{< relref "02-vm-archive.md" >}}), [07 핵심논점·비용종합표]({{< relref "07-streamaggr-vs-downsampling.md" >}}) · VM: [스토리지·압축·retention]({{< relref "../victoriametrics/04-storage-and-compression.md" >}}), [vmbackup/대규모 운영]({{< relref "../victoriametrics/07-operations-at-scale.md" >}})
+> 관련 블록: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [02 VM 아카이브 상세]({{< relref "02-vm-archive.md" >}}), [07 핵심논점·비용종합표]({{< relref "07-streamaggr-vs-downsampling.md" >}}) · VM: [스토리지·압축·retention]({{< relref "../victoriametrics/concepts/04-storage-and-compression.md" >}}), [vmbackup/대규모 운영]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}})
 
 ## 1. 서울 단가표
 
@@ -46,7 +46,7 @@ sc1 $0.0174  <  S3 Standard $0.025  <  st1 $0.051  <  gp3 $0.0912
 
 S3 Standard-IA($0.0138)와 Glacier Instant($0.005)는 GB당 저장 단가만 보면 매력적이지만, **GB당 리트리벌 수수료**(IA $0.01/GB, GIR $0.03/GB)가 붙는다. 따라서 자주 읽는 primary 아카이브에는 부적합하다:
 - Thanos Store Gateway가 읽는 버킷은 **S3 Standard 필수**.
-- IA/GIR는 vmbackup 콜드 사본 전용(복원해야 조회 가능). 상세는 [02 VM 아카이브]({{< relref "02-vm-archive.md" >}})과 [VM 운영 블록]({{< relref "../victoriametrics/07-operations-at-scale.md" >}}).
+- IA/GIR는 vmbackup 콜드 사본 전용(복원해야 조회 가능). 상세는 [02 VM 아카이브]({{< relref "02-vm-archive.md" >}})과 [VM 운영 블록]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}}).
 
 ## 2. 볼륨별 IO/내구성 프로파일
 
@@ -69,7 +69,7 @@ S3 Standard-IA($0.0138)와 Glacier Instant($0.005)는 GB당 저장 단가만 보
 
 - **쓰기**: 5m 집계본 인제스트 = 시리즈당 5분에 1샘플 → 수천 samples/s 수준, 초당 수십 KB — 트리비얼하다.
 - **읽기**: 장애 재조사 시에만 간헐 쿼리 — 상시 대시보드 부하가 없다.
-- VM은 LSM 구조라 IO가 대체로 순차적(머지·압축)이고, VM 문서도 HDD성 스토리지 동작을 인정한다(→ [VM 스토리지·압축]({{< relref "../victoriametrics/04-storage-and-compression.md" >}})).
+- VM은 LSM 구조라 IO가 대체로 순차적(머지·압축)이고, VM 문서도 HDD성 스토리지 동작을 인정한다(→ [VM 스토리지·압축]({{< relref "../victoriametrics/concepts/04-storage-and-compression.md" >}})).
 - 즉 아카이브는 "거의 안 읽고, 조금씩 쓰는" 워크로드라 cold HDD 프로파일과 이론상 부합한다.
 
 ### 왜 그래도 gp3로 시작하나

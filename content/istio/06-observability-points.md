@@ -80,7 +80,7 @@ Istio가 내보내는 핵심 프록시 메트릭은 다음과 같다. 이름이 
 
 - `destination_service` × `source_workload` × `response_code` × … 의 조합이 곱해지며 시계열이 폭증할 수 있다.
 - 특히 **커스텀 라벨에 高카디널리티 값**(요청 경로 원문, user id 등)을 넣으면 저장이 터진다. Istio가 기본적으로 raw path를 라벨에 안 넣는 이유다.
-- 대응: **Telemetry API로 불필요한 태그를 제거·집약**하고, 저장 계층에서 카디널리티를 관리한다. → [VictoriaMetrics 카디널리티]({{< relref "../monitoring/victoriametrics/06-cardinality.md" >}})와 정확히 같은 원칙이다("자주 바뀌는 값은 라벨이 아니라 로그·트레이스로").
+- 대응: **Telemetry API로 불필요한 태그를 제거·집약**하고, 저장 계층에서 카디널리티를 관리한다. → [VictoriaMetrics 카디널리티]({{< relref "../monitoring/victoriametrics/practice/01-cardinality.md" >}})와 정확히 같은 원칙이다("자주 바뀌는 값은 라벨이 아니라 로그·트레이스로").
 
 ## 커스터마이징 — Telemetry API
 

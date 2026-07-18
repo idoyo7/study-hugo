@@ -1,13 +1,14 @@
 ---
 title: "소스맵"
-weight: 8
+weight: 6
+aliases: ["/monitoring/victoriametrics/08-sources/"]
 ---
 
-# 08. 소스맵 — 발표 영상·기사·전사본 가이드
+# 06 · 소스맵 — 발표 영상·기사·전사본 가이드
 
 이 지식베이스는 네이버 D2/DEVIEW의 VictoriaMetrics 자료 **4건**(발표 영상 2편 + 텍스트 기사 2편)을 하나로 병합해 재구성한 것이다. 각 블록이 어떤 원본에서 나왔는지, 원본을 직접 확인하려면 어디를 보면 되는지 정리한다.
 
-> 관련 블록: [00 인덱스]({{< relref "_index.md" >}})
+> 관련 블록: [개념 인덱스]({{< relref "_index.md" >}})
 
 ## 원본 소스
 
@@ -19,7 +20,7 @@ weight: 8
   - 게시글 임베드 영상(`tv.naver.com/v/48174751`)은 55초 트레일러라, 전체본은 YouTube 원본에서 확보.
 - **원본 파일** (작업 저장소 `evejuni/monitoring/d2-victoriametrics/`, GitBook 미포함): `01_deview2023_victoriametrics_멀티버스.mp4` · `01_대사집_VictoriaMetrics_시계열데이터_대혼돈의_멀티버스.md` · `01_transcript.srt|txt`
 - **다루는 범위**: 시계열/대용량 정의, TSDB 히스토리(Prometheus·Gorilla·Thanos·Cortex), IndexDB/DataDB 분리, LSM 트리, TSID/역색인, Gorilla 계열 압축, 그리고 후반부(≈25:00~)의 멀티클러스터 "멀티버스" 실전 운영기.
-- **주로 반영된 블록**: [01]({{< relref "01-tsdb-and-victoriametrics.md" >}}), [02]({{< relref "02-architecture.md" >}}), [04]({{< relref "04-storage-and-compression.md" >}}), [07]({{< relref "07-operations-at-scale.md" >}}).
+- **주로 반영된 블록**: [01]({{< relref "01-tsdb-and-victoriametrics.md" >}}), [02]({{< relref "02-architecture.md" >}}), [04]({{< relref "04-storage-and-compression.md" >}}), [실전 02]({{< relref "../practice/02-operations-at-scale.md" >}}).
 
 ### ② Inside VictoriaMetrics (2026-06)
 
@@ -28,14 +29,14 @@ weight: 8
 - **관련 D2 게시글**: [Inside VictoriaMetrics](https://d2.naver.com/helloworld/9290861) — 게시글 본문은 영상 래퍼(메타+목차)이고 실제 내용은 영상에 있음.
 - **원본 파일** (작업 저장소 `evejuni/monitoring/d2-victoriametrics/`, GitBook 미포함): `02_inside_victoriametrics.mp4` · `02_대사집_Inside_VictoriaMetrics.md` · `02_transcript.srt|txt`
 - **다루는 범위**: 6섹션 구성 — 아키텍처 오버뷰 / vmagent / vminsert / vmstorage / vmselect / best·worst case. VM 내부 동작의 가장 완전한 1차 소스.
-- **주로 반영된 블록**: [01]({{< relref "01-tsdb-and-victoriametrics.md" >}}), [02]({{< relref "02-architecture.md" >}}), [03]({{< relref "03-ingestion.md" >}}), [04]({{< relref "04-storage-and-compression.md" >}}), [05]({{< relref "05-query-and-ops-components.md" >}}), [06]({{< relref "06-cardinality.md" >}}).
+- **주로 반영된 블록**: [01]({{< relref "01-tsdb-and-victoriametrics.md" >}}), [02]({{< relref "02-architecture.md" >}}), [03]({{< relref "03-ingestion.md" >}}), [04]({{< relref "04-storage-and-compression.md" >}}), [05]({{< relref "05-query-and-ops-components.md" >}}), [실전 01]({{< relref "../practice/01-cardinality.md" >}}).
 
 ### ③ 네이버 검색의 대규모 메트릭 저장소, VictoriaMetrics 운영기 (텍스트, 2026-04)
 
 - **출처**: https://d2.naver.com/helloworld/6475419
 - **원본 파일** (작업 저장소, GitBook 미포함): `03_기사_6475419_대규모메트릭저장소.md`
 - **다루는 범위**: 12.5억 활성 시계열·555조 데이터포인트·180노드·0.92바이트/DP 실측, 글로벌 사례 비교, Hot/Warm 2계층, 메모리 한계(128→512GB), 무중단 장비 전환(Hot=랑데부 역순 추가, Warm=vmbackup/vmrestore).
-- **주로 반영된 블록**: [07]({{< relref "07-operations-at-scale.md" >}}), 일부 [04]({{< relref "04-storage-and-compression.md" >}})(0.92B 압축 실증).
+- **주로 반영된 블록**: [실전 02]({{< relref "../practice/02-operations-at-scale.md" >}}), 일부 [04]({{< relref "04-storage-and-compression.md" >}})(0.92B 압축 실증).
 
 ### ④ 네이버 검색 SRE의 시계열 데이터베이스 운영기 (텍스트, 2024-02)
 

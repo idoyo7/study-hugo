@@ -109,7 +109,7 @@ aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 | `vmbackupmanager` | 백업 스케줄 자동화·보존 관리 | k8s CronJob으로 `vmbackup` 직접 실행 |
 | `-retentionFilter` | 시리즈별 차등 보존 | 없음 — tier 분리로 우회 |
 
-vmbackup/vmrestore 자체는 OSS이지만 **스케줄 자동화 계층(vmbackupmanager)**만 Enterprise라는 점을 구분해야 한다(무중단·대규모 운영 상세는 [초대규모 운영과 무중단 전환]({{< relref "../victoriametrics/07-operations-at-scale.md" >}})). 압축·retention 동작의 엔진 레벨 근거는 [저장과 압축]({{< relref "../victoriametrics/04-storage-and-compression.md" >}})를 참조한다.
+vmbackup/vmrestore 자체는 OSS이지만 **스케줄 자동화 계층(vmbackupmanager)**만 Enterprise라는 점을 구분해야 한다(무중단·대규모 운영 상세는 [초대규모 운영과 무중단 전환]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}})). 압축·retention 동작의 엔진 레벨 근거는 [저장과 압축]({{< relref "../victoriametrics/concepts/04-storage-and-compression.md" >}})를 참조한다.
 
 ---
 

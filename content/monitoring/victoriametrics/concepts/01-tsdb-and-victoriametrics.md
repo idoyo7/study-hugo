@@ -1,6 +1,7 @@
 ---
 title: "TSDB와 VictoriaMetrics"
 weight: 1
+aliases: ["/monitoring/victoriametrics/01-tsdb-and-victoriametrics/"]
 ---
 
 # 01 · 시계열 데이터와 VictoriaMetrics
@@ -15,7 +16,7 @@ weight: 1
 
 시계열 데이터가 무엇이고 왜 "대용량"이 별도의 문제가 되는지, 그리고 그 문제를 푸는 도구로 VictoriaMetrics(이하 VM)가 어디에 서 있는지 정리한다. VM의 내부 컴포넌트 구조는 [02 아키텍처]({{< relref "02-architecture.md" >}})에서 이어 다룬다.
 
-> 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) · [06 카디널리티]({{< relref "06-cardinality.md" >}}) · [00 인덱스]({{< relref "_index.md" >}})
+> 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [개념 인덱스]({{< relref "_index.md" >}})
 
 ## 시계열 데이터란
 
@@ -48,7 +49,7 @@ Prometheus 진영의 표준 분류이기도 하다.
 | 분산 시스템 | 수백만 개 | 분산 시스템 + 인기 플랫폼 위 커스텀 애플리케이션 지표까지 수집 |
 | 대용량 | 수천만 ~ 수십억 개 | 쿠버네티스 등 클라우드 도구 도입으로 카디널리티 폭증 |
 
-**수백만 개까지는 Prometheus 하나만 설치해도 웬만큼 해결된다.** 문제는 그 위다. 수천만 개를 넘어서는 순간부터는 기존 모니터링 시스템과 단일 시계열 DB로는 감당이 안 돼 **별도의 솔루션이 필요하다** — 이것이 "대용량"을 굳이 구분하는 이유다. 개수가 왜 이렇게까지 폭증하는지, 즉 카디널리티 문제는 [06 카디널리티]({{< relref "06-cardinality.md" >}})에서 본격적으로 다룬다.
+**수백만 개까지는 Prometheus 하나만 설치해도 웬만큼 해결된다.** 문제는 그 위다. 수천만 개를 넘어서는 순간부터는 기존 모니터링 시스템과 단일 시계열 DB로는 감당이 안 돼 **별도의 솔루션이 필요하다** — 이것이 "대용량"을 굳이 구분하는 이유다. 개수가 왜 이렇게까지 폭증하는지, 즉 카디널리티 문제는 [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}})에서 본격적으로 다룬다.
 
 ## TSDB의 히스토리
 

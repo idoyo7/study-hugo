@@ -45,7 +45,7 @@ weight: 1
 
 후보는 셋이다.
 
-- **vmagent streamAggr**(OSS, v1.87.0+) — 인제스트 시점에 5m 집계를 만들어 별도 장기 tier로 보낸다(사전 집계) → **VM 아카이브안**. 개념 상세는 [수집 (vmagent·vminsert)]({{< relref "../victoriametrics/03-ingestion.md" >}}).
+- **vmagent streamAggr**(OSS, v1.87.0+) — 인제스트 시점에 5m 집계를 만들어 별도 장기 tier로 보낸다(사전 집계) → **VM 아카이브안**. 개념 상세는 [수집 (vmagent·vminsert)]({{< relref "../victoriametrics/concepts/03-ingestion.md" >}}).
 - **Thanos compactor downsampling** — S3에 raw 블록을 쌓고 사후에 5m/1h 블록을 만든다(사후 집계) → **Thanos안**.
 - **Mimir** — 다운샘플링이 OSS/GEM 어디에도 없다(3.0에서도 미추가) → 이 요구에서는 사실상 **탈락**.
 
@@ -55,7 +55,7 @@ weight: 1
 
 - **VM은 S3를 primary(쿼리 가능) 스토리지로 지원하지 않는다.** 2019년 issue #38 이래 2026-07 현재까지 미출시이며, 유지보수자의 "VictoriaLogs 구현 후 검토" 입장과 #38 self-assign(2026-03)은 신호일 뿐 **일정 약속이 없다 — 계획에 반영 금지**. 따라서 VM 계열 아카이브는 EBS(gp3/st1/sc1) 위에, Thanos/Mimir 아카이브는 S3 위에 놓인다.
 - **서울 단가 순서**: `sc1 $0.0174 < S3 Standard $0.025 < st1 $0.051 < gp3 $0.0912` ($/GB·월).
-- 즉 **"S3라서 무조건 싸다"는 서울 단가에서 성립하지 않는다.** sc1이 S3 Standard보다 싸다. 차이는 단가가 아니라 **내구성 모델**(EBS 단일 볼륨 vs S3 11-nines)과 **운영 컴포넌트 수**에서 난다. 압축·retention·볼륨 특성은 [저장과 압축]({{< relref "../victoriametrics/04-storage-and-compression.md" >}})와 [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}})를 참조하라.
+- 즉 **"S3라서 무조건 싸다"는 서울 단가에서 성립하지 않는다.** sc1이 S3 Standard보다 싸다. 차이는 단가가 아니라 **내구성 모델**(EBS 단일 볼륨 vs S3 11-nines)과 **운영 컴포넌트 수**에서 난다. 압축·retention·볼륨 특성은 [저장과 압축]({{< relref "../victoriametrics/concepts/04-storage-and-compression.md" >}})와 [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}})를 참조하라.
 
 ## 3. 검증된 서울 단가 요약
 

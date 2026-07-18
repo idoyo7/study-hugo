@@ -1,9 +1,10 @@
 ---
 title: "수집 (vmagent·vminsert)"
 weight: 3
+aliases: ["/monitoring/victoriametrics/03-ingestion/"]
 ---
 
-# 03. 수집 — vmagent와 vminsert
+# 03 · 수집 — vmagent와 vminsert
 
 {{< callout type="info" >}}
 **한눈에**
@@ -15,7 +16,7 @@ weight: 3
 
 VM에서 데이터가 들어오는 두 관문을 다룬다. **vmagent**는 무엇이든 받아 정제하고 리모트로 흘려보내는 만능 어댑터이자 버퍼이고, **vminsert**는 그 데이터를 여러 vmstorage 노드로 흩뿌리는 라우팅 게이트웨이다.
 
-> 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [04 저장·압축]({{< relref "04-storage-and-compression.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [06 카디널리티]({{< relref "06-cardinality.md" >}}) · [07 초대규모 운영]({{< relref "07-operations-at-scale.md" >}})
+> 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [04 저장·압축]({{< relref "04-storage-and-compression.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [실전 02 초대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})
 
 ## vmagent — 무엇이든 받아서 정제하는 만능 어댑터
 
@@ -75,7 +76,7 @@ flowchart TD
 
 **릴레이블링이 두 번 걸린다.** 전 트래픽 공통 룰은 **글로벌 단계(2번)** 에서, 특정 리모트에만 적용할 룰은 **퍼-리모트 단계(5번)** 에서 처리한다. "공통 트래픽에 걸 규칙"과 "이 리모트에만 걸 규칙"을 티어별로 나눠 적용할 수 있어, 하나의 vmagent가 여러 목적지에 서로 다른 정제 정책을 태울 수 있다.
 
-**큐는 유실 방지 안전장치다.** 데이터는 먼저 **Fast Queue(인메모리 큐)** 에 대기한다. 이 메모리 큐마저 가득 차면 **Persistent Queue(디스크)** 로 떨어져 임시 저장된다. 지연이 해소되면 디스크에서 다시 꺼내 전송한다. 덕분에 vminsert와의 네트워크 장애나 순간적 지연으로 잠시 전송하지 못하더라도 **vmagent는 지표를 잃지 않는다.** 운영 관점에서 이것이 데이터 유실을 막는 핵심 안전장치다. 실전에서도 SRE 파이프라인은 이 버퍼링 성질을 노려 vmagent를 유실 방지 계층으로 끼워 넣는다([07 초대규모 운영]({{< relref "07-operations-at-scale.md" >}})).
+**큐는 유실 방지 안전장치다.** 데이터는 먼저 **Fast Queue(인메모리 큐)** 에 대기한다. 이 메모리 큐마저 가득 차면 **Persistent Queue(디스크)** 로 떨어져 임시 저장된다. 지연이 해소되면 디스크에서 다시 꺼내 전송한다. 덕분에 vminsert와의 네트워크 장애나 순간적 지연으로 잠시 전송하지 못하더라도 **vmagent는 지표를 잃지 않는다.** 운영 관점에서 이것이 데이터 유실을 막는 핵심 안전장치다. 실전에서도 SRE 파이프라인은 이 버퍼링 성질을 노려 vmagent를 유실 방지 계층으로 끼워 넣는다([실전 02 초대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})).
 
 ## vminsert — 랑데부 해싱으로 라우팅하는 게이트웨이
 
@@ -146,7 +147,7 @@ flowchart TD
 
 이렇게 같은 데이터가 여러 벌 생기지만, 중복은 나중에 vmselect가 쿼리할 때 **dedup(dedup min scrape interval)** 으로 제거된다. 즉 **쓰기 시점의 복제(안정성)** 와 **읽기 시점의 dedup(정확성)** 이 짝을 이뤄 동작한다. 쿼리 시점 dedup의 세부는 [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}})에서 다룬다.
 
-> 저장된 데이터가 vmstorage 안에서 어떻게 TSID로 바뀌고 압축·파티셔닝되는지는 [04 저장·압축]({{< relref "04-storage-and-compression.md" >}})에서 이어진다. `New TSID`가 폭증하는 카디널리티 문제는 [06 카디널리티]({{< relref "06-cardinality.md" >}})가 주인이다.
+> 저장된 데이터가 vmstorage 안에서 어떻게 TSID로 바뀌고 압축·파티셔닝되는지는 [04 저장·압축]({{< relref "04-storage-and-compression.md" >}})에서 이어진다. `New TSID`가 폭증하는 카디널리티 문제는 [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}})가 주인이다.
 
 ## 출처
 

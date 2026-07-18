@@ -50,7 +50,7 @@ Grafana(Prometheus 타입 DS) ◀─ Querier ◀─ Store Gateway (블록당 ~6M
 - Thanos Receive는 out-of-order 샘플을 **기본 거부(409)** 한다 → VM 공식 가이드가 해당 URL에 `-remoteWrite.queues=1`을 권고한다(기본값은 2×CPU코어). per-URL queues 설정은 **vmagent v1.135.0+** 다.
 - 단 `queues=1`은 `vmagent_remotewrite_pending_data_bytes` 증가·OOM 리스크가 실증돼 있어(#7108) `-remoteWrite.maxDiskUsagePerURL` 버퍼 설계가 필수다.
 - `-remoteWrite.forcePromProto`는 자동 다운그레이드가 있어 필수는 아니나 명시 권장이다.
-- vmagent 파이프라인·remoteWrite 세부는 VM 챕터 [인제스트]({{< relref "../victoriametrics/03-ingestion.md" >}}) 참조.
+- vmagent 파이프라인·remoteWrite 세부는 VM 챕터 [인제스트]({{< relref "../victoriametrics/concepts/03-ingestion.md" >}}) 참조.
 
 ## 비용 (시나리오 ②: raw 90d + 5m 집계 400d)
 
@@ -78,7 +78,7 @@ S3 = S × (1.5~2 B/sample) × (raw일수 + 400d × 1.2~1.8) × $0.025
 
 - Grafana에 Prometheus 타입 DS로 공존은 가능하나 **PromQL 전용**이다. WITH 템플릿, `rollup_*`, `histogram_share`, `keep_metric_names` modifier, `default/if/ifnot` 등 **MetricsQL 전 기능을 아카이브 쿼리에서 상실**한다 → 재작성 비용이 발생한다.
 - 반대급부: 5m 블록은 시리즈당 **5 aggregate(sum/count/min/max/counter)** 를 청크에 자동 내장해 시리즈명·수가 불변이고 `rate()`가 투명하게 동작한다. 카운터/게이지 구분을 사람이 할 필요가 없다.
-- MetricsQL/PromQL 차이는 VM 챕터 [쿼리·운영 컴포넌트]({{< relref "../victoriametrics/05-query-and-ops-components.md" >}}) 참조.
+- MetricsQL/PromQL 차이는 VM 챕터 [쿼리·운영 컴포넌트]({{< relref "../victoriametrics/concepts/05-query-and-ops-components.md" >}}) 참조.
 
 ## 버킷 스토리지 클래스 — S3 Standard 필수
 

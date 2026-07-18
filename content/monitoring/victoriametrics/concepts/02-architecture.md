@@ -1,6 +1,7 @@
 ---
 title: "아키텍처"
 weight: 2
+aliases: ["/monitoring/victoriametrics/02-architecture/"]
 ---
 
 # 02 · 아키텍처 — 4개 컴포넌트와 저장 원리
@@ -15,7 +16,7 @@ weight: 2
 
 VM 클러스터가 어떤 컴포넌트로 이루어지고 데이터가 어떻게 흐르는지, 그리고 그 밑을 떠받치는 두 가지 핵심 아이디어 — **LSM 트리**와 **IndexDB/DataDB 분리** — 를 정리한다. 각 컴포넌트의 내부 동작은 뒤 블록에서 하나씩 깊게 파고든다.
 
-> 관련 블록: [01 시계열과 VM]({{< relref "01-tsdb-and-victoriametrics.md" >}}) · [03 수집]({{< relref "03-ingestion.md" >}}) · [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [07 대규모 운영]({{< relref "07-operations-at-scale.md" >}})
+> 관련 블록: [01 시계열과 VM]({{< relref "01-tsdb-and-victoriametrics.md" >}}) · [03 수집]({{< relref "03-ingestion.md" >}}) · [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [실전 02 대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})
 
 ## 4개 컴포넌트의 데이터 흐름
 
@@ -55,7 +56,7 @@ VM에는 두 가지 배포 모드가 있다. 네이버 검색 SRE도 처음엔 S
 | **장점** | 구축·사용이 간편. VM 자체 최적화로 Prometheus보다 빠른 성능 체감 | 데이터 규모에 따라 컴포넌트만 추가하면 **손쉬운 수평 확장(scale out)**. Prometheus의 최대 약점인 scale out 한계를 극복. `replicationFactor`로 유실 방지 |
 | **단점** | 수천만 개 이상으로 늘면 단일 장비로 감당 불가. 단일 장비가 **SPOF**(단일 장애점) | 구조가 복잡하고 운영이 어려움. 의존성은 Thanos·Cortex보다 적은 편 |
 
-운영 방식은 컴포넌트 성격에 따라 갈린다. **Stateless** 컴포넌트인 vminsert(write)·vmselect(read)는 Kubernetes에 올려 유연하게 scale out하고, **Stateful** 컴포넌트인 vmstorage는 물리 장비에서 운영하는 편이 이점이 있다. 이 구성이 초대규모에서 어떻게 확장되는지는 [07 대규모 운영]({{< relref "07-operations-at-scale.md" >}})에서 다룬다.
+운영 방식은 컴포넌트 성격에 따라 갈린다. **Stateless** 컴포넌트인 vminsert(write)·vmselect(read)는 Kubernetes에 올려 유연하게 scale out하고, **Stateful** 컴포넌트인 vmstorage는 물리 장비에서 운영하는 편이 이점이 있다. 이 구성이 초대규모에서 어떻게 확장되는지는 [실전 02 대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})에서 다룬다.
 
 ## 왜 대용량 write/read가 어려운가 — LSM 트리
 
@@ -95,7 +96,7 @@ VM에는 두 가지 배포 모드가 있다. 네이버 검색 SRE도 처음엔 S
 - **DataDB 쪽** — Time Series name마다 **TSID**(Time Series ID)를 하나 발급하고, timestamp+value는 그 TSID에 매칭되는 공간에 차곡차곡 append한다.
 - **IndexDB 쪽** — Time Series name을 레이블 단위로 뜯어 **역색인**(inverted index)을 만든다. 어떤 레이블 값으로 검색하든 원하는 시계열을 빠르게 찾기 위해서다. 처음 보는 시계열이 들어올 때는 역색인을 새로 만드는 **slow insert**가 일어나고, 같은 시계열의 추가 데이터는 TSID만 확인하는 **fast insert**로 처리된다.
 
-TSID 변환·캐시, 역색인의 상세, New TSID로 인한 카디널리티 폭발은 각각 [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}})과 [06 카디널리티]({{< relref "06-cardinality.md" >}})에서 다룬다.
+TSID 변환·캐시, 역색인의 상세, New TSID로 인한 카디널리티 폭발은 각각 [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}})과 [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}})에서 다룬다.
 
 ## "거대하고 빠른 키-밸류 스토어"라는 추상화
 

@@ -20,7 +20,7 @@ aliases: ["/monitoring/longterm-retention/02-option-a-vm-archive/"]
 
 ## 한 줄 요약
 
-per-URL 스트림 집계(streamAggr, OSS)로 **전 메트릭을 5m 해상도로 치환**해서 별도 vmsingle(`-retentionPeriod=400d`, RF1, 저가 EBS)에 적재한다. 라우터 vmagent 패턴에 RW#4 하나를 추가하는 것 외에 새로 배우거나 배포할 스택이 없다. streamAggr·vmagent 파이프라인의 개념은 VM 챕터의 [03 인제스트]({{< relref "../victoriametrics/03-ingestion.md" >}}), vmsingle의 저장·압축은 [04 저장·압축]({{< relref "../victoriametrics/04-storage-and-compression.md" >}})을 참조한다.
+per-URL 스트림 집계(streamAggr, OSS)로 **전 메트릭을 5m 해상도로 치환**해서 별도 vmsingle(`-retentionPeriod=400d`, RF1, 저가 EBS)에 적재한다. 라우터 vmagent 패턴에 RW#4 하나를 추가하는 것 외에 새로 배우거나 배포할 스택이 없다. streamAggr·vmagent 파이프라인의 개념은 VM 챕터의 [03 인제스트]({{< relref "../victoriametrics/concepts/03-ingestion.md" >}}), vmsingle의 저장·압축은 [04 저장·압축]({{< relref "../victoriametrics/concepts/04-storage-and-compression.md" >}})을 참조한다.
 
 ## 아키텍처
 
@@ -73,7 +73,7 @@ spec:
 
 - **배타 커버**: 접미사 regex 2규칙이 서로 배타적으로 전체를 덮는다. `by/without` 미지정 → 입력 시리즈별 라벨 보존, 시간축 집계만 수행한다. match된 raw는 집계 산출물로 **치환**되므로 아카이브에 raw가 유출되지 않는다.
 - **히스토그램(classic)**: `_bucket`은 per-bucket 카운터라 `total`이 정확히 맞고 `le`가 보존돼 `histogram_quantile(rate(..._bucket[10m]))`이 아카이브에서 그대로 동작한다(5m 입도).
-- **쿼리 보존**: `keep_metric_names` 덕에 기존 대시보드·vmalert 쿼리가 **datasource 전환만으로** 동작한다. 아카이브도 VM이므로 MetricsQL이 그대로 유지된다 — MetricsQL/PromQL·vmselect는 VM 챕터 [05 쿼리·운영 컴포넌트]({{< relref "../victoriametrics/05-query-and-ops-components.md" >}}) 참조. 이로써 미확인 MetricsQL 의존도 리스크가 자동 소멸한다.
+- **쿼리 보존**: `keep_metric_names` 덕에 기존 대시보드·vmalert 쿼리가 **datasource 전환만으로** 동작한다. 아카이브도 VM이므로 MetricsQL이 그대로 유지된다 — MetricsQL/PromQL·vmselect는 VM 챕터 [05 쿼리·운영 컴포넌트]({{< relref "../victoriametrics/concepts/05-query-and-ops-components.md" >}}) 참조. 이로써 미확인 MetricsQL 의존도 리스크가 자동 소멸한다.
 
 ## 비용
 
@@ -113,7 +113,7 @@ spec:
 | streamAggr 상태 = 프로세스 메모리, 크래시 시 현재 5m 윈도우 유실 | `flush_on_shutdown: true`; 재조사 용도로 수용 가능 수준. 카운터 리셋은 `rate()`가 흡수 |
 | 접미사 휴리스틱 오분류(비표준 카운터가 avg로 집계되면 rate 불가) | 드라이런에서 오분류 목록 추출 후 예외 match 규칙 보강 |
 | 전 메트릭 집계 상태만큼 라우터 vmagent 메모리 증가 (활성 시리즈 수 비례) | 사이징 실측 필요 (검증 필요) |
-| RF1 (아카이브 이중화 없음) | vmbackup 주기 백업으로 보완 — vmbackup/vmrestore·무중단 운영은 VM 챕터 [07 대규모 운영]({{< relref "../victoriametrics/07-operations-at-scale.md" >}}) 참조 |
+| RF1 (아카이브 이중화 없음) | vmbackup 주기 백업으로 보완 — vmbackup/vmrestore·무중단 운영은 VM 챕터 [07 대규모 운영]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}}) 참조 |
 
 streamAggr(사전 확정, 재계산 불가) vs Thanos downsampling(사후 재계산 가능, 공간 절감 없음)의 축별 비교와 "이 건에서 성립하는 대체"라는 판정 근거는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})에 있다.
 
