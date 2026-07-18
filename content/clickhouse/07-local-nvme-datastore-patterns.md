@@ -17,7 +17,7 @@ weight: 7
 이 페이지는 질문 하나에 답한다 — **"휘발성 로컬 NVMe를 1차 스토리지로 쓰고, 내구성은 복제로 확보하고, 오래된 데이터는 S3로 티어링한다"는 패턴이 업계에서 어디까지 표준인가.** [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})가 이 결정을 **ClickHouse에서 어떻게 구현하나(how)**를 다룬다면, 이 페이지는 ScyllaDB·Cassandra·Kafka·Redpanda·WarpStream류·ES/OpenSearch·Aerospike·TiKV/TiDB·CockroachDB **9개 시스템을 같은 잣대로 놓고** "업계가 어디까지 하나"를 보여주는 **외부 강화 근거**다.
 
 {{% details title="근거 등급 태그 · 출처 규칙" closed="true" %}}
-근거 등급 태그는 입력 조사(11-1~11-4 및 종합)의 판정을 승계한다(`✓`·`Ⓥ`·`≈`·`?`, 본 페이지의 신규 종합 판단은 `Σ`). URL 출처는 이 페이지가 아니라 [출처]({{< relref "08-sources.md" >}})가 담당한다.
+근거 등급 태그는 입력 조사(11-1~11-4 및 종합)의 판정을 이어받는다(`✓`·`Ⓥ`·`≈`·`?`, 본 페이지의 신규 종합 판단은 `Σ`). URL 출처는 이 페이지가 아니라 [출처]({{< relref "08-sources.md" >}})가 담당한다.
 {{% /details %}}
 
 ## 결론 먼저 — 세 층위로 나눈 표준
@@ -44,7 +44,7 @@ weight: 7
 | ClickHouse | **clickhouse-backup → S3**(주간 full + 일간 incremental) `✓` |
 
 {{< callout type="warning" >}}
-즉 [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})의 "로컬 NVMe replica + S3 백업" 3종 세트는 사치가 아니라 **업계 최소선을 정확히 충족**하는 정본이다. **"replica만 믿고 백업 생략"은 어떤 성숙한 시스템도 하지 않는다** `Σ`.
+즉 [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})의 "로컬 NVMe replica + S3 백업" 3종 세트는 사치가 아니라 **업계 최소선을 정확히 충족**하는 표준이다. **"replica만 믿고 백업 생략"은 어떤 성숙한 시스템도 하지 않는다** `Σ`.
 {{< /callout >}}
 
 ### 표준이 갈라지는 것 — "S3 티어링"의 두 얼굴
@@ -103,7 +103,7 @@ weight: 7
 
 ### 5개 수렴점
 
-1. **로컬 NVMe 1차는 만장일치** `Σ`. 예외는 결이 다른 것뿐 — **Redis/Valkey**는 RAM이 1차라 애초에 벤치 대상이 아니고, **CERN**은 관리 용이성을 우선해 CephFS+SSD 캐시로 간 반대편 철학이다.
+1. **로컬 NVMe 1차는 만장일치** `Σ`. 예외는 성격이 다른 것뿐 — **Redis/Valkey**는 RAM이 1차라 애초에 벤치 대상이 아니고, **CERN**은 관리 용이성을 우선해 CephFS+SSD 캐시로 간 반대편 철학이다.
 2. **내구성은 복제로.** 전 시스템이 디스크 durability를 사지 않고 앱 계층 N중 복제로 만든다. 멀티 AZ(rack/zone awareness)가 상관 장애 방어의 공통 수단이고, 로컬이면 RF를 올리는 것(Cockroach 3→5, ClickHouse 2→3)이 정직한 대가.
 3. **복제 위에 지속 티어를 하나 더.** "복제만으로 충분"은 성숙 시스템에서 거짓에 가깝다(위 §표). shadow device·강제 백업·S3 백업·스냅샷 플래싱 — 형태만 다를 뿐 별도 durable 사본이 minimum bar.
 4. **실전 병목은 언제나 재수화 MTTR** `✓`. 노드 소실 시 그 데이터를 복제본에서 재전송하는 시간이 로컬 NVMe 채택의 최대 운영 통증이고, 이를 줄이려는 투자가 각 시스템 로드맵을 지배한다 — ScyllaDB의 file-based streaming(25×)·tablets, Kafka의 Tiered Storage(로컬을 hot만 남김), CockroachDB의 작은 노드·넓은 분산, ES의 shard≤50GB, Netflix의 스냅샷 플래싱(재스트리밍 자체 우회).
@@ -148,7 +148,7 @@ weight: 7
 **강화되는 근거** `Σ`:
 
 - **로컬 NVMe(i7i/i8g) 1차 방향은 업계 정설과 정확히 일치.** 9개 시스템이 같은 선택을 하고 인스턴스 패밀리까지 동일 계보다 — 하드웨어 리스크 없음.
-- **"로컬 NVMe replica + S3 백업" 3종 세트는 최소 요구선을 정확히 충족.** Aerospike shadow / Mongo Atlas Cloud Backup / CockroachDB RF5에 대응하는 ClickHouse의 정본이다.
+- **"로컬 NVMe replica + S3 백업" 3종 세트는 최소 요구선을 정확히 충족.** Aerospike shadow / Mongo Atlas Cloud Backup / CockroachDB RF5에 대응하는 ClickHouse의 표준이다.
 - **RF 상향의 논리적 정당성 확보.** CockroachDB "로컬이면 RF 3→5"가 ClickHouse "로컬이면 replica 2→3"를 이론적으로 뒷받침한다.
 - **S3 cold 티어링은 오히려 ClickHouse의 상대적 우위.** NoSQL 진영(Scylla=experimental, Cassandra=없음)이 아직 만드는 hot 로컬 + cold S3를 ClickHouse는 storage_policy로 코어에 내장·성숙시켰다. Kafka조차 RSM(S3 어댑터)을 직접 구현해야 하는데 ClickHouse는 완제품이다.
 

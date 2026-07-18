@@ -13,9 +13,9 @@ weight: 4
 - 컨트롤 플레인 업그레이드는 **revision 기반 카나리**로 폭발 반경을 줄인다.
 {{< /callout >}}
 
-> **그때 무슨 일이 있었나.** 메시 설정 — IstioOperator/Helm 값, Gateway, VirtualService, DestinationRule — 이 그때그때 `kubectl apply`로 손보아지면서, **클러스터의 실제 상태와 Git 저장소가 어긋나기** 시작했다. 누가 언제 무엇을 바꿨는지 추적이 안 되고, 재현·롤백이 불안했다. "Istio Manifest Sync" 과제는 이 **드리프트를 없애고 Git을 단일 진실로** 만드는 일이었다. 이 블록은 Istio 설정 방식, GitOps로 옮기는 이유, 그리고 메시 설정 특유의 위험을 다룬다.
+> **그때 무슨 일이 있었나.** 메시 설정 — IstioOperator/Helm 값, Gateway, VirtualService, DestinationRule — 이 그때그때 `kubectl apply`로 손보아지면서, **클러스터의 실제 상태와 Git 저장소가 어긋나기** 시작했다. 누가 언제 무엇을 바꿨는지 추적이 안 되고, 재현·롤백이 불안했다. "Istio Manifest Sync" 과제는 이 **드리프트를 없애고 Git을 단일 진실로** 만드는 일이었다. 이 문서는 Istio 설정 방식, GitOps로 옮기는 이유, 그리고 메시 설정 특유의 위험을 다룬다.
 
-> 관련 블록: [02 컨트롤 플레인]({{< relref "02-istiod-control-plane.md" >}}) · [03 게이트웨이]({{< relref "03-gateway-node-isolation.md" >}}) · [05 장애 이야기]({{< relref "05-incident-intermittent-5xx.md" >}})
+> 관련 문서: [02 컨트롤 플레인]({{< relref "02-istiod-control-plane.md" >}}) · [03 게이트웨이]({{< relref "03-gateway-node-isolation.md" >}}) · [05 장애 이야기]({{< relref "05-incident-intermittent-5xx.md" >}})
 
 ## Istio는 무엇으로 설정되나 — 두 층
 
@@ -80,7 +80,7 @@ flowchart LR
 
 이 revision 전략도 GitOps와 맞물린다 — revision 라벨과 Helm 값이 Git에 있으니, 업그레이드 자체가 리뷰 가능한 PR이 된다.
 
-## 이 블록에서 가져갈 것
+## 이 문서에서 가져갈 것
 
 - Istio 설정은 **설치 층(Helm 권장, IOP는 지양)** 과 **트래픽 층(전부 CRD)** 으로 나뉜다. 둘 다 YAML이라 Git 관리에 적합하다.
 - 메시 CRD는 **적용 즉시 트래픽에 직결**되므로 손 apply의 드리프트·추적불가·재현불가가 곧 장애 위험이다.

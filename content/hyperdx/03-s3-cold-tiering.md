@@ -8,15 +8,15 @@ weight: 3
 {{< callout type="info" >}}
 **한눈에**
 - **hot = EBS `default` 디스크**(gp3/io2), **cold = S3 Standard + `cache` 디스크**(EBS 위 LRU, `max_size` 150Gi). [로컬 NVMe 예제]({{< relref "../clickhouse/02-storage-local-nvme.md" >}})의 hot 자리를 EBS로 계승할 뿐, cold(S3) 조립은 동일하다.
-- **storage_configuration 정본**: 내장 `default` + `s3`(신문법 `object_storage`) + `cache`. 정책 `rum_hot_cold`는 `move_factor=0.1`(안전판만), `prefer_not_to_merge` 미설정(기본 false 유지).
-- **이 페이지가 TTL 단일 정본이다**([06 용량 산정]({{< relref "07-capacity-planning.md" >}})이 이 표를 relref): `otel_logs`/`otel_traces` hot **14일**→S3→DELETE(지평 90/180/365), `otel_metrics_*` hot **30일**→S3→DELETE(180/365), **`hyperdx_sessions`는 S3에 안 내리고 hot만·DELETE 30일**.
+- **storage_configuration 기준 문서**: 내장 `default` + `s3`(신문법 `object_storage`) + `cache`. 정책 `rum_hot_cold`는 `move_factor=0.1`(안전판만), `prefer_not_to_merge` 미설정(기본 false 유지).
+- **이 페이지가 TTL 단일 기준 문서다**([06 용량 산정]({{< relref "07-capacity-planning.md" >}})이 이 표를 relref): `otel_logs`/`otel_traces` hot **14일**→S3→DELETE(지평 90/180/365), `otel_metrics_*` hot **30일**→S3→DELETE(180/365), **`hyperdx_sessions`는 S3에 안 내리고 hot만·DELETE 30일**.
 - **인증 = IRSA**(정적 키 금지) + `use_environment_credentials=1` + `region` 명시 + `{replica}` 경로 분리(shared-nothing 필수). **주입 = CHI `files`의 `config.d/storage_configuration.xml`**.
 - **함정**: part 메타데이터·cache가 EBS를 먹는다(사이징 반영) · S3 lifecycle→Glacier **금지** · zero-copy **금지** · cold=캐시 미스 지연.
 {{< /callout >}}
 
 [로컬 NVMe 스토리지]({{< relref "../clickhouse/02-storage-local-nvme.md" >}})가 hot을 로컬 NVMe로 두는 전제였다면, 이 카테고리는 **hot = EBS(gp3/io2)** 전제다({{< relref "02-hot-storage-ebs.md" >}}). 티어링의 골격 — TTL로 오래된 part를 S3로 밀고 최근 데이터만 로컬에 둔다 — 은 같지만, ClickHouse `storage_configuration`에서 hot 볼륨의 disk가 로컬 SC PVC가 아니라 **내장 `default` 디스크(=`/var/lib/clickhouse` = gp3/io2 PVC)** 라는 점만 다르다. 이 페이지는 그 hot=EBS 전제로 **복붙 가능한 storage XML·CHI 매니페스트·TTL DDL**을 조립하고, HyperDX/ClickStack이 자동 생성하는 관리 테이블(`otel_*`/`hyperdx_sessions`)에 실제로 티어링을 얹는다. **티어링 ≠ 내구성**·zero-copy 금지·S3 lifecycle 함정의 *배경*은 이미 [클릭하우스 챕터]({{< relref "../clickhouse/02-storage-local-nvme.md" >}})가 깊게 다뤘으므로 여기선 relref로 위임하고, EBS-first worked example의 새 각도만 판다.
 
-> 이 매니페스트들은 표준 ClickStack Helm 2차트가 쓰는 ClickHouse Inc. 공식 operator(ClickHouseCluster CRD)가 아니라, `clickhouse.enabled: false`(BYO)로 CH/Keeper를 **Altinity CHI/CHK로 분리 운영**하는 전제로 쓰였다. 이 분기의 배경은 [스택 토폴로지]({{< relref "01-stack-topology.md" >}})·[operator·다운타임]({{< relref "04-operator-topology-downtime.md" >}}) 참조. `✓`
+> 이 매니페스트들은 표준 ClickStack Helm 2차트가 쓰는 ClickHouse Inc. 공식 operator(ClickHouseCluster CRD)가 아니라, `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only')로 CH/Keeper를 **Altinity CHI/CHK로 분리 운영**하는 전제로 쓰였다. 이 분기의 배경은 [스택 토폴로지]({{< relref "01-stack-topology.md" >}})·[operator·다운타임]({{< relref "04-operator-topology-downtime.md" >}}) 참조. `✓`
 
 ```mermaid
 flowchart LR
@@ -33,7 +33,7 @@ flowchart LR
   meta -.->|blob 포인터| s3
 ```
 
-## 1. `storage_configuration` 정본 — hot=EBS `default` / cold=S3+cache
+## 1. `storage_configuration` 기준 문서 — hot=EBS `default` / cold=S3+cache
 
 정책은 hot 볼륨 하나(내장 `default`) + cold 볼륨 하나(`cache`로 감싼 S3)로 구성한다. disk를 세 개(`default`는 내장이라 선언 불필요 → 실제 선언은 `s3` + `cache` 둘) 정의하고, 볼륨 순서로 이동 우선순위를 잡는다.
 
@@ -218,7 +218,7 @@ spec:
           accessModes: [ReadWriteOnce]
           storageClassName: gp3                 # 또는 io2 — 선택 기준은 02
           # prod 노드당 order ~1TB. hot 데이터 + part metadata + s3_cache(150Gi) + 머지 여유를 모두 포함(§5.1).
-          # 정확한 사이징은 06이 정본. 스테이징은 소규모(예 100Gi).
+          # 정확한 사이징은 06이 기준 문서. 스테이징은 소규모(예 100Gi).
           resources: { requests: { storage: 1000Gi } }
       - name: log-ebs
         spec:
@@ -235,7 +235,7 @@ spec:
 ```
 
 - CHI 필드 전수·podDistribution anti-affinity·롤링/스케일 함정은 [operator·다운타임]({{< relref "04-operator-topology-downtime.md" >}})과 [클릭하우스 operator 운영]({{< relref "../clickhouse/05-altinity-operations.md" >}})이 담당한다 — 여기선 storage 주입에 필요한 뼈대만 보인다.
-- **PVC 크기는 임의로 바꾸지 않는다.** 위 `1000Gi`는 prod 노드당 order 예시이며 정확한 산정은 [용량 산정]({{< relref "07-capacity-planning.md" >}})이 정본이다. `default` 디스크가 hot + metadata + cache를 다 담으므로(§5.1) hot 데이터량만으로 잡으면 안 된다.
+- **PVC 크기는 임의로 바꾸지 않는다.** 위 `1000Gi`는 prod 노드당 order 예시이며 정확한 산정은 [용량 산정]({{< relref "07-capacity-planning.md" >}})이 기준 문서다. `default` 디스크가 hot + metadata + cache를 다 담으므로(§5.1) hot 데이터량만으로 잡으면 안 된다.
 
 ## 3. EKS IRSA — CH 서버가 S3에 붙는 법
 
@@ -288,9 +288,9 @@ metadata:
 - **clickhouse-backup의 IRSA self-assume 버그**(#798) `✓`: 백업 도구는 `AWS_ROLE_ARN`이 있으면 자기 자신을 다시 assume 시도하는 이슈가 있었다. 이는 **백업 사이드카** 얘기지 CH 서버 disk와는 별개이나, 같은 클러스터에서 백업도 IRSA로 붙일 때 `AssumeRoleARN` 미설정을 확인.
 - **CH 서버 disk에서 IRSA `use_environment_credentials` 실동작(최소 버전·필수 env·`AWS_EC2_METADATA_DISABLED` 영향)은 스테이징 실측이 필요하다** — 백업 도구 이슈는 확인됐으나 서버 disk 경로는 미실측이다. `?`
 
-## 4. TTL 정본 — RUM 테이블별 hot/cold/DELETE
+## 4. TTL 기준 문서 — RUM 테이블별 hot/cold/DELETE
 
-> **이 표가 카테고리의 TTL 단일 정본이다.** [용량 산정]({{< relref "07-capacity-planning.md" >}})은 이 표를 relref하고 보존 지평(3개월/6개월/1년)에 따른 DELETE 값만 변주한다. 두 페이지가 다른 TTL을 나란히 싣지 않게 하려는 규칙이다.
+> **이 표가 카테고리의 TTL 단일 기준 문서다.** [용량 산정]({{< relref "07-capacity-planning.md" >}})은 이 표를 relref하고 보존 지평(3개월/6개월/1년)에 따른 DELETE 값만 변주한다. 두 페이지가 다른 TTL을 나란히 싣지 않게 하려는 규칙이다.
 
 ### 4.1 ClickStack 관리 테이블 스키마 `✓`
 
@@ -309,7 +309,7 @@ ClickStack이 자동 생성하는 테이블(기본 DB=`default`). 전부 `ENGINE
 **기본 TTL 값 오해 차단.** ClickStack 공식 "Managing TTL" 문서는 *"기본 3일"* — 즉 `${TABLES_TTL}`이 **모든 테이블에 균일 적용**되는 단일 값(문서상 72h)이라고 명시한다 `✓`. 일부 2차 자료가 언급하는 "logs 14 / traces 30 / metrics 90 / sessions 7"의 신호별 값은 **ClickStack 배포 기본이 아니라** HyperDX 로컬 모드/특정 버전 신호이거나 권장치일 수 있다 `?`. 아래 우리 값(14/30일 hot 등)은 **우리가 의도적으로 설정하는 권장치**지 "기본값"이 아니다. 배포 후 `SHOW CREATE TABLE`로 실제 `${TABLES_TTL}`을 확인하라.
 {{< /callout >}}
 
-### 4.2 TTL 정본 표 (우리 RUM 워크로드) `≈`
+### 4.2 TTL 기준 문서 표 (우리 RUM 워크로드) `≈`
 
 hot 창은 **디버깅 최근성**으로, cold 이동/DELETE는 **보존 지평**으로 정한다. 세션 리플레이만 예외 — 아래 §4.4.
 
@@ -458,7 +458,7 @@ ORDER BY event_time DESC LIMIT 50;
 - **hot = EBS `default` 디스크**(gp3 기본, IOPS/throughput 부족 시 io2 — [02]({{< relref "02-hot-storage-ebs.md" >}})), **cold = S3 Standard + `cache` disk**(EBS LRU `max_size` 150Gi, `cache_on_write`). `storageManagement.provisioner: Operator`로 EBS 무중단 확장을 활용한다(로컬 NVMe와 근본 차이).
 - **인증 = IRSA**(정적 키 금지), `use_environment_credentials=1` + `region` 명시 + `{replica}` 경로 분리(shared-nothing 필수). CH 서버 disk의 IRSA 실동작은 스테이징 실측 대상 `?`.
 - **주입 = CHI `files`의 `config.d/storage_configuration.xml`**, pod `serviceAccountName`=IRSA SA. 외부 직접 마운트 금지.
-- **TTL 정본(이 페이지가 단일 출처)**: logs·traces hot 14일→S3→DELETE 90/180/365, metrics hot 30일→S3→DELETE 180/365, **sessions는 S3 미이동·hot만·DELETE 30일**. 주 이동은 시간 TTL, `move_factor=0.1`(안전판만), `prefer_not_to_merge` 미설정. 06은 이 표를 relref해 지평별 DELETE만 변주한다.
+- **TTL 기준 문서(이 페이지가 단일 출처)**: logs·traces hot 14일→S3→DELETE 90/180/365, metrics hot 30일→S3→DELETE 180/365, **sessions는 S3 미이동·hot만·DELETE 30일**. 주 이동은 시간 TTL, `move_factor=0.1`(안전판만), `prefer_not_to_merge` 미설정. 06은 이 표를 relref해 지평별 DELETE만 변주한다.
 - **사이징 주의**: EBS는 hot + part metadata(로컬 상주) + `cache max_size` + 머지 여유를 모두 포함한다 — hot 데이터량만으로 PVC를 잡지 않는다([06]({{< relref "07-capacity-planning.md" >}})).
 - **금지 3종**: S3 lifecycle→Glacier, zero-copy replication, `prefer_not_to_merge=true`.
 - **기본 TTL 오해 차단**: ClickStack 기본은 `${TABLES_TTL}` 단일값(문서상 3일); 위 신호별 14/30/90/… 은 우리 권장 설정치다. 배포 후 `SHOW CREATE TABLE`·`system.parts`로 실측 보정.

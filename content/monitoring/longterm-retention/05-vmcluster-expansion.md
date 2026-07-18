@@ -16,7 +16,7 @@ aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 
 현행 VMCluster를 그대로 400d로 늘리는 가장 단순한 길(단순 확장안)과, 그 위에 설정 한 줄로 다운샘플을 얹는 Enterprise 경로(확장+Ent)를 다룬다. 단순 확장안은 다른 옵션의 **비용 비교 기준선**이고, 확장+Ent는 OSS-우선 제약상 참고용이다.
 
-> 관련 블록: [02 VictoriaMetrics]({{< relref "02-vm-archive.md" >}}), [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
+> 관련 문서: [02 VictoriaMetrics]({{< relref "02-vm-archive.md" >}}), [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
 
 ## 단순 확장안: `-retentionPeriod=400d` + PVC 증설
 

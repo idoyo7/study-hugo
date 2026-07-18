@@ -16,7 +16,7 @@ aliases: ["/monitoring/victoriametrics/03-ingestion/"]
 
 VM에서 데이터가 들어오는 두 관문을 다룬다. **vmagent**는 무엇이든 받아 정제하고 리모트로 흘려보내는 만능 어댑터이자 버퍼이고, **vminsert**는 그 데이터를 여러 vmstorage 노드로 흩뿌리는 라우팅 게이트웨이다.
 
-> 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [04 저장·압축]({{< relref "04-storage-and-compression.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [실전 02 초대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})
+> 관련 문서: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [04 저장·압축]({{< relref "04-storage-and-compression.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [실전 02 초대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})
 
 ## vmagent — 무엇이든 받아서 정제하는 만능 어댑터
 

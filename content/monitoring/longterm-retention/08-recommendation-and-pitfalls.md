@@ -15,7 +15,7 @@ weight: 8
 
 400d 보관 결정의 최종 종합이다. VM 아카이브안을 왜 권장하는지의 근거를 한자리에 모으고, 업계 선례로 패턴을 뒷받침하며, 검증에서 기각된 함정 10개와 진행 전 드라이런 2주 실측 목록을 정리한다.
 
-> 관련 블록: [02 VM 아카이브 상세]({{< relref "02-vm-archive.md" >}}), [07 핵심논점·비용종합·판단트리]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [01 문제·2축]({{< relref "01-problem-and-axes.md" >}})
+> 관련 문서: [02 VM 아카이브 상세]({{< relref "02-vm-archive.md" >}}), [07 핵심논점·비용종합·판단트리]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [01 문제·2축]({{< relref "01-problem-and-axes.md" >}})
 
 ## 1. 권장: VM OSS 아카이브안 — 라우터 RW#4 + streamAggr 5m → vmsingle-archive 400d
 

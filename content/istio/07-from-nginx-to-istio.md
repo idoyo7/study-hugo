@@ -13,9 +13,9 @@ weight: 7
 - 표준 CRD로 안 되는 레이트 리밋·저수준 조작은 [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})로 넘어간다.
 {{< /callout >}}
 
-> **왜 이 이야기.** nginx로 프록시를 운영하던 시절, 라우팅·rewrite·헤더 조작·접근 제어가 전부 `nginx.conf` **한 파일에 절차적으로** 모여 있었다. 메시로 오면서 이것들이 사라진 게 아니라 **여러 개의 선언적 CRD로 흩어졌다.** rewrite는 VirtualService로, `auth_request`는 AuthorizationPolicy·외부 인가로, 헤더 조작은 또 다른 필드로. 이 블록은 "nginx에서 하던 그것"이 Istio에서 어디로 갔는지를 대응표로 정리한다.
+> **왜 이 이야기.** nginx로 프록시를 운영하던 시절, 라우팅·rewrite·헤더 조작·접근 제어가 전부 `nginx.conf` **한 파일에 절차적으로** 모여 있었다. 메시로 오면서 이것들이 사라진 게 아니라 **여러 개의 선언적 CRD로 흩어졌다.** rewrite는 VirtualService로, `auth_request`는 AuthorizationPolicy·외부 인가로, 헤더 조작은 또 다른 필드로. 이 문서는 "nginx에서 하던 그것"이 Istio에서 어디로 갔는지를 대응표로 정리한다.
 
-> 관련 블록: [03 게이트웨이·TLS]({{< relref "03-gateway-node-isolation.md" >}}) · [04 설정 GitOps]({{< relref "04-config-as-code.md" >}}) · 표준 CRD로 안 되면 → [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})
+> 관련 문서: [03 게이트웨이·TLS]({{< relref "03-gateway-node-isolation.md" >}}) · [04 설정 GitOps]({{< relref "04-config-as-code.md" >}}) · 표준 CRD로 안 되면 → [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})
 
 ## 빠른 참조 — nginx 지시어 → Istio 리소스
 
@@ -174,7 +174,7 @@ nginx에서 손으로 CORS 헤더를 붙이던 것도 선언적으로 바뀐다.
 | 외부 인가 | `auth_request` | **ext_authz**(AuthorizationPolicy CUSTOM) |
 | 레이트 리밋·저수준 필터 | `limit_req` 등 | **EnvoyFilter** → [08]({{< relref "08-envoyfilter-extension.md" >}}) |
 
-## 이 블록에서 가져갈 것
+## 이 문서에서 가져갈 것
 
 - nginx가 **한 파일에 절차적**으로 하던 것을, Istio는 **관심사별 CRD에 선언적**으로 나눈다. 강력하지만 설정이 흩어지므로 GitOps가 전제가 된다.
 - rewrite·헤더·CORS·타임아웃은 **VirtualService** 하나에, TLS·수신은 **Gateway**에 모인다.

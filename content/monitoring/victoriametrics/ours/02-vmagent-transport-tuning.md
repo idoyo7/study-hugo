@@ -15,7 +15,7 @@ weight: 2
 
 Phase 1의 목표는 **전송 안정화**다. 두 가지를 바꿨다 — 전송 프로토콜을 zstd로 고정하고, 디스크 큐에 상한을 명시했다. 각 변경의 근거와 트레이드오프, 적용 순서를 정리한다.
 
-> 관련 블록: [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}}) · [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) · [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
+> 관련 문서: [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}}) · [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) · [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
 
 ## ① `remoteWrite.forceVMProto=true` — zstd 고정
 

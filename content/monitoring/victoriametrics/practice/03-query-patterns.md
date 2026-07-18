@@ -13,11 +13,11 @@ weight: 3
 - **무거운 쿼리(넓은 시간범위 × 고카디널리티)는 vmselect 메모리를 먹는다** — 차원 축소·recording rule 선계산·캐시로 회피하고, 카디널리티는 **`/api/v1/status/tsdb`** 와 vmui **카디널리티 익스플로러**로 점검한다.
 {{< /callout >}}
 
-앞선 [01 카디널리티]({{< relref "01-cardinality.md" >}})·[02 대규모 운영]({{< relref "02-operations-at-scale.md" >}})이 "무엇을 저장하고 어떻게 운영하는가"였다면, 이 블록은 **저장한 것을 어떻게 꺼내 읽는가** — 즉 쿼리다. VM은 **PromQL을 그대로 받으면서**, 그 상위호환인 **MetricsQL**로 확장한다. 여기서는 지표 타입별 실전 패턴, MetricsQL만의 확장, 무거운 쿼리의 회피, 그리고 카디널리티 점검 쿼리를 정리한다.
+앞선 [01 카디널리티]({{< relref "01-cardinality.md" >}})·[02 대규모 운영]({{< relref "02-operations-at-scale.md" >}})이 "무엇을 저장하고 어떻게 운영하는가"였다면, 이 문서는 **저장한 것을 어떻게 꺼내 읽는가** — 즉 쿼리다. VM은 **PromQL을 그대로 받으면서**, 그 상위호환인 **MetricsQL**로 확장한다. 여기서는 지표 타입별 실전 패턴, MetricsQL만의 확장, 무거운 쿼리의 회피, 그리고 카디널리티 점검 쿼리를 정리한다.
 
-> 이 문서는 다른 블록과 달리 네이버 D2 발표 정독이 아니라 **VictoriaMetrics·Prometheus 공식 문서**를 근거로 한다(문서 말미 출처 참조).
+> 이 문서는 다른 문서와 달리 네이버 D2 발표 정독이 아니라 **VictoriaMetrics·Prometheus 공식 문서**를 근거로 한다(문서 말미 출처 참조).
 
-> 관련 블록: [개념 05 쿼리·운영 컴포넌트]({{< relref "../concepts/05-query-and-ops-components.md" >}}) · [01 카디널리티]({{< relref "01-cardinality.md" >}}) · [우리의 운영 03 자기감시 메트릭]({{< relref "../ours/03-self-monitoring-metrics.md" >}})
+> 관련 문서: [개념 05 쿼리·운영 컴포넌트]({{< relref "../concepts/05-query-and-ops-components.md" >}}) · [01 카디널리티]({{< relref "01-cardinality.md" >}}) · [우리의 운영 03 자기감시 메트릭]({{< relref "../ours/03-self-monitoring-metrics.md" >}})
 
 ## 실전 쿼리 패턴 — 지표 타입별
 

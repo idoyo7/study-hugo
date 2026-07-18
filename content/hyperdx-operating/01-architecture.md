@@ -1,21 +1,21 @@
 ---
-title: "솔루션 아키텍처 — 4컴포넌트 조립과 BYO 분기"
+title: "솔루션 아키텍처 — 4컴포넌트 조립과 HyperDX Only 분기"
 weight: 1
 aliases: ["/hyperdx/operating/01-architecture/"]
 ---
 
-# 솔루션 아키텍처 — 4컴포넌트 조립과 BYO 분기
+# 솔루션 아키텍처 — 4컴포넌트 조립과 HyperDX Only 분기
 
 {{< callout type="info" >}}
 **한눈에**
 
-- ClickStack 표준 배포는 **2개 Helm 차트**(`clickstack-operators` → `clickstack`)로 4컴포넌트를 얹지만, 우리는 `clickhouse.enabled: false`(**BYO**)로 ClickHouse/Keeper를 차트 밖으로 빼 **Altinity CHI/CHK**로 분리 운영한다 — 표준 경로를 그대로 쓰면 클러스터에 **CH operator 2종(공식 + Altinity)이 공존**하기 때문이다.
+- ClickStack 표준 배포는 **2개 Helm 차트**(`clickstack-operators` → `clickstack`)로 4컴포넌트를 얹지만, 우리는 `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 **'HyperDX Only'**)로 ClickHouse/Keeper를 차트 밖으로 빼 **Altinity CHI/CHK**로 분리 운영한다 — 표준 경로를 그대로 쓰면 클러스터에 **CH operator 2종(공식 + Altinity)이 공존**하기 때문이다.
 - 브라우저 RUM SDK는 HyperDX api가 아니라 **OTel Collector(`:4318`)로 직접** 텔레메트리를 보내고, 세션 리플레이는 ClickHouse `hyperdx_sessions`로 적재된다 — **RUM 인제스트 경로에 MongoDB는 없다.**
 - 컴포넌트별 배치는 OTel Collector **deployment ×2 + `file_storage` 큐**, HyperDX app/api **무상태 deployment**, ClickHouse는 **Altinity CHI(1 shard×RF2)**, Keeper는 **CHK 3노드**, MongoDB는 **MCK `members:3`(prod) 또는 Atlas**.
 - **OpAMP(`:4320`)**: HyperDX api가 OpAMP 서버로 동작해 Collector 파이프라인 설정을 원격 관리한다.
 {{< /callout >}}
 
-이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 1부(솔루션 아키텍처)를 실체화한 것이다. 4컴포넌트의 정체성·배포 6모드·BYO("HyperDX Only") 개념 자체의 정본은 [HyperDX / ClickStack 심층 분석]({{< relref "../rum/01-hyperdx-deep-dive.md" >}})이고, 포트·의존 방향·MongoDB 최소 배포 CR 전문은 [스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}})가 정본이다. 이 페이지는 그 위에서 **"왜 표준 경로를 안 쓰고 무엇을 어떻게 조립하나"** — 즉 조립 순서와 BYO 분기의 실무 판단만 압축해서 다룬다. 세부 매니페스트·다운타임 시나리오는 재서술하지 않고 relref로 위임한다.
+이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 1부(솔루션 아키텍처)를 구체화한 것이다. 4컴포넌트의 정체성·배포 6모드·'HyperDX Only' 개념 자체의 기준 문서는 [HyperDX / ClickStack 심층 분석]({{< relref "../rum/01-hyperdx-deep-dive.md" >}})이고, 포트·의존 방향·MongoDB 최소 배포 CR 전문은 [스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}})가 기준 문서다. 이 페이지는 그 위에서 **"왜 표준 경로를 안 쓰고 무엇을 어떻게 조립하나"** — 즉 조립 순서와 HyperDX Only 분기의 실무 판단만 압축해서 다룬다. 세부 매니페스트·다운타임 시나리오는 재서술하지 않고 relref로 위임한다.
 
 ## 1. 왜 표준 2-Helm 경로를 그대로 안 쓰나 — operator 2종 공존 회피
 
@@ -25,7 +25,7 @@ aliases: ["/hyperdx/operating/01-architecture/"]
 **"표준 install = Altinity"는 흔한 오해다.** 표준 ClickStack Helm 경로가 배포하는 CH operator는 Altinity가 아니라 ClickHouse Inc. 공식 operator다. 이 분기를 흐리면 뒤따르는 CHI/CHK 매니페스트({{< relref "../hyperdx/04-operator-topology-downtime.md" >}})가 "표준 설치와 어긋난다"는 착시를 만든다.
 {{< /callout >}}
 
-| 축 | 표준 2-Helm 경로 | 우리 채택 경로(BYO) |
+| 축 | 표준 2-Helm 경로 | 우리 채택 경로(HyperDX Only) |
 |---|---|---|
 | CH/Keeper 프로비저닝 주체 | `clickstack` 차트 → 공식 operator가 CR 생성 | Altinity operator가 별도 CHI/CHK CR로 생성 |
 | CH operator 종류 | ClickHouse Inc. 공식(`ClickHouseCluster`/`KeeperCluster`) `✓` | Altinity(`ClickHouseInstallation`/CHI, Keeper는 CHK) |
@@ -35,14 +35,14 @@ aliases: ["/hyperdx/operating/01-architecture/"]
 | HyperDX↔CH 연결 방식 | 차트가 CR로 CH를 프로비저닝 후 자동 연결 | `CLICKHOUSE_*` 시크릿으로 **외부 CH를 참조**만 |
 
 ```yaml
-# clickstack 차트 values — BYO 분기의 핵심 스위치
+# clickstack 차트 values — HyperDX Only 분기의 핵심 스위치
 clickhouse:
   enabled: false      # ★ 공식 operator를 쓰지 않음. CH/Keeper는 Altinity CHI/CHK로 외부 운영
 otel-collector:
   enabled: true        # 게이트웨이는 차트로 유지
 ```
 
-`enabled: false`로 두면 HyperDX api는 `CLICKHOUSE_*`·`MONGO_URI` 시크릿으로 외부 CH/Mongo를 참조만 하고, ClickHouse/Keeper 자체는 Altinity CHI/CHK가 별도로 운영한다 `✓`. operator 선택 자체의 근거(7년+ 트랙레코드·범용분석 일원화)는 [ClickHouse operator 선택]({{< relref "../clickhouse/03-operator.md" >}})이 정본이다.
+`enabled: false`로 두면 HyperDX api는 `CLICKHOUSE_*`·`MONGO_URI` 시크릿으로 외부 CH/Mongo를 참조만 하고, ClickHouse/Keeper 자체는 Altinity CHI/CHK가 별도로 운영한다 `✓`. operator 선택 자체의 근거(7년+ 트랙레코드·범용분석 일원화)는 [ClickHouse operator 선택]({{< relref "../clickhouse/03-operator.md" >}})이 기준 문서다.
 
 ## 2. 컴포넌트별 배치 — 4논리 컴포넌트, 6개 실행 단위
 
@@ -107,10 +107,10 @@ flowchart LR
 
 ## 5. 컴포넌트별 Helm values 핵심 스위치
 
-BYO 조립을 실제 values로 옮기면 아래 세 축으로 정리된다 — CH/Keeper 끄기, Collector 게이트웨이 사이징, HyperDX가 외부 CH/Mongo를 참조하는 시크릿 배선.
+HyperDX Only 조립을 실제 values로 옮기면 아래 세 축으로 정리된다 — CH/Keeper 끄기, Collector 게이트웨이 사이징, HyperDX가 외부 CH/Mongo를 참조하는 시크릿 배선.
 
 ```yaml
-# clickstack 차트 — BYO 조립 values 요지
+# clickstack 차트 — HyperDX Only 조립 values 요지
 clickhouse:
   enabled: false                 # §1 — Altinity CHI/CHK로 외부 운영
 
@@ -127,7 +127,7 @@ hyperdx:
       - secretRef: { name: mongo-creds }        # MONGO_URI
 ```
 
-CH/Keeper 자체(CHI/CHK CR)는 이 차트 values가 아니라 **별도 매니페스트**로 관리한다 — 필드·다운타임 시나리오는 [operator 토폴로지·다운타임]({{< relref "../hyperdx/04-operator-topology-downtime.md" >}})·[Altinity 운영]({{< relref "../clickhouse/05-altinity-operations.md" >}})이 정본이다. MongoDB `MongoDBCommunity` CR(members:3·SCRAM·WiredTiger 캐시 고정 전문)은 [스택 토폴로지 §6.3]({{< relref "../hyperdx/01-stack-topology.md" >}})으로 위임한다. 정확한 values 키 경로(예: `otel-collector.replicaCount` vs 중첩된 `deployment.replicas`)는 차트 버전마다 달라질 수 있어 배포 시 `helm show values clickstack/clickstack`로 재확인한다 `?`.
+CH/Keeper 자체(CHI/CHK CR)는 이 차트 values가 아니라 **별도 매니페스트**로 관리한다 — 필드·다운타임 시나리오는 [operator 토폴로지·다운타임]({{< relref "../hyperdx/04-operator-topology-downtime.md" >}})·[Altinity 운영]({{< relref "../clickhouse/05-altinity-operations.md" >}})이 기준 문서다. MongoDB `MongoDBCommunity` CR(members:3·SCRAM·WiredTiger 캐시 고정 전문)은 [스택 토폴로지 §6.3]({{< relref "../hyperdx/01-stack-topology.md" >}})으로 위임한다. 정확한 values 키 경로(예: `otel-collector.replicaCount` vs 중첩된 `deployment.replicas`)는 차트 버전마다 달라질 수 있어 배포 시 `helm show values clickstack/clickstack`로 재확인한다 `?`.
 
 ## 우리 케이스에서는
 

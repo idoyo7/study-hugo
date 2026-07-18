@@ -15,7 +15,7 @@ weight: 4
 
 큐 상한·리소스·HA·메모리 임계를 어떤 근거로 잡는지 정리한다. 확정 숫자보다 **판단 기준과 산정식**에 무게를 둔다 — 실제 값은 실측으로 조정한다.
 
-> 관련 블록: [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) · [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
+> 관련 문서: [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) · [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
 
 ## ① 디스크 큐 상한 산정식
 

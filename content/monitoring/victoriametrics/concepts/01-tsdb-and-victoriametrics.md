@@ -16,7 +16,7 @@ aliases: ["/monitoring/victoriametrics/01-tsdb-and-victoriametrics/"]
 
 시계열 데이터가 무엇이고 왜 "대용량"이 별도의 문제가 되는지, 그리고 그 문제를 푸는 도구로 VictoriaMetrics(이하 VM)가 어디에 서 있는지 정리한다. VM의 내부 컴포넌트 구조는 [02 아키텍처]({{< relref "02-architecture.md" >}})에서 이어 다룬다.
 
-> 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [개념 인덱스]({{< relref "_index.md" >}})
+> 관련 문서: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [개념 인덱스]({{< relref "_index.md" >}})
 
 ## 시계열 데이터란
 

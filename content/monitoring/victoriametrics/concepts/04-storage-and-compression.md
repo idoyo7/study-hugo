@@ -16,7 +16,7 @@ aliases: ["/monitoring/victoriametrics/04-storage-and-compression/"]
 
 vminsert가 흩뿌린 데이터를 실제로 디스크에 눕히는 컴포넌트가 **vmstorage**다. 여기서는 지표 하나가 TSID로 변환되어 파티션에 저장되기까지의 경로와, VM의 메모리·스토리지 효율의 비결인 **Gorilla 계열 차분 압축**을 다룬다.
 
-> 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [03 수집]({{< relref "03-ingestion.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}})
+> 관련 문서: [02 아키텍처]({{< relref "02-architecture.md" >}}) · [03 수집]({{< relref "03-ingestion.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}})
 
 ## vmstorage — 저장을 책임지는 컴포넌트
 
@@ -68,7 +68,7 @@ flowchart TD
 
 IndexDB에도 없으면 그 시계열은 **처음 보는 시계열**이므로 새 **`New TSID`** 를 발급한다. 이것이 흔히 말하는 "새 시계열이 만들어지는" 순간이다. `New TSID`가 짧은 시간에 폭발적으로 발급되는 상황이 곧 **카디널리티 폭발**인데, 그 원인·지표·설계 원칙은 [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}})가 주인이다. 여기서는 발급 지점까지만 짚는다.
 
-### 값 수준 워크스루 — 샘플 1건이 저장되는 모습
+### 값 수준으로 따라가기 — 샘플 1건이 저장되는 모습
 
 앞의 개념들이 실제 값에서 어떻게 맞물리는지 예시 하나로 따라가 본다. 다음 스크레이프 한 줄이 들어왔다고 하자.
 

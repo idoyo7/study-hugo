@@ -16,7 +16,7 @@ aliases: ["/monitoring/longterm-retention/02-option-a-vm-archive/"]
 
 기존 chain 라우터 vmagent에 remoteWrite 하나(RW#4)를 더하고, 그 URL에만 5m 스트림 집계를 걸어 전 메트릭을 별도 vmsingle-archive(400d, VM OSS만)로 흘려보내는 권장안이다. 신규 기술 0, 월 저장비 $385~416, 단순 확장안 대비 약 70% 절감을 얻는다.
 
-> 관련 블록: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
+> 관련 문서: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
 
 ## 한 줄 요약
 

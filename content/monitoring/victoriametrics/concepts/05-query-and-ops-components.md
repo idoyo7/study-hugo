@@ -14,9 +14,9 @@ aliases: ["/monitoring/victoriametrics/05-query-and-ops-components/"]
 - **vmalert**는 Recording rules로 무거운 집계를 미리 계산해 조회 부하를 쓰기 시점으로 옮기고, **vmauth**는 멀티 클러스터 앞단 라우팅 게이트웨이로 사용자 배포 없이 장애 전환을 가능케 한다.
 {{< /callout >}}
 
-데이터가 들어가는 길([03 수집]({{< relref "03-ingestion.md" >}})·[04 저장]({{< relref "04-storage-and-compression.md" >}}))을 다뤘으니, 이 블록은 **데이터가 빠지는 길**과 그 주변의 운영 컴포넌트를 본다. 쿼리 엔진 `vmselect`, 지표를 미리 계산해 두는 `vmalert`, 그리고 멀티 클러스터의 앞단을 지키는 라우팅 게이트웨이 `vmauth`다.
+데이터가 들어가는 길([03 수집]({{< relref "03-ingestion.md" >}})·[04 저장]({{< relref "04-storage-and-compression.md" >}}))을 다뤘으니, 이 문서는 **데이터가 빠지는 길**과 그 주변의 운영 컴포넌트를 본다. 쿼리 엔진 `vmselect`, 지표를 미리 계산해 두는 `vmalert`, 그리고 멀티 클러스터의 앞단을 지키는 라우팅 게이트웨이 `vmauth`다.
 
-> 관련 블록: [02 아키텍처]({{< relref "02-architecture.md" >}}), [03 수집]({{< relref "03-ingestion.md" >}}), [04 저장]({{< relref "04-storage-and-compression.md" >}}), [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}), [실전 02 대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})
+> 관련 문서: [02 아키텍처]({{< relref "02-architecture.md" >}}), [03 수집]({{< relref "03-ingestion.md" >}}), [04 저장]({{< relref "04-storage-and-compression.md" >}}), [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}), [실전 02 대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})
 
 ## vmselect — Fanout 쿼리 엔진
 

@@ -47,4 +47,4 @@ VictoriaMetrics 패밀리의 로그 전용 저장소로, 단일 static Go 바이
 
 ## 우리 케이스에서는
 
-우리는 이미 self-hosted VictoriaMetrics 클러스터를 운영 중이라 운영 모델과 muscle memory가 거의 그대로 이전된다 — 학습 · rot 비용이 0에 가까워, 로그 내재화를 시작하기에 리스크가 가장 작다. 규모가 크지 않은 istio 액세스 로그(~100–300GB/day)부터 얹으면 오브젝트-스토리지 부재가 걸리지 않고, cold(30–90일) tail만 S3 Parquet(VL cold mount / [CH-on-S3]({{< relref "04-clickhouse.md" >}}) / Athena)로 분리 설계하면 된다. VictoriaMetrics의 내부 동작은 [VictoriaMetrics 지식베이스]({{< relref "../monitoring/victoriametrics/_index.md" >}}) 참고.
+우리는 이미 self-hosted VictoriaMetrics 클러스터를 운영 중이라 운영 모델과 운영 감각이 거의 그대로 이전된다 — 학습 · rot 비용이 0에 가까워, 로그 내재화를 시작하기에 리스크가 가장 작다. 규모가 크지 않은 istio 액세스 로그(~100–300GB/day)부터 얹으면 오브젝트-스토리지 부재가 걸리지 않고, cold(30–90일) tail만 S3 Parquet(VL cold mount / [CH-on-S3]({{< relref "04-clickhouse.md" >}}) / Athena)로 분리 설계하면 된다. VictoriaMetrics의 내부 동작은 [VictoriaMetrics 지식베이스]({{< relref "../monitoring/victoriametrics/_index.md" >}}) 참고.

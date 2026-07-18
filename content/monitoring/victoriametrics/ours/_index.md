@@ -15,7 +15,7 @@ weight: 3
 
 concepts는 네이버 D2/DEVIEW 발표를 정독해 VM의 내부 동작을 잡았고, practice는 그 위에서 카디널리티·초대규모 운영 같은 설계 원칙을 정리했다. 이 서브섹션은 그 원리와 원칙을 **우리 환경의 구체적인 값**으로 옮긴다. 어떤 리소스로 vmagent를 띄웠고, 무엇을 왜 튜닝했으며, 어떤 메트릭을 어떤 임계로 감시하는지 — 즉 "네이버는 이렇게 한다"가 아니라 "우리는 이렇게 운영한다"를 담는다.
 
-> 관련 블록: [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [메트릭 장기보관]({{< relref "../../longterm-retention/_index.md" >}}) · [VM Deep Dive 허브]({{< relref "../_index.md" >}})
+> 관련 문서: [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [메트릭 장기보관]({{< relref "../../longterm-retention/_index.md" >}}) · [VM Deep Dive 허브]({{< relref "../_index.md" >}})
 
 ## 세 계층의 관계
 

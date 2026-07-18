@@ -15,7 +15,7 @@ weight: 3
 
 Phase 1 적용이 잘 됐는지, 전송이 건강한지를 판정하는 자기감시(self-monitoring) 메트릭을 정리한다. [02]({{< relref "02-vmagent-transport-tuning.md" >}})의 적용 후 확인이 여기로 이어진다.
 
-> 관련 블록: [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
+> 관련 문서: [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
 
 ## 전송 상태 4지표
 

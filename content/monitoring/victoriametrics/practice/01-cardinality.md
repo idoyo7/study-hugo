@@ -14,9 +14,9 @@ aliases: ["/monitoring/victoriametrics/06-cardinality/"]
 - 런타임 감시는 **churn rate**(신규 시계열 생성 속도)와 **slow insert rate**(지속 10% 초과 시 메모리 부족 경고) 두 지표가 핵심.
 {{< /callout >}}
 
-VM 운영에서 가장 자주 사고를 내는 개념이 **카디널리티**다. 이 블록은 "한 시계열이 무엇으로 정의되는가"에서 출발해, 카디널리티 폭발이 왜 곧 메모리·인덱스 폭발인지, 그리고 설계 단계에서 이를 어떻게 막는지를 본다.
+VM 운영에서 가장 자주 사고를 내는 개념이 **카디널리티**다. 이 문서는 "한 시계열이 무엇으로 정의되는가"에서 출발해, 카디널리티 폭발이 왜 곧 메모리·인덱스 폭발인지, 그리고 설계 단계에서 이를 어떻게 막는지를 본다.
 
-> 관련 블록: [개념 04 저장]({{< relref "../concepts/04-storage-and-compression.md" >}}), [개념 05 쿼리·운영 컴포넌트]({{< relref "../concepts/05-query-and-ops-components.md" >}}), [02 대규모 운영]({{< relref "02-operations-at-scale.md" >}})
+> 관련 문서: [개념 04 저장]({{< relref "../concepts/04-storage-and-compression.md" >}}), [개념 05 쿼리·운영 컴포넌트]({{< relref "../concepts/05-query-and-ops-components.md" >}}), [02 대규모 운영]({{< relref "02-operations-at-scale.md" >}})
 
 ## 한 시계열 = 지표 이름 + 레이블 집합
 

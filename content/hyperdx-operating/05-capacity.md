@@ -15,7 +15,7 @@ aliases: ["/hyperdx/operating/05-capacity/"]
 - 인제스트 피크 ~8MB/s로 **1 shard × RF2가 1년+ 충분**, 샤딩은 이 규모에서 부채. prod 월 **~$1.0K**(us-east-1, RF3 ~$1.5K, 서울 +10~15%). `≈`
 {{< /callout >}}
 
-이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 5부(규모 산정)를 실체화한 것이다. 산식 유도·민감도 밴드·대조 시나리오 전문은 [용량 산정]({{< relref "../hyperdx/07-capacity-planning.md" >}})이 정본이며, TTL 정책 자체의 정본은 [S3 콜드 티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}})·[데이터 티어링]({{< relref "02-tiering.md" >}})이다. 이 페이지는 "얼마나 쌓이고 얼마나 드는가"라는 캐파 판단에 필요한 표·산식·결론만 압축한다.
+이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 5부(규모 산정)를 구체화한 것이다. 산식 유도·민감도 밴드·대조 시나리오 전문은 [용량 산정]({{< relref "../hyperdx/07-capacity-planning.md" >}})이 기준 문서이며, TTL 정책 자체의 기준 문서는 [S3 콜드 티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}})·[데이터 티어링]({{< relref "02-tiering.md" >}})이다. 이 페이지는 "얼마나 쌓이고 얼마나 드는가"라는 캐파 판단에 필요한 표·산식·결론만 압축한다.
 
 ## 1. 첫 갈림길 — "0.7TB"는 어디서 잰 바이트인가
 
@@ -26,7 +26,7 @@ aliases: ["/hyperdx/operating/05-capacity/"]
 | 0.7TB의 의미 | collector 인입 바이트/월(압축 전) | CH가 디스크에 쓰는 압축 후 바이트/월(`bytes_on_disk`) |
 | 변환(블렌디드 ~6x, §2) | on-disk ≈ 0.7TB÷6 ≈ **117GB/월** | raw ≈ 0.7TB×6 ≈ **4.2TB/월** |
 | 배포 규모 | 아주 작음 → 2× 소형 노드, ~$0.5K/mo | 중소 → 2× r7g.2xlarge, ~$1.0K/mo |
-| 캐파 적합성 | 사이징엔 과소 | **디스크를 직접 결정 → 사이징의 정본** |
+| 캐파 적합성 | 사이징엔 과소 | **디스크를 직접 결정 → 사이징의 기준** |
 
 `≈` — 두 해석 모두 세션 수 역산으로 내부 정합은 확인되지만(해석 B ≈22M 세션/월, 해석 A ≈3M 세션/월), 서로 다른 크기의 자산을 기술할 뿐이라 어느 쪽인지는 실측으로만 갈린다.
 
@@ -71,7 +71,7 @@ on-disk 분율 = 0.65/5 + 0.20/10 + 0.13/10 + 0.02/8 = 0.1655
 
 ## 3. 최대 지렛대 — 리플레이는 "안 쌓인다"
 
-TTL 정책([S3 콜드 티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}}) 정본)의 핵심: `hyperdx_sessions`는 hot(gp3)만, **S3로 내리지 않고** 30일 후 **DELETE**. `otel_logs`/`otel_traces`는 hot 14일 → S3 → 지평별 DELETE. `otel_metrics_*`는 hot 30일 → S3 → 지평별 DELETE.
+TTL 정책([S3 콜드 티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}}) 기준 문서)의 핵심: `hyperdx_sessions`는 hot(gp3)만, **S3로 내리지 않고** 30일 후 **DELETE**. `otel_logs`/`otel_traces`는 hot 14일 → S3 → 지평별 DELETE. `otel_metrics_*`는 hot 30일 → S3 → 지평별 DELETE.
 
 on-disk의 78.5%를 차지하는 리플레이가 30일 상한으로 잘리고 S3로도 안 가면 **누적되지 않는다**(steady-state ~0.55TB 단일). 누적을 만드는 건 나머지 ~22%(로그+트레이스+메트릭 ≈0.15TB/월)뿐이다.
 

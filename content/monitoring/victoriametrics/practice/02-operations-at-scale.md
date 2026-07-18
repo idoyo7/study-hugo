@@ -16,7 +16,7 @@ aliases: ["/monitoring/victoriametrics/07-operations-at-scale/"]
 
 네이버 검색이 5년간 VictoriaMetrics를 운영하며 도달한 초대규모(12.5억 시계열·555조 데이터포인트·180노드) 현장의 이야기다. 단일 클러스터가 무너지는 지점, 여러 클러스터로 쪼갠 "멀티버스", Hot/Warm 2계층, 그리고 180대를 무중단으로 갈아 끼운 전환 설계를 다룬다.
 
-> 관련 블록: [개념 02 아키텍처]({{< relref "../concepts/02-architecture.md" >}}), [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}}), [개념 04 저장·압축]({{< relref "../concepts/04-storage-and-compression.md" >}}), [개념 05 쿼리·운영 컴포넌트]({{< relref "../concepts/05-query-and-ops-components.md" >}}), [01 카디널리티]({{< relref "01-cardinality.md" >}})
+> 관련 문서: [개념 02 아키텍처]({{< relref "../concepts/02-architecture.md" >}}), [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}}), [개념 04 저장·압축]({{< relref "../concepts/04-storage-and-compression.md" >}}), [개념 05 쿼리·운영 컴포넌트]({{< relref "../concepts/05-query-and-ops-components.md" >}}), [01 카디널리티]({{< relref "01-cardinality.md" >}})
 
 ## 대혼돈의 멀티버스 — 멀티클러스터 운영기
 

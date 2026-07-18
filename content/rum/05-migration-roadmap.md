@@ -83,7 +83,7 @@ RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument 
 - **감사로그 GA 시점·배포 형태**(OSS vs Cloud) — RBAC 선례상 Cloud 전용일 가능성 `?`.
 - **HyperDX 쿼리 생성과 ClickHouse row policy 상호작용** — 집계/JOIN 시 정책 누수 여부 실증 필요 `?`.
 - **AST 변환기 PromQL 출력이 VictoriaMetrics(MetricsQL)와 100% 호환**되는지 — PoC 필요 `?`.
-- **Managed ClickStack RBAC가 "HyperDX only(BYO 자체 CH)"에 백포트될지** — 현재 근거상 아니오 `?`.
+- **Managed ClickStack RBAC가 "자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only'"에 백포트될지** — 현재 근거상 아니오 `?`.
 - (CH 배포 측 오픈 퀘스천 — 재수화 TB당 소요 시간, i7i 순차 대역 실측 등 — 은 [clickhouse 챕터]({{< relref "../clickhouse/_index.md" >}})에서 다룬다.)
 {{% /details %}}
 
@@ -99,4 +99,4 @@ RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument 
 
 **착수 전 필수 확인**(RUM 도메인 공통): Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 측정한다 — 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택(CH+MongoDB)만 늘린다. 도메인 큰 그림은 [RUM 내재화]({{< relref "_index.md" >}}) 참고.
 
-> 근거 등급은 조사 문서의 판정을 승계한다. `≈`은 자릿수 추정, `?`은 공개 전례·검증 부재를 뜻한다. 조사 기준 2026-07.
+> 근거 등급은 조사 문서의 판정을 이어받는다. `≈`은 자릿수 추정, `?`은 공개 전례·검증 부재를 뜻한다. 조사 기준 2026-07.

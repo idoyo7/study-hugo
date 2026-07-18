@@ -15,9 +15,9 @@ weight: 2
 - **>90d 구간은 5m 해상도 허용** — 이 한 줄이 비용을 자릿수로 가른다.
 - **OSS 우선.** 근거는 공식 문서 + AWS Price List API(서울, 2026-07-10) 적대적 검증.
 
-## 블록 지도
+## 문서 지도
 
-| 블록 | 주제 | 한 줄 요약 |
+| 문서 | 주제 | 한 줄 요약 |
 |------|------|-----------|
 | [01 문제와 결정 2축]({{< relref "01-problem-and-axes.md" >}}) | 프레이밍 | 무엇을 보관(raw vs 5m 집계)·어디에 저장(EBS vs S3), 시나리오 ①② 비용 규모 |
 | [02 VictoriaMetrics]({{< relref "02-vm-archive.md" >}}) | ★권장 | 라우터 RW#4 + streamAggr 5m → vmsingle-archive, 월 $385~416 |

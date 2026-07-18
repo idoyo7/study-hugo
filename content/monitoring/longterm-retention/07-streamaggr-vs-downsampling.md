@@ -13,9 +13,9 @@ weight: 7
 - 판정: **VM 아카이브안** 채택, 단 아카이브 검증 전까지 hot 90d raw retention 축소 금지 — **가역적**(RW#4를 Thanos Receive로 교체하면 언제든 전환).
 {{< /callout >}}
 
-이 블록은 400d 아카이브의 5m 해상도를 "누가 만드느냐"를 가른다. VM OSS의 **streamAggr**(인제스트 시점 사전 집계, VM 아카이브안)와 **Thanos compactor downsampling**(사후 집계, Thanos안)을 4축으로 대조하고, 판단 기준 트리와 시나리오 ② 비용 종합표(VM아카이브/Thanos/Mimir/확장/확장+Ent)를 확정한다. 비교표·판단 트리·비용 종합표의 주인 블록이다 — 다른 블록은 이리로 링크한다.
+이 문서는 400d 아카이브의 5m 해상도를 "누가 만드느냐"를 가른다. VM OSS의 **streamAggr**(인제스트 시점 사전 집계, VM 아카이브안)와 **Thanos compactor downsampling**(사후 집계, Thanos안)을 4축으로 대조하고, 판단 기준 트리와 시나리오 ② 비용 종합표(VM아카이브/Thanos/Mimir/확장/확장+Ent)를 확정한다. 비교표·판단 트리·비용 종합표의 주인 문서다 — 다른 문서는 이리로 링크한다.
 
-> 관련 블록: [00 인덱스]({{< relref "_index.md" >}}), [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [02 VM 아카이브]({{< relref "02-vm-archive.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [04 Mimir]({{< relref "04-mimir.md" >}}), [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}}), [06 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
+> 관련 문서: [00 인덱스]({{< relref "_index.md" >}}), [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [02 VM 아카이브]({{< relref "02-vm-archive.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [04 Mimir]({{< relref "04-mimir.md" >}}), [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}}), [06 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
 
 ## 질문의 구조
 
@@ -80,7 +80,7 @@ raw 90d + 전 메트릭 5m 집계 400d, 월 저장비 기준(컴퓨트 별도). 
 | **확장** | — (OSS로 5m 불가) | 참고용 | — |
 | **확장+Ent** | 90d raw + 310d 5m ≈ 5,445 GiB | **~$497 + 라이선스(비공개)** | `-downsampling.period=90d:5m` 한 줄 |
 
-**불확실성 명시**: VM 아카이브안의 f=0.1~0.3은 [샘플 수 축소] + [인덱스 몫(~20%, 시리즈 수는 안 줄음)] + [집계값 압축률 저하 가능성]의 합이며 **드라이런 2주 실측이 확정치**(검증 필요)다. Thanos안의 S3 범위(14.9~30.7 TiB)는 "5m·1h 블록이 raw와 비슷"이라는 공식 서술의 해석 폭이다. 모든 수치는 3.6 TiB 100% 사용 상한 가정이므로 실측 사용률로 선형 보정한다. 옵션별 상세 저장 구성은 각 옵션 블록([02]({{< relref "02-vm-archive.md" >}})/[03]({{< relref "03-thanos-s3.md" >}})/[04]({{< relref "04-mimir.md" >}})/[05]({{< relref "05-vmcluster-expansion.md" >}})), 시나리오 ① 표는 [01]({{< relref "01-problem-and-axes.md" >}}).
+**불확실성 명시**: VM 아카이브안의 f=0.1~0.3은 [샘플 수 축소] + [인덱스 몫(~20%, 시리즈 수는 안 줄음)] + [집계값 압축률 저하 가능성]의 합이며 **드라이런 2주 실측이 확정치**(검증 필요)다. Thanos안의 S3 범위(14.9~30.7 TiB)는 "5m·1h 블록이 raw와 비슷"이라는 공식 서술의 해석 폭이다. 모든 수치는 3.6 TiB 100% 사용 상한 가정이므로 실측 사용률로 선형 보정한다. 옵션별 상세 저장 구성은 각 옵션 문서([02]({{< relref "02-vm-archive.md" >}})/[03]({{< relref "03-thanos-s3.md" >}})/[04]({{< relref "04-mimir.md" >}})/[05]({{< relref "05-vmcluster-expansion.md" >}})), 시나리오 ① 표는 [01]({{< relref "01-problem-and-axes.md" >}}).
 
 ## 판정
 

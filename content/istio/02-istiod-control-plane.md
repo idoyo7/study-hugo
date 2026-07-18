@@ -13,9 +13,9 @@ weight: 2
 - 그다음 레버는 디바운스·discoverySelectors 튜닝, 마지막이 수평 스케일(istiod는 stateless).
 {{< /callout >}}
 
-> **그때 무슨 일이 있었나.** 클러스터 규모가 커지고 배포가 잦아지자, 컨트롤 플레인 istiod의 CPU가 주기적으로 치솟았다. 급한 불은 **CPU를 증설**해서 껐지만, 그건 응급 처치였다. 같은 맥락에서 "istio node/pod 리소스 최적화" 과제가 이어졌다 — 프록시 쪽 자원과 istiod가 다루는 설정 범위를 함께 손봐야 근본이 잡히기 때문이다. 이 블록은 **istiod가 CPU를 먹는 메커니즘**, **언제 증설해야 하는지를 알려주는 지표**, 그리고 **증설 말고 진짜 해법**을 정리한다.
+> **그때 무슨 일이 있었나.** 클러스터 규모가 커지고 배포가 잦아지자, 컨트롤 플레인 istiod의 CPU가 주기적으로 치솟았다. 급한 불은 **CPU를 증설**해서 껐지만, 그건 응급 처치였다. 같은 맥락에서 "istio node/pod 리소스 최적화" 과제가 이어졌다 — 프록시 쪽 자원과 istiod가 다루는 설정 범위를 함께 손봐야 근본이 잡히기 때문이다. 이 문서는 **istiod가 CPU를 먹는 메커니즘**, **언제 증설해야 하는지를 알려주는 지표**, 그리고 **증설 말고 진짜 해법**을 정리한다.
 
-> 관련 블록: [01 메시 기초]({{< relref "01-mesh-basics.md" >}}) · [03 데이터 플레인과 게이트웨이]({{< relref "03-gateway-node-isolation.md" >}}) · [05 장애 이야기]({{< relref "05-incident-intermittent-5xx.md" >}})
+> 관련 문서: [01 메시 기초]({{< relref "01-mesh-basics.md" >}}) · [03 데이터 플레인과 게이트웨이]({{< relref "03-gateway-node-isolation.md" >}}) · [05 장애 이야기]({{< relref "05-incident-intermittent-5xx.md" >}})
 
 ## istiod가 실제로 하는 일
 
@@ -123,7 +123,7 @@ spec:
 
 범위를 좁힌 뒤에도 부하가 크면 그때 스케일한다. istiod는 **stateless**라 수평 확장이 쉽다 — replica를 늘리면 프록시 연결이 분산된다. HPA를 CPU 또는 `pilot_xds`(연결 수) 기준으로 걸어 배포·트래픽 피크에 대응하고, 파드 스펙의 CPU/메모리 request·limit은 앞의 참고 수치와 실측으로 잡는다.
 
-## 이 블록에서 가져갈 것
+## 이 문서에서 가져갈 것
 
 - istiod의 부하는 **push**에서 나오고, 그 비용은 **프록시 수 × 변경 빈도 × 설정 범위**의 곱이다.
 - 증설 판단은 감이 아니라 지표로 한다. **1순위는 `pilot_proxy_convergence_time`(수렴 시간)**, 그다음 연결 프록시 수·push 폭주·istiod CPU 순으로 원인을 가른다.

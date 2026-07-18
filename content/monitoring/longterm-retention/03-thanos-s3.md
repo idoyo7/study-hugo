@@ -16,7 +16,7 @@ aliases: ["/monitoring/longterm-retention/03-option-b-thanos/"]
 
 VM hot을 단기로 유지하고 raw를 S3에 짧게 쌓은 뒤, Thanos compactor가 **사후에** 5m/1h 다운샘플 블록을 만들어 400d를 보관하는 안이다. **S3 내구성 + 사후 재계산 보험**을 얻는 대신 **stateful 컴포넌트 3~4종과 더 높은 저장비**를 치른다.
 
-> 관련 블록: [02 VM 아카이브(권장)]({{< relref "02-vm-archive.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지 말 것]({{< relref "08-recommendation-and-pitfalls.md" >}})
+> 관련 문서: [02 VM 아카이브(권장)]({{< relref "02-vm-archive.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지 말 것]({{< relref "08-recommendation-and-pitfalls.md" >}})
 
 ## 아키텍처
 

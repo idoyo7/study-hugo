@@ -50,9 +50,9 @@ cascade:
 | [**StarRocks**]({{< relref "06-starrocks.md" >}}) | 컬럼형 MPP OLAP | S3 위 stateless 컴퓨트가 강점, 그러나 로그·UI는 미성숙 | 별도 mandate 없으면 제외 |
 | **RUM 대안군** | Sentry/OpenReplay/Faro 등 | 셀프호스트 세션 리플레이 | → 별도 [RUM 내재화]({{< relref "../rum/_index.md" >}}) 도메인 |
 
-## 블록 지도
+## 문서 지도
 
-| 블록 | 내용 |
+| 문서 | 내용 |
 |---|---|
 | 솔루션별 페이지 | [OpenSearch]({{< relref "01-opensearch.md" >}}) · [Loki+Alloy]({{< relref "02-loki-alloy.md" >}}) · [VictoriaLogs]({{< relref "03-victorialogs.md" >}}) · [ClickHouse]({{< relref "04-clickhouse.md" >}}) · [HyperDX/ClickStack]({{< relref "05-hyperdx-clickstack.md" >}}) · [StarRocks]({{< relref "06-starrocks.md" >}}) |
 | [ClickHouse vs StarRocks]({{< relref "07-clickhouse-vs-starrocks.md" >}}) | 로그/관측성 한정 정면 비교(8축 요약·판정) |

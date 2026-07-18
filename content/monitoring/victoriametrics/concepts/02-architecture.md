@@ -14,9 +14,9 @@ aliases: ["/monitoring/victoriametrics/02-architecture/"]
 - **IndexDB**(거의 불변, 지표이름+레이블 역색인)와 **DataDB**(TSID → timestamp+value, 계속 쌓임) 분리가 정규화로 압축 효율을 극대화한다.
 {{< /callout >}}
 
-VM 클러스터가 어떤 컴포넌트로 이루어지고 데이터가 어떻게 흐르는지, 그리고 그 밑을 떠받치는 두 가지 핵심 아이디어 — **LSM 트리**와 **IndexDB/DataDB 분리** — 를 정리한다. 각 컴포넌트의 내부 동작은 뒤 블록에서 하나씩 깊게 파고든다.
+VM 클러스터가 어떤 컴포넌트로 이루어지고 데이터가 어떻게 흐르는지, 그리고 그 밑을 떠받치는 두 가지 핵심 아이디어 — **LSM 트리**와 **IndexDB/DataDB 분리** — 를 정리한다. 각 컴포넌트의 내부 동작은 뒤 문서에서 하나씩 깊게 파고든다.
 
-> 관련 블록: [01 시계열과 VM]({{< relref "01-tsdb-and-victoriametrics.md" >}}) · [03 수집]({{< relref "03-ingestion.md" >}}) · [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [실전 02 대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})
+> 관련 문서: [01 시계열과 VM]({{< relref "01-tsdb-and-victoriametrics.md" >}}) · [03 수집]({{< relref "03-ingestion.md" >}}) · [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) · [실전 02 대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})
 
 ## 4개 컴포넌트의 데이터 흐름
 
@@ -100,7 +100,7 @@ TSID 변환·캐시, 역색인의 상세, New TSID로 인한 카디널리티 폭
 
 ## "거대하고 빠른 키-밸류 스토어"라는 추상화
 
-한 발 물러서서 보면 IndexDB와 DataDB는 결국 둘 다 **엄청나게 거대하고 빠른, LSM 트리 형태의 키-밸류 스토어**다. IndexDB는 "레이블 → 시계열" 매핑을, DataDB는 "TSID → (timestamp, value) 시퀀스"를 담는다. VM의 저장 계층 전체를 이 한 문장으로 요약할 수 있다 — **append로 빠르게 쓰고 정렬로 빠르게 읽는, 두 개의 거대한 키-밸류 스토어.** 이 추상화를 쥐고 있으면 뒤 블록의 압축·파티션·쿼리 이야기가 전부 "이 키-밸류 스토어를 어떻게 더 잘게 눌러 담고 더 빠르게 뒤지느냐"의 변주로 읽힌다.
+한 발 물러서서 보면 IndexDB와 DataDB는 결국 둘 다 **엄청나게 거대하고 빠른, LSM 트리 형태의 키-밸류 스토어**다. IndexDB는 "레이블 → 시계열" 매핑을, DataDB는 "TSID → (timestamp, value) 시퀀스"를 담는다. VM의 저장 계층 전체를 이 한 문장으로 요약할 수 있다 — **append로 빠르게 쓰고 정렬로 빠르게 읽는, 두 개의 거대한 키-밸류 스토어.** 이 추상화를 쥐고 있으면 뒤 문서의 압축·파티션·쿼리 이야기가 전부 "이 키-밸류 스토어를 어떻게 더 잘게 눌러 담고 더 빠르게 뒤지느냐"의 변주로 읽힌다.
 
 ## 출처
 

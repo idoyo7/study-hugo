@@ -13,9 +13,9 @@ weight: 6
 - **카디널리티는 공짜가 아니다** — Telemetry API로 태그를 정리·집약해 관리한다.
 {{< /callout >}}
 
-> **왜 이 이야기.** 메시를 얹기 전에는 서비스마다 지표가 제각각이었다. 어떤 팀은 요청 수를 내보내고, 어떤 팀은 안 내보내고, 라벨 이름도 서비스마다 달랐다. Istio를 얹자 **모든 서비스가 동일한 스키마의 골든 시그널을 앱 코드 수정 없이** 뿜기 시작했다 — 사이드카가 이미 모든 요청을 보고 있으니 공짜다. 이 블록은 메시가 주는 관측성의 세 축(메트릭·액세스 로그·트레이싱)과, 그 "공짜"의 한계·비용을 정리한다.
+> **왜 이 이야기.** 메시를 얹기 전에는 서비스마다 지표가 제각각이었다. 어떤 팀은 요청 수를 내보내고, 어떤 팀은 안 내보내고, 라벨 이름도 서비스마다 달랐다. Istio를 얹자 **모든 서비스가 동일한 스키마의 골든 시그널을 앱 코드 수정 없이** 뿜기 시작했다 — 사이드카가 이미 모든 요청을 보고 있으니 공짜다. 이 문서는 메시가 주는 관측성의 세 축(메트릭·액세스 로그·트레이싱)과, 그 "공짜"의 한계·비용을 정리한다.
 
-> 관련 블록: [02 컨트롤 플레인 지표]({{< relref "02-istiod-control-plane.md" >}})(istiod 쪽 지표는 그쪽) · [05 장애 추적]({{< relref "05-incident-intermittent-5xx.md" >}})(response_flags) · 저장/카디널리티는 [VictoriaMetrics]({{< relref "../monitoring/victoriametrics/_index.md" >}}), 로그 목적지는 [로깅]({{< relref "../logging/_index.md" >}}).
+> 관련 문서: [02 컨트롤 플레인 지표]({{< relref "02-istiod-control-plane.md" >}})(istiod 쪽 지표는 그쪽) · [05 장애 추적]({{< relref "05-incident-intermittent-5xx.md" >}})(response_flags) · 저장/카디널리티는 [VictoriaMetrics]({{< relref "../monitoring/victoriametrics/_index.md" >}}), 로그 목적지는 [로깅]({{< relref "../logging/_index.md" >}}).
 
 ## 왜 "공짜"인가
 
@@ -92,7 +92,7 @@ Istio가 내보내는 핵심 프록시 메트릭은 다음과 같다. 이름이 
 
 EnvoyFilter로 저수준을 건드리기 전에, 관측 커스터마이징은 **거의 다 Telemetry API로 끝난다**([08]({{< relref "08-envoyfilter-extension.md" >}})의 선택 사다리 참고).
 
-## 이 블록에서 가져갈 것
+## 이 문서에서 가져갈 것
 
 - 메시 관측성이 "공짜"인 건 **관측 지점(사이드카)이 이미 트래픽 경로에 있기 때문**이다. 앱 무수정으로 모든 서비스가 동일 스키마의 골든 시그널을 낸다.
 - 힘은 **표준 라벨 차원**에 있다 — `response_flags`로 실패 원인, `connection_security_policy`로 mTLS 커버리지까지 서비스 무관하게 슬라이스한다.

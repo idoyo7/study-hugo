@@ -15,7 +15,7 @@ weight: 1
 
 우리 환경에서 지표가 어디서 만들어져 어디로 흘러가는지, 그 구조와 stage/prod 값 차이를 정리한다. 전송 안정화를 위한 Phase 1 튜닝은 [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}})에서, 장기보관 아키텍처는 [메트릭 장기보관]({{< relref "../../longterm-retention/_index.md" >}}) 챕터에서 따로 다룬다.
 
-> 관련 블록: [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}}) · [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) · [메트릭 장기보관]({{< relref "../../longterm-retention/_index.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
+> 관련 문서: [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}}) · [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) · [메트릭 장기보관]({{< relref "../../longterm-retention/_index.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
 
 ## 전체 구조
 
