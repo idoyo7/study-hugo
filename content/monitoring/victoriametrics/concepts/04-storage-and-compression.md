@@ -68,6 +68,39 @@ flowchart TD
 
 IndexDB에도 없으면 그 시계열은 **처음 보는 시계열**이므로 새 **`New TSID`** 를 발급한다. 이것이 흔히 말하는 "새 시계열이 만들어지는" 순간이다. `New TSID`가 짧은 시간에 폭발적으로 발급되는 상황이 곧 **카디널리티 폭발**인데, 그 원인·지표·설계 원칙은 [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}})가 주인이다. 여기서는 발급 지점까지만 짚는다.
 
+### 값 수준 워크스루 — 샘플 1건이 저장되는 모습
+
+앞의 개념들이 실제 값에서 어떻게 맞물리는지 예시 하나로 따라가 본다. 다음 스크레이프 한 줄이 들어왔다고 하자.
+
+```text
+node_cpu_seconds_total{mode="system", instance="10.0.0.7:9100"}  48291.5  @1735689600
+```
+
+**① Time Series와 Sample로 쪼갠다.** 이름·레이블(거의 불변)과 타임스탬프·값(계속 쌓임)이 분리된다.
+
+| 부분 | 값 |
+|------|-----|
+| Time Series | `node_cpu_seconds_total{mode="system", instance="10.0.0.7:9100"}` |
+| Sample | `(ts=1735689600, value=48291.5)` |
+
+**② Canonical Name으로 정규화한 뒤 TSID를 발급한다.** 레이블을 키 기준으로 정렬해 순서 차이를 없앤다 — `instance`가 `mode`보다 앞으로 온다. 정규화된 이름이 캐시·IndexDB에 모두 없으면 처음 보는 시계열로 판단해 New TSID를 발급한다.
+
+```text
+정규화: node_cpu_seconds_total{instance="10.0.0.7:9100", mode="system"}
+       → 캐시·IndexDB 미스 → New TSID 발급: 0x0A3F...C21  (64bit)
+```
+
+**③ IndexDB에는 prefix별 역색인 엔트리로, DataDB에는 TSID 열로 눕는다.** 이름·레이블은 IndexDB에 한 번만 적히고, 이후 쌓이는 값들은 DataDB에서 TSID를 키로 이어 붙는다. 이 샘플 하나로 IndexDB에는 이름 엔트리 1개 + 레이블 엔트리 2개가 생긴다.
+
+| 저장소 | prefix / 키 | 값 |
+|--------|------|-----|
+| IndexDB | `MetricName → TSID` | 위 canonical 이름 → `0x0A3F...C21` |
+| IndexDB | `Tag(instance="10.0.0.7:9100") →` | 이 레이블을 가진 시계열 역색인 |
+| IndexDB | `Tag(mode="system") →` | 이 레이블을 가진 시계열 역색인 |
+| DataDB | `0x0A3F...C21` (TSID) | `(1735689600, 48291.5), (1735689615, 48293.1), ...` |
+
+다음 스크레이프에서 같은 시계열이 다시 오면 ②의 정규화·발급을 건너뛰고 캐시에서 TSID를 바로 얻어(빠른 경로), Sample만 DataDB의 같은 TSID 열 뒤에 붙는다. 값이 이렇게 한 열로 이어지기 때문에 아래의 Delta / Delta-of-Delta 압축이 극대화된다.
+
 ### 파티션 — 인메모리 → Small → Big
 
 ```mermaid
@@ -146,6 +179,10 @@ flowchart TD
 - **Counter → Delta-of-Delta 인코딩**: 단조 증가하는 값. 원본 `120, 130, 140, 150...`의 1차 차분은 `100, 100, 100...`(거의 일정), 그 **차분의 차분(Delta-of-Delta)** 은 `0, 0, 0...`에 수렴한다. 그래서 **첫 값 + 첫 차분 뒤로는 "변화 없음"만 저장**하면 되어 압축률이 극단적으로 좋다. 뒤에 100개, 1000개를 이어 붙여도 크기가 거의 늘지 않는다.
 
 **단조 증가하는 Counter가 압축에 극단적으로 유리하다** — 이 점만 기억하면 된다.
+
+같은 원리가 **타임스탬프 스트림**에서는 더 극적으로 작동한다. 스크레이프 주기가 일정하면 델타가 상수가 되고 델타의 델타는 0이 되므로, 아래처럼 8바이트 타임스탬프 4개(32B)가 개념상 11B 수준으로 눕는다.
+
+![타임스탬프가 Delta → Delta-of-Delta → ZigZag/Varint를 거쳐 32B에서 약 11B로 줄어드는 과정](/images/victoriametrics/timestamp-delta-of-delta.svg)
 
 ### Counter / Gauge 블록 판별 — 잦은 리셋이면 Gauge
 

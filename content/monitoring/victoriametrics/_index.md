@@ -31,6 +31,7 @@ VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스다.
 |------|-----------|
 | [01 카디널리티]({{< relref "practice/01-cardinality.md" >}}) | New TSID 폭발의 원리, best/worst case, churn·slow insert 감시 지표 |
 | [02 초대규모 운영과 무중단 전환]({{< relref "practice/02-operations-at-scale.md" >}}) | 멀티버스(멀티클러스터), Hot/Warm 2계층, 12.5억 시계열, 무중단 장비 전환 |
+| [03 쿼리 패턴]({{< relref "practice/03-query-patterns.md" >}}) | PromQL 기본(rate·histogram_quantile·sum by)과 MetricsQL 확장, 무거운 쿼리 회피, 카디널리티 점검 쿼리·API |
 
 ## ③ 우리의 운영
 

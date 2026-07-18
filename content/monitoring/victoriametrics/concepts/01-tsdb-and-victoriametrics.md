@@ -35,6 +35,40 @@ Prometheus 진영의 표준 분류이기도 하다.
 | **Gauge** | 위아래로 자유롭게 변동하는 값 | 메모리 사용률 48% → 62% → 55% |
 | **Summary** | 클라이언트가 분위수를 미리 계산해 저장 | p50, p90, p99 |
 
+실제로 이 4타입이 텍스트로 어떻게 노출되는지 보면 감이 잡힌다. Prometheus는 지표를 아래 형식(exposition format)으로 드러내고, 수집기가 이 텍스트를 긁어(scrape) 시계열로 저장한다.
+
+```text
+# Counter — 단조 증가하는 누적 값
+http_requests_total{method="post",code="200"} 1102
+
+# Gauge — 위아래로 변동하는 값
+memory_usage_percent 62.0
+
+# Histogram — 버킷별 누적 카운트 + _sum + _count
+http_request_duration_seconds_bucket{le="0.05"} 24054
+http_request_duration_seconds_bucket{le="0.1"}  33444
+http_request_duration_seconds_bucket{le="+Inf"} 144320
+http_request_duration_seconds_sum   53423
+http_request_duration_seconds_count 144320
+
+# Summary — 클라이언트가 미리 계산한 분위수 + _sum + _count
+rpc_duration_seconds{quantile="0.5"}  4773
+rpc_duration_seconds{quantile="0.99"} 76656
+rpc_duration_seconds_sum   1.7560473e+07
+rpc_duration_seconds_count 2693
+```
+
+여기서 눈여겨볼 점은 **한 지표가 TSDB에 몇 개의 시계열로 저장되느냐**다. Counter·Gauge는 지표 하나가 시계열 하나로 끝나지만, Histogram·Summary는 한 줄처럼 보여도 내부적으로 여러 시계열로 분해된다. 동일 레이블 조합 기준으로 정리하면 다음과 같다.
+
+| 타입 | 저장되는 시계열 수 | 분해 방식 |
+|------|-----------------|-----------|
+| **Counter** | 1개 | 지표 하나 = 시계열 하나 |
+| **Gauge** | 1개 | 지표 하나 = 시계열 하나 |
+| **Histogram** | **버킷 N개 + `_sum` + `_count` = N+2개** | 버킷 경계(`le`)마다 별도 시계열 |
+| **Summary** | **분위수 Q개 + `_sum` + `_count` = Q+2개** | 분위수(`quantile`)마다 별도 시계열 |
+
+위 Histogram 예시는 버킷이 3개라 시계열 5개(3+2)로 저장된다. 버킷을 10개로 잡으면 지표 하나가 시계열 12개가 된다 — Histogram·Summary가 카디널리티를 밀어 올리는 이유이며, 이는 [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}})에서 다룬다.
+
 여기서 미리 붙잡아 둘 직관: **Counter처럼 단조 증가하는 값은 압축이 극단적으로 잘 된다.** 이 사실이 저장·압축을 설명할 때 계속 되돌아온다. Counter/Gauge를 어떻게 판별하고 어떻게 압축하는지는 [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}})에서 다룬다.
 
 ## 왜 "대용량"이 별도의 문제인가
