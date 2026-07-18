@@ -18,6 +18,11 @@ aliases: ["/hyperdx/operating/02-tiering/"]
 
 이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 2부(데이터 티어링)를 실체화한 것이다. hot(gp3)·cold(S3 worked example)·block-only 대안의 정본은 각각 [hot 스토리지]({{< relref "../hyperdx/02-hot-storage-ebs.md" >}})·[S3 콜드 티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}})·[블록 온리 튜닝]({{< relref "../hyperdx/08-block-only-tuning.md" >}})이며, 이 페이지는 세 문서를 관통하는 **티어링 논지**(무엇을 왜 어디에 두나)를 하나로 묶어 판단 기준만 압축한다. 스펙·요금·XML 전문·산정식은 재서술하지 않고 relref로 위임한다.
 
+이 논지를 한 장으로 요약하면 다음과 같다 — 무엇을(테이블별 hot 창), 어디에(hot=EBS·cold=S3), 왜(비용·조회지연 대 내구성)로 나뉜다.
+
+![hot·cold 2계층 티어링 구조 — hot 티어의 노드당 단일 gp3 EBS와 cold 티어의 S3 Standard·replica별 RF배수 사본을 TTL이 TO VOLUME과 DELETE로 잇는 그림, 그리고 티어링은 내구성이 아니라는 주석](/images/hyperdx/tiering-hot-cold.svg)
+*hot(노드당 단일 gp3 EBS)과 cold(S3 Standard, `{replica}` 경로마다 RF배수 사본을 두는 shared-nothing) 2계층을 시간 기반 TTL이 `TO VOLUME 'cold'`로 잇고 `DELETE`로 만료시킨다. 세션 리플레이만 cold로 안 내리고 hot 30일 후 삭제한다. 내구성은 티어링이 아니라 멀티 AZ RF 복제 + 백업이 담당하며, cold(S3)도 RF배수 사본을 두고 zero-copy는 금지다.*
+
 ## 1. hot = 노드당 단일 gp3 — 스펙 산정 요지
 
 | 항목 | 값 |

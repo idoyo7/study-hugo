@@ -57,6 +57,11 @@ otel-collector:
 - HyperDX는 **app(UI) + api(백엔드) 2 프로세스**다. local/all-in-one은 단일 컨테이너에 함께 패키징되지만, Helm에서는 app/api 포트가 분리 노출된다 `✓`.
 - **OpAMP(4320)**: HyperDX api가 OpAMP 서버로 동작해 Collector 파이프라인 설정을 원격 관리한다. Collector는 `OPAMP_SERVER_URL`로 api의 `/v1/opamp`에 붙는다 `✓`. 커스텀 Collector config는 `CUSTOM_OTELCOL_CONFIG_FILE`로 **베이스에 병합**되며 신규 receiver/processor 추가만 되고 기존 오버라이드는 안 된다(상세는 rum/01 위임).
 
+아래는 위 표의 역할·의존 관계를 공식 아키텍처 그림으로 정리한 것이다.
+
+![HyperDX ClickStack 공식 아키텍처 다이어그램 — App/Infra → OTel Collector → ClickHouse ← HyperDX API ← HyperDX UI·MongoDB, OpAMP 폴링 구조](/images/hyperdx/hyperdx-architecture.png)
+*HyperDX ClickStack 공식 아키텍처 다이어그램 — Your App/Infra(OTel Collector·SDK·FluentBit)가 otel-collector(OpenTelemetry Collector + OpAMP Supervisor)로 텔레메트리를 보내면 otel-collector가 ch-server(ClickHouse)에 적재하고, api(HyperDX API)는 ch-server를 조회·db(MongoDB)에서 메타데이터를 읽으며 Poll OpAMP Configuration으로 otel-collector 설정을 원격 관리한다. app(HyperDX UI)은 api를 거쳐 조회한다. 이 그림은 4컴포넌트 관계의 전체 조감이고, 위 표(역할·포트·의존)와 아래 §3 mermaid(포트·의존을 데이터 흐름으로 구체화)가 그 상세를 잇는다. 출처: [hyperdxio/hyperdx](https://github.com/hyperdxio/hyperdx) — © DeploySentinel, Inc., MIT License*
+
 ## 3. 데이터 흐름 — RUM은 MongoDB를 거치지 않는다
 
 ```mermaid
