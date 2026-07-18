@@ -1,6 +1,7 @@
 ---
 title: "솔루션 아키텍처 — 4컴포넌트 조립과 BYO 분기"
 weight: 1
+aliases: ["/hyperdx/operating/01-architecture/"]
 ---
 
 # 솔루션 아키텍처 — 4컴포넌트 조립과 BYO 분기
@@ -14,14 +15,14 @@ weight: 1
 - **OpAMP(`:4320`)**: HyperDX api가 OpAMP 서버로 동작해 Collector 파이프라인 설정을 원격 관리한다.
 {{< /callout >}}
 
-이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 1부(솔루션 아키텍처)를 실체화한 것이다. 4컴포넌트의 정체성·배포 6모드·BYO("HyperDX Only") 개념 자체의 정본은 [HyperDX / ClickStack 심층 분석]({{< relref "../../rum/01-hyperdx-deep-dive.md" >}})이고, 포트·의존 방향·MongoDB 최소 배포 CR 전문은 [스택 토폴로지]({{< relref "../01-stack-topology.md" >}})가 정본이다. 이 페이지는 그 위에서 **"왜 표준 경로를 안 쓰고 무엇을 어떻게 조립하나"** — 즉 조립 순서와 BYO 분기의 실무 판단만 압축해서 다룬다. 세부 매니페스트·다운타임 시나리오는 재서술하지 않고 relref로 위임한다.
+이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 1부(솔루션 아키텍처)를 실체화한 것이다. 4컴포넌트의 정체성·배포 6모드·BYO("HyperDX Only") 개념 자체의 정본은 [HyperDX / ClickStack 심층 분석]({{< relref "../rum/01-hyperdx-deep-dive.md" >}})이고, 포트·의존 방향·MongoDB 최소 배포 CR 전문은 [스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}})가 정본이다. 이 페이지는 그 위에서 **"왜 표준 경로를 안 쓰고 무엇을 어떻게 조립하나"** — 즉 조립 순서와 BYO 분기의 실무 판단만 압축해서 다룬다. 세부 매니페스트·다운타임 시나리오는 재서술하지 않고 relref로 위임한다.
 
 ## 1. 왜 표준 2-Helm 경로를 그대로 안 쓰나 — operator 2종 공존 회피
 
 표준 경로의 첫 차트 `clickstack-operators`는 **MongoDB Kubernetes Operator(MCK)** 와 **ClickHouse Inc.의 신규 공식 operator**(`ClickHouseCluster`/`KeeperCluster` CRD)를 함께 설치한다 `✓`. 이 공식 operator는 Altinity operator(`ClickHouseInstallation`/CHI)가 **아니다** `✓`. 우리는 이미 범용분석 CH를 Altinity operator로 운영 중이므로, 표준 경로를 그대로 따르면 같은 클러스터에 **CH operator가 2종(공식 + Altinity) 공존**하게 된다.
 
 {{< callout type="warning" >}}
-**"표준 install = Altinity"는 흔한 오해다.** 표준 ClickStack Helm 경로가 배포하는 CH operator는 Altinity가 아니라 ClickHouse Inc. 공식 operator다. 이 분기를 흐리면 뒤따르는 CHI/CHK 매니페스트({{< relref "../04-operator-topology-downtime.md" >}})가 "표준 설치와 어긋난다"는 착시를 만든다.
+**"표준 install = Altinity"는 흔한 오해다.** 표준 ClickStack Helm 경로가 배포하는 CH operator는 Altinity가 아니라 ClickHouse Inc. 공식 operator다. 이 분기를 흐리면 뒤따르는 CHI/CHK 매니페스트({{< relref "../hyperdx/04-operator-topology-downtime.md" >}})가 "표준 설치와 어긋난다"는 착시를 만든다.
 {{< /callout >}}
 
 | 축 | 표준 2-Helm 경로 | 우리 채택 경로(BYO) |
@@ -41,7 +42,7 @@ otel-collector:
   enabled: true        # 게이트웨이는 차트로 유지
 ```
 
-`enabled: false`로 두면 HyperDX api는 `CLICKHOUSE_*`·`MONGO_URI` 시크릿으로 외부 CH/Mongo를 참조만 하고, ClickHouse/Keeper 자체는 Altinity CHI/CHK가 별도로 운영한다 `✓`. operator 선택 자체의 근거(7년+ 트랙레코드·범용분석 일원화)는 [ClickHouse operator 선택]({{< relref "../../clickhouse/03-operator.md" >}})이 정본이다.
+`enabled: false`로 두면 HyperDX api는 `CLICKHOUSE_*`·`MONGO_URI` 시크릿으로 외부 CH/Mongo를 참조만 하고, ClickHouse/Keeper 자체는 Altinity CHI/CHK가 별도로 운영한다 `✓`. operator 선택 자체의 근거(7년+ 트랙레코드·범용분석 일원화)는 [ClickHouse operator 선택]({{< relref "../clickhouse/03-operator.md" >}})이 정본이다.
 
 ## 2. 컴포넌트별 배치 — 4논리 컴포넌트, 6개 실행 단위
 
@@ -63,7 +64,7 @@ otel-collector:
 - **MongoDB `members:1`은 차트 기본값이지 prod 권고가 아니다.** MCK 기본은 단일 멤버(PoC용)이고, prod는 `members:3`(≈1.2 vCPU/3Gi, 값싼 보험)으로 수동 승급한다 `✓`(기본) / `≈`(prod 권고).
 
 {{% details title="OTel Collector: agent vs gateway — 왜 daemonset이 없어도 되나" closed="true" %}}
-공식 문서는 2역할 패턴을 규정한다 `✓`. **Agent**(daemonset)는 노드·호스트에서 로그/메트릭을 긁고, **Gateway**(deployment, 클러스터/리전당 1)는 단일 OTLP 엔드포인트로 수신해 변환·배치한다. ClickStack 배포판 기본은 게이트웨이 역할(`mode: deployment`)이다. 우리 워크로드는 브라우저 → 게이트웨이 직접 전송이라 agent 역할이 필요 없고, 게이트웨이 2 replica만으로 인제스트가 성립한다. 사이징·큐·백프레셔 상세는 [스택 토폴로지 §5]({{< relref "../01-stack-topology.md" >}})로 위임한다.
+공식 문서는 2역할 패턴을 규정한다 `✓`. **Agent**(daemonset)는 노드·호스트에서 로그/메트릭을 긁고, **Gateway**(deployment, 클러스터/리전당 1)는 단일 OTLP 엔드포인트로 수신해 변환·배치한다. ClickStack 배포판 기본은 게이트웨이 역할(`mode: deployment`)이다. 우리 워크로드는 브라우저 → 게이트웨이 직접 전송이라 agent 역할이 필요 없고, 게이트웨이 2 replica만으로 인제스트가 성립한다. 사이징·큐·백프레셔 상세는 [스택 토폴로지 §5]({{< relref "../hyperdx/01-stack-topology.md" >}})로 위임한다.
 {{% /details %}}
 
 ## 3. 데이터 흐름 — RUM 인제스트 경로에 MongoDB는 없다
@@ -96,7 +97,7 @@ flowchart LR
 - 브라우저 RUM SDK는 **HyperDX api가 아니라 OTel Collector(4318)로 직접** 텔레메트리를 보낸다 `✓`. 세션 리플레이(rrweb)는 ClickHouse `hyperdx_sessions` 테이블로 적재되며, "MongoDB에 세션이 저장된다"는 통념은 이미 기각됐다 `✓`.
 - 즉 **RUM 인제스트 경로에 MongoDB는 전혀 없다.** MongoDB는 사용자가 UI에서 대시보드/알럿/소스를 만들 때만 쓰인다 — 이것이 MongoDB를 아주 작게 돌려도 되는 구조적 근거다.
 - 이 구조적 사실의 실무 함의는 **MongoDB 다운은 관측(인제스트) 정지가 아니라 설정·알럿 평가·UI 정지**라는 것이다. 컴포넌트별 blast radius·무손실 2트랙 종합은 [가용성]({{< relref "03-availability.md" >}})으로 위임한다.
-- **쓰기 경로(Collector → CH)와 읽기 경로(api → CH)는 분리**돼 있지만 같은 CH 클러스터를 공유한다. 대시보드 쿼리 폭주가 인제스트를 밀어낼 수 있다는 캐파 이슈는 아키텍처 밖 주제라 [스택 토폴로지]({{< relref "../01-stack-topology.md" >}})·[규모 산정]({{< relref "../07-capacity-planning.md" >}})으로 넘긴다.
+- **쓰기 경로(Collector → CH)와 읽기 경로(api → CH)는 분리**돼 있지만 같은 CH 클러스터를 공유한다. 대시보드 쿼리 폭주가 인제스트를 밀어낼 수 있다는 캐파 이슈는 아키텍처 밖 주제라 [스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}})·[규모 산정]({{< relref "../hyperdx/07-capacity-planning.md" >}})으로 넘긴다.
 
 ## 4. OpAMP(`:4320`) — Collector 설정 원격 관리
 
@@ -126,7 +127,7 @@ hyperdx:
       - secretRef: { name: mongo-creds }        # MONGO_URI
 ```
 
-CH/Keeper 자체(CHI/CHK CR)는 이 차트 values가 아니라 **별도 매니페스트**로 관리한다 — 필드·다운타임 시나리오는 [operator 토폴로지·다운타임]({{< relref "../04-operator-topology-downtime.md" >}})·[Altinity 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이 정본이다. MongoDB `MongoDBCommunity` CR(members:3·SCRAM·WiredTiger 캐시 고정 전문)은 [스택 토폴로지 §6.3]({{< relref "../01-stack-topology.md" >}})으로 위임한다. 정확한 values 키 경로(예: `otel-collector.replicaCount` vs 중첩된 `deployment.replicas`)는 차트 버전마다 달라질 수 있어 배포 시 `helm show values clickstack/clickstack`로 재확인한다 `?`.
+CH/Keeper 자체(CHI/CHK CR)는 이 차트 values가 아니라 **별도 매니페스트**로 관리한다 — 필드·다운타임 시나리오는 [operator 토폴로지·다운타임]({{< relref "../hyperdx/04-operator-topology-downtime.md" >}})·[Altinity 운영]({{< relref "../clickhouse/05-altinity-operations.md" >}})이 정본이다. MongoDB `MongoDBCommunity` CR(members:3·SCRAM·WiredTiger 캐시 고정 전문)은 [스택 토폴로지 §6.3]({{< relref "../hyperdx/01-stack-topology.md" >}})으로 위임한다. 정확한 values 키 경로(예: `otel-collector.replicaCount` vs 중첩된 `deployment.replicas`)는 차트 버전마다 달라질 수 있어 배포 시 `helm show values clickstack/clickstack`로 재확인한다 `?`.
 
 ## 우리 케이스에서는
 

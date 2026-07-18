@@ -1,6 +1,7 @@
 ---
 title: "데이터 티어링 — hot gp3 · cold S3 · 리플레이 DELETE"
 weight: 2
+aliases: ["/hyperdx/operating/02-tiering/"]
 ---
 
 # 데이터 티어링 — hot gp3 · cold S3 · 리플레이 DELETE
@@ -15,7 +16,7 @@ weight: 2
 - **티어링은 내구성이 아니다.** 데이터 내구성은 멀티 AZ RF 복제 + 백업이 담당하고, cold(S3)도 `{replica}` 경로에 RF배수 사본을 두는 shared-nothing이다 — zero-copy replication은 금지.
 {{< /callout >}}
 
-이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 2부(데이터 티어링)를 실체화한 것이다. hot(gp3)·cold(S3 worked example)·block-only 대안의 정본은 각각 [hot 스토리지]({{< relref "../02-hot-storage-ebs.md" >}})·[S3 콜드 티어링]({{< relref "../03-s3-cold-tiering.md" >}})·[블록 온리 튜닝]({{< relref "../08-block-only-tuning.md" >}})이며, 이 페이지는 세 문서를 관통하는 **티어링 논지**(무엇을 왜 어디에 두나)를 하나로 묶어 판단 기준만 압축한다. 스펙·요금·XML 전문·산정식은 재서술하지 않고 relref로 위임한다.
+이 페이지는 [운영 로드맵]({{< relref "_index.md" >}}) 2부(데이터 티어링)를 실체화한 것이다. hot(gp3)·cold(S3 worked example)·block-only 대안의 정본은 각각 [hot 스토리지]({{< relref "../hyperdx/02-hot-storage-ebs.md" >}})·[S3 콜드 티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}})·[블록 온리 튜닝]({{< relref "../hyperdx/08-block-only-tuning.md" >}})이며, 이 페이지는 세 문서를 관통하는 **티어링 논지**(무엇을 왜 어디에 두나)를 하나로 묶어 판단 기준만 압축한다. 스펙·요금·XML 전문·산정식은 재서술하지 않고 relref로 위임한다.
 
 ## 1. hot = 노드당 단일 gp3 — 스펙 산정 요지
 
@@ -25,7 +26,7 @@ weight: 2
 | 최대 IOPS / throughput(Nitro) | **80,000 IOPS / 2,000 MiB/s**(2025-09 상향) `✓` |
 | r7g.2xlarge 인스턴스 EBS 파이프 baseline | **312 MB/s**(burst 1,250 MB/s) `✓` |
 
-인스턴스 EBS 파이프가 볼륨 상한보다 먼저 천장이므로, gp3를 80,000 IOPS/2,000 MiB/s까지 올려도 mid-size Graviton(r7g ≤4xlarge)에선 돈만 버린다 `≈`. 실전 sweet spot은 **baseline IOPS(3,000) + 인스턴스 baseline에 맞춘 소량 provisioned throughput**(예: r7g.2xlarge에 ~300 MiB/s)이다 `≈`. RAID0 스트라이핑은 볼륨 1개 실패로 배열 전체가 죽어 실효 내구성이 낮아지고, 인스턴스 대역이 어차피 총 throughput 상한이라 여러 볼륨을 붙여도 이득이 없다 — **단일 gp3가 성능·내구성·운영 모두에서 우위**다 `≈`. io2/io2 Block Express는 극한 IOPS(>80,000/vol)·sub-ms 지연·볼륨 단위 99.999% 규제가 걸릴 때만 각주로 검토한다. gp3 요금 3분해·io2 tiered 요금·StorageClass/volumeClaimTemplate 조립은 [hot 스토리지]({{< relref "../02-hot-storage-ebs.md" >}})가 정본이다.
+인스턴스 EBS 파이프가 볼륨 상한보다 먼저 천장이므로, gp3를 80,000 IOPS/2,000 MiB/s까지 올려도 mid-size Graviton(r7g ≤4xlarge)에선 돈만 버린다 `≈`. 실전 sweet spot은 **baseline IOPS(3,000) + 인스턴스 baseline에 맞춘 소량 provisioned throughput**(예: r7g.2xlarge에 ~300 MiB/s)이다 `≈`. RAID0 스트라이핑은 볼륨 1개 실패로 배열 전체가 죽어 실효 내구성이 낮아지고, 인스턴스 대역이 어차피 총 throughput 상한이라 여러 볼륨을 붙여도 이득이 없다 — **단일 gp3가 성능·내구성·운영 모두에서 우위**다 `≈`. io2/io2 Block Express는 극한 IOPS(>80,000/vol)·sub-ms 지연·볼륨 단위 99.999% 규제가 걸릴 때만 각주로 검토한다. gp3 요금 3분해·io2 tiered 요금·StorageClass/volumeClaimTemplate 조립은 [hot 스토리지]({{< relref "../hyperdx/02-hot-storage-ebs.md" >}})가 정본이다.
 
 ## 2. cold = S3 Standard + cache — 시간 TTL이 이동을 정한다
 
@@ -43,7 +44,7 @@ TTL 정본 표(단위: hot 창 → cold 시작 → DELETE 지평):
 | `otel_metrics_*` | 30일 | 30일~ | 180 / 365일(3개월 지평도 최소 180 권장) |
 | `hyperdx_sessions` | 30일(전 수명) | **미이동** | 30일 고정 |
 
-DDL 핵심 조각(3개월 지평 예시, 전 테이블 반복형은 [S3 콜드 티어링]({{< relref "../03-s3-cold-tiering.md" >}}) §4가 정본):
+DDL 핵심 조각(3개월 지평 예시, 전 테이블 반복형은 [S3 콜드 티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}}) §4가 정본):
 
 ```sql
 -- logs/traces: hot 14일 → S3, 90일 DELETE
@@ -68,7 +69,7 @@ ALTER TABLE default.hyperdx_sessions MODIFY TTL
     TimestampTime + INTERVAL 30 DAY DELETE;   -- TO VOLUME 'cold' 없음
 ```
 
-hot EBS 사이징은 sessions 30일치(전 수명)를 상주분으로 포함해야 한다 — 자세한 산정은 [용량 산정]({{< relref "../07-capacity-planning.md" >}}).
+hot EBS 사이징은 sessions 30일치(전 수명)를 상주분으로 포함해야 한다 — 자세한 산정은 [용량 산정]({{< relref "../hyperdx/07-capacity-planning.md" >}}).
 
 ## 4. 3티어 결정 분기 — S3 티어링 vs block-only
 
@@ -82,7 +83,7 @@ S3 못/안 쓰는 경로(또는 짧은 보존·운영 단순성 우선)는 **blo
 | 성장 레버 | TTL + S3 무한 확장 | gp3 온라인 확장 하나(`provisioner: Operator`) |
 | 크로스오버 | ~6개월+부터 명확히 저렴 | ~3개월까지 단순·비용 근접 |
 
-**결정**: 우리 지평(3~12개월)에서는 S3 티어링을 기본 권고로 유지한다. "짧은 보존 + S3 미접근/규정 + 운영 단순성"이 겹치는 경로(대표적으로 staging)에서만 block-only를 고른다. 두 경로는 배타가 아니라 선택이며, sessions는 S3 티어링 안에서도 이미 block-only(hot only·DELETE-only)라 "부분 티어링"이 기본형이다. 상세 델타·DELETE-only DDL·머지 풀 튜닝은 [블록 온리 튜닝]({{< relref "../08-block-only-tuning.md" >}})이 정본이다.
+**결정**: 우리 지평(3~12개월)에서는 S3 티어링을 기본 권고로 유지한다. "짧은 보존 + S3 미접근/규정 + 운영 단순성"이 겹치는 경로(대표적으로 staging)에서만 block-only를 고른다. 두 경로는 배타가 아니라 선택이며, sessions는 S3 티어링 안에서도 이미 block-only(hot only·DELETE-only)라 "부분 티어링"이 기본형이다. 상세 델타·DELETE-only DDL·머지 풀 튜닝은 [블록 온리 튜닝]({{< relref "../hyperdx/08-block-only-tuning.md" >}})이 정본이다.
 
 ## 5. 핵심 경고 — 티어링은 내구성이 아니다
 

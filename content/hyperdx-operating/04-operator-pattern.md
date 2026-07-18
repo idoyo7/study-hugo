@@ -1,6 +1,7 @@
 ---
 title: "operator 패턴 — 복제·다운타임·정족수·업그레이드"
 weight: 4
+aliases: ["/hyperdx/operating/04-operator-pattern/"]
 ---
 
 # operator 패턴 — 복제·다운타임·정족수·업그레이드
@@ -15,7 +16,7 @@ weight: 4
 - 네 축을 관통하는 안전장치: **RF2 + anti-affinity(hostname) + topologySpread(AZ) + PDB(maxUnavailable 1)**가 자발적 중단을 직렬화한다. 단 EBS는 **AZ-bound**라 AZ 장애만은 reattach로 못 풀고 cross-AZ RF로만 방어된다.
 {{< /callout >}}
 
-Altinity CHI/CHK 위에 클러스터를 얹으면 그 위에서 네 가지 운영 난이도가 실제로 발생한다 — **복제**(누가 죽으면 무슨 일이 나나) · **다운타임**(복구가 얼마나 걸리나) · **Keeper 정족수**(진짜 SPOF가 어디인가) · **버전/업그레이드**(6개 구성요소를 어떻게 올리고 되돌리나). [컴포넌트별 가용성]({{< relref "03-availability.md" >}})이 blast radius를 컴포넌트 단위로 종합했다면, 이 페이지는 그중 **ClickHouse/Keeper 두 컴포넌트 내부에서 operator가 실제로 만들어내는 운영 난이도**를 한 층 더 파고든다. 각 축의 정본은 [operator 토폴로지·다운타임]({{< relref "../04-operator-topology-downtime.md" >}}) · [Keeper]({{< relref "../05-keeper.md" >}}) · [복제·멀티마스터·failover]({{< relref "../06-replication-failover.md" >}}) · [버전 호환성·업그레이드]({{< relref "../09-version-upgrade-compat.md" >}})이고, CHI/CHK 필드 전수·스케일 함정·롤링 런북은 [Altinity operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이 정본이다. 여기서는 반복 없이 판단에 필요한 수치·표·설정 조각만 추린다.
+Altinity CHI/CHK 위에 클러스터를 얹으면 그 위에서 네 가지 운영 난이도가 실제로 발생한다 — **복제**(누가 죽으면 무슨 일이 나나) · **다운타임**(복구가 얼마나 걸리나) · **Keeper 정족수**(진짜 SPOF가 어디인가) · **버전/업그레이드**(6개 구성요소를 어떻게 올리고 되돌리나). [컴포넌트별 가용성]({{< relref "03-availability.md" >}})이 blast radius를 컴포넌트 단위로 종합했다면, 이 페이지는 그중 **ClickHouse/Keeper 두 컴포넌트 내부에서 operator가 실제로 만들어내는 운영 난이도**를 한 층 더 파고든다. 각 축의 정본은 [operator 토폴로지·다운타임]({{< relref "../hyperdx/04-operator-topology-downtime.md" >}}) · [Keeper]({{< relref "../hyperdx/05-keeper.md" >}}) · [복제·멀티마스터·failover]({{< relref "../hyperdx/06-replication-failover.md" >}}) · [버전 호환성·업그레이드]({{< relref "../hyperdx/09-version-upgrade-compat.md" >}})이고, CHI/CHK 필드 전수·스케일 함정·롤링 런북은 [Altinity operator 운영]({{< relref "../clickhouse/05-altinity-operations.md" >}})이 정본이다. 여기서는 반복 없이 판단에 필요한 수치·표·설정 조각만 추린다.
 
 전제: **1 shard × RF2(2 AZ) + CHK 3노드(3 AZ)**, BYO(`clickhouse.enabled:false`) + Altinity CHI/CHK, 쓰기는 기본 async.
 
@@ -55,7 +56,7 @@ kubectl taint nodes <dead-node> node.kubernetes.io/out-of-service=nodeshutdown:N
 # → 파드 강제 삭제 + EBS 즉시 detach → 같은 AZ 새 노드에 reattach → CH startup → 델타 catch-up
 ```
 
-읽기·쓰기 자체는 RF2의 다른 replica가 계속 서빙하므로 클러스터 다운은 아니다(저하 상태) — 하지만 개입 없이는 그 replica가 무한정 미가용이라는 점이 EBS 특유의 운영 부담이다. AZ 장애는 EBS·로컬 NVMe 모두 cross-AZ replica가 유일 방어라는 점에서 EBS의 이점이 미치지 않는 유일한 축이다. 상세 S1~S9 시나리오·PDB/probe/reconcile 노브는 [operator 토폴로지·다운타임]({{< relref "../04-operator-topology-downtime.md" >}})이 정본이다.
+읽기·쓰기 자체는 RF2의 다른 replica가 계속 서빙하므로 클러스터 다운은 아니다(저하 상태) — 하지만 개입 없이는 그 replica가 무한정 미가용이라는 점이 EBS 특유의 운영 부담이다. AZ 장애는 EBS·로컬 NVMe 모두 cross-AZ replica가 유일 방어라는 점에서 EBS의 이점이 미치지 않는 유일한 축이다. 상세 S1~S9 시나리오·PDB/probe/reconcile 노브는 [operator 토폴로지·다운타임]({{< relref "../hyperdx/04-operator-topology-downtime.md" >}})이 정본이다.
 
 ## ③ Keeper 정족수 — 데이터 노드가 아니라 조정 계층이 진짜 SPOF
 
@@ -71,7 +72,7 @@ Keeper는 NuRaft로 합의를 돌리고 홀수 노드로 배치한다(`floor(N/2
 
 우리 CHK는 gp3 영속 볼륨을 쓰므로, Keeper 노드가 급사해도 Raft 로그/스냅샷이 볼륨에 살아남아 **데이터 경로와 동일하게 reattach로 정족수를 되살린다** `≈`. 로컬 NVMe였다면 Keeper 노드 급사가 곧 메타데이터 소실이라 앙상블 재구성이 훨씬 번거로웠을 것 — EBS-first는 데이터 경로와 조정 경로의 복구 모델을 통일한다.
 
-한 가지 더 못박을 것: Keeper는 이벤트 **데이터**를 큐잉하지 않는다. 정족수 상실이 쓰기를 막는 이유는 조정 메타데이터(파트 참조·복제 로그·dedup 체크섬)를 못 쓰기 때문이지, Keeper가 in-flight INSERT를 들고 있다가 잃어서가 아니다 — 이 구분과 ingest 유실 방지 설계(OTel persistent queue·`insert_quorum`)는 [Keeper]({{< relref "../05-keeper.md" >}})가 정본이다.
+한 가지 더 못박을 것: Keeper는 이벤트 **데이터**를 큐잉하지 않는다. 정족수 상실이 쓰기를 막는 이유는 조정 메타데이터(파트 참조·복제 로그·dedup 체크섬)를 못 쓰기 때문이지, Keeper가 in-flight INSERT를 들고 있다가 잃어서가 아니다 — 이 구분과 ingest 유실 방지 설계(OTel persistent queue·`insert_quorum`)는 [Keeper]({{< relref "../hyperdx/05-keeper.md" >}})가 정본이다.
 
 ## ④ 버전·업그레이드 — 6구성요소 독립 케이던스, 다운그레이드는 없다고 가정
 
@@ -112,7 +113,7 @@ aws ec2 create-volume --snapshot-id snap-0abc... --volume-type gp3 \
   --availability-zone ap-northeast-2a
 ```
 
-업그레이드 3규칙: ① 이미지·설정·볼륨확장은 각각 별도 reconcile(동시변경 crash 회피, v0.24.3 함정) `✓`, ② 관찰 24~48h 동안 `OPTIMIZE FINAL`·신규 컬럼 타입 사용 금지로 롤백 창 유지 `✓`, ③ 다운그레이드는 "없다고 가정"하고 스냅샷/백업 복구를 유일한 롤백 경로로 취급한다. 6구성요소 매트릭스 전문·ClickStack v1→v2 파괴적 변경은 [버전 호환성·업그레이드]({{< relref "../09-version-upgrade-compat.md" >}})가, operator 자체 minor 단계·CRD 금지·Keeper 0.26→0.27 무마이그레이션의 일반 런북은 [Altinity operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이 정본이다.
+업그레이드 3규칙: ① 이미지·설정·볼륨확장은 각각 별도 reconcile(동시변경 crash 회피, v0.24.3 함정) `✓`, ② 관찰 24~48h 동안 `OPTIMIZE FINAL`·신규 컬럼 타입 사용 금지로 롤백 창 유지 `✓`, ③ 다운그레이드는 "없다고 가정"하고 스냅샷/백업 복구를 유일한 롤백 경로로 취급한다. 6구성요소 매트릭스 전문·ClickStack v1→v2 파괴적 변경은 [버전 호환성·업그레이드]({{< relref "../hyperdx/09-version-upgrade-compat.md" >}})가, operator 자체 minor 단계·CRD 금지·Keeper 0.26→0.27 무마이그레이션의 일반 런북은 [Altinity operator 운영]({{< relref "../clickhouse/05-altinity-operations.md" >}})이 정본이다.
 
 ## 안전장치가 네 축을 하나로 묶는다
 
@@ -136,7 +137,7 @@ spec:
             - { maxSkew: 1, topologyKey: "topology.kubernetes.io/zone", whenUnsatisfiable: DoNotSchedule }
 ```
 
-단 이 안전망에는 구조적 한계가 하나 있다 — **EBS는 AZ-bound**라 볼륨을 다른 AZ로 못 옮긴다. anti-affinity·topologySpread·PDB는 모두 "자발적" 중단을 직렬화할 뿐이고, AZ 장애처럼 그 AZ 자체가 통째로 죽는 비자발적 사건은 reattach로 풀 수 없다 — 이 지점에서만 **cross-AZ RF(복제)가 유일한 방어**가 되고 EBS·로컬 NVMe의 처방이 수렴한다. 전문 매니페스트·podDistribution enum·`reconcile.*` 노브는 [operator 토폴로지·다운타임]({{< relref "../04-operator-topology-downtime.md" >}})으로 위임한다.
+단 이 안전망에는 구조적 한계가 하나 있다 — **EBS는 AZ-bound**라 볼륨을 다른 AZ로 못 옮긴다. anti-affinity·topologySpread·PDB는 모두 "자발적" 중단을 직렬화할 뿐이고, AZ 장애처럼 그 AZ 자체가 통째로 죽는 비자발적 사건은 reattach로 풀 수 없다 — 이 지점에서만 **cross-AZ RF(복제)가 유일한 방어**가 되고 EBS·로컬 NVMe의 처방이 수렴한다. 전문 매니페스트·podDistribution enum·`reconcile.*` 노브는 [operator 토폴로지·다운타임]({{< relref "../hyperdx/04-operator-topology-downtime.md" >}})으로 위임한다.
 
 ## 우리 케이스에서는
 
