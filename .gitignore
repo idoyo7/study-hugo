@@ -5,3 +5,5 @@
 .omx/
 # 세션 툴이 cwd에 생성/동기화한 개인 파일 — 발행 대상 아님
 _work/
+# eks-upgrade 섹션의 원본 소스(마스킹 전 계정ID·endpoint·실명 포함) — 발행 대상 아님
+finance-upgrade/
