@@ -14,7 +14,7 @@ finance(금융) 도메인 EKS 클러스터의 버전 업그레이드 실전 기�
 
 - **대상**: finance 워크로드(prod/staging-finance-green, 조사 시점 k8s v1.30). 관리 클러스터 ring0-blue(이미 1.33)는 별건 `✓`.
 - **채택안(2026-07-21 기준)**: 기존 green을 그대로 두고 **신규 blue 클러스터를 Terraform으로 EKS 1.35 생성**하는 blue-green 이관. 애초 시도했던 **CAPI(Cluster API) GitOps in-place 업그레이드는 폐기** — 클러스터를 관리하던 CAPA 크로스계정 컨트롤러 롤이 2025-10-21부터 삭제된 채 방치돼 있었다는 사실이 드러나서다 `✓`.
-- **목표 버전 1.35**: 전 컴포넌트 세트가 공식 지원하는 최고 버전. 1.36은 KEDA·kube-state-metrics·external-secrets·ArgoCD 4종이 아직 1.36 지원 릴리스를 내지 않아 막혀 있다 `✓`.
+- **목표 버전 1.35**: 전 컴포넌트 세트가 공식 지원하는 최고 버전. 1.36은 서드파티 애드온 6종(KEDA·kube-state-metrics·external-secrets·ArgoCD·argo-rollouts·aws-load-balancer-controller)이 아직 1.36 지원 릴리스를 내지 않아 막혀 있다 — 라이브 재검증은 {{< relref "07-version-verification-135-136.md" >}} `✓`.
 - **신규 토폴로지**: managed nodegroup을 없애고 **Fargate(coredns + karpenter)** + 나머지는 **karpenter system nodepool**로 구성한다 `✓`.
 - **긴급도**: green(1.30)의 확장지원 종료가 **2026-07-23**로 임박했고, 한때 대안이던 1.33도 표준지원 종료가 **2026-07-29**라 폐기됐다. 이 챕터의 날짜는 전부 절대 날짜이며, 카운트다운 표현("D-2" 등)은 발행 시점이 지나면 의미가 없으므로 쓰지 않는다 — **조사 시점 2026-07** 기준으로 읽는다 `✓`.
 {{< /callout >}}
@@ -35,7 +35,7 @@ finance(금융) 도메인 EKS 클러스터의 버전 업그레이드 실전 기�
 
 3기에서 확정된 결정은 세 가지다. 이 결정들이 02~06 챕터 전체를 지배한다.
 
-1. **목표 버전 = k8s 1.35**(기존 조사의 1.33에서 상향). 1.36은 KEDA·kube-state-metrics·external-secrets·ArgoCD 4종이 아직 지원 릴리스를 내지 않아 막혀 있고, 1.33은 표준지원 종료가 2026-07-29로 임박해 폐기했다. 근거는 {{< relref "02-strategy-target-version.md" >}}.
+1. **목표 버전 = k8s 1.35**(기존 조사의 1.33에서 상향). 1.36은 서드파티 애드온 6종(KEDA·kube-state-metrics·external-secrets·ArgoCD·argo-rollouts·aws-load-balancer-controller)이 아직 지원 릴리스를 내지 않아 막혀 있고, 1.33은 표준지원 종료가 2026-07-29로 임박해 폐기했다. 근거는 {{< relref "02-strategy-target-version.md" >}}·{{< relref "07-version-verification-135-136.md" >}}.
 2. **managed nodegroup 없이 Fargate(coredns + karpenter) + 나머지는 karpenter system nodepool**. Fargate는 amd64 전용·DaemonSet 미부착·동적 EBS 불가라는 세 가지 물리 제약이 토폴로지 전체를 지배한다. 상세는 {{< relref "03-fargate-karpenter-topology.md" >}}.
 3. **클러스터 생성을 CAPA 대신 Terraform으로 한다.** CAPA는 addon config의 SSOT로 부적합하다는 게 2기의 결론이었고, 3기는 아예 클러스터 생성 자체를 Terraform으로 옮겨 CAPA 의존을 없앤다. 근거는 {{< relref "04-terraform-cluster-settings.md" >}}.
 
@@ -49,6 +49,7 @@ finance(금융) 도메인 EKS 클러스터의 버전 업그레이드 실전 기�
 | {{< relref "04-terraform-cluster-settings.md" >}} | CAPA→Terraform 대체, karpenter 인프라 신규 작성, 인증·OIDC·클러스터 설정 |
 | {{< relref "05-managed-addons.md" >}} | EKS managed addon 4종+cloudwatch 버전 diff, ebs-csi IRSA 리스크, 부트스트랩 설치 순서 |
 | {{< relref "06-addon-inventory-drift.md" >}} | 애드온 전수 인벤토리, ArgoCD 3-tier 토폴로지 상세, 워킹트리-실배포 드리프트 |
+| {{< relref "07-version-verification-135-136.md" >}} | 1.35 vs 1.36 목표 버전 실검증(2026-07-21 라이브 확인), 1.36 차단 6종 재산정, kube-proxy nftables 활성화 절차, 직행 breaking 체크리스트 |
 | {{< relref "components/_index.md" >}} | 컴포넌트별 마이그레이션(karpenter·istio·argocd·argo-rollouts·external-secrets·keda·alb·관측성 스택·descheduler) |
 
 ## 자매 챕터
