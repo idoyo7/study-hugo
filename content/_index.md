@@ -18,3 +18,4 @@ toc: false
 - **[ClickHouse 운영]({{< relref "clickhouse/_index.md" >}})** — RUM 내재화·범용 분석으로 ClickHouse를 채택했을 때의 운영 전략(how): managed vs self-host TCO, 로컬 NVMe+S3 스토리지, Altinity operator, 프로덕션 사례.
 - **[HyperDX 내재화]({{< relref "hyperdx/_index.md" >}})** — HyperDX ClickStack 실전 자체 배포 청사진(EBS-first, RUM-only 월 0.7TB): 스택 토폴로지·MongoDB 최소 운영, gp3/io2 hot·S3 cold 티어링, operator 다운타임, Keeper, 복제·멀티마스터·failover, 3개월/1년 용량 산정.
 - **[HyperDX 직접 운영하기]({{< relref "hyperdx-operating/_index.md" >}})** — 내재화 챕터의 기준 문서들 위에서 "직접 운영하려면 어떤 순서로 무엇을 판단해야 하나"를 6부로 구체화한 운영 트랙: 아키텍처 → 티어링 → 가용성 → operator 패턴 → 규모 산정 → 의사결정 가이드.
+- **[EKS 버전 업그레이드]({{< relref "eks-upgrade/_index.md" >}})** — finance 클러스터 EKS 1.30→1.35 blue-green 이관 실전 기록: 허브-스포크 GitOps+CAPI 아키텍처와 진단, in-place→CAPI복구→blue-green 3단계 변천 서사, Fargate+karpenter 토폴로지, Terraform 클러스터 생성, managed addon·컴포넌트별 마이그레이션.
