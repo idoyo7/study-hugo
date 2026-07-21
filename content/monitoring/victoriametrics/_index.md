@@ -8,6 +8,7 @@ weight: 1
 VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스다. **① 기본 개념**은 네이버 D2/DEVIEW 발표 2편과 텍스트 기사 2편을 정독해, 데이터가 **들어와서 → 저장되고 → 쿼리로 나가기**까지 VM 내부 동작을 파헤친다. **② 잘 쓰는 방법**은 그 내부 동작에서 끌어낸 설계 원칙과 초대규모 운영 패턴을 다룬다. **③ 우리의 운영**은 실제 우리 스택의 구성·튜닝·기준치·노하우를 기록한다. 개념에서 원리를 얻고, 원리를 실전 설계로 옮기고, 우리 환경에 적용하는 흐름이다.
 
 > 원본 출처와 전사 방법은 [소스맵]({{< relref "concepts/06-sources.md" >}}) 참고.
+> 원문(발표·기사)별로 보고 싶으면 [원문별 정리]({{< relref "by-source/_index.md" >}}) — 네이버 D2 자료 4건을 게시 순서대로 각각 한 문서에 충실히 재구성했다.
 > 자매 챕터: [메트릭 장기보관 아키텍처 비교]({{< relref "../longterm-retention/_index.md" >}}) — 이 VM 내부 동작을 실제 장기보관 스택 결정에 적용한 사례.
 
 ## ① 기본 개념
@@ -43,6 +44,17 @@ VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스다.
 | [02 vmagent 전송 튜닝]({{< relref "ours/02-vmagent-transport-tuning.md" >}}) | 중앙 vminsert로 향하는 remote write 전송 파라미터(큐·동시성·재시도) 튜닝 |
 | [03 자기감시 메트릭]({{< relref "ours/03-self-monitoring-metrics.md" >}}) | VM 스택 자체를 감시하는 핵심 메트릭과 관측 포인트 |
 | [04 스케일링·용량 기준치]({{< relref "ours/04-scaling-thresholds.md" >}}) | 언제 스케일아웃할지 판단하는 용량 기준치와 지표 |
+
+## 원문별로 보기 — 참조한 D2 원문 4건
+
+위 세 갈래가 **주제별 재구성**이라면, 이건 **원문(발표·기사)별 정리**다. 네이버 D2의 VictoriaMetrics 자료를 게시 순서대로 각각 한 문서에 충실히 담아, 어느 글이 무엇을 말했는지 그대로 보존한다. 각 문서 최상단에 원문 링크와 "참조한 내용정리" 표시를 둔다.
+
+| 문서 | 게시일 | 한 줄 요약 |
+|------|--------|-----------|
+| [01 SRE 시계열 DB 운영기]({{< relref "by-source/01-2024-02-sre-tsdb.md" >}}) | 2024-02 | SingleNode→Cluster→멀티클러스터, 지표 선계산, 라우팅 게이트웨이 |
+| [02 대규모 메트릭 저장소 1편]({{< relref "by-source/02-2026-04-large-scale-metric-store.md" >}}) | 2026-04 | 12.5억 시계열·555조 DP·180노드, Hot/Warm 2계층, 무중단 장비 전환 |
+| [03 Inside VictoriaMetrics]({{< relref "by-source/03-2026-06-inside-victoriametrics.md" >}}) | 2026-06 | 컴포넌트별(vmagent·vminsert·vmstorage·vmselect) 내부 동작 6섹션 정독 |
+| [04 운영기 2편 — 3단계 최적화]({{< relref "by-source/04-2026-07-three-stage-optimization.md" >}}) | 2026-07 | 조회(vmselect OOM)·저장(IndexDB·RetentionPeriod)·수집(필터링) |
 
 ## 읽는 순서
 
