@@ -36,8 +36,7 @@ finance가 실제로 쓰는 EnvoyFilter 2개(`local-reply` SIDECAR_OUTBOUND·`in
 2. **이미지 미러** — proxyv2·pilot·install-cni 1.30.3을 사전에 ECR 미러로 push한다.
 3. **app-of-apps 핀 갱신** — chart targetRevision을 신 버전으로 교체하고, 신규 클러스터 API 서버 엔드포인트로 destination을 교체한다.
 4. **배포 순서** — base CRD → istiod(신 revision + default tag) → istio-ingressgateway → EnvoyFilter/AuthorizationPolicy/RequestAuthentication → istiod의 KEDA 기반 오토스케일링(KEDA 앱이 선행돼 있어야 한다).
-5. **검증** — `istioctl version`으로 목표 버전 일치, `istioctl proxy-status`로 전 sidecar SYNCED, sidecar 주입이 native init-container 형태인지, EnvoyFilter가 실제로 반영되는지, gateway 라우팅/타깃그룹 바인딩, VirtualService hosts 응답을 확인한다.
-6. Kiali를 함께 쓴다면 별도 major 마이그레이션으로 2.26+까지 올린다.
+5. 검증은 아래 실행 체크리스트를 따른다. Kiali를 함께 쓴다면 별도 major 마이그레이션으로 2.26+까지 올린다.
 
 ### 경로 B — 기존 green in-place(canary revision)
 
@@ -45,19 +44,19 @@ finance가 실제로 쓰는 EnvoyFilter 2개(`local-reply` SIDECAR_OUTBOUND·`in
 
 **경로 분기는 아직 확정되지 않았다** — 상위 문서 간에 "신규 클러스터 직행"과 "기존 green in-place"가 상충하는 서술이 남아 있었으므로, 실제 작업 전에 팀이 확정해야 한다. 차트/이미지 리워크·ECR 미러·Kiali 절차는 두 경로에서 동일하다.
 
-## 리스크 체크리스트
+## 실행 체크리스트
 
 - [ ] **라이브 버전 확정(최우선)** — `istioctl version` + istiod 이미지 태그 + `istioctl proxy-status`로 실제 control/data plane 버전을 확정하지 않으면 나머지 홉 산정이 무의미하다.
 - [ ] **경로 분기 확정** — blue-green 직행 vs in-place canary.
 - [ ] **ambient 미전환 재확인** — 어느 단계에서도 ztunnel/waypoint 도입 금지.
+- [ ] **이미지 ECR 미러 누락** — 1.30.3 proxyv2/pilot/install-cni 미러가 없으면 ImagePullBackOff.
 - [ ] **native sidecar(1.27+) 영향** — Job/CronJob 완료, mutating webhook, readiness gate, `holdApplicationUntilProxyStarts` 상호작용을 워크로드별로 검증한다.
-- [ ] **EnvoyFilter 렌더 검증** — 목표 버전 istiod가 두 EnvoyFilter를 accept하고 local_reply MERGE가 실제로 반영되는지 확인한다.
 - [ ] **base/istiod 차트 통합(1.29+)** — ClusterRole 등 리소스 rename을 참조하는 커스텀 role/role-binding이 있는지 점검한다.
 - [ ] **디버그 엔드포인트 인증(1.29/1.30)** — Kiali를 2.26+로 lockstep하지 않으면 topology/config 조회가 실패할 수 있다.
-- [ ] **이미지 ECR 미러 누락** — 1.30.3 proxyv2/pilot/install-cni 미러가 없으면 ImagePullBackOff.
-- [ ] **KEDA 의존** — istiod가 KEDA ScaledObject로 오토스케일되므로 KEDA 자체 업그레이드({{< relref "04-secrets-autoscaling.md" >}})와 순서를 맞춘다.
 - [ ] **Gateway API CRD 유입 여부(1.30)** — finance는 classic Gateway를 쓰지만, 클러스터에 k8s Gateway API CRD가 이미 설치돼 있으면 1.30은 v1.5.x를 요구한다.
-- [ ] **트래픽 컷오버 검증** — VirtualService hosts 응답과 타깃그룹 바인딩이 정상인 뒤 트래픽을 전환한다.
+- [ ] **KEDA 의존** — istiod가 KEDA ScaledObject로 오토스케일되므로 KEDA 자체 업그레이드({{< relref "04-secrets-autoscaling.md" >}})와 순서를 맞춘다.
+- [ ] **배포 후 검증** — `istioctl version` 목표 버전 일치, `istioctl proxy-status` 전 sidecar SYNCED, sidecar 주입이 native init-container 형태인지, EnvoyFilter(local_reply MERGE)가 실제로 반영되는지 확인한다.
+- [ ] **트래픽 컷오버 검증(rollback 게이트)** — VirtualService hosts 응답과 타깃그룹 바인딩이 정상인 것을 확인한 뒤에만 트래픽을 전환한다. 이상 시 revision/targetRevision을 이전 값으로 되돌린다.
 
 ## 근거
 

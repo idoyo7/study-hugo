@@ -36,11 +36,13 @@ finance의 LBC는 독립 ArgoCD 앱이 아니라 `cluster-bootstrap-v2` umbrella
 4. **IRSA 정책 갱신** — 8개 신규 액션을 IAM 정책에 반영한다. 정책의 실제 관리 경로(어느 레포가 이 role을 관리하는지)가 확인되지 않은 상태라면, 먼저 관리 주체를 특정한 뒤 v3.4.2 공식 `iam_policy.json` 기준으로 액션을 추가한다.
 5. **CRD 선적용** — in-place 갱신이라면 CRD를 수동으로 먼저 적용한다. blue 클러스터 fresh 설치라면 ArgoCD가 crds/를 렌더·적용하므로 생략 가능하다.
 
-배포 순서는 (1) IRSA role + v3.4.2 IAM 정책 준비 → (2) 이미지 미러 퍼블리시 → (3) umbrella 리워크·재퍼블리시 → app-of-apps targetRevision 핀 → (4) EKS managed addon 4종 다음, karpenter/istio 이전 순서로 `cluster-bootstrap-v2`를 배포 → (5) fresh 설치라면 CRD 자동 적용, in-place라면 수동 선적용이다.
+배포 순서는 (1) IRSA role + v3.4.2 IAM 정책 준비 → (2) 이미지 미러 퍼블리시 → (3) umbrella 리워크·재퍼블리시 → app-of-apps targetRevision 핀 → (4) fresh 설치라면 CRD 자동 적용, in-place라면 수동 선적용이다. `cluster-bootstrap-v2`가 전체 클러스터 부트스트랩 순서에서 어느 위치에 배포되는지는 [클러스터 부트스트랩]({{< relref "../04-cluster-bootstrap.md" >}}) 참고.
 
-검증은 컨트롤러 이미지가 v3.4.2인지, 로그에 AccessDenied(특히 `DescribeListenerAttributes`/`DescribeCapacityReservation`)가 없는지, `TargetGroupBinding` 대상(istio ingressgateway 타깃그룹)이 정상 healthy인지, 리스너 규칙이 예상치 못하게 재계산되지 않는지, webhook 인증서가 정상이고 ALB 신규 생성/삭제 e2e가 통과하는지를 본다.
+aws-load-balancer-controller는 1.36으로 갈 경우 **서드파티 차단 6종** 중 하나다 — 1.35 기준 목표(chart 3.4.2)는 그대로 유효하며, 1.36 재검토 시점은 [목표버전 판정]({{< relref "../01-target-version.md" >}})을 따른다.
 
-## 리스크 체크리스트
+검증은 아래 실행 체크리스트를 따른다.
+
+## 실행 체크리스트
 
 - [ ] **IAM 8액션 추가 선반영** — 미반영 시 reconcile AccessDenied. role 관리 경로를 먼저 특정한다.
 - [ ] **번들 리워크 없이는 불가** — targetRevision만 올려도 서브차트는 그대로 1.8.1이다.
@@ -49,6 +51,8 @@ finance의 LBC는 독립 ArgoCD 앱이 아니라 `cluster-bootstrap-v2` umbrella
 - [ ] **ListenerSet/Gateway CRD 누락 리스크** — Gateway API 미사용이어도 관련 CRD 누락만으로 업데이트가 깨진 upstream 사례가 있다. crds.yaml 적용 후 컨트롤러가 요구하는 CRD가 전부 존재하는지 확인한다.
 - [ ] **리스너 규칙 1회 재계산 가능성** — prod 적용 전 staging에서 ALB 규칙 diff를 선검증한다.
 - [ ] TargetGroupBinding 사용처는 istio ingressgateway 타깃그룹 바인딩 1곳뿐 — v3에서 스키마 무변경이나 sync 후 대상 재등록을 확인한다.
+- [ ] **배포 후 검증** — 컨트롤러 이미지가 v3.4.2인지, 로그에 AccessDenied(특히 `DescribeListenerAttributes`/`DescribeCapacityReservation`)가 없는지, `TargetGroupBinding` 대상(istio ingressgateway 타깃그룹)이 정상 healthy인지, 리스너 규칙이 예상치 못하게 재계산되지 않는지, webhook 인증서가 정상이고 ALB 신규 생성/삭제 e2e가 통과하는지 확인한다.
+- [ ] **rollback** — umbrella targetRevision을 1.8.1로 되돌린다. TargetGroupBinding CRD storage가 불변이라 기존 CR은 영향 없다.
 
 ## 근거
 
