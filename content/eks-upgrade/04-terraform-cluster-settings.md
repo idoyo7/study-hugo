@@ -44,6 +44,36 @@ IaC 레포에는 EKS 클러스터를 만드는 모듈이 이미 존재하지만,
 
 ⚠️ 두 가지가 걸린다. 첫째, **prod에는 이 Fargate 스택 자체가 없다** — stage 패턴을 그대로 복제해 신규 작성해야 한다. 둘째, **prod blue/green 클러스터용 subnet이 아직 어디에도 정의돼 있지 않다** — 클러스터 registry에는 private/public/firmbanking subnet만 있고 blue/green 분리 subnet이 없어, prod 재구축 전에 subnet 확보가 선행돼야 한다. 셋째(운영상 주의), selector는 **파드 생성 시점에만 평가**되므로 프로필을 만든 뒤 대상 워크로드를 rollout restart해야 하고, coredns의 arm64 nodeAffinity를 먼저 제거해야 한다(Fargate=amd64 전용, [토폴로지 페이지]({{< relref "03-fargate-karpenter-topology.md" >}}) 참조).
 
+### kube-proxy addon mode 변수화 — nftables opt-in 준비
+
+`modules/clusters/addons`는 각 addon의 `configuration_values`를 정적 JSON `file()`로 주입하는 구조라, kube-proxy의 `mode`도 현재는 값이 코드에 박혀 있다. [managed addon]({{< relref "05-managed-addons.md" >}})에서 확인했듯 이번 이관은 `iptables`를 유지하지만, 향후 전환을 한 줄 변수 변경으로 끝내기 위해 kube-proxy 블록만 변수화해 둔다.
+
+```hcl
+variable "kube_proxy_mode" {
+  description = "kube-proxy 프록시 모드. EKS addon 기본값은 iptables이며, v1.31+ addon 계열부터 nftables를 opt-in 가능(ipvs는 1.35 deprecated, 코드 삭제는 KEP-5495 기준 v1.43 예정)."
+  type        = string
+  default     = "iptables"
+
+  validation {
+    condition     = contains(["iptables", "nftables"], var.kube_proxy_mode)
+    error_message = "kube_proxy_mode는 iptables 또는 nftables만 허용한다."
+  }
+}
+
+resource "aws_eks_addon" "kube_proxy" {
+  cluster_name                = aws_eks_cluster.this.name
+  addon_name                  = "kube-proxy"
+  addon_version               = var.kube_proxy_addon_version # 예: v1.35.3-eksbuild.13
+  resolve_conflicts_on_update = "PRESERVE"                   # §3 conflict resolution 관례
+
+  configuration_values = jsonencode({
+    mode = var.kube_proxy_mode
+  })
+}
+```
+
+기본값은 `iptables`로 두고, 실제 전환 시에는 `kube_proxy_mode = "nftables"`로 apply한 뒤 `kubectl -n kube-system rollout restart ds kube-proxy`로 기존 노드의 규칙셋을 정리해야 한다(모드 전환이 이전 규칙셋을 자동 정리하지 않는다).
+
 ## 2. CAPA → Terraform 매핑
 
 CAPI 스펙(`clusterapi.yaml`)이 CAPA 리컨사일로 만들던 것을 Terraform 리소스로 1:1 대응시킨다.
@@ -164,6 +194,7 @@ Fargate pod-exec role은 별도 조치가 필요 없다 — **AWS 공식으로 F
 **managed addon 4종 + SA-role**
 - [ ] `aws_eks_addon` ×4 — addons 모듈 재활용, 버전 1.35, coredns/ebs-csi config 재전달
 - [ ] `modules/irsa` → `ebs-csi-controller-sa` + `AmazonEBSCSIDriverPolicyV2`, addon `service_account_role_arn`에 주입
+- [ ] kube-proxy `configuration_values.mode`를 변수화(`kube_proxy_mode`, 기본 `iptables`) — nftables 전환 준비
 
 **karpenter 인프라(전부 신규)**
 - [ ] 컨트롤러 IRSA(v1 6정책, 클러스터명 스코핑)

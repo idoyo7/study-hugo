@@ -48,7 +48,7 @@ k8s 버전별 addon 카탈로그를 보면 coredns만 마이너 경계에서 서
 
 ### 2-2. kube-proxy — 컨트롤플레인 버전락
 
-kube-proxy는 컨트롤플레인 버전을 초과할 수 없고 최대 3마이너 뒤까지만 허용된다. 1.35 CP에는 v1.35.x가 필수이며, 신규 클러스터는 v1.35.3-eksbuild.13으로 직접 create한다. finance는 config가 없어 기본값으로 동작하므로 파괴적 config 변경은 해당하지 않는다. nftables 백엔드는 1.33에서 GA됐지만 GA 이후에도 EKS 기본 모드는 여전히 iptables다 — nftables는 `configurationValues`의 `mode: nftables`로 opt-in해야 하는데, 이번 이관에서는 채택하지 않는다.
+kube-proxy는 컨트롤플레인 버전을 초과할 수 없고 최대 3마이너 뒤까지만 허용된다. 1.35 CP에는 v1.35.x가 필수이며, 신규 클러스터는 v1.35.3-eksbuild.13으로 직접 create한다. finance는 config가 없어 기본값으로 동작하므로 파괴적 config 변경은 해당하지 않는다. nftables 백엔드는 1.33에서 GA됐지만 GA 이후에도 EKS 기본 모드는 여전히 iptables다 — nftables는 `configurationValues`의 `mode: nftables`로 opt-in해야 하는데, 이번 이관에서는 채택하지 않는다. (2026-07-21 재조사) upstream 1.35·1.36 모두 default는 여전히 `iptables`이고, EKS kube-proxy addon도 `v1.31` 계열부터 `mode` enum에 `nftables`가 노출돼 있어(`describe-addon-configuration` 실측 `✓`) 필요 시 `{"mode": "nftables"}`만으로 opt-in 가능하다. 단 IPVS는 "1.35 deprecated"일 뿐 **1.36에서 removed는 아니다** — 실제 코드 삭제는 KEP-5495 기준 v1.43 예정이라 두 버전 모두 IPVS가 경고 로그와 함께 여전히 동작한다 `✓`. ⚠️ AWS `best-practices/ipvs.html` 문서 본문은 아직 "nftables가 under development"라는 outdated 문구가 남아 있으니 상단 경고 박스(1.33 GA·1.35 deprecated 명시)만 신뢰한다.
 
 ### 2-3. vpc-cni — version-agnostic, 기본 동작 불변
 
