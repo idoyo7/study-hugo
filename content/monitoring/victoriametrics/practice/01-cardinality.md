@@ -20,12 +20,19 @@ VM 운영에서 가장 자주 사고를 내는 개념이 **카디널리티**다.
 
 ## 한 시계열 = 지표 이름 + 레이블 집합
 
-```mermaid
-flowchart TD
-  BASE["metric 이름 + 레이블 집합 = 1 시계열"]
-  BASE --> W["Worst: pod_name · session_id<br/>재시작·요청마다 변경 → New TSID 폭발"]
-  BASE --> B["Best: 서비스 이름 등 안정 레이블<br/>자주 바뀌는 값은 로그·트레이스로"]
-```
+{{< flow caption="시계열 정의에서 갈리는 Worst/Best 레이블 설계" >}}
+{
+  "nodes": [
+    { "id": "base", "col": 0, "row": 0, "label": "metric 이름 + 레이블 집합", "sub": "= 1 시계열", "kind": "proc" },
+    { "id": "worst", "col": 1, "row": 0, "label": "Worst — pod_name · session_id", "sub": "재시작·요청마다 변경 → New TSID 폭발", "kind": "sink" },
+    { "id": "best", "col": 1, "row": 1, "label": "Best — 서비스 이름 등 안정 레이블", "sub": "자주 바뀌는 값은 로그·트레이스로", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "base", "to": "worst", "dashed": true },
+    { "from": "base", "to": "best", "dashed": true }
+  ]
+}
+{{< /flow >}}
 
 VM에서 **하나의 시계열은 "지표 이름 + 레이블 집합"으로 정의된다.** 여기서 핵심 직관 하나.
 

@@ -54,14 +54,25 @@ aliases: ["/monitoring/victoriametrics/07-operations-at-scale/"]
 
 ### 해결책: 멀티버스로 분리
 
-```mermaid
-flowchart TD
-  U["사용자 · 대시보드 · 알림"] --> GW["vmauth<br/>라우팅 게이트웨이"]
-  GW --> C1["클러스터: 서비스레벨 시각화"]
-  GW --> C2["클러스터: 서비스레벨 알림"]
-  GW --> C3["클러스터: 호스트레벨"]
-  GW --> C4["클러스터: 4 + α"]
-```
+{{< flow caption="멀티버스 — vmauth 라우팅 게이트웨이가 대시보드·알림별 전용 클러스터로 분리 전달" >}}
+{
+  "nodes": [
+    { "id": "U", "col": 0, "row": 1, "label": "사용자 · 대시보드 · 알림", "kind": "src" },
+    { "id": "GW", "col": 1, "row": 1, "label": "vmauth", "sub": "라우팅 게이트웨이", "kind": "proc" },
+    { "id": "C1", "col": 2, "row": 0, "label": "클러스터", "sub": "서비스레벨 시각화", "kind": "store" },
+    { "id": "C2", "col": 2, "row": 1, "label": "클러스터", "sub": "서비스레벨 알림", "kind": "store" },
+    { "id": "C3", "col": 2, "row": 2, "label": "클러스터", "sub": "호스트레벨", "kind": "store" },
+    { "id": "C4", "col": 2, "row": 3, "label": "클러스터", "sub": "4 + α", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "U", "to": "GW", "rate": 700 },
+    { "from": "GW", "to": "C1", "rate": 700 },
+    { "from": "GW", "to": "C2", "rate": 700 },
+    { "from": "GW", "to": "C3", "rate": 700 },
+    { "from": "GW", "to": "C4", "rate": 700 }
+  ]
+}
+{{< /flow >}}
 
 극복책은 **멀티버스**였다. 대시보드·시스템별로 클러스터 자체를 분리하는 것이다.
 
@@ -128,13 +139,22 @@ VictoriaMetrics 공식 사례에 공개된 다른 운영 규모와 비교했다.
 
 ## Hot/Warm 2계층 아키텍처
 
-```mermaid
-flowchart LR
-  A["vmagent"] -->|이중 쓰기| H["Hot 클러스터<br/>SSD · 12개월"]
-  A -->|이중 쓰기| W["Warm 클러스터<br/>HDD · 36개월"]
-  QR{"쿼리 시간범위"} -->|"≤ 12개월 (99.97%)"| H
-  QR -->|"> 12개월 (0.03%)"| W
-```
+{{< flow caption="Hot/Warm 2계층 — dual write(vmagent)와 쿼리 시간범위 기반 읽기 분기" >}}
+{
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "vmagent", "kind": "proc" },
+    { "id": "QR", "col": 0, "row": 1, "label": "쿼리 시간범위", "kind": "query" },
+    { "id": "H", "col": 1, "row": 0, "label": "Hot 클러스터", "sub": "SSD · 12개월", "kind": "store" },
+    { "id": "W", "col": 1, "row": 1, "label": "Warm 클러스터", "sub": "HDD · 36개월", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "A", "to": "H", "label": "이중 쓰기", "rate": 700 },
+    { "from": "A", "to": "W", "label": "이중 쓰기", "rate": 700 },
+    { "from": "QR", "to": "H", "label": "≤ 12개월 (99.97%)", "rate": 700 },
+    { "from": "QR", "to": "W", "label": "> 12개월 (0.03%)", "rate": 700 }
+  ]
+}
+{{< /flow >}}
 
 이 규모에서 가장 먼저 부딪히는 건 **성능과 비용의 균형**이다. 전부 SSD면 조회는 빠르지만 비용이 폭증하고, 전부 HDD면 장기 보관은 싸지만 실시간 쿼리 성능을 보장할 수 없다. 그래서 Hot과 Warm을 각각 **독립된 VM 클러스터**로 구성했다.
 

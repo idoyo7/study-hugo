@@ -64,23 +64,29 @@ otel-collector:
 
 ## 3. 데이터 흐름 — RUM은 MongoDB를 거치지 않는다
 
-```mermaid
-flowchart LR
-  sdk["브라우저 @hyperdx/browser<br/>rrweb 리플레이 + 에러 + Web Vitals"]
-  otel["OTel Collector 게이트웨이<br/>otlp → memory_limiter → transform → batch → clickhouse"]
-  ch[("ClickHouse<br/>otel_logs / otel_traces<br/>otel_metrics_* / hyperdx_sessions")]
-  users["운영자 브라우저"]
-  app["HyperDX app :3000"]
-  api["HyperDX api :8000"]
-  mongo[("MongoDB :27017<br/>메타데이터 전용")]
-
-  sdk -->|"OTLP/HTTP :4318 (인제스트, 쓰기)"| otel
-  otel -->|"native :9000 batch INSERT"| ch
-  users --> app --> api
-  api -->|"쿼리 :8123/:9000 (읽기)"| ch
-  api -->|"메타 R/W :27017"| mongo
-  api <-->|"OpAMP :4320"| otel
-```
+{{< flow caption="RUM 인제스트(쓰기) vs 운영자 조회(읽기) 경로 — MongoDB는 메타데이터 전용" >}}
+{
+  "nodes": [
+    {"id":"sdk","col":0,"row":0,"label":"브라우저 @hyperdx/browser","sub":"rrweb 리플레이 + 에러 + Web Vitals","kind":"src"},
+    {"id":"otel","col":1,"row":0,"label":"OTel Collector 게이트웨이","sub":"otlp → memory_limiter → transform → batch → clickhouse","kind":"proc"},
+    {"id":"ch","col":3,"row":0,"label":"ClickHouse","sub":"otel_logs / otel_traces / otel_metrics_* / hyperdx_sessions","kind":"store"},
+    {"id":"users","col":0,"row":1,"label":"운영자 브라우저","kind":"src"},
+    {"id":"app","col":1,"row":1,"label":"HyperDX app (3000)","kind":"proc"},
+    {"id":"api","col":2,"row":1,"label":"HyperDX api (8000)","kind":"proc"},
+    {"id":"mongo","col":3,"row":2,"label":"MongoDB (27017)","sub":"메타데이터 전용","kind":"store"}
+  ],
+  "edges": [
+    {"from":"sdk","to":"otel","label":"OTLP/HTTP 4318 인제스트 쓰기","rate":600},
+    {"from":"otel","to":"ch","label":"native 9000 batch INSERT","rate":600},
+    {"from":"users","to":"app","rate":700},
+    {"from":"app","to":"api","rate":700},
+    {"from":"api","to":"ch","label":"쿼리 8123/9000 읽기","rate":700,"kind":"query"},
+    {"from":"api","to":"mongo","label":"메타 R/W 27017","rate":800},
+    {"from":"api","to":"otel","label":"OpAMP 4320","dashed":true},
+    {"from":"otel","to":"api","label":"OpAMP 4320","dashed":true}
+  ]
+}
+{{< /flow >}}
 
 핵심 팩트(집필 시 강조점):
 

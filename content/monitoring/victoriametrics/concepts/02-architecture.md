@@ -22,20 +22,28 @@ VM 클러스터가 어떤 컴포넌트로 이루어지고 데이터가 어떻게
 
 VM 클러스터 버전은 4개의 핵심 컴포넌트로 구성된다. 대규모·고가용성(HA) 환경에서는 SingleNode가 아닌 클러스터 버전을 쓴다. 데이터가 **들어가는 길**(왼쪽 → 오른쪽)과 **빠지는 길**(오른쪽 → 왼쪽)을 하나의 흐름으로 보면 다음과 같다.
 
-```mermaid
-flowchart LR
-  T["Targets<br/>node_exporter · /metrics"] -->|scrape| A["vmagent<br/>수집·1차 가공"]
-  A -->|remote_write| I["vminsert<br/>라우팅·샤딩"]
-  subgraph VS["vmstorage · n노드 (월별 파티션)"]
-    S1["vmstorage-1"]
-    S2["vmstorage-N"]
-  end
-  I --> S1
-  I --> S2
-  S1 --> Q["vmselect<br/>Fanout → Merge"]
-  S2 --> Q
-  Q -->|PromQL / MetricsQL| G["Grafana"]
-```
+{{< flow caption="Targets → vmagent → vminsert → vmstorage(n노드) → vmselect → Grafana" >}}
+{
+  "nodes": [
+    { "id": "T", "col": 0, "row": 0, "label": "Targets", "sub": "node_exporter · /metrics", "kind": "src" },
+    { "id": "A", "col": 1, "row": 0, "label": "vmagent", "sub": "수집·1차 가공", "kind": "proc" },
+    { "id": "I", "col": 2, "row": 0, "label": "vminsert", "sub": "라우팅·샤딩", "kind": "proc" },
+    { "id": "S1", "col": 3, "row": 0, "label": "vmstorage-1", "sub": "월별 파티션", "kind": "store" },
+    { "id": "S2", "col": 3, "row": 1, "label": "vmstorage-N", "sub": "월별 파티션", "kind": "store" },
+    { "id": "Q", "col": 4, "row": 0, "label": "vmselect", "sub": "Fanout → Merge", "kind": "query" },
+    { "id": "G", "col": 5, "row": 0, "label": "Grafana", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "T", "to": "A", "label": "scrape", "rate": 700 },
+    { "from": "A", "to": "I", "label": "remote_write", "rate": 700 },
+    { "from": "I", "to": "S1", "rate": 600 },
+    { "from": "I", "to": "S2", "rate": 600 },
+    { "from": "S1", "to": "Q", "rate": 800 },
+    { "from": "S2", "to": "Q", "rate": 800 },
+    { "from": "Q", "to": "G", "label": "PromQL / MetricsQL", "rate": 900 }
+  ]
+}
+{{< /flow >}}
 
 한 줄 역할 요약:
 

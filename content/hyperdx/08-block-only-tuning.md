@@ -252,17 +252,29 @@ GROUP BY table, partition, disk_name ORDER BY parts DESC;
 | 스토리지 비용 | 짧은 보존에서 근접, 긴 보존에서 발산(gp3 3.5x/GB, §3) | 긴 보존에서 우위(cold $0.023/GB) |
 | 크로스오버 | ~3개월까지 블록 온리가 단순하고 비용 근접 | ~6개월+부터 S3 티어링이 명확히 저렴 |
 
-```mermaid
-flowchart TD
-  Q{보존·규모·S3 접근성} --> R{보존 기간}
-  R -->|"30~90일 &<br/>운영 단순성 우선"| BO["블록 온리(EBS gp3 단일 티어)<br/>storage_configuration 없음·TTL DELETE-only"]
-  R -->|"180일~1년+ &<br/>누적↑"| S3["S3 cold 티어링<br/>(03 기준 문서)"]
-  Q -->|"S3 미접근/규정상 금지"| BO
-  BO --> GROW{"성장 대응"}
-  GROW -->|"유일 레버"| EXP["gp3 온라인 확장<br/>(provisioner: Operator, §4)"]
-  GROW -->|"대안"| ALT["TTL 단축 / 샤드 추가"]
-  S3 -.->|"보존 짧아지면 회귀"| BO
-```
+{{< flow caption="블록 온리 vs S3 티어링 결정 트리" >}}
+{
+  "nodes": [
+    { "id": "q", "col": 0, "row": 0, "label": "보존·규모·S3 접근성", "kind": "query" },
+    { "id": "r", "col": 1, "row": 0, "label": "보존 기간", "kind": "query" },
+    { "id": "bo", "col": 2, "row": 0, "label": "블록 온리(EBS gp3 단일 티어)", "sub": "storage_configuration 없음·TTL DELETE-only", "kind": "sink" },
+    { "id": "s3", "col": 2, "row": 1, "label": "S3 cold 티어링", "sub": "(03 기준 문서)", "kind": "sink" },
+    { "id": "grow", "col": 3, "row": 0, "label": "성장 대응", "kind": "query" },
+    { "id": "exp", "col": 4, "row": 0, "label": "gp3 온라인 확장", "sub": "(provisioner=Operator, §4)", "kind": "sink" },
+    { "id": "alt", "col": 4, "row": 1, "label": "TTL 단축 / 샤드 추가", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "q", "to": "r", "dashed": true },
+    { "from": "r", "to": "bo", "label": "30~90일 & 운영 단순성 우선", "dashed": true },
+    { "from": "r", "to": "s3", "label": "180일~1년+ & 누적↑", "dashed": true },
+    { "from": "q", "to": "bo", "label": "S3 미접근/규정상 금지", "dashed": true },
+    { "from": "bo", "to": "grow", "dashed": true },
+    { "from": "grow", "to": "exp", "label": "유일 레버", "dashed": true },
+    { "from": "grow", "to": "alt", "label": "대안", "dashed": true },
+    { "from": "s3", "to": "bo", "label": "보존 짧아지면 회귀", "dashed": true }
+  ]
+}
+{{< /flow >}}
 
 - **io2 전환 트리거**(>2,000 MiB/s 지속·>80,000 IOPS/vol·볼륨 99.999% 규제)는 [02]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서 — 블록 온리든 티어링이든 RUM 0.7TB/월엔 도달하지 않는다. `≈`
 - **staging 경로**: staging은 데이터가 작고 보존도 짧아 블록 온리가 자연스럽다 — storage XML·IRSA 없이 gp3 하나로 띄우고, prod만 S3 티어링을 얹는 조합도 유효하다. `≈`

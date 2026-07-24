@@ -21,14 +21,25 @@ weight: 3
 
 메시 안에서 트래픽은 두 방향으로 흐르고, 이 둘은 통과하는 프록시가 다르다.
 
-```mermaid
-flowchart TD
-  C["외부 클라이언트"] -->|"north-south (남북)"| LB["NLB / ALB"]
-  LB --> GW["istio-ingressgw<br/>Ingress Gateway · 독립 Envoy"]
-  GW -->|"east-west (동서)"| P1["Pod + 사이드카"]
-  P1 --> P2["Pod + 사이드카"]
-  P2 --> P3["Pod + 사이드카"]
-```
+{{< flow caption="데이터 플레인 트래픽의 두 방향 — 남북(Ingress Gateway)과 동서(사이드카)" >}}
+{
+  "nodes": [
+    { "id": "client", "col": 0, "row": 0, "label": "외부 클라이언트", "kind": "src" },
+    { "id": "lb", "col": 1, "row": 0, "label": "NLB / ALB", "kind": "proc" },
+    { "id": "gw", "col": 2, "row": 0, "label": "istio-ingressgw", "sub": "Ingress Gateway · 독립 Envoy", "kind": "proc" },
+    { "id": "pod1", "col": 3, "row": 0, "label": "Pod + 사이드카", "kind": "proc" },
+    { "id": "pod2", "col": 4, "row": 0, "label": "Pod + 사이드카", "kind": "proc" },
+    { "id": "pod3", "col": 5, "row": 0, "label": "Pod + 사이드카", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "client", "to": "lb", "label": "north-south (남북)", "rate": 700 },
+    { "from": "lb", "to": "gw", "rate": 700 },
+    { "from": "gw", "to": "pod1", "label": "east-west (동서)", "rate": 700 },
+    { "from": "pod1", "to": "pod2", "rate": 700 },
+    { "from": "pod2", "to": "pod3", "rate": 700 }
+  ]
+}
+{{< /flow >}}
 
 - **North-south(남북)** — 클러스터 **바깥**과 주고받는 트래픽. 외부 → 서비스 진입은 **Ingress Gateway**를, 서비스 → 외부는 Egress Gateway(쓸 경우)를 지난다.
 - **East-west(동서)** — 클러스터 **안**의 서비스 간 트래픽. 각 파드의 **사이드카 Envoy**가 처리한다([01]({{< relref "01-mesh-basics.md" >}})의 그 사이드카).
