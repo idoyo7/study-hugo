@@ -31,23 +31,29 @@ weight: 1
 
 Istio(그리고 대부분의 메시)는 두 부분으로 나뉜다.
 
-```mermaid
-flowchart TD
-  D["istiod · 컨트롤 플레인<br/>Pilot · Citadel · Galley 통합"]
-  subgraph PA["Pod A"]
-    appA["app"] --> EA["Envoy 사이드카"]
-  end
-  subgraph PB["Pod B"]
-    EB["Envoy 사이드카"] --> appB["app"]
-  end
-  EG["Ingress Gateway<br/>(Envoy)"]
-  ext["외부 트래픽"] --> EG
-  D -.->|"xDS: CDS/EDS/LDS/RDS/SDS"| EA
-  D -.-> EB
-  D -.-> EG
-  EG --> EA
-  EA -->|mTLS| EB
-```
+{{< flow caption="데이터 플레인(Envoy)과 컨트롤 플레인(istiod)의 트래픽·설정 흐름" >}}
+{
+  "nodes": [
+    { "id": "ext", "col": 0, "row": 0, "label": "외부 트래픽", "kind": "src" },
+    { "id": "appA", "col": 0, "row": 1, "label": "app", "sub": "Pod A", "kind": "src" },
+    { "id": "D", "col": 0, "row": 2, "label": "istiod · 컨트롤 플레인", "sub": "Pilot · Citadel · Galley 통합", "kind": "proc" },
+    { "id": "EG", "col": 1, "row": 0, "label": "Ingress Gateway", "sub": "Envoy", "kind": "proc" },
+    { "id": "EA", "col": 2, "row": 0, "label": "Envoy 사이드카", "sub": "Pod A", "kind": "proc" },
+    { "id": "EB", "col": 3, "row": 0, "label": "Envoy 사이드카", "sub": "Pod B", "kind": "proc" },
+    { "id": "appB", "col": 4, "row": 0, "label": "app", "sub": "Pod B", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "ext", "to": "EG", "rate": 700 },
+    { "from": "appA", "to": "EA", "rate": 700 },
+    { "from": "EG", "to": "EA", "rate": 700 },
+    { "from": "EA", "to": "EB", "label": "mTLS", "rate": 600 },
+    { "from": "EB", "to": "appB", "rate": 700 },
+    { "from": "D", "to": "EA", "label": "xDS CDS/EDS/LDS/RDS/SDS", "dashed": true },
+    { "from": "D", "to": "EB", "dashed": true },
+    { "from": "D", "to": "EG", "dashed": true }
+  ]
+}
+{{< /flow >}}
 
 - **데이터 플레인** — 실제 트래픽이 흐르는 길. 파드마다 **Envoy 프록시**가 사이드카로 붙어, 그 파드가 주고받는 **모든 트래픽을 가로챈다**. mTLS 암호화, 라우팅, 재시도, 지표 수집이 전부 이 Envoy에서 일어난다. 외부에서 들어오는 트래픽을 받는 **Gateway**도 결국 독립적으로 뜬 Envoy다.
 - **컨트롤 플레인** — 트래픽이 직접 흐르지는 않는 곳. **istiod** 하나가 "이 프록시는 어디로 어떻게 보내야 한다"는 설정을 계산해 각 Envoy에 내려보낸다. 초기 Istio의 Pilot·Citadel·Galley 세 컴포넌트가 지금은 istiod 하나로 통합됐다.
@@ -60,12 +66,21 @@ flowchart TD
 
 그래서 애플리케이션은 `http://other-service`로 평범하게 호출했다고 믿지만, 실제로는:
 
-```mermaid
-flowchart LR
-  app["app"] -->|"iptables 가로채기"| le["로컬 Envoy"]
-  le -->|mTLS| re["상대 Pod Envoy"]
-  re -->|iptables| ra["상대 app"]
-```
+{{< flow caption="iptables로 가로챈 사이드카 우회 경로" >}}
+{
+  "nodes": [
+    { "id": "app", "col": 0, "row": 0, "label": "app", "kind": "src" },
+    { "id": "le", "col": 1, "row": 0, "label": "로컬 Envoy", "kind": "proc" },
+    { "id": "re", "col": 2, "row": 0, "label": "상대 Pod Envoy", "kind": "proc" },
+    { "id": "ra", "col": 3, "row": 0, "label": "상대 app", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "app", "to": "le", "label": "iptables 가로채기", "rate": 700 },
+    { "from": "le", "to": "re", "label": "mTLS", "rate": 700 },
+    { "from": "re", "to": "ra", "label": "iptables", "rate": 700 }
+  ]
+}
+{{< /flow >}}
 
 이 우회 덕분에 **애플리케이션 코드 한 줄 안 고치고** mTLS·재시도·트래픽 분할을 얹을 수 있다. 대신 모든 요청이 프록시를 두 번(발신 측·수신 측) 통과하므로 **지연과 자원이 추가된다** — 이게 뒤에 나오는 "메시의 비용"이다.
 

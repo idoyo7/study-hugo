@@ -18,20 +18,25 @@ weight: 3
 
 > 이 매니페스트들은 표준 ClickStack Helm 2차트가 쓰는 ClickHouse Inc. 공식 operator(ClickHouseCluster CRD)가 아니라, `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only')로 CH/Keeper를 **Altinity CHI/CHK로 분리 운영**하는 전제로 쓰였다. 이 분기의 배경은 [스택 토폴로지]({{< relref "01-stack-topology.md" >}})·[operator·다운타임]({{< relref "04-operator-topology-downtime.md" >}}) 참조. `✓`
 
-```mermaid
-flowchart LR
-  ingest[OTel Collector] -->|INSERT| hot
-  subgraph node["ClickHouse pod (EBS PVC)"]
-    hot["hot volume<br/>disk: default<br/>gp3/io2"]
-    cache["s3_cache (LRU 150Gi)<br/>on EBS"]
-    meta["part metadata<br/>(local, EBS)"]
-  end
-  hot -->|"TTL: TO VOLUME 'cold'<br/>(14/30일)"| s3
-  s3["cold volume<br/>disk: s3_cache→s3<br/>S3 Standard"]
-  cache -.->|캐시 미스 시 왕복| s3
-  s3 -->|"TTL DELETE<br/>(90/180/365일)"| gone((expire))
-  meta -.->|blob 포인터| s3
-```
+{{< flow caption="OTel INSERT → hot(EBS: default/cache/metadata) → TTL로 S3 cold 이동 → TTL DELETE 만료" >}}
+{
+  "nodes": [
+    { "id": "ingest", "col": 0, "row": 1, "label": "OTel Collector", "kind": "src" },
+    { "id": "hot", "col": 1, "row": 0, "label": "hot volume", "sub": "default disk · gp3/io2", "kind": "store" },
+    { "id": "cache", "col": 1, "row": 1, "label": "s3_cache (LRU 150Gi)", "sub": "on EBS", "kind": "store" },
+    { "id": "meta", "col": 1, "row": 2, "label": "part metadata", "sub": "local, EBS", "kind": "store" },
+    { "id": "s3", "col": 2, "row": 1, "label": "cold volume", "sub": "s3_cache → s3 · S3 Standard", "kind": "store" },
+    { "id": "gone", "col": 3, "row": 1, "label": "expire", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "ingest", "to": "hot", "label": "INSERT", "rate": 600, "speed": "normal" },
+    { "from": "hot", "to": "s3", "label": "TTL TO VOLUME 'cold' (14/30일)", "rate": 700, "speed": "normal" },
+    { "from": "cache", "to": "s3", "label": "캐시 미스 시 왕복", "dashed": true },
+    { "from": "meta", "to": "s3", "label": "blob 포인터", "dashed": true },
+    { "from": "s3", "to": "gone", "label": "TTL DELETE (90/180/365일)", "rate": 700, "speed": "slow" }
+  ]
+}
+{{< /flow >}}
 
 ## 1. `storage_configuration` 기준 문서 — hot=EBS `default` / cold=S3+cache
 

@@ -21,14 +21,25 @@ weight: 2
 
 istiod는 트래픽이 지나가는 곳이 아니다. 하는 일은 하나로 요약된다: **클러스터 상태를 감시해서, 각 Envoy 프록시가 알아야 할 설정을 계산해 내려보낸다.**
 
-```mermaid
-flowchart TD
-  K["Kube API<br/>Service · Endpoint · Pod · Istio CRD"] -->|watch| D["istiod<br/>1. 상태 수집 → 2. Envoy 설정 변환 → 3. push"]
-  D -->|"xDS (ADS/gRPC)"| E1["Envoy₁"]
-  D --> E2["Envoy₂"]
-  D --> E3["Envoy₃"]
-  D --> En["Envoyₙ"]
-```
+{{< flow caption="istiod가 Kube API를 watch해 상태를 계산하고 xDS로 각 Envoy에 push" >}}
+{
+  "nodes": [
+    { "id": "K", "col": 0, "row": 0, "label": "Kube API", "sub": "Service · Endpoint · Pod · Istio CRD", "kind": "store" },
+    { "id": "D", "col": 1, "row": 0, "label": "istiod", "sub": "1. 상태 수집 → 2. Envoy 설정 변환 → 3. push", "kind": "proc" },
+    { "id": "E1", "col": 2, "row": 0, "label": "Envoy₁", "kind": "proc" },
+    { "id": "E2", "col": 2, "row": 1, "label": "Envoy₂", "kind": "proc" },
+    { "id": "E3", "col": 2, "row": 2, "label": "Envoy₃", "kind": "proc" },
+    { "id": "En", "col": 2, "row": 3, "label": "Envoyₙ", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "K", "to": "D", "label": "watch", "rate": 700 },
+    { "from": "D", "to": "E1", "label": "xDS (ADS/gRPC)", "rate": 600 },
+    { "from": "D", "to": "E2", "rate": 600 },
+    { "from": "D", "to": "E3", "rate": 600 },
+    { "from": "D", "to": "En", "rate": 600 }
+  ]
+}
+{{< /flow >}}
 
 프록시에 내려가는 설정은 **xDS**라는 프로토콜 묶음으로 전달된다. 종류별로:
 

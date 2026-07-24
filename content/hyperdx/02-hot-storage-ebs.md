@@ -190,17 +190,31 @@ EBS-first에서도 "볼륨 내구성 ≠ 데이터 내구성"은 그대로다:
 | 운영 복잡도 | **낮음** | 낮음 | 높음(RAID·재수화·Karpenter) | 중간 |
 | 0.7TB/월 RUM 적합 | **✅ 정답** | ❌ 과잉 | ❌ 과한 복잡도 | (cold 티어로만) |
 
-```mermaid
-flowchart TD
-    Q{hot 매체 선택} --> S{스케일·워크로드}
-    S -->|"0.7TB/월 RUM,<br/>운영 단순성 우선"| GP3["단일 gp3<br/>baseline IOPS + 소량 throughput"]
-    S -->|"극한 IOPS/sub-ms<br/>트랜잭션성"| IO2["io2 Block Express<br/>(우리 해당 없음)"]
-    S -->|"20TB+·성능 극대화·<br/>상시가동·인력보유"| NVME["로컬 NVMe i8g<br/>(→ clickhouse/02 위임)"]
-    GP3 --> INST{"인스턴스 EBS 파이프<br/>가 천장"}
-    INST -->|"throughput만 소량 provision"| DONE["gp3 provisioned throughput<br/>= 인스턴스 baseline에 매칭"]
-    GP3 --> DUR["내구성: 볼륨 99.9%가 아니라<br/>멀티AZ RF2+ 복제 + 백업"]
-    DUR --> REHY["재부팅/재스케줄: 재수화 0<br/>AZ 장애: replica에서 재수화"]
-```
+{{< flow caption="hot 매체 선택 — 우리 스케일(0.7TB/월 RUM)에서 단일 gp3로 귀결되는 판단 흐름" >}}
+{
+  "nodes": [
+    { "id": "Q", "col": 0, "row": 0, "label": "hot 매체 선택", "kind": "proc" },
+    { "id": "S", "col": 1, "row": 0, "label": "스케일·워크로드", "kind": "proc" },
+    { "id": "GP3", "col": 2, "row": 0, "label": "단일 gp3", "sub": "baseline IOPS + 소량 throughput", "kind": "store" },
+    { "id": "IO2", "col": 2, "row": 1, "label": "io2 Block Express", "sub": "(우리 해당 없음)", "kind": "store" },
+    { "id": "NVME", "col": 2, "row": 2, "label": "로컬 NVMe i8g", "sub": "(→ clickhouse/02 위임)", "kind": "store" },
+    { "id": "INST", "col": 3, "row": 0, "label": "인스턴스 EBS 파이프가 천장", "kind": "proc" },
+    { "id": "DUR", "col": 3, "row": 1, "label": "내구성", "sub": "볼륨 99.9%가 아니라 멀티AZ RF2+ 복제 + 백업", "kind": "proc" },
+    { "id": "DONE", "col": 4, "row": 0, "label": "gp3 provisioned throughput", "sub": "= 인스턴스 baseline에 매칭", "kind": "sink" },
+    { "id": "REHY", "col": 4, "row": 1, "label": "재부팅·재스케줄 시", "sub": "재수화 0, AZ 장애는 replica에서 재수화", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "Q", "to": "S", "dashed": true },
+    { "from": "S", "to": "GP3", "label": "0.7TB/월 RUM, 운영 단순성 우선", "dashed": true },
+    { "from": "S", "to": "IO2", "label": "극한 IOPS/sub-ms 트랜잭션성", "dashed": true },
+    { "from": "S", "to": "NVME", "label": "20TB+·성능 극대화·상시가동·인력보유", "dashed": true },
+    { "from": "GP3", "to": "INST", "dashed": true },
+    { "from": "INST", "to": "DONE", "label": "throughput만 소량 provision", "dashed": true },
+    { "from": "GP3", "to": "DUR", "dashed": true },
+    { "from": "DUR", "to": "REHY", "dashed": true }
+  ]
+}
+{{< /flow >}}
 
 ## 6. Altinity operator 연동 — gp3 StorageClass + volumeClaimTemplate
 

@@ -23,18 +23,26 @@ weight: 4
 
 **EBS-first는 이 인과 사슬의 첫 고리를 끊는다.** EBS 볼륨은 EC2 인스턴스와 독립된 네트워크 블록 스토리지라, 노드(인스턴스)가 사라져도 볼륨과 그 안의 데이터는 그대로 남는다 `✓`. Kubernetes/EBS CSI 관점에서 노드 유실은 "데이터 소실"이 아니라 **"볼륨을 죽은 노드에서 떼어(detach) 새 노드에 다시 붙이는(reattach) 작업"**이 된다 `✓`.
 
-```mermaid
-flowchart LR
-    subgraph NVMe["로컬 NVMe (기존 corpus 전제)"]
-        A1[노드 급사] --> A2[데이터 영구 소실]
-        A2 --> A3["healthy replica에서<br/>전량 재수화<br/>(수 시간, RF2→실질 RF1)"]
-    end
-    subgraph EBS["EBS gp3/io2 (이 문서 전제)"]
-        B1[노드 급사] --> B2[데이터는 EBS에 생존]
-        B2 --> B3["볼륨 detach →<br/>같은 AZ 새 노드에 reattach"]
-        B3 --> B4["기존 파트 그대로 +<br/>Keeper 로그 델타만 catch-up<br/>(수 분, RF 안 떨어짐*)"]
-    end
-```
+{{< flow caption="노드 급사 시 복구 경로 — 로컬 NVMe(전량 재수화) vs EBS(reattach+델타 catch-up)" >}}
+{
+  "nodes": [
+    { "id": "A1", "col": 0, "row": 0, "label": "노드 급사", "sub": "로컬 NVMe (기존 corpus 전제)", "kind": "src" },
+    { "id": "A2", "col": 1, "row": 0, "label": "데이터 영구 소실", "kind": "store" },
+    { "id": "A3", "col": 2, "row": 0, "label": "healthy replica에서 전량 재수화", "sub": "(수 시간, RF2→실질 RF1)", "kind": "proc" },
+    { "id": "B1", "col": 0, "row": 1, "label": "노드 급사", "sub": "EBS gp3/io2 (이 문서 전제)", "kind": "src" },
+    { "id": "B2", "col": 1, "row": 1, "label": "데이터는 EBS에 생존", "kind": "store" },
+    { "id": "B3", "col": 2, "row": 1, "label": "볼륨 detach → 같은 AZ 새 노드에 reattach", "kind": "proc" },
+    { "id": "B4", "col": 3, "row": 1, "label": "기존 파트 그대로 + Keeper 로그 델타만 catch-up", "sub": "(수 분, RF 안 떨어짐*)", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "A1", "to": "A2", "dashed": true },
+    { "from": "A2", "to": "A3", "dashed": true },
+    { "from": "B1", "to": "B2", "dashed": true },
+    { "from": "B2", "to": "B3", "dashed": true },
+    { "from": "B3", "to": "B4", "dashed": true }
+  ]
+}
+{{< /flow >}}
 
 `*` 정확히는 reattach가 끝날 때까지 그 replica가 **일시 offline**이지 유실이 아니다. 데이터가 온전하므로 RF는 "감소"가 아니라 "일시 미가용"이고, catch-up은 Keeper 로그가 가리키는 밀린 파트(델타)만 fetch한다 — RMT가 로컬 파트 존재를 확인하고 누락분만 받는 표준 동작이라는 clickhouse/04 §무손실 지점의 EBS 귀결이다 `≈`. 다만 **reattach + CH startup(part-load) 실소요 시간은 hot 데이터량·파트 수에 좌우되며 아직 실측 전이다** `?`.
 

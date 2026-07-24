@@ -73,13 +73,22 @@ nginx `limit_req`의 대응이 여기다. Istio는 레이트 리밋을 표준 CR
 
 클러스터 전역에서 **하나의 일관된 한도**가 필요하면, Envoy의 `envoy.filters.http.ratelimit` 필터가 매 요청을 **외부 Rate Limit Service(RLS)**(보통 Envoy ratelimit + Redis)에 물어본다.
 
-```mermaid
-flowchart LR
-  req["요청"] --> envoy["Envoy"]
-  envoy --> rl["ratelimit 필터"]
-  rl --> rls["RLS (Redis 카운터)"]
-  rls -->|"allow / deny"| envoy
-```
+{{< flow caption="global rate limit — 매 요청을 외부 RLS에 물어 allow/deny를 받는다" >}}
+{
+  "nodes": [
+    { "id": "req", "col": 0, "row": 0, "label": "요청", "kind": "src" },
+    { "id": "envoy", "col": 1, "row": 0, "label": "Envoy", "kind": "proc" },
+    { "id": "rl", "col": 2, "row": 0, "label": "ratelimit 필터", "kind": "proc" },
+    { "id": "rls", "col": 3, "row": 0, "label": "RLS", "sub": "Redis 카운터", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "req", "to": "envoy", "rate": 700 },
+    { "from": "envoy", "to": "rl", "rate": 700 },
+    { "from": "rl", "to": "rls", "rate": 700 },
+    { "from": "rls", "to": "envoy", "label": "allow / deny", "rate": 700 }
+  ]
+}
+{{< /flow >}}
 
 - **장점**: 프록시 수와 무관하게 전역 정확도. 사용자·API키·경로별 descriptor로 세밀한 정책.
 - **비용**: RLS·Redis라는 **운영 대상과 요청당 왕복 지연**이 추가된다.

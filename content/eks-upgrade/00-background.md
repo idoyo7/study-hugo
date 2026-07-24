@@ -19,16 +19,21 @@ weight: 1
 
 finance EKS는 관리(hub) 클러스터 1개와 워크로드(spoke) 클러스터 2개로 구성된 허브-스포크 구조다. 허브인 **ring0-blue**에서 ArgoCD와 CAPA(Cluster API Provider AWS) 컨트롤러가 함께 돌며, ArgoCD의 `ApplicationSet`이 CAPI 커스텀 리소스를 생성하고 CAPA가 그 스펙을 워크로드 계정의 EKS 클러스터로 reconcile한다. 세 클러스터는 각각 별도 AWS 계정(관리·stage·prod)에 있고, 이 3계정 분리가 아키텍처의 보안 경계다.
 
-```mermaid
-flowchart TB
-  subgraph hub["ring0-blue (관리 계정)"]
-    argocd["ArgoCD root-app"]
-    capa["CAPA / CAPI 컨트롤러"]
-    argocd --> capa
-  end
-  capa -->|AssumeRole 크로스계정| stage[("staging-finance-green<br/>(stage 계정)")]
-  capa -->|AssumeRole 크로스계정| prod[("prod-finance-green<br/>(prod 계정)")]
-```
+{{< flow caption="ring0-blue 허브의 ArgoCD → CAPA가 크로스계정 AssumeRole로 워크로드 클러스터를 reconcile" >}}
+{
+  "nodes": [
+    {"id":"argocd","col":0,"row":0,"label":"ArgoCD root-app","sub":"ring0-blue 관리 계정","kind":"proc"},
+    {"id":"capa","col":1,"row":0,"label":"CAPA / CAPI 컨트롤러","sub":"ring0-blue 관리 계정","kind":"proc"},
+    {"id":"stage","col":2,"row":0,"label":"staging-finance-green","sub":"stage 계정","kind":"store"},
+    {"id":"prod","col":2,"row":1,"label":"prod-finance-green","sub":"prod 계정","kind":"store"}
+  ],
+  "edges": [
+    {"from":"argocd","to":"capa","rate":700,"speed":"normal"},
+    {"from":"capa","to":"stage","label":"AssumeRole 크로스계정","rate":700,"speed":"normal"},
+    {"from":"capa","to":"prod","label":"AssumeRole 크로스계정","rate":700,"speed":"normal"}
+  ]
+}
+{{< /flow >}}
 
 즉 버전 변경의 "정상 경로"는 항상 **ring0의 YAML 수정 → ArgoCD sync → CAPA가 AssumeRole해 워크로드 계정에 반영**이라는 크로스계정 경로를 거치도록 설계돼 있었고, 클러스터 버전의 SSOT는 CAPI 스펙이었다. ArgoCD 3-tier 부트스트랩 체인과 3레포 구조의 상세는 [부트스트랩]({{< relref "04-cluster-bootstrap.md" >}})이 이어받는다.
 

@@ -20,17 +20,28 @@ aliases: ["/monitoring/victoriametrics/05-query-and-ops-components/"]
 
 ## vmselect — Fanout 쿼리 엔진
 
-```mermaid
-flowchart LR
-  G["Grafana"] -->|PromQL/MetricsQL| V["vmselect"]
-  V -->|Fanout| S1["vmstorage-1"]
-  V -->|Fanout| S2["vmstorage-2"]
-  V -->|Fanout| S3["vmstorage-N"]
-  S1 --> MG["Merge → Sort → JSON"]
-  S2 --> MG
-  S3 --> MG
-  MG --> G
-```
+{{< flow caption="vmselect의 Fanout 쿼리 흐름 — Grafana 요청을 모든 vmstorage로 뿌리고 결과를 Merge·Sort해 반환" >}}
+{
+  "nodes": [
+    { "id": "g", "col": 0, "row": 1, "label": "Grafana", "kind": "sink" },
+    { "id": "vs", "col": 1, "row": 1, "label": "vmselect", "kind": "proc" },
+    { "id": "s1", "col": 2, "row": 0, "label": "vmstorage-1", "kind": "store" },
+    { "id": "s2", "col": 2, "row": 1, "label": "vmstorage-2", "kind": "store" },
+    { "id": "s3", "col": 2, "row": 2, "label": "vmstorage-N", "kind": "store" },
+    { "id": "mg", "col": 3, "row": 1, "label": "Merge → Sort → JSON", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "g", "to": "vs", "label": "PromQL/MetricsQL", "rate": 700 },
+    { "from": "vs", "to": "s1", "label": "Fanout", "rate": 600 },
+    { "from": "vs", "to": "s2", "label": "Fanout", "rate": 600 },
+    { "from": "vs", "to": "s3", "label": "Fanout", "rate": 600 },
+    { "from": "s1", "to": "mg", "rate": 600 },
+    { "from": "s2", "to": "mg", "rate": 600 },
+    { "from": "s3", "to": "mg", "rate": 600 },
+    { "from": "mg", "to": "g", "label": "응답", "rate": 700 }
+  ]
+}
+{{< /flow >}}
 
 vmselect는 PromQL/MetricsQL 쿼리를 받아 **모든 vmstorage 노드에 던지고(Fanout)**, 돌아온 결과를 모아서 클라이언트에 반환하는 컴포넌트다. [02 아키텍처]({{< relref "02-architecture.md" >}})의 데이터 흐름에서 화살표가 반대로 향하는 쪽, 즉 읽기 경로의 진입점이다.
 

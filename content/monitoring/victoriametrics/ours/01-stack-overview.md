@@ -19,14 +19,19 @@ weight: 1
 
 ## 전체 구조
 
-```mermaid
-flowchart LR
-  subgraph K8S["k8s (VM operator)"]
-    VA["vmagent<br/>Deployment · stateless"]
-  end
-  VA -->|"remote_write<br/>/insert/0/prometheus"| VI["중앙 VM 클러스터<br/>vminsert 엔드포인트"]
-  VI --> VS["vmstorage"]
-```
+{{< flow caption="k8s의 vmagent가 중앙 VM 클러스터로 remote_write" >}}
+{
+  "nodes": [
+    { "id": "VA", "col": 0, "row": 0, "label": "vmagent", "sub": "k8s · VM operator · Deployment(stateless)", "kind": "proc" },
+    { "id": "VI", "col": 1, "row": 0, "label": "중앙 VM 클러스터", "sub": "vminsert 엔드포인트", "kind": "proc" },
+    { "id": "VS", "col": 2, "row": 0, "label": "vmstorage", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "VA", "to": "VI", "label": "remote_write /insert/0/prometheus", "rate": 700 },
+    { "from": "VI", "to": "VS", "rate": 700 }
+  ]
+}
+{{< /flow >}}
 
 vmagent는 **k8s 위에서 VM operator가 관리하는 Deployment**다. 무상태(stateless)라 스크랩한 지표를 자체 보관하지 않고 곧바로 중앙 VM 클러스터의 vminsert로 흘려보낸다. vmagent의 7단계 수집 파이프라인과 유실 방지 큐 등 원리는 [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}})에서 다룬다 — 이 문서는 그 원리를 우리 값으로 옮긴 결과만 본다.
 
