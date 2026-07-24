@@ -46,17 +46,30 @@ aliases: ["/hyperdx/operating/03-availability/"]
 
 무손실 방어는 한 메커니즘이 아니라 **성격이 다른 두 트랙**이다. 뭉뚱그리면 "Keeper가 데이터를 지킨다" 같은 오해가 생긴다.
 
-```mermaid
-flowchart LR
-  subgraph T1["트랙 1 — 텔레메트리(대량·스트리밍)"]
-    sdk["브라우저 SDK"] --> q["OTel file_storage<br/>persistent queue"] --> ch[("ClickHouse<br/>RMT RF2/3 + insert_quorum")]
-  end
-  subgraph T2["트랙 2 — 메타데이터(소량·문서)"]
-    api["HyperDX api"] --> rs[("MongoDB ReplicaSet<br/>members:3")] --> dump["mongodump → S3"]
-  end
-  keeper[("Keeper 3노드<br/>조정 메타만, 쓰기 가용성 좌우")]
-  ch -.->|"정족수 필요"| keeper
-```
+{{< flow caption="무손실 방어의 두 트랙 — 트랙1(텔레메트리·대량·스트리밍)은 OTel file_storage 퍼시스턴트 큐 + ClickHouse RMT 복제(RF2/3 + insert_quorum), 트랙2(메타데이터·소량·문서)는 MongoDB ReplicaSet(members:3) + mongodump→S3다. Keeper 3노드는 두 트랙 어디에도 이벤트 데이터를 보관하지 않고, 트랙1의 쓰기 가용성만 좌우한다(정족수 필요)." >}}
+{
+  "groups": [
+    { "id": "T1", "label": "트랙1 — 텔레메트리", "members": ["sdk", "q", "ch"] },
+    { "id": "T2", "label": "트랙2 — 메타데이터", "members": ["api", "rs", "dump"] }
+  ],
+  "nodes": [
+    { "id": "sdk", "col": 0, "row": 0, "label": "브라우저 SDK", "kind": "src" },
+    { "id": "q", "col": 1, "row": 0, "label": "OTel persistent queue", "sub": "file_storage", "kind": "proc" },
+    { "id": "ch", "col": 2, "row": 0, "label": "ClickHouse", "sub": "RMT RF2/3+quorum", "kind": "store" },
+    { "id": "keeper", "col": 3, "row": 1, "label": "Keeper 3노드", "sub": "쓰기 가용성 좌우", "kind": "store" },
+    { "id": "api", "col": 0, "row": 2, "label": "HyperDX api", "kind": "proc" },
+    { "id": "rs", "col": 1, "row": 2, "label": "MongoDB ReplicaSet", "sub": "members:3", "kind": "store" },
+    { "id": "dump", "col": 2, "row": 2, "label": "mongodump→S3", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "sdk", "to": "q" },
+    { "from": "q", "to": "ch" },
+    { "from": "ch", "to": "keeper", "label": "정족수 필요", "dashed": true },
+    { "from": "api", "to": "rs" },
+    { "from": "rs", "to": "dump" }
+  ]
+}
+{{< /flow >}}
 
 ### 트랙 1 — 텔레메트리(대량·스트리밍)
 
