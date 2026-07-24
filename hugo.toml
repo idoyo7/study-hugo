@@ -37,3 +37,18 @@ disableKinds = ['taxonomy', 'term']
       index = 'content'
       # 'full' tokenization enables CJK substring search (Korean content)
       tokenize = 'full'
+
+  # GitHub Discussions 덧글 (giscus) — idoyo7/blog-comments 공유, 이 사이트는 Ideas 카테고리
+  # (Nextra=Announcements, Jekyll=General 과 분리). theme 생략 → hextra가 다크모드 자동 동기화
+  [params.comments]
+    enable = true
+    type = 'giscus'
+    [params.comments.giscus]
+      repo = 'idoyo7/blog-comments'
+      repoId = 'R_kgDOTiU4bg'
+      category = 'Ideas'
+      categoryId = 'DIC_kwDOTiU4bs4DB3-d'
+      mapping = 'pathname'
+      reactionsEnabled = '1'
+      inputPosition = 'top'
+      lang = 'ko'
