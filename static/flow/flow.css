@@ -20,6 +20,7 @@
   background: var(--flow-surface);
   border: 1px solid var(--flow-border);
   border-radius: 14px;
+  overflow-x: auto; /* 넓은 도식은 축소 대신 가로 스크롤(글자 크기 유지) */
 }
 html.dark .vm-flow {
   --flow-surface: #1b1b1a;
@@ -39,7 +40,8 @@ html.dark .vm-flow {
   --flow-group-stroke: #45443f;
 }
 .vm-flow > script { display: none; }
-.vm-flow .flow-svg { display: block; width: 100%; height: auto; margin-inline: auto; }
+.vm-flow .flow-svg { display: block; height: auto; max-width: none; margin-inline: auto; }
+.vm-flow .flow-elabel-bg { fill: var(--flow-surface); }
 .vm-flow .flow-edge { stroke: var(--flow-edge); stroke-width: 1.5; }
 .vm-flow .flow-edge.is-dashed { stroke-dasharray: 5 5; opacity: 0.85; }
 .vm-flow .flow-arrow { fill: var(--flow-edge); }
