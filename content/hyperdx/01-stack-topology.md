@@ -51,7 +51,7 @@ otel-collector:
 | **HyperDX api** | Node.js 백엔드(쿼리 오케스트레이션·알럿 평가·OpAMP 서버) | 8000, **OpAMP 4320** | → CH(쿼리), → Mongo(메타), ← Collector(OpAMP) | 무상태 |
 | **OTel Collector** | 인제스트 게이트웨이(OTLP 수신 → CH export) | **4317**(gRPC), **4318**(HTTP), 13133(health), 8888(metrics) | → CH(insert), ← api(OpAMP 4320) | 무상태(단, in-flight 배치는 메모리 큐) |
 | **ClickHouse** | 모든 텔레메트리 저장·쿼리 원천 | 8123(HTTP), 9000(native), 9009(interserver) | ← Collector, ← api, ↔ Keeper | **스테이트풀(EBS)** |
-| **Keeper** | 복제 메타데이터 합의(ZooKeeper 대체) | 9181(client), 9234(raft) | ↔ ClickHouse | **스테이트풀(gp3)** — {{< relref "05-keeper.md" >}} |
+| **Keeper** | 복제 메타데이터 합의(ZooKeeper 대체) | **2181**(client), 9444(raft) — Altinity CHK 기본(독립형 Keeper 기본값 9181/9234 아님) | ↔ ClickHouse | **스테이트풀(gp3)** — {{< relref "05-keeper.md" >}} |
 | **MongoDB** | 앱 메타데이터(user/team/dashboard/alert/source…) | 27017 | ← HyperDX api | **스테이트풀(gp3, 소용량)** |
 
 - HyperDX는 **app(UI) + api(백엔드) 2 프로세스**다. local/all-in-one은 단일 컨테이너에 함께 패키징되지만, Helm에서는 app/api 포트가 분리 노출된다 `✓`.
