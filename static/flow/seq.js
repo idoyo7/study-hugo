@@ -113,7 +113,7 @@
     });
 
     svg.appendChild(gFrames); svg.appendChild(gLife); svg.appendChild(gBody); svg.appendChild(gPk); svg.appendChild(gParts);
-    svg.style.width = Math.round(vbW) + 'px';
+    svg.style.maxWidth = Math.round(vbW) + 'px'; // 본문 폭에 맞춰 축소 → 전체가 다 보임
     container.insertBefore(svg, container.firstChild);
 
     if (REDUCE || !anim.length) return;
