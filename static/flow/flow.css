@@ -1,0 +1,68 @@
+/* vm-flow — 재사용 애니메이션 플로우 다이어그램 (정적 호스팅용, 의존성 없음) */
+.vm-flow {
+  --flow-surface: #fcfcfb;
+  --flow-border: rgba(11, 11, 11, 0.08);
+  --flow-node: #f4f6f8;
+  --flow-node-border: #dcddd3;
+  --flow-ink: #1a1a1a;
+  --flow-sub: #8a8a82;
+  --flow-edge: #c7c6bb;
+  --flow-elabel: #7c7b73;
+  --flow-src: #2a78d6;
+  --flow-proc: #0d9488;
+  --flow-store: #7c3aed;
+  --flow-query: #eb6834;
+  --flow-sink: #0ca30c;
+  margin: 1.4rem 0;
+  padding: 14px 16px 8px;
+  background: var(--flow-surface);
+  border: 1px solid var(--flow-border);
+  border-radius: 14px;
+}
+html.dark .vm-flow {
+  --flow-surface: #1b1b1a;
+  --flow-border: rgba(255, 255, 255, 0.09);
+  --flow-node: #242422;
+  --flow-node-border: #3a3a35;
+  --flow-ink: #f2f2ef;
+  --flow-sub: #9a978d;
+  --flow-edge: #4c4b45;
+  --flow-elabel: #918e85;
+  --flow-src: #4b93e6;
+  --flow-proc: #2dd4bf;
+  --flow-store: #a78bfa;
+  --flow-query: #f0894e;
+  --flow-sink: #34d06a;
+}
+.vm-flow > script { display: none; }
+.vm-flow .flow-svg { display: block; width: 100%; height: auto; margin-inline: auto; }
+.vm-flow .flow-edge { stroke: var(--flow-edge); stroke-width: 1.5; }
+.vm-flow .flow-edge.is-dashed { stroke-dasharray: 5 5; opacity: 0.85; }
+.vm-flow .flow-arrow { fill: var(--flow-edge); }
+.vm-flow .flow-elabel { font-size: 10.5px; fill: var(--flow-elabel); font-weight: 600; }
+.vm-flow .flow-rect { fill: var(--flow-node); stroke: var(--flow-node-border); stroke-width: 1.5; transition: none; }
+.vm-flow .flow-nlabel {
+  fill: var(--flow-ink);
+  font-size: 12.5px;
+  font-weight: 650;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+.vm-flow .flow-nsub { fill: var(--flow-sub); font-size: 9.5px; font-weight: 500; }
+/* 종류별 강조: 노드 테두리 색 */
+.vm-flow .kind-src   .flow-rect { stroke: var(--flow-src); }
+.vm-flow .kind-proc  .flow-rect { stroke: var(--flow-proc); }
+.vm-flow .kind-store .flow-rect { stroke: var(--flow-store); }
+.vm-flow .kind-query .flow-rect { stroke: var(--flow-query); }
+.vm-flow .kind-sink  .flow-rect { stroke: var(--flow-sink); }
+/* 흐르는 패킷 색 */
+.vm-flow .pk-src   { fill: var(--flow-src); }
+.vm-flow .pk-proc  { fill: var(--flow-proc); }
+.vm-flow .pk-store { fill: var(--flow-store); }
+.vm-flow .pk-query { fill: var(--flow-query); }
+.vm-flow .pk-sink  { fill: var(--flow-sink); }
+.vm-flow .flow-caption {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--flow-sub);
+  text-align: center;
+}
