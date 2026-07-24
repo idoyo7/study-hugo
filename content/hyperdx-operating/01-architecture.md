@@ -44,17 +44,16 @@ otel-collector:
 
 `enabled: false`로 두면 HyperDX api는 `CLICKHOUSE_*`·`MONGO_URI` 시크릿으로 외부 CH/Mongo를 참조만 하고, ClickHouse/Keeper 자체는 Altinity CHI/CHK가 별도로 운영한다 `✓`. operator 선택 자체의 근거(7년+ 트랙레코드·범용분석 일원화)는 [ClickHouse operator 선택]({{< relref "../clickhouse/03-operator.md" >}})이 기준 문서다.
 
-## 2. 컴포넌트별 배치 — 4논리 컴포넌트, 6개 실행 단위
+## 2. 컴포넌트별 배치 — 4논리 컴포넌트, 5개 실행 단위
 
-"4컴포넌트"는 논리 단위이고 실제 배치 단위는 6개다(HyperDX가 app/api 2프로세스, CH가 CHI/CHK 2 스테이트풀로 갈리므로).
+"4컴포넌트"는 논리 단위이고 실제 배치 단위는 5개다 — HyperDX(app·api·OpAMP를 **한 Deployment**에서 함께 기동), Collector, CHI, CHK, MongoDB. HyperDX는 2프로세스지만 배포·스케일 노브는 하나이고, CH가 CHI/CHK 2 스테이트풀로 갈린다.
 
 | 컴포넌트 | 배포 형태 | 규모(우리 케이스) | 스토리지 | 상태 | 리슨 포트 |
 |---|---|---|---|---|---|
-| HyperDX app | Deployment | replica 2+ | 없음 | 무상태 | 3000(내부) |
-| HyperDX api | Deployment | replica 2+ | 없음 | 무상태(OpAMP 서버 겸임) | 8000, **4320**(OpAMP) |
+| HyperDX(app·api·OpAMP) | Deployment(단일) | replica 2+ | 없음 | 무상태 — 한 파드에서 `concurrently`로 함께 기동 | 3000·8000·**4320**(OpAMP) |
 | OTel Collector | Deployment(게이트웨이) | **×2** + `file_storage` 퍼시스턴트 큐(gp3 소량) | 큐만 소량 | 준무상태 | 4317/4318, 13133, 8888 |
 | ClickHouse(CHI) | Altinity CHI | **1 shard × RF2**(2 AZ) | EBS gp3(hot) + S3(cold) | 스테이트풀 | 8123, 9000, 9009 |
-| Keeper(CHK) | Altinity CHK | **3노드**(3 AZ) | gp3 | 스테이트풀(메타·소량) | 9181, 9234 |
+| Keeper(CHK) | Altinity CHK | **3노드**(3 AZ) | gp3 | 스테이트풀(메타·소량) | **2181**, 9444 |
 | MongoDB | MCK 또는 Atlas | **`members:3`**(prod) / `members:1`(staging) | gp3 10Gi | 스테이트풀(소량) | 27017 |
 
 배치 판단의 요지:
