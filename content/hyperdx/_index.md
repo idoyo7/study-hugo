@@ -105,6 +105,7 @@ RUM 인제스트 경로에 **MongoDB는 없다** — 브라우저 SDK는 HyperDX
 | {{< relref "08-block-only-tuning.md" >}} | **블록 스토리지 온리(무 S3)**: 단일 `default` 정책·TTL DELETE-only·gp3 온라인 확장·merge/background 풀 튜닝·블록온리 vs S3 선택 | hot gp3 스펙 → {{< relref "02-hot-storage-ebs.md" >}}, S3 티어링 → {{< relref "03-s3-cold-tiering.md" >}}, 사이징 → {{< relref "07-capacity-planning.md" >}} |
 | {{< relref "09-version-upgrade-compat.md" >}} | **버전 호환·업그레이드**: 6구성요소 호환 매트릭스·`compatibility` 설정·다운그레이드 비지원·EBS 스냅샷 롤백·ClickStack v1→v2 | 일반 CH/operator/Keeper 업그레이드 런북 → {{< relref "../clickhouse/05-altinity-operations.md" >}} |
 | {{< relref "10-sources.md" >}} | 출처 URL 모음(분류 표) | — |
+| {{< relref "11-our-rum-ingest.md" >}} | **우리 케이스**: 실제 RUM 수집 스택 종합도(자체 RUM 컨버터 포함)·컴포넌트 분할·컴포넌트별 HA 표 | 표준 4컴포넌트·가용성·Keeper·복제는 01·03(운영)·05·06 |
 
 ## 자매 챕터
 
