@@ -21,6 +21,7 @@
   background: var(--sq-surface);
   border: 1px solid var(--sq-border);
   border-radius: 14px;
+  overflow-x: auto; /* 넓은 시퀀스는 축소 대신 가로 스크롤 */
 }
 html.dark .vm-seq {
   --sq-surface: #1b1b1a;
@@ -41,7 +42,8 @@ html.dark .vm-seq {
   --sq-dot: #4b93e6;
 }
 .vm-seq > script { display: none; }
-.vm-seq .seq-svg { display: block; width: 100%; height: auto; margin-inline: auto; }
+.vm-seq .seq-svg { display: block; height: auto; max-width: none; margin-inline: auto; }
+.vm-seq .sq-msg-label-bg { fill: var(--sq-surface); }
 .vm-seq .sq-life { stroke: var(--sq-life); stroke-width: 1.3; stroke-dasharray: 3 4; }
 .vm-seq .sq-part-box { fill: var(--sq-part); stroke: var(--sq-part-border); stroke-width: 1.4; }
 .vm-seq .sq-part-label { fill: var(--sq-ink); font-size: 12px; font-weight: 650; }
