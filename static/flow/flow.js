@@ -118,7 +118,7 @@
     });
 
     svg.appendChild(gGroups); svg.appendChild(gEdges); svg.appendChild(gPk); svg.appendChild(gNodes);
-    svg.style.width = Math.round(vbW) + 'px'; // 자연 크기(축소 대신 컨테이너 가로 스크롤)
+    svg.style.maxWidth = Math.round(vbW) + 'px'; // 자연 크기 상한(본문 폭에 맞춰 축소 → 전체가 다 보임)
     container.insertBefore(svg, container.firstChild);
 
     if (REDUCE || !anim.length) return;
