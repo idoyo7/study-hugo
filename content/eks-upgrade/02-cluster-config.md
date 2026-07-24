@@ -19,23 +19,27 @@ weight: 3
 
 Karpenter를 Fargate 위에서 돌리는 것은 karpenter 공식 getting-started가 정식으로 제공하는 옵션("managedNodeGroups 대신 fargateProfiles 사용")이다. 이 프로젝트는 그 옵션 위에 CoreDNS까지 얹어 **managed nodegroup을 아예 두지 않는** 형태로 간다.
 
-```mermaid
-flowchart TB
-  subgraph fg["Fargate profile: {ns:karpenter}, {ns:kube-system, k8s-app:kube-dns}"]
-    coredns["CoreDNS (replica 2)<br/>amd64 · arm64 affinity 제거 · computeType:Fargate"]
-    karp["karpenter controller (replica 2)<br/>amd64 · IRSA · cpu=1/mem≥1Gi"]
-  end
-  subgraph sys["NodePool: system (arm64, karpenter 프로비저닝)"]
-    ebscsi["ebs-csi controller"]
-    plat["alb-controller · external-secrets · argo-rollouts · metrics-server<br/>(전부 arch=arm64 required affinity)"]
-    ds["csi-node · datadog · fluentbit · node-exporter · node-local-dns (DaemonSet)"]
-  end
-  subgraph svc["NodePool: service / airflow (amd64)"]
-    wl["일반 워크로드"]
-  end
-  karp -.프로비저닝.-> sys
-  karp -.프로비저닝.-> svc
-```
+{{< flow caption="Fargate profile({ns:karpenter}, {ns:kube-system·k8s-app:kube-dns})에 CoreDNS·karpenter(amd64, arm64 affinity 제거)를 두고, karpenter가 system(arm64)·service/airflow(amd64) NodePool을 프로비저닝한다. 플랫폼 컨트롤러·DaemonSet은 arch=arm64 required affinity." >}}
+{
+  "groups": [
+    {"id": "fg",  "label": "Fargate profile",                 "members": ["coredns", "karp"]},
+    {"id": "sys", "label": "NodePool: system (arm64)",         "members": ["ebscsi", "plat", "ds"]},
+    {"id": "svc", "label": "NodePool: service·airflow", "members": ["wl"]}
+  ],
+  "nodes": [
+    {"id": "coredns", "col": 0, "row": 0, "label": "CoreDNS",      "sub": "replica 2 · Fargate", "kind": "proc"},
+    {"id": "karp",    "col": 0, "row": 1, "label": "karpenter",    "sub": "controller · IRSA",   "kind": "proc"},
+    {"id": "ebscsi",  "col": 1, "row": 0, "label": "ebs-csi",      "sub": "controller",          "kind": "store"},
+    {"id": "plat",    "col": 1, "row": 1, "label": "플랫폼 컨트롤러", "sub": "alb·ESO·argo·metrics", "kind": "proc"},
+    {"id": "ds",      "col": 1, "row": 2, "label": "DaemonSet",    "sub": "datadog·fluentbit·…",  "kind": "proc"},
+    {"id": "wl",      "col": 1, "row": 4, "label": "일반 워크로드",  "kind": "sink"}
+  ],
+  "edges": [
+    {"from": "karp", "to": "sys", "label": "프로비저닝", "dashed": true},
+    {"from": "karp", "to": "svc", "label": "프로비저닝", "dashed": true}
+  ]
+}
+{{< /flow >}}
 
 managed nodegroup이 없으므로 **첫 EC2 노드는 karpenter 자신이 만든다.** CoreDNS와 karpenter는 EC2 노드 없이 Fargate에서 뜰 수 있는 유일한 두 컴포넌트이고, 그 둘이 살아나야 나머지(ebs-csi·ALB controller·external-secrets 등)가 착지할 EC2 노드가 생긴다 — 이 "노드 없이 뜨는 2컴포넌트가 나머지의 착지장을 만든다"는 것이 토폴로지의 구조적 핵심이다. 단계별 부트스트랩 순서(닭-달걀 풀기)는 [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}})이 다룬다. arm64 required affinity를 가진 플랫폼 컴포넌트는 arm64 풀이 system 하나뿐이라 전부 거기로 몰리므로, system 풀 사이징은 이 컴포넌트 총합을 수용해야 한다(§3).
 

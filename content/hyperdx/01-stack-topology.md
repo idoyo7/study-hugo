@@ -98,38 +98,41 @@ otel-collector:
 
 표준 차트가 아니라 §1의 분기를 반영한 실제 청사진이다: ClickHouse/Keeper는 Altinity operator 영역(범용분석 겸용), HyperDX는 `clickhouse.enabled:false`로 HyperDX Only, MongoDB만 MCK(또는 Atlas 위임).
 
-```mermaid
-flowchart TB
-  sdk["브라우저 @hyperdx/browser"]
-  users["운영자"]
-
-  subgraph k8s["Kubernetes (EKS, multi-AZ)"]
-    subgraph altinity["Altinity operator 영역 (범용분석 겸용 CH)"]
-      chi[("ClickHouseInstallation (CHI)<br/>ReplicatedMergeTree, RF2/3<br/>hot: EBS gp3/io2 · cold: S3")]
-      chk[("Keeper (CHK) 3-node<br/>AZ 분산")]
-    end
-    subgraph hdx["HyperDX-only (clickhouse.enabled=false)"]
-      app["HyperDX app"]
-      api["HyperDX api / OpAMP :4320"]
-    end
-    otel["OTel Collector 게이트웨이<br/>deployment ×2 + file_storage 큐(gp3)"]
-    subgraph meta["메타스토어 (택1)"]
-      mongo[("MCK MongoDBCommunity<br/>members:3 SCRAM (gp3 10Gi)<br/>+ mongodump CronJob→S3")]
-      atlas["또는 Atlas M10 (외부 관리형)"]
-    end
-  end
-  s3[("S3 cold tier")]
-
-  sdk -->|"OTLP/HTTP :4318"| otel
-  otel -->|"INSERT async_insert=1"| chi
-  users --> app --> api
-  api -->|"쿼리"| chi
-  api -->|"메타"| mongo
-  api -.대안.-> atlas
-  api <-->|"OpAMP"| otel
-  chi <--> chk
-  chi -->|"TTL MOVE"| s3
-```
+{{< flow caption="우리 케이스 K8s 배치 — 전체는 Kubernetes(EKS, multi-AZ) 클러스터 내부: Altinity operator 영역(범용분석 겸용 CH) / HyperDX-only(clickhouse.enabled=false) / 메타스토어(택1). S3만 클러스터 외부 cold tier" >}}
+{
+  "groups": [
+    {"id":"altinity","label":"Altinity operator 영역","members":["chi","chk"]},
+    {"id":"hdx","label":"HyperDX Only","members":["app","api"]},
+    {"id":"meta","label":"메타스토어 (택1)","members":["mongo","atlas"]}
+  ],
+  "nodes": [
+    {"id":"sdk","col":0,"row":0,"label":"브라우저 @hyperdx/browser","kind":"src"},
+    {"id":"users","col":0,"row":1,"label":"운영자","kind":"src"},
+    {"id":"otel","col":1,"row":0,"label":"OTel Collector 게이트웨이","sub":"deployment ×2 + file_storage 큐(gp3)","kind":"proc"},
+    {"id":"app","col":1,"row":1,"label":"HyperDX app","kind":"proc"},
+    {"id":"api","col":2,"row":1,"label":"HyperDX api","sub":"OpAMP :4320","kind":"proc"},
+    {"id":"chi","col":3,"row":0,"label":"ClickHouse (CHI)","sub":"ReplicatedMergeTree RF2/3 · hot EBS gp3/io2 · cold S3","kind":"store"},
+    {"id":"chk","col":3,"row":1,"label":"Keeper (CHK)","sub":"3-node, AZ 분산","kind":"store"},
+    {"id":"mongo","col":4,"row":0,"label":"MongoDBCommunity (MCK)","sub":"members:3 SCRAM · gp3 10Gi · mongodump CronJob→S3","kind":"store"},
+    {"id":"atlas","col":4,"row":1,"label":"Atlas M10 (외부 관리형)","kind":"store"},
+    {"id":"s3","col":5,"row":0,"label":"S3 cold tier","kind":"store"}
+  ],
+  "edges": [
+    {"from":"sdk","to":"otel","label":"OTLP/HTTP :4318"},
+    {"from":"otel","to":"chi","label":"INSERT async_insert=1"},
+    {"from":"users","to":"app"},
+    {"from":"app","to":"api"},
+    {"from":"api","to":"chi","label":"쿼리","kind":"query"},
+    {"from":"api","to":"mongo","label":"메타"},
+    {"from":"api","to":"atlas","label":"대안","dashed":true},
+    {"from":"api","to":"otel","label":"OpAMP","dashed":true},
+    {"from":"otel","to":"api","label":"OpAMP","dashed":true},
+    {"from":"chi","to":"chk","dashed":true},
+    {"from":"chk","to":"chi","dashed":true},
+    {"from":"chi","to":"s3","label":"TTL MOVE"}
+  ]
+}
+{{< /flow >}}
 
 ## 5. OTel Collector 배치·사이징
 

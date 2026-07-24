@@ -52,18 +52,34 @@ aliases: ["/hyperdx/operating/06-decision-guide/"]
 
 둘째, hot gp3의 일상 경보(승급 아닌 운영 대응)는 [규모 산정]({{< relref "05-capacity.md" >}})의 기준을 쓴다: 사용률 **70% 경고 / 80% 조치 / 85% 하드실링**, 조치는 gp3 온라인 확장 또는 TTL 단축·cold 이동 가속 `≈` — 디스크가 차면 머지 중단→TOO_MANY_PARTS→인서트 차단으로 이어지므로 hot 볼륨은 항상 30~40% 여유를 남긴다 `✓/≈`.
 
-```mermaid
-flowchart LR
-  subgraph load["충분 계열 — 부하 관측으로 발동"]
-    G["단일 gp3<br/>(baseline)"] -->|"125 MiB/s 지속 초과<br/>(CloudWatch·asynchronous_metrics)"| P["gp3 provisioned throughput<br/>인스턴스 baseline까지"]
-    P -->|"2,000 MiB/s 지속 ·<br/>80,000 IOPS/vol 초과"| IO2["io2"]
-    ONE["1 shard"] -->|"노드당 hot 실용 상한 접근 ·<br/>CPU 지속 >70%"| SZ["사이즈업·replica 추가"] -->|"그래도 포화"| SH["shard 추가(수동)"]
-  end
-  subgraph req["안전 계열 — 요구사항 변경으로 발동"]
-    RF2["RF2"] -->|"임의 2대 무손실 ·<br/>insert_quorum:2 상시"| RF3["RF3"]
-    K3["Keeper 3"] -->|"2대 동시 손실 허용 요구"| K5["Keeper 5"]
-  end
-```
+{{< flow caption="충분 계열(부하 관측으로 발동): 단일 gp3(baseline)는 125 MiB/s 지속 초과(CloudWatch·asynchronous_metrics)면 provisioned throughput을 인스턴스 baseline까지 올리고, 그래도 2,000 MiB/s 지속·80,000 IOPS/vol 초과(또는 볼륨 99.999% 규제)면 io2로 간다. 1 shard는 노드당 hot 실용 상한 접근·머지/쿼리 CPU 지속 >70%면 먼저 사이즈업·replica 추가, 그래도 포화면 shard 추가(수동). 안전 계열(요구사항 변경으로 발동): RF2는 임의 2대 무손실 요구 또는 insert_quorum:2 상시 필요가 생기면 RF3로, Keeper 3은 2대 동시 손실 허용이 요구일 때만 5노드로 — 둘 다 지표가 아니라 요구사항이 바뀔 때만 발동." >}}
+{
+  "groups": [
+    {"id": "load", "label": "충분 계열(부하 관측)", "members": ["G", "P", "IO2", "ONE", "SZ", "SH"]},
+    {"id": "req",  "label": "안전 계열(요구사항)",  "members": ["RF2", "RF3", "K3", "K5"]}
+  ],
+  "nodes": [
+    {"id": "G",   "col": 0, "row": 0, "label": "단일 gp3",        "sub": "baseline",           "kind": "store"},
+    {"id": "P",   "col": 1, "row": 0, "label": "gp3 provisioned", "sub": "인스턴스 baseline까지", "kind": "proc"},
+    {"id": "IO2", "col": 2, "row": 0, "label": "io2",                                            "kind": "store"},
+    {"id": "ONE", "col": 0, "row": 1, "label": "1 shard",                                        "kind": "store"},
+    {"id": "SZ",  "col": 1, "row": 1, "label": "사이즈업·replica 추가",                            "kind": "proc"},
+    {"id": "SH",  "col": 2, "row": 1, "label": "shard 추가",      "sub": "수동",                  "kind": "store"},
+    {"id": "RF2", "col": 3, "row": 0, "label": "RF2",                                             "kind": "store"},
+    {"id": "RF3", "col": 4, "row": 0, "label": "RF3",                                             "kind": "store"},
+    {"id": "K3",  "col": 3, "row": 1, "label": "Keeper 3",                                        "kind": "store"},
+    {"id": "K5",  "col": 4, "row": 1, "label": "Keeper 5",                                        "kind": "store"}
+  ],
+  "edges": [
+    {"from": "G",   "to": "P",   "label": "125 MiB/s 지속 초과",         "dashed": true},
+    {"from": "P",   "to": "IO2", "label": "2,000 MiB/s·80,000 IOPS 초과", "dashed": true},
+    {"from": "ONE", "to": "SZ",  "label": "hot 실용 상한 접근·CPU>70%",  "dashed": true},
+    {"from": "SZ",  "to": "SH",  "label": "그래도 포화",                 "dashed": true},
+    {"from": "RF2", "to": "RF3", "label": "2대 무손실·quorum:2 상시",    "dashed": true},
+    {"from": "K3",  "to": "K5",  "label": "2대 동시 손실 허용 요구",     "dashed": true}
+  ]
+}
+{{< /flow >}}
 
 ## 3. 배포 전 실측 체크리스트 — `?` 4항목을 staging에서 `✓`로
 

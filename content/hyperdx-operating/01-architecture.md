@@ -69,30 +69,35 @@ otel-collector:
 
 ## 3. 데이터 흐름 — RUM 인제스트 경로에 MongoDB는 없다
 
-```mermaid
-flowchart LR
-  subgraph browser["브라우저"]
-    sdk["@hyperdx/browser SDK<br/>rrweb 리플레이 · 에러 · Web Vitals"]
-  end
-  subgraph byo["clickhouse.enabled:false 영역"]
-    otel["OTel Collector 게이트웨이<br/>deployment ×2 + file_storage 큐"]
-    app["HyperDX app"]
-    api["HyperDX api<br/>OpAMP 서버 :4320"]
-  end
-  subgraph altinity["Altinity operator 영역"]
-    chi[("CHI — ClickHouse<br/>otel_logs/traces/metrics<br/>hyperdx_sessions")]
-    chk[("CHK — Keeper 3노드")]
-  end
-  mongo[("MongoDB<br/>MCK members:3 또는 Atlas")]
-
-  sdk -->|"OTLP/HTTP :4318 (쓰기)"| otel
-  otel -->|"native :9000 batch INSERT"| chi
-  app --> api
-  api -->|"쿼리 :8123/:9000 (읽기)"| chi
-  api -->|"메타 R/W :27017"| mongo
-  api <-->|"OpAMP :4320"| otel
-  chi <--> chk
-```
+{{< flow caption="sdk=@hyperdx/browser SDK(rrweb 리플레이·에러·Web Vitals). otel=OTel Collector 게이트웨이(deployment ×2 + file_storage 큐). chi=CHI ClickHouse(otel_logs/traces/metrics + hyperdx_sessions). mongo=MCK members:3 또는 Atlas. api↔otel은 OpAMP(:4320)로 양방향 제어(설정 원격관리), chi↔chk는 Keeper 코디네이션(비흐름)." >}}
+{
+  "groups": [
+    { "id": "browser", "label": "브라우저", "members": ["sdk"] },
+    { "id": "byo", "label": "clickhouse:false 영역", "members": ["otel", "app", "api"] },
+    { "id": "altinity", "label": "Altinity operator 영역", "members": ["chi", "chk"] }
+  ],
+  "nodes": [
+    { "id": "sdk", "col": 0, "row": 0, "label": "브라우저 SDK", "sub": "rrweb·에러·Web Vitals", "kind": "src" },
+    { "id": "otel", "col": 1, "row": 0, "label": "OTel Collector", "sub": "게이트웨이 ×2+큐", "kind": "proc" },
+    { "id": "app", "col": 1, "row": 1, "label": "HyperDX app", "kind": "proc" },
+    { "id": "api", "col": 1, "row": 2, "label": "HyperDX api", "sub": "OpAMP 서버 :4320", "kind": "query" },
+    { "id": "chi", "col": 2, "row": 0, "label": "CHI ClickHouse", "sub": "logs/traces/metrics", "kind": "store" },
+    { "id": "chk", "col": 2, "row": 1, "label": "CHK Keeper", "sub": "3노드", "kind": "store" },
+    { "id": "mongo", "col": 3, "row": 2, "label": "MongoDB", "sub": "MCK 3 / Atlas", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "sdk", "to": "otel", "label": "OTLP/HTTP :4318 (쓰기)" },
+    { "from": "otel", "to": "chi", "label": "native :9000 batch INSERT" },
+    { "from": "app", "to": "api" },
+    { "from": "api", "to": "chi", "label": "쿼리 :8123/:9000 (읽기)" },
+    { "from": "api", "to": "mongo", "label": "메타 R/W :27017" },
+    { "from": "api", "to": "otel", "label": "OpAMP :4320", "dashed": true },
+    { "from": "otel", "to": "api", "label": "OpAMP :4320", "dashed": true },
+    { "from": "chi", "to": "chk", "dashed": true },
+    { "from": "chk", "to": "chi", "dashed": true }
+  ]
+}
+{{< /flow >}}
 
 - 브라우저 RUM SDK는 **HyperDX api가 아니라 OTel Collector(4318)로 직접** 텔레메트리를 보낸다 `✓`. 세션 리플레이(rrweb)는 ClickHouse `hyperdx_sessions` 테이블로 적재되며, "MongoDB에 세션이 저장된다"는 통념은 이미 기각됐다 `✓`.
 - 즉 **RUM 인제스트 경로에 MongoDB는 전혀 없다.** MongoDB는 사용자가 UI에서 대시보드/알럿/소스를 만들 때만 쓰인다 — 이것이 MongoDB를 아주 작게 돌려도 되는 구조적 근거다.
