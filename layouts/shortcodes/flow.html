@@ -1,0 +1,9 @@
+{{- /* vm-flow: 애니메이션 플로우 다이어그램.
+       사용: {{< flow caption="..." >}}{ "nodes":[...], "edges":[...] }{{< /flow >}}
+       엔진/스타일은 /flow/flow.js, /flow/flow.css (custom/head-end.html에서 로드) */ -}}
+<figure class="vm-flow">
+<script type="application/json" class="flow-spec">{{ .Inner | safeJS }}</script>
+{{- with .Get "caption" }}
+<figcaption class="flow-caption">{{ . }}</figcaption>
+{{- end }}
+</figure>

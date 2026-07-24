@@ -32,20 +32,28 @@ weight: 3
 
 발표자는 대규모·고가용성(HA) 환경이라 **클러스터 버전**을 쓴다고 밝히며 전체 그림을 제시한다. 데이터가 왼쪽 타깃에서 오른쪽으로 흐르며 4개 컴포넌트를 거친다.
 
-```mermaid
-flowchart LR
-  T["Targets<br/>node_exporter · /metrics"] -->|scrape| A["vmagent<br/>수집·1차 가공"]
-  A -->|remote_write| I["vminsert<br/>라우팅·샤딩"]
-  subgraph VS["vmstorage · N노드 · 월별 파티션"]
-    S1["vmstorage-1"]
-    S2["vmstorage-N"]
-  end
-  I --> S1
-  I --> S2
-  S1 --> Q["vmselect<br/>Fanout → Merge"]
-  S2 --> Q
-  Q -->|PromQL / MetricsQL| G["Grafana"]
-```
+{{< flow caption="데이터가 수집 → 저장 → 조회로 흐르는 VM 클러스터. 색 점은 파이프라인을 흐르는 지표다." >}}
+{
+  "nodes": [
+    {"id": "t",  "col": 0, "row": 1, "label": "Targets",   "sub": "node_exporter", "kind": "src"},
+    {"id": "a",  "col": 1, "row": 1, "label": "vmagent",    "kind": "proc"},
+    {"id": "i",  "col": 2, "row": 1, "label": "vminsert",   "kind": "proc"},
+    {"id": "s1", "col": 3, "row": 0, "label": "vmstorage",  "sub": "node 1", "kind": "store"},
+    {"id": "s2", "col": 3, "row": 2, "label": "vmstorage",  "sub": "node N", "kind": "store"},
+    {"id": "q",  "col": 4, "row": 1, "label": "vmselect",   "kind": "query"},
+    {"id": "g",  "col": 5, "row": 1, "label": "Grafana",    "kind": "sink"}
+  ],
+  "edges": [
+    {"from": "t",  "to": "a", "label": "scrape",       "rate": 900},
+    {"from": "a",  "to": "i", "label": "remote_write",  "rate": 620},
+    {"from": "i",  "to": "s1", "label": "샤딩",          "rate": 520},
+    {"from": "i",  "to": "s2", "rate": 520},
+    {"from": "s1", "to": "q", "rate": 700},
+    {"from": "s2", "to": "q", "label": "fanout",         "rate": 700},
+    {"from": "q",  "to": "g", "label": "PromQL",         "rate": 820}
+  ]
+}
+{{< /flow >}}
 
 - **`vmagent`** — 타깃에서 지표를 스크랩하고 리레이블·드랍 같은 1차 가공을 한다.
 - **`vminsert`** — 받은 데이터를 N개의 `vmstorage` 노드로 라우팅·샤딩한다.
@@ -124,12 +132,21 @@ flowchart LR
 | **Previous** | 보존 기간 내 오래된 데이터를 가져 쿼리가 가능한 IndexDB |
 | **Next** | 다음 로테이션을 위해 미리 준비하는 IndexDB |
 
-```mermaid
-flowchart LR
-  N["Next<br/>다음 로테이션 준비"] -->|승격| C["Current<br/>실시간 수신"]
-  C -->|강등| P["Previous<br/>과거 데이터 쿼리"]
-  P -->|드롭| X["통째로 삭제"]
-```
+{{< flow caption="IndexDB 3단계 로테이션 — 슬롯이 Next→Current→Previous로 승격·강등되다 통째로 삭제된다" >}}
+{
+  "nodes": [
+    {"id": "n", "col": 0, "row": 0, "label": "Next",     "sub": "다음 로테이션 준비", "kind": "store"},
+    {"id": "c", "col": 1, "row": 0, "label": "Current",  "sub": "실시간 수신",        "kind": "store"},
+    {"id": "p", "col": 2, "row": 0, "label": "Previous", "sub": "과거 데이터 쿼리",    "kind": "store"},
+    {"id": "x", "col": 3, "row": 0, "label": "통째로 삭제", "kind": "sink"}
+  ],
+  "edges": [
+    {"from": "n", "to": "c", "label": "승격", "rate": 700},
+    {"from": "c", "to": "p", "label": "강등", "rate": 700},
+    {"from": "p", "to": "x", "label": "드롭", "rate": 700}
+  ]
+}
+{{< /flow >}}
 
 Retention 기간에 도달하면 **Next → Current, Current → Previous, Previous → 통째로 드롭**된다. 예로 retention이 `365d`이고 2026년 1월 1일에 시작했다면 2026년 12월 31일 UTC 04시에 로테이션이 일어난다. 이 방식으로 단건 삭제 비용을 회피하면서 서비스 단절 없이 IndexDB를 비운다. Time Series/Sample 분리, TSID 캐시미스 흐름, Gorilla 압축, 파티션·retention·로테이션의 상세와 값 수준 예시는 [개념 04 저장·압축]({{< relref "../concepts/04-storage-and-compression.md" >}})에서 다룬다.
 
@@ -145,12 +162,21 @@ Retention 기간에 도달하면 **Next → Current, Current → Previous, Previ
 | **Prefix 2** | Metric ID → TSID | 모인 Metric ID를 `TSID`로 변환 (예: Metric ID 49가 어떤 `TSID`인지 조회) |
 | **Prefix 3** | TSID → 값·이름 복원 | `TSID`로 value·timestamp를 가져오고 응답에 넣을 지표 이름·레이블을 역으로 복원 |
 
-```mermaid
-flowchart LR
-  T["태그 필터"] --> P1["Prefix 1<br/>Metric ID 교집합"]
-  P1 --> P2["Prefix 2<br/>TSID 변환"]
-  P2 --> P3["Prefix 3<br/>값·이름 복원"]
-```
+{{< flow caption="vmselect 3-Prefix 검색 — 태그 필터에서 Metric ID·TSID를 거쳐 값·이름을 복원한다" >}}
+{
+  "nodes": [
+    {"id": "t",  "col": 0, "row": 0, "label": "태그 필터", "kind": "query"},
+    {"id": "p1", "col": 1, "row": 0, "label": "Prefix 1", "sub": "Metric ID 교집합", "kind": "query"},
+    {"id": "p2", "col": 2, "row": 0, "label": "Prefix 2", "sub": "TSID 변환",         "kind": "query"},
+    {"id": "p3", "col": 3, "row": 0, "label": "Prefix 3", "sub": "값·이름 복원",       "kind": "query"}
+  ],
+  "edges": [
+    {"from": "t",  "to": "p1", "rate": 700},
+    {"from": "p1", "to": "p2", "rate": 700},
+    {"from": "p2", "to": "p3", "rate": 700}
+  ]
+}
+{{< /flow >}}
 
 쓰기 시점에 이름 → `TSID`로 정규화했던 것을 읽기 시점에 `TSID` → 이름으로 되돌리는 대칭 구조다.
 
