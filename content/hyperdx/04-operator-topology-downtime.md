@@ -279,20 +279,25 @@ spec:
 {{% details title="S7 상세 — 무한 Terminating의 원인·시퀀스·복구 절차 전문" closed="true" %}}
 **왜 무한 Terminating인가** `✓`: Kubernetes는 죽은 노드의 파드가 정말 멈췄는지 확인할 수 없다(kubelet 응답 없음). RWO 볼륨을 새 노드에 붙였는데 옛 노드에서 파드가 아직 살아 쓰고 있으면 **더블 마운트=데이터 손상**이므로, 컨트롤 플레인은 안전하게 "확인 불가"를 택하고 파드를 Terminating으로 남긴다. StatefulSet은 at-most-one 보장 때문에 옛 파드가 완전히 사라지기 전엔 대체 파드를 만들지 않는다.
 
-```mermaid
-sequenceDiagram
-    participant N as 죽은 노드
-    participant CP as 컨트롤 플레인
-    participant ADC as Attach/Detach 컨트롤러
-    participant New as 새 노드(같은 AZ)
-    N-->>CP: heartbeat 중단
-    Note over CP: node-monitor-grace-period ~40s<br/>→ 노드 NotReady/unreachable 표시<br/>+ unreachable:NoExecute taint
-    Note over CP: 기본 toleration 300s(5분)<br/>→ 파드 삭제 "요청"
-    Note over CP: StatefulSet+RWO: 파드는 Terminating에<br/>무한정 잔류(kubelet 확인 불가)
-    Note over ADC: force-detach는 6분 후 시도하나<br/>CSI 정합성에 따라 지연/보류
-    Note over CP: 개입 없으면 파드 Pending 대체 안 됨 → 사실상 무한
-    CP-->>New: (out-of-service taint 개입 시)<br/>파드 재스케줄 → 같은 AZ 볼륨 reattach
-```
+{{< seq caption="죽은 노드에서 파드가 무한 Terminating에 빠지는 과정 — 개입 없으면 파드 교체가 사실상 무한 지연된다." >}}
+{
+  "participants": [
+    {"id": "N",   "label": "죽은 노드"},
+    {"id": "CP",  "label": "컨트롤 플레인"},
+    {"id": "ADC", "label": "Attach/Detach 컨트롤러"},
+    {"id": "New", "label": "새 노드(같은 AZ)"}
+  ],
+  "steps": [
+    {"msg": ["N", "CP"], "label": "heartbeat 중단", "dashed": true},
+    {"note": ["CP"], "lines": ["node-monitor-grace-period ~40s", "→ 노드 NotReady/unreachable 표시", "+ unreachable:NoExecute taint"]},
+    {"note": ["CP"], "lines": ["기본 toleration 300s(5분)", "→ 파드 삭제 \"요청\""]},
+    {"note": ["CP"], "lines": ["StatefulSet+RWO: 파드는 Terminating에", "무한정 잔류(kubelet 확인 불가)"]},
+    {"note": ["ADC"], "lines": ["force-detach는 6분 후 시도하나", "CSI 정합성에 따라 지연/보류"]},
+    {"note": ["CP"], "lines": ["개입 없으면 파드 Pending 대체 안 됨 → 사실상 무한"]},
+    {"msg": ["CP", "New"], "label": "out-of-service taint 개입 시 재스케줄 → 같은 AZ 볼륨 reattach", "dashed": true}
+  ]
+}
+{{< /seq >}}
 
 - **node-monitor-grace-period ≈ 40s**: 노드 NotReady 표시 `✓`. 단 EKS 관리형 컨트롤 플레인의 실제 기본값은 사용자가 못 바꾸는 값이라 배포 시 재확인 권장 `≈`.
 - **기본 toleration `node.kubernetes.io/unreachable:NoExecute` tolerationSeconds=300(5분)**: 이후 파드 삭제 요청 `✓`.

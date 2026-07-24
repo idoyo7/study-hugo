@@ -154,23 +154,28 @@ CH 다운그레이드가 포맷 때문에 막힐 수 있으므로(§3), EBS-firs
 - **복원**: 스냅샷에서 새 gp3 볼륨을 만들고(`create-volume --snapshot-id <id> --volume-type gp3`) PV/PVC를 교체해 그 시점 상태로 되돌린다.
 - **replica 병렬성 활용**: RF2/RF3라 한 replica씩 업그레이드하므로, "한 replica 스냅샷 → 업그레이드 → 실패 시 그 replica만 스냅샷 복원 → 나머지 healthy replica에서 [델타 catch-up]({{< relref "04-operator-topology-downtime.md" >}})"이 성립한다 `≈`.
 
-```mermaid
-sequenceDiagram
-    participant Op as 운영자
-    participant R as replica(대상)
-    participant EBS as EBS/스냅샷
-    participant Rest as 나머지 healthy replica
-    Op->>R: 1. PDB 준수하며 이 replica만 stop
-    R->>EBS: 2. stop 상태에서 데이터 볼륨 스냅샷(정합)
-    Op->>R: 3. 이미지 업그레이드 → 재기동 → readiness
-    Note over Op,R: 관찰 24~48h: OPTIMIZE FINAL·신규 타입 금지(롤백 창 유지)
-    alt 성공
-        Op->>Rest: 다음 replica로 진행
-    else 실패(포맷 손상/startup fatal)
-        EBS->>R: create-volume --snapshot-id --volume-type gp3 → PV/PVC 교체
-        Rest->>R: Keeper 로그 델타만 catch-up
-    end
-```
+{{< seq caption="replica 단위 롤링 업그레이드 — stop→스냅샷→업그레이드, 실패 시 스냅샷 복원 + Keeper 델타 catch-up." >}}
+{
+  "participants": [
+    {"id": "Op",   "label": "운영자"},
+    {"id": "R",    "label": "replica(대상)"},
+    {"id": "EBS",  "label": "EBS/스냅샷"},
+    {"id": "Rest", "label": "나머지 healthy replica"}
+  ],
+  "steps": [
+    {"msg": ["Op", "R"], "label": "1. PDB 준수하며 이 replica만 stop"},
+    {"msg": ["R", "EBS"], "label": "2. stop 상태에서 데이터 볼륨 스냅샷(정합)"},
+    {"msg": ["Op", "R"], "label": "3. 이미지 업그레이드 → 재기동 → readiness"},
+    {"note": ["Op", "R"], "lines": ["관찰 24~48h: OPTIMIZE FINAL·신규 타입 금지", "(롤백 창 유지)"]},
+    {"alt": "성공", "steps": [
+      {"msg": ["Op", "Rest"], "label": "다음 replica로 진행"}
+    ], "elseLabel": "실패(포맷 손상/startup fatal)", "elseSteps": [
+      {"msg": ["EBS", "R"], "label": "create-volume --snapshot-id --volume-type gp3 → PV/PVC 교체"},
+      {"msg": ["Rest", "R"], "label": "Keeper 로그 델타만 catch-up"}
+    ]}
+  ]
+}
+{{< /seq >}}
 
 ```bash
 # 실패 시: 업그레이드 전 스냅샷에서 gp3 볼륨 복원

@@ -1,0 +1,9 @@
+{{- /* vm-seq: 애니메이션 시퀀스 다이어그램.
+       사용: {{< seq caption="..." >}}{ "participants":[...], "steps":[...] }{{< /seq >}}
+       엔진/스타일은 /flow/seq.js, /flow/seq.css (custom/head-end.html에서 로드) */ -}}
+<figure class="vm-seq">
+<script type="application/json" class="seq-spec">{{ .Inner | safeJS }}</script>
+{{- with .Get "caption" }}
+<figcaption class="seq-caption">{{ . }}</figcaption>
+{{- end }}
+</figure>
