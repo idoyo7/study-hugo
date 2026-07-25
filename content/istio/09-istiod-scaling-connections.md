@@ -12,7 +12,8 @@ weight: 9
 - 공식이 가진 재분배 수단은 `keepaliveMaxServerConnectionAge` 강제 종료 하나뿐. Google Cloud 공식 문서도 이 불균형을 인정하고 **레플리카 다중화 + 사전 스케일링**만 권한다.
 - 주기를 절반으로 줄이면 재연결 레이트가 정확히 2배가 된다(지터는 ±10%라 창을 넓혀줄 뿐이다). 상쇄하려면 **재연결 1건의 단가** — 곧 커넥션당 config 크기 — 를 깎아야 한다.
 - `pilot_xds`(연결 수) 기반 오토스케일링은 **공식 권장이 아니다.** 공식 차트 HPA의 기본 지표는 CPU 80% 하나뿐이다.
-- 실측(§7)으로는 **정상 순환보다 파드 교체가 훨씬 비쌌다.** 재연결 주기를 조이기 전에 파드가 어떻게 죽는지(PDB·`maxUnavailable`·노드 드레인)부터 볼 것.
+- 실측(§7): **커넥션 분포가 가장 험한 순간과 CPU가 가장 험한 순간은 다르다.** CoV는 파드가 죽을 때, CPU·push 지연은 커넥션 총량이 늘 때 튄다. 재분배 지표만으로 CPU 부하를 추정하면 엉뚱한 손잡이를 잡는다.
+- **`GOMAXPROCS`는 `limits.cpu`가 정한다**(§8). 차트가 Downward API로 주입하고 kubelet이 `math.Ceil`로 올림하므로, **소수점 CPU limit은 quota와 GOMAXPROCS가 항상 어긋난다.** 정수 코어로 걸 것.
 {{< /callout >}}
 
 > **그때 무슨 일이 있었나.** 대규모 이벤트 중 istiod가 20분 사이에 8대 재시작됐다. 커넥션 수(`pilot_xds`) 기반 KEDA 스케일링이 이미 걸려 있었고 24대 → 38대로 스케일아웃도 정상 동작했는데도 그랬다. 원인은 두 겹이었다 — **커넥션 한 개의 무게가 클러스터 규모를 따라 변했고**(0.66 → 1.95 MB/conn), **스케일아웃해도 커넥션이 재분배되지 않아** 기존 파드가 246~294 conn을 혼자 떠안았다. 이 문서는 그 두 성질의 근거를 공식 문서·소스코드 수준까지 내려가 정리하고, 손잡이별 트레이드오프를 표로 남긴다.
@@ -243,7 +244,7 @@ xDS delta 프로토콜에는 재연결용 `initial_resource_versions` 필드가 
 ## 7. 실측 — 2026-07-25, keepalive 15m 적용 이후
 
 {{< callout type="important" >}}
-**작성 시점 상태**: CPU·스로틀링 메트릭을 아직 대조하지 못했다. 아래 인과는 `pilot_xds` 단독 관측에 근거한 **추론**이며, 스로틀 발생 시각을 확인하면 결론이 바뀔 수 있다. 확정 전까지 이 절은 골격으로 둔다.
+**초판 결론을 뒤집었다.** 커넥션 데이터만 봤을 때는 "09:40 파드 대량 소멸이 진짜 스파이크"라고 적었으나, CPU·스로틀·convergence·push_time 네 지표를 붙여보니 **스케일아웃 구간이 네 축 전부에서 더 나빴다.** 아래는 정정된 내용이다. 커넥션 분포만으로 CPU 부하를 추정하면 안 된다는 게 이 절의 첫 교훈이다.
 {{< /callout >}}
 
 데이터: Grafana Explore 내보내기, 08:29~11:44(195분), **15초 해상도**, 파드 컬럼 66개, 활성 24~34대. 파일 내 파드가 전부 동일 ReplicaSet(`646bd458b8`)이다.
@@ -281,19 +282,191 @@ xDS delta 프로토콜에는 재연결용 `initial_resource_versions` 필드가 
 
 1. **keepalive 15m은 의도대로 작동한다.** 거의 같은 커넥션 규모(2,900 vs 2,950)에서 정상 재연결이 0.7/s → 1.0/s로 **약 1.5~2배**. 주기를 절반으로 줄인 효과와 맞는다.
 2. **스케일아웃 수렴이 빨라졌다.** 오늘 10:29~11:00에 24 → 34대로 늘리며 CoV 25.9% → 9.8%까지 **17.5분**. 6월엔 같은 일에 **36.5분**이 걸렸다.
-3. **진짜 스파이크는 정상 순환이 아니라 파드 교체다.** 09:29~09:44 버킷의 합계는 이론치의 2.6배, 6월 16:45~17:00 버킷은 4.1배. 두 사건 모두 같은 모양이다.
-
-⇒ 잠정 결론: **문제는 "얼마나 자주 다시 맺게 할 것인가"가 아니라 "파드가 어떻게 죽는가"였다.** 손잡이가 `keepaliveMaxServerConnectionAge`가 아니라 PDB·`maxUnavailable`·노드 드레인 정책 쪽에 있다는 뜻이다.
+3. **커넥션 재분배 관점에서는 파드 교체가 가장 격했다.** 09:29~09:44 버킷의 합계는 이론치의 2.6배, 6월 16:45~17:00 버킷은 4.1배.
 
 {{< callout type="info" >}}
 **측정 방법의 한계 — 정상 재연결 수치는 하한이다.** 파드별 증가분의 합으로 셌기 때문에, 15초 스텝 안에서 끊기고 다시 붙은 것이 상쇄되면 잡히지 않는다. 실측 1.0/s는 이론치(2,900/900s = 3.2/s)의 0.3배인데 이 격차의 상당 부분은 측정 방식 탓이다. **절대값이 아니라 6월 대비 상대 비교로만 읽을 것.**
 {{< /callout >}}
 
-### 결론을 확정하려면 필요한 데이터
+### CPU·스로틀을 붙이니 결론이 뒤집혔다
 
-- `container_cpu_cfs_throttled_seconds_total{container="discovery"}` 파드별 — 스로틀 시각이 09:41~09:56인지 10:44~11:00 스케일아웃인지가 결론을 가른다
-- 09:35~09:50 노드 이벤트 — 드레인/축출/스팟 회수 여부
-- 같은 창의 `pilot_proxy_convergence_time`, `pilot_xds_push_time` — 재연결 1건의 단가 확인
+같은 날 09:30~11:00을 15초 해상도로, 네 지표를 한 시간축에 정렬한 결과다.
+
+| 구간 | CPU 최대(코어) | 스로틀 최대 | `pilot_proxy_convergence_time` p99 | `pilot_xds_push_time` p99 |
+|---|---|---|---|---|
+| 평시 09:30~09:39 | 0.016 | 0.06 | 0.100 | 0.060 |
+| 파드 대량소멸 09:40~09:47 | 0.139 | 2.00 | 0.314 | 0.076 |
+| 쏠림 고착 09:48~10:00 | 0.064 | 0.54 | 0.325 | 0.080 |
+| 회복 10:01~10:17 | 0.032 | 0.20 | 0.118 | 0.072 |
+| **스케일아웃 10:18~11:00** | **0.207** | **2.43** | **0.940** | **0.782** |
+
+**스케일아웃 구간이 네 축 전부에서 더 나쁘다.** `pilot_xds_push_time` p99가 0.0099초 → **0.782초로 79배**, convergence p99가 0.099초 → 0.940초로 9.5배 뛴다. 커넥션이 1,029 → 2,908로 3배 가까이 늘어난 구간이라 push 부하가 파드 교체보다 훨씬 컸다.
+
+⇒ **정정된 결론**: 커넥션 분포(CoV)가 가장 험한 순간과 CPU가 가장 험한 순간은 **다르다.** CoV는 파드가 죽을 때 튀고, CPU·push 지연은 **커넥션 총량이 늘어날 때** 튄다. 재분배 지표만 보고 CPU 부하를 추정하면 엉뚱한 손잡이를 잡게 된다.
+
+### "limit에 한참 못 미치는데 스로틀" — 평균이 가린다
+
+파드별 CPU 최대의 최대가 **0.207코어 = 207m**로, CPU limit 600m의 **34%**다. 전 구간 중앙값은 36m. 그런데 스로틀은 **관측된 모든 구간에서 발생**했다.
+
+스로틀 지표를 초당 스로틀된 period 수로 읽고(기본 CFS period 100ms → 초당 10개) 평균 CPU와 연립하면:
+
+```text
+평균 CPU 0.207 코어 = period당 20.7ms
+스로틀 비율 f = 2.43 / 10 = 0.243   (이 period들은 quota 60ms를 다 씀)
+
+0.243 × 60ms + 0.757 × y = 20.7ms
+⇒ y ≈ 8.1ms
+```
+
+**24%의 period는 quota 60ms를 꽉 채워 잘리고, 나머지 76%는 8ms만 쓴다.** 평균 207m은 이 두 상태의 혼합일 뿐이고, 버스트 순간의 순간 수요는 600m를 넘는다. **평균 사용률로 CPU limit을 사이징하면 안 되는 이유가 이 한 줄에 있다.**
+
+그리고 이는 곧 그 순간 istiod가 **600m보다 더 쓰고 싶어 했다**는 뜻이다. GOMAXPROCS=1이라 상한이 1000m인데 600m 천장에 24% 확률로 부딪히고 있었다.
+
+{{< callout type="important" >}}
+**이 24.3%는 쿼리 검증 전 값이다.** 원 쿼리가 `sum(rate(container_cpu_cfs_throttled_periods_total[2m])) by (pod)`이었는데 두 가지 보정이 필요하다.
+
+- **`container` 필터가 없어 중복 합산 위험** — cAdvisor가 파드 샌드박스 계열과 컨테이너 계열을 따로 내보내면 `by (pod)`이 둘을 더한다. 그렇다면 실제 비율은 절반(≈12%)이다.
+- **분모가 없다** — 아래처럼 `cfs_periods_total`로 나누면 "초당 10 period" 가정 없이 0~1 분율로 바로 읽힌다.
+- **`[2m]`은 8샘플 평활**이라 관측된 2.43은 순간 최대가 아니라 2분 평균이다. **실제 순간 피크는 더 높다.**
+
+```promql
+sum(rate(container_cpu_cfs_throttled_periods_total{container="discovery"}[1m])) by (pod)
+  /
+sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
+```
+
+결론의 방향(평균은 limit의 34%인데 스로틀은 실재한다)은 이 보정으로 바뀌지 않지만, 정량은 바뀐다.
+{{< /callout >}}
+
+히스토그램 분위수 두 개에도 주의가 필요하다. 평시값 `0.0990`·`0.0099`는 실제 지연이 아니라 **버킷 경계 아티팩트**다(0.1s·0.01s 버킷 바로 아래로 보간된 값). 평시엔 "그 버킷보다 빠르다" 이상은 알 수 없고, 의미 있는 신호는 0.94/0.78로 튄 구간뿐이다.
+
+### 한 파드가 반복해서 걸린다
+
+스로틀 상위 12개 시점의 argmax가 거의 전부 같은 파드(`9jvvj`)다 — 09:42, 10:39, 10:40, 10:48, 10:49. 10:48:30에는 CPU 최대가 다른 파드(`7jp9c`, 0.180)인데 스로틀 최대는 여전히 `9jvvj`(2.14)로 갈린다. **CPU를 덜 쓰면서 더 잘린다**는 건 그 파드의 부하가 더 뾰족하다(버스트성이 크다)는 뜻이다. 평균 기반 알럿으로는 이런 파드를 못 잡는다.
+
+### 아직 확인 못 한 것
+
+- 09:35~09:50 노드 이벤트 — 파드 20대가 동시에 죽은 원인이 드레인/축출/스팟 회수인지
+- 보정된 쿼리로 다시 뽑은 스로틀 분율 — 위 callout 참조
+
+## 8. GOMAXPROCS는 CPU limit이 정한다 — 차트 배선의 함정
+
+§7에서 `GOMAXPROCS=1`이 나왔는데, 이건 **누가 설정한 값이 아니라 `limits.cpu`가 만들어낸 값**이다. 사슬이 세 단계다.
+
+### 1단계 — 차트가 Downward API로 주입한다
+
+Istio 1.19부터 istiod Deployment 템플릿에 하드코딩돼 있다(1.24.1 `deployment.yaml` 197-205행).
+
+```yaml
+- name: GOMEMLIMIT
+  valueFrom:
+    resourceFieldRef:
+      resource: limits.memory
+- name: GOMAXPROCS
+  valueFrom:
+    resourceFieldRef:
+      resource: limits.cpu
+      divisor: "1"
+```
+
+`values.yaml`로 토글되는 옵션이 아니라 템플릿 고정 블록이다. 도입 PR #46253의 근거는 *"Basically this gives us performance improvements for free"* 였고, 1.19 체인지노트에 *"Added an automatically set GOMEMLIMIT and GOMAXPROCS to all deployments to improve performance"* 로 실렸다.
+
+### 2단계 — Kubernetes가 올림으로 계산한다
+
+`resourceFieldRef`의 값 변환은 커널이 아니라 kubelet 쪽 코드가 한다(`pkg/api/v1/resource/helpers.go`).
+
+```go
+func convertResourceCPUToString(cpu *resource.Quantity, divisor resource.Quantity) (string, error) {
+	c := int64(math.Ceil(float64(cpu.MilliValue()) / float64(divisor.MilliValue())))
+	return strconv.FormatInt(c, 10), nil
+}
+```
+
+**`math.Ceil`이다.** `ceil(600/1000) = 1` ⇒ `GOMAXPROCS=1`.
+
+{{< callout type="important" >}}
+**소수점 CPU limit은 이 배선에서 항상 어긋난다.**
+
+| | 계산 | limit 600m일 때 |
+|---|---|---|
+| GOMAXPROCS | `ceil(limit_cores)` — **올림** | **1** (런타임은 1.0 코어를 태울 준비를 함) |
+| CFS quota | `limit_cores × 100ms` — **정확값** | **60ms/100ms** (커널은 0.6 코어만 허용) |
+
+600m·1500m·2500m 전부 같은 어긋남이 생긴다. **정수 코어(1000m·2000m·4000m)만 둘이 일치한다.**
+{{< /callout >}}
+
+### 3단계 — PushThrottle이 GOMAXPROCS에서 파생된다
+
+`pilot/pkg/features/tuning.go`(1.24.1):
+
+```go
+procs := runtime.GOMAXPROCS(0)
+// 1: 20 / 2: 25 / 4: 35 / 32: 100
+return min(15+5*procs, 100)
+```
+
+그리고 push는 프록시별 goroutine으로 병렬 디스패치된다(`pilot/pkg/xds/discovery.go`의 `doSendPushes`, 세마포어 크기 = `features.PushThrottle`).
+
+⇒ GOMAXPROCS=1이면 세마포어 슬롯은 20개로 살아 있어 **goroutine 20개가 뜨지만**, 마샬링·xDS 직렬화 같은 CPU-bound 작업은 **P 하나에 직렬화**된다. 게다가 그 P마저 100ms 중 60ms만 돈다. §7에서 `pilot_xds_push_time` p99가 79배 뛴 게 이 구조와 정합한다(인과 확정은 아님 — 프로파일 없이는 추론이다).
+
+### Istio 1.24와 Go 버전 — 런타임이 구제해주지 않는다
+
+Go 1.25(2025-08 GA)부터 런타임이 cgroup CPU limit을 읽어 GOMAXPROCS를 자동 설정한다. 릴리스 노트 원문:
+
+> "On Linux, the runtime considers the CPU bandwidth limit of the cgroup containing the process, if any. If the CPU bandwidth limit is lower than the number of logical CPUs available, GOMAXPROCS will default to the lower limit. ... **The Go runtime does not consider the "CPU requests" option.**"
+>
+> "Both of these behaviors are automatically disabled if GOMAXPROCS is set manually via the GOMAXPROCS environment variable or a call to `runtime.GOMAXPROCS`."
+
+**그런데 Istio 1.24.1의 `go.mod`는 `go 1.22.0`이다.** Go 1.25 이전이라 이 기능이 없다.
+
+| | Istio 1.24.1 (Go ≥1.22) | Go 1.25+ 로 빌드될 경우 |
+|---|---|---|
+| GOMAXPROCS 결정 주체 | **차트 Downward API 주입값이 전부** | 런타임이 cgroup에서 자동 산출 |
+| 반올림 | kubelet의 `math.Ceil` | Go도 **올림**(go.dev 블로그: *"Go always rounds up"*) |
+| env var 명시 시 | 그 값이 그대로 | **자동 로직이 꺼진다** |
+
+두 번째 열의 함정에 주의할 것 — Istio 차트는 `GOMAXPROCS` **환경변수를 명시적으로 주입**하므로, 훗날 istiod가 Go 1.25+ 로 빌드돼도 **런타임 자동 감지는 계속 꺼진 상태로 남는다.** 차트 배선이 런타임보다 우선한다.
+
+### 차트 기본값에는 CPU limit이 없다
+
+1.24.1 차트의 pilot `resources` 기본값은 **request만** 있다.
+
+```yaml
+resources:
+  requests:
+    cpu: 500m
+    memory: 2048Mi
+  # limits 섹션 없음
+```
+
+limit이 없으면 Downward API는 노드 allocatable로 대체된다. Kubernetes 공식 문서:
+
+> "If CPU and memory limits are not specified for a container, and you use the downward API to try to expose that information, then the kubelet defaults to exposing the maximum allocatable value for CPU and memory based on the node allocatable calculation."
+
+⇒ **CPU limit을 거는 순간 GOMAXPROCS가 노드 코어 수에서 그 값으로 떨어진다.** 스로틀 상한을 걸었다고 생각했는데 병렬성까지 같이 줄인 것이고, 소수점 값이면 §2단계의 어긋남까지 얹힌다.
+
+### 권고
+
+| 선택지 | quota | GOMAXPROCS | 평가 |
+|---|---|---|---|
+| limit 없음 (차트 기본) | 없음 | 노드 코어 수 | 스로틀은 사라지나 큰 노드에서 과병렬 |
+| `600m` (현재) | 60ms/100ms | 1 | **어긋남 + 직렬화.** 최악 조합 |
+| `"1"` | 100ms/100ms | 1 | 어긋남은 해소, **직렬화는 그대로** |
+| `"2"` | 200ms/100ms | 2 | 버스트 여유 3.3배 + 병렬 2배 + PushThrottle 25 |
+
+```yaml
+resources:
+  requests:
+    cpu: 500m
+    memory: 2Gi
+  limits:
+    cpu: "2"        # 정수로. 소수점은 quota와 GOMAXPROCS가 어긋난다
+    memory: 2Gi
+```
+
+`"2"`는 §7에서 버스트 시 단일 P 포화가 보였다는 근거에 기반한 출발점이지 실측으로 확정한 값이 아니다. 조정 후 §7의 네 지표를 다시 떠서 `pilot_xds_push_time` p99가 내려오는지로 검증할 것.
+
+**메모리도 같이 본다.** `GOMEMLIMIT`이 `limits.memory`에서 같은 방식으로 주입되므로, 메모리 limit을 차트 기본 request(2048Mi)보다 낮게 잡으면 Go의 소프트 메모리 상한까지 함께 낮아진다.
 
 ## 이 문서에서 가져갈 것
 
@@ -301,7 +474,9 @@ xDS delta 프로토콜에는 재연결용 `initial_resource_versions` 필드가 
 - **Istio에 커넥션 능동 재분배는 없다.** `keepaliveMaxServerConnectionAge` 강제 종료가 전부이고, Google 공식 권고도 레플리카 다중화 + 사전 스케일링 두 개뿐이다.
 - 주기를 절반으로 줄이면 재연결 레이트가 **정확히 2배**가 된다. 지터(±10%)는 창을 넓혀줄 뿐 총량을 줄이지 않는다.
 - CPU를 되돌리는 지렛대는 빈도가 아니라 **단가** 쪽에 있다 — `Sidecar`·`exportTo`·`discoverySelectors`로 커넥션당 config 크기를 깎는 것.
-- **실측해보면 정상 순환보다 파드 교체가 훨씬 비싸다.** 2026-07-25 관측에서 keepalive 15m의 정상 재연결은 피크에도 ~1.0 conn/s인데, 파드 20대가 동시에 죽은 15분 버킷에서는 강제 재접속만 1.80 conn/s였고 CoV가 146%까지 튀었다. **재연결 주기를 조이기 전에 파드가 어떻게 죽는지부터 볼 것** — PDB·`maxUnavailable`·노드 드레인 정책(§7).
+- **재분배 지표와 CPU 지표는 다른 순간에 튄다**(§7). CoV는 파드 20대가 죽은 09:40에 146%로 튀었지만, CPU·스로틀·`pilot_xds_push_time`은 커넥션이 3배로 불어난 스케일아웃 구간에서 더 나빴다(push p99 79배). 커넥션 분포만 보고 CPU 부하를 추정하지 말 것.
+- **평균 사용률로 CPU limit을 사이징하지 말 것**(§7). 평균 CPU가 limit의 34%인데도 24%의 period가 quota를 꽉 채워 잘리고 있었다. 평균은 "버스트 때 포화, 나머지 시간 유휴"의 혼합값일 뿐이다.
+- **`GOMAXPROCS`는 설정하는 게 아니라 `limits.cpu`에서 파생된다**(§8). 차트 Downward API + kubelet `math.Ceil` 조합이라 소수점 limit은 항상 어긋나고, `PILOT_PUSH_THROTTLE`까지 그 값에서 파생된다. Istio 1.24는 Go 1.22 기반이라 Go 1.25의 컨테이너 인식 런타임도 없다.
 - `pilot_xds_pushes`는 에러 카운터다. `pilot_xds_write_timeout`·`pilot_total_xds_rejects`는 존재하지 않는다. 알럿 걸기 전에 `:15014/metrics`를 직접 스크랩해 이름을 확인할 것.
 
 ## 소스
@@ -325,4 +500,19 @@ xDS delta 프로토콜에는 재연결용 `initial_resource_versions` 필드가 
 - Istio 블로그 — **ztunnel** (커넥션 수 자체를 줄이는 접근): <https://istio.io/latest/blog/2023/rust-based-ztunnel/>
 - Istio 블로그 — **discoverySelectors**: <https://istio.io/latest/blog/2021/discovery-selectors/>
 - Charles Xu — **Scaling Istio** (practitioner 블로그, HPA behavior 예시·EnvoyFilter idle_timeout 기법): <https://charlesxu.io/scaling-istio/>
+
+§8(GOMAXPROCS 사슬) 근거:
+
+- istio/istio 1.24.1 — `manifests/charts/istio-control/istio-discovery/templates/deployment.yaml` 197-205행 (GOMAXPROCS·GOMEMLIMIT Downward API 주입): <https://github.com/istio/istio/blob/1.24.1/manifests/charts/istio-control/istio-discovery/templates/deployment.yaml>
+- istio/istio PR #46253 — "Set GOMAXPROCS and GOMEMLIMIT" (도입 PR, 1.19.0): <https://github.com/istio/istio/pull/46253>
+- istio/istio 1.24.1 `values.yaml` — pilot `resources` 기본값(request만, CPU limit 없음): <https://github.com/istio/istio/blob/1.24.1/manifests/charts/istio-control/istio-discovery/values.yaml>
+- istio/istio 1.24.1 `go.mod` — `go 1.22.0`: <https://github.com/istio/istio/blob/1.24.1/go.mod>
+- istio/istio 1.24.1 — `pilot/pkg/features/tuning.go` (`PushThrottle = min(15+5*GOMAXPROCS, 100)`): <https://github.com/istio/istio/blob/1.24.1/pilot/pkg/features/tuning.go>
+- istio/istio 1.24.1 — `pilot/pkg/xds/discovery.go` (`doSendPushes`, 프록시별 goroutine 병렬 디스패치): <https://github.com/istio/istio/blob/1.24.1/pilot/pkg/xds/discovery.go>
+- kubernetes/kubernetes — `pkg/api/v1/resource/helpers.go` (`convertResourceCPUToString`이 `math.Ceil` 사용): <https://github.com/kubernetes/kubernetes/blob/master/pkg/api/v1/resource/helpers.go>
+- Kubernetes 공식 문서 — **Downward API** (limit 미지정 시 node allocatable로 대체된다는 원문): <https://kubernetes.io/docs/concepts/workloads/pods/downward-api/>
+- Go 1.25 릴리스 노트 — **Container-aware GOMAXPROCS** (CPU requests는 고려하지 않음, env var 명시 시 자동 로직 비활성): <https://go.dev/doc/go1.25>
+- Go 블로그 — **Container-aware GOMAXPROCS** (*"Go always rounds up"*): <https://go.dev/blog/container-aware-gomaxprocs>
+- Linux 커널 문서 — **CFS Bandwidth Control** (quota/period 정의): <https://docs.kernel.org/scheduler/sched-bwc.html>
+- kubernetes/kubernetes#67577 — CFS quota slice 분배로 인한 저사용률 스로틀 보고: <https://github.com/kubernetes/kubernetes/issues/67577>
 - 버전·설정에 따라 기본값이 달라진다. 배포된 istiod의 `:15014/metrics`와 실제 차트 values를 직접 확인할 것.
