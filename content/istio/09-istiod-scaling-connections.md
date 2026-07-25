@@ -14,7 +14,7 @@ weight: 9
 - `pilot_xds`(연결 수) 기반 오토스케일링은 **공식 권장이 아니다.** 공식 차트 HPA의 기본 지표는 CPU 80% 하나뿐이다.
 - 실측(§7): **커넥션 분포가 가장 험한 순간과 CPU가 가장 험한 순간은 다르다.** CoV는 파드가 죽을 때, CPU·push 지연은 커넥션 총량이 늘 때 튄다. 재분배 지표만으로 CPU 부하를 추정하면 엉뚱한 손잡이를 잡는다.
 - **`GOMAXPROCS`는 `limits.cpu`가 정한다**(§8). 차트가 Downward API로 주입하고 kubelet이 `math.Ceil`로 올림하므로, **소수점 CPU limit은 quota와 GOMAXPROCS가 항상 어긋난다.** 정수 코어로 걸 것.
-- **명목 quota가 다 쓰이지도 않는다**(§7). CFS 슬라이스 좌초로 **600m가 실효 210m처럼 동작했다.** GOMAXPROCS=1이어도 OS 스레드는 17개라 좌초 표면적은 그대로다 — 병렬성만 잃는 최악의 조합.
+- **주범은 버스트지 슬라이스 좌초가 아니다**(§7). 좌초는 표본의 6.5%에서만 나타나는 2차 요인이었다. GOMAXPROCS=1이어도 OS 스레드는 17개라 좌초 표면적은 그대로 떠안으면서 병렬성만 잃는다는 점이 더 크다.
 {{< /callout >}}
 
 > **그때 무슨 일이 있었나.** 대규모 이벤트 중 istiod가 20분 사이에 8대 재시작됐다. 커넥션 수(`pilot_xds`) 기반 KEDA 스케일링이 이미 걸려 있었고 24대 → 38대로 스케일아웃도 정상 동작했는데도 그랬다. 원인은 두 겹이었다 — **커넥션 한 개의 무게가 클러스터 규모를 따라 변했고**(0.66 → 1.95 MB/conn), **스케일아웃해도 커넥션이 재분배되지 않아** 기존 파드가 246~294 conn을 혼자 떠안았다. 이 문서는 그 두 성질의 근거를 공식 문서·소스코드 수준까지 내려가 정리하고, 손잡이별 트레이드오프를 표로 남긴다.
@@ -349,28 +349,41 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 
 여기서 "그럼 limit이 600m이 아닌가?"로 새면 안 된다. **전제가 틀렸다. 스로틀된 period가 반드시 quota를 다 쓴 것은 아니다.**
 
-글로벌 quota는 CPU별 runqueue에 **슬라이스(기본 5ms) 단위로 미리 분배**된다. 슬라이스를 받아간 CPU에서 태스크가 곧 잠들면 그 몫은 **쓰이지 않은 채 소진 처리**되고 즉시 반환되지 않는다. 그래서 **실사용 총량이 quota에 한참 못 미쳐도 글로벌 풀이 마르면 스로틀이 걸린다.** kubernetes/kubernetes#67577로 보고된 현상이고, 제기자 본인이 "Kubernetes 버그가 아니라 Linux CFS quota 메커니즘의 한계"라고 밝혔다.
+글로벌 quota는 CPU별 runqueue에 **슬라이스(기본 5ms) 단위로 배치 전송**된다. 커널 문서 원문:
+
+> `/proc/sys/kernel/sched_cfs_bandwidth_slice_us` **(default=5ms)**
+>
+> For efficiency run-time is transferred between the global pool and CPU local "silos" in a batch fashion.
+>
+> However **all but 1ms** of the slice may be returned to the global pool if all threads on that cpu become unrunnable.
+>
+> Once a slice is assigned to a cpu **it does not expire.**
+
+즉 받아간 몫이 통째로 날아가는 게 아니라 **1ms(`min_cfs_rq_runtime`)만 남기고 반환**되고, 남은 슬라이스는 만료되지도 않아 다음 period로 이월된다. 그래도 CPU를 여러 개 훑을수록 1ms씩은 잔류하므로, **실사용이 quota에 못 미쳐도 스로틀이 걸리는 상황이 생긴다.** kubernetes/kubernetes#67577로 보고된 현상이고, 제기자 본인이 "Kubernetes 버그가 아니라 Linux CFS quota 메커니즘의 한계"라고 밝혔다.
 
 ⇒ **"CPU 사용률 29%인데 스로틀 31%"는 모순이 아니라 이 결함의 전형적인 서명이다.**
 
-### 실효 quota를 역산하면 명목의 3분의 1이다
+### 좌초 규모를 역산해보면 — 생각보다 작다
 
-관측된 스로틀 강도에 맞는 quota를 거꾸로 풀면 이렇게 나온다.
+{{< callout type="important" >}}
+**이 절의 초판은 틀렸다.** "실효 quota ≈ 21ms, 명목의 3분의 1"이라고 적었는데, 근거로 삼은 가장 빡빡한 제약이 **10:45:45에 갓 뜬 파드의 첫 1분** 표본에서 나왔다. startup 버스트로 잘리는데 1분 rate가 그걸 눌러 제약이 과하게 조여진 것이다. 아래는 파드 나이 5분 이상만 남기고 다시 계산한 값이다.
+{{< /callout >}}
+
+관측된 스로틀 강도에 맞는 quota를 거꾸로 풀면 이렇게 된다.
 
 ```text
-① 스로틀된 period가 실효 quota를 소진하므로   f × Q_eff ≤ avg  ⇒  Q_eff ≤ min(avg / f) = 21.5ms
-② avg는 Q_eff와 그 이하 값의 가중혼합이므로    avg < Q_eff      ⇒  Q_eff > max(avg) = 20.7ms
-
-⇒ 실효 quota ≈ 21ms/period   (명목 60ms의 약 35%)
+① 스로틀된 period가 실효 quota를 소진하므로   f × Q_eff ≤ avg  ⇒  Q_eff ≤ min(avg / f)
+② avg는 Q_eff와 그 이하 값의 가중혼합이므로    avg < Q_eff      ⇒  Q_eff > max(avg)
 ```
 
-| | 값 |
-|---|---|
-| 명목 CPU limit | **600m** (quota 60ms/period) |
-| 관측된 스로틀 강도에 맞는 실효 quota | **≈ 210m** (약 21ms/period) |
-| 좌초된 몫 | **약 3분의 2** |
+| 필터 | Q_eff 상한 | 환산 |
+|---|---|---|
+| 없음 (초판) | 21.5ms | ~215m ← **갓 뜬 파드에 오염됨** |
+| **파드 나이 ≥5분** | **37.1ms** | **~371m** |
 
-**600m를 걸어놨는데 200m처럼 잘리고 있었다.**
+그리고 **좌초가 전혀 없다고 가정했을 때**(quota 60ms 그대로) 앞뒤가 안 맞는 표본은 **6.5%뿐**이다. 나머지 93.5%는 명목 60ms로 설명된다.
+
+⇒ 좌초는 **소수 구간에서 얹히는 2차 요인**이지 주범이 아니다. 주범은 앞 절의 버스트다.
 
 ### 왜 GOMAXPROCS=1에서 특히 심한가 — 스레드 17개
 
@@ -378,20 +391,20 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 
 **GOMAXPROCS는 P(goroutine 실행용 논리 프로세서) 개수를 제한할 뿐, OS 스레드 개수를 줄이지 않는다.** sysmon, GC 마크 워커, netpoller, 시스템콜에 블록된 스레드는 전부 P 카운트 밖에서 돌고, 전부 같은 cgroup quota에 청구된다.
 
-{{< flow caption="quota 60ms는 5ms 슬라이스 12조각. 스레드 17개가 조각 수보다 많아 여러 CPU가 슬라이스를 받아가고, 조금 쓰고 잠들면 나머지가 좌초된다 — 실효 21ms" >}}
+{{< flow caption="quota 60ms는 5ms 슬라이스로 쪼개져 CPU별로 넘어간다. 스레드가 잠들면 1ms만 남기고 반환되므로 새는 건 CPU 방문당 1ms 남짓 — 표본의 6.5%에서만 명목 60ms로 설명이 안 됐다" >}}
 {
   "nodes": [
     { "id": "Q", "col": 0, "row": 0, "label": "quota 60ms", "sub": "limit 600m · period당", "kind": "src" },
-    { "id": "S", "col": 1, "row": 0, "label": "5ms 슬라이스 12조각", "sub": "sched_cfs_bandwidth_slice_us", "kind": "proc" },
+    { "id": "S", "col": 1, "row": 0, "label": "5ms씩 CPU로", "sub": "sched_cfs_bandwidth_slice_us", "kind": "proc" },
     { "id": "T", "col": 2, "row": 0, "label": "OS 스레드 17개", "sub": "P는 1개 · 조각보다 많다", "kind": "proc" },
-    { "id": "W", "col": 3, "row": 0, "label": "실사용 ≈ 21ms", "sub": "실효 quota", "kind": "sink" },
-    { "id": "X", "col": 3, "row": 1, "label": "좌초 ≈ 39ms", "sub": "받아가고 안 쓴 몫", "kind": "query" }
+    { "id": "W", "col": 3, "row": 0, "label": "대부분 반환", "sub": "1ms만 남기고 글로벌 풀로", "kind": "sink" },
+    { "id": "X", "col": 3, "row": 1, "label": "CPU당 1ms 잔류", "sub": "min_cfs_rq_runtime", "kind": "query" }
   ],
   "edges": [
     { "from": "Q", "to": "S", "label": "분할" },
     { "from": "S", "to": "T", "label": "CPU별 배분", "rate": 420 },
     { "from": "T", "to": "W", "rate": 700 },
-    { "from": "T", "to": "X", "label": "3분의 2", "rate": 380, "speed": "fast" }
+    { "from": "T", "to": "X", "label": "조금씩 잔류", "rate": 900, "speed": "slow" }
   ]
 }
 {{< /flow >}}
@@ -408,7 +421,7 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 ### 남는 것 셋
 
 - **평균 사용률은 CPU limit 사이징의 근거가 못 된다.** `throttled_periods / periods`를 같이 보지 않으면 "CPU 여유 있는데 왜 느리지"에서 조사가 멈춘다.
-- **quota가 작을수록 심해진다.** 슬라이스 5ms에 quota 60ms면 풀이 12조각뿐이라 몇 조각만 좌초돼도 비율로 크게 샌다. **limit을 올리는 것이 어긋남을 줄이는 직접적인 수단**인 이유다(§8).
+- **quota가 작을수록 버스트를 못 흡수한다.** 60ms 예산으로는 한 period 안의 짧은 스파이크 하나도 못 넘긴다. 슬라이스 잔류(CPU당 1ms)도 quota가 작을수록 비율로 커진다. **limit을 올리는 것이 둘 다에 듣는 수단**인 이유다(§8).
 - **뾰족한 파드는 평균 알럿에 안 걸린다.** 스로틀 상위 12개 시점의 argmax가 거의 전부 `9jvvj` 한 대였고, 10:48:30에는 CPU 최대가 다른 파드(`7jp9c`)인데 스로틀 최대는 여전히 `9jvvj`였다. CPU를 덜 쓰면서 더 잘린다.
 
 {{< callout type="info" >}}
@@ -491,7 +504,7 @@ func convertResourceCPUToString(cpu *resource.Quantity, divisor resource.Quantit
 | GOMAXPROCS | `ceil(limit_cores)` — **올림** | **1** (런타임은 1.0코어를 태울 준비를 함) |
 | CFS quota | `limit_cores × 100ms` — **정확값** | **60ms/100ms** (커널은 0.6코어만 허용) |
 | 명목 어긋남 | 런타임 준비치 ÷ 커널 허용치 | **1.7배** |
-| **실효 어긋남** | §7의 스트랜딩 반영(실효 quota ≈ 21ms) | **약 5배** |
+| 실효 어긋남 | §7의 슬라이스 잔류를 얹으면 | 1.7배보다 조금 더 |
 
 1000m 미만의 어떤 값을 넣어도 GOMAXPROCS는 1로 올림되지만 quota는 그 값 그대로다. **작게 걸수록 어긋남이 커지고, 슬라이스 조각 수가 줄어 스트랜딩 비율까지 함께 나빠진다.** 1500m·2500m 같은 값도 마찬가지고, **정수 코어(1000m·2000m·4000m)만 둘이 일치한다.**
 {{< /callout >}}
@@ -559,7 +572,7 @@ limit이 없으면 Downward API는 노드 allocatable로 대체된다. Kubernete
 | 선택지 | quota | GOMAXPROCS | 평가 |
 |---|---|---|---|
 | limit 없음 (차트 기본) | 없음 | 노드 코어 수 | 스로틀은 사라지나 큰 노드에서 과병렬 |
-| `600m` (현재) | 60ms/100ms → **실효 ≈21ms** | 1 | **스트랜딩 + 직렬화.** 최악 조합 |
+| `600m` (현재) | 60ms/100ms | 1 | **버스트 못 흡수 + 직렬화.** 최악 조합 |
 | `"1"` | 100ms/100ms | 1 | 어긋남은 해소, **직렬화는 그대로** |
 | `"2"` | 200ms/100ms | 2 | 버스트 여유 3.3배 + 병렬 2배 + PushThrottle 25 |
 
@@ -585,8 +598,9 @@ resources:
 - CPU를 되돌리는 지렛대는 빈도가 아니라 **단가** 쪽에 있다 — `Sidecar`·`exportTo`·`discoverySelectors`로 커넥션당 config 크기를 깎는 것.
 - **재분배 지표와 CPU 지표는 다른 순간에 튄다**(§7). CoV는 파드 20대가 죽은 09:40에 146%로 튀었지만, CPU·스로틀·`pilot_xds_push_time`은 커넥션이 3배로 불어난 스케일아웃 구간에서 더 나빴다(push p99 79배). 커넥션 분포만 보고 CPU 부하를 추정하지 말 것.
 - **평균 사용률로 CPU limit을 사이징하지 말 것**(§7). CPU 그래프는 여유로워 보이는데 (파드, 시각) 표본의 **77.2%에서 스로틀이 발생**했고 피크 분율은 30.9%였다. `throttled_periods / periods`를 같이 보지 않으면 이 상태는 보이지 않는다.
-- **quota는 명목대로 다 쓰이지 않는다**(§7). CFS는 quota를 CPU별 5ms 슬라이스로 미리 분배하는데, 받아간 CPU가 곧 잠들면 그 몫이 좌초된다(kubernetes#67577). 실측에서 **명목 600m가 실효 210m처럼 동작했다** — 3분의 2가 샜다.
-- **GOMAXPROCS를 낮춰도 OS 스레드는 안 줄어든다**(§7). GOMAXPROCS=1인데 프로세스 스레드는 17개였다. quota 60ms는 슬라이스 12조각뿐이라 조각보다 스레드가 많고, 좌초가 구조적으로 발생한다. **스트랜딩 표면적은 그대로 떠안고 병렬성만 잃는 조합**이다.
+- **quota는 명목대로 다 쓰이지 않을 수 있지만, 규모를 과장하지 말 것**(§7). CFS는 quota를 CPU별 5ms 슬라이스로 넘기는데, 스레드가 잠들면 **1ms만 남기고 반환**된다(kubernetes#67577, 커널 문서의 `min_cfs_rq_runtime`). 표본의 6.5%에서만 명목 60ms로 설명이 안 됐다 — **2차 요인이지 주범이 아니다.**
+- **역산에는 갓 뜬 파드를 빼라**(§7). 초판이 "실효 210m"라는 틀린 결론에 간 이유가 이것이다. startup 버스트로 잘리는데 1분 rate가 눌러서 제약이 과하게 조여진다. 나이 5분 필터를 걸면 상한이 21.5ms → 37.1ms로 벌어진다.
+- **GOMAXPROCS를 낮춰도 OS 스레드는 안 줄어든다**(§7). GOMAXPROCS=1인데 프로세스 스레드는 17개였다. **좌초 표면적은 그대로 떠안고 병렬성만 잃는 조합**이다.
 - **`GOMAXPROCS`는 설정하는 게 아니라 `limits.cpu`에서 파생된다**(§8). 차트 Downward API + kubelet `math.Ceil` 조합이라 소수점 limit은 항상 어긋나고, `PILOT_PUSH_THROTTLE`까지 그 값에서 파생된다. Istio 1.24는 Go 1.22 기반이라 Go 1.25의 컨테이너 인식 런타임도 없다.
 - `pilot_xds_pushes`는 에러 카운터다. `pilot_xds_write_timeout`·`pilot_total_xds_rejects`는 존재하지 않는다. 알럿 걸기 전에 `:15014/metrics`를 직접 스크랩해 이름을 확인할 것.
 
