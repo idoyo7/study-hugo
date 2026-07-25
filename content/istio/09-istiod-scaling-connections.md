@@ -18,6 +18,8 @@ weight: 9
 
 > 관련 문서: [02 컨트롤 플레인 해부: istiod]({{< relref "02-istiod-control-plane.md" >}}) — push가 CPU를 먹는 메커니즘과 `Sidecar` 스코핑의 기본 · [06 메시가 공짜로 주는 관측성]({{< relref "06-observability-points.md" >}})
 
+> 이 사건을 이야기 흐름으로 읽으려면: [istiod 스케일링, 커넥션 수만 세면 될 줄 알았다](https://makgol.com/blog/istiod-scaling-metrics) — 1차 스케일링을 걸고 2차 이벤트에서 깨지기까지의 서사와 실측 차트. 이 문서는 그 밑에 깔린 근거와 손잡이별 트레이드오프를 레퍼런스로 편다.
+
 ## 1. 커넥션 하나의 무게는 고정이 아니다
 
 istiod는 커넥션마다 "그 proxy에게 줄 클러스터 전체의 뷰"를 계산해 들고 있다. 그래서 부하는 커넥션 수만으로 결정되지 않는다.
