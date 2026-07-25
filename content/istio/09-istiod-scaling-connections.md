@@ -421,22 +421,33 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 
 §7에서 `GOMAXPROCS=1`이 나왔는데, 이건 **누가 설정한 값이 아니라 `limits.cpu`가 만들어낸 값**이다.
 
-{{< flow caption="limit 하나가 두 갈래로 갈라진다 — 위쪽은 올림해서 GOMAXPROCS와 PushThrottle을, 아래쪽은 정확값 그대로 커널 quota를. 이 비대칭이 어긋남의 정체다" >}}
+핵심은 이것 하나다. **`limits.cpu: 600m`을 한 번 걸면 그 값이 두 군데로 흘러가는데, 한쪽은 올림되고 한쪽은 안 된다.**
+
+- **Go 런타임 쪽** — 차트가 `limits.cpu`를 `GOMAXPROCS`로 넣어준다. 정수여야 하므로 kubelet이 **올림**한다. `0.6 → 1`. Go는 "1코어 쓸 수 있다"고 믿고 자기 설정을 그에 맞춘다.
+- **커널 쪽** — CFS quota는 올림이 없다. `0.6코어 = 100ms마다 60ms`, 딱 그만큼이다.
+
+⇒ **Go는 1코어짜리라 생각하고 일을 벌이는데, 커널은 0.6코어에서 끊는다.**
+
+{{< flow caption="같은 600m인데 위 갈래에서는 1코어로 올림되고, 아래 갈래에서는 0.6코어 그대로다. Go는 1코어라 믿고 커널은 0.6만 준다 — 이 어긋남이 스로틀의 출발점" >}}
 {
   "nodes": [
-    { "id": "L", "col": 0, "row": 0, "label": "limits.cpu: 600m", "sub": "차트 기본엔 없는 값", "kind": "src" },
-    { "id": "D", "col": 1, "row": 0, "label": "Downward API", "sub": "resourceFieldRef · divisor 1", "kind": "proc" },
-    { "id": "C", "col": 2, "row": 0, "label": "kubelet math.Ceil", "sub": "ceil(0.6) = 1 · 올림", "kind": "proc" },
-    { "id": "G", "col": 3, "row": 0, "label": "GOMAXPROCS = 1", "sub": "P 하나 · 직렬화", "kind": "sink" },
-    { "id": "P", "col": 4, "row": 0, "label": "PushThrottle = 20", "sub": "min(15+5×1, 100)", "kind": "sink" },
-    { "id": "K", "col": 2, "row": 1, "label": "CFS quota 60ms", "sub": "커널 · 올림 없는 정확값", "kind": "query" }
+    { "id": "L", "col": 0, "row": 0, "label": "limits.cpu: 600m", "sub": "내가 건 값 하나", "kind": "src" },
+    { "id": "D", "col": 1, "row": 0, "label": "Istio 차트", "sub": "GOMAXPROCS env로 주입", "kind": "proc" },
+    { "id": "C", "col": 2, "row": 0, "label": "kubelet", "sub": "올림: 0.6 → 1", "kind": "proc" },
+    { "id": "G", "col": 3, "row": 0, "label": "GOMAXPROCS = 1", "sub": "Go: 1코어 쓸 수 있다", "kind": "sink" },
+    { "id": "P", "col": 4, "row": 0, "label": "PushThrottle = 20", "sub": "동시 push 슬롯", "kind": "sink" },
+    { "id": "Q", "col": 1, "row": 1, "label": "CFS quota 60ms", "sub": "커널: 0.6코어만 허용", "kind": "query" }
   ],
   "edges": [
-    { "from": "L", "to": "D", "label": "env 주입" },
+    { "from": "L", "to": "D" },
     { "from": "D", "to": "C" },
-    { "from": "C", "to": "G", "label": "올림", "rate": 500 },
-    { "from": "G", "to": "P", "label": "파생", "rate": 900, "speed": "slow" },
-    { "from": "L", "to": "K", "label": "커널 경로", "rate": 500 }
+    { "from": "C", "to": "G", "label": "올림한다", "rate": 500 },
+    { "from": "G", "to": "P", "label": "여기서 파생", "rate": 900, "speed": "slow" },
+    { "from": "L", "to": "Q", "label": "올림 없다", "rate": 500 }
+  ],
+  "groups": [
+    { "label": "Go 런타임이 믿는 값 — 1코어", "members": ["D", "C", "G", "P"] },
+    { "label": "커널이 강제하는 값 — 0.6코어", "members": ["Q"] }
   ]
 }
 {{< /flow >}}
@@ -497,7 +508,15 @@ return min(15+5*procs, 100)
 
 그리고 push는 프록시별 goroutine으로 병렬 디스패치된다(`pilot/pkg/xds/discovery.go`의 `doSendPushes`, 세마포어 크기 = `features.PushThrottle`).
 
-⇒ GOMAXPROCS=1이면 세마포어 슬롯은 20개로 살아 있어 **goroutine 20개가 뜨지만**, 마샬링·xDS 직렬화 같은 CPU-bound 작업은 **P 하나에 직렬화**된다. 게다가 그 P마저 100ms 중 60ms만 돈다. §7에서 `pilot_xds_push_time` p99가 79배 뛴 게 이 구조와 정합한다(인과 확정은 아님 — 프로파일 없이는 추론이다).
+{{< callout type="info" >}}
+**슬롯 20개가 잘못된 값은 아니다 — 동시성과 병렬성은 다르다.**
+
+push 한 건은 `[설정 조립·마샬링·TLS]`(CPU-bound, P 필요) + `[스트림에 쓰고 네트워크 대기]`(I/O-bound, P 불필요)로 나뉜다. 뒤쪽이 대부분이고 Go에서 I/O 대기는 P를 점유하지 않으므로, **1코어에서 goroutine 20개가 떠 있는 것 자체는 정상**이다. 식의 기본값 15도 I/O 겹치기용 바닥값이고, 코어당 +5가 병렬성 몫이다.
+
+문제는 **CPU-bound 구간이 P 하나에 직렬화**되고, 그 P마저 quota에서 잘린다는 것이다. 20이 많은 게 아니라 20건이 만드는 CPU 수요를 받아낼 자리가 없다.
+{{< /callout >}}
+
+§7에서 `pilot_xds_push_time` p99가 79배 뛴 게 이 구조와 정합한다. 다만 istiod에는 xDS 응답 캐시가 있어 스코프가 같은 프록시끼리는 마샬링을 재사용하므로, **실제 CPU-bound 비중은 프로파일 없이 단정할 수 없다** — 소스 구조에서 나온 추론이다.
 
 ### Istio 1.24와 Go 버전 — 런타임이 구제해주지 않는다
 
