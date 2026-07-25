@@ -54,9 +54,27 @@ istiod 파드 메모리 ≈ 240MB(base) + 400B × (파드당 커넥션 수 × �
 
 각 sidecar는 istiod 파드 하나와 **장수 gRPC 스트림**(ADS)을 유지한다. 한번 맺어지면 끊길 때까지 그 파드에 붙어 있고, Kubernetes Service의 로드밸런싱은 **새 커넥션에만** 적용된다.
 
-⇒ 신규 istiod 파드는 "새로 맺어지는 커넥션"만 받을 수 있다. 스케일아웃은 desired replicas까지만 답하고, **커넥션이 어느 파드로 가는가는 트리거의 관할 밖**이다.
+{{< flow caption="스케일아웃으로 istiod-c가 떠도 기존 커넥션은 옮겨가지 않는다 — 새 파드는 '새로 맺어지는 커넥션'만 받으므로 한동안 빈손이다" >}}
+{
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "istiod-a", "sub": "294 conn · 과부하", "kind": "proc" },
+    { "id": "B", "col": 0, "row": 1, "label": "istiod-b", "sub": "246 conn", "kind": "proc" },
+    { "id": "C", "col": 0, "row": 2, "label": "istiod-c (신규)", "sub": "3 conn · idle", "kind": "query" },
+    { "id": "S1", "col": 1, "row": 0, "label": "Envoy sidecar", "sub": "기존 커넥션 다수", "kind": "sink" },
+    { "id": "S2", "col": 1, "row": 1, "label": "Envoy sidecar", "sub": "기존 커넥션", "kind": "sink" },
+    { "id": "S3", "col": 1, "row": 2, "label": "Envoy sidecar", "sub": "새로 맺은 것만", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "A", "to": "S1", "label": "xDS push", "rate": 380, "speed": "fast" },
+    { "from": "B", "to": "S2", "rate": 650 },
+    { "from": "C", "to": "S3", "rate": 1400, "speed": "slow" }
+  ]
+}
+{{< /flow >}}
 
-이건 우리 클러스터만의 사정이 아니라 문서화된 성질이다. Google Cloud 서비스 메시 트러블슈팅 문서의 원문:
+⇒ 스케일아웃은 desired replicas까지만 답하고, **커넥션이 어느 파드로 가는가는 트리거의 관할 밖**이다.
+
+우리 클러스터만의 사정이 아니라 문서화된 성질이다. Google Cloud 서비스 메시 트러블슈팅 문서의 원문:
 
 > Large changes in cluster size might cause a **temporarily unbalanced load, due to the long-lived connections**.
 
@@ -305,13 +323,9 @@ xDS delta 프로토콜에는 재연결용 `initial_resource_versions` 필드가 
 
 ⇒ **정정된 결론**: 커넥션 분포(CoV)가 가장 험한 순간과 CPU가 가장 험한 순간은 **다르다.** CoV는 파드가 죽을 때 튀고, CPU·push 지연은 **커넥션 총량이 늘어날 때** 튄다. 재분배 지표만 보고 CPU 부하를 추정하면 엉뚱한 손잡이를 잡게 된다.
 
-### 스로틀 쿼리를 보정하다 CPU limit 값 자체가 틀렸음을 발견했다
+### 스로틀 쿼리부터 바로잡는다
 
-처음 뽑은 쿼리는 `sum(rate(container_cpu_cfs_throttled_periods_total[2m])) by (pod)` 였다. 세 곳을 보정했다.
-
-- **`container` 필터 없음** — cAdvisor가 파드 샌드박스 계열과 컨테이너 계열을 따로 내보내면 `by (pod)`이 둘을 더한다.
-- **분모 없음** — 이 형태는 "초당 스로틀된 period 수"라 해석에 "초당 10 period"라는 가정이 필요하다. `cfs_periods_total`로 나누면 0~1 분율로 바로 읽힌다.
-- **`[2m]`은 8샘플 평활** — 관측 최대가 순간 피크가 아니라 2분 평균이 된다.
+처음 뽑은 `sum(rate(container_cpu_cfs_throttled_periods_total[2m])) by (pod)`에는 세 문제가 있었다. **`container` 필터가 없어** 파드 샌드박스 계열까지 합산될 수 있고, **분모가 없어** 해석에 "초당 10 period"라는 가정이 필요하며, **`[2m]`은 8샘플 평활**이라 관측 최대가 순간 피크가 아니다.
 
 ```promql
 sum(rate(container_cpu_cfs_throttled_periods_total{container="discovery"}[1m])) by (pod)
@@ -319,7 +333,7 @@ sum(rate(container_cpu_cfs_throttled_periods_total{container="discovery"}[1m])) 
 sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 ```
 
-보정 결과 **피크 스로틀 분율은 30.9%** 였다(p99 21.2%, 중앙값 0.9%). 조인된 (파드, 시각) 표본 9,217개 중 **77.2%에서 스로틀이 발생**했고, 평시 구간조차 평균 분율이 0.46%로 0이 아니다.
+보정 결과 **피크 스로틀 분율 30.9%**(p99 21.2%, 중앙값 0.9%). 조인된 (파드, 시각) 표본 9,217개 중 **77.2%에서 스로틀이 발생**했고, 평시조차 평균 0.46%로 0이 아니다.
 
 그런데 같은 파드·같은 시각의 CPU와 짝지어 보면 숫자가 이상하다.
 
@@ -360,20 +374,27 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 
 ### 왜 GOMAXPROCS=1에서 특히 심한가 — 스레드 17개
 
-사건 당시 istiod 프로세스의 **OS 스레드 총량은 17개**였다. GOMAXPROCS=1인데도 그렇다. 이게 핵심이다.
+사건 당시 istiod 프로세스의 **OS 스레드 총량은 17개**였다. GOMAXPROCS=1인데도 그렇다.
 
-**GOMAXPROCS는 P(goroutine을 실행하는 논리 프로세서) 개수를 제한할 뿐, OS 스레드 개수를 줄이지 않는다.** sysmon, GC 백그라운드 마크 워커, netpoller, 시스템콜에 블록된 스레드, 타이머 — 전부 P 카운트 밖에서 별도 스레드로 돌고, 전부 같은 cgroup quota에 청구된다.
+**GOMAXPROCS는 P(goroutine 실행용 논리 프로세서) 개수를 제한할 뿐, OS 스레드 개수를 줄이지 않는다.** sysmon, GC 마크 워커, netpoller, 시스템콜에 블록된 스레드는 전부 P 카운트 밖에서 돌고, 전부 같은 cgroup quota에 청구된다.
 
-여기에 슬라이스 산술을 얹으면 그림이 닫힌다.
-
-```text
-sched_cfs_bandwidth_slice_us 기본값 = 5ms
-quota 60ms  ⇒  한 period에 나눠줄 슬라이스는 12조각뿐
-
-그런데 스레드는 17개 — 조각 수보다 많은 CPU가 슬라이스를 요구한다.
-받아간 CPU가 0.5ms 쓰고 잠들면 4.5ms가 좌초된다.
-⇒ 실효 quota가 명목의 3분의 1로 주저앉는다
-```
+{{< flow caption="quota 60ms는 5ms 슬라이스 12조각. 스레드 17개가 조각 수보다 많아 여러 CPU가 슬라이스를 받아가고, 조금 쓰고 잠들면 나머지가 좌초된다 — 실효 21ms" >}}
+{
+  "nodes": [
+    { "id": "Q", "col": 0, "row": 0, "label": "quota 60ms", "sub": "limit 600m · period당", "kind": "src" },
+    { "id": "S", "col": 1, "row": 0, "label": "5ms 슬라이스 12조각", "sub": "sched_cfs_bandwidth_slice_us", "kind": "proc" },
+    { "id": "T", "col": 2, "row": 0, "label": "OS 스레드 17개", "sub": "P는 1개 · 조각보다 많다", "kind": "proc" },
+    { "id": "W", "col": 3, "row": 0, "label": "실사용 ≈ 21ms", "sub": "실효 quota", "kind": "sink" },
+    { "id": "X", "col": 3, "row": 1, "label": "좌초 ≈ 39ms", "sub": "받아가고 안 쓴 몫", "kind": "query" }
+  ],
+  "edges": [
+    { "from": "Q", "to": "S", "label": "분할" },
+    { "from": "S", "to": "T", "label": "CPU별 배분", "rate": 420 },
+    { "from": "T", "to": "W", "rate": 700 },
+    { "from": "T", "to": "X", "label": "3분의 2", "rate": 380, "speed": "fast" }
+  ]
+}
+{{< /flow >}}
 
 {{< callout type="important" >}}
 **GOMAXPROCS=1은 이 상황에서 최악의 조합이다.**
@@ -384,30 +405,43 @@ quota 60ms  ⇒  한 period에 나눠줄 슬라이스는 12조각뿐
 즉 멀티스레드 프로세스의 좌초 표면적은 다 떠안으면서, 그 대가로 얻어야 할 병렬 처리량은 못 받는다. "GOMAXPROCS를 낮췄으니 quota를 천천히 태울 것"이라는 직관은 성립하지 않는다.
 {{< /callout >}}
 
-### 그래서 남는 결론
+### 남는 것 셋
 
-CPU 사용률 그래프만 보면 "limit의 3분의 1도 안 쓴다"고 읽히는 워크로드가, period 단위로는 **3분의 1에 가까운 시간 동안 잘리고 있었다.**
+- **평균 사용률은 CPU limit 사이징의 근거가 못 된다.** `throttled_periods / periods`를 같이 보지 않으면 "CPU 여유 있는데 왜 느리지"에서 조사가 멈춘다.
+- **quota가 작을수록 심해진다.** 슬라이스 5ms에 quota 60ms면 풀이 12조각뿐이라 몇 조각만 좌초돼도 비율로 크게 샌다. **limit을 올리는 것이 어긋남을 줄이는 직접적인 수단**인 이유다(§8).
+- **뾰족한 파드는 평균 알럿에 안 걸린다.** 스로틀 상위 12개 시점의 argmax가 거의 전부 `9jvvj` 한 대였고, 10:48:30에는 CPU 최대가 다른 파드(`7jp9c`)인데 스로틀 최대는 여전히 `9jvvj`였다. CPU를 덜 쓰면서 더 잘린다.
 
-**평균 사용률은 CPU limit 사이징의 근거가 못 된다.** `throttled_periods / periods` 분율을 같이 보지 않으면 이 상태는 보이지 않고, 보이지 않으면 "CPU 여유 있는데 왜 느리지"에서 조사가 멈춘다.
+{{< callout type="info" >}}
+**히스토그램 분위수 읽을 때.** 평시값 `0.0990`·`0.0099`는 실제 지연이 아니라 **버킷 경계 아티팩트**다(0.1s·0.01s 버킷 바로 아래로 보간). 평시엔 "그 버킷보다 빠르다" 이상은 알 수 없고, 의미 있는 신호는 0.94/0.78로 튄 구간뿐이다.
 
-그리고 이 결함은 quota가 작을수록 심해진다. 슬라이스가 5ms인데 quota가 60ms면 풀이 12조각뿐이라, 몇 조각만 좌초돼도 비율로는 크게 샌다. **limit을 올리는 것이 어긋남 자체를 줄이는 직접적인 수단**인 이유다(§8).
-
-히스토그램 분위수 두 개에도 주의가 필요하다. 평시값 `0.0990`·`0.0099`는 실제 지연이 아니라 **버킷 경계 아티팩트**다(0.1s·0.01s 버킷 바로 아래로 보간된 값). 평시엔 "그 버킷보다 빠르다" 이상은 알 수 없고, 의미 있는 신호는 0.94/0.78로 튄 구간뿐이다.
-
-### 한 파드가 반복해서 걸린다
-
-스로틀 상위 12개 시점의 argmax가 거의 전부 같은 파드(`9jvvj`)다 — 09:42, 10:39, 10:40, 10:48, 10:49. 10:48:30에는 CPU 최대가 다른 파드(`7jp9c`, 0.180)인데 스로틀 최대는 여전히 `9jvvj`(2.14)로 갈린다. **CPU를 덜 쓰면서 더 잘린다**는 건 그 파드의 부하가 더 뾰족하다(버스트성이 크다)는 뜻이다. 평균 기반 알럿으로는 이런 파드를 못 잡는다.
-
-### 아직 확인 못 한 것
-
-- 09:35~09:50 노드 이벤트 — 파드 20대가 동시에 죽은 원인이 드레인/축출/스팟 회수인지
-- 보정된 쿼리로 다시 뽑은 스로틀 분율 — 위 callout 참조
+**아직 확인 못 한 것** — 09:35~09:50 노드 이벤트(파드 20대 동시 소멸의 원인이 드레인/축출/스팟 회수인지).
+{{< /callout >}}
 
 ## 8. GOMAXPROCS는 CPU limit이 정한다 — 차트 배선의 함정
 
-§7에서 `GOMAXPROCS=1`이 나왔는데, 이건 **누가 설정한 값이 아니라 `limits.cpu`가 만들어낸 값**이다. 사슬이 세 단계다.
+§7에서 `GOMAXPROCS=1`이 나왔는데, 이건 **누가 설정한 값이 아니라 `limits.cpu`가 만들어낸 값**이다.
 
-### 1단계 — 차트가 Downward API로 주입한다
+{{< flow caption="limit 하나가 두 갈래로 갈라진다 — 위쪽은 올림해서 GOMAXPROCS와 PushThrottle을, 아래쪽은 정확값 그대로 커널 quota를. 이 비대칭이 어긋남의 정체다" >}}
+{
+  "nodes": [
+    { "id": "L", "col": 0, "row": 0, "label": "limits.cpu: 600m", "sub": "차트 기본엔 없는 값", "kind": "src" },
+    { "id": "D", "col": 1, "row": 0, "label": "Downward API", "sub": "resourceFieldRef · divisor 1", "kind": "proc" },
+    { "id": "C", "col": 2, "row": 0, "label": "kubelet math.Ceil", "sub": "ceil(0.6) = 1 · 올림", "kind": "proc" },
+    { "id": "G", "col": 3, "row": 0, "label": "GOMAXPROCS = 1", "sub": "P 하나 · 직렬화", "kind": "sink" },
+    { "id": "P", "col": 4, "row": 0, "label": "PushThrottle = 20", "sub": "min(15+5×1, 100)", "kind": "sink" },
+    { "id": "K", "col": 2, "row": 1, "label": "CFS quota 60ms", "sub": "커널 · 올림 없는 정확값", "kind": "query" }
+  ],
+  "edges": [
+    { "from": "L", "to": "D", "label": "env 주입" },
+    { "from": "D", "to": "C" },
+    { "from": "C", "to": "G", "label": "올림", "rate": 500 },
+    { "from": "G", "to": "P", "label": "파생", "rate": 900, "speed": "slow" },
+    { "from": "L", "to": "K", "label": "커널 경로", "rate": 500 }
+  ]
+}
+{{< /flow >}}
+
+### 차트가 Downward API로 주입한다
 
 Istio 1.19부터 istiod Deployment 템플릿에 하드코딩돼 있다(1.24.1 `deployment.yaml` 197-205행).
 
@@ -425,7 +459,7 @@ Istio 1.19부터 istiod Deployment 템플릿에 하드코딩돼 있다(1.24.1 `d
 
 `values.yaml`로 토글되는 옵션이 아니라 템플릿 고정 블록이다. 도입 PR #46253의 근거는 *"Basically this gives us performance improvements for free"* 였고, 1.19 체인지노트에 *"Added an automatically set GOMEMLIMIT and GOMAXPROCS to all deployments to improve performance"* 로 실렸다.
 
-### 2단계 — Kubernetes가 올림으로 계산한다
+### kubelet이 올림으로 계산한다
 
 `resourceFieldRef`의 값 변환은 커널이 아니라 kubelet 쪽 코드가 한다(`pkg/api/v1/resource/helpers.go`).
 
@@ -451,7 +485,7 @@ func convertResourceCPUToString(cpu *resource.Quantity, divisor resource.Quantit
 1000m 미만의 어떤 값을 넣어도 GOMAXPROCS는 1로 올림되지만 quota는 그 값 그대로다. **작게 걸수록 어긋남이 커지고, 슬라이스 조각 수가 줄어 스트랜딩 비율까지 함께 나빠진다.** 1500m·2500m 같은 값도 마찬가지고, **정수 코어(1000m·2000m·4000m)만 둘이 일치한다.**
 {{< /callout >}}
 
-### 3단계 — PushThrottle이 GOMAXPROCS에서 파생된다
+### PushThrottle까지 딸려 온다
 
 `pilot/pkg/features/tuning.go`(1.24.1):
 
