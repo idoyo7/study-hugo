@@ -15,7 +15,7 @@ weight: 2
 
 > **그때 무슨 일이 있었나.** 클러스터 규모가 커지고 배포가 잦아지자, 컨트롤 플레인 istiod의 CPU가 주기적으로 치솟았다. 급한 불은 **CPU를 증설**해서 껐지만, 그건 응급 처치였다. 같은 맥락에서 "istio node/pod 리소스 최적화" 과제가 이어졌다 — 프록시 쪽 자원과 istiod가 다루는 설정 범위를 함께 손봐야 근본이 잡히기 때문이다. 이 문서는 **istiod가 CPU를 먹는 메커니즘**, **언제 증설해야 하는지를 알려주는 지표**, 그리고 **증설 말고 진짜 해법**을 정리한다.
 
-> 관련 문서: [01 메시 기초]({{< relref "01-mesh-basics.md" >}}) · [03 데이터 플레인과 게이트웨이]({{< relref "03-gateway-node-isolation.md" >}}) · [05 장애 이야기]({{< relref "05-incident-intermittent-5xx.md" >}})
+> 관련 문서: [01 메시 기초]({{< relref "01-mesh-basics.md" >}}) · [03 데이터 플레인과 게이트웨이]({{< relref "03-gateway-node-isolation.md" >}}) · [05 장애 이야기]({{< relref "05-incident-intermittent-5xx.md" >}}) · [09 istiod 스케일링과 커넥션 재분배]({{< relref "09-istiod-scaling-connections.md" >}}) — 아래 "그다음에 스케일한다"의 함정을 따로 다룬다
 
 ## istiod가 실제로 하는 일
 
@@ -132,7 +132,11 @@ spec:
 
 ### 3) 그다음에 스케일한다
 
-범위를 좁힌 뒤에도 부하가 크면 그때 스케일한다. istiod는 **stateless**라 수평 확장이 쉽다 — replica를 늘리면 프록시 연결이 분산된다. HPA를 CPU 또는 `pilot_xds`(연결 수) 기준으로 걸어 배포·트래픽 피크에 대응하고, 파드 스펙의 CPU/메모리 request·limit은 앞의 참고 수치와 실측으로 잡는다.
+범위를 좁힌 뒤에도 부하가 크면 그때 스케일한다. istiod는 **stateless**라 수평 확장 자체는 쉽다. HPA를 CPU 또는 `pilot_xds`(연결 수) 기준으로 걸어 배포·트래픽 피크에 대응하고, 파드 스펙의 CPU/메모리 request·limit은 앞의 참고 수치와 실측으로 잡는다.
+
+{{< callout type="important" >}}
+**"replica를 늘리면 연결이 분산된다"는 절반만 맞다.** xDS는 장수 gRPC 스트림이라 **이미 맺어진 커넥션은 새 파드로 옮겨가지 않는다.** 새로 뜬 파드는 새 커넥션만 받으므로, 스케일아웃 직후에는 기존 파드가 부하를 그대로 떠안는 구간이 생긴다. 이벤트 규모에서는 이 공백이 OOM으로 이어질 수 있다 — 자세한 건 [09 istiod 스케일링과 커넥션 재분배]({{< relref "09-istiod-scaling-connections.md" >}}).
+{{< /callout >}}
 
 ## 이 문서에서 가져갈 것
 
