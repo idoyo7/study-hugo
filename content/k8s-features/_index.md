@@ -29,6 +29,7 @@ GA(stable) 딱지는 "API가 안 바뀐다"는 약속이지 "당신의 워크로
 | 문서 | 대상 버전 | 한 줄 요약 |
 |------|---------|-----------|
 | [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}}) | 1.35 GA | 파드 재시작 없이 CPU/메모리를 바꾼다 — 구현 코드가 실제로 하는 일, 열린 버그, 케이스별 득실 |
+| [02 CPU Burst]({{< relref "02-cpu-burst.md" >}}) | 커널 5.14+ · k8s WIP | CPU limit을 지키면서 불필요한 throttling만 걷어낸다 — 누적 상한 불변의 증명, 이웃 간섭의 정량화, k8s 표면 부재 |
 
 ## 공통 핵심
 
