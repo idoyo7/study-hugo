@@ -190,7 +190,7 @@ resources:
 
 istiod에서 스로틀을 확인하고 같은 방식으로 Istio Ingress Gateway를 들여다봤더니 여기서도 잘리고 있었다. 게이트웨이는 **전용 노드에 격리**해 두는 구성이라([istio 03]({{< relref "../istio/03-gateway-node-isolation.md" >}})) BP ①의 최대 약점인 "이웃을 노출한다"가 **구조적으로 사라진다.** 같은 노드에 있는 게 전부 같은 역할의 게이트웨이 파드라, 하나가 여유 CPU를 더 가져가는 것은 그 관문의 처리량으로 되돌아온다. 그래서 여기서는 CPU limit을 뺐다.
 
-**메모리는 그대로 `requests = limits`로 뒀다.** 이 비대칭이 이 케이스의 핵심이고, 우연이 아니라 두 자원의 성격이 다르기 때문에 옳다.
+원래는 cpu·memory 모두 `requests = limits`인 **Guaranteed** 파드였고, **메모리 쪽만 그대로 `requests = limits`로 남겼다.** 이 비대칭이 이 케이스의 핵심이다. 우연이 아니라 두 자원의 성격이 다르기 때문에 옳다.
 
 | | CPU | 메모리 |
 |---|---|---|
@@ -225,18 +225,31 @@ oom_score_adj = 1000 − (1000 × memory requests ÷ 노드 메모리 용량)
 
 requests를 실수요에 맞게 잡아둘수록 이 값이 낮아지고, **노드 메모리 압박에서 더 늦게 죽는다.** requests를 낮게 잡고 limits만 크게 주는 구성은 정확히 반대로 간다.
 
-#### 대신 무엇을 포기했나 — QoS는 Burstable이 된다
+#### 대신 무엇을 포기했나 — Guaranteed → Burstable 강등
 
-여기는 분명히 해둘 필요가 있다. **CPU limit을 빼면 Guaranteed는 불가능하다.** Guaranteed는 모든 컨테이너가 cpu·memory **둘 다** requests = limits여야 성립한다. 메모리만 맞춰도 QoS는 **Burstable**이다(원래 cpu requests < limits였다면 Burstable에서 Burstable로, 등급 자체는 그대로다).
+이 게이트웨이는 원래 cpu·memory 모두 `requests = limits`인 **Guaranteed**였다. CPU limit을 빼는 순간 그 등급은 **유지할 수 없다** — Guaranteed는 모든 컨테이너가 cpu·memory **둘 다** requests = limits여야 성립하기 때문이다. 메모리만 맞춰도 QoS는 **Burstable**로 내려온다. 즉 이 선택은 "throttle을 없애는 대가로 QoS 한 등급을 지불한 것"이고, 무엇을 지불했는지는 항목별로 다르다.
 
-Guaranteed를 포기하면서 잃는 건 둘인데, 이 케이스에서는 둘 다 손실이 작다.
+| 항목 | Guaranteed였을 때 | 지금(Burstable) | 실질 영향 |
+|---|---|---|---|
+| **kubelet 축출 순위** | requests 초과 없음 → 안전 그룹 | **동일** | **없음.** 정렬 키가 `(requests 초과 여부 → PriorityClass → 사용량)`이고 **QoS 항이 아예 없다.** memory `req = limit`을 유지했으므로 초과가 불가능한 상태 그대로다 |
+| **커널 `oom_score_adj`** | **−997** 고정 | `1000 − 1000 × memReq ÷ 노드용량` | **실질적 손실.** 예를 들어 32Gi 노드에 memory requests 2Gi면 약 **938** — 거의 반대편 끝이다 |
+| **CPU Manager static 자격** | 있음(CPU가 정수였다면) | 없음 | 손실 아님. 쓰려면 CPU limit을 되살려야 해서 목적과 양립 불가다 |
+| **스케줄링** | requests 기준 | 동일 | 없음 |
 
-| 잃는 것 | 이 케이스에서의 의미 |
-|---|---|
-| `oom_score_adj = -997`(고정 최소값) | Burstable 공식으로 계산된다. 다만 requests를 실수요에 맞춰 크게 잡아뒀으므로 실제 값은 충분히 낮다 |
-| CPU Manager static 자격(BP ②) | 어차피 안 쓴다. 쓰려면 CPU limit을 되살려야 하니 애초에 양립 불가다 |
+정리하면 **잃은 건 사실상 `oom_score_adj` 하나**다. 그리고 이게 언제 문제가 되는지를 정확히 구분해야 한다.
 
-⇒ 정리하면 이 구성은 **"CPU는 관문이 필요한 만큼 쓰게 두고, 메모리는 노드를 지키는 선에서 못 넘게 막는다"** 이다. 전용 노드가 CPU 쪽 위험을 없애주고, `requests = limits`가 메모리 쪽에서 축출·OOM 순위를 가장 안전한 자리에 고정한다. 남은 숙제는 **requests를 실측으로 유지하는 것** 하나다 — 이 구성의 안전성이 전부 requests 값의 정확도에 걸려 있기 때문이다. 커넥션 수가 늘어 게이트웨이의 정상 메모리 사용량이 올라갔는데 requests가 옛날 값이면, 위의 두 보호 장치가 동시에 약해진다.
+- **컨테이너가 자기 메모리 limit을 넘긴 경우** — 이건 cgroup 레벨 OOM이라 **그 컨테이너만** 죽는다. `oom_score_adj`와 무관하고, 강등 전후가 똑같다.
+- **노드 전체 메모리가 마른 경우** — 여기서만 커널 OOM killer가 노드의 프로세스들을 `oom_score` 순으로 고른다. 예전엔 −997이라 kubelet(−999) 다음으로 안전했는데, 지금은 상위 후보 쪽에 서 있다.
+
+두 번째 시나리오를 막아주는 게 결국 **`requests = limits`와 정확한 requests**다. 모든 게이트웨이 파드가 자기 limit 이상 못 쓰고 스케줄러는 allocatable 안에서만 파드를 넣으므로, requests 합이 정직하면 노드 전체가 마르는 상황 자체가 잘 안 생긴다. 다만 Guaranteed 시절에는 이게 **공짜로 보장**됐고 지금은 **requests 정확도에 의존**한다는 차이가 있다. 안전장치가 사라진 게 아니라 **자동에서 수동으로 바뀐 것**에 가깝다.
+
+{{< callout type="warning" >}}
+**노드에 CPU Manager static policy가 켜져 있었는지 확인할 것.** 켜져 있었다면 Guaranteed + 정수 CPU인 이 게이트웨이는 **전용 코어를 배정받고 있었고**, CPU limit 제거는 그 전용 코어를 반납하고 공유 풀로 돌아간다는 뜻이다 — 지연 특성이 크게 달라진다. 다만 §BP ②에서 본 대로 static policy에서는 quota와 cpuset 크기가 같아 **throttle이 성립하지 않으므로**, 스로틀이 실제로 관측됐다는 사실 자체가 이 노드가 static policy가 아니었다는(또는 이 컨테이너가 대상이 아니었다는) 정황 증거다.
+{{< /callout >}}
+
+한 가지 더 — QoS class를 키로 쓰는 주변 도구가 있는지 봐야 한다. "Guaranteed만 받는" 노드풀 정책, QoS별 알람·대시보드, 비용 배분 로직 같은 것들이 조용히 어긋날 수 있다. 등급이 바뀐 건 파드 스펙 한 줄이지만 그걸 읽는 쪽은 여러 곳이다.
+
+⇒ 정리하면 이 구성은 **"CPU는 관문이 필요한 만큼 쓰게 두고, 메모리는 노드를 지키는 선에서 못 넘게 막는다"** 이다. 전용 노드가 CPU 쪽 위험을 없애주고, `requests = limits`가 메모리 쪽에서 축출 순위를 가장 안전한 자리에 고정한다. 남은 숙제는 **memory requests를 실측으로 유지하는 것** 하나이고, 강등 이후로는 그 숙제의 무게가 전보다 무거워졌다. 커넥션 수가 늘어 게이트웨이의 정상 메모리 사용량이 올라갔는데 requests가 옛날 값이면, 축출 보호와 OOM 순위가 **동시에** 약해진다.
 
 ### BP ② CPU Manager static policy
 
@@ -282,6 +295,7 @@ throttle을 완화하는 게 아니라 **구조적으로 없애는** 접근이�
 - [ ] **CPU limit은 정수 코어로** — 소수점은 런타임(올림)과 커널(정확값)이 항상 어긋난다
 - [ ] **대응을 고른다** — 온라인 서비스면 limit 제거부터, 지터가 SLO면 CPU Manager, 그 사이면 CPU Burst
 - [ ] **limit을 뺐다면** requests를 실측으로 다시 잡고, Go라면 `GOMAXPROCS`를 명시했는지 확인
+- [ ] **Guaranteed에서 내려왔다면** 메모리는 `requests = limits`를 유지했는지, QoS class를 키로 쓰는 노드풀 정책·알람·비용 로직이 어긋나지 않는지, 그 노드가 CPU Manager static이 아니었는지 확인
 
 ## 이 문서에서 가져갈 것
 
@@ -290,7 +304,8 @@ throttle을 완화하는 게 아니라 **구조적으로 없애는** 접근이�
 - 잘린 시간은 **CPU wait으로 쌓여 APM 스팬 사이의 빈 구간**이 된다. 컨테이너 전체가 동시에 서므로 평균보다 **꼬리가 훨씬 크게** 망가진다.
 - **코어가 많을수록 더 잘린다.** quota는 병렬도에 비례해 마른다 — 큰 노드로 옮겨 느려지는 일이 실제로 있다.
 - 대응은 **무엇을 포기하느냐**의 문제다. limit 제거는 이웃 상한을, CPU Manager는 사용률과 유연성을, CPU Burst는 k8s 표면을 포기한다.
-- **CPU limit과 메모리 limit을 같이 취급하지 말 것.** CPU는 압축 가능해서 빼도 지연만 오가지만, 메모리는 상한이 없으면 노드가 죽는다. **CPU는 빼고 메모리는 `requests = limits`로 고정**하는 비대칭이 전용 노드에서는 가장 안전한 조합이다 — 축출 1순위 판정과 `oom_score_adj`가 둘 다 requests를 기준으로 움직이기 때문이다.
+- **CPU limit과 메모리 limit을 같이 취급하지 말 것.** CPU는 압축 가능해서 빼도 지연만 오가지만, 메모리는 상한이 없으면 노드가 죽는다. **CPU는 빼고 메모리는 `requests = limits`로 고정**하는 비대칭이 전용 노드에서는 가장 안전한 조합이다.
+- **CPU limit을 빼면 Guaranteed는 포기해야 한다.** 다만 실제로 잃는 건 `oom_score_adj`(−997 → Burstable 공식) 하나다 — kubelet 축출 정렬에는 **QoS 항이 없어서** memory `req = limit`만 유지하면 순위가 그대로다. 노드 전체가 마르는 시나리오를 막아주던 게 자동에서 **requests 정확도에 의존하는 수동**으로 바뀐다.
 
 ## 참고 자료
 
