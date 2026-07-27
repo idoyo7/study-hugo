@@ -1,9 +1,11 @@
 ---
 title: "CPU Burst (커널 5.14)"
-weight: 2
+weight: 3
+aliases:
+  - /k8s-features/02-cpu-burst/   # 02는 CPU Throttling에 내주고 03으로 이동했다
 ---
 
-# 02 · CPU Burst — CPU limit을 지키면서 불필요한 throttling만 걷어낸다
+# 03 · CPU Burst — CPU limit을 지키면서 불필요한 throttling만 걷어낸다
 
 {{< callout type="info" >}}
 **한눈에**
@@ -17,7 +19,7 @@ weight: 2
 
 > **출처**: KubeCon + CloudNativeCon China 2021 — *CPU Burst: Getting Rid of Unnecessary Throttling…* (常怀鑫·丁天琛, Alibaba Cloud 커널팀). 이 글은 발표 내용에 커널 동작과 운영 판단을 덧붙여 재구성했다.
 >
-> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 같은 CPU limit 문제의 다른 얼굴은 [istio 09 §8]({{< relref "../istio/09-istiod-scaling-connections.md" >}}) · 리소스를 재시작 없이 바꾸는 쪽은 [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}})
+> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · **이 문서가 푸는 문제를 먼저 진단하는 쪽은 [02 CPU Throttling]({{< relref "02-cpu-throttling.md" >}})** — 증상 관측과 다른 대응책(limit 제거·CPU Manager)이 거기 있다 · 같은 CPU limit 문제의 다른 얼굴은 [istio 09 §8]({{< relref "../istio/09-istiod-scaling-connections.md" >}}) · 리소스를 재시작 없이 바꾸는 쪽은 [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}})
 
 ## 1. 먼저 requests와 limits를 분리해야 한다
 
