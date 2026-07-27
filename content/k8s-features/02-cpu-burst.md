@@ -54,12 +54,9 @@ cpu.cfs_quota_us  =  20000   # period당 20ms → 0.2 CPU
 | limit 없음 | **30ms** | 몰아 쓰고 끝 |
 | limit 0.2 CPU | **110ms** | 20ms 쓰고 80ms 대기 → 다음 period에 10ms |
 
-이걸 왜 버그에 가깝다고 부르냐면:
+{{< cfstl variant="latency" >}}
 
-1. 이 컨테이너의 **평균 CPU 사용량은 0.1 CPU**다. limit(0.2)의 **절반**밖에 안 쓴다.
-2. 그런데도 **80ms를 더 기다린다.**
-
-사용자 입장에선 "준 것의 절반밖에 안 쓰는데 왜 느려지지?"가 된다. 커뮤니티에서 오래 굴러온 문제이기도 하다 — [#67577](https://github.com/kubernetes/kubernetes/issues/67577), [#51135](https://github.com/kubernetes/kubernetes/issues/51135).
+버그에 가깝다고 부르는 이유가 여기 있다. 사용자 입장에선 "준 것의 절반밖에 안 쓰는데 왜 느려지지?"가 된다. 커뮤니티에서 오래 굴러온 문제이기도 하다 — [#67577](https://github.com/kubernetes/kubernetes/issues/67577), [#51135](https://github.com/kubernetes/kubernetes/issues/51135).
 
 ### 지금 확인해볼 것
 
@@ -93,6 +90,10 @@ quota 20ms / period 100ms / buffer 20ms일 때:
 | 1 | 없음 | 미사용분 적립 | 0 → **20ms** |
 | 2 | 30ms | quota 20 + **buffer 10 차용** → throttle 없음 | 20 → **10ms** |
 | 3 | 30ms | quota 20 + buffer 10 → 소진 후 **throttle** | 10 → **0ms** |
+
+같은 장부를 wall time으로 펴면 이렇게 보인다. 위쪽은 3 period 동안 40ms밖에 못 쓰고 나머지는 멈춰 있다 — 일이 있는데도 그렇다. 아래쪽은 60ms를 쓰는데, 그게 바로 다음 절에서 볼 **`300ms × 0.2 = 60ms`**, 즉 limit이 원래 허락한 총량이다.
+
+{{< cfstl variant="burst" >}}
 
 ### 핵심 불변식
 

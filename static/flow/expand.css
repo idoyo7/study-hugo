@@ -1,5 +1,5 @@
-/* vm-flow/seq "크게 보기" 오버레이 스타일 */
-.vm-flow, .vm-seq { position: relative; }
+/* vm-flow/seq/cfstl "크게 보기" 오버레이 스타일 */
+.vm-flow, .vm-seq, .vm-cfstl { position: relative; }
 
 .vm-expand-btn {
   position: absolute;
@@ -40,7 +40,7 @@
 }
 
 /* 전체화면 확대 */
-.vm-flow.is-expanded, .vm-seq.is-expanded {
+.vm-flow.is-expanded, .vm-seq.is-expanded, .vm-cfstl.is-expanded {
   position: fixed;
   inset: 0;
   z-index: 9999;
@@ -55,7 +55,7 @@
 .is-expanded .vm-expand-btn { display: none; }
 .is-expanded .vm-expand-close { display: inline-flex; align-items: center; justify-content: center; }
 /* 확대 시 도식 전체가 화면에 맞게(축소만, 비율 유지) — 한눈에 크게 */
-.is-expanded .flow-svg, .is-expanded .seq-svg {
+.is-expanded .flow-svg, .is-expanded .seq-svg, .is-expanded .cft-svg {
   width: auto !important;
   height: auto !important;
   max-width: 100% !important;
