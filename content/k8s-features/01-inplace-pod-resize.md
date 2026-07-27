@@ -9,7 +9,7 @@ weight: 1
 **한눈에**
 - 1.27 alpha → 1.33 beta → **1.35 GA**. 파드 재시작 없이 CPU/메모리를 바꾼다. 반드시 **`resize` 서브리소스**로만 가능하고, 바꿀 수 있는 건 **cpu·memory 값뿐**이다(QoS 변경·항목 제거·GPU는 전부 거부).
 - 수락 판정 기준은 실사용량이 아니라 **"다른 파드들의 requests 합 vs node allocatable"**. 노드가 붐비면 **Deferred**(재시도됨), 정책 위반이면 **Infeasible**(spec을 고치기 전까지 재평가 안 됨).
-- **늘리는 방향은 사실상 무위험, 줄이는 방향만 조심.** 메모리 limit 축소는 1.34부터 허용됐지만 kubelet의 사용량 체크에 TOCTOU 레이스가 있어 OOM-kill을 보장 방지하지 못한다(#135670, open).
+- **늘리는 방향은 사실상 무위험, 줄이는 방향만 조심.** 메모리 축소는 kubelet 사용량 체크에 TOCTOU 레이스가 있어 OOM-kill을 보장 방지하지 못하고(#135670, open), CPU 축소는 재시작이 없을 뿐 **스로틀 비용을 낳는데 그건 사용률 그래프에 안 보인다**(`throttled_periods`로 봐야 한다).
 - 케이스가 전부다: **재시작이 비싼 stateful(DB·캐시·롱커넥션)에 최적**, 기동 부스트에 좋음. JVM/Node 힙에는 반쪽(CPU만 in-place), VPA 자동화는 아직 이르고, static CPU manager 노드는 사실상 미지원.
 {{< /callout >}}
 
@@ -171,7 +171,11 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 
 수 GB 버퍼 풀을 데운 DB, 수만 커넥션을 문 게이트웨이, 웜업에 수십 분 걸리는 캐시. 지금까지 이런 워크로드의 리소스 조정은 "재시작 비용 > 리소스 낭비 비용"이라 방치가 합리적이었다. in-place resize는 그 트레이드오프 자체를 없앤다 — **늘리는 방향은 사실상 리스크가 없다**(수락되면 무중단, 실패해도 원상태 유지).
 
-줄이는 방향만 조심하면 된다. CPU 감소는 안전(스로틀만 변함), 메모리 limit 감소는 §3.2의 레이스를 안고 간다 — 현재 사용량과 충분한 마진을 두고 사용량이 안정된 시간대에. 그리고 노드에 headroom이 없으면 §3.1의 Deferred에 걸려 "무중단 조정"이 "무한 대기"가 된다는 것도 계산에 넣어야 한다.
+줄이는 방향은 둘 다 조심해야 한다. 메모리 limit 감소는 §3.2의 레이스를 안고 가니 현재 사용량과 충분한 마진을 두고 사용량이 안정된 시간대에. **CPU 감소는 "재시작이 없다"는 뜻이지 "무해하다"는 뜻이 아니다** — 잘라낸 만큼 CFS 스로틀이 늘고, 그 대가는 평균이 아니라 꼬리 지연에 나타난다(바로 아래). 그리고 노드에 headroom이 없으면 §3.1의 Deferred에 걸려 "무중단 조정"이 "무한 대기"가 된다는 것도 계산에 넣어야 한다.
+
+{{< callout type="warning" >}}
+**CPU limit을 줄였다면 검증 지표는 CPU 사용률이 아니다.** CFS quota는 1분 평균이 아니라 **100ms period 단위**로 소진되므로, 평균이 limit의 34%인데 period의 31%가 잘리는 상태가 실제로 성립한다. 대시보드는 내내 여유로워 보이고 꼬리 지연만 길어진다. resize 후에는 반드시 **`throttled_periods / periods` 분율**을 같이 봐야 하고, 이 지표를 안 보면 그 상태는 아예 관측되지 않는다. → [CPU를 다 쓰지도 않았는데 스로틀링에 걸렸습니다](https://makgol.com/blog/istiod-cpu-throttling)
+{{< /callout >}}
 
 ### ② 기동 부스트 — kube-startup-cpu-boost가 하는 일
 
@@ -185,6 +189,24 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 
 > **④ JVM/Node 힙에 대한 보충.** cgroup limit을 늘려도 이미 뜬 JVM은 힙을 재매핑하지 않는다(`-Xmx`, `MaxRAMPercentage` 모두 시작 시점 값). Node.js의 V8 old space도 같다. 현실적인 전략은 **cpu는 `NotRequired`, memory는 `RestartContainer`** 로 정책을 갈라, CPU는 자유롭게 조정하고 메모리 변경은 "재시작을 각오한 이벤트"로 취급하는 것. 대조적으로 **Go 1.25+는 cgroup CPU limit 변경을 약 30초 주기로 감지해 GOMAXPROCS를 스스로 갱신**한다 — resize와 궁합이 가장 좋은 런타임이다.
 
+여기서 층을 하나 구분해야 한다. **"커널에 반영됐나"와 "런타임이 그걸 읽었나"는 다른 문제**고, 그 사이에 **"컨테이너 안에서 무슨 값이 보이나"** 라는 층이 하나 더 있다. 많은 런타임·도구가 cgroup이 아니라 `/proc/cpuinfo`·`/proc/meminfo`를 읽어 자원을 추정하는데, 기본 상태의 컨테이너에서 이 파일들은 **파드 limit이 아니라 노드의 host 값**을 보여준다. [LXCFS](https://makgol.com/blog/lxcfs-admission-webhook)를 물리면 이 층이 파드 관점으로 가상화되고, §부록에서 보듯 **resize 직후 `/proc` 값이 실시간으로 따라온다.**
+
+다만 이게 ④의 결론을 뒤집지는 않는다. LXCFS가 고치는 건 **읽는 값**이지 **읽는 시점**이 아니다. `nproc`·`free`·`top`처럼 매번 읽는 도구와 Go처럼 주기적으로 재확인하는 런타임은 이득을 보지만, 힙을 시작 시점에 한 번만 정하는 JVM·Node는 여전히 재시작이 필요하다.
+
+**그리고 "Go 1.25+니까 괜찮다"에는 단서가 하나 더 붙는다.** 런타임의 컨테이너 인식은 `GOMAXPROCS` 환경변수가 **명시돼 있으면 꺼진다.** 그런데 Downward API로 limit을 주입하는 차트가 드물지 않다 — Istio는 1.19부터 istiod에 이렇게 넣는다:
+
+```yaml
+- name: GOMAXPROCS
+  valueFrom:
+    resourceFieldRef:
+      resource: limits.cpu     # kubelet이 math.Ceil로 올림한다
+      divisor: "1"
+```
+
+이 배선에서 in-place resize는 **반쪽만 반영된다.** 환경변수는 컨테이너 생성 시점에 확정되므로 resize로 limit을 바꿔도 **`GOMAXPROCS`는 재시작 전까지 옛 값 그대로**고, 커널 quota만 새 값으로 간다. 게다가 kubelet이 올림하므로 1000m 미만은 전부 1이라 `600m → 900m` 같은 조정은 애초에 바뀔 값도 없다(quota만 60ms → 90ms). **소수점 CPU limit은 런타임과 커널이 항상 어긋나고, 정수 코어만 둘이 맞는다.**
+
+⇒ 정리하면 **CPU limit의 in-place resize가 깔끔하게 먹는 건 `GOMAXPROCS`를 주입하지 않은 Go 1.25+ 뿐**이다. 주입하는 차트를 쓴다면 그 파드에서 CPU resize는 "quota만 바뀌는 반쪽짜리"로 취급해야 한다.
+
 ## 6. 도입 체크리스트
 
 - [ ] **버전/런타임** — K8s 1.35+, containerd 1.6.9+, cgroup v2, 스왑 비활성 노드
@@ -192,13 +214,43 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 - [ ] **완료 판정 로직** — `observedGeneration ≥ generation` + Pending/InProgress 컨디션 부재. Infeasible은 재시도되지 않으니 알람 대상
 - [ ] **restartCount 알람** — `RestartContainer` 정책을 쓴다면 resize로 인한 재시작 오탐을 걸러낼 것
 - [ ] **headroom** — Deferred 판정은 requests 합 기준이다. 노드 여유 없이는 "무중단"이 "무한 대기"가 된다
-- [ ] **언어 런타임 궁합** — Go 1.25+ ◎ / JVM·Node 메모리는 RestartContainer 전제로 설계
+- [ ] **CPU 축소 후 검증** — 사용률이 아니라 `throttled_periods / periods`로 본다. 평균은 여유로운데 꼬리만 길어지는 상태가 사용률 그래프에는 안 나온다
+- [ ] **언어 런타임 궁합** — `GOMAXPROCS` 미주입 Go 1.25+ ◎ / Downward API로 주입하는 차트(Istio 등)는 CPU resize가 반쪽 / JVM·Node 메모리는 RestartContainer 전제. CPU limit은 가급적 **정수 코어**로
+
+## 부록 · 2024년 alpha에서 직접 해본 기록
+
+아래는 이 기능이 **alpha였던 2024년 2월**, 온프레미스 kubeadm 클러스터에서 직접 켜서 확인한 기록이다. 지금과 절차가 다른 부분이 오히려 GA가 무엇을 정리했는지 보여준다.
+
+그때는 `resize` 서브리소스가 없어서 `kubectl patch pod`로 spec을 직접 고쳤고, 기능을 쓰려면 **kubelet과 kube-apiserver 양쪽에** 게이트를 직접 켜야 했다.
+
+![워커 노드에서 ps aux로 확인한 kubelet 프로세스 인자 — 끝에 --feature-gates=InPlacePodVerticalScaling=true 가 붙어 있다](/images/k8s-features/alpha-2024-kubelet-featuregate.png)
+
+핵심은 patch 전후의 `kubectl describe`다. cpu가 `700m`에서 `2`로 바뀌었는데 **`Started` 시각이 `Fri, 02 Feb 2024 15:51:26`으로 동일하고 `Restart Count`가 0 그대로**다 — 재시작 없이 바뀌었다는 직접 증거다.
+
+![patch 전 describe 출력 — Limits/Requests의 cpu가 700m, memory 200Mi, State Running, Started Fri 02 Feb 2024 15:51:26, Restart Count 0](/images/k8s-features/alpha-2024-before-patch.png)
+
+![patch 후 describe 출력 — cpu만 2로 바뀌었고 Started 시각과 Restart Count 0은 patch 전과 완전히 동일하다](/images/k8s-features/alpha-2024-after-patch.png)
+
+더 흥미로운 건 **컨테이너 안에서 본 값**이다. LXCFS를 마운트한 상태에서 patch를 반복하니 `free -m`의 총 메모리가 200 → 400 → 200으로, `/proc/cpuinfo`의 프로세서 수가 1 → 2 → 1로 **실시간으로 따라왔다.** §5 ④에서 말한 "컨테이너 안에서 보이는 값" 층이 이것이다.
+
+![컨테이너 안에서 free -m과 grep -c ^processor /proc/cpuinfo를 반복 실행한 출력 — 메모리 총량이 200MB에서 400MB로 늘었다가 다시 200MB로, 프로세서 수가 1에서 2로 늘었다가 다시 1로 돌아온다](/images/k8s-features/alpha-2024-lxcfs-proc.png)
+
+![컨테이너 안에서 top을 띄워둔 채 resize가 일어나는 애니메이션 — %Cpu0 한 줄과 MiB Mem 200.0 total로 시작해 값이 갱신된다](/images/k8s-features/alpha-2024-top-live.gif)
+
+노드 쪽 회계도 따라온다. patch 이후 `describe node`의 Allocated resources가 cpu requests **4450m(55%) → 5450m(68%)**, limits 4800m(60%) → 5800m(72%)로 올랐다. §3.1에서 "수락 판정은 allocated requests 합 기준"이라고 한 그 숫자가 이렇게 움직인다.
+
+![patch 전 describe node의 Allocated resources — cpu requests 4450m(55%), limits 4800m(60%), memory 2776702976(19%)](/images/k8s-features/alpha-2024-node-allocated-before.png)
+
+![patch 후 describe node의 Allocated resources — cpu requests 5450m(68%), limits 5800m(72%), memory 3196533376(22%)로 증가했다](/images/k8s-features/alpha-2024-node-allocated-after.png)
+
+그때 남긴 결론은 **"Deployment에 명세된 spec과 실제 파드의 spec이 갈라진다"** 였다. 파드만 patch할 수 있으니 상위 컨트롤러가 아는 desired state와 어긋나고, 다음 롤아웃에 조용히 되돌아간다. 이건 GA가 된 지금도 그대로 남은 문제고 — §5 ⑤의 VPA가 풀려는 게 정확히 이 지점이며, GitOps로 매니페스트를 관리한다면 resize와 Git이 서로를 덮어쓰지 않도록 따로 정리해야 한다.
 
 ## 이 문서에서 가져갈 것
 
 - resize는 **`resize` 서브리소스로만** 가능하고 **cpu·memory 값 변경만** 허용된다. spec은 즉시 바뀌지만 반영은 비동기라, 완료 판정은 `observedGeneration` + **컨디션 두 개의 부재**로 해야 한다.
 - 수락은 **requests 합 기준**이다. 실제 CPU가 놀아도 Deferred가 될 수 있고, **Infeasible은 spec을 고치기 전까지 영원히 재평가되지 않는다.**
-- **늘리는 방향은 무위험, 줄이는 방향만 위험하다.** 메모리 축소는 TOCTOU 레이스(#135670)를 안고 있고, `RestartContainer`는 크래시와 구분되지 않는 재시작이다.
+- **늘리는 방향은 무위험, 줄이는 방향만 위험하다.** 메모리 축소는 TOCTOU 레이스(#135670)를 안고 있고, CPU 축소의 대가인 스로틀은 사용률이 아니라 `throttled_periods`에만 보인다. `RestartContainer`는 크래시와 구분되지 않는 재시작이다.
+- **커널에 반영됐다 ≠ 런타임이 안다.** 소수점 CPU limit은 `GOMAXPROCS`(올림)와 quota(정확값)가 어긋나고, Downward API로 주입된 환경변수는 resize로 갱신되지 않는다. CPU limit은 정수 코어로 두는 편이 낫다.
 - 결국 **케이스가 전부다.** 재시작이 비싼 stateful·기동 부스트·장기 배치에는 확실한 득이고, JVM 힙·VPA 자동화·static CPU manager 노드에는 아직 아니다.
 
 ## 참고 자료
@@ -206,4 +258,7 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 - [KEP-1287: In-Place Update of Pod Resources](https://github.com/kubernetes/enhancements/blob/master/keps/sig-node/1287-in-place-update-pod-resources/README.md) — 설계·제약의 1차 소스
 - [v1.35 GA 발표](https://kubernetes.io/blog/2025/12/19/kubernetes-v1-35-in-place-pod-resize-ga) · [v1.33 beta 발표](https://kubernetes.io/blog/2025/05/16/kubernetes-v1-33-in-place-pod-resize-beta/) · [공식 task 문서](https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/)
 - [VPA In-Place Updates Support (AEP-4016)](https://github.com/kubernetes/autoscaler/blob/master/vertical-pod-autoscaler/enhancements/4016-in-place-updates-support/README.md) · [google/kube-startup-cpu-boost](https://github.com/google/kube-startup-cpu-boost) · [Go: Container-aware GOMAXPROCS](https://go.dev/blog/container-aware-gomaxprocs)
+- [CPU를 다 쓰지도 않았는데 스로틀링에 걸렸습니다](https://makgol.com/blog/istiod-cpu-throttling) — CFS quota가 period 단위로 소진되는 구조, `limits.cpu` → `GOMAXPROCS` 배선, CPU Burst. §5의 CPU 축소·런타임 궁합 서술이 여기 기댄다. 같은 주제의 심층판은 [istio 09]({{< relref "../istio/09-istiod-scaling-connections.md" >}})
+- [lxcfs-admission-webhook](https://makgol.com/blog/lxcfs-admission-webhook) — 컨테이너 안 `/proc`을 파드 관점으로 보이게 하는 admission webhook. §5 ④의 "컨테이너 안에서 보이는 값" 층
 - 동작 서술의 근거 코드: `kubernetes/kubernetes` master(v1.37.0-beta.0+) — `pkg/kubelet/allocation/`(수락 판정·checkpoint), `pkg/kubelet/kuberuntime/`(반영 순서·실패 처리), `pkg/apis/core/validation/`(ValidatePodResize), `pkg/kubelet/status/`(컨디션)
+- 부록의 스크린샷은 2024-02 온프레미스 kubeadm 클러스터에서 직접 테스트한 기록이다
