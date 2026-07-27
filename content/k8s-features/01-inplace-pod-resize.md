@@ -225,7 +225,7 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 
 그때는 `resize` 서브리소스가 없어서 `kubectl patch pod`로 spec을 직접 고쳤고, 기능을 쓰려면 **kubelet과 kube-apiserver 양쪽에** 게이트를 직접 켜야 했다.
 
-![워커 노드에서 ps aux로 확인한 kubelet 프로세스 인자 — 끝에 --feature-gates=InPlacePodVerticalScaling=true 가 붙어 있다](/images/k8s-features/alpha-2024-kubelet-featuregate.png)
+![워커 노드에서 ps aux로 확인한 kubelet 프로세스 인자 — 맨 끝에 feature-gates 인자로 InPlacePodVerticalScaling=true 가 붙어 있다](/images/k8s-features/alpha-2024-kubelet-featuregate.png)
 
 핵심은 patch 전후의 `kubectl describe`다. cpu가 `700m`에서 `2`로 바뀌었는데 **`Started` 시각이 `Fri, 02 Feb 2024 15:51:26`으로 동일하고 `Restart Count`가 0 그대로**다 — 재시작 없이 바뀌었다는 직접 증거다.
 
