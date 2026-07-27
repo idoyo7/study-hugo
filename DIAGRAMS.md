@@ -6,6 +6,7 @@
 |---|---|---|
 | `{{< flow >}}` | 노드·엣지 흐름도 (파티클 애니메이션) | `static/flow/flow.js`, `static/flow/flow.css` |
 | `{{< seq >}}` | 시퀀스 다이어그램 | `static/seq/seq.js` |
+| `{{< cfstl >}}` | CFS period 타임라인 (재생 헤드 애니메이션) | `static/flow/cfstl.js`, `static/flow/cfstl.css` |
 
 둘 다 `layouts/partials/custom/head-end.html`에서 로드된다. 본문에는 JSON 스펙만 쓴다.
 
@@ -76,6 +77,26 @@ NODE_W: 146,  COL_GAP: 218,  ROW_VGAP: 30,  MARGIN: 24,  MINH: 48
 ## `{{< seq >}}`
 
 `static/seq/seq.js`. 사용처는 `content/` 에서 `{{< seq` 로 검색.
+
+---
+
+## `{{< cfstl >}}`
+
+CFS bandwidth control의 period 타임라인. **JSON 스펙이 아니라 `variant` 하나만 받는다** — 데이터가 곧 개념이라 엔진(`static/flow/cfstl.js`)의 `ROWS`에 박아뒀다. nextra 블로그의 `CfsTimeline` React 컴포넌트를 옮긴 것.
+
+````
+{{< cfstl variant="latency" >}}
+````
+
+| variant | 보여주는 것 |
+|---|---|
+| `latency` | CPU limit이 요청 지연을 늘리는 방식 — 30ms 작업이 110ms가 된다 |
+| `threads` | 병렬도가 quota를 태운다 — 같은 1코어 limit인데 2·4코어에서 더 잘린다 |
+| `burst` | 안 쓴 quota를 적립해 당겨 쓴다 — 누적 상한은 그대로 |
+
+`caption`을 주면 그 문장이, 생략하면 variant별 기본 설명이 들어간다. 새 variant를 넣을 땐 `ROWS`와 `CAPTION`에 같은 키를 추가한다.
+
+**렌더 검증**: 브라우저 없이 확인하려면 엔진을 최소 DOM 스텁 위에서 돌려 rect가 viewBox를 벗어나지 않는지·`NaN` 속성이 없는지 본다(`<defs>`의 clipPath 마스크는 렌더되지 않으므로 검사에서 제외). 막대 길이 합이 서술한 수치와 맞는지도 같이 세어볼 것 — 도식과 산문이 어긋나기 쉬운 지점이다.
 
 ---
 

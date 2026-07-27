@@ -1,0 +1,7 @@
+{{- /* vm-cfstl: CFS period 타임라인.
+       사용: {{< cfstl variant="latency" >}}  (variant: latency | threads | burst)
+       caption을 주면 그 문장이, 생략하면 variant별 기본 설명이 들어간다.
+       엔진/스타일은 /flow/cfstl.js, /flow/cfstl.css (custom/head-end.html에서 로드) */ -}}
+<figure class="vm-cfstl" data-variant="{{ default "latency" (.Get "variant") }}">
+<figcaption class="cft-caption">{{ with .Get "caption" }}{{ . }}{{ end }}</figcaption>
+</figure>

@@ -1,0 +1,76 @@
+/* vm-cfstl — CFS period 타임라인 스타일.
+   색 팔레트는 nextra 블로그의 CfsTimeline에서 가져오되, 다크 셀렉터는 이 레포 규약(html.dark)을 따른다. */
+.vm-cfstl {
+  --cft-surface: #fcfcfb;
+  --cft-ink: #0b0b0b;
+  --cft-ink2: #52514e;
+  --cft-muted: #898781;
+  --cft-grid: #c3c2b7;
+  --cft-run: #2a78d6;
+  --cft-borrow: #8fc0f0;
+  --cft-thr: #f0c9a3;
+  --cft-idle: #ecebe4;
+  --cft-buf: #d97706;
+  --cft-buf-edge: #b8860b;
+  --cft-stall: #dc2626;
+  --cft-border: rgba(11, 11, 11, 0.10);
+  margin: 1.5rem 0;
+  background: var(--cft-surface);
+  border: 1px solid var(--cft-border);
+  border-radius: 14px;
+  padding: 16px 18px 12px;
+  color: var(--cft-ink);
+}
+html.dark .vm-cfstl {
+  --cft-surface: #1a1a19;
+  --cft-ink: #fff;
+  --cft-ink2: #c3c2b7;
+  --cft-muted: #898781;
+  --cft-grid: #3a3a37;
+  --cft-run: #4a8de0;
+  --cft-borrow: #2c5580;
+  --cft-thr: #6b4a2a;
+  --cft-idle: #2c2c2a;
+  --cft-buf: #f59e0b;
+  --cft-buf-edge: #f59e0b;
+  --cft-stall: #ef4444;
+  --cft-border: rgba(255, 255, 255, 0.10);
+}
+
+.cft-svg { display: block; width: 100%; height: auto; }
+.cft-tick { fill: var(--cft-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.cft-label { fill: var(--cft-ink); font-size: 12.5px; font-weight: 600; }
+.cft-head { stroke: var(--cft-ink2); stroke-width: 1.4; stroke-dasharray: 3 3; }
+.cft-note { fill: var(--cft-ink2); font-size: 11.5px; }
+.cft-seg { fill: var(--cft-ink2); font-size: 11px; font-weight: 600; }
+.cft-buf { fill: var(--cft-muted); font-size: 10.5px; dominant-baseline: middle; }
+
+.cft-marker { fill: var(--cft-thr); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cft-marker-run { fill: var(--cft-run); }
+.cft-marker-throttle { fill: var(--cft-thr); font-size: 10px; }
+/* 다크의 --cft-thr는 배경톤용이라 채도가 낮다 — 텍스트는 판독성용으로 밝게 보정 */
+html.dark .cft-marker, html.dark .cft-marker-throttle { fill: #e0a868; }
+
+.cft-work circle { fill: var(--cft-run); stroke: var(--cft-surface); stroke-width: 2; transition: fill 0.12s; }
+/* 재생 헤드에 뒤처진 = 스로틀로 멈춰 선 상태 */
+.cft-work[data-stalled="1"] circle { fill: var(--cft-stall); animation: cft-pulse 1s ease-in-out infinite; }
+@keyframes cft-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .cft-work[data-stalled="1"] circle { animation: none; } }
+
+.cft-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--cft-ink2);
+  margin: 6px 0 0;
+}
+.cft-chip { display: inline-flex; align-items: center; gap: 6px; }
+.cft-sw { width: 16px; height: 10px; border-radius: 2px; display: inline-block; }
+.cft-sw.cft-dash { background: var(--cft-borrow); outline: 1.5px dashed var(--cft-run); outline-offset: -1px; }
+.cft-dot {
+  width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  background: var(--cft-run);
+  box-shadow: 0 0 0 2px var(--cft-surface), 0 0 0 3.5px var(--cft-stall);
+}
+.cft-caption { font-size: 12.5px; color: var(--cft-ink2); margin: 10px 0 0; line-height: 1.6; }
