@@ -15,7 +15,7 @@ weight: 1
 
 > **왜 6년 걸렸나.** "실행 중인 컨테이너의 cgroup 값만 바꾸면 되는 것 아닌가" 싶지만, **스케줄러가 보는 값·kubelet이 약속한 값·커널에 실제 쓰인 값이 서로 다른 순간이 반드시 생기는** 기능이다. 이 셋의 정합성과 kubelet 재시작 후의 복구를 맞추는 데 KEP-1287이 alpha에서 GA까지 6년을 썼다. 이 문서는 공식 문서에서 멈추지 않고 **kubelet이 실제로 하는 일 · 열린 버그 · 케이스별 득실**까지 내려간다.
 
-> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · GOMAXPROCS와 CPU limit의 관계는 [istio 09 §8]({{< relref "../istio/09-istiod-scaling-connections.md" >}})
+> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 같은 CPU limit을 타이밍 쪽에서 푸는 [02 CPU Burst]({{< relref "02-cpu-burst.md" >}}) · GOMAXPROCS와 CPU limit의 관계는 [istio 09 §8]({{< relref "../istio/09-istiod-scaling-connections.md" >}})
 
 ## 1. 요청에서 cgroup까지
 
@@ -174,7 +174,9 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 줄이는 방향은 둘 다 조심해야 한다. 메모리 limit 감소는 §3.2의 레이스를 안고 가니 현재 사용량과 충분한 마진을 두고 사용량이 안정된 시간대에. **CPU 감소는 "재시작이 없다"는 뜻이지 "무해하다"는 뜻이 아니다** — 잘라낸 만큼 CFS 스로틀이 늘고, 그 대가는 평균이 아니라 꼬리 지연에 나타난다(바로 아래). 그리고 노드에 headroom이 없으면 §3.1의 Deferred에 걸려 "무중단 조정"이 "무한 대기"가 된다는 것도 계산에 넣어야 한다.
 
 {{< callout type="warning" >}}
-**CPU limit을 줄였다면 검증 지표는 CPU 사용률이 아니다.** CFS quota는 1분 평균이 아니라 **100ms period 단위**로 소진되므로, 평균이 limit의 34%인데 period의 31%가 잘리는 상태가 실제로 성립한다. 대시보드는 내내 여유로워 보이고 꼬리 지연만 길어진다. resize 후에는 반드시 **`throttled_periods / periods` 분율**을 같이 봐야 하고, 이 지표를 안 보면 그 상태는 아예 관측되지 않는다. → [CPU를 다 쓰지도 않았는데 스로틀링에 걸렸습니다](https://makgol.com/blog/istiod-cpu-throttling)
+**CPU limit을 줄였다면 검증 지표는 CPU 사용률이 아니다.** CFS quota는 1분 평균이 아니라 **100ms period 단위**로 소진되고 period 간 이월이 없으므로, 평균이 limit의 34%인데 period의 31%가 잘리는 상태가 실제로 성립한다. 대시보드는 내내 여유로워 보이고 꼬리 지연만 길어진다. resize 후에는 반드시 **`throttled_periods / periods` 분율**을 같이 봐야 하고, 이 지표를 안 보면 그 상태는 아예 관측되지 않는다.
+
+구조와 실사례는 [02 CPU Burst §2]({{< relref "02-cpu-burst.md" >}})와 [CPU를 다 쓰지도 않았는데 스로틀링에 걸렸습니다](https://makgol.com/blog/istiod-cpu-throttling)에 있다. **resize가 "얼마나 주느냐"를 바꾸는 손잡이라면 CPU Burst는 "언제 쓰게 하느냐"를 바꾸는 손잡이**다 — 총량이 아니라 타이밍이 문제일 때 limit을 늘리는 resize는 반쯤만 듣는다.
 {{< /callout >}}
 
 ### ② 기동 부스트 — kube-startup-cpu-boost가 하는 일
