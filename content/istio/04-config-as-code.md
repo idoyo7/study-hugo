@@ -50,16 +50,17 @@ Istio 설정은 성격이 다른 두 층으로 나뉜다. 이 구분이 GitOps �
 {{< flow caption="GitOps 파이프라인 — PR부터 클러스터 동기화, 드리프트 복원까지" >}}
 {
   "nodes": [
-    {"id":"dev","col":0,"row":0,"label":"개발자","kind":"src"},
+    {"id":"dev","col":0,"row":0,"label":"개발자","sub":"(VirtualService 수정)","kind":"src"},
     {"id":"git","col":1,"row":0,"label":"Git","sub":"(단일 진실)","kind":"store"},
     {"id":"cd","col":2,"row":0,"label":"Argo CD / Flux","kind":"proc"},
-    {"id":"eks","col":3,"row":0,"label":"EKS","sub":"(istiod · Envoy)","kind":"store"}
+    {"id":"eks","col":3,"row":0,"label":"EKS","sub":"(istiod · Envoy)","kind":"store"},
+    {"id":"heal","col":4,"row":0,"label":"Git 상태로 복원","sub":"(Argo CD 재적용)","kind":"proc"}
   ],
   "edges": [
-    {"from":"dev","to":"git","label":"PR (VirtualService 수정)","rate":700},
-    {"from":"git","to":"cd","label":"리뷰 · CI(validate)","rate":650},
+    {"from":"dev","to":"git","label":"PR · 리뷰","rate":700},
+    {"from":"git","to":"cd","label":"CI 검증","rate":650},
     {"from":"cd","to":"eks","label":"sync","rate":600},
-    {"from":"cd","to":"git","label":"drift 감지·복원","dashed":true,"rate":800}
+    {"from":"eks","to":"heal","label":"드리프트 감지","dashed":true}
   ]
 }
 {{< /flow >}}
