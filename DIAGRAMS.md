@@ -5,10 +5,10 @@
 | shortcode | 용도 | 엔진 |
 |---|---|---|
 | `{{< flow >}}` | 노드·엣지 흐름도 (파티클 애니메이션) | `static/flow/flow.js`, `static/flow/flow.css` |
-| `{{< seq >}}` | 시퀀스 다이어그램 | `static/seq/seq.js` |
+| `{{< seq >}}` | 시퀀스 다이어그램 (왕복 화살표) | `static/flow/seq.js`, `static/flow/seq.css` |
 | `{{< cfstl >}}` | CFS period 타임라인 (재생 헤드 애니메이션) | `static/flow/cfstl.js`, `static/flow/cfstl.css` |
 
-둘 다 `layouts/partials/custom/head-end.html`에서 로드된다. 본문에는 JSON 스펙만 쓴다.
+셋 다 `layouts/partials/custom/head-end.html`에서 로드된다(공용 "크게 보기"는 `flow/expand.js`). 본문에는 JSON 스펙만 쓴다.
 
 ---
 
@@ -76,7 +76,58 @@ NODE_W: 146,  COL_GAP: 218,  ROW_VGAP: 30,  MARGIN: 24,  MINH: 48
 
 ## `{{< seq >}}`
 
-`static/seq/seq.js`. 사용처는 `content/` 에서 `{{< seq` 로 검색.
+````
+{{< seq caption="설명 한 줄" >}}
+{
+  "participants": [
+    { "id": "C", "label": "client pod" },
+    { "id": "Z", "label": "ztunnel" }
+  ],
+  "steps": [
+    { "msg": ["C", "Z"], "label": "1. :15001 REDIRECT" },
+    { "msg": ["Z", "C"], "label": "2. 응답", "dashed": true },
+    { "note": ["C", "Z"], "lines": ["mTLS 세션 수립", "(x509 SPIFFE ID)"] }
+  ]
+}
+{{< /seq >}}
+````
+
+**flow와 갈리는 지점: seq는 화살표가 좌→우, 우→좌 모두 그려진다.** 요청/응답 왕복, 핸드셰이크, 실패 후 재시도처럼 **되돌아오는 흐름은 flow가 아니라 seq로** 그린다 — flow는 `to`의 `col`이 `from` 이하면 선이 뒤로 그려져 화살표가 깨진다.
+
+### participant
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `id` | ✅ | step에서 참조할 식별자 |
+| `label` | | 상자 안 이름. 없으면 `id`. 폭 128px에서 자동 줄바꿈 |
+
+배열에 쓴 순서가 곧 가로 순서다. `col` 같은 위치 필드는 없다.
+
+### step — 세 종류뿐
+
+| 형태 | 스펙 | 설명 |
+|---|---|---|
+| 메시지 | `{"msg": ["from","to"], "label": "…", "dashed": true}` | 화살표 한 줄. `dashed`면 점선 — 응답·비동기 표현용 |
+| 노트 | `{"note": ["id","id"], "lines": ["줄1","줄2"]}` | 지정 참여자들에 걸치는 상자. `lines` 없으면 `label` 한 줄이 쓰인다 |
+| 분기 | `{"alt": "라벨", "steps": [...], "elseLabel": "…", "elseSteps": [...]}` | alt/else 프레임. 중첩 가능 |
+
+`loop` · `par` · `opt` 프레임은 **엔진에 없다.** `alt` 하나뿐이므로 반복은 `note`나 라벨로 표현한다. `elseLabel`을 생략하면 구분선 없이 alt 박스만 그려진다.
+
+### 레이아웃 상수 (`seq.js`)
+
+```js
+PBOX_W: 142,  PGAP: 182,  STEP_H: 46,  M: 20
+```
+
+- 참여자 라벨 폭은 128px(font 12) — **한글 10자를 넘으면 두 줄**이 되고 상자가 그만큼 높아진다.
+- 참여자 5명이면 폭이 이미 910px다. **3~4명이 최적**이고, 넘으면 인라인에서 심하게 축소된다.
+- msg 라벨은 잘리지 않는다 — 대신 viewBox가 좌우로 늘어나 **도식 전체가 넓어진다.** 긴 설명은 `note`로 내린다.
+
+### 애니메이션
+
+메시지는 **문서에 쓴 순서대로** 점이 하나씩 이동한다(`STEP_DELAY 640ms`). `alt` 안의 메시지도 같은 순번을 받으므로, 정상/실패 분기가 번갈아 재생되는 게 아니라 위에서 아래로 한 번씩 흐른다.
+
+사용처는 `content/` 에서 `{{< seq` 로 검색.
 
 ---
 
