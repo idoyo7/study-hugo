@@ -64,7 +64,7 @@ otel-collector:
 
 ## 3. 데이터 흐름 — RUM은 MongoDB를 거치지 않는다
 
-{{< flow caption="RUM 인제스트(쓰기) vs 운영자 조회(읽기) 경로 — MongoDB는 메타데이터 전용" >}}
+{{< flow caption="RUM 인제스트(쓰기) vs 운영자 조회(읽기) 경로 — MongoDB는 메타데이터 전용. Collector↔api는 OpAMP 4320 한 축의 양방향이다: Collector가 api의 /v1/opamp에 접속하고, api가 그 위로 파이프라인 설정을 배포한다." >}}
 {
   "nodes": [
     {"id":"sdk","col":0,"row":0,"label":"브라우저 @hyperdx/browser","sub":"rrweb 리플레이 + 에러 + Web Vitals","kind":"src"},
@@ -76,14 +76,13 @@ otel-collector:
     {"id":"mongo","col":3,"row":2,"label":"MongoDB (27017)","sub":"메타데이터 전용","kind":"store"}
   ],
   "edges": [
-    {"from":"sdk","to":"otel","label":"OTLP/HTTP 4318 인제스트 쓰기","rate":600},
+    {"from":"sdk","to":"otel","label":"OTLP :4318","rate":600},
     {"from":"otel","to":"ch","label":"native 9000 batch INSERT","rate":600},
     {"from":"users","to":"app","rate":700},
     {"from":"app","to":"api","rate":700},
     {"from":"api","to":"ch","label":"쿼리 8123/9000 읽기","rate":700,"kind":"query"},
     {"from":"api","to":"mongo","label":"메타 R/W 27017","rate":800},
-    {"from":"api","to":"otel","label":"OpAMP 4320","dashed":true},
-    {"from":"otel","to":"api","label":"OpAMP 4320","dashed":true}
+    {"from":"otel","to":"api","label":"OpAMP 양방향","dashed":true}
   ]
 }
 {{< /flow >}}
@@ -98,7 +97,7 @@ otel-collector:
 
 표준 차트가 아니라 §1의 분기를 반영한 실제 청사진이다: ClickHouse/Keeper는 Altinity operator 영역(범용분석 겸용), HyperDX는 `clickhouse.enabled:false`로 HyperDX Only, MongoDB만 MCK(또는 Atlas 위임).
 
-{{< flow caption="우리 케이스 K8s 배치 — 전체는 Kubernetes(EKS, multi-AZ) 클러스터 내부: Altinity operator 영역(범용분석 겸용 CH) / HyperDX-only(clickhouse.enabled=false) / 메타스토어(택1). S3만 클러스터 외부 cold tier" >}}
+{{< flow caption="우리 케이스 K8s 배치 — 전체는 Kubernetes(EKS, multi-AZ) 클러스터 내부: Altinity operator 영역(범용분석 겸용 CH) / HyperDX-only(clickhouse.enabled=false) / 메타스토어(택1). S3만 클러스터 외부 cold tier. CHI↔CHK는 한 축의 양방향 조정이다(CH가 Keeper에 복제 메타를 등록 ↔ Keeper가 복제·머지·DDL을 지시). Collector↔api도 OpAMP 4320 양방향(Collector가 접속, api가 설정 배포)." >}}
 {
   "groups": [
     {"id":"altinity","label":"Altinity operator 영역","members":["chi","chk"]},
@@ -112,23 +111,21 @@ otel-collector:
     {"id":"app","col":1,"row":1,"label":"HyperDX app","kind":"proc"},
     {"id":"api","col":2,"row":1,"label":"HyperDX api","sub":"OpAMP :4320","kind":"proc"},
     {"id":"chi","col":3,"row":0,"label":"ClickHouse (CHI)","sub":"ReplicatedMergeTree RF2/3 · hot EBS gp3/io2 · cold S3","kind":"store"},
-    {"id":"chk","col":3,"row":1,"label":"Keeper (CHK)","sub":"3-node, AZ 분산","kind":"store"},
-    {"id":"mongo","col":4,"row":0,"label":"MongoDBCommunity (MCK)","sub":"members:3 SCRAM · gp3 10Gi · mongodump CronJob→S3","kind":"store"},
-    {"id":"atlas","col":4,"row":1,"label":"Atlas M10 (외부 관리형)","kind":"store"},
-    {"id":"s3","col":5,"row":0,"label":"S3 cold tier","kind":"store"}
+    {"id":"chk","col":4,"row":0,"label":"Keeper (CHK)","sub":"3-node, AZ 분산","kind":"store"},
+    {"id":"s3","col":4,"row":1,"label":"S3 cold tier","kind":"store"},
+    {"id":"mongo","col":3,"row":2,"label":"MongoDBCommunity (MCK)","sub":"members:3 SCRAM · gp3 10Gi · mongodump CronJob→S3","kind":"store"},
+    {"id":"atlas","col":3,"row":3,"label":"Atlas M10 (외부 관리형)","kind":"store"}
   ],
   "edges": [
-    {"from":"sdk","to":"otel","label":"OTLP/HTTP :4318"},
+    {"from":"sdk","to":"otel","label":"OTLP :4318"},
     {"from":"otel","to":"chi","label":"INSERT async_insert=1"},
     {"from":"users","to":"app"},
     {"from":"app","to":"api"},
     {"from":"api","to":"chi","label":"쿼리","kind":"query"},
     {"from":"api","to":"mongo","label":"메타"},
     {"from":"api","to":"atlas","label":"대안","dashed":true},
-    {"from":"api","to":"otel","label":"OpAMP","dashed":true},
-    {"from":"otel","to":"api","label":"OpAMP","dashed":true},
-    {"from":"chi","to":"chk","dashed":true},
-    {"from":"chk","to":"chi","dashed":true},
+    {"from":"otel","to":"api","label":"OpAMP 양방향","dashed":true},
+    {"from":"chi","to":"chk","label":"메타 ↔ 복제","dashed":true},
     {"from":"chi","to":"s3","label":"TTL MOVE"}
   ]
 }

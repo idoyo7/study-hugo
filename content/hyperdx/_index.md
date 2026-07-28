@@ -54,7 +54,7 @@ study-hugo에는 이미 겹치는 주제의 깊은 문서가 있다. 이 챕터�
 
 ## 우리 케이스 청사진 (한 장 토폴로지)
 
-{{< flow caption="브라우저 SDK(@hyperdx/browser — rrweb+errors+Web Vitals)는 OTel Collector로 직접 전송, HyperDX api가 CHI(ReplicatedMergeTree, 1 shard×RF2·2AZ, hot:EBS gp3/io2·cold:S3)를 쿼리하고 CHK(Keeper 3노드, 3AZ·gp3 영속)와 조정, MongoDB(메타데이터 전용, MCK members:3 또는 Atlas)는 UI 설정만 담당. Altinity operator 영역은 범용 분석 겸용 CH, HyperDX-only는 clickhouse.enabled=false 구성. OTel Collector는 deployment ×2 + file_storage 큐." >}}
+{{< flow caption="브라우저 SDK(@hyperdx/browser — rrweb+errors+Web Vitals)는 OTel Collector로 직접 전송, HyperDX api가 CHI(ReplicatedMergeTree, 1 shard×RF2·2AZ, hot:EBS gp3/io2·cold:S3)를 쿼리하고 CHK(Keeper 3노드, 3AZ·gp3 영속)와 조정, MongoDB(메타데이터 전용, MCK members:3 또는 Atlas)는 UI 설정만 담당. Altinity operator 영역은 범용 분석 겸용 CH, HyperDX-only는 clickhouse.enabled=false 구성. OTel Collector는 deployment ×2 + file_storage 큐. CHI↔CHK는 한 축의 양방향 조정(CH가 복제 메타 등록 ↔ Keeper가 복제·머지 지시), Collector↔api도 OpAMP 4320 양방향(Collector가 접속, api가 설정 배포)." >}}
 {
   "groups": [
     {"id": "k8s",      "label": "Kubernetes (EKS)",     "members": ["otel", "hdxapp", "hdxapi", "chi", "chk", "mongo"]},
@@ -63,26 +63,24 @@ study-hugo에는 이미 겹치는 주제의 깊은 문서가 있다. 이 챕터�
   ],
   "nodes": [
     {"id": "sdk",    "col": 0, "row": 0, "label": "브라우저 SDK",   "sub": "@hyperdx/browser",  "kind": "src"},
-    {"id": "users",  "col": 0, "row": 3, "label": "운영자",         "kind": "src"},
-    {"id": "otel",   "col": 1, "row": 1, "label": "OTel Collector", "sub": "gateway ×2",        "kind": "proc"},
-    {"id": "hdxapp", "col": 2, "row": 3, "label": "HyperDX app",    "kind": "proc"},
-    {"id": "hdxapi", "col": 2, "row": 4, "label": "HyperDX api",    "sub": "OpAMP :4320",       "kind": "proc"},
+    {"id": "otel",   "col": 1, "row": 0, "label": "OTel Collector", "sub": "gateway ×2",        "kind": "proc"},
     {"id": "chi",    "col": 3, "row": 0, "label": "CHI",            "sub": "1shard×RF2·2AZ",    "kind": "store"},
-    {"id": "chk",    "col": 3, "row": 1, "label": "CHK",            "sub": "Keeper 3노드·3AZ",   "kind": "store"},
-    {"id": "mongo",  "col": 4, "row": 3, "label": "MongoDB",        "sub": "메타데이터 전용",     "kind": "store"},
-    {"id": "s3",     "col": 5, "row": 0, "label": "S3 cold tier",   "kind": "sink"}
+    {"id": "chk",    "col": 4, "row": 0, "label": "CHK",            "sub": "Keeper 3노드·3AZ",   "kind": "store"},
+    {"id": "users",  "col": 0, "row": 1, "label": "운영자",         "kind": "src"},
+    {"id": "hdxapp", "col": 1, "row": 1, "label": "HyperDX app",    "kind": "proc"},
+    {"id": "hdxapi", "col": 2, "row": 1, "label": "HyperDX api",    "sub": "OpAMP :4320",       "kind": "proc"},
+    {"id": "mongo",  "col": 3, "row": 2, "label": "MongoDB",        "sub": "메타데이터 전용",     "kind": "store"},
+    {"id": "s3",     "col": 5, "row": 2, "label": "S3 cold tier",   "kind": "sink"}
   ],
   "edges": [
-    {"from": "sdk", "to": "otel", "label": "OTLP/HTTP :4318"},
+    {"from": "sdk", "to": "otel", "label": "OTLP :4318"},
     {"from": "otel", "to": "chi", "label": "INSERT async_insert=1"},
     {"from": "users", "to": "hdxapp"},
     {"from": "hdxapp", "to": "hdxapi"},
     {"from": "hdxapi", "to": "chi", "label": "쿼리"},
     {"from": "hdxapi", "to": "mongo", "label": "메타"},
-    {"from": "hdxapi", "to": "otel", "label": "OpAMP", "dashed": true},
-    {"from": "otel", "to": "hdxapi", "dashed": true},
-    {"from": "chi", "to": "chk", "dashed": true},
-    {"from": "chk", "to": "chi", "dashed": true},
+    {"from": "otel", "to": "hdxapi", "label": "OpAMP 양방향", "dashed": true},
+    {"from": "chi", "to": "chk", "label": "메타 ↔ 복제", "dashed": true},
     {"from": "chi", "to": "s3", "label": "TTL MOVE"}
   ]
 }

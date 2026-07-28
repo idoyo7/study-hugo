@@ -68,7 +68,7 @@ otel-collector:
 
 ## 3. 데이터 흐름 — RUM 인제스트 경로에 MongoDB는 없다
 
-{{< flow caption="sdk=@hyperdx/browser SDK(rrweb 리플레이·에러·Web Vitals). otel=OTel Collector 게이트웨이(deployment ×2 + file_storage 큐). chi=CHI ClickHouse(otel_logs/traces/metrics + hyperdx_sessions). mongo=MCK members:3 또는 Atlas. api↔otel은 OpAMP(:4320)로 양방향 제어(설정 원격관리), chi↔chk는 Keeper 코디네이션(비흐름)." >}}
+{{< flow caption="sdk=@hyperdx/browser SDK(rrweb 리플레이·에러·Web Vitals). otel=OTel Collector 게이트웨이(deployment ×2 + file_storage 큐). chi=CHI ClickHouse(otel_logs/traces/metrics + hyperdx_sessions). mongo=MCK members:3 또는 Atlas. api↔otel은 OpAMP(:4320) 한 축의 양방향 제어다 — Collector가 api에 접속하고 api가 파이프라인 설정을 배포한다. chi↔chk도 한 축의 양방향 코디네이션(CH가 복제 메타 등록 ↔ Keeper가 복제·머지·DDL 지시, 데이터 흐름 아님)." >}}
 {
   "groups": [
     { "id": "browser", "label": "브라우저", "members": ["sdk"] },
@@ -78,22 +78,20 @@ otel-collector:
   "nodes": [
     { "id": "sdk", "col": 0, "row": 0, "label": "브라우저 SDK", "sub": "rrweb·에러·Web Vitals", "kind": "src" },
     { "id": "otel", "col": 1, "row": 0, "label": "OTel Collector", "sub": "게이트웨이 ×2+큐", "kind": "proc" },
+    { "id": "chi", "col": 3, "row": 0, "label": "CHI ClickHouse", "sub": "logs/traces/metrics", "kind": "store" },
+    { "id": "chk", "col": 4, "row": 0, "label": "CHK Keeper", "sub": "3노드", "kind": "store" },
     { "id": "app", "col": 1, "row": 1, "label": "HyperDX app", "kind": "proc" },
-    { "id": "api", "col": 1, "row": 2, "label": "HyperDX api", "sub": "OpAMP 서버 :4320", "kind": "query" },
-    { "id": "chi", "col": 2, "row": 0, "label": "CHI ClickHouse", "sub": "logs/traces/metrics", "kind": "store" },
-    { "id": "chk", "col": 2, "row": 1, "label": "CHK Keeper", "sub": "3노드", "kind": "store" },
+    { "id": "api", "col": 2, "row": 1, "label": "HyperDX api", "sub": "OpAMP 서버 :4320", "kind": "query" },
     { "id": "mongo", "col": 3, "row": 2, "label": "MongoDB", "sub": "MCK 3 / Atlas", "kind": "store" }
   ],
   "edges": [
-    { "from": "sdk", "to": "otel", "label": "OTLP/HTTP :4318 (쓰기)" },
+    { "from": "sdk", "to": "otel", "label": "OTLP :4318" },
     { "from": "otel", "to": "chi", "label": "native :9000 batch INSERT" },
     { "from": "app", "to": "api" },
     { "from": "api", "to": "chi", "label": "쿼리 :8123/:9000 (읽기)" },
     { "from": "api", "to": "mongo", "label": "메타 R/W :27017" },
-    { "from": "api", "to": "otel", "label": "OpAMP :4320", "dashed": true },
-    { "from": "otel", "to": "api", "label": "OpAMP :4320", "dashed": true },
-    { "from": "chi", "to": "chk", "dashed": true },
-    { "from": "chk", "to": "chi", "dashed": true }
+    { "from": "otel", "to": "api", "label": "OpAMP 양방향", "dashed": true },
+    { "from": "chi", "to": "chk", "label": "메타 ↔ 복제", "dashed": true }
   ]
 }
 {{< /flow >}}
@@ -105,7 +103,7 @@ otel-collector:
 
 ## 4. OpAMP(`:4320`) — Collector 설정 원격 관리
 
-**HyperDX api가 OpAMP 서버로 동작**해 Collector 파이프라인 설정을 원격 관리한다 `✓`. Collector는 `OPAMP_SERVER_URL` 환경변수로 api의 `/v1/opamp` 엔드포인트에 붙어 설정을 받는다. 이 경로가 있기 때문에 §3 다이어그램에서 api↔Collector 사이에 별도 화살표(OpAMP)가 존재한다 — 데이터가 흐르는 방향(Collector→CH)과 **제어가 흐르는 방향(api→Collector)이 반대**라는 점이 이 아키텍처의 특징이다.
+**HyperDX api가 OpAMP 서버로 동작**해 Collector 파이프라인 설정을 원격 관리한다 `✓`. Collector는 `OPAMP_SERVER_URL` 환경변수로 api의 `/v1/opamp` 엔드포인트에 붙어 설정을 받는다. 이 경로가 있기 때문에 §3 다이어그램에서 api↔Collector 사이에 데이터 흐름과 별개인 OpAMP 축이 하나 존재한다 — TCP 접속은 Collector가 걸지만 그 위로 흐르는 것은 api가 내려보내는 설정이다. 즉 데이터가 흐르는 방향(Collector→CH)과 **제어가 흐르는 방향(api→Collector)이 반대**라는 점이 이 아키텍처의 특징이다.
 
 커스텀 Collector config는 `CUSTOM_OTELCOL_CONFIG_FILE`로 지정하면 **베이스 config에 병합**된다 `✓`. 단 이 병합은 **신규 receiver/processor 추가에 한정**되고 **기존 컴포넌트를 오버라이드하지는 못한다** `✓`. 실무 함의: 베이스 파이프라인 자체(예: 기본 `batch`/`memory_limiter` 파라미터)를 바꾸려면 OpAMP 병합 경로가 아니라 Helm values 레벨에서 손을 대야 한다.
 

@@ -51,15 +51,15 @@ Keeper가 저장하지 **않는** 것을 못박아 둔다: ❌ 테이블의 행�
   "nodes": [
     { "id": "C", "col": 0, "row": 0, "label": "Client / OTel Collector", "kind": "src" },
     { "id": "S1", "col": 1, "row": 0, "label": "CH replica-1", "sub": "파트를 자기 디스크에 씀", "kind": "proc" },
-    { "id": "K", "col": 2, "row": 0, "label": "Keeper 앙상블", "sub": "3 or 5 노드", "kind": "store" },
     { "id": "S2", "col": 3, "row": 0, "label": "CH replica-2", "kind": "proc" },
-    { "id": "Q", "col": 2, "row": 1, "label": "SELECT 쿼리", "kind": "query" }
+    { "id": "Q", "col": 0, "row": 1, "label": "SELECT 쿼리", "kind": "query" },
+    { "id": "K", "col": 2, "row": 1, "label": "Keeper 앙상블", "sub": "3 or 5 노드", "kind": "store" }
   ],
   "edges": [
-    { "from": "C", "to": "S1", "label": "INSERT 데이터 바이트", "rate": 600 },
-    { "from": "S1", "to": "K", "label": "메타데이터 파트 등록·블록번호·로그", "rate": 800, "speed": "slow" },
-    { "from": "K", "to": "S2", "label": "복제 지시(포인터)", "rate": 700 },
+    { "from": "C", "to": "S1", "label": "데이터 바이트", "rate": 600 },
     { "from": "S1", "to": "S2", "label": "파트 바이트 직접 fetch", "rate": 500, "speed": "fast" },
+    { "from": "S1", "to": "K", "label": "파트 등록·블록번호·로그", "rate": 800, "speed": "slow" },
+    { "from": "K", "to": "S2", "label": "복제 지시(포인터)", "rate": 700 },
     { "from": "Q", "to": "K", "label": "Keeper 안 탐", "dashed": true }
   ]
 }
@@ -149,7 +149,7 @@ RUM/관측성 ingest는 작은 이벤트가 대량이라 `async_insert`를 흔�
   "edges": [
     { "from": "I", "to": "B", "rate": 600 },
     { "from": "B", "to": "F", "label": "size 100 MiB", "rate": 700 },
-    { "from": "B", "to": "F", "label": "time ~200ms 적응형", "rate": 750 },
+    { "from": "B", "to": "F", "label": "time 200ms", "rate": 750 },
     { "from": "B", "to": "F", "label": "query# 450", "rate": 800 },
     { "from": "B", "to": "X", "label": "flush 전 크래시", "dashed": true },
     { "from": "F", "to": "D", "rate": 600 }
