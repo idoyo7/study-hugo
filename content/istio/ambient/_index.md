@@ -1,6 +1,6 @@
 ---
 title: "Ambient mode 도입기 (채널코퍼레이션)"
-weight: 10
+weight: 20
 ---
 
 # Ambient mode 도입기 — 채널코퍼레이션이 사이드카를 건너뛴 기록 (2026-03 ~ 2026-07)
@@ -20,16 +20,16 @@ weight: 10
 
 {{< callout type="info" >}}
 **한눈에**
-- 채널코퍼레이션 DevOps팀은 2025년 3월부터 11월까지 약 8개월에 걸쳐 서비스 메시를 처음 도입하면서, 성숙한 Sidecar mode를 건너뛰고 Istio 1.24에서 GA된 **Ambient mode를 첫 도입 대상으로 골랐다**.
-- 결정의 무게추는 **약 4,000개 파드**였다. 전부 사이드카를 붙이면 idle 상태에서만 약 240Gi 메모리가 프록시로 나간다. 사이드카 비용은 프록시 하나의 단가보다 **프록시 개수가 파드 개수와 1:1로 묶인다**는 구조에서 나온다.
-- 대가는 장애 격리 단위의 확대다. 사이드카는 장애 범위가 파드 하나였지만 ztunnel은 노드 전체, waypoint는 namespace 전체다. 팀의 판단 기준은 "문제 발생 빈도"가 아니라 **"장애 복구 속도"와 "나중에 다시 갈아엎지 않아도 되는 쪽"** 이었다.
+- 채널코퍼레이션 DevOps팀은 2025년 3월부터 11월까지 약 8개월에 걸쳐 서비스 메시를 처음 올렸다. 성숙한 Sidecar mode를 건너뛰고 Istio 1.24에서 GA된 **Ambient mode를 첫 대상으로 골랐다**.
+- 결정의 무게추는 **약 4,000개 파드**였다. 전부 사이드카를 붙이면 idle 상태에서만 약 240Gi 메모리가 프록시로 나간다. 프록시 개수가 파드 개수에 1:1로 묶이기 때문이다.
+- 대가는 장애 격리 단위의 확대다. 사이드카는 장애 범위가 파드 하나였지만 ztunnel은 노드 전체, waypoint는 namespace 전체다. 팀은 문제 발생 빈도 대신 **장애 복구 속도와 나중에 다시 갈아엎지 않아도 되는 쪽**을 기준으로 삼았다.
 - 프로덕션에서 터진 것은 전부 **프록시가 파드 밖으로 나가면서 생긴 타이밍 문제**다 — 죽은 Pod의 HBONE 터널을 재사용해 터지는 503, istio-cni보다 먼저 뜬 파드(partially enrolled), 노드 단위가 되어 버린 업그레이드 카나리, 그리고 xDS 단절을 못 잡는 readinessProbe.
 - Ambient가 사이드카 비용을 없앤 자리에 들어온 새 운영 축은 **노드 라이프사이클과 메시 데이터플레인 준비 사이의 정합성**이다. 청구서가 사라진 게 아니라 항목이 바뀌었다.
 {{< /callout >}}
 
 ## 왜 이 섹션이 상위 Istio 챕터와 따로 있는가
 
-이 레포의 [상위 Istio 챕터]({{< relref "../_index.md" >}}) 01~09편은 전부 **Sidecar mode를 전제로 쓰인 운영기**다. 파드마다 Envoy가 붙고, istiod가 그 프록시 전부에 xDS를 밀어 넣고, 게이트웨이를 전용 노드로 빼고, 5xx가 나면 게이트웨이 → 사이드카 → 앱 순으로 hop을 좁혀 간다. 이 `ambient/` 섹션은 그 전제를 바꾼 외부 팀(채널코퍼레이션)의 프로덕션 기록이다. 우리 환경이 아닌 남의 사례라 따로 두고, 같은 문제를 다른 아키텍처로 푼 **대조군**으로 읽는다. 컨트롤 플레인 부하·데이터 플레인 비용·장애 추적이라는 세 축은 양쪽이 똑같이 마주한다. 다만 사이드카 모드는 "파드당 프록시 하나"라는 전제에서, Ambient는 "노드당 ztunnel 하나 + 필요한 곳에만 waypoint"라는 전제에서 답을 찾는다. 두 방식이 같은 비용을 어디에 나눠 싣는지가 이 섹션을 읽는 이유다.
+이 레포의 [상위 Istio 챕터]({{< relref "../_index.md" >}}) 01~09편은 전부 **Sidecar mode를 전제로 쓰인 운영기**다. 파드마다 Envoy가 붙고, istiod가 그 프록시 전부에 xDS를 밀어 넣고, 게이트웨이를 전용 노드로 빼고, 5xx가 나면 게이트웨이 → 사이드카 → 앱 순으로 hop을 좁혀 간다. 이 `ambient/` 섹션은 그 전제를 바꾼 외부 팀(채널코퍼레이션)의 프로덕션 기록이다. 우리 환경이 아닌 남의 사례라 따로 두고, 같은 문제를 다른 아키텍처로 푼 **대조군**으로 읽는다. 컨트롤 플레인 부하·데이터 플레인 비용·장애 추적이라는 세 축은 양쪽이 똑같이 마주한다. 다만 사이드카 모드는 "파드당 프록시 하나"라는 전제에서, Ambient는 "노드당 ztunnel 하나 + 필요한 곳에만 waypoint"라는 전제에서 답을 찾는다.
 
 ## 문서 지도
 
@@ -44,6 +44,7 @@ weight: 10
 
 ## 읽는 순서
 
+- **사이드카에서 넘어올 계획이면** [10 Ambient 이행 심사]({{< relref "../10-ambient-migration-questions.md" >}})를 먼저 본다. 이 섹션은 사이드카를 거치지 않은 그린필드 기록이라 "버리고 오는 쪽"의 비용이 빠져 있다.
 - **처음이라면** 01을 먼저 읽는다. 왜 사이드카를 건너뛰었는지, 그 대가로 무엇을 받아들였는지가 나머지 다섯 편의 전제다. ztunnel · waypoint · HBONE · istio-cni라는 용어도 여기서 잡힌다.
 - **개념까지만 필요하면** 01에서 멈춰도 된다. 02는 Envoy config 덤프를 필드 단위로 따라가는 문서라 밀도가 가장 높다. 다만 03-1의 커넥션 pool 문제와 03-4의 `xds-grpc` cluster를 이해하려면 02가 선행 지식이다.
 - **장애 대응 관점이면** 03-1 → 03-2 순서로 본다. 03-1은 이미 메시에 들어온 커넥션의 수명 문제이고, 03-2는 애초에 메시에 못 들어온 파드의 문제다. 증상은 둘 다 5xx지만 원인 계층이 다르다.
@@ -57,9 +58,9 @@ weight: 10
 | 문제 축 | 상위 챕터 (Sidecar mode) | 이 섹션 (Ambient mode) |
 |---------|-------------------------|----------------------|
 | 메시의 비용 구조 | [01 서비스 메시와 Istio 기초]({{< relref "../01-mesh-basics.md" >}}) — 파드마다 붙는 프록시가 CPU·메모리·지연을 더한다 | [01 왜 Ambient mode인가]({{< relref "01-why-ambient-mode.md" >}}) — 프록시 개수를 파드 수에서 노드 수로 옮긴다 |
-| 컨트롤 플레인 부하 | [02 컨트롤 플레인 해부: istiod]({{< relref "../02-istiod-control-plane.md" >}}) — 설정 범위를 좁혀 push 부하를 줄인다 | [01]({{< relref "01-why-ambient-mode.md" >}}) — polynomial scaling problem의 **분모(프록시 수) 자체를 줄인다** |
+| 컨트롤 플레인 부하 | [02 컨트롤 플레인 해부: istiod]({{< relref "../02-istiod-control-plane.md" >}}) — 설정 범위를 좁혀 push 부하를 줄인다 | [01]({{< relref "01-why-ambient-mode.md" >}}) — polynomial scaling problem의 분모(프록시 수) 자체를 줄인다 |
 | xDS 커넥션 | [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../09-istiod-scaling-connections.md" >}}) — 장수 gRPC는 스케일아웃해도 재분배되지 않는다 | [03-4]({{< relref "03-4-507-istiod-disconnected.md" >}}) — 한 번 끊긴 stream은 스스로 낫지 않아 탐지가 필요하다 |
 | 데이터 플레인 격리 | [03 데이터 플레인과 Ingress Gateway]({{< relref "../03-gateway-node-isolation.md" >}}) — 자원 경합을 피하려 게이트웨이를 노드로 뺀다 | [03-2]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}}) — 노드가 준비될 때까지 스케줄을 미룬다(시간 축의 격리) |
-| 5xx 추적 순서 | [05 장애 이야기: 간헐적 응답 이상]({{< relref "../05-incident-intermittent-5xx.md" >}}) — 게이트웨이 → 사이드카 → 앱으로 hop을 좁힌다 | [03-1]({{< relref "03-1-503-half-open-connection.md" >}}) — `via_upstream`만 남긴 게이트웨이는 목격자가 아니다. waypoint부터 본다 |
+| 5xx 추적 순서 | [05 장애 이야기: 간헐적 응답 이상]({{< relref "../05-incident-intermittent-5xx.md" >}}) — 게이트웨이 → 사이드카 → 앱으로 hop을 좁힌다 | [03-1]({{< relref "03-1-503-half-open-connection.md" >}}) — 게이트웨이 로그에는 `via_upstream`만 남으므로 waypoint부터 본다 |
 | 표준 CRD 밖의 조작 | [08 EnvoyFilter — 표준 CRD의 탈출구]({{< relref "../08-envoyfilter-extension.md" >}}) — 저수준 Envoy 설정을 직접 패치한다 | [02]({{< relref "02-envoy-config-anatomy.md" >}}) — 같은 저수준 부품을 istiod가 정식 경로로 조립해 내려준다 |
 | 프록시 업그레이드 | 워크로드 Pod 전부를 재시작해야 하고, 그 롤아웃이 곧 [istiod xDS 부하]({{< relref "../02-istiod-control-plane.md" >}}) 이벤트다 | [03-3]({{< relref "03-3-ambient-upgrade-in-place.md" >}}) — 앱 재시작은 사라지고 노드 DaemonSet 교체가 위험 지점이 된다 |

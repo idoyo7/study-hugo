@@ -28,8 +28,9 @@ cascade:
 | [07 nginx에서 Istio로]({{< relref "07-from-nginx-to-istio.md" >}}) | 이주 | rewrite·헤더·인가 | nginx 지시어 → VirtualService·AuthorizationPolicy·ext_authz 대응 |
 | [08 EnvoyFilter — 표준 CRD의 탈출구]({{< relref "08-envoyfilter-extension.md" >}}) | 확장 | 저수준 조작 | Envoy 설정 직접 패치, 레이트 리밋(local/global), Lua·WASM |
 | [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "09-istiod-scaling-connections.md" >}}) | 컨트롤 플레인 | 이벤트 중 istiod 8대 재시작 | 커넥션 단가가 변하는 이유, 재분배가 없는 이유, keepalive·스코핑 손잡이 |
+| [10 Ambient 이행 심사]({{< relref "10-ambient-migration-questions.md" >}}) | 이행 검토 | 사이드카에서 Ambient로 간다면 | 01~09의 결론 중 무엇이 무효가 되고 무엇이 재심사 대상인가 |
 
-01~09는 전부 **Sidecar mode** 기준이다. 같은 문제를 Ambient mode로 푼 외부 팀(채널코퍼레이션)의 프로덕션 기록은 하위 섹션 [Ambient mode 도입기 (채널코퍼레이션)]({{< relref "ambient/_index.md" >}})에 대조군으로 따로 모아 두었다.
+01~09는 전부 **Sidecar mode** 기준이다. 같은 문제를 Ambient mode로 푼 외부 팀의 프로덕션 기록은 하위 섹션 [Ambient mode 도입기 (채널코퍼레이션)]({{< relref "ambient/_index.md" >}})에 대조군으로 따로 모아 두었다.
 
 ## 읽는 순서
 
@@ -38,7 +39,7 @@ cascade:
 - **장애 대응 관점이면** 05를 먼저 훑어 "메시가 낀 경로에서 무엇부터 의심하나"의 체크리스트를 잡고, 필요한 개념은 02·03으로 되짚는다.
 - **메시로 무엇을 얻나가 궁금하면** 06(관측성)으로 공짜로 얻는 모니터링 포인트를, 07(nginx→Istio)로 기존 nginx 설정이 어디로 갔는지를, 08(EnvoyFilter)로 표준 CRD 밖의 조작을 본다.
 - **istiod를 오토스케일링하려면** 02로 부하의 구조를 잡은 뒤 09로 넘어간다. 09는 "몇 대를 띄울까"가 아니라 **"커넥션이 어느 파드로 가는가"** 를 다루는 문서다.
-- **Ambient mode가 궁금하면** 01~09로 사이드카 모드의 비용 구조를 먼저 잡고 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})로 간다. 프록시가 파드에서 노드로 옮겨 가면 무엇이 달라지는지가 그쪽 주제다.
+- **Ambient mode가 궁금하면** 01~09로 사이드카 모드의 비용 구조를 먼저 잡고, [10 Ambient 이행 심사]({{< relref "10-ambient-migration-questions.md" >}})로 그 비용 구조 중 무엇이 무효가 되는지를 본 뒤 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})로 간다. 프록시가 파드에서 노드로 옮겨 가면 무엇이 달라지는지를 다룬다.
 
 ## 공통 핵심
 
@@ -48,5 +49,5 @@ cascade:
 - **게이트웨이는 데이터 경로의 병목이자 격리 대상이다.** 남북(north-south) 트래픽을 받는 Ingress Gateway는 워크로드와 자원을 다투면 안 되므로 전용 노드로 뺀다. → [03]({{< relref "03-gateway-node-isolation.md" >}})
 - **메시 설정은 손이 아니라 Git으로 관리한다.** VirtualService·DestinationRule 같은 CRD가 손으로 바뀌면 드리프트가 장애로 돌아온다. → [04]({{< relref "04-config-as-code.md" >}})
 - **관측성은 공짜로 얻지만 카디널리티는 공짜가 아니다.** 사이드카가 앱 무수정으로 표준 골든 시그널을 뿜는다 — 대신 라벨 폭발을 관리해야 한다. → [06]({{< relref "06-observability-points.md" >}})
-- **Ambient mode는 프록시 개수를 파드 수에서 노드 수로 옮긴다.** 사이드카 몫의 CPU·메모리는 줄지만, 노드 라이프사이클과 메시 데이터플레인 준비 사이의 정합성이 새 운영 축으로 들어온다. → [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})
+- **Ambient mode는 프록시 개수를 파드 수에서 노드 수로 옮긴다.** 사이드카 몫의 CPU·메모리는 줄지만, 노드 라이프사이클과 메시 데이터플레인 준비 사이의 정합성이 새 운영 축이 된다. → [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})
 - **nginx가 한 파일에 하던 걸 Istio는 CRD로 흩는다.** rewrite·헤더·인가가 VirtualService·AuthorizationPolicy·ext_authz로 갈리고, 그래도 안 되는 건 EnvoyFilter가 최후의 수단이다. → [07]({{< relref "07-from-nginx-to-istio.md" >}}) · [08]({{< relref "08-envoyfilter-extension.md" >}})
