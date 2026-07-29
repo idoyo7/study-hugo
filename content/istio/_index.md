@@ -30,6 +30,9 @@ cascade:
 | [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "09-istiod-scaling-connections.md" >}}) | 컨트롤 플레인 | 이벤트 중 istiod 8대 재시작 | 커넥션 단가가 변하는 이유, 재분배가 없는 이유, keepalive·스코핑 손잡이 |
 | [10 Ambient 이행 심사]({{< relref "10-ambient-migration-questions.md" >}}) | 이행 검토 | 사이드카에서 Ambient로 간다면 | 01~09의 결론 중 무엇이 무효가 되고 무엇이 재심사 대상인가 |
 | [11 요청 경로 해부]({{< relref "11-request-path-anatomy.md" >}}) | 경로 | 요청 하나를 끝까지 따라가기 | istio-agent 배선, 남북·동서 경로, L7 파싱 지점 = 기능이 생기는 지점, 포트 지도 |
+| [12 Envoy가 제공하는 것]({{< relref "12-envoy-capabilities.md" >}}) | 부품 | Istio를 걷어내고 프록시 하나만 보기 | 재시도·서킷 브레이킹·로드밸런싱·관측성은 Envoy가 이미 가진 기능, xDS는 Envoy의 API |
+| [13 Istio의 Envoy 조립]({{< relref "13-istio-envoy-assembly.md" >}}) | 조립 | proxyv2 이미지부터 CRD 번역까지 | 확장 컴파일된 Envoy 빌드, CRD→xDS 번역, Envoy 커밋 pin, 내장 확장과 사용자 확장의 차이 |
+| [14 왜 서비스 메시인가]({{< relref "14-why-service-mesh.md" >}}) | 채택 판단 | 대안 스펙트럼과 손익 분석 | 라이브러리·게이트웨이·사이드카·ambient 넷 중 언제 메시가 이기는가, 사이드카 비용 수치 |
 
 01~09는 전부 **Sidecar mode** 기준이다. 같은 문제를 Ambient mode로 푼 외부 팀의 프로덕션 기록은 하위 섹션 [Ambient mode 도입기 (채널코퍼레이션)]({{< relref "ambient/_index.md" >}})에 대조군으로 따로 모아 두었다.
 
@@ -42,6 +45,7 @@ cascade:
 - **istiod를 오토스케일링하려면** 02로 부하의 구조를 잡은 뒤 09로 넘어간다. 09는 "몇 대를 띄울까"가 아니라 **"커넥션이 어느 파드로 가는가"** 를 다루는 문서다.
 - **요청이 실제로 어디를 지나는지 궁금하면** 11로 간다. 01(구조)·02(컨트롤 플레인)·03(게이트웨이)이 나눠 든 조각을 클라이언트→앱 경로 하나로 꿴 배선도다.
 - **Ambient mode가 궁금하면** 01~09로 사이드카 모드의 비용 구조를 먼저 잡고, [10 Ambient 이행 심사]({{< relref "10-ambient-migration-questions.md" >}})로 그 비용 구조 중 무엇이 무효가 되는지를 본 뒤 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})로 간다. 프록시가 파드에서 노드로 옮겨 가면 무엇이 달라지는지를 다룬다.
+- **Envoy가 궁금하면** [12 Envoy가 제공하는 것]({{< relref "12-envoy-capabilities.md" >}})으로 부품 자체를 본 뒤 [13 Istio의 Envoy 조립]({{< relref "13-istio-envoy-assembly.md" >}})으로 넘어가고, **메시 채택 여부를 판단해야 한다면** [14 왜 서비스 메시인가]({{< relref "14-why-service-mesh.md" >}})를 본다.
 
 ## 공통 핵심
 
