@@ -1,6 +1,6 @@
 ---
 title: "인스턴스는 누가 고르는가"
-weight: 1
+weight: 4
 ---
 
 # 01 · 인스턴스는 누가 고르는가 — 후보를 넘기고, EC2가 정한다
@@ -17,7 +17,7 @@ weight: 1
 
 > **왜 이 문서인가.** 하나의 NodePool에 c8i/m8i/r8i와 c7i/m7i/r7i를 함께 선언해 두면 "8세대를 쓰다가 없으면 7세대로 내려간다"가 될 것 같지만, 실제로는 항상 7세대만 뜬다. 이유를 "Karpenter가 싼 걸 좋아해서"로 넘기면 대응책을 고를 수 없다 — 절단 때문인지, 필터 때문인지, EC2 때문인지에 따라 손댈 곳이 완전히 달라지기 때문이다. 이 문서는 파드가 pending되는 순간부터 EC2가 인스턴스를 띄우는 순간까지 **선택이 실제로 일어나는 지점을 코드로 하나씩 지운다.** 그리고 흔히 도는 오해 하나(절단이 세대를 자른다)를 명시적으로 깬다.
 
-> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 세대 선호를 실제로 만드는 [02 세대 선호 만들기]({{< relref "02-generation-preference.md" >}}) · 만들어 놓은 선호를 consolidation이 되돌리는 문제는 [03 consolidation이 되돌리는 것]({{< relref "03-consolidation-traps.md" >}}) · 폴백이 실제로 도는 속도는 [04 용량이 없을 때]({{< relref "04-ice-fallback.md" >}}) · 상위 챕터 [Kubernetes]({{< relref "../_index.md" >}})
+> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 세대 선호를 실제로 만드는 [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}}) · 만들어 놓은 선호를 consolidation이 되돌리는 문제는 [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}}) · 폴백이 실제로 도는 속도는 [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) · 자매 챕터 [K8s 버전별 신기능]({{< relref "../k8s-features/_index.md" >}})
 
 검증 기준은 kubernetes-sigs/karpenter 코어 **`v1.14.0-6-gac7a021e`**, aws/karpenter-provider-aws `main`(및 태그 `v1.7.0`·`v1.11.3` 대조)이다. 아래 인용한 코어 라인 번호는 v1.14 기준이라 배포 중인 버전과 몇 줄 어긋날 수 있다.
 
@@ -136,7 +136,7 @@ func (its InstanceTypes) OrderByPrice(reqs scheduling.Requirements) InstanceType
 **"8세대가 CreateFleet 요청에 아예 실리지 않는다"는 시나리오는 성립하지 않는다.** 8세대는 후보에 남는다. 남은 채로 지는 것뿐이다. 대응책을 고를 때 이 구분이 중요하다 — 후보에서 사라지는 문제였다면 NodePool을 좁혀서 풀렸겠지만, 실제 문제는 그 뒤에 있다.
 
 {{< callout type="warning" >}}
-**단, 이 안전성은 "가격을 손대지 않았을 때"의 이야기다.** [02]({{< relref "02-generation-preference.md" >}})에서 다루는 NodeOverlay `priceAdjustment`로 7세대에 인위적인 가격 페널티를 걸면 정렬 키 자체가 왜곡되므로, 페널티가 과하면 7세대가 60위 밖으로 밀려 **폴백 후보가 사라진다.** 절단이 세대를 자르지 못한다는 성질은 자연 가격에서만 보장된다.
+**단, 이 안전성은 "가격을 손대지 않았을 때"의 이야기다.** [05]({{< relref "05-generation-preference.md" >}})에서 다루는 NodeOverlay `priceAdjustment`로 7세대에 인위적인 가격 페널티를 걸면 정렬 키 자체가 왜곡되므로, 페널티가 과하면 7세대가 60위 밖으로 밀려 **폴백 후보가 사라진다.** 절단이 세대를 자르지 못한다는 성질은 자연 가격에서만 보장된다.
 {{< /callout >}}
 
 ### 2.2 코어 600 절단은 순서를 전달하지 않는다
@@ -197,7 +197,7 @@ func (b *CreateFleetInputBuilder) Build() *ec2.CreateFleetInput {
 
 **`lowest-price`.** 후보 60개를 받은 EC2가 그중 제일 싼 것을 고른다. 7세대가 8세대보다 싸다면 여기서 끝이다 — Karpenter는 8세대를 후보에 넣어 보냈고, EC2가 안 골랐을 뿐이다.
 
-`b.overlay`가 참일 때만 전략이 `prioritized`로 바뀌고 각 override의 `Priority`에 Karpenter가 계산한 가격이 실린다(`instance.go:552-556`). 이 플래그는 NodeClaim에 `karpenter.sh/price-overlay-applied` 어노테이션이 붙어 있을 때만 켜지고(`instance.go:365-367`), 그 어노테이션은 코어가 NodeOverlay 적용 인스턴스를 발견했을 때만 붙인다(`nodeclaimtemplate.go:129-133`). 이 경로의 손익과 미검증 지점은 [02]({{< relref "02-generation-preference.md" >}})에서 다룬다.
+`b.overlay`가 참일 때만 전략이 `prioritized`로 바뀌고 각 override의 `Priority`에 Karpenter가 계산한 가격이 실린다(`instance.go:552-556`). 이 플래그는 NodeClaim에 `karpenter.sh/price-overlay-applied` 어노테이션이 붙어 있을 때만 켜지고(`instance.go:365-367`), 그 어노테이션은 코어가 NodeOverlay 적용 인스턴스를 발견했을 때만 붙인다(`nodeclaimtemplate.go:129-133`). 이 경로의 손익과 미검증 지점은 [05]({{< relref "05-generation-preference.md" >}})에서 다룬다.
 
 {{< callout type="warning" >}}
 **확인 필요 — 소수점 `Priority`.** Karpenter는 `Priority: lo.ToPtr(float64(offering.Price))`로 시간당 달러 가격(예: `0.1746`)을 그대로 넣는다. 그런데 [AWS API 문서](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_FleetLaunchTemplateOverridesRequest.html)는 이 필드를 "Valid values are whole numbers starting at `0`"으로 규정한다. 1달러 미만 값들이 정수로 절삭된다면 전부 priority 0이 되어 우선순위가 조용히 무력화된다. **코드로도 문서로도 확정할 수 없어 실측이 필요하다.** `prioritized` 전략을 쓰는 방식(=오버레이 경로)의 신뢰도를 깎는 요인이다.
@@ -216,7 +216,7 @@ func (b *CreateFleetInputBuilder) Build() *ec2.CreateFleetInput {
 | provider 필터 6종 | `instance.go:309-320` | 없음 | ✗ |
 | provider 60 절단 | `instance.go:332` | 정렬 + 절단 | ✗ — 사이즈에 대해 단조 |
 | **CreateFleet 할당 전략** | `instance/types.go:244` | **결정** | **✅ 여기다** |
-| consolidation 교체 필터 | `scheduling/nodeclaim.go:411-419` | **결정** | **✅** → [03]({{< relref "03-consolidation-traps.md" >}}) |
+| consolidation 교체 필터 | `scheduling/nodeclaim.go:411-419` | **결정** | **✅** → [06]({{< relref "06-consolidation-traps.md" >}}) |
 
 후보 필터에 가격이 없다는 사실은 직접 볼 만하다. `filterInstanceTypesByRequirements`의 채택 조건은 단 한 줄이고, 정렬도 최소화도 없다.
 
@@ -254,8 +254,8 @@ type NodeSelectorRequirementWithMinValues struct {
 | "8세대만 쓴다" | ✅ | `instance-generation Gte 8` — hard constraint |
 | "8세대와 7세대 둘 다 허용" | ✅ | 두 세대를 `In`에 나열 |
 | "8세대를 **먼저**, 없으면 7세대" | ❌ (한 NodePool 안에서) | 표현할 필드가 없다 |
-| "8세대를 먼저, 없으면 7세대" (NodePool 2개) | ✅ | `spec.weight` → [02]({{< relref "02-generation-preference.md" >}}) |
-| "7세대를 비싸게 취급" | △ | NodeOverlay(알파) → [02]({{< relref "02-generation-preference.md" >}}) |
+| "8세대를 먼저, 없으면 7세대" (NodePool 2개) | ✅ | `spec.weight` → [05]({{< relref "05-generation-preference.md" >}}) |
+| "7세대를 비싸게 취급" | △ | NodeOverlay(알파) → [05]({{< relref "05-generation-preference.md" >}}) |
 
 ## 6. 세대를 말하는 어휘 — `instance-generation`과 Gte/Lte
 
@@ -400,7 +400,7 @@ relaxations := []func(*v1.Pod) *string{
 | **파드마다** 걸어야 한다 | 파드 스펙 필드다 | NodePool 하나 고치면 끝나는 문제를 전체 워크로드로 번지게 한다. 새 팀이 배포하는 파드는 자동으로 누락된다 |
 | 최고 가중치 term **하나만** 승격 | `requirements.go:98-100` `preferred[0]` | 이미 zone·arch 선호를 쓰고 있다면 세대 선호와 자리를 다툰다 |
 | 완화 순서 **4번째** | `preferences.go:39-44` | 파드에 preferred pod affinity/anti-affinity가 있으면 그것들이 먼저 벗겨진다 — 세대 제약이 풀리기까지 라운드가 더 든다 |
-| 완화 트리거가 **시뮬레이션 실패** | `scheduler.go:543` | 8세대 오퍼링이 아직 unavailable로 마킹되지 않았다면 시뮬레이션은 성공한다. 즉 실제 launch에서 ICE를 한 번 맞아야 비로소 완화된다 → 폴백 지연([04]({{< relref "04-ice-fallback.md" >}})) |
+| 완화 트리거가 **시뮬레이션 실패** | `scheduler.go:543` | 8세대 오퍼링이 아직 unavailable로 마킹되지 않았다면 시뮬레이션은 성공한다. 즉 실제 launch에서 ICE를 한 번 맞아야 비로소 완화된다 → 폴백 지연([07]({{< relref "07-ice-fallback.md" >}})) |
 | 토폴로지 요구사항 구성에는 required로 안 잡힘 | [공식 문서](https://karpenter.sh/docs/concepts/scheduling/) — "Karpenter does not interpret preferred affinities as required when constructing topology requirements" | topology spread를 쓰는 워크로드에서 의도와 다르게 퍼질 수 있다 |
 | 정책 하나로 전부 꺼짐 | `options.go:131` | 클러스터 운영자가 `PREFERENCE_POLICY=Ignore`로 바꾸면 전 워크로드의 세대 선호가 조용히 사라진다 |
 
@@ -413,7 +413,7 @@ relaxations := []func(*v1.Pod) *string{
 - **8세대가 지는 곳은 딱 두 군데다** — CreateFleet의 On-Demand 기본 전략 `lowest-price`(`instance/types.go:244`)와 consolidation의 `launchPrice < maxPrice`(`scheduling/nodeclaim.go:411-419`). 앞의 것이 "왜 안 뜨나", 뒤의 것이 "왜 떠도 갈아치워지나"다.
 - **단일 NodePool 안에 선호를 표현할 필드가 없다.** requirements는 Key/Operator/Values/MinValues 넷뿐이고 `weight`는 NodePool 레벨에만 있다. `instance-generation` + `Gte/Lte`는 "허용"을 정하는 어휘이지 "우선"을 정하는 어휘가 아니다.
 - **잘못 잡은 손잡이 둘.** `minValues`는 다양성 하한이라 오히려 7세대를 붙들어 두고, 파드의 `preferred` nodeAffinity는 파드 단위 개입 + term 하나 제한 + 완화 순서 4번째 + 실패 후 완화라는 제약을 전부 안고 간다.
-- ⇒ **선호를 만들려면 NodePool을 쪼개거나 가격 자체를 왜곡해야 한다.** 두 방법의 매니페스트 전문과 손익은 [02 세대 선호 만들기]({{< relref "02-generation-preference.md" >}})에 있다.
+- ⇒ **선호를 만들려면 NodePool을 쪼개거나 가격 자체를 왜곡해야 한다.** 두 방법의 매니페스트 전문과 손익은 [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}})에 있다.
 
 ## 참고 자료
 
@@ -421,7 +421,7 @@ relaxations := []func(*v1.Pod) *string{
 - `aws/karpenter-provider-aws` `main`(태그 `v1.7.0`·`v1.11.3` 대조): `pkg/providers/instance/instance.go`(필터 6종·60개 절단·overlay 분기·`checkODFallback`), `pkg/providers/instance/types.go`(CreateFleet 입력·할당 전략), `pkg/providers/instancetype/types.go`(세대 라벨 정규식), `pkg/apis/v1/labels.go`(well-known 라벨 등록)
 - [Karpenter Scheduling 개념 문서](https://karpenter.sh/docs/concepts/scheduling/) — well-known 라벨 표, Gte/Lte 확장, preferred affinity와 topology 요구사항의 관계
 - [EC2 `FleetLaunchTemplateOverridesRequest`](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_FleetLaunchTemplateOverridesRequest.html) — §3의 소수점 `Priority` 확인 필요 항목의 출처
-- 같은 클러스터군의 업그레이드 기록: [Karpenter 0.36.2 → 1.14.0 (v1beta1 → v1 CRD)]({{< relref "../../eks-upgrade/components/01-karpenter.md" >}})
+- 같은 클러스터군의 업그레이드 기록: [Karpenter 0.36.2 → 1.14.0 (v1beta1 → v1 CRD)]({{< relref "../eks-upgrade/components/01-karpenter.md" >}})
 
 {{< callout type="warning" >}}
 **이 문서에서 실측으로 확인해야 할 것**
