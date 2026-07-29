@@ -1,6 +1,6 @@
 ---
 title: "consolidation이 되돌리는 것"
-weight: 3
+weight: 6
 ---
 
 # 03 · consolidation이 되돌리는 것 — 구성해 놓고 나중에 무너지는 경로들
@@ -15,9 +15,9 @@ weight: 3
 - **drift는 값 추가엔 침묵하고 값 제거엔 폭발한다.** requirements 판정이 호환성 기반이라 세대 **추가**는 무해하지만, 풀을 쪼개려고 기존 풀에서 세대를 **제거**하면 RequirementsDrifted 대량 교체가 시작되고 **속도 제어 수단은 `disruption.budgets` 하나뿐**이다.
 {{< /callout >}}
 
-> **왜 이 문서인가.** [02]({{< relref "02-generation-preference.md" >}})의 매니페스트를 적용하면 그 순간엔 의도대로 동작한다. 문제는 그 다음이다 — Karpenter는 클러스터를 계속 다시 계산하는 컨트롤러고, 그 재계산 루프는 "세대"라는 단어를 모른다. 이 문서는 구성을 세워 놓고도 **며칠~몇 주에 걸쳐 조용히 무너지는 경로**를 코어 소스에서 하나씩 짚는다. 검증 기준은 kubernetes-sigs/karpenter `v1.14.0-6-gac7a021e`(로컬 체크아웃)다.
+> **왜 이 문서인가.** [05]({{< relref "05-generation-preference.md" >}})의 매니페스트를 적용하면 그 순간엔 의도대로 동작한다. 문제는 그 다음이다 — Karpenter는 클러스터를 계속 다시 계산하는 컨트롤러고, 그 재계산 루프는 "세대"라는 단어를 모른다. 이 문서는 구성을 세워 놓고도 **며칠~몇 주에 걸쳐 조용히 무너지는 경로**를 코어 소스에서 하나씩 짚는다. 검증 기준은 kubernetes-sigs/karpenter `v1.14.0-6-gac7a021e`(로컬 체크아웃)다.
 
-> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 왜 싼 게 이기는지는 [01 인스턴스는 누가 고르는가]({{< relref "01-instance-selection.md" >}}) · 실제 매니페스트는 [02 세대 선호 만들기]({{< relref "02-generation-preference.md" >}}) · ICE와 폴백 타이밍은 [04 용량이 없을 때]({{< relref "04-ice-fallback.md" >}}) · 상위 챕터 [Kubernetes]({{< relref "../_index.md" >}}) · v1beta1→v1 실제 업그레이드 기록은 [eks-upgrade 01 karpenter]({{< relref "../../eks-upgrade/components/01-karpenter.md" >}})
+> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 왜 싼 게 이기는지는 [04 인스턴스는 누가 고르는가]({{< relref "04-instance-selection.md" >}}) · 실제 매니페스트는 [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}}) · ICE와 폴백 타이밍은 [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) · 자매 챕터 [K8s 버전별 신기능]({{< relref "../k8s-features/_index.md" >}}) · v1beta1→v1 실제 업그레이드 기록은 [eks-upgrade 01 karpenter]({{< relref "../eks-upgrade/components/01-karpenter.md" >}})
 
 ## 1. 교체 판정은 부등식 하나다
 

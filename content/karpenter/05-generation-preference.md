@@ -1,6 +1,6 @@
 ---
 title: "세대 선호 만들기"
-weight: 2
+weight: 5
 ---
 
 # 02 · 세대 선호 만들기 — weight vs NodeOverlay
@@ -15,9 +15,9 @@ weight: 2
 - **적용 순서를 틀리면 대량 교체가 난다.** 기존 단일 풀에서 세대를 *빼는* 편집은 RequirementsDrifted를 유발한다. 두 풀을 새로 만든 뒤 기존 풀을 지우는 순서로 간다.
 {{< /callout >}}
 
-> **"c8i/m8i/r8i를 먼저 쓰고, 없으면 c7i/m7i/r7i로"는 Karpenter가 1급으로 제공하지 않는 요구다.** `NodePool.spec.template.spec.requirements`의 스키마는 Key/Operator/Values/MinValues뿐이고, 그 안에 선호도를 표현할 필드가 없다([01]({{< relref "01-instance-selection.md" >}})). 업스트림도 이 요구를 두 번 반려했다 — [karpenter#1829](https://github.com/kubernetes-sigs/karpenter/issues/1829) *closed as not planned*, [karpenter-provider-aws#6721](https://github.com/aws/karpenter-provider-aws/issues/6721) *closed*. 이 문서는 남은 두 가지 우회로를 코드까지 내려가 비교하고, **복붙해서 쓸 매니페스트 전문**을 내놓는다.
+> **"c8i/m8i/r8i를 먼저 쓰고, 없으면 c7i/m7i/r7i로"는 Karpenter가 1급으로 제공하지 않는 요구다.** `NodePool.spec.template.spec.requirements`의 스키마는 Key/Operator/Values/MinValues뿐이고, 그 안에 선호도를 표현할 필드가 없다([04]({{< relref "04-instance-selection.md" >}})). 업스트림도 이 요구를 두 번 반려했다 — [karpenter#1829](https://github.com/kubernetes-sigs/karpenter/issues/1829) *closed as not planned*, [karpenter-provider-aws#6721](https://github.com/aws/karpenter-provider-aws/issues/6721) *closed*. 이 문서는 남은 두 가지 우회로를 코드까지 내려가 비교하고, **복붙해서 쓸 매니페스트 전문**을 내놓는다.
 
-> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 왜 싼 게 이기는지는 [01 인스턴스는 누가 고르는가]({{< relref "01-instance-selection.md" >}}) · 여기서 만든 선호를 되돌리는 힘은 [03 consolidation이 되돌리는 것]({{< relref "03-consolidation-traps.md" >}}) · 폴백이 실제로 걸리는 타이밍은 [04 용량이 없을 때]({{< relref "04-ice-fallback.md" >}}) · 상위 챕터 [Kubernetes]({{< relref "../_index.md" >}})
+> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 왜 싼 게 이기는지는 [04 인스턴스는 누가 고르는가]({{< relref "04-instance-selection.md" >}}) · 여기서 만든 선호를 되돌리는 힘은 [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}}) · 폴백이 실제로 걸리는 타이밍은 [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) · 자매 챕터 [K8s 버전별 신기능]({{< relref "../k8s-features/_index.md" >}})
 
 **검증 기준 버전**: 코어 `kubernetes-sigs/karpenter` **v1.14.0-6-gac7a021e**(로컬 체크아웃), provider-aws는 `main` / `v1.7.0` / `v1.11.3`. 주의 — provider-aws v1.11.3은 코어 **v1.11.2**를 핀한다. 아래 코어 라인번호는 v1.14 기준이라 실제 배포 버전과 몇 줄 어긋날 수 있다.
 
@@ -100,7 +100,7 @@ scheduler.NumConcurrentReconciles(int(math.Ceil(float64(options.FromContext(ctx)
 }
 {{< /seq >}}
 
-시간 상수는 셋이다. NodeClaim은 ICE 시 **즉시 삭제되고 재큐되지 않으며**(`launch.go:85-97`), 파드가 다시 pending으로 관측되는 데 PodController의 10초 재큐(`provisioning/controller.go:77`)와 배치창 1~10초(`options.go:129-130`)가 더해진다 — **대략 11~30초**. 그 뒤 3분간은 provider-aws의 `UnavailableOfferingsTTL`(3분) 덕에 재시도 없이 곧바로 gen7이 뽑히고, 3분이 지나면 다시 gen8을 시도한다. 상세는 [04]({{< relref "04-ice-fallback.md" >}}).
+시간 상수는 셋이다. NodeClaim은 ICE 시 **즉시 삭제되고 재큐되지 않으며**(`launch.go:85-97`), 파드가 다시 pending으로 관측되는 데 PodController의 10초 재큐(`provisioning/controller.go:77`)와 배치창 1~10초(`options.go:129-130`)가 더해진다 — **대략 11~30초**. 그 뒤 3분간은 provider-aws의 `UnavailableOfferingsTTL`(3분) 덕에 재시도 없이 곧바로 gen7이 뽑히고, 3분이 지나면 다시 gen8을 시도한다. 상세는 [07]({{< relref "07-ice-fallback.md" >}}).
 
 ### 1.4 파드 쪽에는 아무것도 걸지 마라
 
@@ -239,7 +239,7 @@ NodeOverlay=false,StaticCapacity=false,CapacityBuffer=false
 
 1. **결정성이 코어 안에서 닫힌다.** A는 gen8 풀의 요청에 8세대 타입만 실어 보내므로 EC2가 세대를 고를 여지 자체가 없다. B는 마지막 결정을 `prioritized` 해석에 맡기는데, 거기에 §2.4의 미검증 구멍이 둘 있다.
 2. **알파를 회피한다.** B는 `v1alpha1` + 기본 OFF 게이트 + provider 버전 의존 + 게이트 활성화 시의 평가 공백이 한 세트다. 프로덕션 노드 프로비저닝 경로에 이 조합을 얹을 이유가 약하다.
-3. **A의 최대 약점은 실제로는 좁다.** "consolidation이 gen8을 gen7로 다운그레이드한다"는 우려는 있지만, 대체안 시뮬레이션도 같은 weight 정렬 스케줄러를 쓰므로(`disruption/helpers.go:113` → `provisioner.NewScheduler`) 평상시엔 gen8 풀에서 대체안이 나오고 그 대체안은 `launchPrice < maxPrice`(strict 부등호)에 걸려 탈락한다. **크로스 풀 다운그레이드는 gen8 풀이 스케줄에 실패할 때만 일어나며, 그건 정확히 gen7을 원하는 상황이다.** 상세는 [03]({{< relref "03-consolidation-traps.md" >}}).
+3. **A의 최대 약점은 실제로는 좁다.** "consolidation이 gen8을 gen7로 다운그레이드한다"는 우려는 있지만, 대체안 시뮬레이션도 같은 weight 정렬 스케줄러를 쓰므로(`disruption/helpers.go:113` → `provisioner.NewScheduler`) 평상시엔 gen8 풀에서 대체안이 나오고 그 대체안은 `launchPrice < maxPrice`(strict 부등호)에 걸려 탈락한다. **크로스 풀 다운그레이드는 gen8 풀이 스케줄에 실패할 때만 일어나며, 그건 정확히 gen7을 원하는 상황이다.** 상세는 [06]({{< relref "06-consolidation-traps.md" >}}).
 
 ### B가 A보다 나은 유일한 지점
 
@@ -250,7 +250,7 @@ NodeOverlay=false,StaticCapacity=false,CapacityBuffer=false
 ## 4. 매니페스트 전문
 
 {{< callout type="warning" >}}
-**적용 순서를 먼저 읽어라.** 기존 단일 NodePool의 `requirements`에서 세대를 *빼는* 편집은 그 세대로 떠 있던 노드를 전부 `RequirementsDrifted`로 만들어 **대량 교체**를 시작시킨다(`drift.go:170-180` — 값을 *늘리는* 건 드리프트가 아니지만 *줄이는* 건 드리프트다). 순서는 **① 아래 두 풀을 새로 생성 → ② 신규 파드가 gen8로 붙는지 확인 → ③ 기존 풀 삭제**다. `disruption.budgets`로 교체 속도를 제어하라. 상세는 [03]({{< relref "03-consolidation-traps.md" >}}).
+**적용 순서를 먼저 읽어라.** 기존 단일 NodePool의 `requirements`에서 세대를 *빼는* 편집은 그 세대로 떠 있던 노드를 전부 `RequirementsDrifted`로 만들어 **대량 교체**를 시작시킨다(`drift.go:170-180` — 값을 *늘리는* 건 드리프트가 아니지만 *줄이는* 건 드리프트다). 순서는 **① 아래 두 풀을 새로 생성 → ② 신규 파드가 gen8로 붙는지 확인 → ③ 기존 풀 삭제**다. `disruption.budgets`로 교체 속도를 제어하라. 상세는 [06]({{< relref "06-consolidation-traps.md" >}}).
 {{< /callout >}}
 
 ### 4.1 NodePool 두 개 (권장)
@@ -367,7 +367,7 @@ spec:
 
 ### 4.2 Helm values 형태 (finance 클러스터가 쓰는 형태)
 
-finance는 org 차트로 karpenter를 배포하고 NodePool도 차트 values로 관리한다. 구 차트의 `provisioner:`(spot/ondemand/systemOndemand 등 per-pool 키) 구조는 v1 스키마 신 차트에서 `nodePool:` / `nodeClass:` **map 구조**로 재작성된다([karpenter 업그레이드 기록]({{< relref "../../eks-upgrade/components/01-karpenter.md" >}}) §적용 절차 2번).
+finance는 org 차트로 karpenter를 배포하고 NodePool도 차트 values로 관리한다. 구 차트의 `provisioner:`(spot/ondemand/systemOndemand 등 per-pool 키) 구조는 v1 스키마 신 차트에서 `nodePool:` / `nodeClass:` **map 구조**로 재작성된다([karpenter 업그레이드 기록]({{< relref "../eks-upgrade/components/01-karpenter.md" >}}) §적용 절차 2번).
 
 {{< callout type="warning" >}}
 **아래는 "구조"의 예시이고, 키 이름은 차트마다 다르다.** `weight` / `expireAfter` / `requirements`가 어느 깊이에 오는지, `nodeClassRef`가 문자열인지 객체인지는 org 차트의 `values.schema.json`(또는 `templates/nodepool.yaml`)로 **반드시 실제 스키마를 확인**하고 옮겨야 한다. 차트가 `weight`를 아예 노출하지 않으면 그 키부터 추가해야 한다.
@@ -517,4 +517,4 @@ price = odPrice / 10_000_000.0
 - [Weighted NodePools](https://karpenter.sh/docs/concepts/scheduling/#weighted-nodepools) — "not guaranteed that Karpenter will always choose the highest priority NodePool"의 원문 · [NodeOverlays 개념 문서](https://karpenter.sh/docs/concepts/nodeoverlays/)
 - [EC2 Fleet allocation strategies](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-allocation-strategy.html) · [FleetLaunchTemplateOverridesRequest](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_FleetLaunchTemplateOverridesRequest.html) — §2.4의 두 구멍이 여기서 나온다
 - 반려된 업스트림 요청: [karpenter#1829 `consolidationPolicy: Underweight`](https://github.com/kubernetes-sigs/karpenter/issues/1829) *closed as not planned* · [karpenter-provider-aws#6721 "Ability to prefer generation over price"](https://github.com/aws/karpenter-provider-aws/issues/6721) *closed*
-- 같은 챕터: [01 인스턴스는 누가 고르는가]({{< relref "01-instance-selection.md" >}}) · [03 consolidation이 되돌리는 것]({{< relref "03-consolidation-traps.md" >}}) · [04 용량이 없을 때]({{< relref "04-ice-fallback.md" >}}) · 실제 업그레이드 기록은 [eks-upgrade · karpenter]({{< relref "../../eks-upgrade/components/01-karpenter.md" >}})
+- 같은 챕터: [04 인스턴스는 누가 고르는가]({{< relref "04-instance-selection.md" >}}) · [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}}) · [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) · 실제 업그레이드 기록은 [eks-upgrade · karpenter]({{< relref "../eks-upgrade/components/01-karpenter.md" >}})

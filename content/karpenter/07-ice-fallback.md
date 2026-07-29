@@ -1,6 +1,6 @@
 ---
 title: "용량이 없을 때 — ICE와 폴백 지연"
-weight: 4
+weight: 7
 ---
 
 # 04 · 용량이 없을 때 — ICE와 폴백 지연
@@ -17,7 +17,7 @@ weight: 4
 
 > **원래 전제부터 확인한다.** 이 챕터의 출발점은 "8세대(c8i/m8i/r8i)는 용량이 부족할 수 있으니 7세대를 폴백으로 넣고 싶다"였다. 그런데 폴백 쪽은 이미 동작한다 — 코어와 provider-aws가 ICE를 오퍼링 가용성으로 환산해 스케줄링에 되먹이는 배선이 완비돼 있다. 문제는 반대 방향이었다. 이 문서는 **폴백이 실제로 어느 코드에서 어떤 순서로 일어나고 몇 초가 걸리는지**를 끝까지 내려가서, 01~03에서 고른 구성이 ICE 상황에서 어떻게 행동하는지 확정한다.
 
-> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 왜 싼 게 이기는지는 [01 인스턴스는 누가 고르는가]({{< relref "01-instance-selection.md" >}}) · 상향 강제 매니페스트는 [02 세대 선호 만들기]({{< relref "02-generation-preference.md" >}}) · 폴백 후 되돌아오지 않는 문제는 [03 consolidation이 되돌리는 것]({{< relref "03-consolidation-traps.md" >}}) · 상위 챕터는 [Kubernetes]({{< relref "../_index.md" >}}) · 실제 업그레이드 기록은 [eks-upgrade 01 Karpenter]({{< relref "../../eks-upgrade/components/01-karpenter.md" >}})
+> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 왜 싼 게 이기는지는 [04 인스턴스는 누가 고르는가]({{< relref "04-instance-selection.md" >}}) · 상향 강제 매니페스트는 [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}}) · 폴백 후 되돌아오지 않는 문제는 [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}}) · 자매 챕터는 [K8s 버전별 신기능]({{< relref "../k8s-features/_index.md" >}}) · 실제 업그레이드 기록은 [eks-upgrade 01 Karpenter]({{< relref "../eks-upgrade/components/01-karpenter.md" >}})
 
 **검증 기준 버전**: 코어 `kubernetes-sigs/karpenter` **v1.14.0-6-gac7a021e**(로컬 체크아웃), provider-aws는 `main` / `v1.7.0` / `v1.11.3`. 별도 표기가 없으면 provider-aws 인용은 `main` 기준이다. 아래 코어 라인번호는 v1.14 기준이라 실제 배포 버전과 몇 줄 어긋날 수 있다.
 
@@ -34,7 +34,7 @@ ICE 한 번이 스케줄링에 반영되는 경로는 네 홉이다. 사람이 �
 
 여기에 결정적인 성질 하나가 더 붙는다. 프로비저닝 루프는 **매 루프마다 `cloudProvider.GetInstanceTypes()`를 새로 호출한다**(`pkg/controllers/provisioning/provisioner.go`). 즉 ICE 마킹과 다음 스케줄링 사이에 별도의 캐시 만료 대기가 없다 — 다음 루프는 곧바로 갱신된 가용성을 본다.
 
-그래서 "7세대를 폴백으로 넣어두면 8세대가 없을 때 7세대가 뜬다"는 기대는 **구성과 무관하게 성립한다.** 단일 NodePool에 6개 패밀리를 다 넣어도, NodePool을 둘로 쪼개도 마찬가지다. 이 문서에서 구성별로 갈리는 건 "폴백이 되느냐"가 아니라 **"폴백이 몇 초 걸리느냐"와 "폴백 전에 8세대를 시도하기는 하느냐"** 두 가지뿐이다. 후자가 [01]({{< relref "01-instance-selection.md" >}})·[02]({{< relref "02-generation-preference.md" >}})의 주제고, 전자가 아래 §2~§4다.
+그래서 "7세대를 폴백으로 넣어두면 8세대가 없을 때 7세대가 뜬다"는 기대는 **구성과 무관하게 성립한다.** 단일 NodePool에 6개 패밀리를 다 넣어도, NodePool을 둘로 쪼개도 마찬가지다. 이 문서에서 구성별로 갈리는 건 "폴백이 되느냐"가 아니라 **"폴백이 몇 초 걸리느냐"와 "폴백 전에 8세대를 시도하기는 하느냐"** 두 가지뿐이다. 후자가 [04]({{< relref "04-instance-selection.md" >}})·[05]({{< relref "05-generation-preference.md" >}})의 주제고, 전자가 아래 §2~§4다.
 
 ## 2. ICE가 나면 코어는 NodeClaim을 지운다
 
@@ -152,7 +152,7 @@ func (u *UnavailableOfferings) IsUnavailable(instanceType ec2types.InstanceType,
 3분이라는 숫자에서 파생되는 운영 함의는 두 가지다.
 
 - **부족이 지속되면 3분 주기로 실패 왕복이 반복된다.** TTL 만료 → 8세대가 다시 후보 → `CreateFleet` → ICE → 삭제 → 재큐. 파드가 pending으로 남아 있는 내내 이 사이클이 돈다. 이벤트 스팸과 `disrupted_total` 증가가 보이면 대부분 이 상태다.
-- **반대로 용량이 회복되면 최대 3분 뒤 8세대가 저절로 부활한다.** 캐시를 비우는 조작도, 컨트롤러 재시작도 필요 없다. 단 이건 "**앞으로 뜰 노드**가 8세대로 돌아온다"는 뜻이지 **이미 떠 있는 7세대 노드가 8세대로 교체된다는 뜻이 아니다** — 그쪽은 [03]({{< relref "03-consolidation-traps.md" >}})의 주제고, consolidation은 더 싼 방향으로만 움직이므로 자동 복귀 경로가 없다.
+- **반대로 용량이 회복되면 최대 3분 뒤 8세대가 저절로 부활한다.** 캐시를 비우는 조작도, 컨트롤러 재시작도 필요 없다. 단 이건 "**앞으로 뜰 노드**가 8세대로 돌아온다"는 뜻이지 **이미 떠 있는 7세대 노드가 8세대로 교체된다는 뜻이 아니다** — 그쪽은 [06]({{< relref "06-consolidation-traps.md" >}})의 주제고, consolidation은 더 싼 방향으로만 움직이므로 자동 복귀 경로가 없다.
 
 토폴로지 제약이 있으면 첫 번째 함의가 악화된다. zone 고정 PVC를 문 StatefulSet처럼 AZ를 하나로 묶어 두면, 다른 AZ의 8세대가 멀쩡해도 그 AZ에서만 3분마다 반복 실패한다.
 
@@ -171,13 +171,13 @@ func (u *UnavailableOfferings) IsUnavailable(instanceType ec2types.InstanceType,
 
 **B의 평가 방식을 오해하지 마라.** "8세대 풀을 먼저 시도하고 실패하면 7세대 풀로 내려간다"는 순차 short-circuit이 아니다. `addToNewNodeClaim`은 `parallelizeUntil`로 NodeClaimTemplate들을 워커에 흩뿌리고, 채택 규칙은 **성공한 것 중 인덱스가 가장 앞선(=weight가 가장 높은) 결과**다(`scheduling/scheduler.go:759`의 `if i >= idx { return false }`).
 
-다만 이게 **"모든 템플릿이 매 루프 평가된다"는 뜻은 아니다.** `parallelizeUntil`의 워커는 `if !doWorkPiece(work) { return }`으로 그 자리에서 죽고(`scheduler.go:939-961`), **성공 경로가 바로 그 `return false`**(`scheduler.go:780`)다. 반대로 실패는 `return true`라 워커가 다음 조각을 계속 집는다. 워커 수는 상수가 아니라 `ceil(CPURequests / 1000)`(`provisioner.go:390`)이라, **컨트롤러 CPU request가 1코어 미만이면 워커는 1개**고 이때 인덱스 0(8세대)이 성공하는 순간 루프가 끝나 **7세대 템플릿은 평가조차 되지 않는다.** 결정성은 평가 순서가 아니라 뮤텍스로 보호된 최소 인덱스 비교가 만든다 — 자세한 것은 [02]({{< relref "02-generation-preference.md" >}}) §1.2에 있다.
+다만 이게 **"모든 템플릿이 매 루프 평가된다"는 뜻은 아니다.** `parallelizeUntil`의 워커는 `if !doWorkPiece(work) { return }`으로 그 자리에서 죽고(`scheduler.go:939-961`), **성공 경로가 바로 그 `return false`**(`scheduler.go:780`)다. 반대로 실패는 `return true`라 워커가 다음 조각을 계속 집는다. 워커 수는 상수가 아니라 `ceil(CPURequests / 1000)`(`provisioner.go:390`)이라, **컨트롤러 CPU request가 1코어 미만이면 워커는 1개**고 이때 인덱스 0(8세대)이 성공하는 순간 루프가 끝나 **7세대 템플릿은 평가조차 되지 않는다.** 결정성은 평가 순서가 아니라 뮤텍스로 보호된 최소 인덱스 비교가 만든다 — 자세한 것은 [05]({{< relref "05-generation-preference.md" >}}) §1.2에 있다.
 
-그리고 8세대 풀이 "실패"한다는 건 ICE 하나만을 뜻하지 않는다. 사유는 넷이다 — ① **오퍼링 전멸**(ICE 마킹으로 `Offerings.Available()`가 비어 그 템플릿에서 파드가 fit하지 않음) ② **NodePool limits 소진**(`scheduler.go:709-718`의 node limits / `filterByRemainingResources`) ③ **`minValues` 불충족** ④ **파드 요구사항과 비호환**. §1의 ICE 마킹이 만드는 것은 ①뿐이고, 나머지 셋은 용량과 무관하게 같은 폴백을 일으킨다([03]({{< relref "03-consolidation-traps.md" >}}) §3).
+그리고 8세대 풀이 "실패"한다는 건 ICE 하나만을 뜻하지 않는다. 사유는 넷이다 — ① **오퍼링 전멸**(ICE 마킹으로 `Offerings.Available()`가 비어 그 템플릿에서 파드가 fit하지 않음) ② **NodePool limits 소진**(`scheduler.go:709-718`의 node limits / `filterByRemainingResources`) ③ **`minValues` 불충족** ④ **파드 요구사항과 비호환**. §1의 ICE 마킹이 만드는 것은 ①뿐이고, 나머지 셋은 용량과 무관하게 같은 폴백을 일으킨다([06]({{< relref "06-consolidation-traps.md" >}}) §3).
 
 B에서 왕복이 반복되는 조건도 여기서 나온다. ICE 캐시는 (타입, AZ, capacity-type) 단위인데 8세대 풀에는 보통 수십 개 조합이 들어 있다. 몇 개만 마킹되면 남은 조합으로 8세대 풀이 여전히 스케줄에 성공하고, 그 NodeClaim이 또 ICE를 맞는다. **8세대 풀의 인스턴스 타입 범위를 좁게 잡을수록 한 번의 ICE로 풀 전체가 한꺼번에 무력화되어 폴백이 빨라진다** — 넓게 잡는 게 항상 좋은 게 아니다.
 
-**C의 "지연 0초"는 확정 사실이 아니다.** 오버레이가 적용되면 provider-aws가 온디맨드 할당 전략을 `lowest-price` → `prioritized`로 바꾸고 각 override의 `Priority`에 조정 가격을 싣는다. 그런데 AWS API 레퍼런스는 `Priority`를 "Valid values are whole numbers starting at `0`"으로 규정하는 반면 Karpenter는 `Priority: lo.ToPtr(float64(offering.Price))`로 소수 달러값(0.17 vs 0.19)을 넣는다. **정수 절단이 일어나면 시간당 $1 미만 인스턴스가 전부 priority 0이 되어 세대 선호가 조용히 무력화된다.** 게다가 AWS 문서의 "낮은 우선순위 풀로 흘러내린다"는 폴백 서술은 `lowest-price` 항목에만 있고 `prioritized` 항목에는 없다. **코드로도 문서로도 확정할 수 없어 확인 필요로 남긴다** — C를 도입한다면 실제로 어떤 패밀리가 뜨는지 실측이 필수다. 자세한 것은 [02 세대 선호 만들기]({{< relref "02-generation-preference.md" >}})에 있다.
+**C의 "지연 0초"는 확정 사실이 아니다.** 오버레이가 적용되면 provider-aws가 온디맨드 할당 전략을 `lowest-price` → `prioritized`로 바꾸고 각 override의 `Priority`에 조정 가격을 싣는다. 그런데 AWS API 레퍼런스는 `Priority`를 "Valid values are whole numbers starting at `0`"으로 규정하는 반면 Karpenter는 `Priority: lo.ToPtr(float64(offering.Price))`로 소수 달러값(0.17 vs 0.19)을 넣는다. **정수 절단이 일어나면 시간당 $1 미만 인스턴스가 전부 priority 0이 되어 세대 선호가 조용히 무력화된다.** 게다가 AWS 문서의 "낮은 우선순위 풀로 흘러내린다"는 폴백 서술은 `lowest-price` 항목에만 있고 `prioritized` 항목에는 없다. **코드로도 문서로도 확정할 수 없어 확인 필요로 남긴다** — C를 도입한다면 실제로 어떤 패밀리가 뜨는지 실측이 필수다. 자세한 것은 [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}})에 있다.
 
 ## 5. spot을 섞는 순간 논의가 바뀐다
 
@@ -270,7 +270,7 @@ if odPrice, ok := r.PricingProvider.OnDemandPrice(ec2types.InstanceType(it.Name)
 if IsReservedOfferingError(err) { … idx = i; return false }
 ```
 
-예약 오퍼링을 확보하려다 실패한 경우(`"one or more instance types with compatible reserved offerings are available, but could not be reserved"`)에는 **하위 weight NodePool의 성공 결과를 채택하지 않는다.** 즉 8세대 풀에 ODCR을 걸어 뒀는데 예약 슬롯 경합에 진 순간, 7세대 풀로 내려가는 대신 그 루프를 통째로 포기하고 다음 루프를 기다린다. 이게 [02]({{< relref "02-generation-preference.md" >}})의 weight 구성과 겹칠 때 실제 지연이 얼마나 되는지는 **확인 필요** — 코드 경로는 확인했지만 재현 실험은 하지 않았다.
+예약 오퍼링을 확보하려다 실패한 경우(`"one or more instance types with compatible reserved offerings are available, but could not be reserved"`)에는 **하위 weight NodePool의 성공 결과를 채택하지 않는다.** 즉 8세대 풀에 ODCR을 걸어 뒀는데 예약 슬롯 경합에 진 순간, 7세대 풀로 내려가는 대신 그 루프를 통째로 포기하고 다음 루프를 기다린다. 이게 [05]({{< relref "05-generation-preference.md" >}})의 weight 구성과 겹칠 때 실제 지연이 얼마나 되는지는 **확인 필요** — 코드 경로는 확인했지만 재현 실험은 하지 않았다.
 
 {{< callout type="warning" >}}
 **EC2NodeClass 쪽 필드는 직접 확인하라.** provider-aws는 `nodeClass.CapacityReservations()`로 예약 목록을 읽어 reserved 오퍼링을 만든다(`reserved_capacity_resolver.go`). 그 목록을 채우는 EC2NodeClass의 셀렉터 필드명과 스키마는 이 조사에서 **확인하지 못했다** — 로컬에 provider-aws의 `pkg/apis/v1` EC2NodeClass 타입 정의 사본이 없다. 쓰기 전에 `kubectl explain ec2nodeclass.spec`으로 사용 중인 버전의 필드를 확인할 것. 그리고 ODCR은 예약해 둔 시간만큼 돈이 나간다 — 알파 회피의 대가는 비용이다.
@@ -312,6 +312,6 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter \
 | 이벤트는 나는데 `disrupted_total`이 **안 오름** | ICE가 아닌 에러가 섞여 `CreateError` 경로를 탄 것(§2-b). 서브넷 IP 고갈·런치 템플릿 문제 의심 | NodeClaim의 `Launched` 컨디션 reason 확인. §3의 `subnetCache` 축 점검 |
 | ④번 로그가 8세대 풀에만 반복 | 오퍼링이 전멸해 그 풀이 스케줄 후보에서 빠짐 = 폴백이 정상 동작 중 | 정상. 7세대 노드 비율만 추적 |
 | ⑤번 로그 | EC2NodeClass가 Ready가 아니라 풀이 통째로 제외됨 — **ICE와 무관** | NodeClass 상태 먼저 고칠 것 |
-| NodePool별 노드 수에서 **gen7 비중이 튐** | ICE가 지속됐거나, 한 번 내려간 뒤 복귀하지 못한 상태 | [03 consolidation이 되돌리는 것]({{< relref "03-consolidation-traps.md" >}})의 `expireAfter` 절 |
+| NodePool별 노드 수에서 **gen7 비중이 튐** | ICE가 지속됐거나, 한 번 내려간 뒤 복귀하지 못한 상태 | [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}})의 `expireAfter` 절 |
 
 마지막 줄이 이 문서와 03을 잇는 지점이다. **ICE 폴백은 "다음에 뜰 노드"만 바꾼다.** 3분 뒤 8세대가 후보로 돌아와도 그 사이 떠버린 7세대 노드는 그대로 남고, consolidation은 더 싼 방향으로만 움직이므로 스스로 되돌아오지 않는다. 폴백이 공짜인 것과 복귀가 공짜인 것은 전혀 다른 얘기다.
