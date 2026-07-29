@@ -19,3 +19,5 @@ toc: false
 - **[HyperDX 내재화]({{< relref "hyperdx/_index.md" >}})** — HyperDX ClickStack 실전 자체 배포 청사진(EBS-first, RUM-only 월 0.7TB): 스택 토폴로지·MongoDB 최소 운영, gp3/io2 hot·S3 cold 티어링, operator 다운타임, Keeper, 복제·멀티마스터·failover, 3개월/1년 용량 산정.
 - **[HyperDX 직접 운영하기]({{< relref "hyperdx-operating/_index.md" >}})** — 내재화 챕터의 기준 문서들 위에서 "직접 운영하려면 어떤 순서로 무엇을 판단해야 하나"를 6부로 구체화한 운영 트랙: 아키텍처 → 티어링 → 가용성 → operator 패턴 → 규모 산정 → 의사결정 가이드.
 - **[EKS 버전 업그레이드]({{< relref "eks-upgrade/_index.md" >}})** — finance 클러스터 EKS 1.31→1.35 blue-green 이관 실전 기록: 왜 blue-green Terraform인가(배경·CAPA 진단), 목표 버전 판정, Fargate+karpenter 클러스터 설정, managed addon, 부트스트랩 오케스트레이션, 컷오버·롤백 계약, 컴포넌트별 마이그레이션.
+- **[K8s 버전별 신기능]({{< relref "k8s-features/_index.md" >}})** — 릴리스 노트가 말해주지 않는 "우리 클러스터에서 지금 써도 되는가": 구현 코드·리포팅된 버그·케이스별 득실까지 내려가 판단한다. in-place pod resize(1.35 GA).
+- **[Karpenter]({{< relref "karpenter/_index.md" >}})** — 0.36 이후 변경을 운영 판단까지 정리: v1이 바꾼 것은 API가 아니라 동작(drift 강제 활성화·forceful expiration·ODCR 회귀), 1.7~1.14의 켤 만한 기능(flex 배제 라벨·Static NodePool·Capacity Buffers), 그리고 NodePool requirements로 affinity를 통제하는 키워드 레퍼런스.
