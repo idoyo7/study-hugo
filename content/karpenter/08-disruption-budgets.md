@@ -1,0 +1,261 @@
+---
+title: "언제 무엇을 멈출 것인가 — disruption 예산"
+weight: 8
+---
+
+# 08 · 언제 무엇을 멈출 것인가 — disruption 예산 설계
+
+{{< callout type="info" >}}
+**한눈에**
+- disruption 이유 셋은 **파드를 옮기느냐**로 갈린다. `Empty`만 안 옮긴다 — 이게 예산 설계의 출발점이다.
+- **`reasons`를 생략한 예산은 셋 모두에 적용된다.** 피크 차단용 `nodes: "0"`에 `reasons`를 안 적으면 **빈 노드 정리까지 같이 멈춘다.** 가장 흔한 오설정이고, 실패가 아니라 침묵으로 나타나 발견이 늦다.
+- 같은 이유에 예산이 여럿 활성이면 **가장 제한적인 값이 이긴다.** 전역 `nodes: "1"` 하나가 나머지 설계를 전부 무력화할 수 있다.
+- 예산은 **graceful disruption만** 막는다. `expireAfter` 만료와 인터럽션은 예산을 소비하지 않는다.
+- `nodes: "0"`은 **실행만** 막는다. drift 판정과 마킹은 계속 쌓이므로, 예산을 푸는 순간 밀린 교체가 한꺼번에 터진다.
+- "노드가 안 줄어든다"의 진단 순서는 **이벤트 → 예산 → requirements → topology**다. 예산이 1순위인 이유는 유일하게 **시도했다는 증거를 이벤트로 남기기** 때문이다.
+{{< /callout >}}
+
+> **왜 이 문서인가.** v1에서 drift는 끌 수 없고 expiration은 forceful로 되돌아갔다([01]({{< relref "01-changelog-v1-transition.md" >}})). 남은 통제 수단이 실질적으로 `disruption.budgets` 하나뿐인데, 이 필드는 문법이 짧아서 다 이해했다고 착각하기 쉽다. 실제로는 **생략된 필드의 기본 해석**이 동작의 절반을 결정하고, 그 절반이 조용히 틀린다.
+>
+> 예산을 "세대 다운그레이드를 막는 임시 방어선"으로 쓰는 용법은 [06 §4.2]({{< relref "06-consolidation-traps.md" >}})가, CA bundle drift 구간의 방어 yaml은 [02 §6.1]({{< relref "02-changelog-maturity.md" >}})이 소유한다. 여기서는 **예산 자체의 평가 규칙과 시간대 설계**를 다룬다.
+
+## 1. 이유 셋은 성질이 다르다
+
+`reasons`에 쓸 수 있는 값은 셋뿐이다(`karpenter-core/pkg/apis/v1/nodepool.go`의 `DisruptionReason` enum). 갈라야 할 기준은 하나다 — **파드를 실제로 옮기는가.**
+
+| 이유 | 언제 | 파드 이동 | 피크에 위험 |
+|---|---|---|---|
+| `Empty` | 워크로드 파드가 0 | **없음** | 낮음 |
+| `Underutilized` | 더 싼 배치를 찾음 | 있음 | **높음** |
+| `Drifted` | 해시·requirement 불일치 | 있음 | **높음** |
+
+`Empty` 노드에 남은 건 DaemonSet뿐이고, 그것들은 노드와 함께 사라질 뿐 다른 노드로 재스케줄되지 않는다. `Emptiness`의 Command에는 애초에 `Replacements` 필드가 없어 **삭제만 한다**(`emptiness.go:97-100`).
+
+**그래서 피크 시간에 막아야 할 것은 뒤의 둘이지 `Empty`가 아니다.** 빈 노드를 피크 내내 살려두는 건 비용만 나가고 얻는 게 없다.
+
+## 2. 평가 규칙 넷 — 셋은 문서에 있고 하나는 안 물려봐야 모른다
+
+### 2.1 `reasons`를 생략하면 모든 이유에 적용된다
+
+이게 실전에서 가장 자주 물리는 지점이다.
+
+```yaml
+budgets:
+  - nodes: "0"
+    schedule: "0 1 * * *"
+    duration: 4h            # reasons 없음 → Empty·Underutilized·Drifted 전부 정지
+```
+
+의도는 "피크에 파드를 흔들지 마라"인데, 실제 효과는 "피크에 **아무것도 하지 마라**"다. 빈 노드가 4시간 동안 그대로 요금을 먹는다. 증상은 NodePool 이벤트에 그대로 찍힌다.
+
+```
+Normal  DisruptionBlocked  No allowed disruptions for disruption reason Empty due to blocking budget
+```
+
+**이 이벤트에 `Empty`가 보이면 거의 항상 오설정이다.** 의도적으로 빈 노드 정리까지 멈추는 경우는 드물다.
+
+### 2.2 가장 제한적인 값이 이긴다
+
+한 이유에 대해 활성 예산이 여럿이면 **최솟값**이 적용된다. 합산이 아니다.
+
+```yaml
+budgets:
+  - nodes: "10%"                      # 항상 활성
+  - nodes: "0"
+    reasons: ["Drifted"]
+    schedule: "0 9 * * mon-fri"
+    duration: 9h
+```
+
+평일 업무시간의 `Drifted` 예산은 `min(10%, 0) = 0`이다. 뒤집으면 **전역 예산 하나가 나머지를 전부 덮어쓸 수 있다** — 아래 §4가 정확히 그 사례다.
+
+### 2.3 `budgets`를 쓰면 기본값이 사라진다
+
+기본값은 `nodes: 10%`인데, `budgets`를 **명시하는 순간 대체**된다. 추가가 아니다. 그래서 시간대 예산만 적으면 그 창 밖에는 상한이 아예 없어진다.
+
+```yaml
+budgets:
+  - nodes: "10%"          # ← 이 줄을 빼면 평시 상한이 무제한이 된다
+  - nodes: "0"
+    reasons: ["Underutilized", "Drifted"]
+    schedule: "0 1 * * *"
+    duration: 4h
+```
+
+### 2.4 `schedule`은 UTC, `duration`은 시·분
+
+cron은 **UTC로 해석된다.** 아래 §4의 설정이 그 방증이다 — `0 1 * * *`가 KST 10시, `0 8 * * *`가 KST 17시로 의도한 점심·저녁 피크와 정확히 맞는다. KST 기준으로 적고 싶으면 **9시간을 빼서** 적어야 한다.
+
+`duration`은 시간·분 단위만 받는다(`4h`, `90m`). `schedule` 없이 `duration`만 적을 수 없고, `schedule`만 적으면 그 시각에 한 번 시작해 기본 지속시간을 쓴다 — 둘은 같이 적는 게 안전하다.
+
+## 3. 예산을 소비하는 것과 아닌 것
+
+예산은 **graceful disruption에만** 걸린다. 예산 소비 지점이 disruption 컨트롤러 안에만 있기 때문이다(`singlenodeconsolidation.go:82`, `multinodeconsolidation.go:70`, `disruption/drift.go:80`).
+
+| 동작 | 예산 소비 | 결과 |
+|---|---|---|
+| consolidation (`Empty`·`Underutilized`) | **예** | 예산 0이면 시도조차 안 함 |
+| drift (`Drifted`) | **예** | 마킹은 되고 실행만 대기 |
+| `expireAfter` 만료 | **아니오** | 예산과 무관하게 진행 |
+| spot 인터럽션 · EC2 상태 실패 | **아니오** | 강제 종료 경로 |
+
+두 가지 함의가 있다.
+
+**① 예산으로는 만료를 못 막는다.** `expireAfter`를 짧게 잡아둔 NodePool은 피크 창 안에서도 노드가 사라진다. 만료 후 드레인은 termination 컨트롤러가 처리하고 PDB는 존중되지만(`terminator/eviction.go:200-205`), 예산은 그 경로 밖이다. 피크 보호가 목적이면 `expireAfter`도 같이 봐야 한다.
+
+**② `nodes: "0"`은 판정이 아니라 실행을 막는다.** drift 마킹은 예산과 무관하게 계속 쌓인다. 그래서 예산을 무기한 0으로 두면 밀린 교체가 **푸는 순간 한꺼번에 터진다.** [02 §6.1]({{< relref "02-changelog-maturity.md" >}})의 CA bundle drift 구간에서 이게 실제 위험이 되는 이유다.
+
+## 4. 현장 사례 — 예산이 축소를 막고 있었다
+
+stage 클러스터의 `service-amd64-on-demand` NodePool이다. `kubectl describe`로 본 예산은 셋이다.
+
+```yaml
+disruption:
+  consolidationPolicy: WhenEmptyOrUnderutilized
+  consolidateAfter: 5m
+  budgets:
+    - nodes: "1"                    # 항상 활성, 모든 이유
+    - nodes: "0"
+      schedule: "0 1 * * *"         # KST 10:00 ~ 14:00
+      duration: 4h
+    - nodes: "0"
+      schedule: "0 8 * * *"         # KST 17:00 ~ 21:00
+      duration: 4h
+```
+
+### 4.1 이 설정이 실제로 만드는 상태
+
+| 시간대 (KST) | `Empty` | `Underutilized` | `Drifted` |
+|---|---|---|---|
+| 10–14, 17–21 (8h) | **0** | **0** | **0** |
+| 그 외 (16h) | 1 | 1 | 1 |
+
+세 예산 **어디에도 `reasons`가 없다.** §2.1대로 셋 모두에 적용되고, §2.2대로 피크에는 최솟값 0이 이긴다. 하루 3분의 1은 빈 노드조차 정리되지 않는다.
+
+그리고 피크가 아닌 16시간에도 상한은 **전체 합쳐 1대**다. 이유별 1대가 아니라 세 이유를 합쳐 1대다.
+
+### 4.2 이벤트가 답을 그대로 말하고 있었다
+
+```
+Normal  DisruptionBlocked  53m    (x41 over 8h)   ... for disruption reason Empty due to blocking budget
+Normal  DisruptionBlocked  3m47s  (x297 over 8h)  ... for disruption reason Underutilized due to blocking budget
+```
+
+**8시간에 297번.** consolidation은 계속 후보를 찾아내고 있었고, 매번 예산에서 잘렸다. "consolidation이 동작하지 않는다"가 아니라 "동작해서 매번 차단당하고 있다"가 정확한 상태다. 둘은 겉보기가 같고 조치가 완전히 다르다.
+
+`Empty`가 41번 찍힌 것이 §2.1 오설정의 직접 증거다.
+
+### 4.3 실제 여유는 있었다
+
+같은 NodePool의 `status.resources`다.
+
+| 항목 | 값 | 해석 |
+|---|---|---|
+| Nodes | 7 | 전부 16 vCPU / 128GiB |
+| Cpu | 112 | 16 × 7 → **r8i.4xlarge 7대** |
+| Memory | ≈866 GiB | 128 × 7 |
+
+여기에 실측 alloc이 CPU 30% / Memory 50%면 requests는 대략 **34 vCPU / 433 GiB**다. r8i.4xlarge 4대(64 vCPU / 496 GiB)면 담긴다. **7 → 4가 가능한데 예산이 막고 있었다.**
+
+## 5. 무엇을 바꿀 수 있나
+
+### 5.1 예산 — 최소 수정
+
+`reasons`를 붙이는 것만으로 피크 보호를 유지하면서 빈 노드 정리를 되살린다.
+
+```yaml
+budgets:
+  - nodes: "10%"                                   # 전역 상한 (비율로)
+  - nodes: "0"
+    reasons: ["Underutilized", "Drifted"]          # Empty는 계속 돈다
+    schedule: "0 1 * * *"
+    duration: 4h
+  - nodes: "0"
+    reasons: ["Underutilized", "Drifted"]
+    schedule: "0 8 * * *"
+    duration: 4h
+```
+
+`nodes: "1"`을 `"10%"`로 바꾼 이유는 **절대값이 클러스터 성장을 따라가지 못하기** 때문이다. 지금 7대면 둘 다 1대지만, 20대가 되면 절대값은 여전히 1대인 반면 비율은 2대가 된다. 조임의 강도가 규모와 무관하게 고정되는 건 대개 의도가 아니다.
+
+### 5.2 축소가 필요한 기간에는 창을 하나 더 판다
+
+밀린 축소를 흘려보내려면 야간에 `Underutilized`만 넓히는 예산을 한시적으로 추가한다.
+
+```yaml
+  - nodes: "3"
+    reasons: ["Underutilized"]
+    schedule: "0 16 * * *"        # KST 01:00
+    duration: 5h                  #   ~06:00
+```
+
+수렴이 끝나면 이 항목만 지운다. 상시로 두면 새벽마다 churn이 도는 구성이 된다.
+
+### 5.3 예산 밖의 항목 — 같은 NodePool에서 같이 볼 것
+
+| 현재 설정 | 무엇이 걸리나 | 검토 |
+|---|---|---|
+| `expireAfter: Never` | 06 §4의 **복귀 경로가 drift 하나만** 남는다 | AMI 갱신을 drift에만 의존하게 된다 |
+| `instance-cpu In [16,32]` | **16 vCPU 미만으로 축소 불가** | 4·8 추가 시 통합 선택지가 넓어진다 |
+| `instance-generation In [8]` | 8세대 ICE 시 폴백 없음 | 07의 폴백 풀 구성과 함께 판단 |
+| `zone In [2a,2c]` | AZ 2개 — ICE 리스크가 3개보다 높다 | 2b 추가 가능 여부 |
+| `instance-family NotIn [*-flex]` | 신규 flex 패밀리가 자동으로 안 걸린다 | 1.7+면 라벨 한 줄로 대체 |
+
+마지막 줄이 [02 §2]({{< relref "02-changelog-maturity.md" >}})와 직결된다. 지금은 flex 패밀리를 이름으로 하나씩 나열하는 방식이라 **AWS가 새 `-flex` 패밀리를 내면 그날부터 조용히 뚫린다.** 1.7 이상이면 다음 한 줄이 같은 일을 하고 미래의 패밀리까지 커버한다.
+
+```yaml
+- key: karpenter.k8s.aws/instance-capability-flex
+  operator: In
+  values: ["false"]
+```
+
+`instance-cpu` 하한도 같이 볼 값이다. alloc이 30%대로 낮게 유지되는 워크로드라면 16 vCPU가 최소 단위인 것 자체가 과할 수 있다. 다만 작은 노드로 갈수록 DaemonSet 오버헤드 비율이 나빠지고 노드당 파드 수 상한에 먼저 걸리므로, **먼저 `Underutilized` 예산을 풀어 16/32 안에서 얼마나 줄어드는지 본 다음** 결정하는 순서가 맞다.
+
+## 6. "노드가 안 줄어든다" 진단 순서
+
+예산을 1순위에 두는 이유는 유일하게 **시도했다는 증거를 남기기** 때문이다. 나머지 원인은 전부 침묵한다.
+
+```
+① 이벤트를 먼저 본다
+   kubectl get events -A --field-selector reason=DisruptionBlocked
+   → 찍힌다     = consolidation은 돌고 있다. 예산 문제 (②로)
+   → 안 찍힌다  = 후보 자체가 안 만들어진다 (③으로)
+
+② 예산 — reasons 누락? 전역 절대값이 작은가? 창이 너무 넓은가?
+
+③ 정책 — consolidationPolicy가 WhenEmpty인가?
+        consolidateAfter가 Never이거나 너무 긴가?
+
+④ requirements — 줄일 방향의 인스턴스 타입이 후보 집합에 있는가?
+        instance-cpu·instance-size 하한이 축소를 봉쇄하고 있지 않은가?
+
+⑤ topology — hostname 스프레드가 노드 수 하한을 만들고 있지 않은가?
+        PDB·do-not-disrupt·컨트롤러 없는 파드가 노드를 잡고 있지 않은가?
+```
+
+②까지 확인하면 대부분 끝난다. ③의 `consolidateAfter`는 v1에서 필수가 된 필드라 마이그레이션 때 아무 값이나 박혀 있는 경우가 많다([01 §2.3]({{< relref "01-changelog-v1-transition.md" >}})).
+
+```bash
+kubectl get nodepool -o custom-columns=\
+NAME:.metadata.name,\
+POLICY:.spec.disruption.consolidationPolicy,\
+AFTER:.spec.disruption.consolidateAfter
+```
+
+## 7. 관측
+
+| 신호 | 무엇을 뜻하나 |
+|---|---|
+| `DisruptionBlocked` 이벤트 | 후보는 있는데 예산에서 잘렸다 |
+| 이벤트에 `Empty`가 보임 | 거의 항상 `reasons` 누락 |
+| `Unconsolidatable` 컨디션 | 후보 단계에서 탈락 — 예산 이전의 문제 |
+| `Can't replace with a cheaper node` | 교체는 시도했으나 가격 부등식에서 탈락([06 §1]({{< relref "06-consolidation-traps.md" >}})) |
+
+이벤트 카운트의 **증가 속도**가 실질적인 지표다. 위 사례의 `x297 over 8h`는 "3분에 한 번씩 후보를 만들고 매번 잘린다"는 뜻이고, 이 숫자가 크다는 것 자체가 축소 여지가 크다는 신호다.
+
+## 8. 확인하지 못한 것
+
+- **`schedule`의 타임존 지정 문법.** UTC 해석은 §4 설정이 KST 피크와 맞는 것으로 뒷받침되지만, `CRON_TZ=` 같은 prefix를 받는지는 확인하지 못했다. 타임존을 명시하고 싶다면 도입 전에 스테이지에서 실측할 것.
+- **Node Repair가 예산을 소비하는지.** alpha 기능이라 disruption 컨트롤러 경로를 타는지 확인하지 못했다.
+- **`schedule`만 적고 `duration`을 생략했을 때의 기본 지속시간.** 본문에서는 둘을 같이 적는 것을 전제했다.
+- **§4.3의 requests 추정치**는 노드 스펙과 보고된 alloc 비율로 계산한 값이다. 실제 축소 가능 대수는 파드 단위 빈패킹 결과에 따라 달라진다.

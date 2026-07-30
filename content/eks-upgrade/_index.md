@@ -7,7 +7,7 @@ cascade:
 
 # EKS 버전 업그레이드 — finance 클러스터 blue-green 이관 케이스
 
-yogiyo finance(금융) 도메인 EKS 클러스터를 신규 blue 클러스터로 갈아타는 실전 기록이다. [HyperDX 내재화]({{< relref "../hyperdx/_index.md" >}})가 "신규 스택을 어떻게 얹나"의 케이스였다면, 이 챕터는 "**이미 돌아가는 클러스터를 어떻게 안전하게 갈아타나**"의 케이스다.
+finance(금융) 도메인 EKS 클러스터를 신규 blue 클러스터로 갈아타는 실전 기록이다. [HyperDX 내재화]({{< relref "../hyperdx/_index.md" >}})가 "신규 스택을 어떻게 얹나"의 케이스였다면, 이 챕터는 "**이미 돌아가는 클러스터를 어떻게 안전하게 갈아타나**"의 케이스다.
 
 {{< callout type="info" >}}
 **한눈에**
