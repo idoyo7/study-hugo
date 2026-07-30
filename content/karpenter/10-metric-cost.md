@@ -13,6 +13,8 @@ weight: 10
 - VM에서는 청구가 아니라 **`indexdb` 팽창**이 비용이다. 시리즈 총수가 같아도 churn이 크면 인덱스가 계속 자란다.
 - **Prometheus의 보호 장치는 전부 기본 꺼져 있다** — `sample_limit`·`label_limit`·`target_limit` 기본값이 모두 `0`(무제한)이다.
 - 파드 6종을 버려도 잃는 게 거의 없다. 파드 단위 상태는 **kube-state-metrics가 이미 더 잘 낸다.**
+- **켜기 전에 잰다.** 엔드포인트를 직접 긁으면 백엔드에 아무것도 넣지 않고 시리즈 수를 셀 수 있다(§5.1). 붙였다가 줄이는 순서는 Datadog에서 그 달 청구가 이미 발생한 뒤다.
+- **drop보다 keep이 낫다.** 업스트림이 메트릭을 추가하면 blocklist는 그것을 자동으로 통과시킨다(§4.1).
 {{< /callout >}}
 
 > **왜 이 문서인가.** [09]({{< relref "09-metrics-logs-events.md" >}})가 "무엇이 나오나"의 목록이라면, 여기는 **"그중 무엇을 저장할 것인가"** 다. 60개를 전부 긁는 것은 기술적으로 아무 문제가 없고, 비용에서만 문제가 된다. 그 비용이 백엔드마다 다른 이름으로 나타나는 것이 이 문서의 주제다.
@@ -147,13 +149,51 @@ vmagent 쪽에서 한 번 더 거를 수도 있다(`-remoteWrite.relabelConfig`)
 
 ### 3.3 Datadog
 
-파드 어노테이션으로 OpenMetrics 체크를 붙인다. **`max_returned_metrics`를 반드시 같이 본다** — 기본 2000이라 대규모 클러스터에서는 이 선에서 잘린다.
+파드 어노테이션으로 OpenMetrics 체크를 붙인다. **`metrics:`에 allowlist를 반드시 준다** — 안 주면 §2.1대로 전부 custom metric이 된다.
 
-태그 단계 필터링은 통합의 `ignore_tags`로, 인덱스 단계 필터링은 MWL의 태그 allowlist 또는 metric 상세 패널의 Exclude Tags로 한다.
+```yaml
+ad.datadoghq.com/controller.checks: |
+  {
+    "openmetrics": {
+      "init_config": {},
+      "instances": [{
+        "openmetrics_endpoint": "http://%%host%%:8080/metrics",
+        "namespace": "karpenter",
+        "metrics": [
+          "karpenter_nodeclaims_disrupted_total",
+          "karpenter_nodepools_allowed_disruptions",
+          "karpenter_scheduler_unschedulable_pods_count",
+          "karpenter_consolidation_score"
+        ],
+        "max_returned_metrics": 5000,
+        "exclude_labels": ["name", "namespace"]
+      }]
+    }
+  }
+```
+
+세 가지를 같이 봐야 한다. **`metrics:` allowlist**가 유입 자체를 줄이는 유일한 수단이고, **`max_returned_metrics`**는 기본 2000이라 allowlist 없이 붙이면 이 선에서 조용히 잘리며, **`exclude_labels`**로 파드 이름·네임스페이스 태그를 Agent 단계에서 떨어뜨린다.
+
+MWL의 태그 allowlist는 그다음 층이다 — 유입은 그대로 두고 indexed만 줄이므로, 위 셋으로 먼저 줄인 뒤에 쓰는 게 순서다.
 
 ## 4. 무엇을 버리고 무엇을 남기나
 
-### 4.1 버린다 — 파드 단위 6종
+### 4.1 drop보다 keep이 낫다
+
+떨어뜨릴 것을 나열하는 방식(blocklist)과 남길 것을 나열하는 방식(allowlist) 중 **후자를 권한다.** 이유는 하나다 — **업스트림이 메트릭을 추가하면 blocklist는 그것을 자동으로 통과시킨다.** 1.14까지 오는 동안 메트릭은 계속 늘었고 앞으로도 는다. 새 메트릭이 파드 단위면 비용이 조용히 올라간다.
+
+```yaml
+metricRelabelConfigs:
+  - action: keep
+    source_labels: [__name__]
+    regex: 'karpenter_(nodeclaims_disrupted_total|nodepools_allowed_disruptions|nodepools_nodes_consuming_budgets|nodepools_(limit|usage)|consolidation_(score|moves_total)|voluntary_disruption_(eligible_nodes|decisions_total)|scheduler_(unschedulable_pods_count|pending_pods_by_effective_zone_count)|cluster_utilization_percent|cluster_state_(synced|node_count)|nodes_(created_total|terminated_total|total_pod_requests|total_daemon_requests|allocatable)|nodeclaims_(created_total|terminated_total)|cloudprovider_errors_total|build_info)'
+```
+
+**대가는 새 메트릭을 자동으로 못 받는다는 것**이다. 업그레이드 후 §5.1로 한 번 훑어 새로 생긴 게 있는지 보는 절차를 같이 둔다.
+
+blocklist로 가야 한다면 최소한 파드 축은 막는다.
+
+### 4.2 버리는 것 — 파드 단위 6종
 
 ```yaml
 - action: drop
@@ -172,7 +212,7 @@ vmagent 쪽에서 한 번 더 거를 수도 있다(`-remoteWrite.relabelConfig`)
 
 셋째, ALPHA 3종은 애초에 SLO에 못 쓴다. Help에 붙은 단서가 이유다 — *"this calculated from a point in memory, not by the pod creation timestamp."* 컨트롤러가 재시작하면 기준점이 리셋된다([09 §4.5]({{< relref "09-metrics-logs-events.md" >}})).
 
-### 4.2 남긴다
+### 4.3 남기는 것
 
 [09 §2]({{< relref "09-metrics-logs-events.md" >}})의 여섯 개가 핵심이고, 전부 NodePool·전역 축이라 시리즈가 묶인다.
 
@@ -186,7 +226,7 @@ vmagent 쪽에서 한 번 더 거를 수도 있다(`-remoteWrite.relabelConfig`)
 | `karpenter_consolidation_score` | NP × decision × policy |
 | `karpenter_cluster_utilization_percent` | R |
 
-### 4.3 판단이 갈리는 것 — 노드 단위 7종
+### 4.4 판단이 갈리는 것 — 노드 단위 7종
 
 `6NR + N`이라 200노드·R=6이면 7,400이다. 무시할 양은 아니지만 **churn이 낮고**(노드는 파드보다 훨씬 덜 갈린다) 대체재가 없다. 특히 `_total_pod_requests`에서 `_total_daemon_requests`를 뺀 값은 **"노드를 줄일 수 있는가"의 유일한 직접 근거**다([08 §5]({{< relref "08-disruption-budgets.md" >}})).
 
@@ -198,26 +238,76 @@ vmagent 쪽에서 한 번 더 거를 수도 있다(`-remoteWrite.relabelConfig`)
   regex: 'karpenter_nodes_.*;hugepages-.*'
 ```
 
-## 5. 실측 방법
+### 4.5 버린 뒤 무엇이 깨지나
 
-추정 대신 재고 시작한다.
+drop을 넣고 나면 **그 메트릭을 쓰던 대시보드와 알림이 조용히 빈 결과를 낸다.** 09 §3의 메트릭 리네임과 같은 실패 모드다 — 에러가 아니라 침묵이다. 버리기 전에 대체재를 확인한다.
+
+| 잃는 것 | 대체 |
+|---|---|
+| 파드별 Pending 시간 | `kube_pod_status_phase{phase="Pending"}` |
+| 파드별 Ready 여부 | `kube_pod_container_status_ready` |
+| NodePool별 파드 분포 | `karpenter_nodes_total_pod_requests` (노드 축) |
+| 파드 startup 지연 | kubelet `kubelet_pod_start_duration_seconds` |
+
+**대체가 안 되는 것이 하나 있다** — `karpenter_pods_state`의 "이 파드가 어느 `capacity_type`에 앉았나"는 kube-state-metrics가 직접 주지 않는다. 필요하면 KSM의 `kube_pod_info`와 `kube_node_labels`를 조인해야 한다.
 
 ```promql
-# 메트릭별 시리즈 수 — 상위가 곧 비용 순위
-count({__name__=~"karpenter_.*"}) by (__name__)
-
-# 파드 축이 전체에서 차지하는 비중
-count({__name__=~"karpenter_pods_.*"}) / count({__name__=~"karpenter_.*"})
+kube_pod_info * on(node) group_left(label_karpenter_sh_capacity_type) kube_node_labels
 ```
 
-VM에서는 백엔드 쪽 지표도 같이 본다.
+조인 비용이 있으므로, spot 비율을 파드 단위로 상시 감시해야 하는 요구가 실제로 있다면 그때만 `karpenter_pods_state`를 남기는 쪽이 낫다.
+
+## 5. 실측 방법
+
+### 5.1 먼저 소스에서 잰다 — 수집을 켜기 전에
+
+**순서가 중요하다.** 일단 붙였다가 비싸면 줄이는 게 아니라, **붙이기 전에 얼마인지 재고 시작한다.** 엔드포인트를 직접 긁으면 백엔드에 아무것도 넣지 않고 시리즈 수를 셀 수 있다.
+
+```bash
+kubectl -n karpenter port-forward svc/karpenter 8080:8080 &
+
+# 메트릭별 시리즈 수 — 이 순위가 곧 비용 순위다
+curl -s localhost:8080/metrics \
+  | grep -v '^#' | cut -d'{' -f1 | sort | uniq -c | sort -rn | head -20
+
+# 총 시리즈 수
+curl -s localhost:8080/metrics | grep -vc '^#'
+
+# 파드 축이 차지하는 비중
+curl -s localhost:8080/metrics | grep -c '^karpenter_pods_'
+```
+
+이 숫자가 **Datadog에서는 그대로 custom metric 개수**이고, VM·Prometheus에서는 그대로 시리즈 수다. 계약을 검토하거나 용량을 산정할 때 필요한 값이 여기서 다 나온다.
+
+drop 규칙을 짤 때도 이 출력이 근거가 된다 — 상위 5개가 전체의 몇 %인지 보면 무엇부터 버릴지가 정해진다.
+
+### 5.2 켠 뒤에는 백엔드에서 잰다
+
+```promql
+count({__name__=~"karpenter_.*"}) by (__name__)                            # 메트릭별
+count({__name__=~"karpenter_pods_.*"}) / count({__name__=~"karpenter_.*"}) # 파드 축 비중
+```
+
+VM이면 백엔드 자체 지표도 같이 본다.
 
 ```promql
 sum(max_over_time(vm_cache_entries{type="storage/hour_metric_ids"}[24h]))  # active series
 sum(increase(vm_new_timeseries_created_total[24h]))                        # churn
 ```
 
-drop 규칙을 넣기 **전후로 두 번** 재서 실제로 줄었는지 확인한다. vmui의 Cardinality Explorer(`/vmui/#/cardinality`)가 메트릭·라벨별로 갈라 보여준다. Prometheus라면 `/api/v1/status/tsdb`의 `seriesCountByMetricName`이 같은 답을 준다(기본 상위 10개, `limit` 파라미터로 확대).
+**churn은 배포가 있는 날과 없는 날을 갈라 봐야** 의미가 있다. 파드 축을 버리기 전후로 이 값이 얼마나 달라지는지가 이 문서 전체의 결론을 검증한다.
+
+vmui의 Cardinality Explorer(`/vmui/#/cardinality`)가 메트릭·라벨별로 갈라 보여주고, Prometheus라면 `/api/v1/status/tsdb`의 `seriesCountByMetricName`이 같은 답을 준다(기본 상위 10개, `limit`으로 확대).
+
+### 5.3 적용 순서
+
+1. **§5.1로 소스에서 잰다** — 아직 아무 비용도 안 든다
+2. §4의 keep-list를 넣고 수집을 켠다
+3. §5.2로 백엔드에서 재서 예상과 맞는지 확인한다
+4. 알림·대시보드가 keep-list 안의 메트릭만 쓰는지 점검한다(§4.5)
+5. 배포가 있는 날 churn을 다시 잰다
+
+2번을 건너뛰고 켠 다음 줄이는 순서는 Datadog에서 특히 나쁘다 — **그 달 청구는 이미 발생한 뒤**다.
 
 ## 6. 함정 넷
 
