@@ -10,7 +10,8 @@ weight: 8
 - disruption 이유 셋은 **파드를 옮기느냐**로 갈린다. `Empty`만 안 옮긴다 — 이게 예산 설계의 출발점이다.
 - **`reasons`를 생략한 예산은 셋 모두에 적용된다.** 피크 차단용 `nodes: "0"`에 `reasons`를 안 적으면 **빈 노드 정리까지 같이 멈춘다.** 가장 흔한 오설정이고, 실패가 아니라 침묵으로 나타나 발견이 늦다.
 - 같은 이유에 예산이 여럿 활성이면 **가장 제한적인 값이 이긴다.** 전역 `nodes: "1"` 하나가 나머지 설계를 전부 무력화할 수 있다.
-- 예산은 **graceful disruption만** 막는다. `expireAfter` 만료와 인터럽션은 예산을 소비하지 않는다.
+- 예산은 **graceful disruption만** 막는다. `expireAfter` 만료·인터럽션·Node Repair는 예산 밖이다.
+- **`schedule`은 UTC 고정이고 타임존을 줄 수 없다.** 코드가 `TZ=UTC`를 강제로 접두한다 — KST로 생각한 시각에서 9시간을 빼서 적는 것 외에 방법이 없다.
 - `nodes: "0"`은 **실행만** 막는다. drift 판정과 마킹은 계속 쌓이므로, 예산을 푸는 순간 밀린 교체가 한꺼번에 터진다.
 - "노드가 안 줄어든다"의 진단 순서는 **이벤트 → 예산 → requirements → topology**다. 예산이 1순위인 이유는 유일하게 **시도했다는 증거를 이벤트로 남기기** 때문이다.
 {{< /callout >}}
@@ -29,7 +30,9 @@ weight: 8
 | `Underutilized` | 더 싼 배치를 찾음 | 있음 | **높음** |
 | `Drifted` | 해시·requirement 불일치 | 있음 | **높음** |
 
-`Empty` 노드에 남은 건 DaemonSet뿐이고, 그것들은 노드와 함께 사라질 뿐 다른 노드로 재스케줄되지 않는다. `Emptiness`의 Command에는 애초에 `Replacements` 필드가 없어 **삭제만 한다**(`emptiness.go:97-100`).
+"비었다"의 정의가 **"파드가 0개"가 아니라 "재스케줄 대상 파드가 0개"** 라는 게 핵심이다. 판정은 재스케줄 비용을 노드 기본 비용과 비교하는 한 줄이고(`disruption/types.go:155-157`), DaemonSet과 노드 소유 파드는 `IsReschedulable`에서 미리 걸러진다(`utils/pod/scheduling.go:44-48`). 즉 **DaemonSet만 남은 노드는 empty로 취급된다.**
+
+그 노드를 지워도 옮길 파드가 없다. `Emptiness`의 Command에는 애초에 `Replacements` 필드가 없어 **삭제만 한다**(`emptiness.go:97-100`).
 
 **그래서 피크 시간에 막아야 할 것은 뒤의 둘이지 `Empty`가 아니다.** 빈 노드를 피크 내내 살려두는 건 비용만 나가고 얻는 게 없다.
 
@@ -82,28 +85,65 @@ budgets:
     duration: 4h
 ```
 
-### 2.4 `schedule`은 UTC, `duration`은 시·분
+### 2.4 `schedule`은 UTC 고정이고 타임존을 못 준다
 
-cron은 **UTC로 해석된다.** 아래 §4의 설정이 그 방증이다 — `0 1 * * *`가 KST 10시, `0 8 * * *`가 KST 17시로 의도한 점심·저녁 피크와 정확히 맞는다. KST 기준으로 적고 싶으면 **9시간을 빼서** 적어야 한다.
+cron은 **항상 UTC로 해석된다.** 사용자가 무엇을 적든 코드가 `TZ=UTC`를 강제로 접두하기 때문이다.
 
-`duration`은 시간·분 단위만 받는다(`4h`, `90m`). `schedule` 없이 `duration`만 적을 수 없고, `schedule`만 적으면 그 시각에 한 번 시작해 기본 지속시간을 쓴다 — 둘은 같이 적는 게 안전하다.
+```go
+// pkg/apis/v1/nodepool.go:416
+cron.ParseStandard(fmt.Sprintf("TZ=UTC %s", lo.FromPtr(in.Schedule)))
+```
+
+그래서 `CRON_TZ=Asia/Seoul 0 10 * * *` 같은 문법은 **통하지 않는다.** 필드 주석도 `Timezones are not supported.`로 못박고 있다(`nodepool.go:141`). **KST로 생각한 시각에서 9시간을 빼서** 적는 것 외에 방법이 없고, 서머타임이 없는 지역이라 이 산술은 연중 안정적이다.
+
+아래 §4의 설정이 그 예다 — `0 1 * * *`는 KST 10시, `0 8 * * *`는 KST 17시로 의도한 점심·저녁 피크와 맞는다.
+
+나머지 세 필드의 제약은 이렇다.
+
+| 필드 | 제약 |
+|---|---|
+| `schedule` · `duration` | **둘 다 있거나 둘 다 없어야 한다** (CEL 검증) |
+| 둘 다 생략 | 그 예산은 **항상 활성** |
+| `duration` | 시간·분만. `4h`·`90m` (cron이 초를 모른다) |
+| `nodes` | 생략 시 기본 `10%`. `"3"` 또는 `"25%"` |
+
+`schedule`만 적고 `duration`을 빼면 admission에서 거부된다 — 스키마에 CEL 규칙이 박혀 있다.
+
+```
+rule="self.all(x, has(x.schedule) == has(x.duration))"
+message="'schedule' must be set with 'duration'"
+```
 
 ## 3. 예산을 소비하는 것과 아닌 것
 
-예산은 **graceful disruption에만** 걸린다. 예산 소비 지점이 disruption 컨트롤러 안에만 있기 때문이다(`singlenodeconsolidation.go:82`, `multinodeconsolidation.go:70`, `disruption/drift.go:80`).
+예산은 **graceful disruption에만** 걸린다. 소비 지점이 코어 disruption 컨트롤러의 `BuildDisruptionBudgetMapping`(`pkg/controllers/disruption/helpers.go:262`) 하나뿐이고, 거기 등록된 Method가 다섯 개(`controller.go:101-114`)이기 때문이다.
 
-| 동작 | 예산 소비 | 결과 |
+| 동작 | 예산 소비 | 실제 통제 수단 |
 |---|---|---|
-| consolidation (`Empty`·`Underutilized`) | **예** | 예산 0이면 시도조차 안 함 |
-| drift (`Drifted`) | **예** | 마킹은 되고 실행만 대기 |
-| `expireAfter` 만료 | **아니오** | 예산과 무관하게 진행 |
-| spot 인터럽션 · EC2 상태 실패 | **아니오** | 강제 종료 경로 |
+| consolidation (`Empty`·`Underutilized`) | **예** | 예산 |
+| drift (`Drifted`) | **예** | 예산 |
+| `expireAfter` 만료 | 아니오 | 없음 — 즉시 삭제 |
+| spot ITN · EC2 상태 검사 실패 | 아니오 | 없음 — 인터럽션 경로 |
+| Node Repair | 아니오 | **별도 상한 20%** |
 
-두 가지 함의가 있다.
+가르는 기준이 공식 문서에 한 줄로 있다 — forceful 계열은 *"do not wait for a pre-spin replacement node to be healthy"*, 즉 **대체 노드가 건강해지기를 기다리지 않는다.** 기다리지 않으니 속도를 조절할 대상도 없다.
 
-**① 예산으로는 만료를 못 막는다.** `expireAfter`를 짧게 잡아둔 NodePool은 피크 창 안에서도 노드가 사라진다. 만료 후 드레인은 termination 컨트롤러가 처리하고 PDB는 존중되지만(`terminator/eviction.go:200-205`), 예산은 그 경로 밖이다. 피크 보호가 목적이면 `expireAfter`도 같이 봐야 한다.
+세 가지 함의가 있다.
 
-**② `nodes: "0"`은 판정이 아니라 실행을 막는다.** drift 마킹은 예산과 무관하게 계속 쌓인다. 그래서 예산을 무기한 0으로 두면 밀린 교체가 **푸는 순간 한꺼번에 터진다.** [02 §6.1]({{< relref "02-changelog-maturity.md" >}})의 CA bundle drift 구간에서 이게 실제 위험이 되는 이유다.
+**① 예산으로는 만료를 못 막는다.** `expireAfter`를 짧게 잡아둔 NodePool은 피크 창 안에서도 노드가 사라진다. 만료 컨트롤러(`nodeclaim/expiration/controller.go:81-83`)는 예산을 조회하지 않고 곧바로 `Delete`를 호출한다. 드레인은 termination 컨트롤러가 처리하고 PDB는 존중되지만, 예산은 그 경로 밖이다. **피크 보호가 목적이면 `expireAfter`도 같이 봐야 한다.**
+
+**② Node Repair는 예산이 아니라 자기 상한을 쓴다.** 예산을 0으로 걸어도 unhealthy 노드 복구는 진행되고, 대신 `allowedUnhealthyPercent = "20%"`라는 별도 하드코딩 상한이 걸린다(`node/health/controller.go:53`). 예산을 조인 상태에서 노드가 계속 교체된다면 이 경로를 의심한다.
+
+**③ `nodes: "0"`은 판정이 아니라 실행을 막는다.** drift 마킹은 예산과 무관하게 계속 쌓인다 — 마킹 컨트롤러(`nodeclaim/disruption/drift.go`)에는 예산 참조가 아예 없고, 예산은 그 뒤 단계에서 이미 마킹된 후보를 거른다.
+
+```go
+// pkg/controllers/disruption/drift.go:77-80  ← 실행 단계에서만 걸린다
+if disruptionBudgetMapping[candidate.NodePool.Name] == 0 {
+    continue
+}
+```
+
+그래서 예산을 무기한 0으로 두면 밀린 교체가 **푸는 순간 한꺼번에 터진다.** [02 §6.1]({{< relref "02-changelog-maturity.md" >}})의 CA bundle drift 구간에서 이게 실제 위험이 되는 이유다.
 
 ## 4. 현장 사례 — 예산이 축소를 막고 있었다
 
@@ -242,20 +282,68 @@ POLICY:.spec.disruption.consolidationPolicy,\
 AFTER:.spec.disruption.consolidateAfter
 ```
 
+### 6.1 `consolidateAfter` 타이머는 무엇으로 리셋되나
+
+"파드가 자주 바뀌면 타이머가 계속 리셋된다"는 설명은 절반만 맞다. 기준은 NodeClaim의 `status.lastPodEventTime`이고, 이 값이 갱신되는 조건은 셋뿐이다(`nodeclaim/podevents/controller.go:63-97`).
+
+| 갱신되는 경우 | 갱신 안 되는 경우 |
+|---|---|
+| non-DaemonSet 파드가 **바인딩** | **DaemonSet 파드의 모든 변동** |
+| 그 파드가 **terminal** 상태로 | 10초 내 중복 이벤트 (dedupe) |
+| 그 파드가 **terminating**으로 | 파드 스펙·상태의 그 밖의 변경 |
+
+```go
+// pkg/controllers/nodeclaim/disruption/consolidation.go:62-77
+timeToCheck := lo.Ternary(!LastPodEventTime.IsZero(),
+    LastPodEventTime, initialized.LastTransitionTime)
+```
+
+값이 아직 비어 있으면 `Initialized` 컨디션 전환 시각을 대신 쓴다. 그래서 **파드가 한 번도 안 바뀐 노드도 기동 시각 기준으로 타이머가 돌아 정상적으로 후보가 된다.** DaemonSet 롤아웃이 타이머를 리셋하지 않는다는 것도 중요하다 — 흔한 오해다.
+
 ## 7. 관측
 
-| 신호 | 무엇을 뜻하나 |
+**NodePool `status.conditions`에는 예산 전용 조건이 없다.** 거기 있는 건 `ValidationSucceeded`·`NodeClassReady`·`NodeRegistrationHealthy`와 집계 `Ready`뿐이라(`nodepool_status.go:27-31`), 예산 상태는 **이벤트와 메트릭으로만** 본다.
+
+| 수단 | 정확한 이름 |
 |---|---|
-| `DisruptionBlocked` 이벤트 | 후보는 있는데 예산에서 잘렸다 |
-| 이벤트에 `Empty`가 보임 | 거의 항상 `reasons` 누락 |
-| `Unconsolidatable` 컨디션 | 후보 단계에서 탈락 — 예산 이전의 문제 |
-| `Can't replace with a cheaper node` | 교체는 시도했으나 가격 부등식에서 탈락([06 §1]({{< relref "06-consolidation-traps.md" >}})) |
+| 이벤트 | reason `DisruptionBlocked` |
+| 메트릭 · 남은 허용량 | `karpenter_nodepools_allowed_disruptions` |
+| 메트릭 · 소비 중인 노드 수 | `karpenter_nodepools_nodes_consuming_budgets` |
 
-이벤트 카운트의 **증가 속도**가 실질적인 지표다. 위 사례의 `x297 over 8h`는 "3분에 한 번씩 후보를 만들고 매번 잘린다"는 뜻이고, 이 숫자가 크다는 것 자체가 축소 여지가 크다는 신호다.
+메트릭 둘 다 라벨이 `{nodepool, reason}`이라(`disruption/metrics.go:102-118`) **이유별로 갈라 볼 수 있다.** 대시보드에 올릴 것은 이쪽이다.
 
-## 8. 확인하지 못한 것
+```promql
+# 이유별 허용량이 0인 구간 — 의도한 창과 일치하는지 본다
+karpenter_nodepools_allowed_disruptions{reason="empty"} == 0
+```
 
-- **`schedule`의 타임존 지정 문법.** UTC 해석은 §4 설정이 KST 피크와 맞는 것으로 뒷받침되지만, `CRON_TZ=` 같은 prefix를 받는지는 확인하지 못했다. 타임존을 명시하고 싶다면 도입 전에 스테이지에서 실측할 것.
-- **Node Repair가 예산을 소비하는지.** alpha 기능이라 disruption 컨트롤러 경로를 타는지 확인하지 못했다.
-- **`schedule`만 적고 `duration`을 생략했을 때의 기본 지속시간.** 본문에서는 둘을 같이 적는 것을 전제했다.
-- **§4.3의 requests 추정치**는 노드 스펙과 보고된 alloc 비율로 계산한 값이다. 실제 축소 가능 대수는 파드 단위 빈패킹 결과에 따라 달라진다.
+`reason="empty"`가 0인 시간이 의도한 것보다 길면 §2.1 오설정이다.
+
+이벤트 쪽은 카운트의 **증가 속도**가 실질적인 지표다. §4.2의 `x297 over 8h`는 "3분에 한 번씩 후보를 만들고 매번 잘린다"는 뜻이고, 이 숫자가 크다는 것 자체가 축소 여지가 크다는 신호다.
+
+```
+Can't replace with a cheaper node   → 예산이 아니라 가격 부등식에서 탈락 (06 §1)
+```
+
+## 8. 근거
+
+로컬 체크아웃 `kubernetes-sigs/karpenter` **v1.14.0-6-gac7a021e**와 `aws/karpenter-provider-aws` **v1.14.0** 기준이다. 상대 경로는 코어 레포 루트.
+
+| 무엇 | 출처 |
+|---|---|
+| `reasons` 생략 = 전체 적용 | `pkg/apis/v1/nodepool.go:120,372` |
+| 최솟값 병합 | `nodepool.go:364-377` `GetAllowedDisruptionsByReason` |
+| 기본값 `10%`와 대체 | `nodepool.go:104-114` kubebuilder default |
+| `reasons` enum 3종 | `nodepool.go:183-185` |
+| UTC 강제 · 타임존 미지원 | `nodepool.go:416`, 필드 주석 `:141` |
+| `schedule`↔`duration` 동반 필수 | `nodepool.go:108` CEL XValidation |
+| 예산 소비 지점 | `controllers/disruption/helpers.go:262`, `controller.go:101-114` |
+| 마킹과 실행의 분리 | `nodeclaim/disruption/drift.go`(참조 없음) 대 `disruption/drift.go:77-80` |
+| 만료가 예산을 안 탐 | `nodeclaim/expiration/controller.go:81-83` |
+| Node Repair 자체 상한 | `node/health/controller.go:53` |
+| `IsEmpty` 정의 | `disruption/types.go:134,155-157`, `utils/pod/scheduling.go:44-48` |
+| `consolidateAfter` 리셋 | `nodeclaim/disruption/consolidation.go:62-77`, `podevents/controller.go:63-97` |
+| 이벤트 문구 · 메트릭 | `disruption/events/events.go:117-123`, `disruption/metrics.go:102-118` |
+| forceful 정의 | `.../docs/concepts/disruption.md:171` |
+
+**확인하지 못한 것** — §4.3의 requests 추정치는 노드 스펙과 보고된 alloc 비율로 역산한 값이다. 실제 축소 가능 대수는 파드 단위 빈패킹 결과에 달려 있어, 예산을 푼 뒤 관측으로만 확정된다.
