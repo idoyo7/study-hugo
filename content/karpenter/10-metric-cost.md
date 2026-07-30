@@ -1,0 +1,247 @@
+---
+title: "메트릭 수집 비용 — 무엇을 버릴 것인가"
+weight: 10
+---
+
+# 10 · 메트릭 수집 비용 — 무엇을 버릴 것인가
+
+{{< callout type="info" >}}
+**한눈에**
+- 비용은 **메트릭 60개가 만드는 게 아니라 시리즈 수가 만든다.** 60개 중 **파드 단위 6개**가 대부분을 차지하고, 그 6개만 유일하게 **배포마다 전량 churn**한다.
+- **Datadog은 OpenMetrics로 긁은 것을 전부 custom metric으로 센다.** 공식 문서 표현이 *"all metrics retrieved by the generic Prometheus check are considered custom metrics"* 다. 아무 설정 없이 붙이면 청구가 튄다.
+- **OpenMetrics 체크에는 `max_returned_metrics` 기본 2000 상한이 있다.** 대규모 클러스터에서는 이 선에서 **조용히 잘린다** — 없는 메트릭과 잘린 메트릭이 구분되지 않는다.
+- VM에서는 청구가 아니라 **`indexdb` 팽창**이 비용이다. 시리즈 총수가 같아도 churn이 크면 인덱스가 계속 자란다.
+- **Prometheus의 보호 장치는 전부 기본 꺼져 있다** — `sample_limit`·`label_limit`·`target_limit` 기본값이 모두 `0`(무제한)이다.
+- 파드 6종을 버려도 잃는 게 거의 없다. 파드 단위 상태는 **kube-state-metrics가 이미 더 잘 낸다.**
+{{< /callout >}}
+
+> **왜 이 문서인가.** [09]({{< relref "09-metrics-logs-events.md" >}})가 "무엇이 나오나"의 목록이라면, 여기는 **"그중 무엇을 저장할 것인가"** 다. 60개를 전부 긁는 것은 기술적으로 아무 문제가 없고, 비용에서만 문제가 된다. 그 비용이 백엔드마다 다른 이름으로 나타나는 것이 이 문서의 주제다.
+>
+> 카디널리티가 왜 폭발하는지의 **원리**는 [VictoriaMetrics / 카디널리티]({{< relref "../monitoring/victoriametrics/practice/01-cardinality.md" >}})가 소유한다. 여기서는 그 원리를 Karpenter의 60개에 적용한 결과만 다룬다.
+
+## 1. 비용을 만드는 축은 넷이다
+
+시리즈 수는 라벨 조합 수다. Karpenter 메트릭의 라벨은 네 종류의 축 중 하나에 붙는다.
+
+| 축 | 메트릭 수 | 시리즈 수 | churn |
+|---|---|---|---|
+| **파드 단위** | 6 | **6P** | **배포마다 전량** |
+| 노드 단위 | 7 | 6NR + N | 노드 교체 시 |
+| NodePool 단위 | 다수 | NP × 조합 | 거의 없음 |
+| 전역 | 4 | 상수 | 없음 |
+
+`P` 파드 수, `N` 노드 수, `NP` NodePool 수, `R` **노드가 실제로 가진 리소스 종류 수**.
+
+`R`이 고정이 아니라는 게 포인트다. 노드 메트릭은 `resource_type`을 상수 목록이 아니라 **노드의 실제 `ResourceList`를 순회해서** 만든다(`metrics/node/controller.go`의 `getNodeLabelsWithResourceType`). 보통은 `cpu`·`memory`·`pods`·`ephemeral-storage`·`hugepages-1Gi`·`hugepages-2Mi` 여섯이고, GPU 노드가 섞이면 늘어난다.
+
+### 1.1 파드 단위 6종 — 여기가 전부다
+
+| 메트릭 | 라벨 |
+|---|---|
+| `karpenter_pods_state` | 파드 식별 + **노드 라벨셋 전체** |
+| `karpenter_pods_unstarted_time_seconds` | `{name,namespace}` |
+| `karpenter_pods_unbound_time_seconds` | `{name,namespace}` |
+| `karpenter_pods_provisioning_unstarted_time_seconds` | `{name,namespace}` · ALPHA |
+| `karpenter_pods_provisioning_unbound_time_seconds` | `{name,namespace}` · ALPHA |
+| `karpenter_pods_provisioning_scheduling_undecided_time_seconds` | `{name,namespace}` · ALPHA |
+
+**`karpenter_pods_state`가 특히 나쁘다.** 파드 식별자에 더해 그 파드가 앉은 노드의 라벨셋(`nodepool`·`zone`·`instance_type`·`capacity_type`·`arch`·`os`…)이 통째로 붙는다. 파드가 다른 노드로 옮겨가면 라벨 조합이 바뀌므로 **재스케줄만으로도 새 시리즈가 생긴다.**
+
+그리고 여섯 모두 라벨에 **파드 이름**이 들어간다. Deployment를 한 번 롤링하면 그 Deployment의 모든 파드 이름이 바뀌고, **그만큼의 시리즈가 통째로 죽고 통째로 생긴다.**
+
+### 1.2 규모 감각 — 예시 계산
+
+아래는 실측이 아니라 위 공식에 값을 넣은 **예시**다. 자기 클러스터 수치는 §5로 재야 한다.
+
+`P=3000`, `N=200`, `NP=35`, `R=6`일 때:
+
+| 축 | 시리즈 | 비중 |
+|---|---|---|
+| 파드 단위 | 18,000 | **67%** |
+| 노드 단위 | 7,400 | 27% |
+| NodePool 단위 | ~1,600 | 6% |
+| 전역 | ~10 | 0% |
+
+전면 롤링 배포 한 번이 **18,000개 시리즈를 새로 만든다.** 총량보다 이 숫자가 더 아프다.
+
+## 2. 백엔드는 이 비용을 어떻게 청구하나
+
+같은 시리즈가 백엔드마다 다른 이름의 비용이 된다.
+
+| | Datadog | VictoriaMetrics | Prometheus |
+|---|---|---|---|
+| 비용의 이름 | **custom metric 수** | `indexdb` 크기 · 메모리 | 메모리 · 디스크 |
+| 세는 단위 | 메트릭명 + **유니크 태그 조합** | active time series | head series |
+| 청구 | 시간별 distinct 수의 **월평균** | 없음(자체 운영) | 없음(자체 운영) |
+| 무료 분량 | host당 100(Pro) / 200(Ent), **풀로 합산** | — | — |
+
+### 2.1 Datadog — 긁은 것이 전부 custom metric이 된다
+
+가장 중요한 문장이 공식 문서에 그대로 있다.
+
+> "By default, all metrics retrieved by the generic Prometheus check are considered custom metrics."
+
+Karpenter를 OpenMetrics 체크로 붙이면 **60개 전부, 그리고 그것이 만드는 모든 태그 조합이 custom metric으로 과금된다.** 위 예시의 27,000 시리즈가 그대로 27,000 custom metric이다. Pro 플랜 host당 100개 무료를 200대 클러스터에 곱하면 20,000이니, 예시 수치는 무료 분량을 넘긴다.
+
+**Metrics without Limits™(MWL)** 가 완화 수단이다. 유입(ingested)과 인덱스(indexed)를 분리해서, 태그 allowlist에 없는 태그는 자동으로 드롭되어 **indexed 볼륨만 줄어든다.** 다만 성질을 알고 써야 한다 — **MWL은 유입을 줄이지 않는다.** `pod` 태그를 allowlist에서 빼면 쿼리 가능한 볼륨은 줄지만 ingested 볼륨은 그대로다. 유입 자체를 줄이려면 Agent 단계에서 걸러야 한다.
+
+정확한 단가는 계약마다 다르므로 **계정 담당자에게 확인**하는 게 맞다. 여기서는 모델만 정리한다.
+
+### 2.2 VictoriaMetrics — 청구가 아니라 인덱스가 문제다
+
+active time series의 정의가 명확하다 — **최근 1시간 안에 샘플을 하나라도 받은 시계열**이다. 즉 죽은 파드의 시리즈는 한 시간 뒤 active에서 빠진다.
+
+그런데 **`indexdb`에서는 안 빠진다.** 역인덱스는 모든 시계열의 모든 라벨 엔트리를 담기 때문에, active 수가 일정해도 churn이 계속되면 인덱스가 계속 자란다. 공식 FAQ가 Kubernetes 환경에서 `indexdb`가 `data` 디렉터리의 **2배를 넘기도 한다**고 적는다.
+
+**그래서 VM에서는 총 시리즈 수보다 churn이 먼저다.** 파드 6종은 총량으로도 크지만 churn으로는 압도적이다.
+
+### 2.3 Prometheus — 보호 장치가 전부 꺼져 있다
+
+| 설정 | 기본값 | 무엇을 막나 |
+|---|---|---|
+| `sample_limit` | **0 (무제한)** | 스크랩당 샘플 수 |
+| `label_limit` | **0 (무제한)** | 샘플당 라벨 수 |
+| `target_limit` | **0 (무제한)** | 스크랩 설정당 타깃 수 |
+
+셋 다 켜면 초과 시 **스크랩 전체가 실패 처리**된다. 부분 수집이 아니라 전부 실패라 값을 넉넉히 잡아야 하고, `sample_limit` 판정은 `metric_relabel_configs` **이후** 기준이라 drop 규칙과 함께 계산해야 한다.
+
+## 3. 수집 설정
+
+### 3.1 엔드포인트
+
+```
+--metrics-port / METRICS_PORT   기본 8080   (options.go:114)
+경로                            /metrics    (controller-runtime 기본)
+```
+
+### 3.2 VictoriaMetrics
+
+vm-operator는 `VMServiceScrape`를 먹는다. prometheus-converter가 켜져 있으면 Prometheus `ServiceMonitor`도 자동 변환하므로, 차트에 `serviceMonitor.enabled`가 있으면 그걸 켜는 쪽이 짧다.
+
+```yaml
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: karpenter
+  namespace: karpenter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: karpenter
+  endpoints:
+    - port: http-metrics          # 차트의 서비스 포트 이름 확인 필요
+      interval: 30s
+      metricRelabelConfigs:
+        # §4의 drop 규칙이 여기 들어간다
+        - action: drop
+          source_labels: [__name__]
+          regex: 'karpenter_pods_(state|unstarted_time_seconds|unbound_time_seconds)'
+        - action: drop
+          source_labels: [__name__]
+          regex: 'karpenter_pods_provisioning_.*'
+```
+
+`relabel_configs`가 아니라 **`metricRelabelConfigs`** 여야 한다. 전자는 스크랩 **전** 타깃 선정 단계고, 시리즈를 떨어뜨리는 것은 스크랩 **후** 저장 전 단계다.
+
+vmagent 쪽에서 한 번 더 거를 수도 있다(`-remoteWrite.relabelConfig`). 다만 스크랩 단계에서 이미 버리는 편이 낫다 — vmagent까지는 어차피 실어 나른 뒤이기 때문이다.
+
+### 3.3 Datadog
+
+파드 어노테이션으로 OpenMetrics 체크를 붙인다. **`max_returned_metrics`를 반드시 같이 본다** — 기본 2000이라 대규모 클러스터에서는 이 선에서 잘린다.
+
+태그 단계 필터링은 통합의 `ignore_tags`로, 인덱스 단계 필터링은 MWL의 태그 allowlist 또는 metric 상세 패널의 Exclude Tags로 한다.
+
+## 4. 무엇을 버리고 무엇을 남기나
+
+### 4.1 버린다 — 파드 단위 6종
+
+```yaml
+- action: drop
+  source_labels: [__name__]
+  regex: 'karpenter_pods_(state|unstarted_time_seconds|unbound_time_seconds)'
+- action: drop
+  source_labels: [__name__]
+  regex: 'karpenter_pods_provisioning_.*'
+```
+
+**버려도 잃는 게 거의 없다.** 근거가 셋이다.
+
+첫째, 파드 단위 상태는 **kube-state-metrics가 이미 더 잘 낸다.** `kube_pod_status_phase`·`kube_pod_container_status_ready`가 같은 것을 더 정제된 형태로 준다.
+
+둘째, `karpenter_pods_state`의 고유 가치로 보이는 것 — 파드에 `nodepool`·`capacity_type`이 붙는 점 — 은 **노드 단위 메트릭으로도 얻는다.** 어느 NodePool에 얼마나 실렸는지는 `karpenter_nodes_total_pod_requests`가 답한다.
+
+셋째, ALPHA 3종은 애초에 SLO에 못 쓴다. Help에 붙은 단서가 이유다 — *"this calculated from a point in memory, not by the pod creation timestamp."* 컨트롤러가 재시작하면 기준점이 리셋된다([09 §4.5]({{< relref "09-metrics-logs-events.md" >}})).
+
+### 4.2 남긴다
+
+[09 §2]({{< relref "09-metrics-logs-events.md" >}})의 여섯 개가 핵심이고, 전부 NodePool·전역 축이라 시리즈가 묶인다.
+
+| 남길 것 | 시리즈 규모 |
+|---|---|
+| `karpenter_nodeclaims_disrupted_total` | NP × reason × capacity_type |
+| `karpenter_nodepools_allowed_disruptions` | NP × 3 |
+| `karpenter_nodepools_nodes_consuming_budgets` | NP × 3 |
+| `karpenter_scheduler_unschedulable_pods_count` | 1 |
+| `karpenter_scheduler_pending_pods_by_effective_zone_count` | zone 수 |
+| `karpenter_consolidation_score` | NP × decision × policy |
+| `karpenter_cluster_utilization_percent` | R |
+
+### 4.3 판단이 갈리는 것 — 노드 단위 7종
+
+`6NR + N`이라 200노드·R=6이면 7,400이다. 무시할 양은 아니지만 **churn이 낮고**(노드는 파드보다 훨씬 덜 갈린다) 대체재가 없다. 특히 `_total_pod_requests`에서 `_total_daemon_requests`를 뺀 값은 **"노드를 줄일 수 있는가"의 유일한 직접 근거**다([08 §5]({{< relref "08-disruption-budgets.md" >}})).
+
+줄여야 한다면 메트릭을 버리는 대신 `resource_type`을 자르는 쪽이 낫다. `hugepages-*`를 안 쓰면 그 두 축이 통째로 낭비다.
+
+```yaml
+- action: drop
+  source_labels: [__name__, resource_type]
+  regex: 'karpenter_nodes_.*;hugepages-.*'
+```
+
+## 5. 실측 방법
+
+추정 대신 재고 시작한다.
+
+```promql
+# 메트릭별 시리즈 수 — 상위가 곧 비용 순위
+count({__name__=~"karpenter_.*"}) by (__name__)
+
+# 파드 축이 전체에서 차지하는 비중
+count({__name__=~"karpenter_pods_.*"}) / count({__name__=~"karpenter_.*"})
+```
+
+VM에서는 백엔드 쪽 지표도 같이 본다.
+
+```promql
+sum(max_over_time(vm_cache_entries{type="storage/hour_metric_ids"}[24h]))  # active series
+sum(increase(vm_new_timeseries_created_total[24h]))                        # churn
+```
+
+drop 규칙을 넣기 **전후로 두 번** 재서 실제로 줄었는지 확인한다. vmui의 Cardinality Explorer(`/vmui/#/cardinality`)가 메트릭·라벨별로 갈라 보여준다. Prometheus라면 `/api/v1/status/tsdb`의 `seriesCountByMetricName`이 같은 답을 준다(기본 상위 10개, `limit` 파라미터로 확대).
+
+## 6. 함정 넷
+
+**① Datadog OpenMetrics는 2000개에서 조용히 자른다.** `max_returned_metrics` 기본값이다. 잘린 상태와 메트릭이 원래 없는 상태가 대시보드에서 구분되지 않는다. 붙이자마자 §5의 카운트를 재서 상한에 닿는지 먼저 본다.
+
+**② MWL은 유입을 줄이지 않는다.** 태그 allowlist는 indexed 볼륨만 줄인다. "MWL 켰으니 됐다"가 아니라, ingested 과금이 별도로 있다는 걸 전제로 계약을 봐야 한다.
+
+**③ Prometheus의 한도는 전부 기본 0이다.** 켜 두지 않으면 카디널리티 사고가 스크랩 실패가 아니라 **메모리 증가로만** 나타나서 발견이 늦다. 다만 켤 때는 초과 시 스크랩 전체가 실패한다는 점을 감수해야 한다.
+
+**④ `karpenter_nodes_*`의 라벨 수는 코어보다 많다.** 프로바이더가 런타임에 `WellKnownLabels`를 확장하므로(`metrics/node/controller.go:62-64`) EKS에서는 `instance_family`·`instance_size` 등이 더 붙는다. **코어 소스만 보고 계산한 시리즈 수는 과소추정이다.**
+
+## 7. 근거
+
+메트릭 목록과 라벨은 [09 §8]({{< relref "09-metrics-logs-events.md" >}})의 근거를 그대로 쓴다(`kubernetes-sigs/karpenter` v1.14.0-6-gac7a021e). 추가로:
+
+- `resource_type` 축이 노드의 실제 `ResourceList`에서 나온다 — `pkg/controllers/metrics/node/controller.go`의 `getNodeLabelsWithResourceType`
+- 메트릭 포트 기본값 8080 — `pkg/operator/options/options.go:114`
+- **Datadog** custom metric 정의·과금 단위·무료 분량 — [Custom Metrics](https://docs.datadoghq.com/metrics/custom_metrics/), [Custom Metrics Billing](https://docs.datadoghq.com/account_management/billing/custom_metrics/)
+- **Datadog** OpenMetrics 수집분이 custom metric이라는 문장과 `max_returned_metrics` 기본 2000 — [Kubernetes Prometheus and OpenMetrics metrics collection](https://docs.datadoghq.com/containers/kubernetes/prometheus/)
+- **Datadog** MWL의 ingested/indexed 분리 — [Metrics without Limits™](https://docs.datadoghq.com/metrics/metrics-without-limits/)
+- **VM** active series 정의·churn·`indexdb` 팽창 — [VictoriaMetrics FAQ](https://docs.victoriametrics.com/victoriametrics/faq/)
+- **VM** 측정 지표명과 Cardinality Explorer — [Understand Your Setup Size](https://docs.victoriametrics.com/guides/understand-your-setup-size/)
+- **VM** relabel 적용 단계와 vmagent 플래그 — [Relabeling cookbook](https://docs.victoriametrics.com/victoriametrics/relabeling/)
+- **Prometheus** `sample_limit`·`label_limit`·`target_limit` 기본값과 relabel 적용 시점 — [Configuration](https://prometheus.io/docs/prometheus/latest/configuration/configuration/)
+- **Prometheus** `/api/v1/status/tsdb` 반환 필드 — [HTTP API](https://prometheus.io/docs/prometheus/latest/querying/api/)
+
+**확인하지 못한 것** — §1.2의 시리즈 수는 공식에 예시 값을 넣은 계산이지 실측이 아니다. Datadog의 정확한 초과 단가는 계약별로 다르므로 문서 수치를 그대로 믿으면 안 된다. VictoriaMetrics Cloud의 상용 과금 모델은 조사하지 않았다(자체 운영 전제).
