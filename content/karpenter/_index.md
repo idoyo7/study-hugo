@@ -30,19 +30,23 @@ aliases: ["/k8s-features/karpenter/"]
 
 ## 버전 타임라인
 
-| 버전 | 릴리스 | 대표 변경 |
-|---|---|---|
-| **0.36 / 0.37** | 2024-03/06 | v1beta1 마지막 구간. drift 롤백 제약 |
-| **1.0** | 2024-08 | **v1 API.** drift 게이트 삭제 · expiration forceful 회귀 · `consolidateAfter` 필수 |
-| **1.1** | 2024-11 | **v1beta1 서빙 종료.** `nodeClassRef.group`/`kind` 필수 |
-| **1.2 / 1.3** | 2025-01/03 | 메트릭 reason 라벨 snake_case · `capacity-type: reserved`(alpha) |
-| **1.4 / 1.5** | 2025-04/05 | `NodeRegistrationHealthy` 조건 · Node Repair 정비 |
-| **1.6** | 2025-07 | **native ODCR beta 기본 활성화**(회귀) · `MinValuesPolicy` |
-| **1.7** | 2025-09 | **`instance-capability-flex` 라벨** · 메트릭 리네임 2건 · IAM 1종 |
-| **1.8** | 2025-10 | **Static NodePool**. 단 **1.8.4는 건너뛴다** |
-| **1.9 ~ 1.11** | 2026-02~04 | `Gte`/`Lte` 연산자 · IAM 정책 5분할 · placement group |
-| **1.12** | 2026-04 | **CA bundle drift** — 업그레이드가 전 노드를 drift로 만든다 |
-| **1.13 / 1.14** | 2026-06/07 | **Capacity Buffers**(신규 CRD) · **Balanced consolidation** · DRA |
+버전을 "무엇이 머지됐나"로 읽으면 목록이 되고, **"어떤 상황에서 켤 것을 주는가"** 로 읽으면 계획이 된다. 아래는 후자다.
+
+| 버전 | 언제 쓰나 (조건) | 무엇이 가능해졌나 | 대가 |
+|---|---|---|---|
+| **0.36~0.37** | 선택 아님 | EC2NodeClass readiness | CRD 선행 없으면 중단 |
+| **1.0** | **v1 진입 — 선택 아님** | TGP · reason별 budget | **drift를 못 끈다** · 만료 forceful |
+| **1.1** | 선택 아님 | Node Repair(alpha) | v1beta1 서빙 종료 |
+| **1.2~1.3** | ODCR을 쓰고 싶다 | `capacity-type: reserved` | reason 라벨 snake_case |
+| **1.4~1.5** | 등록 실패를 감지하고 싶다 | `NodeRegistrationHealthy` | 없음 |
+| **1.6** | **선택 아님 — 기본 ON** | Capacity Blocks · `MinValuesPolicy` | **ODCR 미등재면 요금만 나간다** |
+| **1.7** | flex가 섞이는 게 싫다 | 라벨 한 줄로 배제 | 메트릭 2건 리네임 |
+| **1.8** | 기준 용량을 상시 유지한다 | Static NodePool | alpha · 전환 불가 · 1.8.4 스킵 |
+| **1.9~1.11** | HPC·랙 격리가 필요하다 | Placement Group | IAM 두 번 추가 |
+| **1.12** | **선택 아님 — 지나간다** | ARC Zonal Shift | **전 노드 일괄 drift** |
+| **1.13~1.14** | churn이 과해 불만이다 | `Balanced` 한 줄 | Capacity Buffers는 alpha |
+
+**"선택 아님"이 네 줄**이다. 그 넷은 켤지 말지를 고르는 게 아니라 지나갈 때 무엇을 미리 막아둘지를 고르는 항목이고, 그중 1.6과 1.12는 대가가 각각 요금과 전 노드 교체다. 릴리스는 0.36 2024-03부터 1.14 2026-07까지다.
 
 ## 문서 지도
 
@@ -83,11 +87,11 @@ aliases: ["/k8s-features/karpenter/"]
 
 ## 검증 기준
 
-이 챕터의 모든 코드·릴리스노트 인용은 로컬 체크아웃을 직접 읽어 확인했다.
+이 챕터의 모든 코드·릴리스노트 인용은 로컬 체크아웃을 직접 읽어 확인했다. 본문에 `파일:라인` 형태로 나오는 인용은 아래 체크아웃을 연 것이다.
 
-- **kubernetes-sigs/karpenter (코어)** — `v1.14.0-6-gac7a021e` · main(2026-07-30). 스케줄링·disruption·NodeOverlay 배선의 라인번호 인용 기준.
+- **kubernetes-sigs/karpenter (코어)** — `v1.14.0-6-gac7a021e` · main(2026-07-30). 스케줄링·disruption·NodeOverlay 코드가 여기 있고, 코어 쪽 라인번호는 전부 이 체크아웃 기준이다.
 - **aws/karpenter-provider-aws** — main(2026-07-30) · `v1.7.0` · `v1.11.3`. CreateFleet 호출부·ICE 캐시·오퍼링 가격·인스턴스 타입 라벨. `v1.7.0`은 NodeOverlay 지원이 처음 들어간 태그다.
-- **릴리스노트** — provider `v0.36.0`~`v1.14.0`, 코어 `v1.0.0`~`v1.14.0`. 버전 축의 도입 시점·PR 번호 판정.
+- **릴리스노트** — provider `v0.36.0`~`v1.14.0`, 코어 `v1.0.0`~`v1.14.0`. 어떤 기능이 어느 버전에 들어왔는지와 PR 번호를 여기서 판정했다.
 
 {{< callout type="warning" >}}
 **라인번호는 배포 버전과 어긋날 수 있다.** provider-aws **v1.11.3이 핀하는 코어는 v1.11.2**인데, 알고리즘 축의 코어 라인번호는 v1.14 기준이다. 함수명·조건식·상수값은 그대로 유효하지만 `파일:라인` 형태의 인용을 그대로 열면 몇 줄 어긋난 곳에 도착할 수 있다. 자기 클러스터에서 확인할 때는 라인이 아니라 **함수명·식별자로 검색**하라.

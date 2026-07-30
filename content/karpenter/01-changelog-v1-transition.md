@@ -24,19 +24,22 @@ weight: 1
 
 ## 1. 타임라인 — 0.36에서 1.6까지
 
-| 버전 | 릴리스일 | 대표 변경 | breaking |
+이 구간은 **고를 수 있는 기능이 거의 없다.** 대부분 "지나가면 맞는 것"이고, 그래서 읽는 방식도 "무엇을 켤까"가 아니라 "무엇을 미리 막아둘까"다.
+
+| 버전 | 언제 쓰나 (조건) | 무엇이 가능해졌나 | 대가 |
 |---|---|---|---|
-| **0.36.0** | 2024-04-10 | EC2NodeClass readiness condition. NodeClass 컨트롤러 3분할(`nodeclass.status`/`.hash`/`.termination`) | **예** — CRD 선행 없으면 프로비저닝 중단 |
-| **0.37.0** | 2024-05-28 | NodeClaim condition의 `severity` 제거, 로거 표준화 | **예**(조건부) — 상태·로그 파서 |
-| **1.0.0** | 2024-08-14 | v1 API. drift Stable·비활성화 불가, forceful expiration, `terminationGracePeriod`, budgets by reason, 메트릭 대량 rename/drop, 인스턴스 완전 종료 대기 | **예**(전면) → §2 |
-| **1.1.0** | 2024-11-29 | v1beta1 서빙 종료. `nodeClassRef.group`/`kind` 필수, Bottlerocket RAID0, neuron 라벨 교정, generic operator 메트릭 deprecated, Node Repair alpha | **예** → §3 |
-| **1.2.0** | 2025-01-28 | `nodeclass` 컨트롤러 통합, reason 라벨 snake_case, Node Monitoring Agent 연동([aws#7545](https://github.com/aws/karpenter-provider-aws/pull/7545)) | **예**(관측성만) → §4 |
-| **1.3.0** | 2025-03-03 | ReservedCapacity **alpha**([aws#7726](https://github.com/aws/karpenter-provider-aws/pull/7726)) — `capacity-type: reserved` 신설. `karpenter_ignored_pod_count`→`karpenter_scheduler_ignored_pod_count`([core#2015](https://github.com/kubernetes-sigs/karpenter/pull/2015)) | **예**(조건부) → §5 |
-| **1.4.0** | 2025-04-16 | `NodeRegistrationHealthy`, `PreferencePolicy`, 전역 기본 TGP | 아니오 |
-| **1.5.0** | 2025-05-23 | `karpenter_pods_drained_total`, 검증 인스턴스 동적 선택, Bottlerocket soft eviction, EBS `volumeInitializationRate` | 아니오 |
-| **1.6.0** | 2025-07-14 | ReservedCapacity **beta·기본 ON**, Capacity Blocks([aws#8011](https://github.com/aws/karpenter-provider-aws/pull/8011)), `MinValuesPolicy`, 드레인/볼륨 컨디션 분리([core#1876](https://github.com/kubernetes-sigs/karpenter/pull/1876)), kube-reserved 메모리 계산 수정([aws#8205](https://github.com/aws/karpenter-provider-aws/pull/8205)) | **예**(ODCR) → §6 |
-| **1.6.2** | 2025-08-13 | `DisableDryRun` | 아니오 |
-| 1.7.0+ | 2025-09-15 ~ | NodeOverlay(1.7 alpha), Static Capacity(1.8 alpha), Balanced consolidation(1.14) → [02]({{< relref "02-changelog-maturity.md" >}}) | — |
+| **0.36** | 선택 아님 | EC2NodeClass readiness | CRD 선행 없으면 중단 |
+| **0.37** | 선택 아님 | — | `severity` 제거 — 파서 수정 |
+| **1.0** | **v1 진입 — 선택 아님** | TGP · reason별 budget | **drift를 못 끈다** · 만료 forceful |
+| **1.1** | 선택 아님 | Node Repair(alpha) | v1beta1 종료 · `group`/`kind` 필수 |
+| **1.2** | 하드웨어 이상을 잡고 싶다 | Node Monitoring Agent | reason 라벨 snake_case |
+| **1.3** | ODCR을 쓰고 싶다 | `capacity-type: reserved` | alpha 게이트 · 메트릭 1건 rename |
+| **1.4** | 등록 실패를 감지하고 싶다 | `NodeRegistrationHealthy` | 없음 |
+| **1.5** | 드레인을 관측하고 싶다 | `pods_drained_total` | 없음 |
+| **1.6** | **선택 아님 — beta 기본 ON** | Capacity Blocks · `MinValuesPolicy` | **ODCR 미등재면 요금만 나간다** |
+| **1.7+** | → [02]({{< relref "02-changelog-maturity.md" >}}) | NodeOverlay · Static · Balanced | — |
+
+각 행의 "대가"가 이 문서의 본문이다 — 1.0은 §2, 1.1은 §3, 1.2는 §4, 1.3은 §5, 1.6은 §6이 받는다. 릴리스일은 각각 0.36.0 2024-04-10, 0.37.0 2024-05-28, 1.0.0 2024-08-14, 1.1.0 2024-11-29, 1.2.0 2025-01-28, 1.3.0 2025-03-03, 1.4.0 2025-04-16, 1.5.0 2025-05-23, 1.6.0 2025-07-14, 1.6.2 2025-08-13(`DisableDryRun`)이고, aws provider 태그의 커밋 날짜 기준이다.
 
 릴리스일은 aws provider 태그의 커밋 날짜다. Kubernetes 호환 하한이 버전 선택을 사실상 결정한다(`upgrading/compatibility.md:18-20`) — k8s 1.32는 ≥1.2, **1.33은 ≥1.5, 1.34는 ≥1.6**, 1.35는 ≥1.9, 1.36은 ≥1.13. EKS를 1.33 이상으로 올리는 순간 §5·§6은 선택지가 아니라 전제다.
 

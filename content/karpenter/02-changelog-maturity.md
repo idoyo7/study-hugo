@@ -25,18 +25,23 @@ weight: 2
 
 ## 1. 타임라인 — 무엇이 언제 들어왔나
 
-| 버전 | 릴리스 core/aws | 대표 기능 | 필요 조치 |
-|---|---|---|---|
-| **1.7** | 2025-09-12 / 15 | flex 라벨, NodeOverlay(alpha) | IAM 1종, **메트릭 리네임 2건**(§3) |
-| **1.8** | 2025-10-02 / 08 | Static NodePool(alpha) | CRD 필수. **1.8.4 건너뛸 것** |
-| **1.9** | 2026-02-04 / 06 | ICE 필터링, tenancy 라벨 | IAM 정책 5분할(권한 값 무변경) |
-| **1.10** | 2026-03-17 / 20 | interruptible ODCR launch | EventBridge `detail-type` 추가 |
-| **1.11** | 2026-04-04 / 06 | Placement Group, ENI 구성 | IAM 1종. **CPU 사용량 회귀 경고** |
-| **1.12** | 2026-04-25 / 24 | CA bundle drift, Zonal Shift | **전 노드 일괄 drifted**. IAM 1종 |
-| **1.13** | 2026-06-10 | subnet 단위 ICE, refresh interval | 없음 |
-| **1.14** | 2026-07-10 | Capacity Buffers, Balanced | **신규 CRD** 동반 업그레이드 |
+각 버전을 "무엇이 머지됐나"가 아니라 **"어떤 상황에서 켤 것을 주는가"** 로 읽는다. 그래야 지금 필요 없는 버전을 건너뛸 수 있다.
 
-1.8은 Pod-level Resources, 1.11은 `limits.nodes` 일반화, 1.12는 EC2 상태 헬스체크와 do-not-disrupt grace period, 1.13은 커스텀 instance profile path·conntrack·nested virtualization, 1.14는 DRA와 preview instance types를 함께 담았다. **1.8.4와 1.11.0에는 각각 회귀 경고**가 붙어 있다(§4.3).
+| 버전 | 언제 쓰나 (조건) | 무엇이 가능해졌나 | 대가 |
+|---|---|---|---|
+| **1.7** | flex가 섞이는 게 싫다 | 라벨 한 줄로 배제 (§2) | 기존 풀에 넣으면 전량 교체 |
+| **1.8** | 기준 용량을 상시 유지한다 | Static NodePool (§4) | alpha · **전환 불가** · 1.8.4 스킵 |
+| **1.9** | 선택 아님 | ICE 필터링 · tenancy 라벨 | IAM 정책 5분할 |
+| **1.10** | interruptible ODCR을 쓴다 | 그 위에서 노드를 띄운다 | EventBridge 규칙 추가 |
+| **1.11** | HPC·랙 격리가 필요하다 | Placement Group (§5) | IAM 1종 · 1.11.0 CPU 회귀 |
+| **1.12** | **선택 아님 — 지나간다** | Zonal Shift · 상태 헬스체크 (§6) | **전 노드 일괄 drift** |
+| **1.13** | 서브넷 IP가 마른다 | ICE를 subnet 단위로 | 없음 |
+| **1.14** | churn이 과해 불만이다 | `Balanced` 한 줄 (§7.2) | 통합 거동이 바뀐다 |
+| **1.14** | headroom을 자동화한다 | Capacity Buffers (§7.1) | alpha · 신규 CRD · 문서 낡음 |
+
+**"선택 아님" 두 줄이 이 표의 핵심이다.** 1.9와 1.12는 켤 기능이 아니라 **지나가면 맞는 것**이고, 그중 1.12는 대가가 전 노드 교체다. 나머지는 필요 없으면 그냥 통과해도 된다.
+
+릴리스일은 core/aws 순으로 1.7 2025-09-12/15, 1.8 2025-10-02/08, 1.9 2026-02-04/06, 1.10 2026-03-17/20, 1.11 2026-04-04/06, 1.12 2026-04-25/24, 1.13 2026-06-10, 1.14 2026-07-10이다. 표에 안 넣은 동반 기능도 있다 — 1.8의 Pod-level Resources, 1.11의 `limits.nodes` 일반화, 1.12의 do-not-disrupt grace period, 1.13의 커스텀 instance profile path·refresh interval·conntrack, 1.14의 DRA와 preview instance types. **1.8.4와 1.11.0에는 각각 회귀 경고**가 붙어 있다(§4.3).
 
 k8s 호환 하한도 올라갔다. 1.14는 k8s 1.30~1.36을 커버하고, **1.36을 쓰려면 최소 1.13**, 1.35는 1.9, 1.33은 1.5가 하한이다.
 
