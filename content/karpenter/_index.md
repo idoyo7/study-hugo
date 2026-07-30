@@ -60,7 +60,7 @@ cascade:
 | [04 인스턴스는 누가 고르는가]({{< relref "04-instance-selection.md" >}}) | 없음 — 진입점 | 스케줄러 → NodeClaim → Truncate → EC2 Fleet 경로를 함수 단위로 따라간다. 최종 선택자는 EC2고, "절단이 8세대를 잘라낸다"는 흔한 오해는 사실이 아니다 |
 | [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}}) | 04 | NodePool 분리 + `spec.weight`(GA) vs NodeOverlay `priceAdjustment`(알파)를 코드 경로로 비교하고, **복붙해서 쓸 매니페스트 전문**을 낸다 |
 | [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}}) | 05 | 세워 놓은 구성이 며칠~몇 주에 걸쳐 조용히 무너지는 경로 — 가격 부등식 하나, weight 미인지, 복귀 부재, `expireAfter`의 함정, drift |
-| [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) | 04 | ICE 캐시의 3분과 세 축, 폴백 실측 지연, spot을 섞는 순간 논의가 바뀌는 이유, 알파 없이 8세대를 1순위로 만드는 ODCR |
+| [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) | 04 | ICE 캐시의 3분과 세 축, 폴백 실측 지연, spot을 섞는 순간 논의가 바뀌는 이유, 알파 없이 8세대를 1순위로 만드는 ODCR. 그리고 **폴백이 흡수하지 않는 유일한 실패** — 런치는 됐는데 등록이 안 되는 경우(`NodeRegistrationHealthy`) |
 
 ## 읽는 순서
 

@@ -3,7 +3,7 @@ title: "consolidation이 되돌리는 것"
 weight: 6
 ---
 
-# 03 · consolidation이 되돌리는 것 — 구성해 놓고 나중에 무너지는 경로들
+# 06 · consolidation이 되돌리는 것 — 구성해 놓고 나중에 무너지는 경로들
 
 {{< callout type="info" >}}
 **한눈에**
@@ -58,6 +58,14 @@ func (n *NodeClaim) RemoveInstanceTypeOptionsByPriceAndMinValues(reqs scheduling
 multi-node consolidation도 같은 `computeConsolidation`을 탄다(multinodeconsolidation.go:141). `filterOutSameInstanceType`은 "삭제 대상 목록에 있는 인스턴스 타입"에 대해서만 상한을 조이므로(초기값 `math.MaxFloat64`), **8세대 노드 여러 개를 7세대 한 개로 합치는 시나리오는 이 필터를 그대로 통과한다.**
 
 v1.14에 들어온 `consolidationPolicy: Balanced`도 이 문제의 해법이 아니다. `ScoreMove`는 절감액 비율과 중단 비용 비율만 본다. 세대도, NodePool weight도 스코어의 입력이 아니다. 7세대가 충분히 싸면 승인된다.
+
+{{< callout type="info" >}}
+**`Balanced`(1.14)를 켜도 이 부등식은 그대로다.** `RemoveInstanceTypeOptionsByPriceAndMinValues` 호출 지점은 `consolidation.go:221`(일반)·`:278`(spot→spot)·`multinodeconsolidation.go:241`(`filterOutSameInstanceType`) 셋이고 **어느 것도 정책 분기 안에 없다.** `Balanced`는 그 필터를 통과해 만들어진 커맨드에 나중에 얹히는 승인 게이트다(`balanced.go:220-221` `ApproveCommand` → `EvaluateBalancedMove`).
+
+따라서 `Balanced`는 "더 싼 쪽으로 가는 교체" 중 일부를 **추가로 거부**할 뿐, "더 비싼 쪽으로 가는 교체"를 만들어 내지 않는다. **§4의 복귀 경로 부재는 정책 선택과 무관하다.** 점수 함수도 이를 강화한다 — `SavingsFraction <= 0`이면 `Score()`가 0이라 어떤 `k`에서도 거부된다(`disruption/types.go:100-111`).
+
+정책 자체(disruption cost 모델·k=2 근거·도입 시점 판정)는 [02 지금 켤 만한 것과 미룰 것]({{< relref "02-changelog-maturity.md" >}}) §7.2가 소유한다.
+{{< /callout >}}
 
 ## 2. disruption은 weight를 모른다
 
