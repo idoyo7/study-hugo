@@ -1,6 +1,7 @@
 ---
 title: "인스턴스는 누가 고르는가"
 weight: 4
+aliases: ["/k8s-features/karpenter/01-instance-selection/"]
 ---
 
 # 04 · 인스턴스는 누가 고르는가 — 후보를 넘기고, EC2가 정한다

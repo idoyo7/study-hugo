@@ -1,6 +1,7 @@
 ---
 title: "세대 선호 만들기"
 weight: 5
+aliases: ["/k8s-features/karpenter/02-generation-preference/"]
 ---
 
 # 05 · 세대 선호 만들기 — weight vs NodeOverlay
