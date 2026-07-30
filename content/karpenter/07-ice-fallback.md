@@ -3,7 +3,7 @@ title: "용량이 없을 때 — ICE와 폴백 지연"
 weight: 7
 ---
 
-# 04 · 용량이 없을 때 — ICE와 폴백 지연
+# 07 · 용량이 없을 때 — ICE와 폴백 지연
 
 {{< callout type="info" >}}
 **한눈에**
@@ -110,7 +110,7 @@ if len(remaining) == 0 {
 
 ICE 캐시가 이미 채워진 뒤의 재시도가 정확히 이 경로를 탄다. 그래서 "폴백에는 `CreateFleet` 실패 왕복이 반드시 한 번 든다"는 서술은 **첫 실패에만** 맞다. 두 번째부터는 EC2를 때리지 않는다.
 
-**(b) fleet 에러가 전부 "ICE로 집계되는 에러"여야 위 삭제 경로를 탄다.** `combineFleetErrors()`가 세는 것은 순수 ICE가 아니라 `IsUnfulfillableCapacity(err) || IsServiceLinkedRoleCreationNotPermitted(err)`이고, 그 개수가 전체와 같을 때만 `InsufficientCapacityError`로 감싼다(`pkg/providers/instance/instance.go:798-803`) — 즉 **spot service-linked role 생성 불가도 ICE로 집계된다**(§3의 `capacityTypeCache` 축을 채우는 바로 그 에러다). 하나라도 다른 에러(런치 템플릿 문제, 권한 등)가 섞이면 `CreateError`로 분류한다. 이 경우 NodeClaim은 삭제되지 않고 `Launched=Unknown`으로 남아 컨트롤러 백오프 재큐를 탄다 — **폴백이 훨씬 느려지고, `karpenter_nodeclaims_disrupted_total`에도 안 잡힌다.** §7의 이벤트/메트릭으로 "정말 ICE 경로인지"를 먼저 확인해야 하는 이유다.
+**(b) fleet 에러가 전부 "ICE로 집계되는 에러"여야 위 삭제 경로를 탄다.** `combineFleetErrors()`가 세는 것은 순수 ICE가 아니라 `IsUnfulfillableCapacity(err) || IsServiceLinkedRoleCreationNotPermitted(err)`이고, 그 개수가 전체와 같을 때만 `InsufficientCapacityError`로 감싼다(`pkg/providers/instance/instance.go:798-803`) — 즉 **spot service-linked role 생성 불가도 ICE로 집계된다**(§3의 `capacityTypeCache` 축을 채우는 바로 그 에러다). 하나라도 다른 에러(런치 템플릿 문제, 권한 등)가 섞이면 `CreateError`로 분류한다. 이 경우 NodeClaim은 삭제되지 않고 `Launched=Unknown`으로 남아 컨트롤러 백오프 재큐를 탄다 — **폴백이 훨씬 느려지고, `karpenter_nodeclaims_disrupted_total`에도 안 잡힌다.** §8의 이벤트/메트릭으로 "정말 ICE 경로인지"를 먼저 확인해야 하는 이유다.
 
 ## 3. ICE 캐시 — 3분, 그리고 세 개의 축
 
@@ -276,7 +276,71 @@ if IsReservedOfferingError(err) { … idx = i; return false }
 **EC2NodeClass 쪽 필드는 직접 확인하라.** provider-aws는 `nodeClass.CapacityReservations()`로 예약 목록을 읽어 reserved 오퍼링을 만든다(`reserved_capacity_resolver.go`). 그 목록을 채우는 EC2NodeClass의 셀렉터 필드명과 스키마는 이 조사에서 **확인하지 못했다** — 로컬에 provider-aws의 `pkg/apis/v1` EC2NodeClass 타입 정의 사본이 없다. 쓰기 전에 `kubectl explain ec2nodeclass.spec`으로 사용 중인 버전의 필드를 확인할 것. 그리고 ODCR은 예약해 둔 시간만큼 돈이 나간다 — 알파 회피의 대가는 비용이다.
 {{< /callout >}}
 
-## 7. 지금 ICE가 나고 있는지 아는 법
+## 7. 런치는 됐는데 등록이 안 될 때 — `NodeRegistrationHealthy`
+
+§1~§6은 전부 **런치가 거부되는** 실패다. 런치가 성공한 뒤 노드가 클러스터에 조인하지 못하는 실패는 성질이 완전히 다르다. RFC가 드는 대표 원인은 클러스터 security group의 outbound 규칙 누락이다(`designs/noderegistrationhealthy-status-condition.md`).
+
+**결정적 차이: 오퍼링이 마킹되지 않는다.**
+
+| | ICE (§2) | 등록 실패 |
+|---|---|---|
+| 어디서 실패 | `CreateFleet` 호출 | 노드 부팅 후 kubelet 조인 |
+| 오퍼링 마킹 | `MarkUnavailable` → 후보에서 제외 | **없음** — 오퍼링은 계속 available |
+| 다음 사이클 | 다른 조합으로 넘어감 | **같은 조합을 다시 시도** |
+| 폴백 | 자동 | **안 걸린다** |
+
+8세대 풀에서 노드가 뜨는데 등록이 안 되면 §3의 ICE 캐시도 §4의 구성별 폴백도 구제하지 못한다. 캐시는 비어 있고, 8세대 풀은 스케줄 시뮬레이션에 계속 **성공**하므로 7세대 풀의 결과가 채택되지 않는다. 증상은 노드가 주기적으로 뜨고 사라지는 것뿐이다.
+
+### 7.1 3상태
+
+`ConditionTypeNodeRegistrationHealthy`(`pkg/apis/v1/nodepool_status.go:31`)는 3상태다.
+
+| 상태 | 언제 | 코드 |
+|---|---|---|
+| `Unknown` | NodePool 최초 생성, 또는 NodePool·NodeClass generation 변경 | `registrationhealth/controller.go:92-97` |
+| `True` | 이 NodePool·NodeClass 조합으로 등록이 성공 | `nodeclaim/lifecycle/registration.go:192` |
+| `False` | 등록 실패가 임계를 넘음 | `nodeclaim/lifecycle/liveness.go:128`, `:131-135` |
+
+`False`의 reason은 둘로 갈린다 — 등록 타임아웃이면 `RegistrationFailed` / `"Failed to register node"`(`liveness.go:132`), 런치 자체가 실패했으면 NodeClaim의 `Launched` condition reason·message를 그대로 옮긴다(`:134`).
+
+### 7.2 판정 — 링버퍼 4칸
+
+`03-keyword-reference`가 "관찰용"이라고 적은 그 조건의 판정 근거다. 상태는 컨디션이 아니라 인메모리 링버퍼에서 나온다(`pkg/state/nodepoolhealth/tracker.go`).
+
+```go
+// pkg/state/nodepoolhealth/tracker.go:28-29
+BufferSize     = 4
+ThresholdFalse = 0.5 // 50% of 0s for NodeRegistrationHealthy=False
+```
+
+- `Status()`는 `unhealthyCount / BufferSize >= ThresholdFalse`이면 `StatusUnhealthy`(`:80-84`). **최근 4회 중 2회 실패면 `False`다.**
+- 버퍼가 비어 있으면 `Unknown`(`:69-71`).
+- `DryRun(uid, launchStatus)`은 버퍼 **복사본**에 결과를 하나 넣어 보고 판정한다(`:145-157`) — 실제 버퍼를 오염시키지 않고 "이번 결과를 반영하면 상태가 바뀌는가"만 본다.
+- 링버퍼는 꽉 차면 가장 오래된 칸을 덮는다(`pkg/utils/ringbuffer/buffer.go:30-39`). 따라서 `[false, false]`에서 `True`로 돌아오려면 **성공 3회**가 필요하다 — 2회까지는 `2/4 = 0.5`로 여전히 Unhealthy다.
+
+**`False`까지 걸리는 시간**: 등록 타임아웃 경로는 `registrationTimeout = 15분`(`liveness.go:52`), 런치 타임아웃은 `5분`(`:59`). 실패 2회가 쌓여야 하므로 **30분 이상**이다. 즉시 알려 주는 신호가 아니다.
+
+### 7.3 재시작은 상태를 보존한다
+
+흔한 오해다. Karpenter가 재시작해 버퍼가 비면 **기존 컨디션 값으로 버퍼를 재수화**한다(`registrationhealth/controller.go:82-89`, `tracker.go:94-101`이 `False`면 `false` 2칸을 선충전). `Unknown`으로 되돌리는 것은 generation 변경뿐이다(`controller.go:92-97`) — NodePool `Generation`이 컨디션의 `ObservedGeneration`과 다르거나, NodeClass generation이 `Status.NodeClassObservedGeneration`과 다를 때.
+
+### 7.4 신호이지 가드가 아니다
+
+{{< callout type="warning" >}}
+`NodeRegistrationHealthy=False`인 NodePool도 프로비저닝에 계속 쓰인다. RFC 명시 — "A NodePool marked with `NodeRegistrationHealthy: False` can still be used for provisioning workloads, as this status isn't a precondition for readiness."
+
+§8의 `"ignoring nodepool, not ready"`(NodeClass 오류)와 달리 **풀이 후보에서 빠지지 않는다.** 알람은 사람이 걸어야 한다.
+{{< /callout >}}
+
+부작용이 하나 있다. 파드가 스케줄된 NodePool이 `NodeRegistrationHealthy=true`일 때만 스케줄 시각을 기록하고(`pkg/controllers/state/cluster.go:513-516`), 아니면 기존 엔트리를 지운다(`:517-521`). 등록이 한 번도 성공하지 않은 풀의 파드는 바인딩/ready 메트릭에서 빠진다 — **메트릭이 조용해지는 것 자체가 신호다.**
+
+```bash
+kubectl get nodepool -o custom-columns=\
+'NAME:.metadata.name,REG:.status.conditions[?(@.type=="NodeRegistrationHealthy")].status,\
+REASON:.status.conditions[?(@.type=="NodeRegistrationHealthy")].reason'
+```
+
+## 8. 지금 ICE가 나고 있는지 아는 법
 
 **가장 먼저 알아야 할 것: NodeClaim에는 흔적이 남지 않는다.** §2에서 본 대로 코어는 ICE 난 NodeClaim을 즉시 삭제한다. `kubectl get nodeclaim`으로는 아무것도 못 본다. 이벤트도 NodeClaim에 붙어 있어 오브젝트가 사라지면 함께 정리될 수 있다. 지속적으로 남는 유일한 신호는 메트릭이다.
 

@@ -214,20 +214,21 @@ if p.ToleratePreferNoSchedule {
 }
 ```
 
-{{< flow caption="완화는 한 번에 한 단계씩만 일어나고, 매 재시도마다 다시 리스트 맨 앞부터 검사한다. 버릴 것이 없으면 파드는 Pending으로 남아 백오프 재시도 대상이 된다" >}}
+{{< flow caption="완화는 한 번에 한 단계씩만 일어난다. \"다음 루프\"는 맨 왼쪽 trySchedule로 돌아가는 순환이며, 매 재진입마다 완화 리스트를 다시 맨 앞부터 검사한다. 버릴 것이 없으면 파드는 Pending으로 남아 백오프 재시도 대상이 된다" >}}
 {
   "nodes": [
     { "id": "T", "col": 0, "row": 0, "label": "trySchedule", "sub": "파드 1개 add()", "kind": "src" },
     { "id": "F", "col": 1, "row": 0, "label": "스케줄 실패", "sub": "reserved · DRA 에러는 제외", "kind": "query" },
     { "id": "R", "col": 2, "row": 0, "label": "Relax()", "sub": "리스트 앞에서부터 딱 1개", "kind": "proc" },
     { "id": "M", "col": 3, "row": 0, "label": "파드 spec 변형", "sub": "term 제거 · toleration 추가", "kind": "store" },
-    { "id": "G", "col": 2, "row": 1, "label": "완화 소진", "sub": "Pending 유지 · 백오프", "kind": "sink" }
+    { "id": "G", "col": 3, "row": 1, "label": "완화 소진", "sub": "Pending 유지 · 백오프", "kind": "sink" },
+    { "id": "N", "col": 4, "row": 0, "label": "다음 루프", "sub": "trySchedule 재진입", "kind": "src" }
   ],
   "edges": [
     { "from": "T", "to": "F", "label": "불가", "rate": 600 },
     { "from": "F", "to": "R" },
     { "from": "R", "to": "M", "label": "1단계만" },
-    { "from": "M", "to": "T", "label": "재시도", "rate": 480 },
+    { "from": "M", "to": "N", "label": "재시도", "rate": 480 },
     { "from": "R", "to": "G", "label": "버릴 게 없음", "rate": 1300, "speed": "slow" }
   ]
 }
@@ -579,7 +580,7 @@ disruption 대상 노드에는 `karpenter.sh/disrupted:NoSchedule` taint가 붙�
 | `ConsistentStateFound` | 내부 상태와 실제 인스턴스 상태 일치 | 클라우드-K8s 상태 불일치 |
 | `DisruptionReason` | 어떤 사유로 disrupt됐는지 기록 | — |
 
-NodePool 조건은 `ValidationSucceeded`·`NodeClassReady`·`NodeRegistrationHealthy` 3종이고 `Ready`는 앞 둘의 집계다. **`NodeRegistrationHealthy`는 NodeClaim이 아니라 NodePool의 조건**이고(1.4, [core#1969](https://github.com/kubernetes-sigs/karpenter/pull/1969)) 현재는 관찰용이다 — 스케줄링 페널티로 연결되지 않는다. EC2NodeClass 조건은 `AMIsReady`·`SubnetsReady`·`SecurityGroupsReady`·`InstanceProfileReady`·`ValidationSucceeded`·`PlacementGroupReady` 6종(+ capacity reservation을 쓰면 `CapacityReservationsReady` 추가)과 그 전체의 집계인 `Ready`이고(`AWS/pkg/apis/v1/ec2nodeclass_status.go:169-181`), **NodeClass가 Ready가 아니면 이를 참조하는 NodePool은 스케줄링 대상에서 제외**된다(`core/pkg/controllers/provisioning/provisioner.go:276`).
+NodePool 조건은 `ValidationSucceeded`·`NodeClassReady`·`NodeRegistrationHealthy` 3종이고 `Ready`는 앞 둘의 집계다. **`NodeRegistrationHealthy`는 NodeClaim이 아니라 NodePool의 조건**이고(1.4, [core#1969](https://github.com/kubernetes-sigs/karpenter/pull/1969)) 현재는 관찰용이다 — 스케줄링 페널티로 연결되지 않는다. 판정 메커니즘(링버퍼 4칸·실패 비율 0.5)과 이것이 세대 폴백을 구제하지 못하는 이유는 [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) §7에 있다. EC2NodeClass 조건은 `AMIsReady`·`SubnetsReady`·`SecurityGroupsReady`·`InstanceProfileReady`·`ValidationSucceeded`·`PlacementGroupReady` 6종(+ capacity reservation을 쓰면 `CapacityReservationsReady` 추가)과 그 전체의 집계인 `Ready`이고(`AWS/pkg/apis/v1/ec2nodeclass_status.go:169-181`), **NodeClass가 Ready가 아니면 이를 참조하는 NodePool은 스케줄링 대상에서 제외**된다(`core/pkg/controllers/provisioning/provisioner.go:276`).
 
 ### 8.2 EC2NodeClass에서 운영이 실제로 손대는 필드
 

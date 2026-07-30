@@ -3,7 +3,7 @@ title: "세대 선호 만들기"
 weight: 5
 ---
 
-# 02 · 세대 선호 만들기 — weight vs NodeOverlay
+# 05 · 세대 선호 만들기 — weight vs NodeOverlay
 
 {{< callout type="info" >}}
 **한눈에**
