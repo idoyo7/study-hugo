@@ -32,42 +32,36 @@ aliases: ["/k8s-features/karpenter/"]
 
 | 버전 | 릴리스 | 대표 변경 |
 |---|---|---|
-| **0.36 / 0.37** | 2024-03 / 2024-06 | v1beta1 마지막 구간. drift 롤백 제약, EC2NodeClass readiness 조건 신설 |
-| **1.0** | 2024-08 | **v1 API.** drift Stable(게이트 삭제) · expiration forceful 회귀 · `consolidateAfter` 필수 · `terminationGracePeriod` 신설 |
-| **1.1** | 2024-11 | **v1beta1 서빙 종료.** `nodeClassRef.group`/`kind` 필수, Bottlerocket `instanceStorePolicy: RAID0` |
-| **1.2 / 1.3** | 2025-01 / 2025-03 | 메트릭 reason 라벨 snake_case · nodeclass 컨트롤러 통합 / `capacity-type: reserved`(ODCR alpha) |
-| **1.4 / 1.5** | 2025-04 / 2025-05 | `NodeRegistrationHealthy` 조건 · NodeOverlay·Node Repair 계열 정비 |
-| **1.6** | 2025-07 | **native ODCR beta 기본 활성화**(open eligibility 사용자에게 회귀) · `MinValuesPolicy` |
-| **1.7** | 2025-09 | **`instance-capability-flex` 라벨** · NodeOverlay AWS 지원 · 메트릭 리네임 2건 · `iam:ListInstanceProfiles` |
-| **1.8** | 2025-10 | **Static NodePool**(`spec.replicas`). 단 **1.8.4는 건너뛴다**(topology spread 회귀) |
-| **1.9 ~ 1.11** | 2026-02 ~ 2026-04 | `Gte`/`Lte` 연산자 · IAM 정책 5분할 · capacity reservation 인터럽션 · placement group |
-| **1.12** | 2026-04 | **CA bundle drift** — 업그레이드 자체가 전 노드를 drift로 만든다 · ARC Zonal Shift · 인스턴스 상태 헬스체크 |
-| **1.13 / 1.14** | 2026-06 / 2026-07 | **Capacity Buffers**(신규 CRD) · **Balanced consolidation** · DRA · preview 인스턴스 타입 |
+| **0.36 / 0.37** | 2024-03/06 | v1beta1 마지막 구간. drift 롤백 제약 |
+| **1.0** | 2024-08 | **v1 API.** drift 게이트 삭제 · expiration forceful 회귀 · `consolidateAfter` 필수 |
+| **1.1** | 2024-11 | **v1beta1 서빙 종료.** `nodeClassRef.group`/`kind` 필수 |
+| **1.2 / 1.3** | 2025-01/03 | 메트릭 reason 라벨 snake_case · `capacity-type: reserved`(alpha) |
+| **1.4 / 1.5** | 2025-04/05 | `NodeRegistrationHealthy` 조건 · Node Repair 정비 |
+| **1.6** | 2025-07 | **native ODCR beta 기본 활성화**(회귀) · `MinValuesPolicy` |
+| **1.7** | 2025-09 | **`instance-capability-flex` 라벨** · 메트릭 리네임 2건 · IAM 1종 |
+| **1.8** | 2025-10 | **Static NodePool**. 단 **1.8.4는 건너뛴다** |
+| **1.9 ~ 1.11** | 2026-02~04 | `Gte`/`Lte` 연산자 · IAM 정책 5분할 · placement group |
+| **1.12** | 2026-04 | **CA bundle drift** — 업그레이드가 전 노드를 drift로 만든다 |
+| **1.13 / 1.14** | 2026-06/07 | **Capacity Buffers**(신규 CRD) · **Balanced consolidation** · DRA |
 
 ## 문서 지도
 
 **버전 축** — 0.36 이후 무엇이 바뀌었고 무엇을 조치해야 하나
 
-| 문서 | 대상 버전 | 한 줄 요약 |
-|------|---------|-----------|
-| [01 v1 전환과 그 직후]({{< relref "01-changelog-v1-transition.md" >}}) | 0.36 → 1.6 | v1이 바꾼 것은 API가 아니라 **동작**이다 — 옵트아웃 없는 변경 둘, 필수가 된 필드 하나, 그리고 가장 비싼 회귀(ODCR) |
-| [02 지금 켤 만한 것과 미룰 것]({{< relref "02-changelog-maturity.md" >}}) | 1.7 → 1.14 | breaking은 거의 없는 대신 **켜야 쓸 수 있는 기능**이 쌓였다 — flex 배제, Static NodePool, Capacity Buffers, Balanced consolidation |
-| [03 키워드 레퍼런스]({{< relref "03-keyword-reference.md" >}}) | 1.14 기준 | Karpenter에는 `affinity:` 필드가 없다 — **NodePool requirements ∩ 파드 요구 ∩ 클라우드 offering** 의 집합 연산으로 스케줄링을 통제한다 |
+- **[01 v1 전환과 그 직후]({{< relref "01-changelog-v1-transition.md" >}})** · 0.36 → 1.6 — v1이 바꾼 것은 API가 아니라 **동작**이다. 옵트아웃 없는 변경 둘, 필수가 된 필드 하나, 그리고 가장 비싼 회귀(ODCR).
+- **[02 지금 켤 만한 것과 미룰 것]({{< relref "02-changelog-maturity.md" >}})** · 1.7 → 1.14 — breaking은 거의 없는 대신 **켜야 쓸 수 있는 기능**이 쌓였다. flex 배제, Static NodePool, Capacity Buffers, Balanced consolidation.
+- **[03 키워드 레퍼런스]({{< relref "03-keyword-reference.md" >}})** · 1.14 기준 — Karpenter에는 `affinity:` 필드가 없다. **NodePool requirements ∩ 파드 요구 ∩ 클라우드 offering**의 집합 연산으로 스케줄링을 통제한다.
 
 **알고리즘 축** — 노드를 누가 어떤 기준으로 고르나
 
-| 문서 | 전제 | 한 줄 요약 |
-|------|------|-----------|
-| [04 인스턴스는 누가 고르는가]({{< relref "04-instance-selection.md" >}}) | 없음 — 진입점 | 스케줄러 → NodeClaim → Truncate → EC2 Fleet 경로를 함수 단위로 따라간다. 최종 선택자는 EC2고, "절단이 8세대를 잘라낸다"는 흔한 오해는 사실이 아니다 |
-| [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}}) | 04 | NodePool 분리 + `spec.weight`(GA) vs NodeOverlay `priceAdjustment`(알파)를 코드 경로로 비교하고, **복붙해서 쓸 매니페스트 전문**을 낸다 |
-| [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}}) | 05 | 세워 놓은 구성이 며칠~몇 주에 걸쳐 조용히 무너지는 경로 — 가격 부등식 하나, weight 미인지, 복귀 부재, `expireAfter`의 함정, drift |
-| [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) | 04 | ICE 캐시의 3분과 세 축, 폴백 실측 지연, spot을 섞는 순간 논의가 바뀌는 이유, 알파 없이 8세대를 1순위로 만드는 ODCR. 그리고 **폴백이 흡수하지 않는 유일한 실패** — 런치는 됐는데 등록이 안 되는 경우(`NodeRegistrationHealthy`) |
+- **[04 인스턴스는 누가 고르는가]({{< relref "04-instance-selection.md" >}})** · 진입점 — 스케줄러 → NodeClaim → Truncate → EC2 Fleet 경로를 함수 단위로 따라간다. 최종 선택자는 EC2고, "절단이 8세대를 잘라낸다"는 흔한 오해는 사실이 아니다.
+- **[05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}})** · 04 — NodePool 분리 + `spec.weight`(GA) vs NodeOverlay `priceAdjustment`(알파)를 코드 경로로 비교하고, **복붙해서 쓸 매니페스트 전문**을 낸다.
+- **[06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}})** · 05 — 세워 놓은 구성이 며칠~몇 주에 걸쳐 조용히 무너지는 경로. 가격 부등식 하나, weight 미인지, 복귀 부재, `expireAfter`의 함정, drift.
+- **[07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}})** · 04 — ICE 캐시의 3분과 세 축, 폴백 실측 지연, spot을 섞는 순간 논의가 바뀌는 이유, 알파 없이 8세대를 1순위로 만드는 ODCR. 그리고 **폴백이 흡수하지 않는 유일한 실패** — 런치는 됐는데 등록이 안 되는 경우(`NodeRegistrationHealthy`).
 
 **운영 축** — 돌아가는 클러스터를 무엇으로 통제하나
 
-| 문서 | 전제 | 한 줄 요약 |
-|------|------|-----------|
-| [08 언제 무엇을 멈출 것인가]({{< relref "08-disruption-budgets.md" >}}) | 06 | v1에서 남은 통제 수단은 `disruption.budgets` 하나다. **`reasons`를 생략한 예산은 빈 노드 정리까지 멈춘다** |
+- **[08 언제 무엇을 멈출 것인가]({{< relref "08-disruption-budgets.md" >}})** · 06 — v1에서 남은 통제 수단은 `disruption.budgets` 하나다. **`reasons`를 생략한 예산은 빈 노드 정리까지 멈춘다** — 실패가 아니라 침묵으로 나타나는 오설정과, "노드가 안 줄어든다"의 진단 순서.
 
 ## 읽는 순서
 
@@ -91,11 +85,9 @@ aliases: ["/k8s-features/karpenter/"]
 
 이 챕터의 모든 코드·릴리스노트 인용은 로컬 체크아웃을 직접 읽어 확인했다.
 
-| 저장소 | 기준 | 쓰임 |
-|---|---|---|
-| kubernetes-sigs/karpenter (코어) | **v1.14.0-6-gac7a021e** · main(2026-07-30) | 스케줄링·disruption·NodeOverlay 배선, 라인번호 인용 기준 |
-| aws/karpenter-provider-aws | **main**(2026-07-30) · **v1.7.0** · **v1.11.3** | CreateFleet 호출부·ICE 캐시·오퍼링 가격·인스턴스 타입 라벨. v1.7.0은 NodeOverlay 지원이 처음 들어간 태그 |
-| 릴리스노트 | provider v0.36.0~v1.14.0 · 코어 v1.0.0~v1.14.0 | 버전 축의 도입 시점·PR 번호 판정 |
+- **kubernetes-sigs/karpenter (코어)** — `v1.14.0-6-gac7a021e` · main(2026-07-30). 스케줄링·disruption·NodeOverlay 배선의 라인번호 인용 기준.
+- **aws/karpenter-provider-aws** — main(2026-07-30) · `v1.7.0` · `v1.11.3`. CreateFleet 호출부·ICE 캐시·오퍼링 가격·인스턴스 타입 라벨. `v1.7.0`은 NodeOverlay 지원이 처음 들어간 태그다.
+- **릴리스노트** — provider `v0.36.0`~`v1.14.0`, 코어 `v1.0.0`~`v1.14.0`. 버전 축의 도입 시점·PR 번호 판정.
 
 {{< callout type="warning" >}}
 **라인번호는 배포 버전과 어긋날 수 있다.** provider-aws **v1.11.3이 핀하는 코어는 v1.11.2**인데, 알고리즘 축의 코어 라인번호는 v1.14 기준이다. 함수명·조건식·상수값은 그대로 유효하지만 `파일:라인` 형태의 인용을 그대로 열면 몇 줄 어긋난 곳에 도착할 수 있다. 자기 클러스터에서 확인할 때는 라인이 아니라 **함수명·식별자로 검색**하라.

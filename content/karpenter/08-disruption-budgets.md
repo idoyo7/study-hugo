@@ -11,7 +11,6 @@ weight: 8
 - **`reasons`를 생략한 예산은 셋 모두에 적용된다.** 피크 차단용 `nodes: "0"`에 `reasons`를 안 적으면 **빈 노드 정리까지 같이 멈춘다.** 가장 흔한 오설정이고, 실패가 아니라 침묵으로 나타나 발견이 늦다.
 - 같은 이유에 예산이 여럿 활성이면 **가장 제한적인 값이 이긴다.** 전역 `nodes: "1"` 하나가 나머지 설계를 전부 무력화할 수 있다.
 - 예산은 **graceful disruption만** 막는다. `expireAfter` 만료·인터럽션·Node Repair는 예산 밖이다.
-- **`schedule`은 UTC 고정이고 타임존을 줄 수 없다.** 코드가 `TZ=UTC`를 강제로 접두한다 — KST로 생각한 시각에서 9시간을 빼서 적는 것 외에 방법이 없다.
 - `nodes: "0"`은 **실행만** 막는다. drift 판정과 마킹은 계속 쌓이므로, 예산을 푸는 순간 밀린 교체가 한꺼번에 터진다.
 - "노드가 안 줄어든다"의 진단 순서는 **이벤트 → 예산 → requirements → topology**다. 예산이 1순위인 이유는 유일하게 **시도했다는 증거를 이벤트로 남기기** 때문이다.
 {{< /callout >}}
@@ -85,34 +84,23 @@ budgets:
     duration: 4h
 ```
 
-### 2.4 `schedule`은 UTC 고정이고 타임존을 못 준다
-
-cron은 **항상 UTC로 해석된다.** 사용자가 무엇을 적든 코드가 `TZ=UTC`를 강제로 접두하기 때문이다.
-
-```go
-// pkg/apis/v1/nodepool.go:416
-cron.ParseStandard(fmt.Sprintf("TZ=UTC %s", lo.FromPtr(in.Schedule)))
-```
-
-그래서 `CRON_TZ=Asia/Seoul 0 10 * * *` 같은 문법은 **통하지 않는다.** 필드 주석도 `Timezones are not supported.`로 못박고 있다(`nodepool.go:141`). **KST로 생각한 시각에서 9시간을 빼서** 적는 것 외에 방법이 없고, 서머타임이 없는 지역이라 이 산술은 연중 안정적이다.
-
-아래 §4의 설정이 그 예다 — `0 1 * * *`는 KST 10시, `0 8 * * *`는 KST 17시로 의도한 점심·저녁 피크와 맞는다.
-
-나머지 세 필드의 제약은 이렇다.
+### 2.4 `schedule`과 `duration`은 둘 다 있거나 둘 다 없어야 한다
 
 | 필드 | 제약 |
 |---|---|
-| `schedule` · `duration` | **둘 다 있거나 둘 다 없어야 한다** (CEL 검증) |
+| `schedule` · `duration` | **동반 필수** — 하나만 적으면 거부된다 |
 | 둘 다 생략 | 그 예산은 **항상 활성** |
 | `duration` | 시간·분만. `4h`·`90m` (cron이 초를 모른다) |
 | `nodes` | 생략 시 기본 `10%`. `"3"` 또는 `"25%"` |
 
-`schedule`만 적고 `duration`을 빼면 admission에서 거부된다 — 스키마에 CEL 규칙이 박혀 있다.
+첫 줄은 admission에서 걸린다 — 스키마에 CEL 규칙이 박혀 있다(`nodepool.go:108`).
 
 ```
 rule="self.all(x, has(x.schedule) == has(x.duration))"
 message="'schedule' must be set with 'duration'"
 ```
+
+`nodes`에 기본값이 있다는 점도 알아둘 만하다. `reasons`와 `schedule`만 적고 `nodes`를 빼면 그 예산은 조이는 게 아니라 **10%를 허용하는** 예산이 된다.
 
 ## 3. 예산을 소비하는 것과 아닌 것
 
@@ -335,8 +323,8 @@ Can't replace with a cheaper node   → 예산이 아니라 가격 부등식에�
 | 최솟값 병합 | `nodepool.go:364-377` `GetAllowedDisruptionsByReason` |
 | 기본값 `10%`와 대체 | `nodepool.go:104-114` kubebuilder default |
 | `reasons` enum 3종 | `nodepool.go:183-185` |
-| UTC 강제 · 타임존 미지원 | `nodepool.go:416`, 필드 주석 `:141` |
 | `schedule`↔`duration` 동반 필수 | `nodepool.go:108` CEL XValidation |
+| `nodes` 기본값 `10%` | `nodepool.go:136` kubebuilder default |
 | 예산 소비 지점 | `controllers/disruption/helpers.go:262`, `controller.go:101-114` |
 | 마킹과 실행의 분리 | `nodeclaim/disruption/drift.go`(참조 없음) 대 `disruption/drift.go:77-80` |
 | 만료가 예산을 안 탐 | `nodeclaim/expiration/controller.go:81-83` |
