@@ -50,7 +50,7 @@ func (n *NodeClaim) RemoveInstanceTypeOptionsByPriceAndMinValues(reqs scheduling
 |---|---|---|---|
 | 가격 상한 | `nodeclaim.go:411-419` | `launchPrice < candidatePrice` (strict) | ✗ |
 | `SatisfiesMinValues` | `nodeclaim.go:416-418` | 필터 후 남은 값의 다양성 하한 | ✗ (부수적으로 방어막은 됨) |
-| `filterOutSameInstanceType` | `multinodeconsolidation.go:209-246` | 삭제 대상과 **같은** 인스턴스 타입이 대체 목록에 있으면 상한을 더 조임 | ✗ |
+| `filterOutSameInstanceType` | `multinodeconsolidation.go:209-246` | 삭제 대상과 **같은** 타입이면 상한을 더 조임 | ✗ |
 | `CanPassThreshold` 사전 컷 | `singlenodeconsolidation.go:86-89` | DELETE의 절감비를 상한으로 본 조기 탈락 | ✗ |
 | `Balanced` 스코어 | `balanced.go:108-121` | `savingsFraction / disruptionFraction >= 1/k` | ✗ |
 
@@ -149,10 +149,10 @@ nct.Labels = lo.Assign(nct.Labels, map[string]string{
 
 | 이슈 | 내용 | 상태 |
 |---|---|---|
-| [kubernetes-sigs/karpenter#1829](https://github.com/kubernetes-sigs/karpenter/issues/1829) | `consolidationPolicy: Underweight` — 저-weight 풀로 폴백한 노드를 고-weight 풀로 되돌리는 정책 | **closed as not planned** |
-| [aws/karpenter-provider-aws#6721](https://github.com/aws/karpenter-provider-aws/issues/6721) | "Ability to prefer generation over price" — 가격보다 세대를 우선하는 축 요청 | **closed** |
+| [kubernetes-sigs/karpenter#1829](https://github.com/kubernetes-sigs/karpenter/issues/1829) | 저-weight 폴백 노드를 고-weight로 되돌리는 정책 제안 | **closed as not planned** |
+| [aws/karpenter-provider-aws#6721](https://github.com/aws/karpenter-provider-aws/issues/6721) | 가격보다 세대 우선순위를 앞세우는 축 요청 | **closed** |
 
-#1829는 스팟이 없어 온디맨드로 폴백한 뒤 되돌아오지 않는다는 문제였다. 우리 문제와 **동형**이고, 그 답이 "계획 없음"이다.
+#1829가 요청한 정책명은 `consolidationPolicy: Underweight`다. 스팟이 없어 온디맨드로 폴백한 뒤 되돌아오지 않는다는 문제였다. 우리 문제와 **동형**이고, 그 답이 "계획 없음"이다. #6721의 이슈 제목은 "Ability to prefer generation over price" — 가격보다 세대를 우선하는 축을 요청했으나 이 역시 닫혔다.
 
 ### 4.1 복귀 경로는 가격 필터가 없는 두 트리거뿐
 
@@ -195,10 +195,8 @@ spec:
 
 복귀가 없으니 애초에 내려가지 않게 하려는 발상은 자연스럽다. 두 수단이 있지만 **둘 다 "다운그레이드를 막는" 게 아니라 "consolidation을 끄는" 것**이라는 걸 알고 써야 한다.
 
-| 수단 | 효과 | 잃는 것 |
-|---|---|---|
-| `budgets: [{reasons: [Underutilized], nodes: "0"}]` | 교체형 consolidation이 후보 단계에서 전부 skip(`singlenodeconsolidation.go:81-85`, `multinodeconsolidation.go:70-77`). Empty·Drifted는 별도 예산이라 계속 동작 | gen8 **내부**의 정당한 축소(큰 노드 → 작은 노드)도 같이 죽는다 |
-| `consolidationPolicy: WhenEmpty` | 비어있지 않은 노드는 후보에서 아예 탈락(`consolidation.go:130-134`). Emptiness의 Command에는 `Replacements` 필드가 없어 삭제만 한다(`emptiness.go:97-100`) | 언더유틸 절감 전부 |
+- **`budgets: [{reasons: [Underutilized], nodes: "0"}]`** — 교체형 consolidation이 후보 단계에서 전부 skip(`singlenodeconsolidation.go:81-85`, `multinodeconsolidation.go:70-77`). Empty·Drifted는 별도 예산이라 계속 동작. 잃는 것: gen8 **내부**의 정당한 축소(큰 노드 → 작은 노드)도 같이 죽는다.
+- **`consolidationPolicy: WhenEmpty`** — 비어있지 않은 노드는 후보에서 아예 탈락(`consolidation.go:130-134`). Emptiness의 Command에는 `Replacements` 필드가 없어 삭제만 한다(`emptiness.go:97-100`). 잃는 것: 언더유틸 절감 전부.
 
 §3에서 봤듯 크로스 풀 다운그레이드는 gen8 풀이 스케줄에 실패할 때만 일어나므로, 이 방어선을 상시로 켜 두는 건 대개 과잉이다. 실제로 gen7 비중이 튀는 게 관측된 뒤에 임시로 거는 용도로 쓰는 게 맞다.
 
@@ -305,16 +303,14 @@ disruption:
 
 이 문서의 실패 모드는 전부 "조용하다"는 공통점이 있다. 알람이 울리지 않고 노드 구성만 서서히 바뀐다. 최소한 다음은 봐야 한다.
 
-| 관측 대상 | 무엇을 뜻하는가 | 근거 |
-|---|---|---|
-| `karpenter_nodeclaims_disrupted_total{reason="insufficient_capacity"}` | gen8 런치가 ICE로 실패한 횟수. **폴백이 실제로 발생한 지점** | `nodeclaim/lifecycle/launch.go:93` |
-| `karpenter_nodeclaims_disrupted_total{reason="expired", nodepool="gen7-fallback"}` | 복귀 장치(§4.1)가 돌고 있는가. 0이면 `expireAfter`가 안 걸린 것 | `expiration/controller.go:88` (`ExpiredReason = "expired"`) |
-| `karpenter_nodeclaims_disrupted_total{reason="underutilized"}` | 교체형 consolidation 발생량. 급증하면 §4.2 방어선을 검토 | `disruption/queue.go:167` (`ToSnakeCase`) |
-| `kubectl get events --field-selector reason=InsufficientCapacityError` | 위 메트릭의 사람이 읽을 수 있는 버전. 어떤 인스턴스 타입이 왜 실패했는지 | `nodeclaim/lifecycle/events.go:28-32` |
-| 로그 `"skipping, nodepool requirements filtered out all instance types"` | **gen8 풀이 조용히 사라지는 경로.** requirements 조합이 인스턴스 타입을 전부 걸러 냈다 | `scheduler.go:159-166` |
-| 로그 `"ignoring nodepool, not ready"` | NodeClass 오류로 gen8 풀이 통째로 빠졌다. 이 상태면 weight고 뭐고 없다 | `provisioner.go:277` |
-| 로그 `"skipping, awaiting nodeoverlay evaluation"` | NodeOverlay를 쓴다면 — 게이트를 켠 직후 그 풀이 프로비저닝·disruption 양쪽에서 빠지는 창 | `provisioner.go:295-298` |
-| **NodePool별 노드 수 비율** | 가장 중요한 지표. gen7 비중이 튀면 ICE 지속 또는 §5의 빈패킹이 일어난 것 | `count by (nodepool) (karpenter_nodes_current_lifetime_seconds)` — 이 게이지는 WellKnownLabels(=`nodepool` 포함)를 라벨로 단다(`controllers/metrics/node/controller.go:156`). 코어에 `karpenter_nodes_total` 같은 노드 수 게이지는 없다 |
+- **`karpenter_nodeclaims_disrupted_total{reason="insufficient_capacity"}`** — gen8 런치가 ICE로 실패한 횟수. **폴백이 실제로 발생한 지점**. 근거: `nodeclaim/lifecycle/launch.go:93`.
+- **`karpenter_nodeclaims_disrupted_total{reason="expired", nodepool="gen7-fallback"}`** — 복귀 장치(§4.1)가 돌고 있는가. 0이면 `expireAfter`가 안 걸린 것. 근거: `expiration/controller.go:88` (`ExpiredReason = "expired"`).
+- **`karpenter_nodeclaims_disrupted_total{reason="underutilized"}`** — 교체형 consolidation 발생량. 급증하면 §4.2 방어선을 검토. 근거: `disruption/queue.go:167` (`ToSnakeCase`).
+- **`kubectl get events --field-selector reason=InsufficientCapacityError`** — 위 메트릭의 사람이 읽을 수 있는 버전. 어떤 인스턴스 타입이 왜 실패했는지. 근거: `nodeclaim/lifecycle/events.go:28-32`.
+- **로그 `"skipping, nodepool requirements filtered out all instance types"`** — **gen8 풀이 조용히 사라지는 경로.** requirements 조합이 인스턴스 타입을 전부 걸러 냈다. 근거: `scheduler.go:159-166`.
+- **로그 `"ignoring nodepool, not ready"`** — NodeClass 오류로 gen8 풀이 통째로 빠졌다. 이 상태면 weight고 뭐고 없다. 근거: `provisioner.go:277`.
+- **로그 `"skipping, awaiting nodeoverlay evaluation"`** — NodeOverlay를 쓴다면 — 게이트를 켠 직후 그 풀이 프로비저닝·disruption 양쪽에서 빠지는 창. 근거: `provisioner.go:295-298`.
+- **NodePool별 노드 수 비율** — 가장 중요한 지표. gen7 비중이 튀면 ICE 지속 또는 §5의 빈패킹이 일어난 것. 근거: `count by (nodepool) (karpenter_nodes_current_lifetime_seconds)` — 이 게이지는 WellKnownLabels(=`nodepool` 포함)를 라벨로 단다(`controllers/metrics/node/controller.go:156`). 코어에 `karpenter_nodes_total` 같은 노드 수 게이지는 없다.
 
 마지막 항목이 핵심이다. 앞의 메트릭들은 전부 "사건이 일어난 순간"을 잡지만, 이 문서가 다루는 실패는 **사건이 아니라 상태의 표류**다. gen7 비중을 시계열로 그려 놓고 "폴백 후 며칠 안에 다시 내려오는가"를 보는 게 §4의 복귀 장치가 작동한다는 유일한 증거다.
 

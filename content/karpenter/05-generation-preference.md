@@ -117,13 +117,15 @@ It("should schedule to explicitly selected nodepool even if other nodePools are 
 
 ### 1.5 필드 제약
 
-| 항목 | 값 | 근거 |
-|---|---|---|
-| `spec.weight` 범위 | **1~100**. 0은 CRD가 거부하고, 필드를 **생략**해야 "0 취급"이 된다 | `pkg/apis/v1/nodepool.go:64-67` (`Minimum:=1`, `Maximum:=100`) |
-| `spec.replicas`와의 관계 | **배타.** static NodePool에는 weight를 못 쓴다 | `nodepool.go:41` CEL `!has(self.replicas) \|\| !has(self.weight)` + 런타임 `provisioner.go:273-275` `IsStatic` 제외 — 이중 차단 |
-| 동률 tie-break | **알파벳상 뒤 이름이 먼저.** 직관과 반대다 | `pkg/utils/nodepool/nodepool.go:157-171` `return nps[a].Name > nps[b].Name` |
-| 후보에서 빠지는 조건 | NodePool이 `Ready` 아님 / 삭제 중 / (게이트 켠 경우) 오버레이 평가 대기 | `provisioner.go:272-282`, `:295-298` `"skipping, awaiting nodeoverlay evaluation"` |
-| `spec.limits` | 스케줄링 중 사전 필터 + NodeClaim 생성 직전 재검증. `limits: {nodes: "20"}`로 **노드 개수 상한**도 가능 | `scheduler.go:709-726`, `provisioner.go:467-469` |
+| 항목 | 값 |
+|---|---|
+| `spec.weight` 범위 | **1~100**. 0은 CRD가 거부하고, 필드를 **생략**해야 "0 취급"이 된다 |
+| `spec.replicas`와의 관계 | **배타.** static NodePool에는 weight를 못 쓴다 |
+| 동률 tie-break | **알파벳상 뒤 이름이 먼저.** 직관과 반대다 |
+| 후보에서 빠지는 조건 | NodePool이 `Ready` 아님 / 삭제 중 / (게이트 켠 경우) 오버레이 평가 대기 |
+| `spec.limits` | 스케줄링 중 사전 필터 + NodeClaim 생성 직전 재검증. `limits: {nodes: "20"}`로 **노드 개수 상한**도 가능 |
+
+근거: weight 범위는 `pkg/apis/v1/nodepool.go:64-67`(`Minimum:=1`, `Maximum:=100`). replicas 배타는 `nodepool.go:41`의 CEL(`replicas`와 `weight`를 동시에 가질 수 없음) + 런타임 `provisioner.go:273-275`의 `IsStatic` 제외로 이중 차단된다. tie-break는 `pkg/utils/nodepool/nodepool.go:157-171`(`return nps[a].Name > nps[b].Name`). 후보 제외는 `provisioner.go:272-282`, `:295-298`(`"skipping, awaiting nodeoverlay evaluation"`). limits는 `scheduler.go:709-726`, `provisioner.go:467-469`.
 
 ⇒ 두 풀에는 **반드시 서로 다른 weight를 명시**하라. 동률이면 순위가 이름의 사전순 역순으로 결정되는데, `gen7-fallback` > `gen8-primary`이므로 정확히 원하지 않는 쪽이 이긴다.
 
@@ -135,13 +137,11 @@ NodePool을 나누지 않고 **가격을 거짓말**해서 같은 결과를 노�
 
 `karpenter.sh/v1alpha1`, **Cluster 스코프**다(`nodeoverlay.go:103`). 필드는 다섯 개.
 
-| 필드 | 규칙 |
-|---|---|
-| `requirements` | **필수**, `MaxItems: 100`. 순수 라벨 셀렉터 — **와일드카드(`c7i.*`) 불가**. CRD values 패턴 `^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$`에 `*`가 없다 |
-| `priceAdjustment` | 패턴 `^(([+-]{1}(\d*\.?\d+))\|(\+{1}\d*\.?\d+%)\|(^(-\d{1,2}(\.\d+)?%)$)\|(-100%))$` — **부호 필수**. `"20%"`는 거부, `"+20%"`만 통과. 양수 %는 상한 없음(`+298%` 통과), 음수 %는 두 자리까지 + `-100%` 특례 |
-| `price` | `^\d+(\.\d+)?$` — 부호 불가한 **절대 치환**. `priceAdjustment`와 **동시 지정 불가**(CEL: `cannot set both 'price' and 'priceAdjustment'`) |
-| `capacity` | 확장 리소스 추가 전용. cpu/memory/ephemeral-storage/pods는 CEL이 거부 |
-| `weight` | **1~10000** — NodePool weight(1~100)와 범위가 다르다. 미지정 = 0 취급 |
+- **`requirements`** · 필수, `MaxItems: 100` — 순수 라벨 셀렉터. **와일드카드(`c7i.*`) 불가**. CRD values 패턴 `^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$`에 `*`가 없다.
+- **`priceAdjustment`** · **부호 필수** — 패턴 `^(([+-]{1}(\d*\.?\d+))|(\+{1}\d*\.?\d+%)|(^(-\d{1,2}(\.\d+)?%)$)|(-100%))$`. `"20%"`는 거부, `"+20%"`만 통과. 양수 %는 상한 없음(`+298%` 통과), 음수 %는 두 자리까지 + `-100%` 특례.
+- **`price`** · 부호 불가한 절대 치환 — 패턴 `^\d+(\.\d+)?$`. `priceAdjustment`와 **동시 지정 불가**(CEL: `cannot set both 'price' and 'priceAdjustment'`).
+- **`capacity`** · 확장 리소스 추가 전용 — cpu/memory/ephemeral-storage/pods는 CEL이 거부한다.
+- **`weight`** · **1~10000** — NodePool weight(1~100)와 범위가 다르다. 미지정 = 0 취급.
 
 계산은 `cloudprovider.AdjustedPrice`(`types.go:493-525`) 하나뿐이다. 부호 없으면 절대 치환, `%` 접미사면 `price*(1+n/100)`, 그 외 부호값이면 `price+n`, 결과가 음수면 0으로 클램프.
 
@@ -229,12 +229,16 @@ NodeOverlay=false,StaticCapacity=false,CapacityBuffer=false
 
 | | **A. NodePool 분리 + `spec.weight`** | **B. NodeOverlay `priceAdjustment`** |
 |---|---|---|
-| **동작 원리** | 템플릿 슬라이스를 weight 내림차순 정렬 → 병렬 시뮬레이션 → **최소 인덱스 성공자 채택**. 가격 비교 없음 | `Offering.Price`를 실제로 변조 → NodeClaim 주석 → provider-aws가 Fleet OD 전략을 `prioritized`로 전환 + Priority에 조정가 |
-| **결정이 끝나는 곳** | **Karpenter 코어 안.** gen8 풀의 CreateFleet에는 8세대만 실리므로 EC2에 세대를 고를 기회를 주지 않는다 | **EC2 Fleet 안.** 마지막 판단을 AWS의 `prioritized` 해석에 위임한다 |
-| **폴백 속도** | ICE 왕복 1회 필수 — **대략 11~30초**, 이후 3분간은 즉시 gen7 | 이론상 같은 CreateFleet 호출 안에서 흘러내림 — **AWS 문서 미보장(§2.4)**. 실측 가능한 경로는 A와 동일 |
-| **주요 함정** | 한 번 내려가면 consolidation이 되돌리지 않음 / 배치 내 빈패킹으로 gen7 in-flight에 후속 파드가 얹힘 / 기존 풀에서 세대 제거 시 대량 drift | 알파 API · Cluster 스코프(스코프 안 걸면 전 NodePool 오염) · 동일 weight 충돌 시 **전량 드롭** · 게이트 켜는 순간 평가 공백 · 페널티 과다 시 전략 원복 |
-| **요구 버전·게이트** | **없음.** `karpenter.sh/v1` GA | 코어·provider-aws **≥ v1.7.0**, `NodeOverlay` 게이트 기본 **false**, CRD 별도 |
+| **결정이 끝나는 곳** | **코어 안.** CreateFleet엔 8세대만 실림 | **EC2 Fleet 안.** `prioritized` 해석에 위임 |
+| **폴백 속도** | ICE 왕복 1회 — **대략 11~30초** | 이론상 즉시 — **AWS 문서 미보장**(§2.4) |
+| **요구 버전·게이트** | **없음.** `karpenter.sh/v1` GA | **≥ v1.7.0** · 게이트 기본 **false** · CRD 별도 |
 | **성숙도** | **GA** | **알파**(`v1alpha1`) |
+
+A의 폴백은 ICE 왕복 이후 3분간은 즉시 gen7로 간다 — 오퍼링이 unavailable로 마킹된 동안이다([07]({{< relref "07-ice-fallback.md" >}})).
+
+**동작 원리.** A는 weight 내림차순 정렬 → 병렬 시뮬레이션 → 최소 인덱스 채택이고 가격 비교가 아예 없다(§1.1-1.2). B는 `Offering.Price`를 변조하고 NodeClaim에 주석을 달아 Fleet의 OD 전략을 `prioritized`로 전환시킨다(§2.1-2.2).
+
+**주요 함정.** A는 셋이다 — 한 번 내려가면 consolidation이 되돌리지 않고(§1.2), 배치 내 빈패킹으로 gen7 in-flight에 후속 파드가 얹히며(§1.2), 기존 풀에서 세대를 제거하면 대량 drift가 난다(§4). B는 넷이다 — 알파 API에 Cluster 스코프라 스코프를 안 걸면 전 NodePool이 오염되고(§2.1), 동일 weight 충돌 시 **전량 드롭**이며(§2.1), 게이트를 켜는 순간 평가 공백이 생기고(§2.3), 페널티가 과하면 전략이 원복된다(§2.4).
 
 ### A를 고르는 이유 세 가지
 
@@ -490,14 +494,12 @@ price = odPrice / 10_000_000.0
 
 세대 선호는 "설정했다"로 끝나지 않는다. **8세대 풀이 조용히 사라지는 경로가 여럿**이고, 전부 파드는 정상 스케줄되므로 알람 없이는 관측되지 않는다.
 
-| 신호 | 의미 |
-|---|---|
-| `karpenter_nodeclaims_disrupted_total{reason="insufficient_capacity"}` | 8세대 ICE 발생률. 지속적으로 오르면 8세대 재고가 구조적으로 부족한 것 |
-| `kubectl get events --field-selector reason=InsufficientCapacityError` | 위와 같은 사건의 개별 인스턴스/AZ |
-| 로그 `"skipping, nodepool requirements filtered out all instance types"` | **8세대 풀이 통째로 빠졌다.** requirements가 모든 인스턴스 타입을 걸러낸 상태 |
-| 로그 `"ignoring nodepool, not ready"` | NodeClass 오류로 8세대 풀이 후보에서 제외 |
-| 로그 `"skipping, awaiting nodeoverlay evaluation"` | (게이트 켠 경우) 오버레이 평가 대기 중 스킵 |
-| `kubectl get nodes -L karpenter.sh/nodepool -L karpenter.k8s.aws/instance-family` | **gen7 비중.** 이게 튀면 위 다섯 중 하나가 진행 중이다 |
+- **`karpenter_nodeclaims_disrupted_total{reason="insufficient_capacity"}`** — 8세대 ICE 발생률. 지속적으로 오르면 8세대 재고가 구조적으로 부족한 것.
+- **`kubectl get events --field-selector reason=InsufficientCapacityError`** — 위와 같은 사건의 개별 인스턴스/AZ.
+- **로그 `"skipping, nodepool requirements filtered out all instance types"`** — **8세대 풀이 통째로 빠졌다.** requirements가 모든 인스턴스 타입을 걸러낸 상태.
+- **로그 `"ignoring nodepool, not ready"`** — NodeClass 오류로 8세대 풀이 후보에서 제외.
+- **로그 `"skipping, awaiting nodeoverlay evaluation"`** — (게이트 켠 경우) 오버레이 평가 대기 중 스킵.
+- **`kubectl get nodes -L karpenter.sh/nodepool -L karpenter.k8s.aws/instance-family`** — **gen7 비중.** 이게 튀면 위 다섯 신호 중 하나가 진행 중이다.
 
 {{< callout type="warning" >}}
 **확인 필요 — 배포 전 한 번은 눈으로 볼 것.** c8i/m8i/r8i가 대상 리전(ap-northeast-2)에서 실제로 제공되는지, 그리고 배포 중인 provider-aws 버전이 8세대를 인스턴스 타입 목록에 포함하는지는 코어 소스로도 공개 문서로도 확정할 수 없었다. provider-aws는 `DescribeInstanceTypes`로 동적 조회하므로 원리상 문제없지만, **8세대를 모르는 구버전 provider에서는 gen8 풀의 requirements가 모든 인스턴스 타입을 걸러내 템플릿 자체가 사라진다** — 그러면 폴백은 정상 동작하는데 8세대는 영영 안 뜬다. 적용 직후 `kubectl get nodepool gen8-primary -o yaml`의 `Ready` 컨디션과 위 표의 `"filtered out all instance types"` 로그를 확인하라.

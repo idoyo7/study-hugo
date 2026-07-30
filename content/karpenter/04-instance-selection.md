@@ -95,9 +95,9 @@ spec:
 | 위치 | `scheduling/nodeclaimtemplate.go:113-114` | `pkg/providers/instance/instance.go:332` |
 | 선언 | `var MaxInstanceTypes = 600` (`:50`) | `const maxInstanceTypes = 60` (`:67`) |
 | 정렬 | `OrderByPrice(reqs)` 직접 호출 | `InstanceTypes.Truncate(ctx, reqs, 60)` → 내부에서 `OrderByPrice` |
-| 조정 가능성 | `var`지만 이를 노출하는 플래그·환경변수는 **확인 필요**(코드에서 바인딩을 찾지 못했다) | `const` — 설정으로 못 바꾼다 |
+| 조정 가능성 | `var` — 노출 수단 **확인 필요**(하단 참고) | `const` — 설정 불가 |
 | 정렬 결과가 다음 단계에 전달되는가 | **아니오** | 예(overrides 배열) |
-| minValues 검증 동반 | 없음 | 조건부 — `HasMinValues()`이고 `MinValuesPolicy != BestEffort`일 때만 `Truncate`가 절단 후 `SatisfiesMinValues` 확인(`types.go:440-446`) |
+| minValues 검증 동반 | 없음 | 조건부 — Strict 정책일 때만 절단 후 확인(§7) |
 
 `maxInstanceTypes = 60`은 `v1.7.0`·`v1.11.3`·`main` 세 곳에서 모두 같은 값이다(각각 `:63`·`:65`·`:67`). 버전 차이를 걱정할 필요는 없다.
 
@@ -131,8 +131,8 @@ func (its InstanceTypes) OrderByPrice(reqs scheduling.Requirements) InstanceType
 
 | 잘못된 그림 | 실제 |
 |---|---|
-| 7세대 전부 생존 → 8세대 전부 탈락 | 양 세대의 **작은 사이즈들이 나란히 생존**, 양 세대의 **가장 큰 사이즈들이 나란히 탈락** |
-| 세대 단위로 후보가 사라진다 | 세대 단위 배제는 이 정렬 키에서 **구조적으로 발생할 수 없다** |
+| 7세대 생존 → 8세대 탈락 | 양 세대의 **작은 사이즈가 나란히 생존**, **큰 사이즈가 나란히 탈락** |
+| 세대 단위로 후보가 사라진다 | 세대 단위 배제는 이 정렬 키에서 **구조적으로 불가능** |
 
 **"8세대가 CreateFleet 요청에 아예 실리지 않는다"는 시나리오는 성립하지 않는다.** 8세대는 후보에 남는다. 남은 채로 지는 것뿐이다. 대응책을 고를 때 이 구분이 중요하다 — 후보에서 사라지는 문제였다면 NodePool을 좁혀서 풀렸겠지만, 실제 문제는 그 뒤에 있다.
 
@@ -349,8 +349,8 @@ func (its InstanceTypes) SatisfiesMinValues(requirements scheduling.Requirements
 | 시도 | 결과 |
 |---|---|
 | `instance-generation`에 `minValues: 1` | 무의미 — 어차피 최소 1개는 남는다 |
-| `instance-generation`에 `minValues: 2` | **역효과** — 8세대만 남는 상황을 위반으로 만들어, 7세대를 후보에 붙들어 두거나 launch를 포기시킨다 |
-| `instance-family`에 큰 `minValues` | spot 다양성 확보용으로는 정당하지만, 세대 선호와는 무관하고 8세대 단독 launch를 막는다 |
+| `instance-generation`에 `minValues: 2` | **역효과** — 8세대 단독 생존을 위반 처리해 7세대를 붙들거나 launch를 포기시킨다 |
+| `instance-family`에 큰 `minValues` | spot 다양성엔 정당하지만 세대 선호와 무관 — 8세대 단독 launch를 막는다 |
 
 ⇒ **`minValues`는 spot 중단 위험을 낮추려고 후보 다양성을 강제하는 손잡이**다. 세대 선호에 쓸 수 없고, 쓰면 반대 방향으로 작동한다.
 
@@ -396,14 +396,12 @@ relaxations := []func(*v1.Pod) *string{
 
 **그래서 `instance-generation In ["8"]`을 preferred로 걸면 실제로 8세대가 우선 시도되긴 한다.** 그런데 세대 선호의 수단으로는 여섯 군데가 어긋난다.
 
-| 한계 | 근거 | 왜 문제인가 |
-|---|---|---|
-| **파드마다** 걸어야 한다 | 파드 스펙 필드다 | NodePool 하나 고치면 끝나는 문제를 전체 워크로드로 번지게 한다. 새 팀이 배포하는 파드는 자동으로 누락된다 |
-| 최고 가중치 term **하나만** 승격 | `requirements.go:98-100` `preferred[0]` | 이미 zone·arch 선호를 쓰고 있다면 세대 선호와 자리를 다툰다 |
-| 완화 순서 **4번째** | `preferences.go:39-44` | 파드에 preferred pod affinity/anti-affinity가 있으면 그것들이 먼저 벗겨진다 — 세대 제약이 풀리기까지 라운드가 더 든다 |
-| 완화 트리거가 **시뮬레이션 실패** | `scheduler.go:543` | 8세대 오퍼링이 아직 unavailable로 마킹되지 않았다면 시뮬레이션은 성공한다. 즉 실제 launch에서 ICE를 한 번 맞아야 비로소 완화된다 → 폴백 지연([07]({{< relref "07-ice-fallback.md" >}})) |
-| 토폴로지 요구사항 구성에는 required로 안 잡힘 | [공식 문서](https://karpenter.sh/docs/concepts/scheduling/) — "Karpenter does not interpret preferred affinities as required when constructing topology requirements" | topology spread를 쓰는 워크로드에서 의도와 다르게 퍼질 수 있다 |
-| 정책 하나로 전부 꺼짐 | `options.go:131` | 클러스터 운영자가 `PREFERENCE_POLICY=Ignore`로 바꾸면 전 워크로드의 세대 선호가 조용히 사라진다 |
+- **파드마다** 걸어야 한다 · 파드 스펙 필드다 — NodePool 하나 고치면 끝나는 문제를 전체 워크로드로 번지게 한다. 새 팀이 배포하는 파드는 자동으로 누락된다.
+- 최고 가중치 term **하나만** 승격 · `requirements.go:98-100` `preferred[0]` — 이미 zone·arch 선호를 쓰고 있다면 세대 선호와 자리를 다툰다.
+- 완화 순서 **4번째** · `preferences.go:39-44` — 파드에 preferred pod affinity/anti-affinity가 있으면 그것들이 먼저 벗겨진다. 세대 제약이 풀리기까지 라운드가 더 든다.
+- 완화 트리거가 **시뮬레이션 실패** · `scheduler.go:543` — 8세대 오퍼링이 아직 unavailable로 마킹되지 않았다면 시뮬레이션은 성공한다. 즉 실제 launch에서 ICE를 한 번 맞아야 비로소 완화된다 → 폴백 지연([07]({{< relref "07-ice-fallback.md" >}})).
+- 토폴로지 요구사항 구성에는 required로 안 잡힘 · [공식 문서](https://karpenter.sh/docs/concepts/scheduling/) — "Karpenter does not interpret preferred affinities as required when constructing topology requirements". topology spread를 쓰는 워크로드에서 의도와 다르게 퍼질 수 있다.
+- 정책 하나로 전부 꺼짐 · `options.go:131` — 클러스터 운영자가 `PREFERENCE_POLICY=Ignore`로 바꾸면 전 워크로드의 세대 선호가 조용히 사라진다.
 
 ⇒ **파드 preferred는 "특정 워크로드에만 세대 힌트를 주고 싶다"에는 쓸 만하지만, "클러스터 기본 정책으로 8세대를 우선한다"에는 맞지 않는 도구다.**
 

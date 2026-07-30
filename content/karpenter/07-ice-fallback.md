@@ -26,12 +26,10 @@ aliases: ["/k8s-features/karpenter/04-ice-fallback/"]
 
 ICE 한 번이 스케줄링에 반영되는 경로는 네 홉이다. 사람이 개입할 지점이 하나도 없다.
 
-| 홉 | 하는 일 | 근거 |
-|---|---|---|
-| ① provider-aws | `CreateFleet` 응답의 `Errors`를 훑어 `IsUnfulfillableCapacity`면 `MarkUnavailable(instanceType, zone, capacityType, …)` | `pkg/providers/instance/instance.go` `updateUnavailableOfferingsCache()` |
-| ② 캐시 | 오퍼링 캐시에 3분 TTL로 넣고 **그 인스턴스 타입의 `offeringCacheSeqNum`을 증가** | `pkg/cache/unavailableofferings.go` |
-| ③ 오퍼링 해석 | seqNum이 바뀌었으므로 캐시된 오퍼링을 못 쓰고 재계산 → `Available: … && !isUnavailable && …` | `pkg/providers/instancetype/offering/base_resolver.go:101` |
-| ④ 코어 | `Offerings.Available()`가 빈 셋이 되면 `fits()`의 `hasOffering`이 false → 그 인스턴스 타입이 후보에서 제거 | `pkg/cloudprovider/types.go` · `scheduling/nodeclaim.go` |
+- **① provider-aws** — `CreateFleet` 응답의 `Errors`를 훑어 `IsUnfulfillableCapacity`면 `MarkUnavailable(instanceType, zone, capacityType, …)` (`pkg/providers/instance/instance.go` `updateUnavailableOfferingsCache()`)
+- **② 캐시** — 오퍼링 캐시에 3분 TTL로 넣고 **그 인스턴스 타입의 `offeringCacheSeqNum`을 증가** (`pkg/cache/unavailableofferings.go`)
+- **③ 오퍼링 해석** — seqNum이 바뀌었으므로 캐시된 오퍼링을 못 쓰고 재계산 → `Available: … && !isUnavailable && …` (`pkg/providers/instancetype/offering/base_resolver.go:101`)
+- **④ 코어** — `Offerings.Available()`가 빈 셋이 되면 `fits()`의 `hasOffering`이 false → 그 인스턴스 타입이 후보에서 제거 (`pkg/cloudprovider/types.go` · `scheduling/nodeclaim.go`)
 
 여기에 결정적인 성질 하나가 더 붙는다. 프로비저닝 루프는 **매 루프마다 `cloudProvider.GetInstanceTypes()`를 새로 호출한다**(`pkg/controllers/provisioning/provisioner.go`). 즉 ICE 마킹과 다음 스케줄링 사이에 별도의 캐시 만료 대기가 없다 — 다음 루프는 곧바로 갱신된 가용성을 본다.
 
@@ -140,11 +138,17 @@ func (u *UnavailableOfferings) IsUnavailable(instanceType ec2types.InstanceType,
 }
 ```
 
-| 축 | 무엇이 채우나 | 차단 범위 |
-|---|---|---|
-| `offeringCache` | `CreateFleet` 응답의 ICE 에러 | (capacity-type, 인스턴스 타입, AZ) 하나 |
-| `capacityTypeCache` | spot service-linked role 생성 불가 → `MarkCapacityTypeUnavailable(spot)` | **해당 capacity-type 전체** — spot이 통째로 3분간 사라진다 |
-| `subnetCache` | 서브넷 IP 고갈(`IsInsufficientFreeAddressesInSubnet`) → `MarkSubnetUnavailable` | 그 오퍼링의 **모든** 서브넷이 캐시에 있으면 차단. 인스턴스 타입과 무관 |
+| 축 | 무엇이 채우나 |
+|---|---|
+| `offeringCache` | `CreateFleet` 응답의 ICE 에러 |
+| `capacityTypeCache` | spot service-linked role 생성 불가 → `MarkCapacityTypeUnavailable(spot)` |
+| `subnetCache` | 서브넷 IP 고갈(`IsInsufficientFreeAddressesInSubnet`) → `MarkSubnetUnavailable` |
+
+차단 범위는 축마다 다르다.
+
+- **offeringCache** · (capacity-type, 인스턴스 타입, AZ) 하나만 막는다.
+- **capacityTypeCache** · **해당 capacity-type 전체**를 막는다 — spot이 통째로 3분간 사라진다.
+- **subnetCache** · 그 오퍼링의 **모든** 서브넷이 캐시에 있으면 차단한다. 인스턴스 타입과 무관하다.
 
 > **구버전 주의 — 세 번째 축은 버전마다 다르다.** 위 시그니처와 `subnetCache`는 `main` 형태다. provider-aws `v1.7.0`·`v1.11.3`에서는 `IsUnavailable(instanceType, zone, capacityType)`이고 세 번째 캐시가 `subnetCache`가 아니라 **`azCache`**다 — 서브넷 IP 고갈 시 `MarkAZUnavailable(zone)`으로 **그 AZ 전체**가 3분간 차단된다(서브넷 하나가 아니라). 배포 중인 provider-aws가 v1.11.x 이하라면 차단 범위를 서브넷이 아니라 AZ 단위로 읽어야 한다.
 
@@ -159,16 +163,40 @@ func (u *UnavailableOfferings) IsUnavailable(instanceType ec2types.InstanceType,
 
 ## 4. 구성별로 폴백은 어디서 일어나는가
 
-01~03에서 다룬 세 구성이 ICE 상황에서 어떻게 갈리는지 한 표로 모은다.
+01~03에서 다룬 세 구성이 ICE 상황에서 어떻게 갈리는지 구성별 표 셋으로 정리한다.
 
-| | **A. 단일 NodePool (8+7 혼재)** | **B. NodePool 분리 + `weight`** | **C. 단일 NodePool + NodeOverlay** |
-|---|---|---|---|
-| **평상시 무엇이 뜨나** | **7세대.** 코어가 가격 오름차순으로 후보를 싣고 Fleet이 `lowest-price`로 고른다 | **8세대.** 상위 weight 템플릿의 성공이 채택된다 | **8세대(의도).** 오버레이가 7세대 가격을 부풀려 정렬을 뒤집는다 |
-| **대체가 결정되는 지점** | 없음 — 애초에 8세대를 안 고른다 | **코어 스케줄러.** 8세대 풀이 스케줄에 실패해야 7세대 풀 결과가 채택된다 | **EC2 Fleet.** `prioritized` 전략이 Priority 순으로 흘러내린다 (**확인 필요**) |
-| **첫 폴백 지연** | 해당 없음 | `CreateFleet` ICE 1회 + 재큐 10초 + 배치창 1~10초 = **대략 11~30초** | 이론상 **같은 API 호출 안** — 추가 지연 0 (**확인 필요**) |
-| **ICE 캐시 유효한 3분 동안** | 해당 없음 | 8세대 오퍼링이 `Available()`에서 빠져 **`CreateFleet` 호출 없이** 즉시 7세대 | 동일 — 8세대 오버라이드 자체가 후보에서 빠진다 |
-| **주요 함정** | 사용자의 요구를 아예 만족 못 함 | 8세대 오퍼링이 **일부만** 마킹되면 8세대 풀이 계속 "가용"으로 보여 왕복이 반복된다 | 페널티 과다 시 60개 절단으로 7세대가 잘려 **폴백 후보 자체가 사라진다** |
-| **8세대 복귀** | 해당 없음 | 없음 — `expireAfter`/drift에 의존 | 오버레이 가격이 consolidation 후보 가격 산정에도 쓰여 복귀 여지가 있다 (**확인 필요**) |
+**A. 단일 NodePool (8+7 혼재)**
+
+| 항목 | 내용 |
+|---|---|
+| 평상시 무엇이 뜨나 | **7세대.** 코어가 가격 오름차순으로 후보를 싣고 Fleet이 `lowest-price`로 고른다 |
+| 대체가 결정되는 지점 | 없음 — 애초에 8세대를 안 고른다 |
+| 첫 폴백 지연 | 해당 없음 |
+| ICE 캐시 유효한 3분 동안 | 해당 없음 |
+| 주요 함정 | 사용자의 요구를 아예 만족 못 함 |
+| 8세대 복귀 | 해당 없음 |
+
+**B. NodePool 분리 + `weight`**
+
+| 항목 | 내용 |
+|---|---|
+| 평상시 무엇이 뜨나 | **8세대.** 상위 weight 템플릿의 성공이 채택된다 |
+| 대체가 결정되는 지점 | **코어 스케줄러.** 8세대 풀이 스케줄에 실패해야 7세대 풀 결과가 채택된다 |
+| 첫 폴백 지연 | `CreateFleet` ICE 1회 + 재큐 10초 + 배치창 1~10초 = **대략 11~30초** |
+| ICE 캐시 유효한 3분 동안 | 8세대 오퍼링이 `Available()`에서 빠져 **`CreateFleet` 호출 없이** 즉시 7세대 |
+| 주요 함정 | 8세대 오퍼링이 **일부만** 마킹되면 8세대 풀이 계속 "가용"으로 보여 왕복이 반복된다 |
+| 8세대 복귀 | 없음 — `expireAfter`/drift에 의존 |
+
+**C. 단일 NodePool + NodeOverlay**
+
+| 항목 | 내용 |
+|---|---|
+| 평상시 무엇이 뜨나 | **8세대(의도).** 오버레이가 7세대 가격을 부풀려 정렬을 뒤집는다 |
+| 대체가 결정되는 지점 | **EC2 Fleet.** `prioritized` 전략이 Priority 순으로 흘러내린다 (**확인 필요**) |
+| 첫 폴백 지연 | 이론상 **같은 API 호출 안** — 추가 지연 0 (**확인 필요**) |
+| ICE 캐시 유효한 3분 동안 | 동일 — 8세대 오버라이드 자체가 후보에서 빠진다 |
+| 주요 함정 | 페널티 과다 시 60개 절단으로 7세대가 잘려 **폴백 후보 자체가 사라진다** |
+| 8세대 복귀 | 오버레이 가격이 consolidation 후보 가격 산정에도 쓰여 복귀 여지가 있다 (**확인 필요**) |
 
 **B의 평가 방식을 오해하지 마라.** "8세대 풀을 먼저 시도하고 실패하면 7세대 풀로 내려간다"는 순차 short-circuit이 아니다. `addToNewNodeClaim`은 `parallelizeUntil`로 NodeClaimTemplate들을 워커에 흩뿌리고, 채택 규칙은 **성공한 것 중 인덱스가 가장 앞선(=weight가 가장 높은) 결과**다(`scheduling/scheduler.go:759`의 `if i >= idx { return false }`).
 
@@ -371,12 +399,10 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter \
 
 읽는 법을 정리하면 이렇다.
 
-| 관측 | 의미 | 다음 행동 |
-|---|---|---|
-| `disrupted_total{insufficient_capacity}`가 **3분 주기로 계단식 증가** | 8세대 부족이 지속 중. TTL 만료 → 재시도 → 재실패 루프(§3) | 8세대 풀의 타입 범위를 좁혀 왕복 빈도를 낮추거나, ODCR로 예약 확보 |
-| 이벤트는 나는데 `disrupted_total`이 **안 오름** | ICE가 아닌 에러가 섞여 `CreateError` 경로를 탄 것(§2-b). 서브넷 IP 고갈·런치 템플릿 문제 의심 | NodeClaim의 `Launched` 컨디션 reason 확인. §3의 `subnetCache` 축 점검 |
-| ④번 로그가 8세대 풀에만 반복 | 오퍼링이 전멸해 그 풀이 스케줄 후보에서 빠짐 = 폴백이 정상 동작 중 | 정상. 7세대 노드 비율만 추적 |
-| ⑤번 로그 | EC2NodeClass가 Ready가 아니라 풀이 통째로 제외됨 — **ICE와 무관** | NodeClass 상태 먼저 고칠 것 |
-| NodePool별 노드 수에서 **gen7 비중이 튐** | ICE가 지속됐거나, 한 번 내려간 뒤 복귀하지 못한 상태 | [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}})의 `expireAfter` 절 |
+- **`disrupted_total{insufficient_capacity}`가 3분 주기로 계단식 증가** — 8세대 부족이 지속 중이다. TTL 만료 → 재시도 → 재실패 루프(§3)를 도는 상태다. → 8세대 풀의 타입 범위를 좁혀 왕복 빈도를 낮추거나, ODCR로 예약을 확보한다.
+- **이벤트는 나는데 `disrupted_total`이 안 오름** — ICE가 아닌 에러가 섞여 `CreateError` 경로를 탄 것이다(§2-b). 서브넷 IP 고갈·런치 템플릿 문제가 의심된다. → NodeClaim의 `Launched` 컨디션 reason을 확인한다. §3의 `subnetCache` 축도 점검한다.
+- **④번 로그가 8세대 풀에만 반복** — 오퍼링이 전멸해 그 풀이 스케줄 후보에서 빠진 것이다 = 폴백이 정상 동작 중이다. → 정상이다. 7세대 노드 비율만 추적한다.
+- **⑤번 로그** — EC2NodeClass가 Ready가 아니라 풀이 통째로 제외된 것이다 — ICE와 무관하다. → NodeClass 상태를 먼저 고친다.
+- **NodePool별 노드 수에서 gen7 비중이 튐** — ICE가 지속됐거나, 한 번 내려간 뒤 복귀하지 못한 상태다. → [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}})의 `expireAfter` 절을 참고한다.
 
 마지막 줄이 이 문서와 03을 잇는 지점이다. **ICE 폴백은 "다음에 뜰 노드"만 바꾼다.** 3분 뒤 8세대가 후보로 돌아와도 그 사이 떠버린 7세대 노드는 그대로 남고, consolidation은 더 싼 방향으로만 움직이므로 스스로 되돌아오지 않는다. 폴백이 공짜인 것과 복귀가 공짜인 것은 전혀 다른 얘기다.
