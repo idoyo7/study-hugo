@@ -1,6 +1,7 @@
 ---
 title: "용량이 없을 때 — ICE와 폴백 지연"
 weight: 7
+aliases: ["/k8s-features/karpenter/04-ice-fallback/"]
 ---
 
 # 07 · 용량이 없을 때 — ICE와 폴백 지연

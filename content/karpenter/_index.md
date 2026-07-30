@@ -3,6 +3,7 @@ title: "Karpenter"
 weight: 10
 cascade:
   type: docs
+aliases: ["/k8s-features/karpenter/"]
 ---
 
 # Karpenter — 버전이 바꾼 것, 그리고 노드를 고르는 알고리즘

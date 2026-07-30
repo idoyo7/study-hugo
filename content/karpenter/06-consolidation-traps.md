@@ -1,6 +1,7 @@
 ---
 title: "consolidation이 되돌리는 것"
 weight: 6
+aliases: ["/k8s-features/karpenter/03-consolidation-traps/"]
 ---
 
 # 06 · consolidation이 되돌리는 것 — 구성해 놓고 나중에 무너지는 경로들
