@@ -107,13 +107,11 @@ spec:
 
 **리스크**
 
-| 리스크 | 완화 |
-|---|---|
-| 집계가 인제스트 시점 **확정** — "나중에 p99 필요"는 불가 | hot 90d raw가 유일한 재계산 원본 → 검증 전 hot 축소 금지 |
-| streamAggr 상태 = 프로세스 메모리, 크래시 시 현재 5m 윈도우 유실 | `flush_on_shutdown: true`; 재조사 용도로 수용 가능 수준. 카운터 리셋은 `rate()`가 흡수 |
-| 접미사 휴리스틱 오분류(비표준 카운터가 avg로 집계되면 rate 불가) | 드라이런에서 오분류 목록 추출 후 예외 match 규칙 보강 |
-| 전 메트릭 집계 상태만큼 라우터 vmagent 메모리 증가 (활성 시리즈 수 비례) | 사이징 실측 필요 (검증 필요) |
-| RF1 (아카이브 이중화 없음) | vmbackup 주기 백업으로 보완 — vmbackup/vmrestore·무중단 운영은 VM 챕터 [07 대규모 운영]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}}) 참조 |
+- **집계가 인제스트 시점 확정** — "나중에 p99 필요"는 불가. hot 90d raw가 유일한 재계산 원본이므로 검증 전 hot 축소 금지.
+- **streamAggr 상태 = 프로세스 메모리** — 크래시 시 현재 5m 윈도우 유실. `flush_on_shutdown: true`로 완화하며 재조사 용도로는 수용 가능한 수준. 카운터 리셋은 `rate()`가 흡수한다.
+- **접미사 휴리스틱 오분류** — 비표준 카운터가 avg로 집계되면 rate 불가. 드라이런에서 오분류 목록을 추출한 뒤 예외 match 규칙으로 보강한다.
+- **전 메트릭 집계 상태만큼 라우터 vmagent 메모리 증가** — 활성 시리즈 수에 비례한다. 사이징 실측 필요(검증 필요).
+- **RF1(아카이브 이중화 없음)** — vmbackup 주기 백업으로 보완한다. vmbackup/vmrestore·무중단 운영은 VM 챕터 [07 대규모 운영]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}}) 참조.
 
 streamAggr(사전 확정, 재계산 불가) vs Thanos downsampling(사후 재계산 가능, 공간 절감 없음)의 축별 비교와 "이 건에서 성립하는 대체"라는 판정 근거는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})에 있다.
 

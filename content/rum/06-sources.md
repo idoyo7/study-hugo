@@ -156,7 +156,7 @@ OpenTelemetry Collector(Contrib)·Vector·표준 semconv 및 그 확장 배포�
 | [Issue #36079 — series API 비호환](https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/36079) | 일부 dd client 라이브러리 호환 문제 |
 | [clickhouseexporter README](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/clickhouseexporter/README.md) | traces/logs=beta, metrics=alpha |
 | [Vector Docs — datadog_agent source](https://vector.dev/docs/reference/configuration/sources/datadog_agent/) | dd Agent 트래픽 HTTP 수신 |
-| [Vector Issue #16121 — datadog_agent 확장 안 함 결정](https://github.com/vectordotdev/vector/issues/16121) | 메인테이너가 2023-04 Agent 포맷 이상 미확장 결정, 네이티브 opentelemetry 소스 권장 |
+| [Vector Issue #16121 — datadog_agent 확장 중단](https://github.com/vectordotdev/vector/issues/16121) | 메인테이너 2023-04 결정: 미확장, OTel 소스 권장 |
 | [Vector Docs — clickhouse sink](https://vector.dev/docs/reference/configuration/sinks/clickhouse/) | 로그 전용(traces/metrics 미지원) |
 | [Vector Docs — datadog_traces sink](https://vector.dev/docs/reference/configuration/sinks/datadog_traces/) | 트레이스 관련 제약 |
 | [Vector Docs — Going to production (아키텍처)](https://vector.dev/docs/setup/going-to-prod/architecting/) | 프로덕션 토폴로지 |

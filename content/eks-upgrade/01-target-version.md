@@ -92,9 +92,9 @@ blue-green은 마이너를 하나씩 밟지 않고 목표 버전으로 곧바로
 | 1.33 | AL2 AMI 지원 종료 → AL2023/Bottlerocket 필수 |
 | 1.34 | `VolumeAttributesClass` `v1beta1`→`v1` GA 전환 |
 | 1.35 | cgroup v1 지원 제거(AL2023은 v2라 영향 적음), containerd 1.x 지원 종료 |
-| 1.36(목표 시) | `gitRepo` 볼륨 영구 비활성, containerd 2.0+ 필수, `StrictIPCIDRValidation` 기본 활성(non-canonical CIDR 거부) |
+| 1.36(목표 시) | `gitRepo` 볼륨 비활성, containerd 2.0+ 필수, `StrictIPCIDRValidation` 기본 활성 |
 
-IPVS 제거는 이 목록에 없다 — [03 managed addon]({{< relref "03-managed-addons.md" >}})에서 정정하듯 코드 삭제는 ~v1.43 예정이라 1.35/1.36 어느 쪽으로 가도 아직 해당하지 않는다.
+IPVS 제거는 이 목록에 없다 — [03 managed addon]({{< relref "03-managed-addons.md" >}})에서 정정하듯 코드 삭제는 ~v1.43 예정이라 1.35/1.36 어느 쪽으로 가도 아직 해당하지 않는다. `StrictIPCIDRValidation`은 non-canonical CIDR 표기를 거부한다.
 
 ## 우리 케이스에서는
 

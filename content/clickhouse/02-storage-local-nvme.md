@@ -26,10 +26,10 @@ self-host ClickHouse의 스토리지 매체는 네 갈래다. 로컬 NVMe만 놓
 | 최대 IOPS | 인스턴스 물리한계(수백만급) | 80,000/vol | **256,000/vol** | 캐시 히트 시 로컬급 | 티어별 |
 | 최대 처리량 | 인스턴스 한계(수 GB/s, RAID로↑) | 2,000 MiB/s | **4,000 MB/s/vol** | 캐시+S3 대역 | 티어별 |
 | 내구성 | **없음(휘발성)** — 복제로 보완 | 99.8~99.9% | **99.999%** | S3 11 nines | 티어별 |
-| GB당 비용 | **인스턴스 가격에 포함($0 별도)** | $0.08/GB-mo + IOPS·throughput 초과분 | gp3보다 크게 비쌈 | S3 최저(~$0.023/GB-mo) | hot 비쌈/cold 저렴 |
+| GB당 비용 | **인스턴스포함($0)** | $0.08/GB-mo+IOPS·처리량초과분 | gp3보다비쌈 | S3최저(~$0.023/GB-mo) | hot비쌈/cold저렴 |
 | 노드 이동 시 데이터 | **소실** | 재부착 가능(같은 AZ) | 재부착 가능 | S3에 보존 | hot 소실/cold 보존 |
-| 운영 복잡도 | **높음**(RAID·재수화·백업 설계) | 낮음(EBS CSI 표준) | 낮음 | 중간(캐시 튜닝) | **가장 높음**(정책·TTL·이동 감시) |
-| 적합 워크로드 | 고QPS·저지연·대규모 스캔 | 일반 프로덕션·중규모 | 극한 IOPS DB | 콜드/아카이브·비용 최적 | 관측성(hot 최근/cold 장기) |
+| 운영 복잡도 | **높음**(RAID·재수화·백업) | 낮음(EBS CSI 표준) | 낮음 | 중간(캐시 튜닝) | **가장 높음**(정책·TTL·이동) |
+| 적합 워크로드 | 고QPS·저지연·대규모스캔 | 일반프로덕션·중규모 | 극한 IOPS DB | 콜드/아카이브·비용최적 | 관측성 |
 
 *(위 성능·내구성 수치는 AWS 공식 스펙 기준 `✓`, GB당 비용은 us-east-1 2026-07 시점.)*
 
@@ -110,11 +110,9 @@ self-host ClickHouse의 스토리지 매체는 네 갈래다. 로컬 NVMe만 놓
 
 겉보기 유사하나 사본 경제·쿼리 경로가 결정적으로 다르다.
 
-| OpenSearch(현행 도메인) | ClickHouse self-host 대응 | 유사점 | 결정적 차이 |
-|---|---|---|---|
-| **Hot 데이터노드** 10× i7i.4xlarge.search(로컬 색인 + replica) | **hot 볼륨** = 로컬 NVMe(RMT replica) | 둘 다 로컬 매체 + replica로 내구성 | 거의 동일 — 직관이 옳다 |
-| **UltraWarm** 8노드(S3-backed + 캐시 레이어) | **S3 cold 볼륨**(`TTL MOVE TO VOLUME 'cold'` + filesystem cache) | 둘 다 오래된 데이터를 S3+로컬캐시로 | **사본 경제 반대**: UltraWarm=S3 단일 사본 / CH cold=replica별 사본 |
-| **OR1/OR2**(EBS primary + 동기 S3, 11 nines·zero RPO — 로컬 NVMe 아님, NVMe 관리형은 OI2) `✓` | **ClickHouse Cloud SharedMergeTree**(self-host 불가) | shared durable S3 + 컴퓨트 로컬 캐시 | self-host RMT로는 재현 불가 |
+- **Hot 데이터노드**(OpenSearch: 10× i7i.4xlarge.search, 로컬 색인 + replica) ↔ **hot 볼륨**(CH: 로컬 NVMe, RMT replica) — 둘 다 로컬 매체 + replica로 내구성. 거의 동일, 직관이 옳다.
+- **UltraWarm**(OpenSearch: 8노드, S3-backed + 캐시 레이어) ↔ **S3 cold 볼륨**(CH: `TTL MOVE TO VOLUME 'cold'` + filesystem cache) — 둘 다 오래된 데이터를 S3+로컬캐시로 서빙하지만 **사본 경제가 반대**다: UltraWarm=S3 단일 사본 / CH cold=replica별 사본.
+- **OR1/OR2**(OpenSearch: EBS primary + 동기 S3, 11 nines·zero RPO — 로컬 NVMe 아님, NVMe 관리형은 OI2) `✓` ↔ **ClickHouse Cloud SharedMergeTree**(self-host 불가) — shared durable S3 + 컴퓨트 로컬 캐시 구조는 닮았으나 self-host RMT로는 재현 불가.
 
 핵심: **UltraWarm의 진짜 구조적 사촌은 self-host CH의 S3 cold가 아니라, S3 단일 사본 + 컴퓨트 캐시를 쓰는 ClickHouse Cloud SharedMergeTree / OpenSearch OR1**이다 — 둘 다 Cloud·관리형 전용이라 self-host로는 못 쓴다 `✓`. (SharedMergeTree가 Cloud 전용인 배경은 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}).)
 
@@ -166,7 +164,7 @@ S3 cold  : prefer_not_to_merge 미설정 — 병합은 hot에서 끝내고 이�
 |---|---|
 | "로컬 NVMe라도 실데이터를 전부 로컬에 두면 안 된다" | ✅ 맞다 — hot엔 최근 데이터만, 나머지는 티어링 |
 | "gp3 **혹은** S3에 티어링" | △ 절반 — 관측성/대규모는 S3, gp3는 Keeper용. 3티어는 불필요 |
-| "OpenSearch(hot i7i + UltraWarm)와 동일 구조" | ❌ 부정확 — UltraWarm=단일 사본 shared-storage, CH cold=replica별 shared-nothing |
+| "OpenSearch(hot i7i + UltraWarm)와 동일 구조" | ❌ 부정확 — UltraWarm=단일사본, CH cold=replica별 사본 |
 | (암묵) "S3로 티어링하면 내구성이 해결된다" | ❌ 위험 — 내구성은 복제+백업. cold도 RF배수로 중복 저장 |
 
 ## 로컬 PV를 k8s에 얹기

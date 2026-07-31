@@ -23,22 +23,43 @@ ClickHouse를 관측성 백엔드로 **PB~경(quadrillion) 스케일에서 운�
 
 출처 등급 범례: `자사`=해당 회사 자체 엔지니어링 블로그(상대적 독립) · `CH`=ClickHouse 자사 블로그/케이스스터디(자기 홍보 맥락, `Ⓥ`) · 규모 수치의 등급은 셀 내 표기.
 
-| 회사 | 용도 | 규모(핵심 수치) | 배포 형태 | 스토리지 | 출처 |
-|---|---|---|---|---|---|
-| **Cloudflare** | HTTP/DNS/방화벽 분석·빌링 | 20+ 클러스터, >100 노드, 1000+ replica, ~90M rows/s, 100+ PB, 96조 events를 <2s(1일 창 1.61경도 <2s) `✓` | 베어메탈(자체 DC 300+) | 로컬 디스크 중심 | 자사+CH |
-| **Netflix** | 로그(관측성) | 5 PB/day, 평균 10.6M events/s(peak 12.5M), 500~1000 QPS `Ⓥ` | 자체 파이프라인 | 계층형 | CH |
-| **MS Clarity** | 웹 세션/행동 분석 | 수백 대 머신, 수백 PB, 수백조 events, 수십억 pv/day `✓` | "layer" 서브클러스터 | DC 간 복제 | 자사 |
-| **Character.AI** | 관측성(로그) | 450 PB raw/월 → 샘플 후 50B/월, 10x 데이터·비용 -50% `Ⓥ` | ClickHouse Cloud(multi-cloud K8s) | S3(Cloud) | CH |
-| **Tesla(Comet)** | 메트릭(관측성) | 1B rows/s를 11일 지속 = 1 quadrillion rows 무장애 `Ⓥ` | K8s 추정, OTel→Kafka→ETL | CH 네이티브 | CH |
-| **Didi** | 로그 | 400+ 물리 노드(Log 300+/Trace 40+), peak write 40 GB/s+, ~15M queries/day, PB/day, machine cost -30% vs ES `Ⓥ⁽자가보고⁾`(2024-04 스냅샷; machine cost는 TCO보다 좁은 지표 — 엔지니어링·마이그레이션 비용 제외) | 물리 노드(베어메탈) | 계층형(hot/cold) | CH |
-| **Trip.com** | 로그 | 50 PB(4PB ES에서 시작), 저장 -50%+, query 4~30x `Ⓥ` | **K8s StatefulSet** | 로컬+ (SMT/S3 테스트) | CH |
-| **Uber** | 로그 | millions logs/s, 수천 서비스, 수 PB, ingest <1min `✓`(2021-02 스냅샷; 단일 노드 300K logs/s 실측, 후속으로 비정형 Spark 로그는 CLP로 보완) | 자체 인프라 | 계층형 | 자사 |
-| **eBay** | OLAP/모니터링 | Federated 다중 리전, 인프라 풋프린트 -90%+ `✓` | **K8s + operator** | **미확인**(출처에 언급 없음) | 자사 |
-| **Anthropic** | 관측성 | 3인 팀 운영(데이터량·비용 비공개) `✓` | **air-gapped Cloud arch on K8s + operator** | **오브젝트 스토리지** | CH |
-| **Sentry(Snuba)** | 에러/이벤트 검색 | Kafka 인서트, Tagstore TB→GB, Alert이 전체 QPS의 ~40% `✓` | 자체 인프라 | ClickHouse | 자사 |
-| **PostHog** | 제품 분석 | Sharded CH, Kafka engine table + MV 인제스천 `✓` | 자체/Cloud | Sharded | 자사 |
-| **GitLab** | 분석 + 관측성 | 100M rows 쿼리 30~40s→<1s, 일 57M+ traces, 3000+ 서비스 `✓` | Cloud/자체 | — | 자사+CH |
-| **LogHouse**(CH 도그푸딩) | 내부 관측성 | 100+ PB 비압축, ~500조 rows, SysEx 37M + OTel 2M logs/s `Ⓥ` | **K8s + operator** | 오브젝트 스토리지/S3 | CH |
+| 회사 | 용도 | 배포 형태 | 스토리지 | 출처 |
+|---|---|---|---|---|
+| **Cloudflare** | HTTP/DNS/방화벽 분석·빌링 | 베어메탈(자체 DC 300+) | 로컬 디스크 중심 | 자사+CH |
+| **Netflix** | 로그(관측성) | 자체 파이프라인 | 계층형 | CH |
+| **MS Clarity** | 웹 세션/행동 분석 | "layer" 서브클러스터 | DC 간 복제 | 자사 |
+| **Character.AI** | 관측성(로그) | ClickHouse Cloud(multi-cloud K8s) | S3(Cloud) | CH |
+| **Tesla(Comet)** | 메트릭(관측성) | K8s 추정, OTel→Kafka→ETL | CH 네이티브 | CH |
+| **Didi** | 로그 | 물리 노드(베어메탈) | 계층형(hot/cold) | CH |
+| **Trip.com** | 로그 | **K8s StatefulSet** | 로컬+ (SMT/S3 테스트) | CH |
+| **Uber** | 로그 | 자체 인프라 | 계층형 | 자사 |
+| **eBay** | OLAP/모니터링 | **K8s + operator** | **미확인**(출처에 언급 없음) | 자사 |
+| **Anthropic** | 관측성 | **air-gapped Cloud arch on K8s + operator** | **오브젝트 스토리지** | CH |
+| **Sentry(Snuba)** | 에러/이벤트 검색 | 자체 인프라 | ClickHouse | 자사 |
+| **PostHog** | 제품 분석 | 자체/Cloud | Sharded | 자사 |
+| **GitLab** | 분석 + 관측성 | Cloud/자체 | — | 자사+CH |
+| **LogHouse**(CH 도그푸딩) | 내부 관측성 | **K8s + operator** | 오브젝트 스토리지/S3 | CH |
+
+규모(핵심 수치)는 회사별로 따로 뜯는다:
+
+| 회사 | 규모(핵심 수치) |
+|---|---|
+| **Cloudflare** | 20+클러스터, >100 노드, 1000+ replica, ~90M rows/s, 100+ PB, 96조 events를 <2s(1일 창 1.61경도 <2s) `✓` |
+| **Netflix** | 5 PB/day, 평균 10.6M events/s(peak 12.5M), 500~1000 QPS `Ⓥ` |
+| **MS Clarity** | 수백 대 머신, 수백 PB, 수백조 events, 수십억 pv/day `✓` |
+| **Character.AI** | 450 PB raw/월 → 샘플 후 50B/월, 10x 데이터·비용 -50% `Ⓥ` |
+| **Tesla(Comet)** | 1B rows/s를 11일 지속 = 1 quadrillion rows 무장애 `Ⓥ` |
+| **Didi** | 400+ 물리 노드, peak write 40 GB/s+, ~15M queries/day, PB/day, machine cost -30% vs ES `Ⓥ⁽자가보고⁾` |
+| **Trip.com** | 50 PB(4PB ES에서 시작), 저장 -50%+, query 4~30x `Ⓥ` |
+| **Uber** | millions logs/s, 수천 서비스, 수 PB, ingest <1min `✓` |
+| **eBay** | Federated 다중 리전, 인프라 풋프린트 -90%+ `✓` |
+| **Anthropic** | 3인 팀 운영(데이터량·비용 비공개) `✓` |
+| **Sentry(Snuba)** | Kafka 인서트, Tagstore TB→GB, Alert이 전체 QPS의 ~40% `✓` |
+| **PostHog** | Sharded CH, Kafka engine table + MV 인제스천 `✓` |
+| **GitLab** | 100M rows 쿼리 30~40s→<1s, 일 57M+ traces, 3000+ 서비스 `✓` |
+| **LogHouse**(CH 도그푸딩) | 100+ PB 비압축, ~500조 rows, SysEx 37M + OTel 2M logs/s `Ⓥ` |
+
+Didi 수치는 2024-04 스냅샷이며, 물리 노드 400+는 Log 300+/Trace 40+로 나뉜다. machine cost -30%는 TCO보다 좁은 지표로 엔지니어링·마이그레이션 비용은 제외한다. Uber 수치는 2021-02 스냅샷으로, 단일 노드 300K logs/s 실측치이며 후속으로 비정형 Spark 로그는 CLP로 보완했다.
 
 {{% details title="그 밖의 확인 사례 — Zomato · Shopee · OpenAI · Ahrefs" closed="true" %}}
 **Zomato**(EC2 10×m6g.16xlarge, gp3 hot→cold TTL, ES 대비 연 $1M+ 절감 `Ⓥ`), **Shopee**(분산 트레이싱 ~3M rows/s, 30B+ trace rows `✓⁽요약⁾`). **OpenAI**는 일 PB급 로그를 자체 관리 ClickHouse 클러스터(90 샤드×2 리플리카, Fluent Bit→로드밸런서 인제스트, 최근 데이터는 디스크·구 데이터는 blob 스토리지로 티어링)로 인제스트하며 월 20%+ 성장한다 `Ⓥ⁽자가보고⁾`(출처: clickhouse.com 블로그 + OpenAI 엔지니어 컨퍼런스 발표). **단 이 글은 Datadog 등 상용 벤더 이탈이나 K8s/EKS·인스턴스·로컬 NVMe를 전혀 언급하지 않는다 — OpenAI는 순수 하이퍼스케일 증거일 뿐, 아래 §'K8s + 로컬 NVMe' 실증 목록에는 넣지 않는다(C8).** **Ahrefs**(초대형 베어메탈)는 이번 조사에서도 노드 수·용량을 명시한 1차 출처를 확보하지 못해 **`?`**으로 둔다.
@@ -58,7 +79,7 @@ Netflix는 5PB/day를 내려고 세 곳을 갈아엎었다 `Ⓥ`: 유사 로그 
 
 | 사례 | K8s | operator | 로컬 NVMe(hot) | 근거 등급 |
 |---|:---:|:---:|:---:|---|
-| **eBay** | O(federated 다중 리전, FCHI/FCHC) | O(자체 확장 + OSS operator) | **미확인**(출처에 없음) | K8s+operator=`✓`, 스토리지=`?` |
+| **eBay** | O(federated, FCHI/FCHC) | O(자체 확장+OSS operator) | **미확인**(출처에 없음) | K8s+operator=`✓`, 스토리지=`?` |
 | **Anthropic** | O | O(ClickHouse Operator) | 오브젝트 스토리지 백킹(로컬은 캐시 추정) | `✓`(로컬 캐시는 `≈`) |
 | **Trip.com** | O(StatefulSet) | 자체 관리 | 로컬 → SharedMergeTree/S3 테스트로 이행 | `✓` |
 | **ClickHouse LogHouse** | O | O(ClickHouse Operator) | 오브젝트 스토리지 | `Ⓥ` |
@@ -88,11 +109,13 @@ pulse.support의 요약이 본질을 찌른다 — "ClickHouse는 IO-bound·merg
 
 | 패턴 | 대표 사례 | 특징 | 트레이드오프 |
 |---|---|---|---|
-| **Kafka 버퍼 + 커스텀 워커** | Zomato(Go), Trip.com(GoHangout), PostHog | 배치·백프레셔 제어 용이, native 포맷 인서트 | 워커 유지보수 부담 |
+| **Kafka버퍼+커스텀워커** | Zomato, Trip.com, PostHog | 배치·백프레셔 제어, native포맷 인서트 | 워커 유지보수 부담 |
 | **Kafka table engine + MV** | PostHog | CH 내장 컨슈머, 인프라 단순 | 튜닝 여지 제한, 장애 격리 약함 |
-| **OTel Collector** | Tesla, Character.AI(DaemonSet), Netflix(일부) | 표준·벤더중립, 에코시스템 | **대규모에서 CPU 병목**(아래) |
+| **OTel Collector** | Tesla, Character.AI(DaemonSet), Netflix(일부) | 표준·벤더중립 | **대규모에서 CPU 병목**(아래) |
 | **Vector** | Anthropic | 경량·고성능 파이프라인 | — |
 | **CH → CH 직접(SysEx)** | ClickHouse LogHouse | native 포맷 byte-copy, 재직렬화 0 | ClickHouse 소스 한정 |
+
+**Kafka 버퍼 + 커스텀 워커** 구현 언어는 Zomato가 Go, Trip.com이 GoHangout이다. **OTel Collector**는 표준·벤더중립 대신 에코시스템 확장성이 강점이지만 대규모에서 CPU 병목을 대가로 치른다(아래 §OTel Collector의 CPU 병목).
 
 공통 원칙은 어디서나 같다 `✓` — (1) **대형 배치 인서트**(수천~수만 rows) 또는 async insert, (2) **native 포맷**(HTTP 대비 ~1.8x, Zomato `Ⓥ`), (3) 초당 인서트 빈도 제한(Sentry: ~1/s), (4) Kafka로 스파이크 흡수. 이를 어기면 곧바로 아래 안티패턴의 "too many parts"로 직행한다.
 

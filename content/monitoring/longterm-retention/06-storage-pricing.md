@@ -23,14 +23,14 @@ weight: 6
 
 | 스토리지 | $/GB·월 | 성능/제약 | 부대 비용 |
 |---|---|---|---|
-| **EBS gp3** | **0.0912** | 3,000 IOPS·125 MiB/s 기본 포함, 최대 80k IOPS·2,000 MiB/s(유료), **1 GiB~64 TiB**(2025-09 상향) | 추가 IOPS/스루풋 별도 |
-| **EBS st1** (throughput HDD) | **0.051** | 기본 40 MiB/s/TiB, 버스트 250 MiB/s/TiB, 125 GiB~16 TiB, 최대 500 IOPS(1MiB) | — |
-| **EBS sc1** (cold HDD) | **0.0174** | 기본 **12 MiB/s/TiB**, 버스트 80 MiB/s/TiB, 125 GiB~16 TiB, **최대 250 IOPS**(1MiB) | — |
-| **S3 Standard** | **0.025** (≤50TB, 이후 0.024/0.023) | 11-nines 내구성 | GET $0.0035/1만건, PUT $0.0045/1천건 |
+| **EBS gp3** | **0.0912** | 3,000 IOPS·125 MiB/s 기본, 최대 80k IOPS·2,000 MiB/s(유료), 1 GiB~64 TiB | 추가 IOPS/스루풋 별도 |
+| **EBS st1** (throughput HDD) | **0.051** | 기본 40, 버스트 250 MiB/s/TiB, 125 GiB~16 TiB, 최대 500 IOPS | — |
+| **EBS sc1** (cold HDD) | **0.0174** | 기본 **12**, 버스트 80 MiB/s/TiB, 125 GiB~16 TiB, **최대 250 IOPS** | — |
+| **S3 Standard** | **0.025** (≤50TB) | 11-nines 내구성 | GET $0.0035/1만건, PUT $0.0045/1천건 |
 | **S3 Standard-IA** | **0.0138** | 최소 30일·128KB 과금 | **리트리벌 $0.01/GB** |
 | **S3 Glacier Instant** | **0.005** | 최소 90일·128KB 과금 | **리트리벌 $0.03/GB** |
 
-같은 리전 S3↔EC2 전송은 무료다.
+같은 리전 S3↔EC2 전송은 무료다. gp3의 1 GiB~64 TiB 용량 상한은 2025-09 상향분이고, IOPS 상한은 모두 1MiB I/O 기준이다. S3 Standard 단가는 50TB 초과 구간부터 0.024/0.023으로 더 낮아진다.
 
 ### 핵심 반전: "S3라서 싸다"는 서울에서 성립하지 않는다
 
@@ -97,8 +97,8 @@ S3 Standard-IA($0.0138)와 Glacier Instant($0.005)는 GB당 저장 단가만 보
 
 | 엔진 | bytes/sample | 근거 |
 |---|---|---|
-| VictoriaMetrics | **~1 B** (+인덱스 ~20%, 고카디널리티 >50%) | 공식 사이징 가이드. 0.4~0.8B는 케이스스터디 베스트케이스 — 예산 근거 금지 |
-| Prometheus/Thanos TSDB | **1.5~2 B** | Prometheus 공식 "1-2 bytes per sample"; Thanos는 TSDB 블록 그대로 저장 |
+| VictoriaMetrics | **~1 B** (+인덱스 ~20%, 고카디널리티 >50%) | 공식 가이드. 0.4~0.8B 베스트케이스는 예산 근거 금지 |
+| Prometheus/Thanos TSDB | **1.5~2 B** | Prometheus 공식 수치. Thanos는 TSDB 블록 그대로 저장 |
 | Mimir | **~2 B** | 공식 보수치 (index+chunk) |
 
 ## 5. 빠른 환산 (이 워크로드 기준)

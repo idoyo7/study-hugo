@@ -24,24 +24,22 @@ RUM 하나만 빼오는 것으로는 Datadog 청구서가 크게 줄지 않는�
 
 "대안이 ClickHouse 백엔드?" 컬럼은 그 대안이 우리가 어차피 운영할 ClickHouse에 지표·이벤트를 흡수시킬 수 있는지를 뜻한다 — 스택 수렴 여부를 가르는 축이다.
 
-| 분류 | Datadog 제품 | 대체 수단 | 대안이 ClickHouse 백엔드? | 근거·단서 |
-|:---:|---|---|:---:|---|
-| 🟢 즉시 | **Log Management** | ClickStack / ClickHouse | 예 (CH 네이티브) | 최대 절감 영역 `✓`, 계측 교체 거의 불필요 `≈` |
-| 🟢 즉시 | **APM / 분산 트레이싱** | OTel SDK 재계측 + ClickStack (과도기 `datadogreceiver`) | 예 (CH) | dd-trace↔OTel 개념 1:1, 점진 전환 `✓` |
-| 🟢 즉시 | **RUM 웹코어 / Session Replay** | `@hyperdx/browser` SDK 교체 | 예 (HyperDX=CH) | 세션 단가 과금 회피, 공개 전례 부재 → PoC 게이트 필수 `✓`(대등성) / `?`(전례) |
-| 🟡 조건부 | **Metrics (Infra)** | **VictoriaMetrics/Prometheus + Grafana** (HyperDX 아님) | 아니오 (VM=자체 TSDB) | PromQL 미지원·변환기 부재가 결정, 아래 절 참조 `✓` |
-| 🟡 조건부 | **Serverless** | OTel Lambda layer → ClickStack, cold start는 CloudWatch 병행 | 예 | dd Lambda extension 제거·OTel layer 도입 `≈` |
-| 🟡 조건부 | **Error Tracking** | GlitchTip(드롭인) 또는 SigNoz Exceptions | SigNoz=예, GlitchTip=아니오(PG) | GlitchTip은 DSN만 교체(코드 무변경) `✓` |
-| 🟡 조건부 | **LLM Observability** | **Langfuse**(ClickHouse 소속) / OpenLLMetry / Arize Phoenix | 예 | CH 운영 시 자연 시너지 `✓` |
-| 🟡 조건부 | **Watchdog (AI 이상탐지)** | ClickStack Event Deltas + Coroot/SigNoz 조합 | Coroot/SigNoz=예 | 전스택 자동 상관 단일 OSS는 부재, 조합으로 근접 `✓/?⁽혼재⁾` |
-| 🔴 유지/전용 | **Synthetics** | Checkly(Playwright) 또는 k8s CronJob+Playwright | 부분 (결과 지표 CH 라우팅) | 지리 분산 프로빙은 상용이 유리 `≈` |
-| 🔴 유지/전용 | **Continuous Profiler** | Grafana Pyroscope 2.0 / Parca | 아니오 (자체 TSDB형) | 프로파일은 별도 스택으로 두는 게 현실적 `✓` |
-| 🔴 유지/전용 | **NPM / NDM** | Kentik(상용) / Coroot(eBPF) / Akvorado / SNMP exporter | Coroot=예, Akvorado=예(CH) | 가장 어려운 영역, Datadog 병행 무난 `≈` |
-| 🔴 유지/전용 | **DBM** | Percona PMM / pg_stat_statements+Grafana / Coroot | Coroot=예, PMM=아니오(VM) | 쿼리 샘플·실행계획 재현은 전용 툴 조합 `≈/✓⁽혼재⁾` |
-| 🔴 유지/전용 | **Security (SIEM/CSM/ASM)** | Wazuh / Falco / Trivy / OWASP ZAP (별도 트랙) | 대부분 아니오 (ES/OpenSearch/자체) | 규제·컴플라이언스 크면 Datadog 잔류 `✓/≈` |
-| 🔴 유지/전용 | **CI Visibility** | OTel CI/CD Observability(GitHub/GitLab receiver) + SigNoz | 예 (OTel→CH) | 플레이키 탐지 수준은 Datadog이 앞섬 `≈` |
-| 🔴 유지/전용 | **Incident / On-Call** | Keep / GoAlert / OneUptime / incident.io(상용) | 아니오 (운영 DB) | **Grafana OnCall OSS는 2026-03-24 아카이브 예정 → 신규 채택 금지** `✓` |
-| 🔴 유지/전용 | **Data Streams / Data Jobs** | Kpow / KMinion / Coroot / Spark·Flink OTel | 부분 (지표 CH 라우팅) | end-to-end 큐 의존성 자동 매핑 재현 어려움 `≈` |
+- 🟢 **Log Management** · ClickStack/ClickHouse(CH 네이티브) — 최대 절감 영역 `✓`, 계측 교체 거의 불필요 `≈`.
+- 🟢 **APM/분산 트레이싱** · OTel SDK 재계측 + ClickStack(과도기 `datadogreceiver`, CH) — dd-trace↔OTel 개념 1:1, 점진 전환 `✓`.
+- 🟢 **RUM 웹코어/Session Replay** · `@hyperdx/browser` SDK 교체(HyperDX=CH) — 세션 단가 과금 회피, 공개 전례 부재 → PoC 게이트 필수 `✓`(대등성)/`?`(전례).
+- 🟡 **Metrics(Infra)** · **VictoriaMetrics/Prometheus + Grafana**(HyperDX 아님, VM=자체 TSDB) — PromQL 미지원·변환기 부재가 결정, 아래 절 참조 `✓`.
+- 🟡 **Serverless** · OTel Lambda layer → ClickStack(CH), cold start는 CloudWatch 병행 — dd Lambda extension 제거·OTel layer 도입 `≈`.
+- 🟡 **Error Tracking** · GlitchTip(드롭인, PG) 또는 SigNoz Exceptions(CH) — GlitchTip은 DSN만 교체(코드 무변경) `✓`.
+- 🟡 **LLM Observability** · **Langfuse**(ClickHouse 소속, CH) / OpenLLMetry / Arize Phoenix — CH 운영 시 자연 시너지 `✓`.
+- 🟡 **Watchdog(AI 이상탐지)** · ClickStack Event Deltas + Coroot/SigNoz 조합(CH) — 전스택 자동 상관 단일 OSS는 부재, 조합으로 근접 `✓/?⁽혼재⁾`.
+- 🔴 **Synthetics** · Checkly(Playwright) 또는 k8s CronJob+Playwright(결과 지표만 CH 라우팅) — 지리 분산 프로빙은 상용이 유리 `≈`.
+- 🔴 **Continuous Profiler** · Grafana Pyroscope 2.0 / Parca(자체 TSDB형, CH 아님) — 프로파일은 별도 스택으로 두는 게 현실적 `✓`.
+- 🔴 **NPM/NDM** · Kentik(상용) / Coroot(eBPF, CH) / Akvorado(CH) / SNMP exporter — 가장 어려운 영역, Datadog 병행 무난 `≈`.
+- 🔴 **DBM** · Percona PMM(VM) / pg_stat_statements+Grafana / Coroot(CH) — 쿼리 샘플·실행계획 재현은 전용 툴 조합 `≈/✓⁽혼재⁾`.
+- 🔴 **Security(SIEM/CSM/ASM)** · Wazuh / Falco / Trivy / OWASP ZAP(별도 트랙, 대부분 ES/OpenSearch/자체) — 규제·컴플라이언스 크면 Datadog 잔류 `✓/≈`.
+- 🔴 **CI Visibility** · OTel CI/CD Observability(GitHub/GitLab receiver) + SigNoz(OTel→CH) — 플레이키 탐지 수준은 Datadog이 앞섬 `≈`.
+- 🔴 **Incident/On-Call** · Keep / GoAlert / OneUptime / incident.io(상용, 운영 DB) — **Grafana OnCall OSS는 2026-03-24 아카이브 예정 → 신규 채택 금지** `✓`.
+- 🔴 **Data Streams/Data Jobs** · Kpow / KMinion / Coroot / Spark·Flink OTel(지표만 부분 CH 라우팅) — end-to-end 큐 의존성 자동 매핑 재현 어려움 `≈`.
 
 > 🔴는 "대체 불가"가 아니라 "ClickStack 코어 범위 밖"이라는 뜻이다. 각 행의 전용 OSS로 대부분 대체되며, 상당수는 지표·이벤트를 ClickHouse로 흘려보낼 수 있다.
 
@@ -80,11 +78,13 @@ rip-and-replace가 아니라 dual-write/dual-instrument → 병행 검증 → �
 
 | Wave | 대상 | 이유 | 리스크 |
 |:---:|---|---|:---:|
-| **1** | RUM 웹코어 + Session Replay → HyperDX | 트리거(RWoL 재요율), 세션 단가 회피, 프론트 SDK 독립 | 낮음(단 공개 전례 부재 → **PoC 성공을 진입 게이트로 명문화**) |
+| **1** | RUM 웹코어 + Session Replay → HyperDX | 트리거(RWoL), 세션 단가 회피, SDK 독립 | 낮음(전례 부재→PoC 게이트) |
 | **2** | Logs → ClickStack / ClickHouse | 청구서 최대 항목, 계측 교체 거의 불필요 | 낮음 |
 | **3** | APM / Traces → OTel 재계측 + ClickStack (`datadogreceiver` 병행) | 절감 + 표준화, 점진 전환 가능 | 중 |
 | **4** | Metrics / Infra → VictoriaMetrics + Grafana + Sloth/Pyrra | 무계측 dual-ship으로 병행 검증 후 이관 | 중 |
-| **5** | Security · Synthetics · NPM/NDM · DBM · CI · On-Call · Data Streams | 제품 성격 상이·규제·운영부담 → 전용 OSS 개별 이관 또는 Datadog 잔류 | 상 |
+| **5** | Security·Synthetics·NPM/NDM·DBM·CI·On-Call·Data Streams | 제품 성격 상이·규제·운영부담 → 개별 이관/잔류 | 상 |
+
+Wave 1의 리스크가 낮은 이유는 단, 공개 전례가 부재하므로 PoC 성공을 진입 게이트로 명문화한 조건부다. Wave 5는 전용 OSS 개별 이관 또는 Datadog 잔류로 나뉜다.
 
 핵심은 **메트릭(Wave 4)의 목적지가 VM+Grafana여야 한다**는 점이다. Wave 4를 HyperDX로 잡으면 자동화 부재로 공수가 2~4배로 팽창해 이관 자체가 좌초한다 `≈`. 목적지를 올바로 잡으면 전 제품군 대체의 병목이던 메트릭·대시보드·모니터·SLO 이관이 풀린다.
 
@@ -96,10 +96,12 @@ rip-and-replace가 아니라 dual-write/dual-instrument → 병행 검증 → �
 
 | 과금 함정 | 메커니즘 | 대체 시 회피 |
 |---|---|---|
-| Host high-water mark | 시간당 호스트 수의 99퍼센타일 피크로 한 달 전체 과금(오토스케일에 취약) | 인프라 기준 과금이 없는 자체 스택 |
-| Custom metrics tax | (name+host+tag) 고유 조합당 과금, **OTel로 보낸 모든 메트릭이 custom으로 과금** | VM은 시계열 과금 아님(스토리지·컴퓨트만) |
+| Host high-water mark | 시간당 호스트 수 99퍼센타일 피크로 월 전체 과금 | 인프라 기준 과금이 없는 자체 스택 |
+| Custom metrics tax | (name+host+tag) 조합당 과금, **OTel도 custom 취급** | VM은 시계열 과금 없음(스토리지·컴퓨트만) |
 | Indexed spans | APM 호스트당 100만 span/월 포함, 초과 시 $1.70/100만 | ClickHouse 스토리지 단가로 흡수 |
-| RUM 세션 단가 | Measure $0.15/1k + Investigate $3/1k + Session Replay $2.50/1k 세션 | HyperDX는 GB 기반(예측성↑) |
+| RUM 세션 단가 | Measure $0.15/1k+Investigate $3/1k+Replay $2.50/1k | HyperDX는 GB 기반(예측성↑) |
+
+Host high-water mark는 오토스케일에 취약한 메커니즘이다.
 
 - **제품형 기능은 인건비가 절감을 상쇄한다.** Security·Synthetics·On-Call처럼 "제품"으로 사던 기능을 OSS로 대체하면 라이선스는 줄지만 운영·개발 인건비가 그만큼(또는 그 이상) 늘 수 있다 `✓`. TCO에 운영 인력·on-call 비용을 반드시 가산한다. Shopify는 자체 플랫폼 구축을 시도했으나 담당 팀 감축으로 계획이 불확실해진 **인력 리스크의 반례**다 `Ⓥ`.
 - **공개 절감 수치(30~98%)는 출처 편향을 걷어내고 읽는다.** 상위 20% 소스만 정리해 저가치 로그·메트릭을 드롭하면 30~60% 절감이 흔하고 `Ⓥ`, OpenObserve/SigNoz류 이관에서 60~90% 절감이 인용된다 `Ⓥ`. 하지만 구체적 달러 수치(예: "로그 500GB/일 → $12,600/년, 98% 절감")는 확인된 1차 출처에 근거가 없어 조사에서 **미확인/추정으로 강등**됐다 `?`. 이 수치들은 대체재 벤더(OpenObserve·SigNoz·Parseable) 블로그가 자사에 유리하게 인용한 것이라 그대로 신뢰하지 않는다. 방향성(90%대 절감 가능)은 여러 자료가 뒷받침하되, 특정 숫자는 자체 벤치로만 확정한다.
@@ -115,7 +117,7 @@ rip-and-replace가 아니라 dual-write/dual-instrument → 병행 검증 → �
 | 범위 | MELT+세션+보안+합성+CI+온콜 전부 자체/OSS | 코어(로그·트레이스·RUM·메트릭)만 이관, 나머지 Datadog 잔류 |
 | 절감 | 최대, 단 보안·합성 운영비 증가로 순절감 축소 | 큰 항목 우선 절감 + 안전마진 |
 | 필요 인력 | 관측성 전담 **2~4 FTE + 보안 별도** `≈` | ClickHouse+OTel 코어 **1~2 FTE**, 나머지 Datadog 위임 `≈` |
-| 주요 리스크 | 다중 툴 상관 단절, 온콜/보안 공백, 자체 구축 팀 감축(Shopify) | 툴 이원화 컨텍스트 스위칭, 과도기 이중 비용 |
+| 주요 리스크 | 다중 툴 상관 단절, 온콜/보안 공백, 팀 감축(Shopify) | 툴 이원화 컨텍스트 스위칭, 과도기 이중 비용 |
 | 권장 대상 | 벤더 지출 $2~5M+ & 플랫폼 팀 보유 & 데이터 주권 강함 | 대부분의 조직 — 리스크/실익 균형 |
 
 ## 우리 케이스에서는

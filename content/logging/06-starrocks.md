@@ -38,10 +38,19 @@ Linux Foundation MPP OLAP·실시간 분석 엔진(Apache-2.0). Apache Doris 포
 
 ## 적합 / 부적합
 
-| | 워크로드 |
-|---|---|
-| **적합** | 고동시성·JOIN-heavy BI/대시보드; S3 위 진짜 storage/compute 분리가 하드 요구인 탄력 OLAP; Iceberg 레이크하우스 in-place 조회; mutable/CDC upsert(Primary Key) |
-| **부적합** | needle-in-haystack 단일 wide 테이블 로그 검색; 턴키 관측성 제품이 필요할 때; VM 운영지식 재사용이 중요할 때; 순수 append-only 로그 저장 경제성(ClickHouse가 단일테이블 스캔·압축서 근소~명확히 앞섬 — ClickBench hot ~20–33%↑, on-disk ~23%↓ `Ⓑ`) |
+**적합**
+
+- 고동시성·JOIN-heavy BI/대시보드
+- S3 위 진짜 storage/compute 분리가 하드 요구인 탄력 OLAP
+- Iceberg 레이크하우스 in-place 조회
+- mutable/CDC upsert(Primary Key)
+
+**부적합**
+
+- needle-in-haystack 단일 wide 테이블 로그 검색
+- 턴키 관측성 제품이 필요할 때
+- VM 운영지식 재사용이 중요할 때
+- 순수 append-only 로그 저장 경제성 — ClickHouse가 단일테이블 스캔·압축에서 근소~명확히 앞섬(ClickBench hot ~20–33%↑, on-disk ~23%↓ `Ⓑ`)
 
 ## 우리 케이스에서는
 

@@ -152,11 +152,9 @@ Altinity operator는 **minor 버전 단계별 업그레이드만 지원**한다(
 
 안전장치 3층(버전순):
 
-| 레이어 | 도입 버전 | 내용 |
-|---|---|---|
-| STS recreate 정책 | 0.26.0 | `reconcile.statefulSet.recreate.onUpdateFailure: abort \| recreate` — 실패한 StatefulSet 업데이트를 그대로 둘지(abort) 재생성할지(recreate) 선택 `✓` |
-| aborted reconcile 자동 재개 | 0.27.0 | `reconcile.recovery.from.aborted.onPodReady` — 실패했던 파드가 다시 Ready가 되면 중단된 reconcile을 자동 재개. 단 모든 파드가 Ready인 채로 발생하는 일시적 K8s API 오류는 이 범위 밖 `✓` |
-| pre/post SQL 훅 | 0.27.0(실험적) | `HostCreate`/`HostShutdown`/`HostRollout`/`HostDelete` 등 이벤트에 SQL 주입(예: `HostShutdown`에 `SYSTEM STOP REPLICATION QUEUES`), 대상은 `FirstHost`/`AllHosts`/`AllShards`, `failurePolicy: Fail \| Ignore` `✓` |
+- **STS recreate 정책**(0.26.0) — `reconcile.statefulSet.recreate.onUpdateFailure: abort | recreate`: 실패한 StatefulSet 업데이트를 그대로 둘지(abort) 재생성할지(recreate) 선택한다 `✓`.
+- **aborted reconcile 자동 재개**(0.27.0) — `reconcile.recovery.from.aborted.onPodReady`: 실패했던 파드가 다시 Ready가 되면 중단된 reconcile을 자동 재개한다. 단 모든 파드가 Ready인 채로 발생하는 일시적 K8s API 오류는 이 범위 밖이다 `✓`.
+- **pre/post SQL 훅**(0.27.0, 실험적) — `HostCreate`/`HostShutdown`/`HostRollout`/`HostDelete` 등 이벤트에 SQL을 주입한다(예: `HostShutdown`에 `SYSTEM STOP REPLICATION QUEUES`). 대상은 `FirstHost`/`AllHosts`/`AllShards`, `failurePolicy: Fail | Ignore` `✓`.
 
 ## Keeper(CHK) 업그레이드
 

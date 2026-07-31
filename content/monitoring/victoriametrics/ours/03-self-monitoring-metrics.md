@@ -19,12 +19,10 @@ Phase 1 적용이 잘 됐는지, 전송이 건강한지를 판정하는 자기�
 
 ## 전송 상태 4지표
 
-| 메트릭 | 무엇을 말하나 | 정상 기준 | 이상 시 의미 |
-|--------|--------------|-----------|--------------|
-| `vmagent_remotewrite_retries_count_total` | 전송 재시도 횟수 | `rate(...[5m])` ≈ 0 유지 | 값이 오르면 목적지가 불안정하거나 write가 반복 실패 중 |
-| `vmagent_remotewrite_packets_dropped_total` | 버려진 패킷 수 | `increase(...[1h])` = 0 유지 | 0이 아니면 데이터가 실제로 유실됨 (큐 상한 초과·포맷 거부 등) |
-| `vmagent_remotewrite_bytes_sent_total` | URL별 전송 바이트 | 안정적 추세 | `forceVMProto` 효과 판정용 (아래 참고) |
-| `vmagent_remotewrite_pending_data_bytes` | 아직 못 보낸 대기 큐 크기 | 평시 0 근처 | **지속 증가 = 목적지 병목** (큐가 계속 쌓임) |
+- **`vmagent_remotewrite_retries_count_total`** — 전송 재시도 횟수. 정상 기준: `rate(...[5m])` ≈ 0 유지. 값이 오르면 목적지가 불안정하거나 write가 반복 실패 중이다.
+- **`vmagent_remotewrite_packets_dropped_total`** — 버려진 패킷 수. 정상 기준: `increase(...[1h])` = 0 유지. 0이 아니면 데이터가 실제로 유실됨(큐 상한 초과·포맷 거부 등).
+- **`vmagent_remotewrite_bytes_sent_total`** — URL별 전송 바이트. 정상 기준: 안정적 추세. `forceVMProto` 효과 판정용(아래 참고).
+- **`vmagent_remotewrite_pending_data_bytes`** — 아직 못 보낸 대기 큐 크기. 정상 기준: 평시 0 근처. **지속 증가 = 목적지 병목**(큐가 계속 쌓임).
 
 ### PromQL 예제
 

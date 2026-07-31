@@ -42,8 +42,8 @@ cascade:
 
 | 솔루션 | 계열 | 한 줄 성격 | 우리 케이스 포지션 |
 |---|---|---|---|
-| [**OpenSearch (EFK)**]({{< relref "01-opensearch.md" >}}) | 검색엔진(Lucene) | 강력한 풀텍스트 검색, 그러나 비용의 ~90%가 인스턴스 시간 | 현행 — tail 이전 + in-place 최적화 |
-| [**Loki + Alloy**]({{< relref "02-loki-alloy.md" >}}) | 라벨 인덱스 + object storage | 저비용 로그 집계, 그러나 새 운영 모델 학습 부담 | 보류(SSD 모드 EOL 예정) |
+| [**OpenSearch (EFK)**]({{< relref "01-opensearch.md" >}}) | 검색엔진(Lucene) | 강력한 풀텍스트, 비용 ~90%가 인스턴스 시간 | 현행, tail 이전 + in-place 최적화 |
+| [**Loki + Alloy**]({{< relref "02-loki-alloy.md" >}}) | 라벨 인덱스 + object storage | 저비용 로그 집계, 새 운영 모델 학습 부담 | 보류(SSD 모드 EOL 예정) |
 | [**VictoriaLogs**]({{< relref "03-victorialogs.md" >}}) | Victoria 패밀리 | VM과 동일한 운영 모델, 초경량 · 풀텍스트 | **추천 — 로그 내재화의 축** |
 | [**ClickHouse (self-hosted)**]({{< relref "04-clickhouse.md" >}}) | 컬럼형 OLAP | 극단적 압축, 로그+트레이스+RUM 통합 흡수 | 통합 이유가 생겼을 때(D4) |
 | [**HyperDX / ClickStack**]({{< relref "05-hyperdx-clickstack.md" >}}) | ClickHouse 위 UI 스택 | 웹 RUM·로그·트레이스 통합 프론트(턴키) | 웹 RUM 중계처 후보 |

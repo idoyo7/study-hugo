@@ -19,11 +19,13 @@ weight: 4
 
 | addon | 목표(1.35) | 성격·변경 |
 |---|---|---|
-| **coredns** | **v1.14.3-eksbuild.3**(1.35=1.36 공용) | **필수 — 라인 자체가 이동**(v1.11.x→v1.14.x). create 직행 + config 재전달 |
-| **kube-proxy** | **v1.35.3-eksbuild.13** | **필수 — 컨트롤플레인 버전락.** nftables는 opt-in, 기본 iptables라 동작 변화 없음(§3) |
-| **vpc-cni** | 당일 describe(조사 시점 카탈로그 `v1.22.3-eksbuild.1`, k8s 1.30~1.36 공통) | 권장 — version-agnostic. 노드 join 전 최우선(hard 선행) |
-| **aws-ebs-csi-driver** | 당일 describe(조사 시점 `v1.62.0-eksbuild.1`) | 권장 — version-agnostic. ⚠️ **IRSA 롤 필수인데 스펙에 없음**(§4). controller를 karpenter system 풀로 재타깃 + `arch=arm64` toleration → config 값은 [02]({{< relref "02-cluster-config.md" >}}) |
-| **amazon-cloudwatch-observability** | 당일 describe(1.35) | 신규 클러스터에 **반드시 설치**(누락 시 관측 공백) + CloudWatch agent IRSA 필요 |
+| **coredns** | **v1.14.3-eksbuild.3**(1.35=1.36 공용) | **필수 — 라인 이동**(v1.11.x→v1.14.x). create 직행 + config 재전달 |
+| **kube-proxy** | **v1.35.3-eksbuild.13** | **필수 — 버전락.** nftables opt-in, 기본 iptables(§3) |
+| **vpc-cni** | 당일 describe(`v1.22.3-eksbuild.1`, k8s 1.30~1.36 공통) | 권장. 노드 join 전 최우선(하단 참고) |
+| **aws-ebs-csi-driver** | 당일 describe(`v1.62.0-eksbuild.1`) | 권장. ⚠️ **IRSA 필수·스펙에 없음**(§4) |
+| **amazon-cloudwatch-observability** | 당일 describe(1.35) | 신규 클러스터 **필수 설치**(하단 참고) |
+
+vpc-cni는 version-agnostic이라 성격상 권장이지만, 노드 join 전에 반드시 먼저 설치해야 하는 유일한 hard 선행 의존이다. ebs-csi도 version-agnostic이나 controller를 karpenter system 풀로 재타깃하고 `arch=arm64` toleration을 유지해야 하며(그 config 값은 [02]({{< relref "02-cluster-config.md" >}})가 갖고 있다), IRSA 롤이 스펙에 없다는 점이 최대 리스크다(§4). amazon-cloudwatch-observability는 신규 클러스터에 반드시 설치해야 하며(누락 시 관측 공백), CloudWatch agent IRSA가 필요하다.
 
 config 스키마는 신 버전에서도 제거·리네임된 키가 없어 그대로 유효하다. 단 Fargate 방향 때문에 **값 자체는 바뀐다**(coredns의 `computeType: Fargate`·affinity 제거, ebs-csi의 system 풀 재타깃) — 그 값 변경의 단일 소유는 [02 클러스터 설정]({{< relref "02-cluster-config.md" >}}) §5다.
 

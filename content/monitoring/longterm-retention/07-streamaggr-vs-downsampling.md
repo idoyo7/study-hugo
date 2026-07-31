@@ -25,12 +25,14 @@ streamAggr는 라우터 vmagent의 파이프라인 안에서 도는 OSS 기능(v
 
 ## 4축 비교
 
-| 축 | streamAggr (VM 아카이브안) | Thanos downsampling (Thanos안) |
+축별 요약은 아래 표, 상세 논거는 표 바로 아래 (a)~(d) 절이 받는다.
+
+| 축 | streamAggr (VM안) | Thanos downsampling |
 |---|---|---|
-| **확정 시점** | 인제스트 시 확정, 사후 재계산 불가 | raw 보존 기간 내 재계산 가능 (raw 삭제 후엔 동일하게 불가) |
-| **출력 형태** | output별 별도 시리즈 — `keep_metric_names`로 이름 보존 가능(카운터→`total`, 게이지→`avg` 2규칙이면 시리즈 ×1, 쿼리 재작성 0) | 시리즈당 5 aggregate(sum/count/min/max/counter) 청크 내장 — `rate()` 등 투명 동작, 무설계 자동 |
-| **저장량** | output 1~2개면 raw의 **10~30%** (400d에 0.9~2.7 TiB) | **공간 절감 없음** (공식 문서 명시 — 5m/1h 블록이 raw와 비슷, 공존 시 ~3x). 절감은 raw 삭제(`--retention.resolution-raw`)에서만 |
-| **실패 모드** | 프로세스 메모리 상태 — 재시작 시 첫/마지막 interval drop(`flush_on_shutdown`으로 완화) | compactor halt(`thanos_compact_halted=1`) 시 다운샘플·retention 조용히 전면 정지 |
+| **확정 시점** | 인제스트 시 확정, 재계산 불가 | raw 보존 기간 내 재계산 가능 |
+| **출력 형태** | output별 시리즈, `keep_metric_names`로 이름 보존 가능 | 5 aggregate 내장, `rate()` 등 투명 동작 |
+| **저장량** | raw의 **10~30%** (400d 0.9~2.7 TiB) | **공간 절감 없음** (공존 시 ~3x) |
+| **실패 모드** | 프로세스 메모리 상태, 재시작 시 interval drop | compactor halt 시 다운샘플·retention 전면 정지 |
 
 ### (a) 확정 시점 — 의미론
 
@@ -74,11 +76,13 @@ raw 90d + 전 메트릭 5m 집계 400d, 월 저장비 기준(컴퓨트 별도). 
 
 | 옵션 | 저장 구성 | 월 저장비 | 5m 구현 방식 |
 |---|---|---|---|
-| **VM아카이브** ★권장 | hot 90d $369 + 집계 0.9~2.7 TiB sc1 ($16~47) | **$385~416** (st1: $415~507) | streamAggr(인제스트 시점, OSS) |
-| **Thanos** | hot 90d $369 + S3 14.9~30.7 TiB ($374~767) + 로컬 EBS·컴퓨트 | **$780~1,200 + 컴퓨트** | compactor downsampling(사후) |
-| **Mimir** | — | **부적합** | 다운샘플링 부재 (raw로 가면 시나리오 ① 경제성) |
+| **VM아카이브** ★권장 | hot 90d $369 + 집계 0.9~2.7 TiB(sc1) | **$385~416** | streamAggr(인제스트, OSS) |
+| **Thanos** | hot 90d $369 + S3 14.9~30.7 TiB + 로컬 EBS·컴퓨트 | **$780~1,200 + 컴퓨트** | compactor downsampling(사후) |
+| **Mimir** | — | **부적합** | 다운샘플링 부재 |
 | **확장** | — (OSS로 5m 불가) | 참고용 | — |
 | **확장+Ent** | 90d raw + 310d 5m ≈ 5,445 GiB | **~$497 + 라이선스(비공개)** | `-downsampling.period=90d:5m` 한 줄 |
+
+VM아카이브 월 저장비는 sc1 기준이며 st1로 하면 $415~507로 늘어난다. Mimir가 부적합한 것은 다운샘플링 부재 때문이고, raw로 우회하면 시나리오 ① 경제성으로 취급한다.
 
 **불확실성 명시**: VM 아카이브안의 f=0.1~0.3은 [샘플 수 축소] + [인덱스 몫(~20%, 시리즈 수는 안 줄음)] + [집계값 압축률 저하 가능성]의 합이며 **드라이런 2주 실측이 확정치**(검증 필요)다. Thanos안의 S3 범위(14.9~30.7 TiB)는 "5m·1h 블록이 raw와 비슷"이라는 공식 서술의 해석 폭이다. 모든 수치는 3.6 TiB 100% 사용 상한 가정이므로 실측 사용률로 선형 보정한다. 옵션별 상세 저장 구성은 각 옵션 문서([02]({{< relref "02-vm-archive.md" >}})/[03]({{< relref "03-thanos-s3.md" >}})/[04]({{< relref "04-mimir.md" >}})/[05]({{< relref "05-vmcluster-expansion.md" >}})), 시나리오 ① 표는 [01]({{< relref "01-problem-and-axes.md" >}}).
 

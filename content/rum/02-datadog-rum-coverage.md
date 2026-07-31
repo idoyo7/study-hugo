@@ -40,20 +40,22 @@ View에는 Core Web Vitals(LCP/FCP/CLS/**INP**/FID)와 navigation timing이, Act
 | Datadog RUM 기능 | HyperDX 커버 | 방법·근거 | 격차 |
 |---|:---:|---|:---:|
 | **세션 추적**(Session) | ✅ | OTel `session.id` semconv + `rum.sessionId` 조인키 `✓` | 낮음 |
-| **Core Web Vitals**(LCP/FCP/CLS/INP/FID) | ✅ 대부분 | otel-web web-vitals 계열이 수집 | INP·서브파트 정밀도 재구성 필요 `≈` / 중간 |
+| **Core Web Vitals**(LCP/FCP/CLS/INP/FID) | ✅ 대부분 | otel-web web-vitals 계열이 수집 | 중간 `≈` |
 | **Navigation/Resource timing** | ✅ | `instrumentation-document-load` + `fetch`/`xhr` + PerformanceResourceTiming `✓` | 낮음 |
 | **Long Task** | ⚠️ 부분 | otel-web long-task instrumentation 존재하나 스키마·UI 노출 제한 `≈` | 중간 |
-| **User Action**(자동+커스텀) | ✅ | `instrumentation-user-interaction` + `HyperDX.addAction()` `✓` | 자동 액션 네이밍 품질 차이 / 낮음 |
+| **User Action**(자동+커스텀) | ✅ | `instrumentation-user-interaction` + `HyperDX.addAction()` `✓` | 낮음 |
 | **Error / Crash** | ✅ | otel-web error instrumentation + `attachToReactErrorBoundary` `✓` | 낮음 |
-| **Session Replay**(rrweb) | ✅ | `@hyperdx/otel-web-session-recorder`(rrweb), ClickStack에 리플레이 UI 내장 `✓` | 낮음(둘 다 rrweb 계열) |
+| **Session Replay**(rrweb) | ✅ | `@hyperdx/otel-web-session-recorder`(rrweb) `✓` | 낮음 |
 | **네트워크 본문·헤더 캡처** | ✅ | `advancedNetworkCapture: true` `✓` | 낮음 |
-| **프론트→백엔드 트레이스 연결** | ✅ | `tracePropagationTargets`(정규식 배열)에 매칭되는 아웃바운드 요청에 **W3C traceparent 헤더**를 주입해 브라우저 스팬과 서버 스팬을 연결하고, 리플레이된 세션에서 백엔드 트레이스로 양방향 내비게이션까지 가능 `✓⁽3-0⁾` | 낮음(OTel 네이티브라 오히려 우수) |
+| **프론트→백엔드 트레이스 연결** | ✅ | `tracePropagationTargets`로 매칭된 요청에 **W3C traceparent** 주입 `✓⁽3-0⁾` | 낮음 |
 | **좌절 신호**(rage/dead/error click) | ❌ | 네이티브 프리미티브 부재 `✓⁽부재⁾` → CH SQL 사후계산 또는 SDK 계측 | **높음** |
 | **퍼널 / 리텐션 / Pathways** | ❌ | Datadog도 RUM→Product Analytics로 분리, HyperDX에 턴키 없음 `✓` | **높음** |
-| **모바일 RUM**(iOS/Android/Flutter/RN) | ⚠️ RN만 | `@hyperdx/otel-react-native`(★4, Zipkin, signalfx 추종 포크)뿐 `✓` | **높음** |
+| **모바일 RUM**(iOS/Android/Flutter/RN) | ⚠️ RN만 | `@hyperdx/otel-react-native`뿐(★4) `✓` | **높음** |
 | **모바일 세션 리플레이** | ❌ | 네이티브 부재 `✓⁽부재⁾` → Embrace/OpenReplay 필요 | **높음** |
 | **데이터 보존·샘플링** | ✅ | OTel SDK 샘플링 + ClickHouse TTL로 자체 통제 `✓` | 유리 |
 | **지리/디바이스 메타** | ✅ | Collector geoip processor + UA 파싱 `✓` | 낮음(파이프라인 구성 필요) |
+
+`tracePropagationTargets`는 정규식 배열이고, 프론트↔백엔드 트레이스 연결은 리플레이된 세션에서 백엔드 트레이스로 양방향 내비게이션까지 가능하다 `✓⁽3-0⁾`. Core Web Vitals는 INP·서브파트 정밀도를 재구성해야 하는 손실이 있고 `≈`, 모바일 RUM의 `@hyperdx/otel-react-native`는 ★4에 Zipkin·signalfx를 추종하는 얇은 포크다 `✓`. Session Replay는 ClickStack에 리플레이 UI가 내장돼 있고 둘 다 rrweb 계열이라 격차가 낮다 `✓`. User Action은 자동 액션 네이밍 품질에 차이가 있으나 전반적으로 격차는 낮다 `✓`. 프론트→백엔드 트레이스 연결은 OTel 네이티브라 오히려 Datadog보다 우수하다.
 
 **패턴이 뚜렷하다.** "디버깅형 RUM"(리플레이·CWV·에러·리소스·트레이스 상관)은 HyperDX가 OTel 네이티브라 대등하거나 우수하다. 반면 **분석·좌절신호·모바일**은 명확한 격차다. 좌절 신호는 초기 조사(문서 02)에서 `?`이었으나 후속 보강조사가 ClickStack 리플레이 UI에 rage/dead/error 필터 프리미티브가 전혀 없음을 확인해 `✓⁽부재⁾`로 마감했다 — 근거 없이 격상한 것이 아니라 조사 자체가 확정한 결과다.
 
@@ -63,15 +65,15 @@ View에는 Core Web Vitals(LCP/FCP/CLS/**INP**/FID)와 navigation timing이, Act
 
 판정 범례: 🟢 완전(SDK 교체로 즉시) · 🟡 부분(자작/보완) · 🔴 격차 큼(전용 툴 필요).
 
-| 슬라이스 | 판정 | HyperDX 현황 | 대체법 | 배치 |
-|---|:---:|---|---|:---:|
-| **RUM-Core**<br>(세션 리플레이+CWV/에러+프론트↔백엔드 트레이스 상관) | 🟢 | rrweb 리플레이·트레이스 상관 네이티브, OTel-web으로 CWV/에러/리소스 수집 `✓` | `@hyperdx/browser` SDK 교체(dual-instrument→컷오버) | **Wave 1** |
-| **RUM-Frustration**<br>(rage/dead/error click) | 🟡 | 네이티브 프리미티브 부재 `✓⁽부재⁾` | ClickHouse SQL 사후계산(`sequenceMatch`/`windowFunnel`) 우선, 실시간 필요 시 SDK 계측 | Wave 1.5 |
-| **RUM-PA**<br>(퍼널/리텐션/Pathways) | 🔴 | 턴키 없음, 벤더 비교도 "product analytics에 lighter"로 명시 `✓` | ClickHouse `windowFunnel`/`retention`/`sequenceMatch` 자작, 턴키 필요 시 **PostHog**(CH 기반) 병행 | 별도 트랙 |
-| **RUM-Mobile**<br>(iOS/Android/Flutter·모바일 리플레이) | 🔴 | RN 얇은 포크만(★4, signalfx 추종) `✓` | OTel-mobile(성능/에러/트레이스) + **Embrace 또는 OpenReplay**(모바일 세션 리플레이) | 별도 트랙 |
-| **RUM(전체 합산)** | **🟡** | 코어는 강, 나머지 3개는 자작/전용툴 | 슬라이스별 상이 | 분할 이관 |
+| 슬라이스 | 판정·배치 | HyperDX 현황 | 대체법 |
+|---|:---:|---|---|
+| **RUM-Core**<br>(리플레이+CWV+트레이스 상관) | 🟢 Wave 1 | rrweb 리플레이·트레이스 네이티브 `✓` | `@hyperdx/browser` 교체 |
+| **RUM-Frustration**<br>(좌절 신호) | 🟡 Wave 1.5 | 네이티브 프리미티브 부재 `✓⁽부재⁾` | SQL 사후계산(실시간 SDK) |
+| **RUM-PA**<br>(퍼널/리텐션/Pathways) | 🔴 별도 트랙 | 턴키 없음("lighter" 명시) `✓` | CH 자작+**PostHog** 병행 |
+| **RUM-Mobile**<br>(모바일 전반+리플레이) | 🔴 별도 트랙 | RN 얇은 포크만(★4) `✓` | OTel-mobile+**Embrace/OpenReplay** |
+| **RUM(전체 합산)** | **🟡** 분할 이관 | 코어는 강, 나머지 3개는 자작/전용툴 | 슬라이스별 상이 |
 
-이 표가 "RUM 전체 🟢 완전"과 "RUM 격차 최대"라는 상반된 인상을 해소한다. **정확한 진술은 "RUM-Core는 🟢·Wave1이고, 나머지는 별도 트랙"** 이다. 비용·가치가 가장 큰 슬라이스(세션 단가 과금 대상)가 하필 🟢인 RUM-Core라, 웹 코어만 넘겨도 청구서 절감 효과는 가장 즉각적이다 `✓`.
+이 표가 "RUM 전체 🟢 완전"과 "RUM 격차 최대"라는 상반된 인상을 해소한다. **정확한 진술은 "RUM-Core는 🟢·Wave1이고, 나머지는 별도 트랙"** 이다. 비용·가치가 가장 큰 슬라이스(세션 단가 과금 대상)가 하필 🟢인 RUM-Core라, 웹 코어만 넘겨도 청구서 절감 효과는 가장 즉각적이다 `✓`. RUM-Core는 OTel-web으로 CWV/에러/리소스도 함께 수집하고, SDK 교체는 dual-instrument로 병행 배포한 뒤 컷오버한다. RUM-PA의 "턴키 없음" 판정은 벤더 비교 자료가 "product analytics에 lighter"라고 직접 명시한 데 근거하며, 여기서 말하는 PostHog는 ClickHouse 기반이다. RUM-Mobile의 RN 포크는 signalfx를 추종하는 얇은 구현이고, OTel-mobile은 성능/에러/트레이스를, Embrace/OpenReplay는 모바일 세션 리플레이를 담당한다.
 
 **격차 슬라이스의 대체법은 확정돼 있다.** 좌절 신호는 Datadog 임계값(rage=1초 내 동일요소 3+클릭, dead=클릭 후 무반응, error=클릭±에러)을 ClickHouse `sequenceMatch`/`windowFunnel`로 규칙화 가능하고, 퍼널/리텐션도 `windowFunnel`/`retention`이 1급 집계함수로 내장돼 있다 `✓`. 즉 **이미 ClickHouse를 운영하는 전제**에서는 격차가 "불가능"이 아니라 "SQL 자작"으로 내려온다. 다만 모바일 세션 리플레이만은 OTel 표준에 아직 없어 순수 OTel로는 못 채우고 Embrace/OpenReplay 같은 전용 툴이 필요하다 `✓`.
 

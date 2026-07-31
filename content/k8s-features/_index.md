@@ -28,13 +28,11 @@ GA(stable) 딱지는 "API가 안 바뀐다"는 약속이지 "당신의 워크로
 
 ## 문서 지도
 
-| 문서 | 전제 | 한 줄 요약 |
-|------|---------|-----------|
-| [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}}) | k8s 1.35 GA | 파드 재시작 없이 CPU/메모리를 바꾼다 — 구현 코드가 실제로 하는 일, 열린 버그, 케이스별 득실 |
-| [02 CPU Throttling]({{< relref "02-cpu-throttling.md" >}}) | 모든 k8s · CFS | limit을 다 쓰지도 않았는데 잘린다 — CPU wait이 APM 지연으로 번지는 경로, 다중코어에서 더 잘리는 이유, limit 제거와 CPU Manager |
-| [03 CPU Burst]({{< relref "03-cpu-burst.md" >}}) | 커널 5.14+ · k8s WIP | CPU limit을 지키면서 불필요한 throttling만 걷어낸다 — 누적 상한 불변의 증명, 이웃 간섭의 정량화, k8s 표면 부재 |
-| [04 Node Problem Detector]({{< relref "04-node-problem-detector.md" >}}) | 모든 k8s · DaemonSet 애드온 | 노드 문제를 탐지해 NodeCondition·Event로 보고한다 — 조치는 remedy system 몫이고, EKS엔 `eks-node-monitoring-agent` + node auto repair라는 관리형 대안이 있다 |
-| [05 DaemonSet 미기동 노드 격리]({{< relref "05-daemonset-gap-isolation.md" >}}) | 모든 k8s | DS가 안 뜬 노드에도 워크로드는 내려앉는다 — 노드별 갭 탐지, cordon이 DS를 못 막는 이유, startup taint(선제)와 탐지→taint(반응) 두 전략 |
+- **[01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}})** · k8s 1.35 GA — 파드 재시작 없이 CPU/메모리를 바꾼다. 구현 코드가 실제로 하는 일, 열린 버그, 케이스별 득실.
+- **[02 CPU Throttling]({{< relref "02-cpu-throttling.md" >}})** · 모든 k8s · CFS — limit을 다 쓰지도 않았는데 잘린다. CPU wait이 APM 지연으로 번지는 경로, 다중코어에서 더 잘리는 이유, limit 제거와 CPU Manager.
+- **[03 CPU Burst]({{< relref "03-cpu-burst.md" >}})** · 커널 5.14+ · k8s WIP — CPU limit을 지키면서 불필요한 throttling만 걷어낸다. 누적 상한 불변의 증명, 이웃 간섭의 정량화, k8s 표면 부재.
+- **[04 Node Problem Detector]({{< relref "04-node-problem-detector.md" >}})** · 모든 k8s · DaemonSet 애드온 — 노드 문제를 탐지해 NodeCondition·Event로 보고한다. 조치는 remedy system 몫이고, EKS엔 `eks-node-monitoring-agent` + node auto repair라는 관리형 대안이 있다.
+- **[05 DaemonSet 미기동 노드 격리]({{< relref "05-daemonset-gap-isolation.md" >}})** · 모든 k8s — DS가 안 뜬 노드에도 워크로드는 내려앉는다. 노드별 갭 탐지, cordon이 DS를 못 막는 이유, startup taint(선제)와 탐지→taint(반응) 두 전략.
 
 이 챕터는 **쿠버네티스 코어 기능과 SIG가 관리하는 코어 인접 컴포넌트**를 다룬다. 생태계 컴포넌트 중 성격이 같은 주제 — 공식 문서가 "가장 싼 인스턴스를 고른다"까지만 말하고 멈추는 자리에서 정렬·절단·부등식이 실제로 무엇을 하는지 소스로 내려가는 이야기 — 는 자매 챕터 [Karpenter]({{< relref "../karpenter/_index.md" >}})가 소유한다.
 

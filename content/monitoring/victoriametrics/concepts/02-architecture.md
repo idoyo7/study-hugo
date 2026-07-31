@@ -58,11 +58,17 @@ VM 클러스터 버전은 4개의 핵심 컴포넌트로 구성된다. 대규모
 
 VM에는 두 가지 배포 모드가 있다. 네이버 검색 SRE도 처음엔 SingleNode로 시작했다가 클러스터로 옮겨 갔다.
 
-| | SingleNode | Cluster |
-|---|---|---|
-| **구성** | 바이너리 파일 하나로 모든 기능 제공 | write/read/storage 3역할을 vminsert·vmselect·vmstorage로 분리 |
-| **장점** | 구축·사용이 간편. VM 자체 최적화로 Prometheus보다 빠른 성능 체감 | 데이터 규모에 따라 컴포넌트만 추가하면 **손쉬운 수평 확장(scale out)**. Prometheus의 최대 약점인 scale out 한계를 극복. `replicationFactor`로 유실 방지 |
-| **단점** | 수천만 개 이상으로 늘면 단일 장비로 감당 불가. 단일 장비가 **SPOF**(단일 장애점) | 구조가 복잡하고 운영이 어려움. 의존성은 Thanos·Cortex보다 적은 편 |
+**SingleNode**
+
+- **구성** — 바이너리 파일 하나로 모든 기능을 제공한다.
+- **장점** — 구축·사용이 간편하다. VM 자체 최적화로 Prometheus보다 빠른 성능을 체감한다.
+- **단점** — 수천만 개 이상으로 늘면 단일 장비로 감당이 안 된다. 단일 장비가 **SPOF**(단일 장애점)다.
+
+**Cluster**
+
+- **구성** — write/read/storage 3역할을 vminsert·vmselect·vmstorage로 분리한다.
+- **장점** — 데이터 규모에 따라 컴포넌트만 추가하면 **손쉬운 수평 확장(scale out)**이 가능하다. Prometheus의 최대 약점인 scale out 한계를 극복한다. `replicationFactor`로 유실을 방지한다.
+- **단점** — 구조가 복잡하고 운영이 어렵다. 의존성은 Thanos·Cortex보다 적은 편이다.
 
 운영 방식은 컴포넌트 성격에 따라 갈린다. **Stateless** 컴포넌트인 vminsert(write)·vmselect(read)는 Kubernetes에 올려 유연하게 scale out하고, **Stateful** 컴포넌트인 vmstorage는 물리 장비에서 운영하는 편이 이점이 있다. 이 구성이 초대규모에서 어떻게 확장되는지는 [실전 02 대규모 운영]({{< relref "../practice/02-operations-at-scale.md" >}})에서 다룬다.
 

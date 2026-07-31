@@ -55,9 +55,13 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 | 테이블 | 용도 | RUM 관점 포인트 |
 |---|---|---|
 | `otel_logs` | 로그/이벤트 | `TraceId` text index, 속성 bloom filter, `Body` 토큰 검색 |
-| `otel_traces` | 분산 트레이스 | **`rum.sessionId`를 컬럼으로 materialize + bloom filter** → 세션↔트레이스 조인 근거. `TraceId` bloom(0.001 FP), `Duration` minmax |
-| `otel_metrics_*` | 메트릭(gauge/sum/histogram/exp-hist/summary 타입별 분리) | Exemplar 배열 포함하나 쿼리 계층에 PromQL 없음(아래) |
-| `hyperdx_sessions` | 세션 리플레이(rrweb) | `otel_logs` 스키마를 미러링하되 독립 DDL·TTL을 갖는 전용 테이블 — `Body`=이벤트 페이로드, `LogAttributes`=메타데이터 맵, bloom_filter 인덱스 `✓`. 단 TTL "세션 7일/로그 14일" 같은 신호별 차등 기본값은 근거가 없다 — ClickStack 배포 기본은 전 테이블 균일 `TABLES_TTL`(3일, 아래 §프로덕션 노브)이며 신호별 차등은 직접 설정하는 값이다(상세: [HyperDX 배포 §티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}})) `✓` |
+| `otel_traces` | 분산 트레이스 | **`rum.sessionId`를 컬럼으로 materialize** → 세션↔트레이스 조인 근거 `✓` |
+| `otel_metrics_*` | 메트릭(타입별 분리 테이블) | Exemplar 배열 포함하나 쿼리 계층에 PromQL 없음(아래) |
+| `hyperdx_sessions` | 세션 리플레이(rrweb) | `otel_logs`를 미러링한 독립 DDL·TTL 전용 테이블 `✓` |
+
+`otel_traces`의 세션↔트레이스 조인에는 bloom filter가 붙는다(`TraceId` bloom FP율 0.001, `Duration` minmax). `otel_metrics_*`는 gauge/sum/histogram/exp-hist/summary 타입별로 테이블이 분리돼 있다. `hyperdx_sessions`는 `Body`=이벤트 페이로드, `LogAttributes`=메타데이터 맵으로 `otel_logs`와 동일한 컬럼 구조를 쓰고 bloom_filter 인덱스도 갖는다 `✓`.
+
+`hyperdx_sessions`에는 "세션 7일/로그 14일"처럼 신호별로 다른 기본 TTL이 있다는 통념이 있으나 근거가 없다 — ClickStack 배포 기본은 전 테이블 균일 `TABLES_TTL`(3일, 아래 §프로덕션 노브)이며 신호별 차등은 직접 설정하는 값이다(상세: [HyperDX 배포 §티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}})) `✓`.
 
 쿼리 계층은 **Lucene 스타일 검색**(`level:err`)과 **네이티브 ClickHouse SQL**을 함께 제공하고, `timestamp` 컬럼만 있으면 임의 스키마도 검색·상관·시각화된다(schema-agnostic) `✓`. 이 유연성이 HyperDX Only 모드를 가능케 하는 근거다.
 
@@ -67,7 +71,7 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 
 | 모드 | 권장 용도 | 프로덕션 | 실사 비고 |
 |---|---|:---:|---|
-| **Managed ClickStack**(ClickHouse Cloud) | 프로덕션/데모/PoC | ✅ | Cloud 호스팅·통합 인증(2025-08-06 Private Preview로 출시 `✓`). **RBAC/SSO는 여기에만** 있음 |
+| **Managed ClickStack**(ClickHouse Cloud) | 프로덕션/데모/PoC | ✅ | Cloud 호스팅·통합 인증. **RBAC/SSO는 여기에만** 있음 `✓` |
 | **All-in-One**(단일 Docker) | 데모/PoC | ❌ | CH+HyperDX+OTel+MongoDB 올인원. HA 없음 |
 | **Helm (Kubernetes)** | **프로덕션 on k8s** | ✅ | 아래 operator 주의 참조 |
 | **Docker Compose** | 로컬/PoC/단일 서버 | △ | fault tolerance 없음 |
@@ -96,13 +100,15 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 |---|:---:|---|
 | **로그 검색(Lucene/SQL)** | 🟢 | 라이브 테일, JSON 자동 파싱, 고카디널리티 SQL 집계 강점 `✓` |
 | **분산 트레이스(APM)** | 🟢 | HTTP→DB 쿼리 스팬, `rum.sessionId` 상관. 코드레벨 continuous profiler는 없음 `✓` |
-| **세션 리플레이 / 웹 RUM** | 🟢(디버깅) | `@hyperdx/browser`가 rrweb 리플레이 + 에러 + Web Vitals + 네트워크 캡처. replay→trace→log 조인은 대부분 OSS 경쟁자가 못 따라오는 시그니처 강점 `✓` |
+| **세션 리플레이 / 웹 RUM** | 🟢(디버깅) | `@hyperdx/browser`가 rrweb 리플레이+에러+Web Vitals+네트워크 캡처 `✓` |
 | **모바일 RUM** | 🔴 | 네이티브 iOS/Android/Flutter 리플레이 없음. RN 포크는 트레이스·에러·네트워크만 `✓` |
 | **대시보드** | 🟢 | import/export·필터. 단 템플릿 변수 없음, 프리셋 라이브러리 작음 `✓` |
-| **알림(Alerting)** | 🟡 | Search/Chart 알림(단일 임계값)+`GROUP BY`별 발화·SQL 기반 이상탐지(2026-05). 단 Alertmanager식 grouping/silencing·alert history·IaC는 미성숙. OSS는 Slack/Generic Webhook 위주(Slack API·PagerDuty OAuth는 Cloud 전용) `✓`(2025-11 OSS 패리티·2026-05 SQL 이상탐지 반영 시점 기준 — [dd 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}) 알림 서술과 동일 스냅샷) |
-| **메트릭** | 🟡 | OTel 메트릭 저장·차트는 되나 **PromQL 미지원**(SQL/Lucene only), PromQL 개선은 2026 로드맵. 신호 중 가장 약함 `✓` |
-| **Service Maps / Event Deltas** | 🟠 | Service Maps beta(2025-11), Event Deltas 구성 가능(2025-10) `✓` |
+| **알림(Alerting)** | 🟡 | Search/Chart+`GROUP BY`별 발화·SQL 이상탐지. grouping/silencing·IaC 미성숙 `✓` |
+| **메트릭** | 🟡 | OTel 메트릭 저장·차트는 되나 **PromQL 미지원**. 신호 중 가장 약함 `✓` |
+| **Service Maps / Event Deltas** | 🟠 | Service Maps beta, Event Deltas 구성 가능 `✓` |
 | **AI 노트북 / 자연어 쿼리** | 🟠 | private preview·로드맵 `✓` |
+
+세션 리플레이는 replay→trace→log 조인까지 되는데, 이는 대부분의 OSS 경쟁자가 못 따라오는 시그니처 강점이다 `✓`. 알림 세부: Search/Chart 알림(단일 임계값)에 `GROUP BY`별 발화와 SQL 기반 이상탐지(2026-05)가 더해졌다. Alertmanager식 grouping/silencing·alert history·IaC는 여전히 미성숙하고, OSS는 Slack/Generic Webhook 위주다(Slack API·PagerDuty OAuth는 Cloud 전용) `✓`(2025-11 OSS 패리티·2026-05 SQL 이상탐지 반영 시점 기준 — [dd 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}) 알림 서술과 동일 스냅샷). 메트릭은 SQL/Lucene only이고 PromQL 개선은 2026 로드맵이다 `✓`. Service Maps는 2025-11 beta, Event Deltas는 2025-10부터 구성 가능하다 `✓`.
 
 **RUM 실사의 결론 두 가지**: (1) 웹 세션 리플레이·프론트↔백엔드 상관은 즉시 대체 가능한 🟢이지만, **모바일 리플레이는 존재하지 않는 🔴** 라 착수 전 Datadog RUM usage를 웹/모바일로 분해해야 한다. (2) 대체는 프록시 매핑이 아니라 **`@hyperdx/browser` SDK 교체**로 간다 — `datadogreceiver`는 브라우저 RUM intake를 아예 수신하지 않는다. 두 논점의 상세는 [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}})·[dd 프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}}) 참조.
 
@@ -115,7 +121,9 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 | `hyperdxio/hyperdx` (UI+API) | **MIT** `✓` |
 | ClickHouse | Apache 2.0 `✓` |
 | OpenTelemetry Collector | Apache 2.0 `✓` |
-| `ClickHouse/ClickStack-helm-charts` | Apache 2.0 계열 `≈`(메인 `hyperdxio/hyperdx` 레포의 MIT는 LICENSE 파일로 `✓`이나, 이 helm-charts 레포 자체의 라이선스 파일은 이번 조사에서도 명시 확인되지 않음) |
+| `ClickHouse/ClickStack-helm-charts` | Apache 2.0 계열 `≈` |
+
+메인 `hyperdxio/hyperdx` 레포의 MIT는 LICENSE 파일로 확인되나 `✓`, `ClickHouse/ClickStack-helm-charts` 레포 자체의 라이선스 파일은 이번 조사에서도 명시 확인되지 않았다.
 
 커뮤니티: `hyperdxio/hyperdx`는 **~9.7k stars·188 릴리스**(월 다수 릴리스의 빠른 케이던스), 활성 Discord `✓`. ClickHouse Inc.의 전담 Head of Observability 조직 백업으로 abandonware 리스크가 인수 전보다 낮아졌다 `≈`. 부모 레포 `ClickHouse/ClickStack`은 아티팩트 저장소 성격으로 릴리스 없음 `✓`.
 
@@ -148,10 +156,12 @@ OSS를 고수하려면 세 기법을 **조합**해야 한다. 핵심은 AuthN(�
 
 | 기법 | 해결 범위 | 한계 |
 |---|---|---|
-| **oauth2-proxy 경계 SSO** | AuthN 게이트(IdP 그룹 all-or-nothing) | HyperDX 자체 로그인을 못 꺼 **이중 로그인**, trusted-header 자동 로그인 미지원 → 인스턴스 내부 격리는 전혀 못 함 `✓/≈` |
-| **팀별 HyperDX 인스턴스**(공유 CH + 전용 MongoDB) | 거친 멀티테넌시 — **벤더가 인정한 이전 표준 우회책** | 관리 상한 ≈ 5~15팀, 초과 시 인스턴스 스프롤로 Managed가 TCO 유리 `✓/≈` |
-| **ClickHouse row policy** | 데이터 레벨 2차 방어선(SELECT 한정) | DB 레벨 격리일 뿐 — 대시보드/알림 등 앱 상태(MongoDB)엔 안 닿음 `✓` |
-| **규제 팀만 Managed ClickStack** | RBAC·SSO/SAML/SCIM·(향후)감사로그 turnkey | self-host 포기(Cloud 인프라 전용) `✓` |
+| **oauth2-proxy 경계 SSO** | AuthN 게이트(IdP 그룹 all-or-nothing) | **이중 로그인** 발생, 내부 격리 불가 `✓/≈` |
+| **팀별 HyperDX 인스턴스**(공유 CH + 전용 MongoDB) | 거친 멀티테넌시 — **벤더 인정 우회책** | 관리 상한 ≈5~15팀 `✓/≈` |
+| **ClickHouse row policy** | 데이터 레벨 2차 방어선(SELECT 한정) | 앱 상태(MongoDB)엔 안 닿음 `✓` |
+| **규제 팀만 Managed ClickStack** | RBAC·SSO/SAML/SCIM·(향후)감사로그 turnkey | self-host 포기 `✓` |
+
+oauth2-proxy는 HyperDX 자체 로그인을 못 꺼 이중 로그인이 생기고 trusted-header 자동 로그인도 미지원이라, 인스턴스 내부 격리는 전혀 못 한다 `✓/≈`. 팀별 인스턴스는 관리 상한을 넘으면 인스턴스 스프롤로 Managed가 TCO상 유리해진다 `✓/≈`. row policy는 DB 레벨 격리일 뿐 대시보드·알림 같은 앱 상태(MongoDB)엔 닿지 않는다 `✓`. 규제 팀을 Managed ClickStack으로 옮기면 RBAC·SSO/SAML/SCIM·(향후) 감사로그가 turnkey로 따라오지만, Cloud 인프라 전용이라 self-host는 포기해야 한다 `✓`.
 
 이 접근통제 갭 자체의 의사결정 프레임과 조직 규모별 매트릭스는 [Datadog 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}})·[마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}})에서 이어진다.
 

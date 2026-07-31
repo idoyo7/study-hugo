@@ -21,10 +21,12 @@ operator 추상화(CHI/CHK의 `configuration`/`templates` 구조, XML 렌더링 
 
 | 규모 | 형태 | operator 판단 |
 |---|---|---|
-| 단일 노드 (1 shard / 1 replica) | PoC·소규모 범용 분석 | StatefulSet 직접도 합리적. 단 확장 계획이 뚜렷하면 처음부터 operator로 시작해 이행 비용 회피 `≈` |
+| 단일 노드 (1 shard / 1 replica) | PoC·소규모 범용 분석 | StatefulSet 직접도 합리적 `≈` |
 | 소규모 (1 shard / 2~3 replica) | HA 시작점 | **손익분기점.** operator 이득이 나타나기 시작 → Altinity 권장 `≈` |
 | 중규모 (수 shard × 2~3 replica) | 프로덕션 표준 | **operator 사실상 필수** `✓` |
 | 대규모 (수십 노드·다중 클러스터) | 대규모 프로덕션 | operator 필수 + 전용 노드·anti-affinity·PDB·Keeper 분리 필수 `≈` |
+
+단, 단일 노드라도 확장 계획이 뚜렷하면 처음부터 operator로 시작해 나중의 이행 비용을 회피하는 편이 낫다 `≈`.
 
 {{< callout type="warning" >}}
 operator 간 마이그레이션(수동 STS→Altinity, Altinity↔공식)은 PVC/라벨/네이밍을 operator 기대값에 맞춰야 하는 non-trivial 작업이다 `✓/≈`. "단일 노드로 시작 → 나중에 operator"를 택하더라도 데이터를 처음부터 **ReplicatedMergeTree + clickhouse-backup(S3)** 형태로 두면 "새 operator 클러스터를 세우고 복제·복원으로 이전"하는 재구축 경로가 열려 이행 위험이 관리 가능해진다 `≈`.
@@ -32,12 +34,10 @@ operator 간 마이그레이션(수동 STS→Altinity, Altinity↔공식)은 PVC
 
 ## 선택지 전수 비교
 
-| operator/방식 | 식별 (CRD/방식) | 성숙도 (2026-07) | 신규 프로덕션 | 비고 |
-|---|---|---|---|---|
-| **Altinity clickhouse-operator** | `ClickHouseInstallation`(CHI) / `ClickHouseKeeperInstallation`(CHK), `*.altinity.com/v1` | **성숙·표준, 0.27.1** (2026-06-04) | ✅ 권장 | 7년+ 트랙레코드, 평균 ~21일 릴리스 케이던스, Keeper GA 수준(0.27.0), FIPS-140(0.27.1) `✓`. Altinity.Cloud 자체가 이 위에서 구동 |
-| **ClickHouse Inc. 공식 operator** | `ClickHouseCluster` / `KeeperCluster`, `clickhouse.com/v1alpha1` | **알파**, v0.0.1 2026-01-29 → 최신 **v0.0.6 2026-06-19** | ❌ 미션크리티컬 부적합 | Kubebuilder 기반, replica당 STS 1개(스테이지드 업그레이드 유리), admission webhook, `DatabaseReplicated` 네이티브. 리포는 2025-04 생성, Apache-2.0, 262 stars, README에 프로덕션 준비성 명시 없음. API가 `v1alpha1`(하위호환 미보장), K8s 1.28+·cert-manager 필요 `✓` |
-| **Bitnami Helm chart** | Altinity operator 재패키징 차트 | **폐기 경로** | ❌ 신규 채택 배제 | 2025-08-28 공개 카탈로그가 community subset으로 축소·기존 이미지 `bitnamilegacy` 아카이브(zero updates)·유료 Secure Images 전환, 2025-09-29 기존 공개 카탈로그 삭제 예정일 `✓` |
-| **순수 StatefulSet** | operator 없음 | (버전 무관) | △ 단일 노드만 | remote_servers·스키마·롤링·PDB·anti-affinity를 전부 수동. shard/replica 있으면 오류투성이 → 단일 노드/단일 replica·저빈도 변경 소규모에만 `✓/≈` |
+- **Altinity clickhouse-operator** · `ClickHouseInstallation`(CHI) / `ClickHouseKeeperInstallation`(CHK), `*.altinity.com/v1` — 성숙도 **성숙·표준, 0.27.1**(2026-06-04), 신규 프로덕션 ✅ 권장. 7년+ 트랙레코드, 평균 ~21일 릴리스 케이던스, Keeper GA 수준(0.27.0), FIPS-140(0.27.1) `✓`. Altinity.Cloud 자체가 이 위에서 구동.
+- **ClickHouse Inc. 공식 operator** · `ClickHouseCluster` / `KeeperCluster`, `clickhouse.com/v1alpha1` — 성숙도 **알파**, v0.0.1 2026-01-29 → 최신 **v0.0.6 2026-06-19**, 신규 프로덕션 ❌ 미션크리티컬 부적합. Kubebuilder 기반, replica당 STS 1개(스테이지드 업그레이드 유리), admission webhook, `DatabaseReplicated` 네이티브. 리포는 2025-04 생성, Apache-2.0, 262 stars, README에 프로덕션 준비성 명시 없음. API가 `v1alpha1`(하위호환 미보장), K8s 1.28+·cert-manager 필요 `✓`.
+- **Bitnami Helm chart** · Altinity operator 재패키징 차트 — 성숙도 **폐기 경로**, 신규 프로덕션 ❌ 신규 채택 배제. 2025-08-28 공개 카탈로그가 community subset으로 축소·기존 이미지 `bitnamilegacy` 아카이브(zero updates)·유료 Secure Images 전환, 2025-09-29 기존 공개 카탈로그 삭제 예정일 `✓`.
+- **순수 StatefulSet** · operator 없음 — 성숙도 (버전 무관), 신규 프로덕션 △ 단일 노드만. remote_servers·스키마·롤링·PDB·anti-affinity를 전부 수동. shard/replica 있으면 오류투성이 → 단일 노드/단일 replica·저빈도 변경 소규모에만 `✓/≈`.
 
 - **Altinity가 왜 표준인가**: GitHub ~2.5k stars·88 releases, Altinity.Cloud의 수백 개 설치를 이 operator가 관리 `✓`("전 세계 수만 대 서버 관리" 규모 수치 자체는 벤더 주장 `≈`). CHI 하나가 여러 클러스터의 토폴로지·설정·스토리지·템플릿을 선언하고, `layout`의 shard/replica 수만 바꿔 스케일 in/out + 자동 스키마 전파가 된다 `✓`.
 
@@ -66,11 +66,11 @@ operator 간 마이그레이션(수동 STS→Altinity, Altinity↔공식)은 PVC
 | 선택지 | 내용 | 평가 |
 |---|---|---|
 | ① 2종 공존 허용 | CRD 그룹이 달라 기술적 충돌은 없음 | 운영·모니터링 표면 2배, 팀 학습 부담 증가 `≈` |
-| ② 공식 operator로 통일 | ClickStack이 이미 쓰므로 하나로 수렴 | 공식 operator가 아직 알파 → 범용/미션크리티컬을 얹기엔 리스크 `✓` |
-| ③ **Altinity로 통일 + ClickStack 외부 CH 연결** | ClickStack `clickhouse.enabled: false`로 내장 CH를 끄고, Altinity가 관리하는 CH(또는 HyperDX only 모드)를 참조 | **가장 보수적·정합적** — 공식 문서도 프로덕션에선 CH 별도 관리 권고 `✓` |
+| ② 공식 operator로 통일 | ClickStack이 이미 쓰므로 수렴 | 공식 operator가 아직 알파 → 리스크 `✓` |
+| ③ **Altinity 통일 + 외부 CH 연결** | `clickhouse.enabled: false`로 내장 CH를 끄고 Altinity CH 참조 | **가장 보수적·정합적** |
 
 {{< callout type="important" >}}
-**권고: 옵션 ③.** 관측성·범용 CH를 하나의 성숙한 operator(Altinity)로 수렴시키는 가장 깔끔한 형태다. ClickStack의 내장 CH를 끄고 Altinity가 관리하는 외부 CH를 바라보게 하면, 미션크리티컬 CH의 안정성을 알파 operator에 의존시키지 않으면서 관측성 스택도 유지된다. 공식 operator는 병렬로 스테이징에서 **베타/GA 승격을 추적하다가** 이후 재평가한다 `≈`.
+**권고: 옵션 ③.** 관측성·범용 CH를 하나의 성숙한 operator(Altinity)로 수렴시키는 가장 깔끔한 형태다. ClickStack의 내장 CH를 끄고 Altinity가 관리하는 외부 CH를 바라보게 하면, 미션크리티컬 CH의 안정성을 알파 operator에 의존시키지 않으면서 관측성 스택도 유지된다. 공식 문서도 프로덕션에선 CH를 별도 관리하도록 권고한다 `✓`. 공식 operator는 병렬로 스테이징에서 **베타/GA 승격을 추적하다가** 이후 재평가한다 `≈`.
 {{< /callout >}}
 
 ## 운영 주의

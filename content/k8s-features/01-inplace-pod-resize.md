@@ -61,7 +61,7 @@ kubectl patch pod my-pod --subresource resize --patch \
 
 | 지점 | 의미 |
 |---|---|
-| `status.conditions[PodResizePending]` | 수락 대기. `Deferred`(나중에 될 수 있음 — 재시도) / `Infeasible`(이 노드에선 불가 — **재시도 안 됨**) |
+| `status.conditions[PodResizePending]` | 수락 대기. `Deferred`(재시도 가능) / `Infeasible`(이 노드 불가, **재시도 안 됨**) |
 | `status.conditions[PodResizeInProgress]` | 수락됐고 커널 반영 중. 실패 시 `reason: Error`로 남고 매 sync 재시도 |
 | `status.containerStatuses[].allocatedResources` | kubelet이 수락(checkpoint)한 requests |
 | `status.containerStatuses[].resources` | 실행 중 컨테이너에 실제 반영된 값(CRI 리포트 기준) |
@@ -86,7 +86,9 @@ kubectl patch pod my-pod --subresource resize --patch \
 | `InPlacePodVerticalScaling` | **1.35 GA** (locked) | 본체 |
 | `…InitContainers` | 1.37 GA | non-restartable init 컨테이너 resize |
 | `InPlacePodLevelResourcesVerticalScaling` | 1.36 beta | pod-level resources의 resize |
-| `…ExclusiveCPUs` / `…ExclusiveMemory` / `…MemoryBackedVolumes` / `…SchedulerPreemption` | 1.32~1.37 **alpha** | static manager 조합, emptyDir sizeLimit, Deferred용 스케줄러 선점 |
+| `…ExclusiveCPUs` / `…ExclusiveMemory` | 1.32~1.37 **alpha** | static manager 조합 |
+| `…MemoryBackedVolumes` | 1.32~1.37 **alpha** | emptyDir sizeLimit |
+| `…SchedulerPreemption` | 1.32~1.37 **alpha** | Deferred용 스케줄러 선점 |
 
 런타임 전제: CRI의 `UpdateContainerResources`는 containerd 1.6.9+에서 지원된다. cgroup v1은 메모리 감소 동작이 다르고 스왑 재계산도 안 되므로 실질적으로 **cgroup v2 전제**로 보는 게 맞다.
 
@@ -147,9 +149,9 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 
 | 이슈 | 내용 | 운영 시사점 |
 |---|---|---|
-| [#135670](https://github.com/kubernetes/kubernetes/issues/135670) | 메모리 감소 usage 체크의 TOCTOU 레이스 — 체크를 런타임 쪽으로 옮기는 설계 논의 중 | **메모리 축소 자동화는 보수적으로** |
-| [#126891](https://github.com/kubernetes/kubernetes/issues/126891) | 스케줄링 도중 resize하면 스케줄러가 옛 값으로 배치 → kubelet이 OutOfCPU/Memory로 거부 | 생성 직후 파드의 resize는 Running 확인 후에 |
-| [#131309](https://github.com/kubernetes/kubernetes/issues/131309) | static CPU manager에서 스케일다운 시 busy CPU를 회수해 affinity 파괴 | latency-sensitive 노드에서 쓰지 말 것 |
+| [#135670](https://github.com/kubernetes/kubernetes/issues/135670) | 메모리 감소 usage 체크의 TOCTOU 레이스 — 런타임으로 옮기는 논의 중 | **메모리 축소 자동화는 보수적으로** |
+| [#126891](https://github.com/kubernetes/kubernetes/issues/126891) | 스케줄링 중 resize 시 옛 값 배치, kubelet OutOfCPU/Memory 거부 | 생성 직후 파드는 Running 확인 후 resize |
+| [#131309](https://github.com/kubernetes/kubernetes/issues/131309) | static CPU manager 스케일다운 시 busy CPU 회수로 affinity 파괴 | latency-sensitive 노드에서 쓰지 말 것 |
 | [autoscaler#8609](https://github.com/kubernetes/autoscaler/issues/8609) | VPA `InPlaceOrRecreate`가 in-place도 evict도 안 하고 무한 대기 | VPA in-place는 아직 관찰 단계 |
 
 이 외에 컨디션 기반 자동화라면 resize 취소 시 컨디션 레이스([#132851](https://github.com/kubernetes/kubernetes/issues/132851)), allocated resources 기록 실패의 복구 경로 부재([#133538](https://github.com/kubernetes/kubernetes/issues/133538)), 스왑 노드의 `memory.swap.max` 재계산 미구현([#130111](https://github.com/kubernetes/kubernetes/issues/130111)), VPA의 클러스터 비호환 미고지([autoscaler#8288](https://github.com/kubernetes/autoscaler/issues/8288))도 함께 본다.
@@ -160,12 +162,14 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 
 | 케이스 | 판정 | 근거 |
 |---|---|---|
-| ① 재시작 비싼 stateful (DB·캐시·롱커넥션) | **최적** | 이 기능의 존재 이유. 늘리는 방향은 무위험, 메모리 축소만 보수적으로 |
+| ① 재시작 비싼 stateful (DB·캐시·롱커넥션) | **최적** | 존재 이유 자체. 늘리는 방향 무위험, 메모리 축소만 보수적으로 |
 | ② 기동 부스트 (JVM cold start) | **좋음** | 큰 값으로 스케줄링 → 기동 후 무중단 축소. 전용 오퍼레이터 존재 |
 | ③ 장기 배치·ML | **좋음** | 재시작 = 진행 손실인 워크로드에 유효. Deferred 대기는 감수 |
 | ④ JVM/Node 힙 메모리 | **반쪽** | 힙은 시작 시 고정 — 메모리는 결국 재시작, CPU만 in-place |
 | ⑤ VPA 자동화 | **시기상조** | `InPlaceOrRecreate`가 alpha + 무한 대기 버그, 메모리 축소는 결국 eviction |
-| ⑥ latency-sensitive + static CPU manager | **부적합** | admission에서 Infeasible, 우회 게이트 alpha. actuation 경로에 **cpuset 재계산 자체가 없다** |
+| ⑥ latency-sensitive + static CPU manager | **부적합** | admission Infeasible, 우회 게이트도 alpha |
+
+⑥은 admission에서 곧바로 Infeasible로 막히고, 이를 우회하는 feature gate(§2 표의 `…ExclusiveCPUs`류)조차 아직 alpha다. 설령 admission을 통과해도 actuation 경로에 **cpuset 재계산 자체가 없어** static CPU manager의 affinity를 보장할 수 없다.
 
 ### ① 재시작이 비싼 stateful — 이 기능의 본진
 

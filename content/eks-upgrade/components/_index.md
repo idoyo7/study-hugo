@@ -19,19 +19,17 @@ weight: 7
 
 ## 색인
 
-| 컴포넌트 | 현재 → 목표 | 리스크 핵심 | 페이지 |
-|---|---|---|---|
-| karpenter | 0.36.2 → **1.14.0** | v1beta1→v1 CRD 마이그레이션 + `amiSelectorTerms` 필수화·drift 강제 ON | {{< relref "01-karpenter.md" >}} |
-| istio | (라이브 미확인) → **1.30.3** | 라이브 버전 미확인이 최우선 리스크, sidecar 유지(ambient 금지) 전제로 native sidecar·차트 통합 대응 | {{< relref "02-istio.md" >}} |
-| argocd (spoke) | 7.5.2(v2.12) → **10.1.4(v3.4.5)** | 2.14→3.0 breaking 밀집(logs RBAC·SSA 필수) + 허브 버전 미확인 | {{< relref "03-gitops-argocd-rollouts.md" >}} |
-| argo-rollouts | 2.37.2(v1.7.1) → **2.41.1(v1.9.1)** | CVE-2026-35469(HIGH DoS) 수정 + istio canary weight 순서 변화, umbrella 커플링 | {{< relref "03-gitops-argocd-rollouts.md" >}} |
-| external-secrets | 0.9.20 → **2.8.x**(이전 조사 0.19.2) | CRD v1beta1→v1 전량 재작성 + umbrella 리워크(fresh 설치로 마이그레이션 우회) | {{< relref "04-secrets-autoscaling.md" >}} |
-| keda | 2.10.2 → **2.20.1** | admission webhook 검증 강화로 기존 ScaledObject dry-run 선행 필요 | {{< relref "04-secrets-autoscaling.md" >}} |
-| aws-load-balancer-controller | chart 1.8.1(v2.8.x) → **chart 3.4.2(v3.4.2)** | IAM 정책 8액션 추가 + umbrella 리워크 선행 | {{< relref "05-networking-ingress.md" >}} |
-| victoria-metrics-k8s-stack | 0.19.4 → **0.87.0** | 이미지 태그 미핀으로 자동 점프 + CRD 스키마 개편(sync-job egress 리스크) | {{< relref "06-observability.md" >}} |
-| metrics-server | v0.7.2 → **v0.9.0** | raw manifest 배포라 ArgoCD/Helm 인벤토리에 안 잡힘(누락 아님) | {{< relref "06-observability.md" >}} |
-| fluentbit(aws-for-fluent-bit) | chart 0.1.34 → **chart 0.2.0** | 이미지 태그 미핀 → FB 1.9.10→4.2.2·AL2→AL2023 major 점프 | {{< relref "06-observability.md" >}} |
-| descheduler | 0.28.0 → **0.35.x**(이전 조사 0.33.x) | `strategies` 블록이 v1alpha1 잔재로 무시 중일 가능성 — 보존/복원 팀 결정 필요 | {{< relref "06-observability.md" >}} |
+- **[karpenter]({{< relref "01-karpenter.md" >}})** · 0.36.2 → **1.14.0** — v1beta1→v1 CRD 마이그레이션 + `amiSelectorTerms` 필수화·drift 강제 ON
+- **[istio]({{< relref "02-istio.md" >}})** · (라이브 미확인) → **1.30.3** — 라이브 버전 미확인이 최우선 리스크, sidecar 유지(ambient 금지) 전제로 native sidecar·차트 통합 대응
+- **[argocd (spoke)]({{< relref "03-gitops-argocd-rollouts.md" >}})** · 7.5.2(v2.12) → **10.1.4(v3.4.5)** — 2.14→3.0 breaking 밀집(logs RBAC·SSA 필수) + 허브 버전 미확인
+- **[argo-rollouts]({{< relref "03-gitops-argocd-rollouts.md" >}})** · 2.37.2(v1.7.1) → **2.41.1(v1.9.1)** — CVE-2026-35469(HIGH DoS) 수정 + istio canary weight 순서 변화, umbrella 커플링
+- **[external-secrets]({{< relref "04-secrets-autoscaling.md" >}})** · 0.9.20 → **2.8.x**(이전 조사 0.19.2) — CRD v1beta1→v1 전량 재작성 + umbrella 리워크(fresh 설치로 마이그레이션 우회)
+- **[keda]({{< relref "04-secrets-autoscaling.md" >}})** · 2.10.2 → **2.20.1** — admission webhook 검증 강화로 기존 ScaledObject dry-run 선행 필요
+- **[aws-load-balancer-controller]({{< relref "05-networking-ingress.md" >}})** · chart 1.8.1(v2.8.x) → **chart 3.4.2(v3.4.2)** — IAM 정책 8액션 추가 + umbrella 리워크 선행
+- **[victoria-metrics-k8s-stack]({{< relref "06-observability.md" >}})** · 0.19.4 → **0.87.0** — 이미지 태그 미핀으로 자동 점프 + CRD 스키마 개편(sync-job egress 리스크)
+- **[metrics-server]({{< relref "06-observability.md" >}})** · v0.7.2 → **v0.9.0** — raw manifest 배포라 ArgoCD/Helm 인벤토리에 안 잡힘(누락 아님)
+- **[fluentbit(aws-for-fluent-bit)]({{< relref "06-observability.md" >}})** · chart 0.1.34 → **chart 0.2.0** — 이미지 태그 미핀 → FB 1.9.10→4.2.2·AL2→AL2023 major 점프
+- **[descheduler]({{< relref "06-observability.md" >}})** · 0.28.0 → **0.35.x**(이전 조사 0.33.x) — `strategies` 블록이 v1alpha1 잔재로 무시 중일 가능성 — 보존/복원 팀 결정 필요
 
 카드마다 원 조사 노트의 5절 구조(버전 diff·경로상 breaking·finance 적용 절차·리스크 체크리스트·근거)를 승계하되, 페이지 안에서 자연스러운 서술로 재구성했다. 공식 문서 URL·CVE 번호·공개 GitHub 이슈 번호는 검증 가능하도록 그대로 보존했고, 계정 ID·내부 endpoint·VPC/subnet ID·사람 이름·Slack/Jira/Confluence 링크는 마스킹하거나 제거했다.
 

@@ -33,7 +33,7 @@ self-host를 접기로 하면 후보는 넷이다. 데이터 거버넌스(데이
 | 항목 | ClickHouse Cloud | ClickHouse Cloud **BYOC** | Altinity.Cloud Anywhere | Aiven for ClickHouse |
 |---|---|---|---|---|
 | 엔진 | SharedMergeTree | SharedMergeTree | ReplicatedMergeTree(OSS operator) | ReplicatedMergeTree(OSS) |
-| storage-compute 분리 | 완전 분리(object storage) | 완전 분리(고객 VPC 내 S3) | 로컬/EBS + S3 tier(선택) | 플랜별(로컬 스토리지) |
+| storage-compute 분리 | 완전분리(object storage) | 완전분리(고객 VPC S3) | 로컬/EBS+S3 tier(선택) | 플랜별(로컬) |
 | 데이터 위치 | ClickHouse 관리 VPC | **고객 VPC** | **고객 VPC/k8s** | Aiven 관리 |
 | k8s 위 배포 | N/A(serverless) | 관리형 data plane | **고객 EKS에 직접** | N/A |
 | lock-in | 높음(egress fee) | 중간 | **낮음(OSS operator)** | 중간 |
@@ -134,11 +134,22 @@ self-host 총액은 컴포넌트 합이다. 단가는 `✓`, 조립 총액은 `�
 
 ## 적합 / 부적합
 
-| | |
-|---|---|
-| **Managed(Cloud/BYOC/Aiven)이 적합** | 데이터 ~5TB 안팎이거나 간헐/버스티 사용, 전담 DB·인프라 인력이 없거나 팀 <5명, 운영 부담을 0에 두고 싶은 경우, SharedMergeTree의 빠른 스케일·리샤딩 불필요가 실이익인 경우. 데이터 거버넌스가 하드 요구면 순수 SaaS 대신 **BYOC / Altinity.Cloud Anywhere**(VPC 잔류) |
-| **Self-host(EKS + 로컬 NVMe)가 적합** | 24-7 상시 포화 + 20TB+로 성장, 로컬 NVMe 극한 성능(수 GB/s·수십만 IOPS)이 하드 요구, **운영 인력이 이미 존재**, 비용 통제가 절실하고 1yr+ Savings Plan을 커밋할 수 있는 경우. lock-in 최소화가 중요하면 Altinity operator 기반 |
-| **어느 쪽도 서두르면 안 되는 경우** | "여러 신호를 한 팀에 수렴"할 명분(D4 게이트)이 아직 안 선 경우 — 그때는 배포 형태 결정 자체를 유보하고 로그는 VictoriaLogs, 메트릭은 VictoriaMetrics로 둔다(아래) |
+**Managed(Cloud/BYOC/Aiven)이 적합**
+- 데이터 ~5TB 안팎이거나 간헐/버스티 사용
+- 전담 DB·인프라 인력이 없거나 팀 <5명
+- 운영 부담을 0에 두고 싶은 경우
+- SharedMergeTree의 빠른 스케일·리샤딩 불필요가 실이익인 경우
+- 데이터 거버넌스가 하드 요구면 순수 SaaS 대신 **BYOC / Altinity.Cloud Anywhere**(VPC 잔류)
+
+**Self-host(EKS + 로컬 NVMe)가 적합**
+- 24-7 상시 포화 + 20TB+로 성장
+- 로컬 NVMe 극한 성능(수 GB/s·수십만 IOPS)이 하드 요구
+- **운영 인력이 이미 존재**
+- 비용 통제가 절실하고 1yr+ Savings Plan을 커밋할 수 있는 경우
+- lock-in 최소화가 중요하면 Altinity operator 기반
+
+**어느 쪽도 서두르면 안 되는 경우**
+- "여러 신호를 한 팀에 수렴"할 명분(D4 게이트)이 아직 안 선 경우 — 그때는 배포 형태 결정 자체를 유보하고 로그는 VictoriaLogs, 메트릭은 VictoriaMetrics로 둔다(아래)
 
 ## 우리 케이스에서는
 

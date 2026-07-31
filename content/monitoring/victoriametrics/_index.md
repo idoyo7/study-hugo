@@ -17,11 +17,11 @@ VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스다.
 
 | 문서 | 한 줄 요약 |
 |------|-----------|
-| [01 TSDB와 VictoriaMetrics]({{< relref "concepts/01-tsdb-and-victoriametrics.md" >}}) | 시계열이란, 지표 4타입, "대용량"의 정의, VM의 위치와 TSDB 히스토리(Prometheus·Gorilla·Thanos·Cortex) |
+| [01 TSDB와 VM]({{< relref "concepts/01-tsdb-and-victoriametrics.md" >}}) | 시계열·지표 4타입·"대용량", VM 위치, TSDB 히스토리(Prometheus·Gorilla·Thanos·Cortex) |
 | [02 아키텍처]({{< relref "concepts/02-architecture.md" >}}) | 4컴포넌트 데이터 흐름, SingleNode vs Cluster, LSM 트리, IndexDB/DataDB 분리 |
 | [03 수집 (vmagent·vminsert)]({{< relref "concepts/03-ingestion.md" >}}) | vmagent 7단계 파이프라인·유실방지 큐, vminsert 랑데부 해싱·페일오버·복제 |
 | [04 저장과 압축]({{< relref "concepts/04-storage-and-compression.md" >}}) | TSID·파티션·머지·retention, Delta/Delta-of-Delta·ZigZag·Varint 압축(0.92B 실증) |
-| [05 쿼리·운영 컴포넌트]({{< relref "concepts/05-query-and-ops-components.md" >}}) | vmselect fanout·3-prefix 검색·캐시·latency offset, 선계산(vmalert), 라우팅 게이트웨이(vmauth) |
+| [05 쿼리·운영 컴포넌트]({{< relref "concepts/05-query-and-ops-components.md" >}}) | vmselect fanout·3-prefix 검색·캐시, vmalert 선계산, vmauth 라우팅 |
 | [06 소스맵]({{< relref "concepts/06-sources.md" >}}) | 발표 영상·기사·전사본 원본 가이드 |
 
 ## ② 잘 쓰는 방법
@@ -32,7 +32,7 @@ VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스다.
 |------|-----------|
 | [01 카디널리티]({{< relref "practice/01-cardinality.md" >}}) | New TSID 폭발의 원리, best/worst case, churn·slow insert 감시 지표 |
 | [02 초대규모 운영과 무중단 전환]({{< relref "practice/02-operations-at-scale.md" >}}) | 멀티버스(멀티클러스터), Hot/Warm 2계층, 12.5억 시계열, 무중단 장비 전환 |
-| [03 쿼리 패턴]({{< relref "practice/03-query-patterns.md" >}}) | PromQL 기본(rate·histogram_quantile·sum by)과 MetricsQL 확장, 무거운 쿼리 회피, 카디널리티 점검 쿼리·API |
+| [03 쿼리 패턴]({{< relref "practice/03-query-patterns.md" >}}) | PromQL 기본(rate·histogram_quantile·sum by)·MetricsQL 확장, 무거운 쿼리 회피, 카디널리티 점검 |
 
 ## ③ 우리의 운영
 

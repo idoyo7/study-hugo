@@ -156,11 +156,9 @@ Retention 기간에 도달하면 **Next → Current, Current → Previous, Previ
 
 내부에서 PromQL 한 줄은 **3-Prefix 검색**으로 풀린다. 먼저 쿼리 문자열을 구조화된 데이터로 파싱하고(함수·필터·시간 윈도, 이 파싱 결과도 캐싱), 이어 3단계로 되짚는다.
 
-| 단계 | 변환 | 하는 일 |
-|------|------|---------|
-| **Prefix 1** | 태그 → Metric ID | 태그 필터를 IndexDB에 전달, `name`·`method`·`status` 등 여러 조건의 **교집합** Metric ID를 모음(인메모리 캐시 먼저 확인) |
-| **Prefix 2** | Metric ID → TSID | 모인 Metric ID를 `TSID`로 변환 (예: Metric ID 49가 어떤 `TSID`인지 조회) |
-| **Prefix 3** | TSID → 값·이름 복원 | `TSID`로 value·timestamp를 가져오고 응답에 넣을 지표 이름·레이블을 역으로 복원 |
+1. **Prefix 1** · 태그 → Metric ID — 태그 필터를 IndexDB에 전달해 `name`·`method`·`status` 등 여러 조건의 **교집합** Metric ID를 모은다(인메모리 캐시 먼저 확인).
+2. **Prefix 2** · Metric ID → TSID — 모인 Metric ID를 `TSID`로 변환한다(예: Metric ID 49가 어떤 `TSID`인지 조회).
+3. **Prefix 3** · TSID → 값·이름 복원 — `TSID`로 value·timestamp를 가져오고 응답에 넣을 지표 이름·레이블을 역으로 복원한다.
 
 {{< flow caption="vmselect 3-Prefix 검색 — 태그 필터에서 Metric ID·TSID를 거쳐 값·이름을 복원한다" >}}
 {

@@ -78,14 +78,12 @@ EKS 공식 문서 기준 아래 세 가지가 설계 전체를 지배한다.
 
 Fargate 파드(CoreDNS, karpenter)에는 노드 DaemonSet이 붙지 않으므로, 노드 기반 로그·메트릭 수집기가 이 두 파드를 놓친다.
 
-| DaemonSet | Fargate 공백 | 대안 |
-|---|---|---|
-| **fluentbit**(컨테이너 로그) | CoreDNS/karpenter stdout 미수집 | **Fargate 내장 로그 라우터** — ns `aws-observability`(label `aws-observability: enabled`) + ConfigMap `aws-logging`으로 output을 지정하면 AWS가 대신 Fluent Bit를 구동한다. **단 pod-execution-role에 로깅 IAM 정책(`logs:CreateLogStream`/`CreateLogGroup`/`PutLogEvents`)을 별도 부착해야** 동작한다 — 기본 정책엔 없다 |
-| **datadog agent**(노드 메트릭·APM) | CoreDNS/karpenter 메트릭 미수집 | Fargate에서는 **파드별 사이드카**로만 수집 가능. CoreDNS/karpenter에 사이드카는 과하므로 karpenter `/metrics`는 Prometheus 계열 스크레이퍼로 직접 긁는다 |
-| **node-exporter**(호스트 메트릭) | Fargate micro-VM 호스트 메트릭 없음 | 설계상 호스트 접근 불가. kubelet 파드 지표(cAdvisor)로 대체하고 대시보드는 Fargate 노드 제외 필터를 쓴다 |
-| **node-local-dns**(노드별 DNS 캐시) | Fargate 파드는 로컬 캐시 미사용 | EC2 노드 DaemonSet(iptables 인터셉트) 기반이라 Fargate엔 셋업 자체가 없다 — 클러스터 CoreDNS 서비스로 직접 질의(로컬 캐시만 스킵). CoreDNS는 캐시 불요, karpenter는 조회량이 적어 영향 미미 |
-| **csi-node** | Fargate 파드는 동적 EBS PV 불가 | EBS가 필요한 워크로드는 반드시 EC2 풀로 보낸다 |
-| **kube-proxy / aws-node** | — | Fargate 노드는 자체 VPC CNI 내장, kube-proxy 불요(공백이 아니라 정상) |
+- **fluentbit**(컨테이너 로그) · 공백: CoreDNS/karpenter stdout 미수집 — **Fargate 내장 로그 라우터**로 대체한다. ns `aws-observability`(label `aws-observability: enabled`) + ConfigMap `aws-logging`으로 output을 지정하면 AWS가 대신 Fluent Bit를 구동한다. 단 pod-execution-role에 로깅 IAM 정책(`logs:CreateLogStream`/`CreateLogGroup`/`PutLogEvents`)을 별도 부착해야 동작한다 — 기본 정책엔 없다.
+- **datadog agent**(노드 메트릭·APM) · 공백: CoreDNS/karpenter 메트릭 미수집 — Fargate에서는 **파드별 사이드카**로만 수집 가능하다. CoreDNS/karpenter에 사이드카는 과하므로 karpenter `/metrics`는 Prometheus 계열 스크레이퍼로 직접 긁는다.
+- **node-exporter**(호스트 메트릭) · 공백: Fargate micro-VM 호스트 메트릭 없음 — 설계상 호스트 접근 불가. kubelet 파드 지표(cAdvisor)로 대체하고 대시보드는 Fargate 노드 제외 필터를 쓴다.
+- **node-local-dns**(노드별 DNS 캐시) · 공백: Fargate 파드는 로컬 캐시 미사용 — EC2 노드 DaemonSet(iptables 인터셉트) 기반이라 Fargate엔 셋업 자체가 없다. 클러스터 CoreDNS 서비스로 직접 질의(로컬 캐시만 스킵)한다. CoreDNS는 캐시 불요, karpenter는 조회량이 적어 영향 미미하다.
+- **csi-node** · 공백: Fargate 파드는 동적 EBS PV 불가 — EBS가 필요한 워크로드는 반드시 EC2 풀로 보낸다.
+- **kube-proxy / aws-node** · 공백 없음 — Fargate 노드는 자체 VPC CNI 내장, kube-proxy 불요(정상).
 
 ## 5. CoreDNS·ebs-csi·karpenter config 변경
 
@@ -95,20 +93,24 @@ Fargate 파드(CoreDNS, karpenter)에는 노드 DaemonSet이 붙지 않으므로
 
 | 항목 | 기존 | 신규 | 이유 |
 |---|---|---|---|
-| `computeType` | (없음) | **`Fargate`** 추가 | `eks.amazonaws.com/compute-type: ec2` annotation을 없애야 Fargate 스케줄러가 잡는다 |
-| nodeAffinity(arm64 + system-primary) | required | **전부 제거** | Fargate는 amd64 전용 — arm64 required가 남으면 영구 Pending |
+| `computeType` | (없음) | **`Fargate`** 추가 | `compute-type: ec2` annotation 제거해야 Fargate 스케줄러가 잡는다 |
+| nodeAffinity(arm64 + system-primary) | required | **전부 제거** | arm64 required가 남으면 영구 Pending |
 | toleration(system-primary/arch=arm64) | 有 | 제거 | Fargate엔 taint 자체가 없어 무의미 |
 | `replicaCount: 2` | 有 | 유지 | Fargate micro-VM 2개로 그대로 뜬다 |
-| topologySpreadConstraints(zone, `DoNotSchedule`) | 有 | 유지하되 주의 | profile subnet이 2 AZ 이상이면 분산되지만, `DoNotSchedule`이라 한 AZ만 여유가 있으면 두 번째 replica가 Pending될 수 있다 |
+| topologySpreadConstraints(zone, `DoNotSchedule`) | 有 | 유지하되 주의 | AZ 분산 유지, 단 Pending 위험(하단 참고) |
+
+topologySpreadConstraints는 profile subnet이 2 AZ 이상이면 분산되지만, `DoNotSchedule`이라 한 AZ만 여유가 있으면 두 번째 replica가 Pending될 수 있다.
 
 ### 5.2 ebs-csi addon config
 
 | 항목 | 기존 | 신규 | 이유 |
 |---|---|---|---|
-| controller nodeAffinity(`nodegroup=system-primary`) | required | **system 풀 라벨로 변경** | managed nodegroup 폐지 → karpenter system 풀 라벨에 맞춘다 |
+| nodeAffinity(`nodegroup=system-primary`) | required | **라벨로 변경** | managed nodegroup 폐지 → system 풀 라벨 사용 |
 | controller nodeAffinity(arm64) | required | 유지 | system 풀 자체가 arm64 |
-| controller toleration(system-primary) | 有 | 제거(무해한 잔재) | system 풀엔 `arch=arm64` taint만 있고 nodegroup taint는 없다 |
-| **IRSA 롤** | **스펙에 없음** ⚠️ | 이 페이지 §7·§10에서 **Terraform으로 롤 자체를 신규 생성**한다 | 미해결 최대 리스크. 롤이 addon에 실제로 **연결**되는지·PVC가 붙는지 검증은 [03 managed addon]({{< relref "03-managed-addons.md" >}}) |
+| toleration(system-primary) | 有 | 제거(무해한 잔재) | system 풀엔 `arch=arm64` taint만, nodegroup taint는 없다 |
+| **IRSA 롤** | **스펙에 없음** ⚠️ | **Terraform으로 신규 생성**(§7·§10) | 미해결 최대 리스크 — 연결·PVC 검증은 하단 참고 |
+
+IRSA 롤이 addon에 실제로 연결되는지·PVC가 붙는지 검증은 [03 managed addon]({{< relref "03-managed-addons.md" >}})에서 확인한다.
 
 ### 5.3 karpenter values
 
@@ -116,9 +118,11 @@ Fargate 파드(CoreDNS, karpenter)에는 노드 DaemonSet이 붙지 않으므로
 |---|---|---|
 | 컨트롤러 `affinity.nodeAffinity`(arm64 + system-primary) | **제거** | Fargate는 amd64 전용 |
 | 컨트롤러 `tolerations`(arch/nodegroup/spot) | **제거** | Fargate엔 taint가 없다 |
-| `controller.resources` | **`cpu: 1` / `mem ≥ 1Gi`(requests=limits) 명시** | Fargate는 requests로 micro-VM 크기를 정한다. 기본값(0.25 vCPU/256Mi)이면 CPU 기아로 리더 election이 반복 유실되는 사고가 사내에서 실제로 있었다 |
+| `controller.resources` | **`cpu: 1` / `mem ≥ 1Gi`(requests=limits) 명시** | Fargate는 requests로 micro-VM 크기를 정한다 |
 | `featureGates.drift` | 제거(v1에서 무효) | karpenter v1에서 drift가 GA돼 feature gate가 사라졌다 |
-| `provisioner:` → `nodePool:` 구조 | **v1 NodePool/EC2NodeClass로 재작성**, **system arm64 풀 반드시 포함** | system 풀이 빠지면 arm64 플랫폼 컴포넌트가 전부 Pending |
+| provisioner→nodePool | **v1 NodePool/EC2NodeClass 재작성, arm64 system 풀 포함** | system 풀 누락 시 arm64 Pending |
+
+`controller.resources` 기본값(0.25 vCPU/256Mi)으로 두면 CPU 기아로 리더 election이 반복 유실되는 사고가 사내에서 실제로 있었다 — 반드시 `cpu: 1` / `mem ≥ 1Gi`로 상향한다.
 
 > karpenter 0.36.2→1.14.0 버전 업그레이드 자체(CRD v1beta1→v1·IAM·배포 절차)는 [컴포넌트별 마이그레이션 — karpenter]({{< relref "components/01-karpenter.md" >}})가 이어받는다.
 
@@ -126,13 +130,11 @@ Fargate 파드(CoreDNS, karpenter)에는 노드 DaemonSet이 붙지 않으므로
 
 IaC 레포에는 EKS 클러스터를 만드는 모듈이 이미 존재하지만 실제로 쓰이는 것은 거의 없다. 호출 여부(참조 카운트)를 기준으로 재활용 판정을 내린다.
 
-| 모듈 | 무엇을 만드나 | 호출처 | 판정 |
-|---|---|---|---|
-| `modules/clusters/eks` | `aws_eks_cluster` + `aws_eks_node_group`(관리형, **`AL2_ARM_64` 하드코딩**) + 런치템플릿 + OIDC provider | **0건** | **부분 재활용** — 클러스터 셸은 유효하나 `access_config`·`encryption_config` 필드가 없어 추가 필요. 노드그룹·런치템플릿은 **삭제**(Fargate-only와 충돌 + AL2는 1.33+ 신규 노드그룹에 선택 불가) |
-| `modules/clusters/addons` | `aws_eks_addon` 4종 generic for_each + config JSON `file()` 주입 | **0건** | **구조 재활용 가치 높음** — 버전 문자열만 1.35로. ⚠️ ebs-csi 전용 블록엔 `service_account_role_arn` 인자가 없어 IRSA 롤은 generic 블록 경유 주입 |
-| `modules/clusters/security_groups` | cluster SG에 ALB→8080/15021 ingress 등 SG 규칙만 | 0건 | 재활용 가능. SG 리소스 정의는 여전히 이 레포 밖 |
-| `modules/clusters/sqs` | 범용 앱 DLQ(main+dead-letter, redrive, `prevent_destroy`) | 0건 | ❌ **karpenter interruption 큐로 재활용 불가** — EventBridge 배선·큐 정책 없음. §8에서 전용 신규 작성 |
-| `modules/irsa` | IRSA 롤 팩토리 — 트러스트가 `data.aws_eks_cluster[name].identity[0].oidc.issuer`로 **동적 바인딩** | 실사용(다수) | 재활용 — §10 재바인딩 메커니즘 자체 |
+- **`modules/clusters/eks`**(호출 0건) · `aws_eks_cluster` + `aws_eks_node_group`(관리형, `AL2_ARM_64` 하드코딩) + 런치템플릿 + OIDC provider — **부분 재활용**: 클러스터 셸은 유효하나 `access_config`·`encryption_config` 필드가 없어 추가 필요. 노드그룹·런치템플릿은 **삭제**(Fargate-only와 충돌 + AL2는 1.33+ 신규 노드그룹에 선택 불가).
+- **`modules/clusters/addons`**(호출 0건) · `aws_eks_addon` 4종 generic for_each + config JSON `file()` 주입 — **구조 재활용 가치 높음**: 버전 문자열만 1.35로. ⚠️ ebs-csi 전용 블록엔 `service_account_role_arn` 인자가 없어 IRSA 롤은 generic 블록 경유 주입.
+- **`modules/clusters/security_groups`**(호출 0건) · cluster SG에 ALB→8080/15021 ingress 등 SG 규칙만 — 재활용 가능. SG 리소스 정의는 여전히 이 레포 밖.
+- **`modules/clusters/sqs`**(호출 0건) · 범용 앱 DLQ(main+dead-letter, redrive, `prevent_destroy`) — ❌ **karpenter interruption 큐로 재활용 불가**: EventBridge 배선·큐 정책 없음. §8에서 전용 신규 작성.
+- **`modules/irsa`**(실사용 다수) · IRSA 롤 팩토리 — 트러스트가 `data.aws_eks_cluster[name].identity[0].oidc.issuer`로 **동적 바인딩** — 재활용: §10 재바인딩 메커니즘 자체.
 
 **dead code의 시대감각**: `modules/clusters/eks`의 `eks_version` 기본값이 관리형 노드그룹이 표준이던 시절 값이다. Fargate-only·karpenter-only가 확정된 지금은 "그대로 재활용"이 아니라 **골격 참조 후 재작성**이 현실적이다.
 
@@ -173,18 +175,22 @@ CAPI 스펙(`clusterapi.yaml`)이 만들던 것을 Terraform 리소스로 1:1 �
 
 | # | CAPA가 하던 것 | Terraform 대체 | 비고 |
 |---|---|---|---|
-| 1 | 클러스터 IAM role | `aws_iam_role` + `AmazonEKSClusterPolicy`(신규) | 기존 모듈은 `role_arn`을 입력만 받아 롤 자체는 신규 작성 |
-| 2 | `aws_eks_cluster`(버전·VPC·endpoint·로깅·태그) | 모듈 골격 재사용 — `version`=1.35, blue subnet, `endpoint_private_access=true`/`public_access=false`, `enabled_cluster_log_types=["audit"]` | |
-| 3 | OIDC provider(워크로드 계정에만) | `aws_iam_openid_connect_provider` — **워크로드 + management 양쪽** | §10 |
-| 4 | 인증/roleMapping | `access_config { authentication_mode = "API_AND_CONFIG_MAP" }` + `aws_eks_access_entry` | §9 |
-| 5 | managed addon 4종 | `aws_eks_addon` ×4(addons 모듈, 버전 1.35) | [03]({{< relref "03-managed-addons.md" >}})이 상세 |
-| 6 | ebs-csi SA-role(스펙에 없어 위태로움) | `modules/irsa`로 `ebs-csi-controller-sa` IRSA + `AmazonEBSCSIDriverPolicyV2`(신규) | 최우선 리스크(§10) |
-| 7 | Fargate 프로필 2셀렉터 | `aws_eks_fargate_profile` + pod-exec role(§6 프로토타입 재활용) | |
-| 8 | 부트스트랩 관리형 노드그룹 | **없음(삭제)** — Fargate가 coredns+karpenter, karpenter가 나머지 | Fargate-only의 직접 결과 |
-| 9 | securityGroupOverrides | `vpc_config.security_group_ids` + `security_groups` 모듈 | 전용 SG 정의는 여전히 이 레포 밖 |
+| 1 | 클러스터 IAM role | `aws_iam_role` + `AmazonEKSClusterPolicy`(신규) | 롤 자체 신규 작성 |
+| 2 | `aws_eks_cluster` 설정(버전·VPC·endpoint·로깅·태그) | 모듈 골격 재사용(상세 하단) | |
+| 3 | OIDC provider(워크로드 계정에만) | `aws_iam_openid_connect_provider` ×2(워크로드+mgmt) | §10 |
+| 4 | 인증/roleMapping | `access_config`(API_AND_CONFIG_MAP) + `aws_eks_access_entry` | §9 |
+| 5 | managed addon 4종 | `aws_eks_addon` ×4(버전 1.35) | [03]({{< relref "03-managed-addons.md" >}}) 상세 |
+| 6 | ebs-csi SA-role(스펙에 없음) | `modules/irsa`로 신규 생성(상세 하단) | 최우선 리스크(§10) |
+| 7 | Fargate 프로필 2셀렉터 | `aws_eks_fargate_profile` + pod-exec role(§6 재활용) | |
+| 8 | 부트스트랩 관리형 노드그룹 | **없음(삭제)** | Fargate+karpenter가 대체 |
+| 9 | securityGroupOverrides | `vpc_config.security_group_ids` + SG 모듈 | SG 정의는 레포 밖 |
 | 10 | additionalControlPlaneIngressRules | `aws_security_group_rule`(cluster SG ingress) | |
-| 11 | secrets KMS 암호화(현재 미설정) | (선택) `encryption_config` + `aws_kms_key` | 신규 클러스터 보안 baseline으로 권장 |
-| 12 | bastion | **해당 없음** | 클러스터 bastion은 CAPI 스펙에 없음 |
+| 11 | secrets KMS 암호화(현재 미설정) | (선택) `encryption_config` + `aws_kms_key` | 보안 baseline 권장 |
+| 12 | bastion | **해당 없음** | CAPI 스펙에 없음 |
+
+**2번 상세**: `version`=1.35, blue subnet, `endpoint_private_access=true`/`public_access=false`, `enabled_cluster_log_types=["audit"]`.
+**6번 상세**: `modules/irsa`로 `ebs-csi-controller-sa` IRSA + `AmazonEBSCSIDriverPolicyV2`(신규)를 생성한다.
+**8번**은 부트스트랩 관리형 노드그룹이 사라지고 Fargate가 coredns+karpenter를, karpenter가 나머지를 프로비저닝하는 구조로 대체된다는 뜻이다.
 
 ## 8. karpenter 인프라 신규 작성 — 레포에 전무한 부분
 
@@ -235,10 +241,12 @@ CAPA를 쓰지 않으므로 `IAMAuthenticator`(aws-auth) 강제가 사라진다.
 
 | 대상 | 리소스 | type | 비고 |
 |---|---|---|---|
-| 클러스터 인증 모드 | `access_config { authentication_mode = "API_AND_CONFIG_MAP" }` | — | access entry + aws-auth 병행(안전한 전환) |
-| karpenter 노드 롤 | `aws_eks_access_entry` | **EC2_LINUX** | 노드 join 자동 권한. `kubernetes_groups`·access policy 지정 불가 |
-| CI/admin 롤 | `aws_eks_access_entry` + `access_policy_association` | **STANDARD** | `AmazonEKSClusterAdminPolicy` 등. cross-account ARN은 STANDARD만 허용 |
+| 클러스터 인증 모드 | `authentication_mode = "API_AND_CONFIG_MAP"` | — | access entry + aws-auth 병행 |
+| karpenter 노드 롤 | `aws_eks_access_entry` | **EC2_LINUX** | 노드 join 자동 권한. `kubernetes_groups`·정책 연결 불가 |
+| CI/admin 롤 | `aws_eks_access_entry` + policy assoc | **STANDARD** | `AmazonEKSClusterAdminPolicy` 등(하단 참고) |
 | 개발자 조회 | `aws_eks_access_entry`(STANDARD) + policy assoc | STANDARD | `AmazonEKSViewPolicy`, namespace scope 가능 |
+
+CI/admin 롤의 `AmazonEKSClusterAdminPolicy` 등 access policy는 cross-account ARN을 쓸 경우 STANDARD 타입만 허용한다.
 
 Fargate pod-exec role은 별도 조치가 필요 없다 — Fargate profile 롤은 access entry가 자동 생성되므로 karpenter 노드 롤(EC2_LINUX)만 명시 작성하면 된다. `bootstrapClusterCreatorAdminPermissions`는 기본 true라, 감사성 측면에서는 false로 두고 생성 principal을 access entry로 별도 등록하는 편이 낫다.
 

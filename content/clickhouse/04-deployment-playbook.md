@@ -49,11 +49,13 @@ Karpenter EC2NodeClass/NodePool에서 `✓`: 인스턴스는 **i8g/i7i.4xlarge**
 
 ### local PV provisioner 선택
 
-| provisioner | 언제 쓰나 | 특성 |
+| provisioner | 언제 쓰나 | 비고 |
 |---|---|---|
-| **local-static-provisioner** (기본 권장) | 노드 NVMe **전부**를 1 ClickHouse가 사용, 안정 최우선 | `no-provisioner`, **1 PV = 1 디스크/배열**, 사전 마운트 필수. AWS 공식 DB 레시피. DB 정석 `✓` |
-| **TopoLVM** | 한 노드 NVMe를 **여러 PVC로 분할**·용량 격리·온라인 확장 필요 | `topolvm.io`, LVM VG에서 LV 동적 절단, capacity-aware 스케줄링, `allowVolumeExpansion`, cert-manager 의존 `✓` |
-| **OpenEBS LocalPV-LVM/Device** | 이미 OpenEBS 생태계이거나 thin·변종 필요 | LVM(`local.csi.openebs.io`) / Device(`openebs.io/local`, `cas-type: local`). TopoLVM과 기능 동급 `✓` |
+| **local-static-provisioner** (기본 권장) | 노드 NVMe 전부 사용, 안정 최우선 | AWS 공식 DB 레시피 `✓` |
+| **TopoLVM** | 한 노드 NVMe를 **여러 PVC로 분할**·용량 격리·온라인 확장 필요 | LVM 기반, capacity-aware `✓` |
+| **OpenEBS LocalPV-LVM/Device** | 이미 OpenEBS 생태계이거나 thin·변종 필요 | TopoLVM과 기능 동급 `✓` |
+
+세부: **local-static-provisioner**는 `no-provisioner` 방식으로 **1 PV = 1 디스크/배열**, 사전 마운트가 필수이며 DB 정석 레시피다 `✓`. **TopoLVM**은 `topolvm.io` CRD로 LVM VG에서 LV를 동적 절단하고 capacity-aware 스케줄링·`allowVolumeExpansion`을 지원하며 cert-manager에 의존한다 `✓`. **OpenEBS**는 LVM(`local.csi.openebs.io`) 또는 Device(`openebs.io/local`, `cas-type: local`) 방식이다 `✓`.
 
 **기본은 local-static-provisioner** — 4xlarge 단일 디스크·노드=단일 CH 전용이면 계층이 가장 얕고 격리가 명확하다 `✓`. "한 로컬 디스크를 data/log로 쪼개거나" "온라인 확장"이 필요해지는 시점에만 LVM 계열로 승급한다(단 **로컬 볼륨은 확장 불가**이므로 확장이 목적이면 LVM + `provisioner: Operator` 조합이라야 의미가 있다, §2.3).
 
@@ -286,10 +288,11 @@ replica를 2~3벌 두는 것만으로는 부족하다 — 그 사본들이 **서
 
 | 기제 | 필드 | 막는 것 |
 |---|---|---|
-| hostname anti-affinity | `podDistribution: ShardAntiAffinity`(hostname) | 같은 shard replica의 **노드 co-location**(인과는 [operator 페이지]({{< relref "03-operator.md" >}})) |
+| hostname anti-affinity | `podDistribution: ShardAntiAffinity`(hostname) | 같은 shard replica의 **노드 co-location** |
 | AZ topology spread | `ShardAntiAffinity`(zone) + `topologySpreadConstraints` | 같은 shard replica의 **AZ 몰림** |
 | PDB | `pdbMaxUnavailable: 1` | **자발적** 중단이 같은 shard 2대를 동시에 내림 |
 
+- **hostname anti-affinity의 인과**: 같은 shard의 replica가 한 노드에 co-locate되면 그 노드 장애가 shard 전멸로 번진다 — 상세 인과는 [Altinity operator]({{< relref "03-operator.md" >}}) 참고.
 - **AZ spread의 인과**: 각 shard의 replica가 서로 다른 AZ에 흩어져 있으면 AZ 하나가 통째로 죽어도 모든 shard가 최소 1사본을 다른 AZ에 남겨 클러스터가 산다. spread가 없으면 스케줄러가 한 shard의 replica들을 같은 AZ에 몰 수 있어 **AZ 1개 소실 = 그 shard 전멸**이다. 단 RF2를 3 AZ에 펴면 AZ 1개가 죽는 순간 **모든 shard가 동시에 RF1로 하락** — 전 클러스터가 한꺼번에 재수화 위험 창(§5)에 진입한다. "AZ 장애까지 무손실 생존"이 요구면 RF3 여지를 함께 본다(위 'RF 선택' 절).
 - **PDB가 막는 것은 자발적 중단뿐**: drain·롤링 업그레이드·Karpenter consolidation 세 vector가 같은 shard 2대를 동시에 내리는 것을 `maxUnavailable: 1`이 직렬화로 막는다. operator 자동 PDB는 `clusters[].layout`이 만든 host(=replica) 라벨 셀렉터를 대상으로 잡으므로, RF2 shard에서 "동시 1대만 down"이 실제 shard 단위로 보장되는지 배포 후 `kubectl get pdb -o yaml`로 셀렉터 범위를 확인한다 `?`. 다만 PDB는 **시간차 독립 하드웨어 장애의 2차 타격**까지는 못 막는다 — 그 방어는 RF3다(§5).
 
@@ -299,10 +302,8 @@ replica를 2~3벌 두는 것만으로는 부족하다 — 그 사본들이 **서
 
 **storageManagement** `✓`:
 
-| 필드 | 값 | 로컬 NVMe 권고 |
-|---|---|---|
-| `provisioner` | `StatefulSet`(기본) \| `Operator` | **`StatefulSet`**. `Operator`는 CSI `allowVolumeExpansion` 환경에서 파드 재시작 없이 온라인 확장할 때만 — 로컬 NVMe는 물리적으로 확장 불가라 이점 없음 |
-| `reclaimPolicy` | `Retain` \| `Delete`(기본) | **`Retain`**. STS/CHI 삭제·`helm uninstall`에도 PVC 잔존 → 실수 삭제 방어. `stop: 1`은 Replicas=0으로 만들되 PVC intact |
+- **`provisioner`**(값: `StatefulSet`(기본) | `Operator`) — 로컬 NVMe 권고는 **`StatefulSet`**. `Operator`는 CSI `allowVolumeExpansion` 환경에서 파드 재시작 없이 온라인 확장할 때만 쓰며, 로컬 NVMe는 물리적으로 확장 불가라 이점이 없다.
+- **`reclaimPolicy`**(값: `Retain` | `Delete`(기본)) — 로컬 NVMe 권고는 **`Retain`**. STS/CHI 삭제·`helm uninstall`에도 PVC가 잔존해 실수 삭제를 방어한다. `stop: 1`은 Replicas=0으로 만들되 PVC는 intact.
 
 {{< callout type="warning" >}}
 **주의**: `Operator` provisioner + VCT 크기 변경 시 과거 데이터 손실 회귀(#1385/#457)가 있었다. 확장은 스테이징 검증 후에만 `✓`.
@@ -340,20 +341,18 @@ TTL toDateTime(timestamp) + INTERVAL 7 DAY TO VOLUME 'cold';
 
 ## 4. 자주 조정하는 CHI 옵션
 
-| 옵션 | 무엇을 | 언제 조정 | 주의 |
-|---|---|---|---|
-| `clusters[].layout.shardsCount/replicasCount` | 토폴로지 격자 | 용량·내구성 스케일 | replica↑=자동, shard↑=수동 리샤딩(§5). 로컬 NVMe는 replica ≥ 2 하한 |
-| `zookeeper.keeper.name` | CHK 이름 참조 | 0.27.0+ 항상 권장 | 참조 CHK 엔드포인트 변경 시 의존 CHI 자동 재리컨사일 |
-| `settings` / `files` | config.xml / 임의 XML | 커스텀 설정·dictionary·티어링 | **반드시 이 필드로만** 주입. 외부 볼륨/ArgoCD 직접 마운트는 렌더 충돌 → CrashLoop(#1456) |
-| `insert_quorum` / `_timeout` / `select_sequential_consistency` | 쓰기 내구성(ack 전 확정 replica 수) | 미복제 손실을 못 견디는 쓰기 | **`profiles`(users.xml)로 주입**(세션 레벨 — `settings`에 두면 무효). 확정 replica 정족수 미달·재수화 창엔 쓰기 차단(가용성↓). RF3와 짝(§2 '쓰기 내구성 노브') |
-| `users`/`profiles`/`quotas` | users.xml | 계정·권한 | 시크릿은 `k8s_secret_password`로(평문 금지). 업그레이드 시 `clickhouse_operator` 프로파일 소실 주의(#1744) |
-| `podDistribution` + `topologySpreadConstraints` | 배치 강제 | AZ/노드 분산 | shard-aware는 podDistribution, AZ 균등 하드 제약(`whenUnsatisfiable: DoNotSchedule`)은 topologySpread. 병용 |
-| `reconcile.host.wait.replicas.new` | 신규 replica catch-up 대기 | scale-out·재수화 | `new: "yes"`로 따라잡을 때까지 다음 단계 대기 |
-| `reconcile.statefulSet.update.onFailure` | STS 업데이트 실패 처리 | 롤링 안전장치 | `rollback`(이전 Generation) / `abort` / `ignore` |
-| `reconcile.statefulSet.recreate.onDataLoss` | 볼륨 소실 시 STS 재생성 | 로컬 NVMe 노드 소실 | `recreate`로 두면 재수화 자동화의 일부 |
-| `reconcile.host.drop.replicas.{onLostVolume,active}` | 소실 replica의 Keeper 등록 정리 | 재수화 | `onLostVolume: yes` + `active: no`(살아있는 replica는 절대 drop 안 함) |
-| `pdbManaged` / `pdbMaxUnavailable` | PDB 자동 생성·튜닝 | 항상 | `pdbMaxUnavailable: 1`로 shard 정족수 보호 |
-| `stop` / `taskID` / `restart` / `troubleshoot` | 운영 제어 노브 | 정지·강제 재조정·디버깅 | 노드 소실 복구 시 `taskID` patch로 재조정 트리거(§5) |
+- **`clusters[].layout.shardsCount/replicasCount`** · 토폴로지 격자 — 용량·내구성 스케일 시 조정. replica↑=자동, shard↑=수동 리샤딩(§5). 로컬 NVMe는 replica ≥ 2 하한.
+- **`zookeeper.keeper.name`** · CHK 이름 참조 — 0.27.0+ 항상 권장. 참조 CHK 엔드포인트 변경 시 의존 CHI 자동 재리컨사일.
+- **`settings` / `files`** · config.xml / 임의 XML — 커스텀 설정·dictionary·티어링 시 조정. **반드시 이 필드로만** 주입. 외부 볼륨/ArgoCD 직접 마운트는 렌더 충돌 → CrashLoop(#1456).
+- **`insert_quorum` / `_timeout` / `select_sequential_consistency`** · 쓰기 내구성(ack 전 확정 replica 수) — 미복제 손실을 못 견디는 쓰기에 조정. **`profiles`(users.xml)로 주입**(세션 레벨 — `settings`에 두면 무효). 확정 replica 정족수 미달·재수화 창엔 쓰기 차단(가용성↓). RF3와 짝(§2 '쓰기 내구성 노브').
+- **`users`/`profiles`/`quotas`** · users.xml — 계정·권한 조정 시. 시크릿은 `k8s_secret_password`로(평문 금지). 업그레이드 시 `clickhouse_operator` 프로파일 소실 주의(#1744).
+- **`podDistribution` + `topologySpreadConstraints`** · 배치 강제 — AZ/노드 분산 조정 시. shard-aware는 podDistribution, AZ 균등 하드 제약(`whenUnsatisfiable: DoNotSchedule`)은 topologySpread. 병용.
+- **`reconcile.host.wait.replicas.new`** · 신규 replica catch-up 대기 — scale-out·재수화 시. `new: "yes"`로 따라잡을 때까지 다음 단계 대기.
+- **`reconcile.statefulSet.update.onFailure`** · STS 업데이트 실패 처리 — 롤링 안전장치. `rollback`(이전 Generation) / `abort` / `ignore`.
+- **`reconcile.statefulSet.recreate.onDataLoss`** · 볼륨 소실 시 STS 재생성 — 로컬 NVMe 노드 소실 시. `recreate`로 두면 재수화 자동화의 일부.
+- **`reconcile.host.drop.replicas.{onLostVolume,active}`** · 소실 replica의 Keeper 등록 정리 — 재수화 시. `onLostVolume: yes` + `active: no`(살아있는 replica는 절대 drop 안 함).
+- **`pdbManaged` / `pdbMaxUnavailable`** · PDB 자동 생성·튜닝 — 항상 적용. `pdbMaxUnavailable: 1`로 shard 정족수 보호.
+- **`stop` / `taskID` / `restart` / `troubleshoot`** · 운영 제어 노브 — 정지·강제 재조정·디버깅 시. 노드 소실 복구 시 `taskID` patch로 재조정 트리거(§5).
 
 ## 5. 운영 런북
 

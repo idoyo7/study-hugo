@@ -49,12 +49,12 @@ Datadog RUM이 **RWoL(RUM without Limits)** 재요율로 실질 ~2배 인상되�
 
 | 페이지 | 내용 |
 |---|---|
-| [HyperDX / ClickStack 심층 분석]({{< relref "01-hyperdx-deep-dive.md" >}}) | 도입 실사 — 연혁·4컴포넌트 아키텍처·배포 6모드·기능 성숙도·라이선스·OSS 접근통제 갭(RBAC Managed 전용)과 완화 경로 |
-| [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}}) | Datadog RUM 기능 전수 vs `@hyperdx/browser` 격차 매트릭스 + RUM 4슬라이스 판정(Core 🟢/Frustration 🟡/PA·Mobile 🔴), 전례 부재 → PoC를 Wave 1 게이트로 |
-| [Datadog 프로토콜 프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}}) | dd 프로토콜 프록시는 Agent intake(로그/메트릭/APM)에만 성립하고 브라우저 RUM엔 불성립 — 과도기 브릿지로만, RUM은 SDK 교체 |
-| [Datadog 전 제품군 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}) | 전 제품군을 🟢즉시/🟡조건부/🔴유지 3분류로 지도화, 메트릭은 VictoriaMetrics+Grafana로 분리, Wave 이관 전략·비용 함정 |
-| [마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}}) | Executive 판정·리스크 Top5·Sprint 1~6+ 게이트 체크리스트·오픈 퀘스천·로깅 챕터와의 전제 차이 조정 |
-| [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}}) | MongoDB의 역할(전량 메타데이터)·부하가 데이터량이 아닌 사용자·설정 수에 비례한다는 근거·배포 경로별 형태(compose 무인증/Helm members:1)·운영 가이드 공백·무인증 노출 실사고 |
+| [HyperDX / ClickStack 심층 분석]({{< relref "01-hyperdx-deep-dive.md" >}}) | 도입 실사 — 연혁·아키텍처·배포 모드·기능 성숙도·라이선스·접근통제 갭과 완화 경로 |
+| [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}}) | Datadog RUM vs `@hyperdx/browser` 격차 매트릭스 + 4슬라이스 판정, PoC를 Wave 1 게이트로 |
+| [Datadog 프로토콜 프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}}) | dd 프록시는 Agent intake에만 성립, RUM엔 불성립 — 과도기 브릿지·SDK 교체 |
+| [Datadog 전 제품군 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}) | 전 제품군 3분류 지도화, 메트릭은 VM+Grafana 분리, Wave 이관·비용 함정 |
+| [마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}}) | Executive 판정·리스크 Top5·Sprint 체크리스트·오픈 퀘스천·전제 차이 조정 |
+| [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}}) | MongoDB 역할(메타데이터 전용)·부하 특성·배포 경로별 형태·운영 가이드 공백·무인증 노출 실사고 |
 | [출처]({{< relref "06-sources.md" >}}) | RUM 섹션 조사 문서의 출처 URL을 4분류(HyperDX·Datadog 공식·SDK/OTel·커뮤니티/사례) 표로 정리 |
 
 > **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻한다.

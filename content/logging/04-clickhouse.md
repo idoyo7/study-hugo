@@ -45,10 +45,21 @@ weight: 4
 
 ## 적합 / 부적합
 
-| | |
-|---|---|
-| **적합** | 대규모(수십 TB~PB/day) 로그·이벤트, 알려진/안정적 schema와 query pattern, 강한 aggregation·analytics 요구, SQL 친화 팀, 통합 저장소 야심, 비용 최적화가 절실하고 **전담 오너가 있는** 조직 |
-| **부적합** | unknown/volatile field가 지배적인 로그(임의 access log 등), 소규모·오너 없는 팀, turnkey 관리형을 원하는 경우, self-host에서 즉시 storage-compute 분리가 필요한 경우 |
+**적합**
+
+- 대규모(수십 TB~PB/day) 로그·이벤트
+- 알려진/안정적 schema와 query pattern
+- 강한 aggregation·analytics 요구
+- SQL 친화 팀
+- 통합 저장소 야심
+- 비용 최적화가 절실하고 **전담 오너가 있는** 조직
+
+**부적합**
+
+- unknown/volatile field가 지배적인 로그(임의 access log 등)
+- 소규모·오너 없는 팀
+- turnkey 관리형을 원하는 경우
+- self-host에서 즉시 storage-compute 분리가 필요한 경우
 
 StarRocks와의 정면 비교는 [ClickHouse vs StarRocks]({{< relref "07-clickhouse-vs-starrocks.md" >}}) 참고.
 

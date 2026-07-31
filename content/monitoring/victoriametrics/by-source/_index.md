@@ -31,10 +31,12 @@ weight: 4
 
 | 문서 | 게시일 | 성격 | 한 줄 요약 |
 |------|--------|------|-----------|
-| 01 [네이버 검색 SRE 시계열 DB 운영기]({{< relref "01-2024-02-sre-tsdb.md" >}}) | 2024-02 | 기사(DEVIEW 2023 기반) | SingleNode→Cluster→멀티클러스터·지표 선계산·라우팅 게이트웨이 |
-| 02 [대규모 메트릭 저장소 운영기 1편]({{< relref "02-2026-04-large-scale-metric-store.md" >}}) | 2026-04 | 기사 | 12.5억 시계열·555조 DP·180노드, Hot/Warm 2계층, 무중단 장비 전환 |
+| 01 [네이버 검색 SRE 시계열 DB 운영기]({{< relref "01-2024-02-sre-tsdb.md" >}}) | 2024-02 | 기사 | SingleNode→Cluster→멀티클러스터·지표 선계산·라우팅 게이트웨이 |
+| 02 [대규모 메트릭 저장소 운영기 1편]({{< relref "02-2026-04-large-scale-metric-store.md" >}}) | 2026-04 | 기사 | 12.5억 시계열·555조 DP·180노드, Hot/Warm 2계층, 무중단 전환 |
 | 03 [Inside VictoriaMetrics]({{< relref "03-2026-06-inside-victoriametrics.md" >}}) | 2026-06 | 발표영상 | vmagent·vminsert·vmstorage·vmselect 내부 동작 6섹션 정독 |
-| 04 [운영기 2편 — 3단계 최적화]({{< relref "04-2026-07-three-stage-optimization.md" >}}) | 2026-07 | 기사(최신) | 조회(vmselect OOM)·저장(IndexDB·RetentionPeriod)·수집(필터링) 3단계 |
+| 04 [운영기 2편 — 3단계 최적화]({{< relref "04-2026-07-three-stage-optimization.md" >}}) | 2026-07 | 기사 | 조회(vmselect OOM)·저장(IndexDB·RetentionPeriod)·수집(필터링) 3단계 |
+
+01은 DEVIEW 2023 발표를 기반으로 한 기사다.
 
 ## 주제별로 보기
 

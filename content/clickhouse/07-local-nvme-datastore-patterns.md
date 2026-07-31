@@ -73,31 +73,75 @@ weight: 7
 
 ### 로컬 디스크 활용 · 내구성 모델
 
-| 시스템 | 로컬 디스크 활용 방식 | 내구성 모델 |
-|---|---|---|
-| **ScyllaDB** | 로컬 NVMe **1차 강제**(RAID0+XFS 자동). 네트워크 스토리지=프로덕션 부적합 명시 | RF3 + 멀티 AZ rack awareness. "노드 소실=데이터 소실, 복제가 durability" |
-| **Cassandra** | 인스턴스 스토어가 범용 배포 최선(성능). EBS는 운영편의·읽기편중용 이분법 | RF3 + NetworkTopologyStrategy(1 AZ=1 rack) + hinted handoff·repair |
-| **Kafka(클래식)** | 로컬 NVMe 또는 EBS(순차 I/O라 EBS도 실용적) | RF3 복제(3 AZ), ISR·acks. 휘발성은 앱 계층 복제로 방어 |
-| **Redpanda** | 로컬 NVMe **극한 활용**(XFS + thread-per-core + 직접 I/O) | Raft 기반 파티션 replica 복제(ClickHouse RMT와 동일 원칙) |
-| **ES / OpenSearch** | hot 티어 = 로컬 NVMe 정설. frozen 노드조차 NVMe=S3 원본의 LFU 캐시 | hot=replica로 내구성(shard≤50GB). cold/frozen=snapshot이 durability |
-| **Aerospike** | 로컬 NVMe를 **raw device로 직접**(파일시스템 우회). index=RAM | RF + rack awareness + **shadow device(EBS 동기 미러)** + SC 모드 |
-| **TiKV / TiDB** | Operator: **TiKV엔 로컬 SSD 강력 권장**, PD(메타)만 gp3 | RocksDB(LSM) + Raft 3중 복제 |
-| **CockroachDB** | 로컬 SSD가 네트워크 부착보다 **우수**하다고 명시 | Pebble(LSM) + Raft. **로컬이면 RF 3→5** 상향 |
-| **ClickHouse (self-host)** | 로컬 NVMe(i7i/i8g, RAID0) 1차. gp3는 Keeper 데이터용 | ReplicatedMergeTree replica 2~3 멀티 AZ + Keeper |
+| 시스템 | 로컬 디스크 활용 방식 |
+|---|---|
+| **ScyllaDB** | 로컬 NVMe **1차 강제**(RAID0+XFS 자동). 네트워크 스토리지=프로덕션 부적합 명시 |
+| **Cassandra** | 인스턴스 스토어가 범용 배포 최선(성능). EBS는 운영편의·읽기편중용 이분법 |
+| **Kafka(클래식)** | 로컬 NVMe 또는 EBS(순차 I/O라 EBS도 실용적) |
+| **Redpanda** | 로컬 NVMe **극한 활용**(XFS + thread-per-core + 직접 I/O) |
+| **ES / OpenSearch** | hot 티어 = 로컬 NVMe 정설. frozen 노드조차 NVMe=S3 원본의 LFU 캐시 |
+| **Aerospike** | 로컬 NVMe를 **raw device로 직접**(파일시스템 우회). index=RAM |
+| **TiKV / TiDB** | Operator: **TiKV엔 로컬 SSD 강력 권장**, PD(메타)만 gp3 |
+| **CockroachDB** | 로컬 SSD가 네트워크 부착보다 **우수**하다고 명시 |
+| **ClickHouse (self-host)** | 로컬 NVMe(i7i/i8g, RAID0) 1차. gp3는 Keeper 데이터용 |
+
+같은 시스템의 내구성 모델은 표를 나눠 본다:
+
+| 시스템 | 내구성 모델 |
+|---|---|
+| **ScyllaDB** | RF3 + 멀티 AZ rack awareness. "노드 소실=데이터 소실, 복제가 durability" |
+| **Cassandra** | RF3 + NetworkTopologyStrategy(1 AZ=1 rack) + hinted handoff·repair |
+| **Kafka(클래식)** | RF3 복제(3 AZ), ISR·acks. 휘발성은 앱 계층 복제로 방어 |
+| **Redpanda** | Raft 기반 파티션 replica 복제(ClickHouse RMT와 동일 원칙) |
+| **ES / OpenSearch** | hot=replica로 내구성(shard≤50GB). cold/frozen=snapshot이 durability |
+| **Aerospike** | RF + rack awareness + **shadow device(EBS 동기 미러)** + SC 모드 |
+| **TiKV / TiDB** | RocksDB(LSM) + Raft 3중 복제 |
+| **CockroachDB** | Pebble(LSM) + Raft. **로컬이면 RF 3→5** 상향 |
+| **ClickHouse (self-host)** | ReplicatedMergeTree replica 2~3 멀티 AZ + Keeper |
 
 ### S3 티어링 대응물 · k8s local PV 성숙도 · 노드 교체 런북
 
-| 시스템 | S3 티어링(모델 A/B) | k8s local PV 성숙도 | 노드 교체 런북 핵심 |
-|---|---|---|---|
-| **ScyllaDB** | 로드맵/experimental(S3-backed keyspace). 백업은 Manager→S3 **(모델 미확정)** | **높음** — Operator가 RAID0/XFS + Local CSI + AZ=rack 자동 | replace-dead-node → RBNO(재개 가능) → file-based streaming(25×) → tablets. **인프라 내리기 전 클러스터 먼저 삭제**(순서 함정) |
-| **Cassandra** | **네이티브 없음**. TWCS + 외부백업(Medusa→S3) (모델 A 미만) | 중 — cass-operator, 로컬은 PVC-노드 고정 함정 | repair로 RF 복원 "hours to days". 완전 소실 시 전량 재스트리밍 |
-| **Kafka** | **KIP-405 GA(3.9)=모델 A**. 단 RSM(S3 어댑터) 미제공 → 직접 구현 필요 | 중 — Strimzi + Local Volume Static Provisioner. 정적 프로비저닝 함정 → Local PVC Releaser | Grab식 3-part: graceful drain → LB 재구성 → 스토리지 재부착/재sync |
-| **Redpanda** | **Tiered Storage(Shadow Indexing)=모델 A, 성숙**. `cache_service`=CH filesystem cache와 동형 | 중~높음 — 로컬 NVMe 중심 설계 | Raft 리더십 이양 + replica 재복제. 미업로드 세그먼트 로컬 삭제 방지 |
-| **ES / OpenSearch** | searchable snapshots — **OpenSearch=무료(모델 B)**, **ES=Enterprise 유료**. UltraWarm/OR1=관리형 모델 B | 중 — ECK/OpenSearch operator. "돌아가지만 아프다"(노드 소실 시 PVC/Pod 수동 삭제) | replica≥1 + shard≤50GB + `delayed_timeout`. remote-backed면 S3→replica 다운로드로 재수화 경감 |
-| **Aerospike** | **shadow device=모델 A의 원조**(EBS 동기 미러, RPO≈0) | **높음** — AKO + local-static-provisioner + raw block(volumeMode: Block) | roster 제외 → 새 노드 파티션 재동기화. shadow 있으면 같은 AZ에서 EBS→로컬 복원 |
-| **TiKV / TiDB** | TiDB Cloud(관리형)만 EBS+S3. self-host엔 네이티브 S3 티어 부재 | 중~높음 — TiDB Operator + local-volume-provisioner | Raft 재복제. **Pinterest는 MTTR 때문에 Graviton+EBS 전환 검토** |
-| **CockroachDB** | 네이티브 S3 데이터 티어 부재(백업은 S3) | 중 — cockroach-operator, ephemeral-only 수요 | 단기=Raft 무중단. 장기=자동 rebalance. **작은 노드·넓은 분산이 MTTR 최소화 원칙** |
-| **ClickHouse (self-host)** | **S3 cold tier(TTL MOVE)=모델 A, 코어 내장·성숙**. filesystem cache 필수. zero-copy 금지(#45346)→사본 배수 유지 | 중 — Altinity operator + local-path/TopoLVM. Karpenter consolidation stateful 위험 | replica에서 파트 재fetch. **재수화 TB당 시간 미측정(벤치 필요)** `?`. drain→종료→stuck PV/PVC 청소→재수화 모니터→RF 검증 |
+| 시스템 | S3 티어링(모델 A/B) |
+|---|---|
+| **ScyllaDB** | 로드맵/experimental(S3-backed keyspace). 백업은 Manager→S3 **(모델 미확정)** |
+| **Cassandra** | **네이티브 없음**. TWCS + 외부백업(Medusa→S3) (모델 A 미만) |
+| **Kafka** | **KIP-405 GA(3.9)=모델 A**. 단 RSM(S3 어댑터) 미제공 → 직접 구현 필요 |
+| **Redpanda** | **Tiered Storage(Shadow Indexing)=모델 A, 성숙**. `cache_service`=CH filesystem cache와 동형 |
+| **ES / OpenSearch** | searchable snapshots — **OpenSearch=무료(모델 B)**, **ES=Enterprise 유료**. UltraWarm/OR1=관리형 모델 B |
+| **Aerospike** | **shadow device=모델 A의 원조**(EBS 동기 미러, RPO≈0) |
+| **TiKV / TiDB** | TiDB Cloud(관리형)만 EBS+S3. self-host엔 네이티브 S3 티어 부재 |
+| **CockroachDB** | 네이티브 S3 데이터 티어 부재(백업은 S3) |
+| **ClickHouse (self-host)** | **S3 cold tier(TTL MOVE)=모델 A, 코어내장**. fs cache 필수, 사본배수 유지(zero-copy 금지) |
+
+같은 시스템의 k8s local PV 성숙도:
+
+| 시스템 | k8s local PV 성숙도 |
+|---|---|
+| **ScyllaDB** | **높음** — Operator가 RAID0/XFS + Local CSI + AZ=rack 자동 |
+| **Cassandra** | 중 — cass-operator, 로컬은 PVC-노드 고정 함정 |
+| **Kafka** | 중 — Strimzi + Local Volume Static Provisioner. 정적 프로비저닝 함정 → Local PVC Releaser |
+| **Redpanda** | 중~높음 — 로컬 NVMe 중심 설계 |
+| **ES / OpenSearch** | 중 — ECK/OpenSearch operator. "돌아가지만 아프다"(노드 소실 시 PVC/Pod 수동 삭제) |
+| **Aerospike** | **높음** — AKO + local-static-provisioner + raw block(volumeMode: Block) |
+| **TiKV / TiDB** | 중~높음 — TiDB Operator + local-volume-provisioner |
+| **CockroachDB** | 중 — cockroach-operator, ephemeral-only 수요 |
+| **ClickHouse (self-host)** | 중 — Altinity operator + local-path/TopoLVM. Karpenter consolidation stateful 위험 |
+
+같은 시스템의 노드 교체 런북 핵심:
+
+| 시스템 | 노드 교체 런북 핵심 |
+|---|---|
+| **ScyllaDB** | replace-dead-node → RBNO(재개가능) → file-based streaming(25×) → tablets. **클러스터 먼저 삭제**(순서 함정) |
+| **Cassandra** | repair로 RF 복원 "hours to days". 완전 소실 시 전량 재스트리밍 |
+| **Kafka** | Grab식 3-part: graceful drain → LB 재구성 → 스토리지 재부착/재sync |
+| **Redpanda** | Raft 리더십 이양 + replica 재복제. 미업로드 세그먼트 로컬 삭제 방지 |
+| **ES / OpenSearch** | replica≥1 + shard≤50GB + `delayed_timeout`. remote-backed면 S3→replica 다운로드로 재수화 경감 |
+| **Aerospike** | roster 제외 → 새 노드 파티션 재동기화. shadow 있으면 같은 AZ에서 EBS→로컬 복원 |
+| **TiKV / TiDB** | Raft 재복제. **Pinterest는 MTTR 때문에 Graviton+EBS 전환 검토** |
+| **CockroachDB** | 단기=Raft 무중단. 장기=자동 rebalance. **작은 노드·넓은 분산이 MTTR 최소화 원칙** |
+| **ClickHouse (self-host)** | replica에서 파트 재fetch. 재수화 TB당 시간 미측정 `?`. drain→종료→PV/PVC청소→모니터→RF검증 |
+
+ScyllaDB의 노드 교체는 **인프라(EC2 인스턴스 등)를 내리기 전에 클러스터에서 먼저 삭제**해야 하는 순서 함정이 있다. ClickHouse의 재수화 TB당 시간은 미측정이라 **스테이징 벤치마크가 필요**하며, drain 이후 청소 대상은 정확히는 **stuck 상태의 PV/PVC**이고 그다음 단계는 **재수화 진행 모니터링**이다.
 
 ## 수렴점 5개와 시스템별 예외
 
@@ -129,7 +173,7 @@ weight: 7
 | 사례 | 시스템 | 무엇을 증명하나 | 등급 |
 |---|---|---|---|
 | **Discord** | Cassandra→ScyllaDB | 조(兆) 단위 메시지, 로컬 NVMe RAID0 + persistent disk RAID1 미러 하이브리드 | `✓` |
-| **Apple** | Cassandra | 세계 최대급 Cassandra 플릿(수십만 노드 — 약 300,000, 1,000+ 클러스터) — 로컬 디스크 대규모 검증 | `≈`(컨퍼런스·HN) |
+| **Apple** | Cassandra | 세계 최대급 Cassandra 플릿(약 300,000 노드, 1,000+ 클러스터) — 로컬 디스크 검증 | `≈`(컨퍼런스·HN) |
 | **Netflix** | Cassandra / CockroachDB | 재스트리밍 우회용 EBS 스냅샷 플래싱(C축 지속 티어의 대표형) | `✓`/`Ⓥ` |
 | **Uber** | Cassandra | tens of millions QPS, 단일 존 장애 내성 설계 | `✓` |
 | **Pinterest** | TiDB | i4i.4xlarge 로컬 NVMe 운영 중 **MTTR 때문에 Graviton+EBS 검토**(반례) | `✓` |
@@ -161,12 +205,10 @@ weight: 7
 
 **벤치마킹·이식할 런북** `Σ`:
 
-| 대상 | 벤치마킹 소스 | 이식할 내용 |
-|---|---|---|
-| 노드 교체 3-part 런북 | Grab(Kafka on EKS) | graceful drain(PDB) → LB·endpoint 재구성 → replica 재수화/백업 복원 |
-| 재수화 MTTR 실측 | ScyllaDB streaming·CockroachDB 원칙 | 스테이징에서 노드를 죽여 TB당 재수화 시간 측정 → SLA·노드당 데이터 상한 결정 |
-| 로컬 PV 자동화 | ScyllaDB Operator NodeConfig | RAID0/XFS 부트스트랩 + static provisioner + WaitForFirstConsumer + AZ=rack + stuck 청소 |
-| stuck PVC 자동 청소 | Kafka Local PVC Releaser | 노드 종료 감시 → stuck PVC 자동 삭제 → operator claim 재생성 |
-| MTTR 완화 하이브리드 | Pinterest EBS 검토·Aerospike shadow | MTTR이 SLA 위협 시 cold replica를 EBS로 두는 하이브리드 검토(성능 vs MTTR 저울질) |
+- **노드 교체 3-part 런북** · 소스: Grab(Kafka on EKS) — graceful drain(PDB) → LB·endpoint 재구성 → replica 재수화/백업 복원.
+- **재수화 MTTR 실측** · 소스: ScyllaDB streaming·CockroachDB 원칙 — 스테이징에서 노드를 죽여 TB당 재수화 시간 측정 → SLA·노드당 데이터 상한 결정.
+- **로컬 PV 자동화** · 소스: ScyllaDB Operator NodeConfig — RAID0/XFS 부트스트랩 + static provisioner + WaitForFirstConsumer + AZ=rack + stuck 청소.
+- **stuck PVC 자동 청소** · 소스: Kafka Local PVC Releaser — 노드 종료 감시 → stuck PVC 자동 삭제 → operator claim 재생성.
+- **MTTR 완화 하이브리드** · 소스: Pinterest EBS 검토·Aerospike shadow — MTTR이 SLA 위협 시 cold replica를 EBS로 두는 하이브리드 검토(성능 vs MTTR 저울질).
 
 **한 줄 결론** `Σ`: **9개 데이터스토어의 대규모 프로덕션은 예외 없이 "로컬 NVMe 1차 + 복제 내구성 + 복제 위 지속 티어 + 노드 교체 자동화"로 수렴하며, ClickHouse + EKS + i7i/i8g self-host는 이 정설과 정확히 부합한다. 유일하게 새로 벼려야 할 것은 (a) 재수화 MTTR 실측·관리, (b) cross-AZ 비용의 TCO 반영, (c) UltraWarm식 "S3=사본 절감" 오해의 교정, (d) EKS local PV 노드 교체 런북의 사전 리허설이다.** 이 결정을 ClickHouse에서 구현하는 방법은 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})·[Altinity operator]({{< relref "03-operator.md" >}})가 이어받는다.

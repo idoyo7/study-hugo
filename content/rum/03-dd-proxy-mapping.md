@@ -20,11 +20,13 @@ weight: 3
 
 | 신호 | 프록시 성립? | 근거 | 기성 수신부 |
 |---|:---:|---|---|
-| **로그** (`/api/v2/logs`) | ✅ | datadogreceiver·Vector 모두 수신·변환 경로 있음 `✓` | datadogreceiver(logs), Vector `datadog_agent`(logs GA) |
-| **인프라/커스텀 메트릭** (`/api/v1,v2/series`, sketches, `/intake`) | ✅ (주의) | 수신은 되나 temporality(delta↔cumulative)·sketch 매핑에 검증 부담 `✓` | datadogreceiver(metrics, alpha) |
-| **APM 트레이스** (`/v0.3~/v0.7/traces`) | ✅ (alpha) | msgpack 디코드 + 128-bit trace ID 재구성 필요, 성숙도 alpha `✓` | datadogreceiver(traces, alpha) |
-| **브라우저 RUM** (`/api/v2/rum`) | ❌ | datadogreceiver·Vector 모두 **수신 대상 아님**, RUM→OTLP 공개 변환기 부재 `✓` | 없음 |
-| **세션 리플레이** (별도 세그먼트 경로) | ❌ | 별도 바이너리 세그먼트 포맷, 프록시 경유 시 대시보드 로딩 실패 사례 `✓` | 없음 |
+| **로그** (`/api/v2/logs`) | ✅ | datadogreceiver·Vector 모두 지원 `✓` | datadogreceiver, Vector |
+| **인프라/커스텀 메트릭** (`/v1,v2/series` 등) | ✅ (주의) | 수신되나 검증 부담 큼 `✓` | datadogreceiver |
+| **APM 트레이스** (`/v0.3~/v0.7/traces`) | ✅ (alpha) | msgpack 디코드·trace ID 재구성 필요 `✓` | datadogreceiver |
+| **브라우저 RUM** (`/api/v2/rum`) | ❌ | **수신 대상 아님**, 공개 변환기 부재 `✓` | 없음 |
+| **세션 리플레이** (별도 세그먼트 경로) | ❌ | 별도 바이너리 포맷, 로딩 실패 사례 `✓` | 없음 |
+
+성숙도는 datadogreceiver(세 신호 모두 alpha)와 Vector `datadog_agent`(로그 GA·메트릭 beta·트레이스 alpha) 기준이며, 상세는 아래 §기성 수신부 비교에서 다룬다. 인프라/커스텀 메트릭은 `/api/v1,v2/series`, sketches, `/intake` 등 여러 엔드포인트를 아우르고, 검증 부담은 temporality(delta↔cumulative)·sketch 매핑에서 온다. 브라우저 RUM은 datadogreceiver·Vector 모두 수신 대상이 아니고 RUM→OTLP 공개 변환기가 없다. 세션 리플레이는 별도 바이너리 세그먼트 포맷이라 프록시 경유 시 대시보드 로딩 실패 사례가 있다.
 
 핵심은 `datadogreceiver`가 구현하는 엔드포인트 목록이 곧 프록시 성립 범위라는 점이다. 이 목록은 전부 **Datadog Agent가 보내는 인테이크**(트레이스/메트릭/로그)이고, **브라우저 SDK가 보내는 `/api/v2/rum`은 아예 빠져 있다** `✓`. 브라우저 RUM을 재활용하려면 NDJSON 디코더와 RUM→OTel 트랜슬레이터를 직접 써야 하는데, 이를 대신해 줄 공개 오픈소스는 조사 범위 내에 없다 `✓`.
 
@@ -81,16 +83,14 @@ Datadog browser-sdk에는 인테이크 트래픽을 자체 엔드포인트로 �
 사용자 전제("dd agent/trace 오픈소스 참조")대로 자작한다면 참조할 파일 경로다. 라이선스는 우호적이다 — datadog-agent user-space·browser-sdk는 Apache-2.0, dd-trace-js/rb/go는 Apache-2.0/BSD-3 듀얼이라 **참조·부분 파생·상업 이용이 합법**이다(BPF/system-probe 코드만 GPL-2.0 주의) `✓`. datadogreceiver 자체가 이미 dd 인테이크를 리버스 구현한 Apache-2.0 코드라 "참조 파생"의 선례가 존재한다.
 
 {{% details title="자작 시 참조 레포·경로 전수" closed="true" %}}
-| 레포 | 경로 | 역할 |
-|---|---|---|
-| **DataDog/browser-sdk** | `packages/js-core/src/transport/endpointBuilder.ts` (구현) | 인테이크 URL 빌더(`ddforward`·origin·path 조립). **구버전 단일 `packages/core/` 경로는 죽은 경로** — 레포가 `browser-core`/`js-core`로 분리됨 |
-| 〃 | `packages/browser-core/src/domain/configuration/endpointBuilder.spec.ts` | 위 빌더의 스펙 |
-| 〃 | `packages/js-core/src/transport/` | HttpRequest·Batch·flush, NDJSON 직렬화·압축·`proxy` 적용 지점 |
-| **DataDog/rum-events-format** | `schemas/` (browser/mobile), `lib/` | RUM 이벤트 스키마 소스 오브 트루스(`yarn generate`) |
-| **DataDog/datadog-agent** | `pkg/trace/api/api.go`, `endpoints.go` | APM trace 인테이크 핸들러(v0.1~v0.7 등록), msgpack/JSON 디코드 |
-| 〃 | `comp/otelcol/` | Agent 내장 OTel Collector(DDOT) 컴포넌트 |
-| **otel-collector-contrib** | `receiver/datadogreceiver/receiver.go` + translator 서브패키지 | dd payload→pdata 변환 참조 구현. **RUM 변환 코드는 없음** — RUM 매핑은 신규 작성 |
-| **hyperdxio/hyperdx-js** | `@hyperdx/browser`, `@hyperdx/otel-web`, `@hyperdx/otel-web-session-recorder` | 대체 SDK. 기본 인테이크 `https://in-otel.hyperdx.io`(OTLP HTTP), self-host는 `url` 옵션 |
+- **DataDog/browser-sdk** · `packages/js-core/src/transport/endpointBuilder.ts`(구현) — 인테이크 URL 빌더(`ddforward`·origin·path 조립). **구버전 단일 `packages/core/` 경로는 죽은 경로** — 레포가 `browser-core`/`js-core`로 분리됨.
+- **DataDog/browser-sdk** · `packages/browser-core/src/domain/configuration/endpointBuilder.spec.ts` — 위 빌더의 스펙.
+- **DataDog/browser-sdk** · `packages/js-core/src/transport/` — HttpRequest·Batch·flush, NDJSON 직렬화·압축·`proxy` 적용 지점.
+- **DataDog/rum-events-format** · `schemas/`(browser/mobile), `lib/` — RUM 이벤트 스키마 소스 오브 트루스(`yarn generate`).
+- **DataDog/datadog-agent** · `pkg/trace/api/api.go`, `endpoints.go` — APM trace 인테이크 핸들러(v0.1~v0.7 등록), msgpack/JSON 디코드.
+- **DataDog/datadog-agent** · `comp/otelcol/` — Agent 내장 OTel Collector(DDOT) 컴포넌트.
+- **otel-collector-contrib** · `receiver/datadogreceiver/receiver.go` + translator 서브패키지 — dd payload→pdata 변환 참조 구현. **RUM 변환 코드는 없음** — RUM 매핑은 신규 작성.
+- **hyperdxio/hyperdx-js** · `@hyperdx/browser`, `@hyperdx/otel-web`, `@hyperdx/otel-web-session-recorder` — 대체 SDK. 기본 인테이크 `https://in-otel.hyperdx.io`(OTLP HTTP), self-host는 `url` 옵션.
 
 RUM 프록시를 자작할 경우 설계는 **수신(proxy 함수로 `/api/v2/rum` 유도 → 압축 해제 → NDJSON 분해) → 파싱(rum-events-format 검증) → 매핑(View/Action/Resource→spans, Error→log record) → export(OTLP)**가 된다. 세션 리플레이는 rrweb 스키마 재직렬화가 필요해 난이도가 높고, 초기엔 제외하는 것이 현실적이다 `≈`. 정리하면 datadogreceiver의 traces/logs translator를 모범 사례로 참조하되, **RUM NDJSON→OTel 매핑과 리플레이 재직렬화는 전부 신규 개발**이다.
 {{% /details %}}

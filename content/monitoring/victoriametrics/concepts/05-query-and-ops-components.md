@@ -68,11 +68,9 @@ vmselect 내부에서 쿼리는 3단계 prefix로 풀린다. [04 저장]({{< rel
 
 **파싱과 캐싱**: 먼저 PromQL 문자열을 구조화된 데이터로 파싱한다. 어떤 함수인지, 필터는 어떻게 걸렸는지, 시간 윈도는 얼마인지를 뽑아낸다. **이 파싱 결과 자체도 캐싱**해 같은 형태의 쿼리를 매번 다시 파싱하지 않는다.
 
-| 단계 | 변환 | 하는 일 |
-|------|------|---------|
-| **Prefix 1** | 태그 → Metric ID | 태그 필터를 IndexDB에 전달해 매칭되는 Metric ID를 식별. 인메모리 캐시를 먼저 확인한다. `name`·`method`·`status` 등 **여러 레이블 조건의 교집합**에 해당하는 Metric ID를 모은다. |
-| **Prefix 2** | Metric ID → TSID | 모인 Metric ID를 TSID로 변환한다. (예: Metric ID 49가 어떤 TSID인지 조회) |
-| **Prefix 3** | TSID → 값·이름 복원 | TSID로 Value와 Timestamp를 가져오고, 응답에 넣을 **지표 이름과 레이블을 역으로 복원**한다. |
+1. **Prefix 1** · 태그 → Metric ID — 태그 필터를 IndexDB에 전달해 매칭되는 Metric ID를 식별한다. 인메모리 캐시를 먼저 확인하고, `name`·`method`·`status` 등 **여러 레이블 조건의 교집합**에 해당하는 Metric ID를 모은다.
+2. **Prefix 2** · Metric ID → TSID — 모인 Metric ID를 TSID로 변환한다(예: Metric ID 49가 어떤 TSID인지 조회).
+3. **Prefix 3** · TSID → 값·이름 복원 — TSID로 Value와 Timestamp를 가져오고, 응답에 넣을 **지표 이름과 레이블을 역으로 복원**한다.
 
 결과적으로 `http_requests_total{method="get", status="200"}` 같은 필터가 "그 시계열의 값이 몇이다"로 완성된다. 쓰기 시점에 이름 → TSID로 정규화했던 것을, 읽기 시점에 TSID → 이름으로 되돌리는 대칭 구조다.
 

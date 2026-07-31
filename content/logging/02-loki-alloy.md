@@ -44,9 +44,11 @@ Grafana 진영의 로그 집계 스택(AGPLv3). 로그 **본문이 아니라 라
 
 | | 배치 모드 | 대략 상한 | 비고 |
 |---|---|---|---|
-| **Monolithic**(HA 2–3 replica) | small | **~20GB/day**(Grafana 가이드) `Ⓥ`, HA+S3로 현실적으로 low-hundreds GB/day | 운영 최단순. blooms 미지원. **istio access-log의 sweet spot.** |
-| **Simple Scalable(SSD)** | middle | **~1TB/day** `≈` | **DEPRECATED — Loki 4.0에서 제거.** 지금 이 위에 짓는 건 sunset feature 위에 짓는 것. |
+| **Monolithic**(HA 2–3 replica) | small | **~20GB/day** `Ⓥ` | 운영 최단순. blooms 미지원. **istio access-log의 sweet spot.** |
+| **Simple Scalable(SSD)** | middle | **~1TB/day** `≈` | **DEPRECATED — Loki 4.0에서 제거.** sunset feature 위에 짓는 셈이다. |
 | **Distributed** | large | **multi-TB/day** `≈` | 가장 복잡. blooms에 필요. 전담 owner 필수. |
+
+Monolithic 상한 ~20GB/day는 Grafana 공식 가이드 기준이며, HA+S3 구성에서는 실질적으로 low-hundreds GB/day까지 늘어난다.
 
 - **적합**: 이미 Grafana를 쓰는 팀 · low-cardinality · high-volume · label-filterable 로그 · cost-sensitive · 짧은~중간 보존. istio ingress access log(~100–300GB/day, JSON, structured metadata로 고카디널리티 필드 격리)에 거의 완벽히 맞는다.
 - **부적합**: search-heavy · high-cardinality · 서비스 전반 ad-hoc 풀텍스트 · archive spelunking. 전체 app 로그(~2TB/day)는 distributed를 강제하고 풀텍스트가 downgrade되어 Loki가 가장 자주 실망시키는 워크로드다.

@@ -21,12 +21,14 @@ weight: 1
 
 | 문서 | 주제 | 한 줄 요약 |
 |------|------|-----------|
-| [01 TSDB와 VictoriaMetrics]({{< relref "01-tsdb-and-victoriametrics.md" >}}) | 기초·소개 | 시계열이란, metric 4타입, "대용량"의 정의, VM의 위치와 TSDB 히스토리(Prometheus·Gorilla·Thanos·Cortex) |
+| [01 TSDB와 VM]({{< relref "01-tsdb-and-victoriametrics.md" >}}) | 기초·소개 | 시계열·metric 4타입·"대용량", VM 위치, TSDB 히스토리(Prometheus·Gorilla·Thanos·Cortex) |
 | [02 아키텍처]({{< relref "02-architecture.md" >}}) | 큰 그림 | 4컴포넌트 데이터 흐름, SingleNode vs Cluster, LSM 트리, IndexDB/DataDB 분리 |
 | [03 수집]({{< relref "03-ingestion.md" >}}) | vmagent·vminsert | vmagent 7단계 파이프라인·유실 방지 큐, vminsert 랑데부 해싱·페일오버·복제 |
 | [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}}) | vmstorage | TSID·파티션·머지·retention·IndexDB 로테이션, Delta/Delta-of-Delta 압축(0.92B 실증) |
-| [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) | vmselect·vmalert·vmauth | fanout·3-prefix 검색·캐시·latency offset, 선계산(vmalert), 라우팅 게이트웨이(vmauth) |
+| [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}}) | vmselect·vmalert·vmauth | fanout·3-prefix 검색·캐시, vmalert 선계산, vmauth 라우팅 |
 | [06 소스맵]({{< relref "06-sources.md" >}}) | 참고 | 발표 영상·기사·전사본 원본 가이드 |
+
+05는 vmselect의 캐시 계층에서 `latency offset`도 함께 다룬다.
 
 ## 읽는 순서
 

@@ -27,7 +27,7 @@ kubelet은 이미 `Ready`, `MemoryPressure`, `DiskPressure`, `PIDPressure`, `Net
 
 | 모니터 | 입력 | 출력 |
 |---|---|---|
-| **SystemLogMonitor** | 시스템·커널 로그 (kernel / filelog / kmsg / abrt / systemd 소스) | 정규식 매칭 결과를 NodeCondition 또는 Event로 |
+| **SystemLogMonitor** | 시스템·커널 로그(kernel/filelog/kmsg/abrt/systemd) | 매칭 결과를 NodeCondition/Event로 |
 | **SystemStatsMonitor** | 호스트 메트릭 | 메트릭만 수집. 현재 NodeCondition은 보고하지 않는다 |
 | **CustomPluginMonitor** | 사용자 정의 스크립트 | 스크립트 종료 코드 기반 NodeCondition/Event (기본 샘플: NTPProblem) |
 | **HealthChecker** | kubelet · 컨테이너 런타임 헬스 | `KubeletUnhealthy`, `ContainerRuntimeUnhealthy` |
@@ -47,11 +47,16 @@ kubelet은 이미 `Ready`, `MemoryPressure`, `DiskPressure`, `PIDPressure`, `Net
 |---|---|---|
 | `KernelDeadlock` | Condition | `kernel-monitor.json` |
 | `XfsShutdown`, `CperHardwareErrorFatal` | Condition | `kernel-monitor.json` |
-| `OOMKilling`, `TaskHung`, `KernelOops`, `Ext4Error`, `Ext4Warning`, `IOError`, `UnregisterNetDevice` | Event | `kernel-monitor.json` |
+| `OOMKilling`·`TaskHung`·`KernelOops`·`Ext4Error`·`Ext4Warning`·`IOError`·`UnregisterNetDevice` | Event | `kernel-monitor.json` |
 | `ReadonlyFilesystem` (reason `FilesystemIsReadOnly` / `FilesystemIsNotReadOnly`) | Condition | `readonly-monitor.json` |
-| `FrequentKubeletRestart`, `FrequentDockerRestart`, `FrequentContainerdRestart` | Condition + 대응 Event | `systemd-monitor-counter.json` (20분 내 5회 재시작 기준) |
+| `FrequentKubeletRestart` | Condition + 대응 Event | `systemd-monitor-counter.json` |
+| `FrequentDockerRestart` | Condition + 대응 Event | `systemd-monitor-counter.json` |
+| `FrequentContainerdRestart` | Condition + 대응 Event | `systemd-monitor-counter.json` |
 | `CorruptDockerOverlay2` | Condition | `docker-monitor-counter.json` |
-| `KubeletUnhealthy`, `ContainerRuntimeUnhealthy` | Condition | `health-checker-kubelet.json`, `health-checker-docker.json`, `health-checker-containerd.json` |
+| `KubeletUnhealthy` | Condition | `health-checker-kubelet.json` |
+| `ContainerRuntimeUnhealthy` | Condition | `health-checker-docker.json`·`health-checker-containerd.json` |
+
+`systemd-monitor-counter.json`은 20분 내 5회 재시작을 기준으로 판정한다.
 
 ## 4. 배포와 설정
 
@@ -86,7 +91,7 @@ NPD는 상태를 보고할 뿐 노드를 격리하거나 교체하지 않는다.
 
 | remedy system | 동작 | 유지보수 상태 |
 |---|---|---|
-| Descheduler | `RemovePodsViolatingNodeTaints` 전략으로 NoSchedule taint 위반 파드를 축출. 스케줄러의 `TaintNodesByCondition` 활성화가 전제 | 활성 |
+| Descheduler | `RemovePodsViolatingNodeTaints`로 NoSchedule taint 위반 파드 축출(`TaintNodesByCondition` 전제) | 활성 |
 | mediK8S | Node Health Check Operator(NHC)와 remediator(예: Poison-Pill) 조합 | 활성 |
 | MachineHealthCheck | Cluster API의 노드 헬스 체크·교체 | 활성 |
 
@@ -96,14 +101,12 @@ Draino는 현재 NPD README의 remedy system 목록에 없다. Draino 자체 REA
 
 ## 6. EKS에서의 선택
 
-| | NPD | eks-node-monitoring-agent + node auto repair |
-|---|---|---|
-| **탐지 범위** | 커널 로그 패턴, systemd 재시작 카운터, 파일시스템, kubelet·런타임 헬스, 사용자 플러그인 | AcceleratedHardware · ContainerRuntime · Kernel · Networking · Storage 카테고리의 노드 로그 |
-| **컨디션** | `KernelDeadlock`, `ReadonlyFilesystem`, `FrequentKubeletRestart` 등 커스텀 다수 | `AcceleratedHardwareReady`, `ContainerRuntimeReady`, `KernelReady`, `NetworkingReady`, `StorageReady` |
-| **조치 여부** | 없음. remedy system 필요 | 있음. `Replace` / `Reboot` / `NoAction` |
-| **조치 트리거** | (해당 없음) | 기본은 kubelet `Ready`가 False/Unknown으로 30분. 에이전트 설치 시 위 5개 조건도 소비 — `AcceleratedHardwareReady` 10분, 나머지 30분 |
-| **관리 주체** | 자체 배포·룰 관리 | AWS 관리형 애드온. 2026-02 오픈소스화(`aws/eks-node-monitoring-agent`) |
-| **적용 대상** | 배포 가능한 모든 클러스터 | EKS 전용, Linux 전용(Windows 미지원) |
+- **탐지 범위** — NPD: 커널 로그 패턴, systemd 재시작 카운터, 파일시스템, kubelet·런타임 헬스, 사용자 플러그인. eks-node-monitoring-agent: AcceleratedHardware·ContainerRuntime·Kernel·Networking·Storage 카테고리의 노드 로그.
+- **컨디션** — NPD: `KernelDeadlock`, `ReadonlyFilesystem`, `FrequentKubeletRestart` 등 커스텀 다수. eks-node-monitoring-agent: `AcceleratedHardwareReady`, `ContainerRuntimeReady`, `KernelReady`, `NetworkingReady`, `StorageReady`.
+- **조치 여부** — NPD: 없음, remedy system 필요. eks-node-monitoring-agent: 있음 — `Replace` / `Reboot` / `NoAction`.
+- **조치 트리거** — NPD: 해당 없음. eks-node-monitoring-agent: 기본은 kubelet `Ready`가 False/Unknown으로 30분. 에이전트 설치 시 위 5개 조건도 소비 — `AcceleratedHardwareReady` 10분, 나머지 30분.
+- **관리 주체** — NPD: 자체 배포·룰 관리. eks-node-monitoring-agent: AWS 관리형 애드온. 2026-02 오픈소스화(`aws/eks-node-monitoring-agent`).
+- **적용 대상** — NPD: 배포 가능한 모든 클러스터. eks-node-monitoring-agent: EKS 전용, Linux 전용(Windows 미지원).
 
 Karpenter의 Node Repair도 같은 조건 집합을 소비한다. `NodeRepair=true` feature gate로 활성화하며, NodePool 내 unhealthy 노드가 20%를 넘으면 연쇄 장애 방지를 위해 repair를 중단한다.
 

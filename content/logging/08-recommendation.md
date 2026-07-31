@@ -54,15 +54,13 @@ weight: 8
 
 ## 저후회(low-regret) 시퀀싱
 
-| 시점 | 내용 | 성공 기준 |
-|---|---|---|
-| **Week 0 — 공짜 이득** | Envoy JSON 액세스 로그 켜기 · Datadog 7일 로그 중복 제거 · hot만 1yr RI · Datadog 갱신일/Order Form 확인 | 즉시 절감 + 의사결정 데이터 |
-| **Week 2–8 — 키스톤** | **OTel Collector 스파인 구축.** 이후 모든 백엔드 결정이 exporter 한 줄로 수렴 | 모든 소스가 Collector 경유 |
-| **Sprint — istio 부활 (D1)** | envoyOtelAls → Collector → VictoriaLogs. **오너 지정 + 런북 + 알림** | Grafana 조회 + 유실 알림 동작 |
-| **Month 2–4 — dual-write (D2)** | Collector에서 OpenSearch + VictoriaLogs 동시 기록 → 검증 후 보존 90d→7d, UltraWarm 축소 | 실장애 2–4건을 새 스택으로 해결 |
-| **Month 4–6 — OpenSearch 은퇴 (D2)** | UltraWarm 제거 → hot 축소·OR 이전 → 벌크 은퇴 (**여기서 $200–365K 실현**) | "옛 시스템 확인" 0건 |
-| **Month 5–8 — RUM 트랙 (D3)** | 웹 → ClickStack PoC / 모바일 → Datadog 잔류, 갱신 협상 반영 | 갱신 전 서면 할인 유지 확보 |
-| **Month 8+ — 선택적 통합 (D4)** | traces+RUM 통합이 우선순위가 되면 ClickHouse/ClickStack. **메트릭은 제외** | 통합 명분·오너 확보 시에만 |
+- **Week 0 — 공짜 이득** · Envoy JSON 액세스 로그 켜기 · Datadog 7일 로그 중복 제거 · hot만 1yr RI · Datadog 갱신일/Order Form 확인 — 성공 기준: 즉시 절감 + 의사결정 데이터.
+- **Week 2–8 — 키스톤** · **OTel Collector 스파인 구축.** 이후 모든 백엔드 결정이 exporter 한 줄로 수렴 — 성공 기준: 모든 소스가 Collector 경유.
+- **Sprint — istio 부활 (D1)** · envoyOtelAls → Collector → VictoriaLogs. **오너 지정 + 런북 + 알림** — 성공 기준: Grafana 조회 + 유실 알림 동작.
+- **Month 2–4 — dual-write (D2)** · Collector에서 OpenSearch + VictoriaLogs 동시 기록 → 검증 후 보존 90d→7d, UltraWarm 축소 — 성공 기준: 실장애 2–4건을 새 스택으로 해결.
+- **Month 4–6 — OpenSearch 은퇴 (D2)** · UltraWarm 제거 → hot 축소·OR 이전 → 벌크 은퇴(**여기서 $200–365K 실현**) — 성공 기준: "옛 시스템 확인" 0건.
+- **Month 5–8 — RUM 트랙 (D3)** · 웹 → ClickStack PoC / 모바일 → Datadog 잔류, 갱신 협상 반영 — 성공 기준: 갱신 전 서면 할인 유지 확보.
+- **Month 8+ — 선택적 통합 (D4)** · traces+RUM 통합이 우선순위가 되면 ClickHouse/ClickStack. **메트릭은 제외** — 성공 기준: 통합 명분·오너 확보 시에만.
 
 **거버넌스(PLG 재발 방지)**: 스택별 명시적 오너 1인 + 런북 + "수집기는 분기별 업그레이드" 캘린더 + 수집 파이프라인 자체에 대한 알림(로그 유입량 급감 = 페이지).
 

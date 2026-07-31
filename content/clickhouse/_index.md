@@ -32,13 +32,11 @@ ClickHouse를 **어떻게 운영할지**를 다루는 도메인이다. "채택�
 
 ## 핵심 결정 요약
 
-| 축 | 결정 | 조건 · 근거 |
-|---|---|---|
-| **배포** | EKS 자체 운영(self-host) | 인력 보유 + 20TB+ 24/7 + 스토리지 성능 요구 세 조건이 겹칠 때만. Cloud의 유일한 구조적 우위(people TCO 흡수)가 이미 상쇄된 경우다 `≈`. 그 밖이면 managed(Cloud/BYOC·Altinity.Cloud) |
-| **인스턴스** | i8g 우선 / i7i 차선 | i8g는 Graviton4·최신 Nitro SSD, i7i와 IOPS 동일·~9% 저렴, ClickHouse ARM64 궁합 `✓`. x86 의존(사이드카 바이너리) 있으면 i7i, 초고밀도면 i7ie/i3en `✓` |
-| **스토리지** | 로컬 NVMe(hot) + S3(cold, TTL MOVE) | 로컬 NVMe는 network block 대비 5~10x 빠르나 휘발성 → **내구성은 디스크가 아니라 복제로** `✓`. **zero-copy replication 금지**(22.8+ 기본 비활성, 데이터 손실 이슈 다수·issue #45346) `✓` |
-| **엔진** | ReplicatedMergeTree | SharedMergeTree(compute-storage 완전 분리)는 **ClickHouse Cloud 전용** → self-host는 RMT 강제 `✓` |
-| **operator** | Altinity clickhouse-operator | 7년+ 프로덕션 트랙레코드로 사실상 표준 `✓`. ClickHouse Inc. 공식 operator(v0.0.6, 2026-06-19)는 아직 알파. ClickStack은 `clickhouse.enabled: false`로 Altinity가 관리하는 **외부 CH를 참조** `✓` |
+- **배포** · EKS 자체 운영(self-host) — 인력 보유 + 20TB+ 24/7 + 스토리지 성능 요구 세 조건이 겹칠 때만. Cloud의 유일한 구조적 우위(people TCO 흡수)가 이미 상쇄된 경우다 `≈`. 그 밖이면 managed(Cloud/BYOC·Altinity.Cloud).
+- **인스턴스** · i8g 우선 / i7i 차선 — i8g는 Graviton4·최신 Nitro SSD, i7i와 IOPS 동일·~9% 저렴, ClickHouse ARM64 궁합 `✓`. x86 의존(사이드카 바이너리) 있으면 i7i, 초고밀도면 i7ie/i3en `✓`.
+- **스토리지** · 로컬 NVMe(hot) + S3(cold, TTL MOVE) — 로컬 NVMe는 network block 대비 5~10x 빠르나 휘발성 → **내구성은 디스크가 아니라 복제로** `✓`. **zero-copy replication 금지**(22.8+ 기본 비활성, 데이터 손실 이슈 다수·issue #45346) `✓`.
+- **엔진** · ReplicatedMergeTree — SharedMergeTree(compute-storage 완전 분리)는 **ClickHouse Cloud 전용** → self-host는 RMT 강제 `✓`.
+- **operator** · Altinity clickhouse-operator — 7년+ 프로덕션 트랙레코드로 사실상 표준 `✓`. ClickHouse Inc. 공식 operator(v0.0.6, 2026-06-19)는 아직 알파. ClickStack은 `clickhouse.enabled: false`로 Altinity가 관리하는 **외부 CH를 참조** `✓`.
 
 ## 운영에서 놓치기 쉬운 것
 
@@ -52,16 +50,14 @@ ClickHouse를 **어떻게 운영할지**를 다루는 도메인이다. "채택�
 
 ## 이 챕터 구성 (문서 지도)
 
-| 페이지 | 다루는 것 |
-|---|---|
-| [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}) | ClickHouse Cloud / BYOC / Altinity.Cloud Anywhere / Aiven 비교와 TCO 크로스오버 — "인력 보유 여부"가 데이터 크기보다 결정적인 이유 |
-| [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}) | 네 가지 스토리지 전략 비교, 로컬 NVMe hot + S3 cold 티어링, 휘발성 내구성 3종 세트(멀티 AZ replica·clickhouse-backup·Keeper), zero-copy 금지 |
-| [Altinity operator]({{< relref "03-operator.md" >}}) | Altinity 채택 근거, 채택 손익분기점(replica 2개), operator 2종 공존 문제와 해법(Altinity로 통일 + ClickStack 외부 CH 연결) |
-| [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}) | 03·02 결정을 "실제 배포"로 묶는 종합 문서 — CHK/CHI 매니페스트 필드, local PV 5계층, storageManagement·티어링 주입, 스케일·업그레이드·노드 소실 재수화 런북, 안티패턴·체크리스트 |
-| [Altinity operator 운영]({{< relref "05-altinity-operations.md" >}}) | 배포 후 운영 실무 — 규모별 구성 관점, 스케일 in/out의 함정(자동 리밸런싱 없음·신규 shard 스키마 수동), ClickHouse 버전·operator 자체 롤링 업그레이드 런북, Keeper 업그레이드 |
-| [프로덕션 운영 사례]({{< relref "06-production-usecases.md" >}}) | K8s + operator + 로컬 NVMe 실증(PostHog 등), Karpenter/재수화 운영 함정과 소규모 팀 운영 가능성 |
-| [로컬 NVMe 데이터스토어 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}}) | ScyllaDB·Kafka·Redpanda·ES/OpenSearch·Aerospike·TiKV·CockroachDB 등 9개 시스템 횡단 비교 — "로컬 NVMe 1차 + 복제 내구성 + S3 티어링"이 업계 표준인지, ClickHouse 결정에 주는 강화 근거·신규 리스크 |
-| [출처]({{< relref "08-sources.md" >}}) | 이 섹션 근거 URL 모음 |
+- **[Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})** — ClickHouse Cloud / BYOC / Altinity.Cloud Anywhere / Aiven 비교와 TCO 크로스오버 — "인력 보유 여부"가 데이터 크기보다 결정적인 이유.
+- **[스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})** — 네 가지 스토리지 전략 비교, 로컬 NVMe hot + S3 cold 티어링, 휘발성 내구성 3종 세트(멀티 AZ replica·clickhouse-backup·Keeper), zero-copy 금지.
+- **[Altinity operator]({{< relref "03-operator.md" >}})** — Altinity 채택 근거, 채택 손익분기점(replica 2개), operator 2종 공존 문제와 해법(Altinity로 통일 + ClickStack 외부 CH 연결).
+- **[operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})** — 03·02 결정을 "실제 배포"로 묶는 종합 문서 — CHK/CHI 매니페스트 필드, local PV 5계층, storageManagement·티어링 주입, 스케일·업그레이드·노드 소실 재수화 런북, 안티패턴·체크리스트.
+- **[Altinity operator 운영]({{< relref "05-altinity-operations.md" >}})** — 배포 후 운영 실무 — 규모별 구성 관점, 스케일 in/out의 함정(자동 리밸런싱 없음·신규 shard 스키마 수동), ClickHouse 버전·operator 자체 롤링 업그레이드 런북, Keeper 업그레이드.
+- **[프로덕션 운영 사례]({{< relref "06-production-usecases.md" >}})** — K8s + operator + 로컬 NVMe 실증(PostHog 등), Karpenter/재수화 운영 함정과 소규모 팀 운영 가능성.
+- **[로컬 NVMe 데이터스토어 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}})** — ScyllaDB·Kafka·Redpanda·ES/OpenSearch·Aerospike·TiKV·CockroachDB 등 9개 시스템 횡단 비교 — "로컬 NVMe 1차 + 복제 내구성 + S3 티어링"이 업계 표준인지, ClickHouse 결정에 주는 강화 근거·신규 리스크.
+- **[출처]({{< relref "08-sources.md" >}})** — 이 섹션 근거 URL 모음.
 
 ## 자매 챕터
 

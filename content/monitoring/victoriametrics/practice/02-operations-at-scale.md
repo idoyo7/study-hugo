@@ -208,10 +208,8 @@ Hot은 보관 12개월로 짧아, 기존 128GB 장비를 둔 채 512GB 신규 �
 
 이때 볼 지표는 두 가지다(정의는 [01 카디널리티]({{< relref "01-cardinality.md" >}})).
 
-| 지표 | 의미 | 운영상의 위험 |
-| --- | --- | --- |
-| 시계열 교체율(churn rate) | 24시간 안에 새로 생성된 시계열의 수와 비율 | 값이 커질수록 indexdb 부하 증가, OOM·쿼리 성능 저하 |
-| 지연 삽입 비율(slow insert rate) | 최근 5분간 전체 수집량 대비 지연된 삽입 비율 | 지속적으로 10% 초과 시 활성 시계열 대비 메모리 부족 신호 |
+- **시계열 교체율(churn rate)** · 24시간 안에 새로 생성된 시계열의 수와 비율 — 값이 커질수록 indexdb 부하 증가, OOM·쿼리 성능 저하로 이어진다.
+- **지연 삽입 비율(slow insert rate)** · 최근 5분간 전체 수집량 대비 지연된 삽입 비율 — 지속적으로 10% 초과 시 활성 시계열 대비 메모리 부족 신호다.
 
 {{% details title="왜 역순 추가가 안전한가 — 랑데부 해싱 순환 복제 메커니즘" closed="true" %}}
 **복제의 순환 성질.** replicationFactor=3이면 primary가 인덱스 i일 때 vminsert는 목록에서 그 뒤 N-1개 노드(i+1, i+2)에도 같은 데이터를 쓰고, **목록 끝을 넘으면 앞으로 순환**한다.
@@ -246,11 +244,9 @@ Step 3  -storageNode=old-A, ..., old-E, new-C, new-D, new-E
 
 Warm은 성격이 달랐다. 보관 36개월이라 Hot처럼 만료를 기다리면 두 장비군이 **3년간 공존**해야 한다. 장비당 수십 TB, 전체 수백 TB가 넘어 단순 순차 교체만으로도 마이그레이션에 **30일 이상** 걸릴 것으로 예상됐다. VM은 마이그레이션용 공식 도구 세 가지를 제공한다.
 
-| 도구 | 방식 | 장점 | 제약 |
-| --- | --- | --- | --- |
-| vmbackup | vmstorage 스냅샷을 백업 저장소로 복사 | 운영 중 낮은 부하로 스냅샷 생성, 증분 백업 지원 | - |
-| vmrestore | 백업 저장소 스냅샷을 대상 vmstorage에 복원 | 파일 시스템 수준의 빠른 복원 | 복원 중 대상 vmstorage 중지 필요 |
-| vmctl | vmselect → vminsert API 호출 | vmstorage 중지 없이 데이터 이동 | API 부하 높음, 대규모 속도 한계 뚜렷 |
+- **vmbackup** · vmstorage 스냅샷을 백업 저장소로 복사 — 운영 중 낮은 부하로 스냅샷 생성, 증분 백업 지원. 제약 없음.
+- **vmrestore** · 백업 저장소 스냅샷을 대상 vmstorage에 복원 — 파일 시스템 수준의 빠른 복원. 복원 중 대상 vmstorage 중지 필요.
+- **vmctl** · vmselect → vminsert API 호출 — vmstorage 중지 없이 데이터 이동. API 부하 높음, 대규모 속도 한계 뚜렷.
 
 처음엔 vmbackup/vmrestore로 대부분 옮기고 공백을 **vmctl**로 채우려 했다. 그러나 555조 데이터포인트를 API로 다시 읽는 건 운영 클러스터에 지나친 부하다. 게다가 `search.maxPointsPerTimeseries` 제한 탓에 전체 메트릭 대상으론 **1분 범위조차 조회할 수 없었다**. 결국 vmctl을 배제하고 vmbackup/vmrestore만으로 무중단 전환을 완성했다. 가능했던 이유는 vmbackup의 세 특성이다.
 

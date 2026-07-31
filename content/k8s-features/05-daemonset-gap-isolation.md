@@ -25,13 +25,28 @@ kube-scheduler가 워크로드를 배치할 때 보는 것은 taint·affinity·�
 
 ## 2. 원인 분류 — DS 파드가 그 노드에 없는 이유
 
-| 원인 | 관측되는 상태 | 확인 명령 |
-|---|---|---|
-| **taint 미톨러레이션** | 파드가 그 노드에 아예 생성되지 않음 | `kubectl get node <NODE> -o jsonpath='{.spec.taints}'` |
-| **리소스 부족** | 파드 `Pending`, `FailedScheduling` 이벤트 | `kubectl -n <NS> get pod -l <SEL> --field-selector spec.nodeName=<NODE>` |
-| **이미지 풀 실패** | `ErrImagePull` / `ImagePullBackOff`, 오타난 태그 | `kubectl -n <NS> describe pod <POD> \| tail -20` |
-| **rollingUpdate 정체** | desired와 updated 수가 벌어진 채 멈춤 | `kubectl -n <NS> rollout status ds/<NAME> --timeout=30s` |
-| **노드·kubelet 문제** | 바인딩됐지만 컨테이너가 시작 안 됨 | `kubectl describe node <NODE> \| sed -n '/Conditions/,/Addresses/p'` |
+| 원인 | 관측되는 상태 |
+|---|---|
+| **taint 미톨러레이션** | 파드가 그 노드에 아예 생성되지 않음 |
+| **리소스 부족** | 파드 `Pending`, `FailedScheduling` 이벤트 |
+| **이미지 풀 실패** | `ErrImagePull` / `ImagePullBackOff`, 오타난 태그 |
+| **rollingUpdate 정체** | desired와 updated 수가 벌어진 채 멈춤 |
+| **노드·kubelet 문제** | 바인딩됐지만 컨테이너가 시작 안 됨 |
+
+원인별 확인 명령은 다음과 같다.
+
+```bash
+# taint 미톨러레이션
+kubectl get node <NODE> -o jsonpath='{.spec.taints}'
+# 리소스 부족
+kubectl -n <NS> get pod -l <SEL> --field-selector spec.nodeName=<NODE>
+# 이미지 풀 실패
+kubectl -n <NS> describe pod <POD> | tail -20
+# rollingUpdate 정체
+kubectl -n <NS> rollout status ds/<NAME> --timeout=30s
+# 노드·kubelet 문제
+kubectl describe node <NODE> | sed -n '/Conditions/,/Addresses/p'
+```
 
 rollingUpdate 기본값은 `maxUnavailable: 1`, `maxSurge: 0`, `minReadySeconds: 0` 이다. `maxSurge: 0` 에서는 "At most one pod of the DaemonSet will be running on each node during the whole update process." — 즉 옛 파드를 죽인 뒤에야 새 파드가 뜨므로, 새 템플릿이 깨져 있으면 그 노드는 **DS가 아예 없는 상태**로 남는다. 롤아웃 정지가 곧 노드 갭이 되는 경로다.
 
@@ -172,19 +187,17 @@ DS 컨트롤러가 자동으로 붙이는 톨러레이션은 다음 7개뿐이�
 
 ### 5.2 반응 — 탐지 후 격리
 
-| 도구 | 트리거 | 조치 | 유지보수 상태 |
-|---|---|---|---|
-| **Draino** (planetlabs) | NodeCondition | cordon + drain | 마지막 릴리스 2018-12-28, 마지막 커밋 2020-12-14. `archived=false` 이지만 사실상 정지 — 신규 채택 제외 |
-| **Descheduler** `RemovePodsViolatingNodeTaints` | 이미 붙어 있는 NoSchedule taint | 위반 파드 축출 (**taint를 붙이지는 않는다**) | kubernetes-sigs 산하, 활성 |
-| **medik8s** NHC + SNR | 노드 조건 감시 | 비정상 노드에 SelfNodeRemediation CR 생성 → 재부팅, 다른 노드들이 cordon | 활성. Red Hat Workload Availability로 패키징 |
-| **Karpenter Node Repair** | `Ready` False/Unknown 30분, `AcceleratedHardwareReady` 10분, `Storage`/`Networking`/`Kernel`/`ContainerRuntimeReady` 각 30분 | NodeClaim과 노드를 강제 종료 (drain·grace 우회) | v1.1.0+ **alpha**. `NodeRepair` feature gate 필요 |
-| **EKS node auto repair** | `eks-node-monitoring-agent` 가 세우는 컨디션 | `Replace` / `Reboot` | EKS Auto Mode에서 기본 활성, 관리형 노드 그룹·Karpenter와 함께 사용 가능 |
+- **Draino** (planetlabs) · 트리거: NodeCondition · 조치: cordon + drain — 마지막 릴리스 2018-12-28, 마지막 커밋 2020-12-14. `archived=false`이지만 사실상 정지, 신규 채택 제외.
+- **Descheduler** `RemovePodsViolatingNodeTaints` · 트리거: 이미 붙어 있는 NoSchedule taint · 조치: 위반 파드 축출(**taint를 붙이지는 않는다**) — kubernetes-sigs 산하, 활성.
+- **medik8s** NHC + SNR · 트리거: 노드 조건 감시 · 조치: 비정상 노드에 SelfNodeRemediation CR 생성 → 재부팅, 다른 노드들이 cordon — 활성. Red Hat Workload Availability로 패키징.
+- **Karpenter Node Repair** · 트리거: `Ready` False/Unknown 30분, `AcceleratedHardwareReady` 10분, `Storage`/`Networking`/`Kernel`/`ContainerRuntimeReady` 각 30분 · 조치: NodeClaim과 노드를 강제 종료(drain·grace 우회) — v1.1.0+ **alpha**. `NodeRepair` feature gate 필요.
+- **EKS node auto repair** · 트리거: `eks-node-monitoring-agent`가 세우는 컨디션 · 조치: `Replace` / `Reboot` — EKS Auto Mode에서 기본 활성, 관리형 노드 그룹·Karpenter와 함께 사용 가능.
 
 Descheduler는 taint를 붙이지 않는다는 점이 중요하다. 체인은 `컨디션 → (누군가 taint 부착) → RemovePodsViolatingNodeTaints 축출` 이고, 가운데 고리가 3.3절에서 본 빈자리다. `includedTaints`/`excludedTaints` 로 대상 taint를 좁히고 `includePreferNoSchedule: false` 로 NoSchedule만 검사하도록 설정한다.
 
 Karpenter Node Repair의 조치는 강하다 — "Karpenter will forcefully terminate the node and its corresponding NodeClaim, bypassing the standard drain and grace period procedures." 안전장치는 비율 제한이다. NodePool 내 노드의 20%를 넘게 비정상이면 리페어를 중단한다(EKS 관리형 노드 그룹은 노드 5개 초과 + 20% 초과 또는 ARC 존 시프트 시 중단).
 
-이 표의 트리거는 **전부 built-in 또는 에이전트 컨디션**이다. "이 노드에 CNI DS가 없다"는 커스텀 신호는 여기 자동으로 들어오지 않는다. 반응 전략을 쓰려면 3.3절의 컨디션화와 taint 부착 고리를 반드시 직접 만들어야 한다.
+위 다섯의 트리거는 **전부 built-in 또는 에이전트 컨디션**이다. "이 노드에 CNI DS가 없다"는 커스텀 신호는 여기 자동으로 들어오지 않는다. 반응 전략을 쓰려면 3.3절의 컨디션화와 taint 부착 고리를 반드시 직접 만들어야 한다.
 
 ## 6. 권장 조합
 

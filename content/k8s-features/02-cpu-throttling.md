@@ -96,7 +96,7 @@ limit이 1코어(quota 100ms/period)일 때, 1코어에서만 돌면 100ms를 �
 
 | 런타임 | 무엇을 보나 | 함정 |
 |---|---|---|
-| Go 1.25+ | cgroup **limit**(없으면 노드 코어) | limit이 없으면 64코어 노드에서 P가 64개. `GOMAXPROCS` 환경변수가 있으면 자동 감지가 **꺼진다** |
+| Go 1.25+ | cgroup **limit**(없으면 노드 코어) | limit 없으면 64코어 노드에서 P=64개. `GOMAXPROCS` 있으면 자동감지 **꺼짐** |
 | Go 1.24 이하 | 노드 코어 수 | `uber-go/automaxprocs` 필요. 이쪽은 **내림**(최소 1) |
 | JVM | cgroup 인지(`UseContainerSupport`, 기본 on) | 힙은 시작 시점 고정. GC 스레드 수가 많으면 대표적인 bursty 패턴 |
 | Node.js | libuv 스레드풀은 고정 4 | V8 old space는 시작 시 고정 |
@@ -150,8 +150,10 @@ cat /sys/fs/cgroup/cpu.stat        # cgroup v2 (v1은 .../cpu/<경로>/cpu.stat)
 
 | 방법 | 되는 것 | 대가 |
 |---|---|---|
-| **limit을 올린다** | 실제로 효과 있음 | `requests = limits`면 requests도 같이 올라 **노드당 파드 수가 준다.** requests를 두고 limit만 올리면 **오버커밋** |
-| **period를 늘린다** | throttle **횟수**가 준다 (20ms/100ms → 40ms/200ms) | **한 번에 더 오래 잘린다.** 80ms 멈추던 게 160ms로 — 지연에 민감하면 오히려 악화. 커널 period 상한 **1000ms** |
+| **limit을 올린다** | 실제로 효과 있음 | requests 연동 여부에 따라 **파드 수 감소** 또는 **오버커밋** |
+| **period를 늘린다** | throttle **횟수**가 준다 | **한 번에 더 오래 잘린다** — 지연 민감이면 오히려 악화 |
+
+limit을 올리면 `requests = limits`인 경우 requests도 같이 올라 **노드당 파드 수가 준다.** requests를 그대로 두고 limit만 올리면 **오버커밋**이 된다. period를 늘리면 throttle 횟수는 주는데(20ms/100ms → 40ms/200ms), 대신 한 번에 더 오래 멈춘다 — 80ms 멈추던 게 160ms로 늘어난다. 커널의 period 상한은 **1000ms**다.
 
 ### BP ① limit을 제거한다
 
@@ -231,10 +233,12 @@ requests를 실수요에 맞게 잡아둘수록 이 값이 낮아지고, **노�
 
 | 항목 | Guaranteed였을 때 | 지금(Burstable) | 실질 영향 |
 |---|---|---|---|
-| **kubelet 축출 순위** | requests 초과 없음 → 안전 그룹 | **동일** | **없음.** 정렬 키가 `(requests 초과 여부 → PriorityClass → 사용량)`이고 **QoS 항이 아예 없다.** memory `req = limit`을 유지했으므로 초과가 불가능한 상태 그대로다 |
-| **커널 `oom_score_adj`** | **−997** 고정 | `1000 − 1000 × memReq ÷ 노드용량` | **실질적 손실.** 예를 들어 32Gi 노드에 memory requests 2Gi면 약 **938** — 거의 반대편 끝이다 |
-| **CPU Manager static 자격** | 있음(CPU가 정수였다면) | 없음 | 손실 아님. 쓰려면 CPU limit을 되살려야 해서 목적과 양립 불가다 |
+| **kubelet 축출 순위** | requests 초과 없음 → 안전 그룹 | **동일** | **없음** |
+| **커널 `oom_score_adj`** | **−997** 고정 | `1000 − 1000 × memReq ÷ 노드용량` | **실질적 손실** |
+| **CPU Manager static 자격** | 있음(CPU가 정수였다면) | 없음 | 손실 아님 |
 | **스케줄링** | requests 기준 | 동일 | 없음 |
+
+축출 순위는 영향이 없다. 정렬 키가 `(requests 초과 여부 → PriorityClass → 사용량)`이고 **QoS 항이 아예 없기** 때문이다 — memory `req = limit`을 유지했으므로 초과가 불가능한 상태 그대로다. `oom_score_adj`는 실질적 손실이다. 예를 들어 32Gi 노드에 memory requests 2Gi면 약 **938**로, 거의 반대편 끝이다. CPU Manager static 자격은 손실이 아니다 — 쓰려면 CPU limit을 되살려야 해서 애초에 이 선택의 목적과 양립하지 않는다.
 
 정리하면 **잃은 건 사실상 `oom_score_adj` 하나**다. 그리고 이게 언제 문제가 되는지를 정확히 구분해야 한다.
 

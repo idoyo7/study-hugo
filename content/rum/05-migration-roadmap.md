@@ -27,13 +27,21 @@ RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument 
 
 ## 리스크 Top 5
 
-| # | 리스크 | 영향 | 완화책 |
-|---|---|---|---|
-| **R1** | **OSS 접근통제 공백** — SSO/RBAC/멀티테넌시/감사로그 전무, RBAC는 Cloud 전용 GA `✓`. "앱 레벨 RBAC/SSO"와 "self-hosted"는 동시 불가 | 다수 팀 롤아웃 시 Datadog 대비 거버넌스 후퇴 | 단계적 하이브리드 — ① oauth2-proxy 경계 SSO ② 팀별 HyperDX 인스턴스(공유 CH) + ClickHouse row policy ③ 규제/감사 필수 팀만 Managed ClickStack. **MongoDB 인증 + NetworkPolicy 필수**(무인증 노출 삭제 공격 이력) |
-| **R2** | **RUM 대체 프로덕션 전례 부재** `?` — 기술 대등성은 높으나 검증된 전환 사례 없음. Datadog RUM→OTel/ClickHouse 인테이크 번역기의 공개 구현체·프로덕션 운영 사례도 2026-07 딥리서치 재검색(2회)에서 발견되지 않음 — 전량 자체 구축 전제 `?` | Wave 1 "리스크 낮음" 판정이 실제로는 위험 | PoC 성공을 Wave 1 진입 게이트로 필수화. dual-instrument로 CWV·에러·리플레이·프론트↔백엔드 트레이스 상관을 Datadog과 side-by-side 검증 후 컷오버 |
-| **R3** | **변환 파이프라인 미성숙 + CPU 세금** — `datadogreceiver`(전 신호 alpha), `clickhouseexporter` traces/logs beta·metrics alpha. 변환 CPU가 native 대비 최대 ~200배 `Ⓑ`, delta metric 30~70% 손실(#44907) `✓` | 프록시 영구 의존 시 손실·비용·회귀 | 프록시는 로그/메트릭의 단기 브릿지로만. traces는 OTel 재계측, RUM은 SDK 교체. dual-write 후 **속성 단위 diff 검증**. 규모 결정 전 자체 벤치마크 필수 |
-| **R4** | **로컬 NVMe 노드 lifecycle** — 노드 소실/drain/업그레이드 시 데이터 재수화, Karpenter consolidation이 스토리지 지역성 무시하고 노드 제거 | 가용성·성능 저하, 최악의 경우 shard 장애 | replica ≥2 + anti-affinity(hostname) + PDB `maxUnavailable=1` + `do-not-disrupt` + On-Demand/SP(Spot 금지) + hot/cold tiering으로 노드당 데이터량 축소. 상세는 [clickhouse 챕터]({{< relref "../clickhouse/_index.md" >}}) |
-| **R5** | **메트릭/대시보드/모니터 이관 비용** — HyperDX(ClickHouse SQL) 타겟 자동 변환기 부재, PromQL/Grafana 타겟에만 도구 존재 | HyperDX로 메트릭 강행 시 공수 2~4배 팽창 `≈` | 메트릭 계층을 VM+Grafana+Sloth/Pyrra로 분리. AST 쿼리 변환기(→PromQL)·graang(대시보드)·무계측 dual-ship 활용. 이관 전 rationalization으로 자산 40~60% 감축 |
+- **R1 · OSS 접근통제 공백** — SSO/RBAC/멀티테넌시/감사로그 전무, RBAC는 Cloud 전용 GA `✓`. "앱 레벨 RBAC/SSO"와 "self-hosted"는 동시 불가.
+  - 영향: 다수 팀 롤아웃 시 Datadog 대비 거버넌스 후퇴.
+  - 완화책: 단계적 하이브리드 — ① oauth2-proxy 경계 SSO ② 팀별 HyperDX 인스턴스(공유 CH) + ClickHouse row policy ③ 규제/감사 필수 팀만 Managed ClickStack. **MongoDB 인증 + NetworkPolicy 필수**(무인증 노출 삭제 공격 이력).
+- **R2 · RUM 대체 프로덕션 전례 부재** `?` — 기술 대등성은 높으나 검증된 전환 사례 없음. Datadog RUM→OTel/ClickHouse 인테이크 번역기의 공개 구현체·프로덕션 운영 사례도 2026-07 딥리서치 재검색(2회)에서 발견되지 않음 — 전량 자체 구축 전제 `?`.
+  - 영향: Wave 1 "리스크 낮음" 판정이 실제로는 위험.
+  - 완화책: PoC 성공을 Wave 1 진입 게이트로 필수화. dual-instrument로 CWV·에러·리플레이·프론트↔백엔드 트레이스 상관을 Datadog과 side-by-side 검증 후 컷오버.
+- **R3 · 변환 파이프라인 미성숙 + CPU 세금** — `datadogreceiver`(전 신호 alpha), `clickhouseexporter` traces/logs beta·metrics alpha. 변환 CPU가 native 대비 최대 ~200배 `Ⓑ`, delta metric 30~70% 손실(#44907) `✓`.
+  - 영향: 프록시 영구 의존 시 손실·비용·회귀.
+  - 완화책: 프록시는 로그/메트릭의 단기 브릿지로만. traces는 OTel 재계측, RUM은 SDK 교체. dual-write 후 **속성 단위 diff 검증**. 규모 결정 전 자체 벤치마크 필수.
+- **R4 · 로컬 NVMe 노드 lifecycle** — 노드 소실/drain/업그레이드 시 데이터 재수화, Karpenter consolidation이 스토리지 지역성 무시하고 노드 제거.
+  - 영향: 가용성·성능 저하, 최악의 경우 shard 장애.
+  - 완화책: replica ≥2 + anti-affinity(hostname) + PDB `maxUnavailable=1` + `do-not-disrupt` + On-Demand/SP(Spot 금지) + hot/cold tiering으로 노드당 데이터량 축소. 상세는 [clickhouse 챕터]({{< relref "../clickhouse/_index.md" >}}).
+- **R5 · 메트릭/대시보드/모니터 이관 비용** — HyperDX(ClickHouse SQL) 타겟 자동 변환기 부재, PromQL/Grafana 타겟에만 도구 존재.
+  - 영향: HyperDX로 메트릭 강행 시 공수 2~4배 팽창 `≈`.
+  - 완화책: 메트릭 계층을 VM+Grafana+Sloth/Pyrra로 분리. AST 쿼리 변환기(→PromQL)·graang(대시보드)·무계측 dual-ship 활용. 이관 전 rationalization으로 자산 40~60% 감축.
 
 ## 2주 스프린트 체크리스트
 

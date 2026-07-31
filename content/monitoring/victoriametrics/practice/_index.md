@@ -17,11 +17,9 @@ weight: 2
 
 ## 문서 지도
 
-| 문서 | 한 줄 요약 |
-|------|-----------|
-| [01 카디널리티]({{< relref "01-cardinality.md" >}}) | 시계열 = 지표 이름 + 레이블 집합. New TSID 발급이 곧 폭발이며, 설계 단계 배제가 최선이다. churn·slow insert로 런타임 감시한다. |
-| [02 초대규모 운영과 무중단 전환]({{< relref "02-operations-at-scale.md" >}}) | 멀티버스(멀티클러스터 분리), Hot/Warm 2계층, 12.5억 시계열 규모, 랑데부 역순 추가·vmbackup 무중단 장비 전환. |
-| [03 쿼리 패턴]({{< relref "03-query-patterns.md" >}}) | PromQL 기본 패턴(counter rate/increase·gauge 집계·histogram_quantile·sum by)과 MetricsQL 확장(default_rollup·rate 차이·keep_metric_names·WITH·topk_avg). 무거운 쿼리 안티패턴 회피와 카디널리티 점검 쿼리·API. |
+- **[01 카디널리티]({{< relref "01-cardinality.md" >}})** — 시계열 = 지표 이름 + 레이블 집합. New TSID 발급이 곧 폭발이며, 설계 단계 배제가 최선이다. churn·slow insert로 런타임 감시한다.
+- **[02 초대규모 운영과 무중단 전환]({{< relref "02-operations-at-scale.md" >}})** — 멀티버스(멀티클러스터 분리), Hot/Warm 2계층, 12.5억 시계열 규모, 랑데부 역순 추가·vmbackup 무중단 장비 전환.
+- **[03 쿼리 패턴]({{< relref "03-query-patterns.md" >}})** — PromQL 기본 패턴(counter rate/increase·gauge 집계·histogram_quantile·sum by)과 MetricsQL 확장(default_rollup·rate 차이·keep_metric_names·WITH·topk_avg). 무거운 쿼리 안티패턴 회피와 카디널리티 점검 쿼리·API.
 
 ## 읽기 전에
 
