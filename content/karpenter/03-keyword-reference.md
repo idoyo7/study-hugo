@@ -358,9 +358,9 @@ well-known 라벨은 Karpenter가 **인스턴스 속성으로부터 스스로 �
 | `karpenter.sh/capacity-type` | `spot` `on-demand` `reserved` | 구매옵션 허용 범위 | **`nodeSelector` 금지**(§6) | **값**까지 고정 |
 | `node.kubernetes.io/windows-build` | `10.0.26100` | 빌드 지정 | 선택 | 빌드 3종은 아래 참고 |
 | `karpenter.sh/nodepool` | `default` | **금지**(검증 실패) | 특정 풀에 묶기 | — |
+| `kubernetes.io/hostname` | — | **금지** | **금지** | `RestrictedLabels`. TSC의 topologyKey로는 사용 가능 |
 
 Windows Server 빌드 번호: WS2019 `10.0.17763` · WS2022 `10.0.20348` · WS2025 `10.0.26100`.
-| `kubernetes.io/hostname` | — | **금지** | **금지** | `RestrictedLabels`. TSC의 topologyKey로는 사용 가능 |
 
 ### 5.2 AWS 특화
 
