@@ -35,6 +35,33 @@ weight: 8
 
 ## 2. 평가 규칙 넷 — 셋은 문서에 있고 하나는 안 물려봐야 모른다
 
+허용량은 **이유 하나마다 따로** 계산된다. 선언된 예산을 전부 훑으면서 조건을 통과한 것들의 `min()`으로 좁혀 나가는 구조다(`nodepool.go:364-377`의 `GetAllowedDisruptionsByReason`).
+
+{{< flow caption="이유 하나에 대한 허용량 — MaxInt32에서 시작해 조건을 통과한 예산들의 최솟값으로 좁혀진다. 비활성 예산은 무제한을 내놓아 결과에 영향을 주지 않고, reasons가 그 이유를 안 덮으면 아예 참여하지 않는다" >}}
+{
+  "nodes": [
+    { "id": "N", "col": 0, "row": 1, "label": "budgets[] 한 항목", "sub": "선언된 예산 각각", "kind": "src" },
+    { "id": "A", "col": 1, "row": 1, "label": "활성인가", "sub": "schedule · duration", "kind": "query" },
+    { "id": "INF", "col": 2, "row": 0, "label": "MaxInt32", "sub": "무제한 — 결과에 무영향", "kind": "store" },
+    { "id": "V", "col": 2, "row": 1, "label": "값 계산", "sub": "ceil(비율 × 노드 수)", "kind": "proc" },
+    { "id": "RS", "col": 3, "row": 1, "label": "이 이유를 덮나", "sub": "reasons 생략 = 전부", "kind": "query" },
+    { "id": "SK", "col": 4, "row": 0, "label": "제외", "sub": "min에 참여하지 않음", "kind": "store" },
+    { "id": "M", "col": 4, "row": 1, "label": "min() 누적", "sub": "가장 제한적인 값이 이긴다", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "N", "to": "A", "rate": 520 },
+    { "from": "A", "to": "INF", "label": "비활성", "rate": 900, "speed": "fast" },
+    { "from": "A", "to": "V", "label": "활성", "rate": 520 },
+    { "from": "INF", "to": "RS", "dashed": true },
+    { "from": "V", "to": "RS", "rate": 520 },
+    { "from": "RS", "to": "SK", "label": "안 덮는다", "rate": 900 },
+    { "from": "RS", "to": "M", "label": "덮는다", "rate": 520 }
+  ]
+}
+{{< /flow >}}
+
+네 가지가 이 그림에서 바로 읽힌다 — **`reasons` 생략은 "전부 덮는다"**(§2.1), **min이라 하나만 0이면 0**(§2.2), **선언한 순간 기본값이 사라진다**(§2.3), **`ceil`이라 퍼센트가 0이 되지 않는다**(§2.4). 예산이 오설정이면 `MaxInt32`가 아니라 `0`이 나온다 — fail closed다.
+
 ### 2.1 `reasons`를 생략하면 모든 이유에 적용된다
 
 ```yaml
