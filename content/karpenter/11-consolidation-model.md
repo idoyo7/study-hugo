@@ -229,7 +229,14 @@ score = savingsFraction / disruptionFraction        승인: score ≥ 1/k = 0.5
 
 `TotalDisruptionCost`가 후보의 합이 아니라 **그 NodePool에 속한 모든 노드의 합**이라는 게 핵심이다. 코드 주석이 명시한다 — *"Second pass over ALL nodes: sum disruption cost per pool."* 후보는 정확한 값을, 비후보는 증분 유지되는 값을 쓴다.
 
-**따라서 같은 액션이라도 풀이 클수록 통과하기 쉽다.** 분모가 커져 `disruptionFraction`이 작아지기 때문이다.
+식을 옮겨 쓰면 무엇을 재는지가 분명해진다.
+
+```
+score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)
+         └─ 이 액션의 효율 ─┘        └─ 풀의 평균 효율 ─┘
+```
+
+**풀의 "파괴 1단위당 비용"이 기준선이고, 액션은 그 절반 이상의 효율을 내야 한다.** 풀 크기 자체는 영향이 없다 — 노드 수는 분자·분모에서 약분된다. 영향을 주는 것은 풀의 **구성**이다. 한산하고 비싼 노드가 많은 풀은 기준선이 높아져 통과가 어려워지고, 빽빽하고 싼 노드가 많은 풀은 낮아져 쉬워진다.
 
 한 가지 비대칭을 알아둘 것 — `TotalCost`는 `ClusterCost`가 주는 풀 총비용을 쓰되, 그게 없으면 **후보들의 가격 합**으로 폴백한다. 폴백이 걸리면 분모가 작아져 `savingsFraction`이 부풀고 통과가 쉬워진다.
 
@@ -254,7 +261,26 @@ score = (Δ/p) × (d̄/d_A)
 | 파드가 적게 실린 노드 | 배수가 1보다 커져 **통과하기 쉽다** |
 | 파드가 빽빽한 노드 | 배수가 1보다 작아져 **보호된다** |
 
-첫 줄이 `k=2`의 설계 의도와 맞아떨어진다. 상수 주석이 *"the smallest value where within-family replaces pass"* 라고 적어 두었는데, **같은 패밀리에서 한 단계 다운사이징(4xlarge → 2xlarge)이 정확히 50% 절감**이다. `k=2`는 그 교체가 아슬아슬하게 통과하도록 고른 값이다.
+**"50%"가 어디서 오는지 헷갈리지 않게 출처를 분리해 둔다.** 코드에 박힌 숫자는 `k=2` 하나뿐이고, 나머지는 그것을 옮겨 쓴 것이다.
+
+| 단계 | 출처 |
+|---|---|
+| `k = 2` | 코드 상수 `BalancedK` — **유일한 하드코딩 값** |
+| 임계 `0.5` | `Threshold() = 1/k` |
+| "50% 절감" | 위 두 가정 아래 임계를 풀어 쓴 **유도** |
+
+즉 50%는 독립적인 기준이 아니라 **임계 0.5가 "균질한 풀 + 평균 파드밀도"에서 갖는 모습**이다. 밀도가 평균에서 벗어나면 그만큼 달라진다.
+
+그런데 이 유도가 설계 의도와 맞아떨어진다. 상수 주석이 근거를 직접 적어 두었다.
+
+```go
+// apis/v1/nodepool.go:166-171
+// A move is approved when score >= 1/k = 0.5. k=2 is the smallest value
+// where within-family replaces pass, with 4-step max churn.
+const BalancedK int32 = 2
+```
+
+**같은 패밀리에서 한 단계 다운사이징(4xlarge → 2xlarge)이 정확히 50% 절감**이다. `k=2`는 그 교체가 아슬아슬하게 통과하도록 고른 값이고, 유도가 같은 지점에 떨어진다.
 
 삭제형은 `Δ = p`(노드 값 전체)라 `score ≈ d̄/d_A`가 된다. **평균의 2배를 넘게 파드를 이고 있는 노드는 삭제도 거부된다.**
 
