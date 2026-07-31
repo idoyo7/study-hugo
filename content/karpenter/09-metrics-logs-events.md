@@ -15,9 +15,9 @@ weight: 9
 - 이벤트에는 **dedupe 창**이 있다. `Unconsolidatable`은 15분, `FailedScheduling`은 5분 — 카운트를 빈도로 읽으면 안 된다.
 {{< /callout >}}
 
-> **왜 이 문서인가.** 앞의 여덟 문서는 "Karpenter가 왜 그렇게 판단하나"를 코드로 따라갔다. 이 문서는 그 판단을 **밖에서 어떻게 확인하나**를 다룬다. 대시보드에 무엇을 올릴지, 장애 때 어느 로그를 켤지, 이벤트의 어떤 문자열을 grep할지가 여기 있다.
+> **왜 이 문서인가.** 앞의 여덟 문서는 "왜 그렇게 판단하나"를 코드로 따라갔다. 이 문서는 그 판단을 **밖에서 어떻게 확인하나** — 대시보드·로그·이벤트 — 를 다룬다.
 >
-> 예산이 막고 있는지 판정하는 절차는 [08 §6]({{< relref "08-disruption-budgets.md" >}})이, 폴백이 도는지 보는 관점은 [07]({{< relref "07-ice-fallback.md" >}})이 소유한다. 여기서는 **신호 자체의 목록과 성질**을 정리한다. 이 중 **무엇을 실제로 저장할 것인가**는 [10 메트릭 수집 비용]({{< relref "10-metric-cost.md" >}})이 받는다 — 60개를 전부 긁는 건 기술적으로는 문제가 없고 비용에서만 문제가 된다.
+> 예산 판정 절차는 [08 §6]({{< relref "08-disruption-budgets.md" >}}), 폴백 여부는 [07]({{< relref "07-ice-fallback.md" >}})이 소유한다. 여기서는 **신호의 목록과 성질만** 정리하고, **무엇을 실제로 저장할 것인가**는 [10 메트릭 수집 비용]({{< relref "10-metric-cost.md" >}})이 받는다 — 60개 전부를 긁는 건 비용에서만 문제가 된다.
 
 ## 1. 어디서 나오나 — 세 층이 섞여 있다
 
@@ -29,13 +29,11 @@ weight: 9
 | **프로바이더** (provider-aws) | 오퍼링 가격 등 + `karpenter_nodes_*`의 **추가 라벨** | 범위 밖 |
 | operatorpkg · controller-runtime | `operator_status_condition_*`, `controller_runtime_*`, `workqueue_*` | 범위 밖 |
 
-**두 번째 층이 특히 함정이다.** `karpenter_nodes_*`의 라벨 집합은 컴파일 타임이 아니라 **런타임에 결정된다** — 클라우드 프로바이더가 `v1.WellKnownLabels`에 자기 라벨을 `Insert`하기 때문이다(`metrics/node/controller.go:62-64`). 코어만 보면 라벨은 `nodepool`·`zone`·`region`·`instance_type`·`arch`·`os`·`capacity_type`·`windows_build`에 `node_name`·`phase`·`managed`가 붙은 형태지만, EKS에서는 여기에 `instance_family`·`instance_size` 등이 더 붙는다.
+**두 번째 층이 특히 함정이다.** `karpenter_nodes_*`의 라벨 집합은 컴파일 타임이 아니라 **런타임에 결정된다** — 클라우드 프로바이더가 `v1.WellKnownLabels`에 자기 라벨을 `Insert`하기 때문이다(`metrics/node/controller.go:62-64`). 코어 라벨은 `nodepool`·`zone`·`region`·`instance_type`·`arch`·`os`·`capacity_type`·`windows_build`·`node_name`·`phase`·`managed`뿐이지만, EKS에서는 `instance_family`·`instance_size` 등이 더 붙는다.
 
 이름 조립 규칙은 `karpenter` + Subsystem + Name이다(`pkg/metrics/constants.go:27`).
 
 ## 2. 먼저 볼 것 — 질문 여섯 개
-
-전부 보려 하지 말고 질문에서 시작한다.
 
 | 질문 | 메트릭 |
 |---|---|
@@ -85,38 +83,44 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 
 ### 4.1 프로비저닝 · 스케줄링 (14)
 
-- `karpenter_scheduler_scheduling_duration_seconds` · Histogram · `{controller}` — 스케줄링 시뮬레이션 소요
-- `karpenter_scheduler_queue_depth` · Gauge · `{controller,scheduling_id}` — 시뮬레이션 큐 잔량
-- `karpenter_scheduler_unfinished_work_seconds` · Gauge · `{controller,scheduling_id}` — 히스토그램에 아직 안 잡힌 진행 중 작업
-- `karpenter_scheduler_ignored_pods_count` · Gauge — 스케줄링에서 무시된 파드
-- `karpenter_scheduler_unschedulable_pods_count` · Gauge · `{controller}` — 스케줄 불가 파드
-- `karpenter_scheduler_pending_pods_by_effective_zone_count` · Gauge · `{controller,zone}` — zone 교집합별 pending
-- `karpenter_pods_scheduling_decision_duration_seconds` · Histogram — 파드 최초 인지 → 첫 스케줄 시도
-- `karpenter_nodeclaims_created_total` · Counter · `{reason,nodepool,min_values_relaxed}` — 생성된 NodeClaim
-- `karpenter_nodes_created_total` · Counter · `{nodepool,zone}` — 등록 완료된 Node
-- `karpenter_pods_state` · Gauge · node 라벨셋 + `{phase,ready,scheduled,owner,managed}` — 파드 현재 상태(값 1)
-- `karpenter_pods_startup_duration_seconds` · Summary — 파드 생성 → Running
-- `karpenter_pods_unstarted_time_seconds` · Gauge · `{name,namespace}` — 아직 Running 아닌 경과 시간
-- `karpenter_pods_bound_duration_seconds` · Histogram — 파드 생성 → bound
-- `karpenter_pods_unbound_time_seconds` · Gauge · `{name,namespace}` — 아직 bound 안 된 경과 시간
+{{% details title="메트릭 14개 펼치기" closed="true" %}}
+
+| 메트릭 | 타입 | 라벨 | 비고 |
+|---|---|---|---|
+| `karpenter_scheduler_scheduling_duration_seconds` | Histogram | `controller` | |
+| `karpenter_scheduler_queue_depth` | Gauge | `controller,scheduling_id` | |
+| `karpenter_scheduler_unfinished_work_seconds` | Gauge | `controller,scheduling_id` | 히스토그램 미집계분 |
+| `karpenter_scheduler_ignored_pods_count` | Gauge | — | |
+| `karpenter_scheduler_unschedulable_pods_count` | Gauge | `controller` | |
+| `karpenter_scheduler_pending_pods_by_effective_zone_count` | Gauge | `controller,zone` | |
+| `karpenter_pods_scheduling_decision_duration_seconds` | Histogram | — | 최초 인지 → 첫 스케줄 시도 |
+| `karpenter_nodeclaims_created_total` | Counter | `reason,nodepool,min_values_relaxed` | |
+| `karpenter_nodes_created_total` | Counter | `nodepool,zone` | |
+| `karpenter_pods_state` | Gauge | node라벨+`phase,ready,scheduled,owner,managed` | 값 1 |
+| `karpenter_pods_startup_duration_seconds` | Summary | — | 생성 → Running |
+| `karpenter_pods_unstarted_time_seconds` | Gauge | `name,namespace` | |
+| `karpenter_pods_bound_duration_seconds` | Histogram | — | 생성 → bound |
+| `karpenter_pods_unbound_time_seconds` | Gauge | `name,namespace` | |
+
+{{% /details %}}
 
 ### 4.2 Disruption · consolidation (17)
 
 - `karpenter_nodeclaims_disrupted_total` · Counter · `{reason,nodepool,capacity_type}` — §3
 - `karpenter_pods_disruption_initiated_total` · Counter · `{reason,nodepool,capacity_type}` — 재스케줄 대상 파드 누적(DaemonSet·mirror 제외)
-- `karpenter_nodepools_allowed_disruptions` · Gauge · `{nodepool,reason}` — 예산 허용량
-- `karpenter_nodepools_nodes_consuming_budgets` · Gauge · `{nodepool,reason}` — 예산 소비 중인 노드
-- `karpenter_voluntary_disruption_eligible_nodes` · Gauge · `{reason}` — 후보 노드 수
+- `karpenter_nodepools_allowed_disruptions` · Gauge · `{nodepool,reason}`
+- `karpenter_nodepools_nodes_consuming_budgets` · Gauge · `{nodepool,reason}`
+- `karpenter_voluntary_disruption_eligible_nodes` · Gauge · `{reason}`
 - `karpenter_voluntary_disruption_decisions_total` · Counter · `{decision,reason,consolidation_type}`
 - `karpenter_voluntary_disruption_decisions_by_nodepool_total` · Counter · 위 + `{nodepool}`
 - `karpenter_voluntary_disruption_decision_evaluation_duration_seconds` · Histogram · `{reason,consolidation_type}`
 - `karpenter_voluntary_disruption_queue_failures_total` · Counter · `{decision,reason,consolidation_type}`
-- `karpenter_voluntary_disruption_consolidation_timeouts_total` · Counter · `{consolidation_type}` — 알고리즘 타임아웃
+- `karpenter_voluntary_disruption_consolidation_timeouts_total` · Counter · `{consolidation_type}`
 - `karpenter_voluntary_disruption_failed_validations_total` · Counter · `{consolidation_type}` — 선정 후 validation 실패
 - `karpenter_consolidation_score` · Histogram · `{decision,nodepool,policy}` — `Balanced` 스코어
 - `karpenter_consolidation_moves_total` · Counter · `{decision,nodepool,policy}`
 - `karpenter_nodeclaims_unhealthy_disrupted_total` · Counter · `{condition,nodepool,capacity_type,image_id}` — Node Repair
-- `karpenter_pods_eviction_requests_total` · Counter · `{code}` — eviction API 응답 코드
+- `karpenter_pods_eviction_requests_total` · Counter · `{code}`
 - `karpenter_pods_drained_total` · Counter · `{reason}`
 - `karpenter_nodes_drained_total` · Counter · `{nodepool}`
 
@@ -124,29 +128,35 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 
 ### 4.3 NodePool · NodeClaim · Node 상태 (22)
 
-- `karpenter_nodepools_limit` / `karpenter_nodepools_usage` · Gauge · `{resource_type,nodepool}` — 상한과 실사용
-- `karpenter_nodepools_cost_total` · Gauge · `{nodepool}` — Karpenter 관점 총비용(**과금 근거가 아니다**)
-- `karpenter_nodepools_cost_tracker_errors_total` · Counter · `{nodepool}`
-- `karpenter_nodes_allocatable` · Gauge · node 라벨셋 + `{resource_type}`
-- `karpenter_nodes_total_pod_requests` / `_pod_limits` · Gauge — 바인딩된 전체 파드(DaemonSet 포함)
-- `karpenter_nodes_total_daemon_requests` / `_daemon_limits` · Gauge — DaemonSet 몫만
-- `karpenter_nodes_system_overhead` · Gauge — capacity − allocatable
-- `karpenter_nodes_current_lifetime_seconds` · Gauge — 노드 나이
-- `karpenter_cluster_utilization_percent` · Gauge · `{resource_type}` — allocatable 대비 requests
-- `karpenter_nodes_termination_duration_seconds` · Summary · `{nodepool}` — 삭제 요청 → finalizer 제거
-- `karpenter_nodes_lifetime_duration_seconds` · Histogram(15분~30일) · `{nodepool}`
-- `karpenter_nodes_terminated_total` · Counter · `{nodepool,zone}`
-- `karpenter_nodeclaims_terminated_total` · Counter · `{nodepool,capacity_type,zone}`
-- `karpenter_nodeclaims_termination_duration_seconds` · Histogram(1~2048초) · `{nodepool}`
-- `karpenter_nodeclaims_instance_termination_duration_seconds` · Histogram(1~1024초) · `{nodepool}` — 클라우드 인스턴스 종료
-- `karpenter_cluster_state_node_count` · Gauge
-- `karpenter_cluster_state_synced` · Gauge(0/1) — API서버와 동기 여부
-- `karpenter_cluster_state_unsynced_time_seconds` · Gauge
-- `karpenter_build_info` · Gauge(상수 1) · `{version,goversion,goarch,commit}`
+{{% details title="메트릭 22개 펼치기" closed="true" %}}
+
+| 메트릭 | 타입 | 라벨 | 비고 |
+|---|---|---|---|
+| `karpenter_nodepools_limit`/`_usage` | Gauge | `resource_type,nodepool` | |
+| `karpenter_nodepools_cost_total` | Gauge | `nodepool` | Karpenter 관점 비용, 과금 근거 아님 |
+| `karpenter_nodepools_cost_tracker_errors_total` | Counter | `nodepool` | |
+| `karpenter_nodes_allocatable` | Gauge | node라벨+`resource_type` | |
+| `karpenter_nodes_total_pod_requests`/`_pod_limits` | Gauge | — | 바인딩 파드(DaemonSet 포함) |
+| `karpenter_nodes_total_daemon_requests`/`_daemon_limits` | Gauge | — | DaemonSet 몫만 |
+| `karpenter_nodes_system_overhead` | Gauge | — | capacity − allocatable |
+| `karpenter_nodes_current_lifetime_seconds` | Gauge | — | 노드 나이 |
+| `karpenter_cluster_utilization_percent` | Gauge | `resource_type` | |
+| `karpenter_nodes_termination_duration_seconds` | Summary | `nodepool` | 삭제요청 → finalizer 제거 |
+| `karpenter_nodes_lifetime_duration_seconds` | Histogram(15분~30일) | `nodepool` | |
+| `karpenter_nodes_terminated_total` | Counter | `nodepool,zone` | |
+| `karpenter_nodeclaims_terminated_total` | Counter | `nodepool,capacity_type,zone` | |
+| `karpenter_nodeclaims_termination_duration_seconds` | Histogram(1~2048초) | `nodepool` | |
+| `karpenter_nodeclaims_instance_termination_duration_seconds` | Histogram(1~1024초) | `nodepool` | |
+| `karpenter_cluster_state_node_count` | Gauge | — | |
+| `karpenter_cluster_state_synced` | Gauge(0/1) | — | |
+| `karpenter_cluster_state_unsynced_time_seconds` | Gauge | — | |
+| `karpenter_build_info` | Gauge(상수 1) | `version,goversion,goarch,commit` | |
 
 `_total_pod_requests`에서 `_total_daemon_requests`를 빼면 **워크로드 몫만** 남는다. 노드 크기를 줄일 수 있는지 판단할 때 이 차이가 실제 근거다 — DaemonSet은 노드를 줄여도 줄지 않는다.
 
 `cluster_state_synced`가 0으로 떨어진 구간의 판단은 전부 의심해야 한다. Karpenter가 낡은 상태로 시뮬레이션하고 있었다는 뜻이다.
+
+{{% /details %}}
 
 ### 4.4 클라우드 프로바이더 인터페이스 (2)
 
@@ -163,15 +173,15 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 - `karpenter_pods_provisioning_unstarted_time_seconds` · Gauge · `{name,namespace}`
 - `karpenter_pods_provisioning_scheduling_undecided_time_seconds` · Gauge · `{name,namespace}`
 
-다섯 모두 Help에 같은 단서가 붙어 있다 — *"this calculated from a point in memory, not by the pod creation timestamp."* **파드 생성 시각이 아니라 Karpenter가 그 파드를 처음 본 시점 기준**이라, 컨트롤러가 재시작하면 기준점이 리셋된다. SLO에 쓰기 어려운 이유다.
+다섯 모두 Help에 같은 단서가 붙는다 — *"this calculated from a point in memory, not by the pod creation timestamp."* **파드 생성 시각이 아니라 Karpenter가 그 파드를 처음 본 시점 기준**이라 컨트롤러 재시작 시 기준점이 리셋된다. SLO에 쓰기 어려운 이유다.
 
 `karpenter_nodepools_cost_*` 둘도 alpha 컴포넌트에서 나온다(`state/cost/cost.go:60`).
 
 ## 5. 로그
 
-레벨은 `--log-level` ∈ `debug`·`info`·`error`다. zapr가 logr `V(1)`을 zap `DebugLevel`로 매핑하므로 **`V(1)` 로그는 `debug`에서만 보인다.** 코드베이스에 `.V(2)`는 0건이라 그보다 깊은 티어는 없다.
+레벨은 `--log-level` ∈ `debug`·`info`·`error`다. zapr가 logr `V(1)`을 zap `DebugLevel`로 매핑하므로 **`V(1)` 로그는 `debug`에서만 보인다.** `.V(2)`는 0건 — 더 깊은 티어는 없다.
 
-한 가지 예외가 있다. `IgnoreDebugEvents` sink가 **`events` 서브로거의 `V(1)`을 무조건 드롭한다**(`logging.go:96-119`). 스케일아웃 때 event recorder가 로그를 덮는 걸 막기 위한 장치다.
+예외 하나. `IgnoreDebugEvents` sink가 **`events` 서브로거의 `V(1)`을 무조건 드롭한다**(`logging.go:96-119`) — 스케일아웃 때 event recorder가 로그를 덮는 걸 막는 장치다.
 
 ### 5.1 판정 로그 — debug에서만 나온다
 
@@ -201,7 +211,7 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 | `relaxing soft constraints for pod since it previously failed to schedule` | debug |
 | `scheduling simulation timed out` | debug |
 
-가운데 둘은 **경고 성격인데 Info로 나온다.** "통합이 안 된다"의 원인을 Karpenter가 먼저 말해주고 있는 셈인데, info 볼륨에 묻혀 놓치기 쉽다. 각각 최대 10개 파드를 샘플로 찍는다.
+가운데 둘은 **경고 성격인데 Info로 나온다** — "통합이 안 된다"의 원인인데 info 볼륨에 묻혀 놓치기 쉽다. 각각 최대 10개 파드를 샘플로 찍는다.
 
 `node limits have been exhausted for nodepool`과 `all available instance types exceed limits for nodepool`은 **로그가 아니라 에러 문자열**이다. `could not schedule pod`의 err 필드와 `FailedScheduling` 이벤트 메시지로만 보인다.
 
@@ -229,19 +239,19 @@ kubectl get events -A --field-selector reason=Unconsolidatable
 |---|---|---|
 | `DisruptionBlocked` | NodePool · Node | 예산에 막힘 ([08]({{< relref "08-disruption-budgets.md" >}})) |
 | `Unconsolidatable` | Node · NodeClaim | 후보 단계에서 탈락 |
-| `ConsolidationCandidate` | Node · NodeClaim | 후보로 선정, 절감액 포함 |
+| `ConsolidationCandidate` | Node · NodeClaim | 절감액 포함 |
 | `ConsolidationApproved` | Node · NodePool | 스코어가 임계 통과 |
 | `ConsolidationRejected` | Node · NodeClaim | 스코어 미달 |
 | `DisruptionLaunching` | NodeClaim | 대체 노드 기동 시작 |
 | `DisruptionWaitingReadiness` | NodeClaim | 대체 노드 준비 대기 |
 | `DisruptionTerminating` | Node · NodeClaim | 실제 종료 |
-| `FailedScheduling` | Pod | 스케줄 실패 (Warning) |
-| `NoCompatibleInstanceTypes` | NodePool | requirements가 전부 걸러냄 (Warning) |
+| `FailedScheduling` | Pod | (Warning) |
+| `NoCompatibleInstanceTypes` | NodePool | requirements 전부 걸러냄 (Warning) |
 | `Nominated` | Pod | 이 노드에 뜰 예정 |
 | `InsufficientCapacityError` | NodeClaim | ICE (Warning) |
-| `FailedDraining` | Node | 드레인 실패 (Warning) |
-| `TerminationGracePeriodExpiring` | Node · NodeClaim | TGP 만료 임박 (Warning) |
-| `AwaitingVolumeDetachment` | Node | 볼륨 detach 대기 |
+| `FailedDraining` | Node | (Warning) |
+| `TerminationGracePeriodExpiring` | Node · NodeClaim | (Warning) |
+| `AwaitingVolumeDetachment` | Node | |
 | `NodeRepairBlocked` | Node | unhealthy 비율 상한 초과 (Warning) |
 
 ### 6.1 dedupe 창 때문에 카운트를 빈도로 읽으면 안 된다
@@ -264,9 +274,9 @@ kubectl get events -A --field-selector reason=Unconsolidatable
 
 문서가 아니라 코드를 읽어야만 보이는 것들이다.
 
-**① 방출되지 않는 이벤트가 둘 있다.** `NodeClassNotReady`(`nodeclaim/lifecycle/events.go:38`)와 NodePool용 `DisruptionBlocked`의 한 변형(`disruption/events/events.go:128`)은 정의만 있고 호출처가 0건이다. 알림 룰을 이 Reason으로 걸면 영원히 안 울린다. `TerminationFailed` 상수도 같다.
+**① 정의만 있고 방출되지 않는 이벤트가 셋이다.** `NodeClassNotReady`(`nodeclaim/lifecycle/events.go:38`), NodePool용 `DisruptionBlocked` 변형(`disruption/events/events.go:128`), `TerminationFailed` 상수 — 호출처가 0건이다. 알림 룰을 이 Reason으로 걸면 영원히 안 울린다.
 
-**② `NodeRepairBlocked`는 전부 Node에 달린다.** 세 이벤트를 Node·NodeClaim·NodePool 각각에 남기려는 의도로 보이지만 `InvolvedObject`가 셋 다 `node`다(`node/health/events.go:28-55`). **`--field-selector involvedObject.kind=NodePool`로는 안 잡힌다.**
+**② `NodeRepairBlocked`는 전부 Node에 달린다.** Node·NodeClaim·NodePool 각각에 남기려는 의도로 보이나 `InvolvedObject`가 셋 다 `node`다(`node/health/events.go:28-55`). **`--field-selector involvedObject.kind=NodePool`로는 안 잡힌다.**
 
 **③ Reason 레지스트리를 우회하는 이벤트가 넷 있다.** `AwaitingVolumeDetachment`·`InvalidDoNotDisruptAnnotation`·`DoNotDisruptUntil`·`DoNotDisruptGracePeriodElapsed`는 `pkg/events/reason.go`의 상수가 아니라 인라인 문자열이다. 상수 목록만 보고 알림을 짜면 이 넷이 빠진다.
 
