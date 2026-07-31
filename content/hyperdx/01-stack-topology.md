@@ -21,8 +21,10 @@ ClickStack 공식 Helm 경로(v2.x)는 **순서가 있는 2개 차트**로 나�
 
 | 차트 | 설치물 | 비고 |
 |---|---|---|
-| **`clickstack-operators`** | MongoDB Kubernetes Operator(MCK) + ClickHouse Operator 컨트롤러/CRD | 먼저 설치 필수. CRD: `MongoDBCommunity`, `ClickHouseCluster`, `KeeperCluster` `✓` |
-| **`clickstack`** | HyperDX(UI+API), OTel Collector(공식 OTel Helm 차트를 subchart로), 위 operator가 소비할 CR | operator Ready 이후 설치 `✓` |
+| **`clickstack-operators`** | MongoDB Kubernetes Operator(MCK) + ClickHouse Operator 컨트롤러/CRD | 먼저 설치 필수 `✓` |
+| **`clickstack`** | HyperDX(UI+API), OTel Collector(공식 subchart), 위 operator가 소비할 CR | operator Ready 이후 설치 `✓` |
+
+설치되는 CRD 3종: `MongoDBCommunity`, `ClickHouseCluster`, `KeeperCluster`.
 
 차트 기본값의 핵심 관찰은 **모든 스테이트풀 컴포넌트가 단일 인스턴스**라는 것이다 — CH `replicas:1`, Keeper `replicas:1`, MongoDB `members:1`(2026-07 시점 main 브랜치 기준) `✓`. 즉 차트 기본은 **PoC/단일노드형이지 HA가 아니다.** ([rum/07]({{< relref "../rum/07-hyperdx-mongodb.md" >}})이 짚은 "Helm 기본이 이미 multi-node HA"라는 통념 기각과 정합.) 프로덕션은 스테이트풀 3종을 전부 수동으로 올려야 한다. `helm uninstall` 시 operator가 만든 PVC는 삭제되지 않으므로(데이터 유실 방지 설계) 제거는 역순 + PVC 수동 정리다 `✓`.
 
@@ -48,11 +50,15 @@ otel-collector:
 | 컴포넌트 | 프로세스/역할 | 리슨 포트 | 의존 방향 | 스테이트 |
 |---|---|---|---|---|
 | **HyperDX app** | Next.js UI(브라우저 대면) | 3000(내부; local/compose는 8080) | → api | 무상태 |
-| **HyperDX api** | Node.js 백엔드(쿼리 오케스트레이션·알럿 평가·OpAMP 서버) | 8000, **OpAMP 4320** | → CH(쿼리), → Mongo(메타), ← Collector(OpAMP) | 무상태 |
-| **OTel Collector** | 인제스트 게이트웨이(OTLP 수신 → CH export) | **4317**(gRPC), **4318**(HTTP), 13133(health), 8888(metrics) | → CH(insert), ← api(OpAMP 4320) | 무상태(단, in-flight 배치는 메모리 큐) |
-| **ClickHouse** | 모든 텔레메트리 저장·쿼리 원천 | 8123(HTTP), 9000(native), 9009(interserver) | ← Collector, ← api, ↔ Keeper | **스테이트풀(EBS)** |
-| **Keeper** | 복제 메타데이터 합의(ZooKeeper 대체) | **2181**(client), 9444(raft) — Altinity CHK 기본(독립형 Keeper 기본값 9181/9234 아님) | ↔ ClickHouse | **스테이트풀(gp3)** — {{< relref "05-keeper.md" >}} |
+| **HyperDX api** | Node.js 백엔드(쿼리·알럿·OpAMP 서버) | 8000, **OpAMP 4320** | →CH·Mongo, ←Collector(OpAMP) | 무상태 |
+| **OTel Collector** | 게이트웨이(OTLP→CH) | 4317/4318/13133/8888¹ | →CH(insert), ←api(OpAMP) | 무상태(in-flight 큐) |
+| **ClickHouse** | 모든 텔레메트리 저장·쿼리 원천 | 8123/9000/9009² | ←Collector, ←api, ↔Keeper | **스테이트풀(EBS)** |
+| **Keeper** | 복제 메타 합의(ZK 대체) | 2181/9444³ | ↔ ClickHouse | **스테이트풀(gp3)** — {{< relref "05-keeper.md" >}} |
 | **MongoDB** | 앱 메타데이터(user/team/dashboard/alert/source…) | 27017 | ← HyperDX api | **스테이트풀(gp3, 소용량)** |
+
+¹ 4317=gRPC, **4318=HTTP**(SDK가 실제 쓰는 포트), 13133=health, 8888=metrics.
+² 8123=HTTP, 9000=native, 9009=interserver.
+³ **2181**=client, 9444=raft — Altinity CHK 기본값(독립형 Keeper 기본값 9181/9234와 다름).
 
 - HyperDX는 **app(UI) + api(백엔드) 2 프로세스**다. local/all-in-one은 단일 컨테이너에 함께 패키징되지만, Helm에서는 app/api 포트가 분리 노출된다 `✓`.
 - **OpAMP(4320)**: HyperDX api가 OpAMP 서버로 동작해 Collector 파이프라인 설정을 원격 관리한다. Collector는 `OPAMP_SERVER_URL`로 api의 `/v1/opamp`에 붙는다 `✓`. 커스텀 Collector config는 `CUSTOM_OTELCOL_CONFIG_FILE`로 **베이스에 병합**되며 신규 receiver/processor 추가만 되고 기존 오버라이드는 안 된다(상세는 rum/01 위임).
@@ -184,9 +190,11 @@ MCK 파드는 **mongod + mongodb-agent 사이드카 + init 컨테이너** 구조
 | | `members: 1` (차트 기본) | `members: 3` (prod 권고) |
 |---|---|---|
 | 복제 | 없음(단일 mongod) | Primary + Secondary×2, 자동 failover |
-| 장애 | 파드 재시작=짧은 다운(EBS 재부착으로 데이터 생존), **노드/AZ 상실·PVC 손상=메타 유실** | 1 파드/노드/AZ 상실 견딤(정족수 2/3) |
-| HyperDX 영향 | api 메타 연결 상실 → UI 오류·**알럿 평가 중단**·대시보드 조회 불가(단 CH 인제스트는 계속) | 무중단(선출 수 초) |
+| 장애 | 파드 재시작=짧은 다운, **노드/AZ 상실·PVC 손상=메타 유실** | 1 파드/노드/AZ 상실 견딤(정족수 2/3) |
+| HyperDX 영향 | UI 오류·**알럿 평가 중단**·대시보드 조회 불가(CH 인제스트는 계속) | 무중단(선출 수 초) |
 | 비용 | 1× (~0.4 vCPU/1Gi/10Gi) | 3× (~1.2 vCPU/3Gi/30Gi) — 절대값 소액 |
+
+`members:1`에서 파드 재시작만으로 끝나는 짧은 다운은 EBS가 재부착되어 데이터가 생존하기 때문이고, 그 경우 api는 메타 연결이 상실되어 UI 오류로 이어진다 — 노드/AZ 상실·PVC 손상처럼 볼륨 자체가 사라지는 경우에만 메타 유실이다.
 
 메타 데이터셋이 워낙 작아 `members:3`의 절대 비용이 미미하다(≈1.2 vCPU/3Gi). "메타 유실 = 팀·대시보드·알럿 전면 재구성"이라는 손실이 크므로 **3멤버는 값싼 보험**이다. 단일 멤버는 staging이나 "백업으로만 지키는" 경우에 한정한다. 그리고 **MongoDB 장애는 인제스트가 아니라 설정·알럿·UI를 멈춘다** — CH HA와 별개 축("가용성·백업" 문제)으로 다뤄야 우선순위가 선다.
 
@@ -258,7 +266,7 @@ HyperDX는 **`MONGO_URI` 하나만** 있으면 되므로 Atlas(SRV 연결문자�
 |---|---|---|
 | **자체 MCK(in-cluster)** | 클러스터 내부·egress 없음·비용 최소 | HA·백업 자력(mongodump CronJob), operator 운영 부담 |
 | **Atlas M0(free, 512MB)** | 무료·zero-ops, staging에 이상적 | shared 티어 제약, prod 부적합 |
-| **Atlas M10(dedicated, ≈$57/mo `≈`, 10GB)** | 자동 백업·PITR·멀티AZ turnkey — Community Operator 백업 공백 제거 | 외부 의존, VPC peering/PrivateLink 필요, 월비용 |
+| **Atlas M10(≈$57/mo, 10GB)** | 자동 백업·PITR·멀티AZ(MCK 백업 공백 제거) | 외부 의존, VPC peering/PrivateLink, 월비용 |
 
 메타데이터는 **소용량 + 지연 무관(인제스트 hot path 아님)** 이라 Atlas 위임의 마찰이 작다. "HA·백업을 직접 짜기 싫다"면 Atlas M10이 self-host의 백업 공백을 가장 깔끔히 메운다 `≈`(정가는 리전·시점 의존, ap-northeast-2 기준 재확인).
 {{% /details %}}
@@ -271,13 +279,55 @@ HyperDX는 **`MONGO_URI` 하나만** 있으면 되므로 Atlas(SRV 연결문자�
 
 ### 종합 매트릭스
 
-| 컴포넌트 | 역할(가용성 관점) | 상태 | HA 방식 | 다운타임 시 거동(무엇이 멈추나) | 무손실 방어 | 스케일 축 | 상세 |
-|---|---|---|---|---|---|---|---|
-| **HyperDX app** | 조회 UI·쿼리 API·OpAMP 서버 | 무상태 | Service 뒤 replica 2+ | **UI·쿼리만 잠깐 blip** — 텔레메트리 적재·저장과 무관 `✓` | 상태 없음(메타=Mongo·텔레메트리=CH) → 자체 유실 개념 없음 `✓` | 수평 replica | §2·§4 |
-| **OTel Collector** | RUM ingest 수집·배치·CH export | 준무상태(+디스크 큐) | deployment ≥2 + `file_storage` persistent queue | 신규 ingest 정지 → 퍼시스턴트 큐로 완충, **큐 없으면 in-flight 유실** `✓/≈` | persistent queue(at-least-once) + 백프레셔(`memory_limiter`) + 클라 재시도 `✓/≈` | 수평 replica | §5·{{< relref "05-keeper.md" >}} |
-| **ClickHouse** | 모든 텔레메트리 저장·쿼리 원천 | 스테이트풀(EBS) | RMT 멀티마스터 RF2/3, 2~3 AZ 분산 | replica 1대 죽어도 나머지가 read+write 계속(**승격 없음**), 전체 다운 시에만 조회+수집 정지 `✓` | RF 복제 + `insert_quorum` + clickhouse-backup `✓` | shard(용량, 0.7TB/월엔 불필요) / replica(가용성) | {{< relref "04-operator-topology-downtime.md" >}}·{{< relref "06-replication-failover.md" >}} |
-| **ClickHouse Keeper** | 복제 조정 메타(로그·part 참조·dedup·DDL 큐) | 스테이트풀(메타·소량) | 3노드 정족수, 3 AZ 분산 | **정족수 상실 → CH 쓰기(INSERT/DDL/머지) 정지, 읽기 OK = 쓰기 SPOF** `✓` | 사용자 데이터 아님 · gp3 영속(Raft 메타 생존) · 3노드 정족수 `✓` | 3/5노드(내구성·정족수용, 처리량 아님) | {{< relref "05-keeper.md" >}}·{{< relref "06-replication-failover.md" >}} |
-| **MongoDB** | 앱 메타데이터(대시보드·알럿·유저·소스) | 스테이트풀(소량) | ReplicaSet `members:3` 또는 Atlas | **설정·알럿 평가·UI만 정지 — 관측(ingest) 데이터와 무관** `✓` | 메타만 · ReplicaSet 복제 + `mongodump` 백업 `✓` | 불필요(부하∝설정 수, 적재량 무관) `✓` | §6·{{< relref "../rum/07-hyperdx-mongodb.md" >}} |
+8열로는 폭 제약을 넘어서므로 속성별로 나눠 본다. 컴포넌트 순서는 모든 표에서 동일하다.
+
+**역할·상태·HA 방식**
+
+| 컴포넌트 | 역할(가용성 관점) | 상태 | HA 방식 |
+|---|---|---|---|
+| **HyperDX app** | 조회 UI·쿼리 API·OpAMP 서버 | 무상태 | Service 뒤 replica 2+ |
+| **OTel Collector** | RUM ingest 수집·배치·CH export | 준무상태(+디스크 큐) | deployment ≥2 + `file_storage` 퍼시스턴트 큐 |
+| **ClickHouse** | 모든 텔레메트리 저장·쿼리 원천 | 스테이트풀(EBS) | RMT 멀티마스터 RF2/3, 2~3 AZ 분산 |
+| **ClickHouse Keeper** | 복제 조정 메타(로그·part 참조·dedup·DDL 큐) | 스테이트풀(메타·소량) | 3노드 정족수, 3 AZ 분산 |
+| **MongoDB** | 앱 메타데이터(대시보드·알럿·유저·소스) | 스테이트풀(소량) | ReplicaSet `members:3` 또는 Atlas |
+
+**다운타임 시 거동 — 무엇이 멈추나**
+
+| 컴포넌트 | 다운타임 시 거동 |
+|---|---|
+| **HyperDX app** | **UI·쿼리만 잠깐 blip** — 텔레메트리 적재·저장과 무관 `✓` |
+| **OTel Collector** | 신규 ingest 정지 → 퍼시스턴트 큐로 완충, **큐 없으면 in-flight 유실** `✓/≈` |
+| **ClickHouse** | replica 1대 죽어도 나머지가 read+write 계속(**승격 없음**), 전체 다운 시에만 조회+수집 정지 `✓` |
+| **ClickHouse Keeper** | **정족수 상실 → CH 쓰기(INSERT/DDL/머지) 정지, 읽기 OK = 쓰기 SPOF** `✓` |
+| **MongoDB** | **설정·알럿 평가·UI만 정지 — 관측(ingest) 데이터와 무관** `✓` |
+
+**무손실 방어**
+
+| 컴포넌트 | 무손실 방어 |
+|---|---|
+| **HyperDX app** | 상태 없음(메타=Mongo·텔레메트리=CH) → 자체 유실 개념 없음 `✓` |
+| **OTel Collector** | persistent queue(at-least-once) + 백프레셔(`memory_limiter`) + 클라 재시도 `✓/≈` |
+| **ClickHouse** | RF 복제 + `insert_quorum` + clickhouse-backup `✓` |
+| **ClickHouse Keeper** | 사용자 데이터 아님 · gp3 영속(Raft 메타 생존) · 3노드 정족수 `✓` |
+| **MongoDB** | 메타만 · ReplicaSet 복제 + `mongodump` 백업 `✓` |
+
+**스케일 축·상세 문서**
+
+| 컴포넌트 | 스케일 축 |
+|---|---|
+| **HyperDX app** | 수평 replica |
+| **OTel Collector** | 수평 replica |
+| **ClickHouse** | shard(용량, 0.7TB/월엔 불필요) / replica(가용성) |
+| **ClickHouse Keeper** | 3/5노드(내구성·정족수용, 처리량 아님) |
+| **MongoDB** | 불필요(부하∝설정 수, 적재량 무관) `✓` |
+
+| 컴포넌트 | 상세 |
+|---|---|
+| **HyperDX app** | §2·§4 |
+| **OTel Collector** | §5·{{< relref "05-keeper.md" >}} |
+| **ClickHouse** | {{< relref "04-operator-topology-downtime.md" >}}·{{< relref "06-replication-failover.md" >}} |
+| **ClickHouse Keeper** | {{< relref "05-keeper.md" >}}·{{< relref "06-replication-failover.md" >}} |
+| **MongoDB** | §6·{{< relref "../rum/07-hyperdx-mongodb.md" >}} |
 
 ### "무엇이 죽으면 무엇이 멈추나" — blast radius
 

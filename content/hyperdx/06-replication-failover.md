@@ -83,7 +83,7 @@ lag과 이상 징후는 이 두 테이블로 본다 `✓`. 멀티마스터라 "p
 |---|---|
 | `is_readonly` | **read-only 여부** — Keeper 연결·정족수 문제 시 켜짐(§중단과 failover) |
 | `absolute_delay`(정밀 정의는 버전 확인 권장) | 복제 지연(초) — 가장 앞선 replica 대비 이 replica가 얼마나 뒤졌나 `✓` |
-| `log_max_index` / `log_pointer` | `/log` 최대 엔트리 번호 / 이 replica가 소비한 위치. `log_pointer` ≪ `log_max_index`면 못 따라가는 중 |
+| `log_max_index` / `log_pointer` | `/log` 최대 엔트리 번호 / 소비 위치. `log_pointer` ≪ `log_max_index`면 못 따라가는 중 |
 | `queue_size` / `inserts_in_queue` / `merges_in_queue` | 대기 작업 총수·유형별 |
 | `total_replicas` / `active_replicas` | 전체 / Keeper 세션 보유(활성) replica 수 |
 | `is_leader` / `can_become_leader` | 머지 할당자 여부(primary 아님, §멀티마스터) |
@@ -139,12 +139,14 @@ leader가 (과거에) 하던 일은 **머지·뮤테이션·파티션 조작 할
 | 축 | **전통 primary-replica**(PostgreSQL / MySQL) | **Kafka**(파티션 리더) | **ClickHouse RMT** |
 |---|---|---|---|
 | 쓰기 수용 노드 | **primary 1개만** | 파티션당 **leader 1개** | **모든 replica**(멀티마스터) `✓` |
-| 복제 방향·단위 | primary→standby, **row/statement**(WAL/binlog) | leader→follower(ISR) | **양방향 pull**, 각 replica가 `/log` 소비 — **part 단위** `✓` |
-| 자동 failover 필요? | **필요** — standby를 primary로 promote | **필요** — 새 파티션 leader election | **불필요** — 승격 개념 자체가 없음 `✓` |
+| 복제 방향·단위 | primary→standby(WAL/binlog)¹ | leader→follower(ISR) | **양방향 pull**, `/log` 소비 — **part 단위** `✓` |
+| 자동 failover 필요? | **필요** — standby→primary promote | **필요** — 새 파티션 leader election | **불필요** — 승격 개념 없음 `✓` |
 | failover 오케스트레이터 | Patroni·repmgr·Orchestrator 등 **외부** | 브로커 내장 | **없음**(살아있는 replica가 계속) `✓` |
-| 조율 주체 | 없음(또는 외부 합의) | KRaft/ZooKeeper | **Keeper**(복제 로그·dedup) — 파티션식 쓰기-leader election은 없음 `✓` |
+| 조율 주체 | 없음(또는 외부 합의) | KRaft/ZooKeeper | **Keeper**(복제 로그·dedup) — 파티션 leader election 없음 `✓` |
 | split-brain 방지 | fencing/STONITH·외부 합의 | 컨트롤러 합의 | **Keeper Raft 정족수 = 단일 진실원**, 소수파 쓰기 불가 `✓` |
-| 쓰기 라우팅 | 클라이언트가 **primary 주소**를 알아야 | 프로듀서가 파티션 leader로 | **아무 살아있는 replica**(라우터가 dead만 회피) `✓` |
+| 쓰기 라우팅 | 클라가 **primary 주소** 인지 필요 | 프로듀서가 파티션 leader로 | **아무 replica**(라우터가 dead만 회피) `✓` |
+
+¹ PostgreSQL/MySQL의 복제 단위는 row 또는 statement 방식(엔진·설정에 따라 다름).
 
 **핵심 명제** `✓`: RMT가 "자동 failover 컨트롤러가 필요 없다"는 맞지만, 그 이유는 "장애를 자동 감지해 승격하기 때문"이 아니라 **애초에 승격할 primary가 없어서** 살아있는 replica가 그냥 계속 일하기 때문이다. ClickHouse의 failover는 "승격"이 아니라 "라우팅 회피" 문제로 축소된다.
 
@@ -190,10 +192,10 @@ failover가 "승격 없음"이어도, 클라이언트가 죽은 replica를 안 �
 
 | 시나리오 | 읽기 | 쓰기 | failover 라우팅 | 상세 |
 |---|---|---|---|---|
-| **replica 1대 소실** | 무중단(남은 replica) | 무중단(async, 남은 replica가 수용) | LB/Service가 죽은 replica 제거 | [04]({{< relref "04-operator-topology-downtime.md" >}}) S4~S7 |
-| **EBS reattach 복귀** | 복귀 replica는 startup 후 재합류 | 무중단 | 복귀까지 그 replica만 offline | [04]({{< relref "04-operator-topology-downtime.md" >}}) §EBS 재부착, [../clickhouse/02]({{< relref "../clickhouse/02-storage-local-nvme.md" >}}) |
+| **replica 1대 소실** | 무중단 | 무중단(async, 남은 replica가 수용) | LB/Service가 죽은 replica 제거 | [04]({{< relref "04-operator-topology-downtime.md" >}}) S4~S7 |
+| **EBS reattach 복귀** | 복귀 replica는 startup 후 재합류 | 무중단 | 복귀까지 해당 replica만 offline | [04]({{< relref "04-operator-topology-downtime.md" >}})·[../clickhouse/02]({{< relref "../clickhouse/02-storage-local-nvme.md" >}}) |
 | **AZ 1개 장애** | 다른 AZ replica가 서빙 | 다른 AZ replica로 무중단 | topologySpread 전제로 cross-AZ replica 존재 | [04]({{< relref "04-operator-topology-downtime.md" >}}) S8 |
-| **Keeper 정족수 상실**(3중 2 소실) | **로컬 part read OK** | **INSERT/DDL 거부(read-only 전락)** | 라우팅 무관 — 쓰기 경로 자체 정지 | [05-keeper]({{< relref "05-keeper.md" >}}), [../clickhouse/04]({{< relref "../clickhouse/04-deployment-playbook.md" >}}) |
+| **Keeper 정족수 상실** | **로컬 part read OK** | **INSERT/DDL 거부(read-only 전락)** | 라우팅 무관, 쓰기 정지 | [05-keeper]({{< relref "05-keeper.md" >}})·[ch/04]({{< relref "../clickhouse/04-deployment-playbook.md" >}}) |
 
 **EBS 함의**(상세 04) `✓`: replica 소실은 EBS에선 전량 재수화가 아니라 reattach + 델타 catch-up이다(수 분 vs 수 시간 대비는 위 한눈에·상세 04). 반면 **AZ 장애는 EBS가 AZ-bound라 볼륨을 다른 AZ로 못 옮기므로 cross-AZ replica(복제)만이 유일 방어**다 — 이 지점에선 EBS·로컬 NVMe 처방이 수렴한다.
 

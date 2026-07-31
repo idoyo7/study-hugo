@@ -44,11 +44,11 @@ RMT는 shared-nothing이고 각 replica가 완전한 사본을 자기 EBS 볼륨
 | 시나리오 | 데이터 | 복구 동작 | 대략 소요 | 개입 |
 |---|---|---|---|---|
 | 계획된 노드 교체(drain, Karpenter voluntary) | 생존 | detach → 같은 AZ reattach → catch-up | 수 분 `≈` | 자동 |
-| 노드 급사(**ungraceful**: HW/OS hang) | 생존 | 파드 **Terminating에 무한정 잔류** → 개입 필요 | 무개입 시 무한/6분+, 개입 시 수 분 `✓` | **out-of-service taint 필수** |
+| 노드 급사(**ungraceful**) | 생존 | **Terminating 고착**(하단 참고) | 무한/6분+ → 수분 `✓` | **out-of-service taint** |
 | AZ 1개 장애 | 그 AZ만 접근 불가(볼륨 AZ-bound) | reattach 자체가 불가 | AZ 복구까지 | cross-AZ RF만 방어 |
 | 롤링 업그레이드/설정 reconcile | 무영향 | in-place 재시작, detach 없음 | replica수 × (재시작+catch-up) | 자동 |
 
-ungraceful death가 최대 함정이다. Kubernetes는 죽은 노드의 파드가 정말 멈췄는지 확인할 수 없고, RWO 볼륨 더블 마운트(=데이터 손상)를 막기 위해 컨트롤 플레인은 파드를 Terminating으로 남긴 채 새 파드를 만들지 않는다. force-detach는 6분 뒤 시도되지만 CSI 정합성 때문에 지연될 수 있다. 정석 복구는 `out-of-service` taint(K8s 1.28 GA)다 `✓`:
+ungraceful death(HW/OS hang 등으로 노드가 급사하는 경우)가 최대 함정이다. Kubernetes는 죽은 노드의 파드가 정말 멈췄는지 확인할 수 없고, RWO 볼륨 더블 마운트(=데이터 손상)를 막기 위해 컨트롤 플레인은 파드를 Terminating으로 남긴 채 새 파드를 만들지 않는다. force-detach는 6분 뒤 시도되지만 CSI 정합성 때문에 지연될 수 있다. 정석 복구는 `out-of-service` taint(K8s 1.28 GA)다 `✓`:
 
 ```bash
 # 노드가 정말 죽었음을 확인(재부팅 중이 아님 — 오판 시 더블 마운트 위험)한 뒤
@@ -80,12 +80,14 @@ Keeper는 NuRaft로 합의를 돌리고 홀수 노드로 배치한다(`floor(N/2
 
 | 구성요소 | 핀 정책 | 근거/함정 |
 |---|---|---|
-| ClickHouse | **24.8 LTS**(또는 검증된 안정판) | ClickStack 최소요구는 24.8+, 차트 기본 태그(25.7)와는 별개 숫자 — self-host HyperDX Only라 우리가 분리 통제 `✓` |
+| ClickHouse | **24.8 LTS**(또는 검증된 안정판) | ClickStack 최소요구 24.8+(하단 참고) `✓` |
 | Keeper | CH와 동일 태그 정렬(24.8) | 별도 이미지라 명시 정렬이 필요 `≈` |
-| Altinity operator | **0.27.1**, minor 단계별로만(0.26→0.27) | CH 21.11+·K8s 1.25+ 요구. **CRD 삭제는 절대 금지**(연쇄 삭제) `✓` |
+| Altinity operator | **0.27.1**, minor 단계별로만(0.26→0.27) | CH 21.11+·K8s 1.25+ 요구. **CRD 삭제 금지**(연쇄 삭제) `✓` |
 | HyperDX app | 차트 `appVersion` 추종 | MergeTree 표준 기능만 사용 → CH 하한을 새로 밀어올리는 경우는 드묾 `≈` |
 | OTel Collector | 배포판 태그(2.29.0) | ClickStack 배포판. persistent queue 확장 포함 여부는 버전마다 재확인 `?` |
 | MongoDB | 5.0.32(차트 기본) | 메타데이터 전용, 버전 민감도 낮음 `✓` |
+
+ClickHouse 24.8+는 ClickStack 최소요구이며, 차트 기본 태그(25.7)와는 별개 숫자다 — self-host HyperDX Only라 우리가 버전을 분리 통제한다.
 
 {{< callout type="warning" >}}
 **매트릭스 함정**: operator **0.27.0+**는 `async_replication`/`use_xid_64`를 **기본 활성화**하는데 이 기능은 **Keeper 25.3+**를 요구한다 `✓`. 우리가 CH/Keeper를 24.8 LTS로 핀하면 이 기본값이 충돌할 수 있다 — operator가 Keeper 버전을 감지해 자동 무효화하는지, 아니면 그대로 켜서 오류를 내는지는 **배포 스테이징에서 반드시 실동작 검증**이 필요하다 `?`.

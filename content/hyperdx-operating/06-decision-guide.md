@@ -19,15 +19,41 @@ aliases: ["/hyperdx/operating/06-decision-guide/"]
 
 ## 1. 결정 매트릭스 — 기본값·왜 안전/충분·승급 트리거
 
-| 축 | 기본값 | 왜 안전/충분 | 승급 트리거 | 상세 |
-|---|---|---|---|---|
-| 배포 | **HyperDX Only(`clickhouse.enabled:false`) + Altinity CHI/CHK** | 공식 operator 2종 공존 회피, 범용분석 CH와 운영 일원화 `✓` | — (구조 선택) | [01]({{< relref "01-architecture.md" >}}) · [스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}}) |
-| hot 스토리지 | **단일 gp3**(baseline IOPS + 소량 throughput) | throughput-bound + 인스턴스 EBS 파이프가 볼륨보다 먼저 천장, 내구성은 RF 복제가 담당 `✓/≈` | **io2**: >2,000 MiB/s 지속 · >80,000 IOPS/vol · 볼륨 99.999% 규제 | [02]({{< relref "02-tiering.md" >}}) · [hot EBS]({{< relref "../hyperdx/02-hot-storage-ebs.md" >}}) |
-| cold 티어링 | **S3 TTL MOVE**(또는 **block-only**) | 긴 보존이 싼 이유는 S3($0.023/GB)에 쌓이고 리플레이는 30일 캡 `≈` | **block-only**: 짧은 보존(≤90일) · S3 미접근/규정 · 운영 단순성(staging) | [02]({{< relref "02-tiering.md" >}}) · [S3 티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}}) · [블록 온리]({{< relref "../hyperdx/08-block-only-tuning.md" >}}) |
-| 토폴로지 | **1 shard × RF2(2 AZ)** | EBS는 노드 급사가 reattach+델타 catch-up이라 실질 RF1 창이 수 분 `≈` | **RF3**: AZ 무저하 요구 · `insert_quorum:2` 상시 · 규제 / **shard**: 노드 실용 상한 접근 | [04]({{< relref "04-operator-pattern.md" >}}) · [배포 플레이북]({{< relref "../clickhouse/04-deployment-playbook.md" >}}) |
-| 조정 계층 | **Keeper 3노드(gp3 영속, 3 AZ)** | 정족수 3(1대 손실 허용) `✓`, gp3라 급사해도 Raft 메타가 살아 reattach로 복구 `≈` | **5노드**: 2대 동시 손실 허용이 요구일 때 | [03]({{< relref "03-availability.md" >}}) · [Keeper]({{< relref "../hyperdx/05-keeper.md" >}}) |
-| MongoDB | **최소 규모·prod `members:3`**(또는 Atlas) | 부하는 데이터량 아닌 설정 수 비례, 인제스트 경로 밖 `≈` | **Atlas 위임**: 백업 공백 제거 | [01]({{< relref "01-architecture.md" >}}) · [스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}}) |
-| 업그레이드 | **LTS(24.8) 핀 + EBS 스냅샷 롤백** | 최신 추종 회피로 롤링 빈도↓, 스냅샷이 유일 확실 롤백 `✓/≈` | — (다운그레이드는 "없다고 가정") | [04]({{< relref "04-operator-pattern.md" >}}) · [버전·업그레이드]({{< relref "../hyperdx/09-version-upgrade-compat.md" >}}) |
+- **배포**
+  - 기본값: **HyperDX Only(`clickhouse.enabled:false`) + Altinity CHI/CHK**
+  - 왜 안전/충분: 공식 operator 2종 공존 회피, 범용분석 CH와 운영 일원화 `✓`
+  - 승급 트리거: — (구조 선택)
+  - 상세: [01]({{< relref "01-architecture.md" >}}) · [스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}})
+- **hot 스토리지**
+  - 기본값: **단일 gp3**(baseline IOPS + 소량 throughput)
+  - 왜 안전/충분: throughput-bound + 인스턴스 EBS 파이프가 볼륨보다 먼저 천장, 내구성은 RF 복제가 담당 `✓/≈`
+  - 승급 트리거: **io2**: >2,000 MiB/s 지속 · >80,000 IOPS/vol · 볼륨 99.999% 규제
+  - 상세: [02]({{< relref "02-tiering.md" >}}) · [hot EBS]({{< relref "../hyperdx/02-hot-storage-ebs.md" >}})
+- **cold 티어링**
+  - 기본값: **S3 TTL MOVE**(또는 **block-only**)
+  - 왜 안전/충분: 긴 보존이 싼 이유는 S3($0.023/GB)에 쌓이고 리플레이는 30일 캡 `≈`
+  - 승급 트리거: **block-only**: 짧은 보존(≤90일) · S3 미접근/규정 · 운영 단순성(staging)
+  - 상세: [02]({{< relref "02-tiering.md" >}}) · [S3 티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}}) · [블록 온리]({{< relref "../hyperdx/08-block-only-tuning.md" >}})
+- **토폴로지**
+  - 기본값: **1 shard × RF2(2 AZ)**
+  - 왜 안전/충분: EBS는 노드 급사가 reattach+델타 catch-up이라 실질 RF1 창이 수 분 `≈`
+  - 승급 트리거: **RF3**: AZ 무저하 요구 · `insert_quorum:2` 상시 · 규제 / **shard**: 노드 실용 상한 접근
+  - 상세: [04]({{< relref "04-operator-pattern.md" >}}) · [배포 플레이북]({{< relref "../clickhouse/04-deployment-playbook.md" >}})
+- **조정 계층**
+  - 기본값: **Keeper 3노드(gp3 영속, 3 AZ)**
+  - 왜 안전/충분: 정족수 3(1대 손실 허용) `✓`, gp3라 급사해도 Raft 메타가 살아 reattach로 복구 `≈`
+  - 승급 트리거: **5노드**: 2대 동시 손실 허용이 요구일 때
+  - 상세: [03]({{< relref "03-availability.md" >}}) · [Keeper]({{< relref "../hyperdx/05-keeper.md" >}})
+- **MongoDB**
+  - 기본값: **최소 규모·prod `members:3`**(또는 Atlas)
+  - 왜 안전/충분: 부하는 데이터량 아닌 설정 수 비례, 인제스트 경로 밖 `≈`
+  - 승급 트리거: **Atlas 위임**: 백업 공백 제거
+  - 상세: [01]({{< relref "01-architecture.md" >}}) · [스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}})
+- **업그레이드**
+  - 기본값: **LTS(24.8) 핀 + EBS 스냅샷 롤백**
+  - 왜 안전/충분: 최신 추종 회피로 롤링 빈도↓, 스냅샷이 유일 확실 롤백 `✓/≈`
+  - 승급 트리거: — (다운그레이드는 "없다고 가정")
+  - 상세: [04]({{< relref "04-operator-pattern.md" >}}) · [버전·업그레이드]({{< relref "../hyperdx/09-version-upgrade-compat.md" >}})
 
 "왜 안전/충분" 열은 성격이 다른 두 계열이 섞여 있음을 구분해 읽는다. **안전**의 근거는 장애 방어 메커니즘 — EBS reattach·RF 복제·Keeper 정족수·스냅샷 롤백 — 이고, **충분**의 근거는 규모 여유 — 0.7TB/월의 인제스트 피크 ~8 MB/s가 CPU·I/O 모두에 한참 못 미친다는 사실 — 이다 `≈`. 승급 트리거도 이 구분을 따른다: 안전 계열(RF3·Keeper 5노드)은 **요구사항이 바뀔 때** 발동하고, 충분 계열(io2·shard)은 **관측된 부하가 임계를 넘을 때** 발동한다. 전자는 지표를 아무리 봐도 안 나오는 트리거라는 점이 §2 표의 "요구사항 신호" 행들이 존재하는 이유다.
 
@@ -39,14 +65,30 @@ aliases: ["/hyperdx/operating/06-decision-guide/"]
 
 매트릭스의 트리거를 "관측 가능한 신호 + 그 신호를 보는 자리"까지 내린다. 임계값은 새로 만들지 않고 각 기준 문서의 수치를 그대로 쓴다.
 
-| 승급 | 발동 신호 | 관측 지점 | 선행 단계 / 비고 |
-|---|---|---|---|
-| **gp3→io2** | 단일 볼륨 **2,000 MiB/s 지속 초과** 또는 **80,000 IOPS/vol 초과**(또는 볼륨 99.999% 규제) | CloudWatch EBS 볼륨 대역 지표 + `system.asynchronous_metrics` | 그 전에 **gp3 안에서 2단계**가 남아 있다: baseline 125 MiB/s 지속 초과가 보이면 먼저 provisioned throughput을 인스턴스 baseline(r7g.2xlarge ~312 MB/s)까지 상향 `≈` — io2는 그 다음이다([블록 온리 §5]({{< relref "../hyperdx/08-block-only-tuning.md" >}})) |
-| **S3→block-only** | 메트릭이 아니라 **요구사항 신호**: 보존 ≤90일 확정 · S3 미접근 규정 · staging | 보존 정책·규정 (운영 지표 아님) | 채택 후 헬스는 `system.disks` 사용률 <80% · 파티션당 active parts <300 · `system.merges` 정체 없음 `≈`. 보존이 길어지면 발산(gp3 $0.08 vs S3 $0.023/GB, ~3.5x)하므로 S3 티어링으로 회귀 |
-| **RF2→RF3** | 요구사항 신호(임의 2대 유실 무손실 · AZ 무저하 · 규제) + **`insert_quorum:2` 상시 필요** | reattach 창 실측치(§3 항목 4) · quorum 쓰기 차단 발생 여부 | RF2에서 `insert_quorum:2`를 켜면 replica 1대가 reattach 중일 때 확정 가능 replica가 1이라 **쓰기가 차단**된다 — 이 조합이 상시 요구면 RF3가 짝이다([배포 플레이북]({{< relref "../clickhouse/04-deployment-playbook.md" >}})) |
-| **1 shard→shard 추가** | hot 단일사본/노드가 실용 상한(예 4~8TB) 접근 · 머지/쿼리 CPU 지속 포화 | 노드별 `system.parts` `bytes_on_disk` 합 · 데이터 노드 CPU 지속 >70%(K8s/CloudWatch) `≈` | 선행: replica 추가(읽기)·노드 사이즈업이 먼저다. 신규 shard 스키마·리밸런싱은 **수동**([Altinity 운영]({{< relref "../clickhouse/05-altinity-operations.md" >}})) |
-| **Keeper 3→5노드** | 요구사항 신호: **2대 동시 손실 허용**이 요구일 때만 | — (부하 지표 아님) | Keeper 부하 신호(znode↑ · gp3 80%)는 5노드 승급이 아니라 **디스크 확장·작은 인서트 제거**로 대응한다 `≈` — Keeper 부하는 데이터량이 아니라 INSERT 빈도·파트 수 비례([Keeper]({{< relref "../hyperdx/05-keeper.md" >}})) |
-| **MCK→Atlas 위임** | `mongodump` CronJob 공백(미구축·실패 방치) | CronJob 성공 여부 · 복원 리허설 결과 | MCK(Community Operator)에는 **내장 백업이 없다** `✓` — 백업·PITR·멀티AZ를 자력으로 못 메우면 Atlas M10(≈$57/mo `≈`)이 그 공백을 turnkey로 제거한다([스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}})) |
+- **gp3→io2**
+  - 발동 신호: 단일 볼륨 **2,000 MiB/s 지속 초과** 또는 **80,000 IOPS/vol 초과**(또는 볼륨 99.999% 규제)
+  - 관측 지점: CloudWatch EBS 볼륨 대역 지표 + `system.asynchronous_metrics`
+  - 선행 단계/비고: 그 전에 **gp3 안에서 2단계**가 남아 있다 — baseline 125 MiB/s 지속 초과가 보이면 먼저 provisioned throughput을 인스턴스 baseline(r7g.2xlarge ~312 MB/s)까지 상향 `≈`, io2는 그 다음이다([블록 온리 §5]({{< relref "../hyperdx/08-block-only-tuning.md" >}}))
+- **S3→block-only**
+  - 발동 신호: 메트릭이 아니라 **요구사항 신호**: 보존 ≤90일 확정 · S3 미접근 규정 · staging
+  - 관측 지점: 보존 정책·규정(운영 지표 아님)
+  - 선행 단계/비고: 채택 후 헬스는 `system.disks` 사용률 <80% · 파티션당 active parts <300 · `system.merges` 정체 없음 `≈`. 보존이 길어지면 발산(gp3 $0.08 vs S3 $0.023/GB, ~3.5x)하므로 S3 티어링으로 회귀
+- **RF2→RF3**
+  - 발동 신호: 요구사항 신호(임의 2대 유실 무손실 · AZ 무저하 · 규제) + **`insert_quorum:2` 상시 필요**
+  - 관측 지점: reattach 창 실측치(§3 항목 4) · quorum 쓰기 차단 발생 여부
+  - 선행 단계/비고: RF2에서 `insert_quorum:2`를 켜면 replica 1대가 reattach 중일 때 확정 가능 replica가 1이라 **쓰기가 차단**된다 — 이 조합이 상시 요구면 RF3가 짝이다([배포 플레이북]({{< relref "../clickhouse/04-deployment-playbook.md" >}}))
+- **1 shard→shard 추가**
+  - 발동 신호: hot 단일사본/노드가 실용 상한(예 4~8TB) 접근 · 머지/쿼리 CPU 지속 포화
+  - 관측 지점: 노드별 `system.parts` `bytes_on_disk` 합 · 데이터 노드 CPU 지속 >70%(K8s/CloudWatch) `≈`
+  - 선행 단계/비고: 선행은 replica 추가(읽기)·노드 사이즈업이다. 신규 shard 스키마·리밸런싱은 **수동**([Altinity 운영]({{< relref "../clickhouse/05-altinity-operations.md" >}}))
+- **Keeper 3→5노드**
+  - 발동 신호: 요구사항 신호: **2대 동시 손실 허용**이 요구일 때만
+  - 관측 지점: — (부하 지표 아님)
+  - 선행 단계/비고: Keeper 부하 신호(znode↑ · gp3 80%)는 5노드 승급이 아니라 **디스크 확장·작은 인서트 제거**로 대응한다 `≈` — Keeper 부하는 데이터량이 아니라 INSERT 빈도·파트 수 비례([Keeper]({{< relref "../hyperdx/05-keeper.md" >}}))
+- **MCK→Atlas 위임**
+  - 발동 신호: `mongodump` CronJob 공백(미구축·실패 방치)
+  - 관측 지점: CronJob 성공 여부 · 복원 리허설 결과
+  - 선행 단계/비고: MCK(Community Operator)에는 **내장 백업이 없다** `✓` — 백업·PITR·멀티AZ를 자력으로 못 메우면 Atlas M10(≈$57/mo `≈`)이 그 공백을 turnkey로 제거한다([스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}}))
 
 두 가지를 덧붙인다. 첫째, **cold 축은 "이동이 실제로 도는가"도 관측 대상**이다 — TTL MOVE의 동작은 `system.storage_policies`(정책 로드)·`system.disks`(티어 등록)·`system.parts`의 `disk_name`(파트가 어느 티어에 있나)·`system.part_log`(이동 이력) 조회로 확인 가능한 표준 인터페이스다 `✓`([S3 티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}}) 기준 문서). 이동이 멎으면 hot이 차오르며 아래 경보로 이어지므로, cold 축의 일상 헬스는 이 네 뷰가 담당한다.
 
@@ -88,9 +130,9 @@ aliases: ["/hyperdx/operating/06-decision-guide/"]
 | 실측 항목 | 현재 | 측정 방법 | 승격 후 |
 |---|---|---|---|
 | 월 0.7TB = raw인가 on-disk인가 | `?` | `system.parts`의 월 `bytes_on_disk` 증가분 | `✓` — 배포 규모·비용 **2~3배** 확정 |
-| 세션 리플레이 압축비(모델 5x, 밴드 4~6x `≈`) | `?` | `system.parts` `uncompressed/on_disk` 비율 | `✓` — [규모 산정]({{< relref "05-capacity.md" >}}) 산식 밴드 확정 |
-| ClickStack 기본 TTL(`${TABLES_TTL}`, 문서상 3일) | `?` | `SHOW CREATE TABLE`로 실 TTL 확인 | `✓` — 우리 권장 오버라이드(리플레이 30일 DELETE·로그/트레이스 hot 14일)와 대조 |
-| EBS reattach + part-load 실소요 | `?` | staging 노드 drain·강제 종료 리허설 | `✓` — `reconcile.statefulSet.update.timeout` 튜닝 |
+| 세션 리플레이 압축비(5x, 4~6x `≈`) | `?` | `system.parts` `uncompressed/on_disk` 비율 | `✓` — [규모 산정]({{< relref "05-capacity.md" >}}) 산식 밴드 확정 |
+| ClickStack 기본 TTL(`${TABLES_TTL}`, 문서상 3일) | `?` | `SHOW CREATE TABLE`로 실 TTL 확인 | `✓` — 오버라이드와 대조 |
+| EBS reattach + part-load 실소요 | `?` | staging drain·강제종료 리허설 | `✓` — `reconcile.statefulSet.update.timeout` 튜닝 |
 
 항목 1·2는 쿼리 하나로 같이 잡힌다([용량 산정]({{< relref "../hyperdx/07-capacity-planning.md" >}}) 기준 문서):
 

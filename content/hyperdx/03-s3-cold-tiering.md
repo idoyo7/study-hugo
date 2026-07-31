@@ -93,7 +93,7 @@ cache disk 필드 `✓`:
 | `disk` | — | 캐시 대상 하위 disk(`s3_disk`) |
 | `path` | — | 캐시 실체 로컬 경로(**EBS 용량 소비** → §5.1) |
 | `max_size` | — | LRU 상한(`150Gi` 또는 바이트). 초과 시 LRU 축출. 최적값은 cold working set 대비 hit rate로 튜닝 `?` |
-| `cache_on_write_operations` | false | **1이면 TTL MOVE로 cold에 쓸 때도 로컬 캐시에 적재** → 갓 내려간 데이터 첫 조회가 빠름 |
+| `cache_on_write_operations` | false | **1이면 TTL MOVE 시에도 로컬 캐시에 적재** → 갓 내려간 데이터 첫 조회가 빠름 |
 | `enable_cache_hits_threshold` | false | N회 읽힌 뒤에만 캐싱(핫셋만) |
 
 > **cache는 `filesystem_cache`(쿼리 레벨 원격 읽기 캐시)와 별개인 disk 레벨 LRU 캐시**다. 관측성 티어링의 정석은 disk 레벨 `cache` disk로 cold 볼륨을 감싸는 것. `✓`

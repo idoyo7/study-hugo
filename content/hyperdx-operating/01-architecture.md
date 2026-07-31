@@ -28,7 +28,7 @@ aliases: ["/hyperdx/operating/01-architecture/"]
 | 축 | 표준 2-Helm 경로 | 우리 채택 경로(HyperDX Only) |
 |---|---|---|
 | CH/Keeper 프로비저닝 주체 | `clickstack` 차트 → 공식 operator가 CR 생성 | Altinity operator가 별도 CHI/CHK CR로 생성 |
-| CH operator 종류 | ClickHouse Inc. 공식(`ClickHouseCluster`/`KeeperCluster`) `✓` | Altinity(`ClickHouseInstallation`/CHI, Keeper는 CHK) |
+| CH operator 종류 | ClickHouse Inc. 공식 CRD(상단 참고) `✓` | Altinity CRD(CHI/CHK, 상단 참고) |
 | `clickhouse.enabled` 값 | `true`(기본) | **`false`** |
 | CH 클러스터 정체성 | ClickStack 전용 신규 클러스터 | 범용분석 CH와 **동일 클러스터로 일원화** |
 | 클러스터 내 CH operator 총수 | 범용분석 CH가 이미 Altinity라면 **2종 공존** | **1종**(Altinity로 일원화) |
@@ -48,13 +48,15 @@ otel-collector:
 
 "4컴포넌트"는 논리 단위이고 실제 배치 단위는 5개다 — HyperDX(app·api·OpAMP를 **한 Deployment**에서 함께 기동), Collector, CHI, CHK, MongoDB. HyperDX는 2프로세스지만 배포·스케일 노브는 하나이고, CH가 CHI/CHK 2 스테이트풀로 갈린다.
 
-| 컴포넌트 | 배포 형태 | 규모(우리 케이스) | 스토리지 | 상태 | 리슨 포트 |
-|---|---|---|---|---|---|
-| HyperDX(app·api·OpAMP) | Deployment(단일) | replica 2+ | 없음 | 무상태 — 한 파드에서 `concurrently`로 함께 기동 | 3000·8000·**4320**(OpAMP) |
-| OTel Collector | Deployment(게이트웨이) | **×2** + `file_storage` 퍼시스턴트 큐(gp3 소량) | 큐만 소량 | 준무상태 | 4317/4318, 13133, 8888 |
-| ClickHouse(CHI) | Altinity CHI | **1 shard × RF2**(2 AZ) | EBS gp3(hot) + S3(cold) | 스테이트풀 | 8123, 9000, 9009 |
-| Keeper(CHK) | Altinity CHK | **3노드**(3 AZ) | gp3 | 스테이트풀(메타·소량) | **2181**, 9444 |
-| MongoDB | MCK 또는 Atlas | **`members:3`**(prod) / `members:1`(staging) | gp3 10Gi | 스테이트풀(소량) | 27017 |
+| 컴포넌트 | 배포 형태 | 규모(우리 케이스) | 스토리지 | 상태 |
+|---|---|---|---|---|
+| HyperDX(app·api·OpAMP) | Deployment(단일) | replica 2+ | 없음 | 무상태 — 한 파드에서 `concurrently`로 함께 기동 |
+| OTel Collector | Deployment(게이트웨이) | **×2** + `file_storage` 퍼시스턴트 큐(gp3 소량) | 큐만 소량 | 준무상태 |
+| ClickHouse(CHI) | Altinity CHI | **1 shard × RF2**(2 AZ) | EBS gp3(hot) + S3(cold) | 스테이트풀 |
+| Keeper(CHK) | Altinity CHK | **3노드**(3 AZ) | gp3 | 스테이트풀(메타·소량) |
+| MongoDB | MCK 또는 Atlas | **`members:3`**(prod) / `members:1`(staging) | gp3 10Gi | 스테이트풀(소량) |
+
+**리슨 포트**: HyperDX(app·api·OpAMP) 3000·8000·**4320**(OpAMP) · OTel Collector 4317/4318, 13133, 8888 · ClickHouse(CHI) 8123, 9000, 9009 · Keeper(CHK) **2181**, 9444 · MongoDB 27017
 
 배치 판단의 요지:
 

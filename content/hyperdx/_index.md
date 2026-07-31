@@ -26,10 +26,10 @@ study-hugo에는 이미 겹치는 주제의 깊은 문서가 있다. 이 챕터�
 
 | 축 | 기존 `clickhouse/` 운영 | 기존 `rum/` 내재화 | **이 챕터 `hyperdx/`** |
 |---|---|---|---|
-| 질문 | ClickHouse를 채택했다면 어떻게 운영하나(범용 how) | RUM을 왜·무엇으로 내재화하나(도입 실사) | HyperDX 스택을 **실제로 어떻게 배포·운영하나**(실전 케이스) |
-| 전제 스토리지 | **로컬 NVMe(i7i/i8g) 1차** + S3 cold | — | **EBS(gp3/io2) 1차** + S3 cold. 로컬 NVMe는 옵셔널 |
-| 규모 전제 | 20TB+·성능 극대화·상시 가동·인력 보유 | — | **RUM-only, 월 0.7TB**(세션 샘플링 100%), staging→prod |
-| 성격(톤) | 이론·의사결정·"채택했다면" | 비교·매트릭스·마이그레이션 | **실전 운용** — 실제 배포·실제 장애·실제 산정 |
+| 질문 | CH 채택 시 범용 운영법(how) | RUM 왜·무엇 내재화(도입 실사) | HyperDX **실전 배포·운영**(실전 케이스) |
+| 전제 스토리지 | **로컬 NVMe(i7i/i8g) 1차** + S3 cold | — | **EBS(gp3/io2) 1차** + S3 cold(NVMe 옵셔널) |
+| 규모 전제 | 20TB+·성능 극대화·상시 가동·인력 보유 | — | **RUM-only, 월 0.7TB**, staging→prod |
+| 성격(톤) | 이론·의사결정·"채택했다면" | 비교·매트릭스·마이그레이션 | **실전 운용** — 실제 배포·장애·산정 |
 
 {{< callout type="warning" >}}
 **두 스토리지 전략은 충돌이 아니다.** [로컬 NVMe 문서]({{< relref "../clickhouse/02-storage-local-nvme.md" >}})는 20TB+·성능 극대화 전제에서 출발한다. 이 챕터는 0.7TB/월·운영 단순성·내구성 우선 전제에서 EBS를 1차로 둔다. EBS-first의 값어치는 성능이 아니라 **노드 재부팅·재스케줄·인스턴스 교체(같은 AZ)에서 볼륨 detach/attach로 재수화가 불필요**하다는 운영 프로파일이다 — 로컬 NVMe의 "노드 유실 = 재수화 위험 창"이 근본적으로 짧아진다. 상세는 {{< relref "02-hot-storage-ebs.md" >}}·{{< relref "04-operator-topology-downtime.md" >}}.
@@ -39,18 +39,31 @@ study-hugo에는 이미 겹치는 주제의 깊은 문서가 있다. 이 챕터�
 
 ## 핵심 결정 요약
 
-| 축 | 결정 | 근거·조건 |
-|---|---|---|
-| 스택 조립 | HyperDX-only + Altinity CHI/CHK + MongoDB(MCK 또는 Atlas) | 표준 차트=공식 operator를 회피, CH를 범용 분석과 일원화 `✓` → {{< relref "01-stack-topology.md" >}} |
-| hot 스토리지 | 단일 gp3(baseline IOPS + 인스턴스 baseline에 맞춘 소량 throughput) | ClickHouse는 throughput-bound, 인스턴스 EBS 파이프가 볼륨보다 먼저 천장 `✓/≈` → {{< relref "02-hot-storage-ebs.md" >}} |
-| io2 / 로컬 NVMe | io2는 필요 시 각주, 로컬 NVMe는 업그레이드 경로 | gp3 99.9% + RF 복제로 충분, io2 99.999%는 이 스케일 과잉 `≈` |
-| cold 티어링 | S3 Standard + cache disk, 시간 기반 TTL MOVE, IRSA | Glacier 전환 금지, `{replica}` 경로 분리(shared-nothing) `✓` → {{< relref "03-s3-cold-tiering.md" >}} |
-| 토폴로지 | **1 shard × RF2**(2 AZ), RF3는 트리거 승급 | 0.7TB/월엔 shard가 부채, EBS는 노드 급사가 데이터 소실 아님 `≈` → {{< relref "04-operator-topology-downtime.md" >}} |
-| 조정 계층 | Keeper 3노드(gp3 영속, 3 AZ) | 정족수 3(1 장애 허용), Keeper는 큐가 아님 `✓` → {{< relref "05-keeper.md" >}} |
-| ingest 신뢰성 | OTel Collector persistent queue + `async_insert=1, wait=1` + dedup | in-flight 유실은 Keeper가 아니라 앞단 큐·클라 재시도로 방어 `✓` → {{< relref "05-keeper.md" >}} |
-| MongoDB | 메타데이터 전용 최소 규모, prod는 `members:3`/Atlas + SCRAM + mongodump | 부하는 데이터량 아닌 사용자·설정 수 비례, 인제스트 경로 밖 `≈` → {{< relref "01-stack-topology.md" >}} |
-| CH 버전 | 예제는 **24.8 LTS**(ClickStack 24.8+ 요구) | 차트 기본 태그는 관찰값으로만 `✓` |
-| 용량·비용 | on-disk 해석 1차, 지평별(3/6/12개월) 워크드 모델 | hot·컴퓨트 고정 + 증분은 S3 cold `≈` → {{< relref "07-capacity-planning.md" >}} |
+| 축 | 결정 |
+|---|---|
+| 스택 조립 | HyperDX-only + Altinity CHI/CHK + MongoDB(MCK 또는 Atlas) |
+| hot 스토리지 | 단일 gp3(baseline IOPS + 인스턴스 baseline에 맞춘 소량 throughput) |
+| io2 / 로컬 NVMe | io2는 필요 시 각주, 로컬 NVMe는 업그레이드 경로 |
+| cold 티어링 | S3 Standard + cache disk, 시간 기반 TTL MOVE, IRSA |
+| 토폴로지 | **1 shard × RF2**(2 AZ), RF3는 트리거 승급 |
+| 조정 계층 | Keeper 3노드(gp3 영속, 3 AZ) |
+| ingest 신뢰성 | OTel Collector persistent queue + `async_insert=1, wait=1` + dedup |
+| MongoDB | 메타데이터 전용 최소 규모, prod는 `members:3`/Atlas + SCRAM + mongodump |
+| CH 버전 | 예제는 **24.8 LTS**(ClickStack 24.8+ 요구) |
+| 용량·비용 | on-disk 해석 1차, 지평별(3/6/12개월) 워크드 모델 |
+
+각 결정의 근거·조건:
+
+- **스택 조립** — 표준 차트=공식 operator를 회피, CH를 범용 분석과 일원화 `✓` → {{< relref "01-stack-topology.md" >}}
+- **hot 스토리지** — ClickHouse는 throughput-bound, 인스턴스 EBS 파이프가 볼륨보다 먼저 천장 `✓/≈` → {{< relref "02-hot-storage-ebs.md" >}}
+- **io2 / 로컬 NVMe** — gp3 99.9% + RF 복제로 충분, io2 99.999%는 이 스케일 과잉 `≈`
+- **cold 티어링** — Glacier 전환 금지, `{replica}` 경로 분리(shared-nothing) `✓` → {{< relref "03-s3-cold-tiering.md" >}}
+- **토폴로지** — 0.7TB/월엔 shard가 부채, EBS는 노드 급사가 데이터 소실 아님 `≈` → {{< relref "04-operator-topology-downtime.md" >}}
+- **조정 계층** — 정족수 3(1 장애 허용), Keeper는 큐가 아님 `✓` → {{< relref "05-keeper.md" >}}
+- **ingest 신뢰성** — in-flight 유실은 Keeper가 아니라 앞단 큐·클라 재시도로 방어 `✓` → {{< relref "05-keeper.md" >}}
+- **MongoDB** — 부하는 데이터량 아닌 사용자·설정 수 비례, 인제스트 경로 밖 `≈` → {{< relref "01-stack-topology.md" >}}
+- **CH 버전** — 차트 기본 태그는 관찰값으로만 `✓`
+- **용량·비용** — hot·컴퓨트 고정 + 증분은 S3 cold `≈` → {{< relref "07-capacity-planning.md" >}}
 
 ## 우리 케이스 청사진 (한 장 토폴로지)
 
@@ -90,20 +103,18 @@ RUM 인제스트 경로에 **MongoDB는 없다** — 브라우저 SDK는 HyperDX
 
 ## 이 챕터 구성 (문서 지도)
 
-| 페이지 | 다루는 것 (새로 쓰는 것) | 주로 위임하는 것 |
-|---|---|---|
-| [HyperDX 직접 운영하기]({{< relref "../hyperdx-operating/_index.md" >}}) | **운영 트랙(6부, 별도 챕터)** — 아래 기준 문서들 위에서 "직접 운영하려면 어떤 순서로 무엇을 판단해야 하나"를 ①아키텍처 ②티어링 ③가용성 ④operator 패턴 ⑤규모 산정 ⑥의사결정 가이드로 구체화 | 남김없는 세부·근거는 아래 기준 문서 01~09·출처 10 |
-| {{< relref "01-stack-topology.md" >}} | ClickStack 4컴포넌트 배포 토폴로지·데이터 흐름, OTel Collector 배치/사이징, **MongoDB 최소 규모 배포·운영** | 4컴포넌트/배포 6모드 → {{< relref "../rum/01-hyperdx-deep-dive.md" >}}, MongoDB 부하 프로파일 → {{< relref "../rum/07-hyperdx-mongodb.md" >}} |
-| {{< relref "02-hot-storage-ebs.md" >}} | **gp3 vs io2 vs io2 Block Express** 실전 상세, ClickHouse I/O 적합성, 왜 EBS-first, operator StorageClass/VolumeClaimTemplate | 로컬 NVMe 상세·EBS 대역 한계 → {{< relref "../clickhouse/02-storage-local-nvme.md" >}} |
-| {{< relref "03-s3-cold-tiering.md" >}} | **S3 cold worked example**: storage_configuration 전문·TTL MOVE DDL·IRSA·우리 RUM 테이블 튜닝 | 티어링≠내구성·zero-copy 금지 → {{< relref "../clickhouse/02-storage-local-nvme.md" >}} |
-| {{< relref "04-operator-topology-downtime.md" >}} | EBS 기반 replication/sharding + **다운타임 상세 시나리오**(재부착·rolling·PDB·AZ 장애·ungraceful death) | CHI/CHK 필드·스케일 함정·롤링 업그레이드 → {{< relref "../clickhouse/04-deployment-playbook.md" >}}·{{< relref "../clickhouse/05-altinity-operations.md" >}} |
-| {{< relref "05-keeper.md" >}} | Keeper 상세: Raft·저장/비저장, **"큐가 아니다" 정정**, async_insert 세만틱, 유실 방지 설계 | 정족수 산술·CHK 매니페스트·쓰기 내구성 노브 → {{< relref "../clickhouse/04-deployment-playbook.md" >}} |
-| {{< relref "06-replication-failover.md" >}} | **복제 구조·멀티마스터·중단/failover**: RMT pull 복제, 승격 없는 failover, ZooKeeper/Keeper 복제 역할, split-brain 방지, RF2+consolidation 안전성 | 다운타임 물리 역학 → {{< relref "04-operator-topology-downtime.md" >}}, Keeper 자체 → {{< relref "05-keeper.md" >}} |
-| {{< relref "07-capacity-planning.md" >}} | **월 0.7TB RUM 워크드 모델**: 압축비·raw vs on-disk·3/6/12개월·hot/cold·RF·gp3 vs io2·TTL·비용 | RF 선택 확률·insert_quorum → {{< relref "../clickhouse/04-deployment-playbook.md" >}} |
-| {{< relref "08-block-only-tuning.md" >}} | **블록 스토리지 온리(무 S3)**: 단일 `default` 정책·TTL DELETE-only·gp3 온라인 확장·merge/background 풀 튜닝·블록온리 vs S3 선택 | hot gp3 스펙 → {{< relref "02-hot-storage-ebs.md" >}}, S3 티어링 → {{< relref "03-s3-cold-tiering.md" >}}, 사이징 → {{< relref "07-capacity-planning.md" >}} |
-| {{< relref "09-version-upgrade-compat.md" >}} | **버전 호환·업그레이드**: 6구성요소 호환 매트릭스·`compatibility` 설정·다운그레이드 비지원·EBS 스냅샷 롤백·ClickStack v1→v2 | 일반 CH/operator/Keeper 업그레이드 런북 → {{< relref "../clickhouse/05-altinity-operations.md" >}} |
-| {{< relref "10-sources.md" >}} | 출처 URL 모음(분류 표) | — |
-| {{< relref "11-our-rum-ingest.md" >}} | **우리 케이스**: 실제 RUM 수집 스택 종합도(자체 RUM 컨버터 포함)·컴포넌트 분할·컴포넌트별 HA 표 | 표준 4컴포넌트·가용성·Keeper·복제는 01·03(운영)·05·06 |
+- **[HyperDX 직접 운영하기]({{< relref "../hyperdx-operating/_index.md" >}})** · 운영 트랙(6부, 별도 챕터) — 아래 기준 문서들 위에서 "직접 운영하려면 어떤 순서로 무엇을 판단해야 하나"를 ①아키텍처 ②티어링 ③가용성 ④operator 패턴 ⑤규모 산정 ⑥의사결정 가이드로 구체화. 남김없는 세부·근거는 아래 기준 문서 01~09·출처 10에 위임.
+- **{{< relref "01-stack-topology.md" >}}** · ClickStack 4컴포넌트 배포 토폴로지·데이터 흐름, OTel Collector 배치/사이징, **MongoDB 최소 규모 배포·운영**. 4컴포넌트/배포 6모드는 {{< relref "../rum/01-hyperdx-deep-dive.md" >}}, MongoDB 부하 프로파일은 {{< relref "../rum/07-hyperdx-mongodb.md" >}}에 위임.
+- **{{< relref "02-hot-storage-ebs.md" >}}** · **gp3 vs io2 vs io2 Block Express** 실전 상세, ClickHouse I/O 적합성, 왜 EBS-first, operator StorageClass/VolumeClaimTemplate. 로컬 NVMe 상세·EBS 대역 한계는 {{< relref "../clickhouse/02-storage-local-nvme.md" >}}에 위임.
+- **{{< relref "03-s3-cold-tiering.md" >}}** · **S3 cold worked example**: storage_configuration 전문·TTL MOVE DDL·IRSA·우리 RUM 테이블 튜닝. 티어링≠내구성·zero-copy 금지는 {{< relref "../clickhouse/02-storage-local-nvme.md" >}}에 위임.
+- **{{< relref "04-operator-topology-downtime.md" >}}** · EBS 기반 replication/sharding + **다운타임 상세 시나리오**(재부착·rolling·PDB·AZ 장애·ungraceful death). CHI/CHK 필드·스케일 함정·롤링 업그레이드는 {{< relref "../clickhouse/04-deployment-playbook.md" >}}·{{< relref "../clickhouse/05-altinity-operations.md" >}}에 위임.
+- **{{< relref "05-keeper.md" >}}** · Keeper 상세: Raft·저장/비저장, **"큐가 아니다" 정정**, async_insert 세만틱, 유실 방지 설계. 정족수 산술·CHK 매니페스트·쓰기 내구성 노브는 {{< relref "../clickhouse/04-deployment-playbook.md" >}}에 위임.
+- **{{< relref "06-replication-failover.md" >}}** · **복제 구조·멀티마스터·중단/failover**: RMT pull 복제, 승격 없는 failover, ZooKeeper/Keeper 복제 역할, split-brain 방지, RF2+consolidation 안전성. 다운타임 물리 역학은 {{< relref "04-operator-topology-downtime.md" >}}, Keeper 자체는 {{< relref "05-keeper.md" >}}에 위임.
+- **{{< relref "07-capacity-planning.md" >}}** · **월 0.7TB RUM 워크드 모델**: 압축비·raw vs on-disk·3/6/12개월·hot/cold·RF·gp3 vs io2·TTL·비용. RF 선택 확률·insert_quorum은 {{< relref "../clickhouse/04-deployment-playbook.md" >}}에 위임.
+- **{{< relref "08-block-only-tuning.md" >}}** · **블록 스토리지 온리(무 S3)**: 단일 `default` 정책·TTL DELETE-only·gp3 온라인 확장·merge/background 풀 튜닝·블록온리 vs S3 선택. hot gp3 스펙은 {{< relref "02-hot-storage-ebs.md" >}}, S3 티어링은 {{< relref "03-s3-cold-tiering.md" >}}, 사이징은 {{< relref "07-capacity-planning.md" >}}에 위임.
+- **{{< relref "09-version-upgrade-compat.md" >}}** · **버전 호환·업그레이드**: 6구성요소 호환 매트릭스·`compatibility` 설정·다운그레이드 비지원·EBS 스냅샷 롤백·ClickStack v1→v2. 일반 CH/operator/Keeper 업그레이드 런북은 {{< relref "../clickhouse/05-altinity-operations.md" >}}에 위임.
+- **{{< relref "10-sources.md" >}}** · 출처 URL 모음(분류 표).
+- **{{< relref "11-our-rum-ingest.md" >}}** · **우리 케이스**: 실제 RUM 수집 스택 종합도(자체 RUM 컨버터 포함)·컴포넌트 분할·컴포넌트별 HA 표. 표준 4컴포넌트·가용성·Keeper·복제는 01·03(운영)·05·06에 위임.
 
 ## 자매 챕터
 

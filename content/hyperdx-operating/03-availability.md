@@ -20,13 +20,26 @@ aliases: ["/hyperdx/operating/03-availability/"]
 
 전제는 [스택 토폴로지]({{< relref "../hyperdx/01-stack-topology.md" >}})와 동일하다: RUM-only 월 0.7TB, EBS(gp3)-first, HyperDX Only(`clickhouse.enabled:false`) + Altinity CHI/CHK, 1 shard × RF2(2 AZ), Keeper 3노드(gp3·3 AZ), MongoDB 메타데이터 전용.
 
-| 컴포넌트 | (a) 역할 | (b) 죽으면 무엇이 멈추나 | (c) HA·스케일 | (d) 무손실 방법 |
-|---|---|---|---|---|
-| **HyperDX app/api** | 조회 UI(Next.js) + 백엔드(Node.js: 쿼리 오케스트레이션·알럿 평가·OpAMP 서버) | **UI·쿼리만** — 브라우저→Collector→CH 적재 경로는 그대로 흐른다(조회 대면일 뿐 ingest 경로 밖) `✓` | 무상태, Service 뒤 replica 2+ 수평 확장 | 상태 없음(메타=Mongo, 텔레메트리=CH) → 자체 유실 개념 없음 `✓` |
-| **OTel Collector** | RUM ingest 수집·배치·CH export(4318 인입) | 신규 ingest 정지 → `file_storage` 큐가 있으면 in-flight를 디스크에 붙잡고 복귀 후 재개, **큐 없으면 in-flight 유실** `✓/≈` | 준무상태(+디스크 큐), deployment ≥2 replica 수평 확장 | persistent queue(at-least-once) + `memory_limiter` 백프레셔 + 클라 재시도 `✓/≈` |
-| **ClickHouse** | 모든 텔레메트리 저장·쿼리 원천 | replica 1대 소실은 나머지가 read+write 계속(**승격 없음**) · **전체 다운만** 조회+수집 동시 정지 `✓` | RMT 멀티마스터, RF2/3 · 2~3 AZ 분산 | RF 복제 + `insert_quorum` + clickhouse-backup `✓` |
-| **ClickHouse Keeper** | 복제 조정 메타(로그·part 참조·dedup·DDL 큐) | **정족수 상실 → 쓰기(INSERT/DDL/머지) 정지, 읽기는 계속** — 데이터 노드가 멀쩡해도 쓰기가 멎는 유일 지점 `✓` | 3노드 정족수(1대 손실 허용), 3 AZ 분산 | 사용자 데이터 아님 · gp3 영속(Raft 메타 생존) · 3노드 정족수 `✓` |
-| **MongoDB** | 앱 메타데이터(대시보드·알럿·유저·소스) | **설정·알럿 평가·UI만** — 이미 적재 중인 관측 데이터와 무관 `✓` | ReplicaSet `members:3`(또는 Atlas), 부하∝설정 수라 스케일 자체가 불필요 `✓` | ReplicaSet 복제 + `mongodump` CronJob(S3) `✓` |
+- **HyperDX app/api** — 조회 UI(Next.js) + 백엔드(Node.js: 쿼리 오케스트레이션·알럿 평가·OpAMP 서버).
+  - 죽으면: **UI·쿼리만** — 브라우저→Collector→CH 적재 경로는 그대로 흐른다(조회 대면일 뿐 ingest 경로 밖) `✓`
+  - HA·스케일: 무상태, Service 뒤 replica 2+ 수평 확장
+  - 무손실 방법: 상태 없음(메타=Mongo, 텔레메트리=CH) → 자체 유실 개념 없음 `✓`
+- **OTel Collector** — RUM ingest 수집·배치·CH export(4318 인입).
+  - 죽으면: 신규 ingest 정지 → `file_storage` 큐가 있으면 in-flight를 디스크에 붙잡고 복귀 후 재개, **큐 없으면 in-flight 유실** `✓/≈`
+  - HA·스케일: 준무상태(+디스크 큐), deployment ≥2 replica 수평 확장
+  - 무손실 방법: persistent queue(at-least-once) + `memory_limiter` 백프레셔 + 클라 재시도 `✓/≈`
+- **ClickHouse** — 모든 텔레메트리 저장·쿼리 원천.
+  - 죽으면: replica 1대 소실은 나머지가 read+write 계속(**승격 없음**) · **전체 다운만** 조회+수집 동시 정지 `✓`
+  - HA·스케일: RMT 멀티마스터, RF2/3 · 2~3 AZ 분산
+  - 무손실 방법: RF 복제 + `insert_quorum` + clickhouse-backup `✓`
+- **ClickHouse Keeper** — 복제 조정 메타(로그·part 참조·dedup·DDL 큐).
+  - 죽으면: **정족수 상실 → 쓰기(INSERT/DDL/머지) 정지, 읽기는 계속** — 데이터 노드가 멀쩡해도 쓰기가 멎는 유일 지점 `✓`
+  - HA·스케일: 3노드 정족수(1대 손실 허용), 3 AZ 분산
+  - 무손실 방법: 사용자 데이터 아님 · gp3 영속(Raft 메타 생존) · 3노드 정족수 `✓`
+- **MongoDB** — 앱 메타데이터(대시보드·알럿·유저·소스).
+  - 죽으면: **설정·알럿 평가·UI만** — 이미 적재 중인 관측 데이터와 무관 `✓`
+  - HA·스케일: ReplicaSet `members:3`(또는 Atlas), 부하∝설정 수라 스케일 자체가 불필요 `✓`
+  - 무손실 방법: ReplicaSet 복제 + `mongodump` CronJob(S3) `✓`
 
 ## 2. blast radius — 어디까지 번지나
 

@@ -31,12 +31,14 @@ Keeper는 znode 트리(작은 키-값)로 **복제·분산 실행의 조정 상�
 
 | 저장 대상 | 내용 | znode 경로(예) |
 |---|---|---|
-| **복제 로그(replication log)** | INSERT·MERGE·MUTATION을 로그 엔트리로 기록 — "어떤 파트가 생겼고, 각 replica가 어디까지 소비했나" | `/clickhouse/tables/{shard}/{table}/log/log-000…` `✓` |
+| **복제 로그(replication log)** | 로그 엔트리(파트·소비 추적)¹ | `/clickhouse/tables/{shard}/{table}/log/log-000…` `✓` |
 | **replica별 큐(queue)** | 각 replica가 아직 안 가져온 작업(파트 fetch·머지 지시) | `.../replicas/{r}/queue/…` `✓` |
 | **part 할당·블록 번호** | 중복 방지용 블록 번호 배정, 어느 파트가 존재하는지 | `.../block_numbers/`, `.../parts/` `✓` |
 | **INSERT dedup 체크섬** | 블록 해시섬(파티션별 znode) → 재시도 멱등의 근거 | `/clickhouse/tables/…/blocks/<hash>` `✓` |
-| **분산 DDL 큐(ON CLUSTER)** | 직렬번호 znode로 정렬된 DDL 태스크 + 노드별 완료 상태 | `/clickhouse/task_queue/ddl/query-000…` `✓` |
+| **분산 DDL 큐(ON CLUSTER)** | DDL 태스크(직렬 znode 순서) + 노드별 완료 | `/clickhouse/task_queue/ddl/query-000…` `✓` |
 | **leader election / ephemeral 락** | 머지·mutation 리더, 세션 소멸 시 자동 삭제되는 임시 노드 | ephemeral znodes `✓` |
+
+¹ INSERT·MERGE·MUTATION을 로그 엔트리로 기록 — 어떤 파트가 생겼고 각 replica가 어디까지 소비했는지 추적한다.
 
 여기서 반드시 붙잡을 사실 세 가지다.
 
@@ -73,7 +75,7 @@ Keeper가 저장하지 **않는** 것을 못박아 둔다: ❌ 테이블의 행�
 
 | 축 | **Kafka (로그/큐)** | **ZooKeeper** | **ClickHouse Keeper** |
 |---|---|---|---|
-| 근본 목적 | 메시지 **본문**을 durable하게 적재·보존·재생 | 분산 조정(구성·락·리더) | 분산 조정(복제 메타·DDL) — ZK의 CH 특화 대체 |
+| 근본 목적 | 메시지 **본문** durable 적재·보존·재생 | 분산 조정(구성·락·리더) | 분산 조정(복제 메타·DDL, ZK의 CH 특화) |
 | 담는 것 | **프로듀서가 보낸 데이터 그 자체** | 소량 조정 상태(znode) | 소량 조정 상태(znode) — 파트 참조·로그·체크섬 |
 | 데이터 보존 | retention 기간 동안 디스크 보존, **replay 가능** | 조정 상태만(작음) | 조정 상태만(작음) |
 | 합의 | ISR/replication (Raft: KRaft) | ZAB | **NuRaft(Raft)** |
@@ -122,17 +124,17 @@ RUM/관측성 ingest는 작은 이벤트가 대량이라 `async_insert`를 흔�
 
 | 설정 | ack 시점 | 유실 성격 |
 |---|---|---|
-| `async_insert=1, wait_for_async_insert=1` (기본·권장) | **디스크 flush 후** ack | ack 받은 데이터는 안 잃는다. **flush 전 크래시면 ack가 안 나가므로 클라가 실패를 인지 → 재시도 책임** `✓` |
-| `async_insert=1, wait_for_async_insert=0` (fire-and-forget) | **버퍼링 즉시** ack | **ack 받은 데이터도 크래시 시 유실 가능.** 에러는 flush 때만 표면화, dead-letter 없음 → *"very risky"* `✓/Ⓥ` |
+| `async_insert=1, wait_for_async_insert=1` (기본·권장) | **디스크 flush 후** ack | ack 받은 데이터는 유실 없음 `✓` |
+| `async_insert=1, wait_for_async_insert=0` (fire-and-forget) | **버퍼링 즉시** ack | **ack 받아도 크래시 시 유실 가능** `✓/Ⓥ` |
 
-정확한 프레이밍이 중요하다: `wait_for_async_insert=1`에서도 버퍼는 여전히 메모리(휘발)다. 다만 **"ack = 디스크에 있음"** 계약이 지켜지므로, flush 전 크래시는 *미확정(un-acked)* INSERT의 실패로 나타나고 **이미 acknowledged 된 데이터는 잃지 않는다.** 반면 `=0`은 **"ack = 버퍼에 있음"**이라 ack와 내구성이 분리돼, ack를 받고도 유실될 수 있다. → **RUM에서도 `wait_for_async_insert=1` 유지가 기본**이다 `✓`.
+정확한 프레이밍이 중요하다: `wait_for_async_insert=1`에서도 버퍼는 여전히 메모리(휘발)다. 다만 **"ack = 디스크에 있음"** 계약이 지켜지므로, flush 전 크래시는 *미확정(un-acked)* INSERT의 실패로 나타나고 **이미 acknowledged 된 데이터는 잃지 않는다.** 반면 `=0`은 **"ack = 버퍼에 있음"**이라 ack와 내구성이 분리돼, ack를 받고도 유실될 수 있다 — 게다가 에러는 flush 시점에야 표면화되고 dead-letter 메커니즘도 없어 벤더 스스로 *"very risky"* `Ⓥ`라 표현한다. → **RUM에서도 `wait_for_async_insert=1` 유지가 기본**이다 `✓`.
 
 버퍼는 서버 in-memory이고, insert 쿼리 shape+settings 조합마다 별도 버퍼로 쌓이며, 아래 트리거 중 먼저 도달하는 것에서 flush된다(값은 도입 CH 버전·Cloud 여부에 따라 다르므로 재확인) `✓`.
 
 | 설정 | 기본값 | 의미 |
 |---|---|---|
 | `async_insert_max_data_size` | **100 MiB** | 버퍼 누적 크기 상한 |
-| `async_insert_busy_timeout_ms` | **200 ms** (Cloud 1000 ms) | 시간 상한. 24.2+ 적응형(유입률 따라 min 50 ms ~ max 200 ms 동적) |
+| `async_insert_busy_timeout_ms` | **200 ms** (Cloud 1000 ms) | 시간 상한(24.2+ 적응형: 유입률 따라 50~200 ms 동적) |
 | `async_insert_max_query_number` | **450** | 누적 INSERT 쿼리 수 상한 |
 
 두 가지 함정을 명시한다. (1) `Buffer` 테이블 엔진도 같은 성질이라 **크래시 시 버퍼 데이터 유실** `✓`. (2) **async_insert는 기본적으로 dedup이 꺼져 있다** — 동기 INSERT는 기본 멱등이지만 async는 `async_insert_deduplicate=1`을 켜기 전까지 dedup이 안 돼, 재시도가 **중복 적재**를 낳는다 `✓`.
@@ -161,13 +163,21 @@ RUM/관측성 ingest는 작은 이벤트가 대량이라 `async_insert`를 흔�
 
 `insert_quorum`을 **어디에 주입하나**(profiles/users.xml), **RF3와 왜 짝인가**, **재수화 창 중 쓰기 차단** 트레이드오프는 [operator 배포 플레이북]({{< relref "../clickhouse/04-deployment-playbook.md" >}})의 쓰기 내구성 노브 절이 기준 문서다. 여기서는 "이 노브들이 왜 **큐 대체가 아니라 유실 확률을 줄이는 도구**인가"의 개념 축만 본다.
 
-| 노브 | 기본값 | 무엇을 | 큐 관점에서의 의미 |
-|---|---|---|---|
-| `insert_quorum = N` | 0(비활성) `✓` | 최소 N replica가 파트를 확정한 뒤 ack | ack 전에 파트가 N벌 존재 보장 → 단일 노드 소실에도 손실↓. **그래도 앞단 버퍼는 아님**: quorum 미달이면 쓰기가 **차단**된다(내구성↔가용성 트레이드오프) `✓` |
-| `insert_quorum_parallel` | 1(병렬 허용) `✓` | 같은 테이블 동시 quorum INSERT 허용 | read-after-write를 엄격히 원하면 0으로 직렬화 필요 `✓` |
-| `select_sequential_consistency` | 0 `✓` | quorum 확정 데이터만 읽음 | 읽기 일관성↑, 읽기 지연·가용성 일부 희생 `✓` |
-| `replicated_deduplication_window`(값 재확인 권장) | **1000**(블록) `✓` | 최근 N개 블록 해시를 Keeper `.../blocks`에 보관 → 재시도 멱등 | 재시도가 중복이 안 되게 → **at-least-once를 사실상 exactly-once로** 만드는 근거 |
-| `replicated_deduplication_window_seconds`(값 재확인 권장) | **604800**(7일) `✓` | dedup 해시의 시간 창 | 창을 넘겨 재시도하면 dedup 실패 → 중복 위험 |
+| 노브 | 기본값 | 무엇을 |
+|---|---|---|
+| `insert_quorum = N` | 0(비활성) `✓` | 최소 N replica가 파트를 확정한 뒤 ack |
+| `insert_quorum_parallel` | 1(병렬 허용) `✓` | 같은 테이블 동시 quorum INSERT 허용 |
+| `select_sequential_consistency` | 0 `✓` | quorum 확정 데이터만 읽음 |
+| `replicated_deduplication_window`(값 재확인 권장) | **1000**(블록) `✓` | 최근 N개 블록 해시를 Keeper에 보관(재시도 멱등) |
+| `replicated_deduplication_window_seconds`(값 재확인 권장) | **604800**(7일) `✓` | dedup 해시의 시간 창 |
+
+각 노브가 "큐 관점"에서 뜻하는 것:
+
+- **`insert_quorum`** — ack 전에 파트가 N벌 존재 보장 → 단일 노드 소실에도 손실↓. **그래도 앞단 버퍼는 아님**: quorum 미달이면 쓰기가 **차단**된다(내구성↔가용성 트레이드오프) `✓`.
+- **`insert_quorum_parallel`** — read-after-write를 엄격히 원하면 0으로 직렬화 필요 `✓`.
+- **`select_sequential_consistency`** — 읽기 일관성↑, 읽기 지연·가용성 일부 희생 `✓`.
+- **`replicated_deduplication_window`** — 재시도가 중복이 안 되게 → **at-least-once를 사실상 exactly-once로** 만드는 근거.
+- **`replicated_deduplication_window_seconds`** — 창을 넘겨 재시도하면 dedup 실패 → 중복 위험.
 
 ### at-least-once → exactly-once의 실제 조건
 
@@ -185,9 +195,9 @@ ReplicatedMergeTree는 **블록 단위 dedup이 기본 켜짐**이라, 같은 �
 | 유실 지점 | 언제 | Keeper가 막아주나 | 방어 |
 |---|---|---|---|
 | 클라 → 서버 전송 중 네트워크 끊김 | 항상 가능 | ❌ | 클라 재시도 + dedup |
-| async 버퍼(메모리) flush 전 서버 크래시 | async_insert 사용 시 | ❌ | `wait_for_async_insert=1`(미ack→재시도), 또는 앞단 큐 |
+| async 버퍼 flush 전 크래시 | async_insert 사용 시 | ❌ | `wait_for_async_insert=1`(미ack→재시도)/앞단 큐 |
 | fire-and-forget ack 후 크래시 | `wait=0` | ❌ | `wait=0` 지양 |
-| 파트 커밋 후·복제 전 노드 소실 | 단일 사본 창 | 부분(지시는 복원, 파트가 그 노드에만 있으면 유실) | `insert_quorum`, RF↑, 재수화 창 관리 → [스토리지 · 로컬 NVMe]({{< relref "../clickhouse/02-storage-local-nvme.md" >}}) |
+| 파트 커밋 후·복제 전 소실 | 단일 사본 창 | 부분(지시 복원, 단독보유 파트 유실) | `insert_quorum`, RF↑ → [로컬 NVMe]({{< relref "../clickhouse/02-storage-local-nvme.md" >}}) |
 | Keeper 정족수 상실 | Keeper 과반 소실 | — (쓰기 자체 차단) | 3/5노드·gp3·AZ 분산 → [operator 배포 플레이북]({{< relref "../clickhouse/04-deployment-playbook.md" >}}) |
 | 앞단 없음(직결) + 다운타임 | CH 유지보수·과부하 | ❌ | OTel persistent queue / Kafka(아래) |
 

@@ -23,11 +23,13 @@ weight: 7
 
 | | **해석 A — raw ingest** | **해석 B — on-disk(압축 후, 단일사본)** |
 |---|---|---|
-| 0.7TB의 의미 | OTel collector/SDK 인입 바이트/월(압축 전 논리 크기) | ClickHouse가 디스크에 쓰는 압축 후 바이트/월(`system.parts.bytes_on_disk`, 단일 replica) |
+| 0.7TB의 의미 | OTel SDK 인입 바이트/월(압축 전) | CH가 디스크에 쓰는 압축 후 바이트/월¹ |
 | 흔한 화법 | "우리 텔레메트리 월 0.7TB 나온다" | "월 0.7TB씩 디스크가 는다" |
 | 변환(블렌디드 ~6x, §2) | on-disk = 0.7TB ÷ 6 ≈ **117GB/월** | raw ≈ 0.7TB × 6 ≈ **4.2TB/월** |
 | 배포 규모 | 아주 작음(hot 수백 GB) → 2× 소형 노드, ~$0.5K/mo | 중소 → 2× r7g.2xlarge, ~$1.0K/mo |
 | 캐파 적합성 | 사이징엔 부적절(과소) | **디스크를 직접 결정 → 사이징의 기준** |
+
+¹ `system.parts.bytes_on_disk` 기준(단일 replica).
 
 캐파 산정의 대상은 결국 **디스크에 실제로 쌓이는 양**이므로, 본 페이지는 **해석 B(on-disk 단일사본 0.7TB/월)를 1차 모델**로 삼고 해석 A는 §4.7 대조로 싣는다 `≈`.
 
@@ -159,9 +161,9 @@ on-disk의 78.5%를 차지하는 리플레이가 **30일 상한**으로 잘리�
 
 | 컴포넌트 | 권장(prod) | 사양 | 근거 |
 |---|---|---|---|
-| ClickHouse 데이터 노드 | **2× r7g.2xlarge**(RF2), +1대(RF3) | 8 vCPU / 64 GB / gp3 ~1TB | 인제스트·쿼리 여유, page cache `≈` |
-| ClickHouse Keeper | **3× t4g.medium** | 2 vCPU / 4 GB / gp3 20GB(영속) | 정족수 3, 4GB면 충분 `✓` → {{< relref "05-keeper.md" >}} |
-| MongoDB | **3-member t4g.small**(또는 Atlas) | 2 vCPU / 2 GB / gp3 10GB | 메타데이터 수 GB, `members:1`은 HA 아님 `✓` → {{< relref "../rum/07-hyperdx-mongodb.md" >}} |
+| ClickHouse 데이터 노드 | **2× r7g.2xlarge**(RF2), +1대(RF3) | 8 vCPU / 64 GB / gp3 ~1TB | 인제스트·쿼리 여유 `≈` |
+| ClickHouse Keeper | **3× t4g.medium** | 2 vCPU / 4 GB / gp3 20GB(영속) | 정족수 3, 4GB면 충분 `✓` → [05-keeper]({{< relref "05-keeper.md" >}}) |
+| MongoDB | **3-member t4g.small**(또는 Atlas) | 2 vCPU / 2 GB / gp3 10GB | 메타 수 GB, `members:1`은 HA 아님 `✓` → [rum/07]({{< relref "../rum/07-hyperdx-mongodb.md" >}}) |
 | OTel Collector | gateway 2 replica(HPA) | 각 1~2 vCPU | 변환 CPU 여유 |
 
 > **인스턴스 EBS 대역이 실질 병목**: gp3 볼륨 스펙(최대 2,000 MiB/s)보다 **인스턴스의 EBS 파이프 상한이 먼저 천장**을 친다 — r7g.2xlarge의 EBS 대역이 볼륨 스펙보다 낮으므로 노드 사이즈업이 볼륨 프로비저닝보다 먼저 효과를 낸다({{< relref "../clickhouse/02-storage-local-nvme.md" >}}) `✓`. 이 스케일(피크 8MB/s)에선 둘 다 여유라 무관하지만, 성장 시 이 순서를 기억한다.

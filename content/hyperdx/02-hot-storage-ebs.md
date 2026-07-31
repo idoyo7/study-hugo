@@ -28,7 +28,7 @@ gp3는 EBS SSD 중 최저가이며 **성능을 용량과 독립적으로** 프�
 | **baseline IOPS** | **3,000** (무료, 스토리지 가격에 포함) | 버스트 아님 — 무기한 지속 |
 | **baseline throughput** | **125 MiB/s** (무료) | 버스트 아님 |
 | **최대 IOPS/볼륨** | **80,000** (Nitro 전제) | 500 IOPS/GiB 비율 → 160 GiB 이상에서 도달. 비-Nitro는 §1.2 |
-| **최대 throughput/볼륨** | **2,000 MiB/s** (≈2,097 MB/s) | 0.25 MiB/s per provisioned IOPS → 8,000 IOPS 이상 & 16 GiB 이상에서 도달 |
+| **최대 throughput/볼륨** | **2,000 MiB/s** (≈2,097 MB/s) | 0.25 MiB/s/IOPS → 8,000 IOPS & 16 GiB 이상에서 도달 |
 | **볼륨 크기** | **1 GiB ~ 64 TiB** | |
 | **볼륨 내구성** | **99.8~99.9%** (AFR ≤0.2%) | 볼륨 단위 — 데이터 내구성(복제+백업)과 별개(§5.2) |
 | **지연** | single-digit ms | sub-ms가 필요하면 io2 BE |

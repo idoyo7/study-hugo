@@ -27,14 +27,17 @@ weight: 8
 | 03에서 필요했던 것 | 블록 온리에서 | 이유 |
 |---|---|---|
 | `<s3_disk>` disk 정의(endpoint·region·metadata_type) | **불필요** | S3 디스크 없음 |
-| `<s3_cache>` cache 디스크(`max_size` 150Gi, LRU) | **불필요** | cold 볼륨 없음 → 캐시 대상 없음. **EBS의 cache 소비항(150Gi)이 통째로 사라져 사이징이 단순해진다** |
-| IRSA(ServiceAccount·IAM 정책·`use_environment_credentials`·`region`) | **불필요** | CH가 S3에 붙지 않음. IRSA 함정(region 서명 등)이 전부 소거 |
+| `<s3_cache>` cache 디스크(`max_size` 150Gi, LRU) | **불필요** | cold 볼륨 없음 → 캐시 대상 없음¹ |
+| IRSA(ServiceAccount·IAM 정책·`use_environment_credentials`·`region`) | **불필요** | CH가 S3 미접속 → IRSA 함정 전부 소거 |
 | `{replica}` S3 경로 분리(shared-nothing) | **불필요** | S3 blob 없음 |
 | `storage_policy = 'rum_hot_cold'` 테이블 SETTING | **불필요**(또는 명시 `default`) | 기본 정책 그대로 |
 | `move_factor`(여유 공간 임계 안전판) | **무의미** | 이동할 다음 볼륨(cold)이 없어 `move_factor`가 개입할 대상이 아예 없음 `≈` |
 | `prefer_not_to_merge` 고려 | **무관** | S3 위 작은 part 폭증 이슈가 없음(전부 gp3에서 머지) |
-| 금지 3종(S3 lifecycle→Glacier·zero-copy·`prefer_not_to_merge=true`) | **2종 소거** | S3 lifecycle·zero-copy 걱정 없음. `prefer_not_to_merge` 함정만 여전(default false 유지) |
+| 금지 3종(S3 lifecycle→Glacier·zero-copy·`prefer_not_to_merge=true`) | **2종 소거** | S3 lifecycle·zero-copy 소거²  |
 | 캐시 미스 지연·cold full-scan이 hot 쿼리 잠식 | **소거** | 모든 데이터가 로컬 gp3 → 균일 저지연 |
+
+¹ EBS의 cache 소비항(150Gi)이 통째로 사라져 사이징이 단순해진다.
+² `prefer_not_to_merge` 함정만 여전(default false 유지).
 
 **핵심**: 블록 온리는 **운영 표면적이 03보다 현저히 작다**. storage XML·IRSA·S3 버킷·lifecycle·cache 튜닝·이동 모니터링이 통째로 빠진다. 이게 "짧은 보존·소규모·운영 단순성"에서 블록 온리를 고르는 이유다(§6). `≈`
 
@@ -142,8 +145,10 @@ operator 0.20+의 `spec.defaults.storageManagement.provisioner`가 "PVC를 누�
 
 | 값 | 확장 동작 | pod 재시작 | 블록 온리 적합 |
 |---|---|---|---|
-| **`StatefulSet`**(기본) | STS의 `volumeClaimTemplates`는 불변 → 확장하려면 **STS 재생성 → CH 재시작** | **있음**(비쌈) | △ 확장 잦으면 재시작 비용 |
-| **`Operator`** | STS에서 VCT를 제거하고 operator가 PVC를 직접 수정 → **STS 재생성/pod 재시작 없이** 온라인 확장(CSI `allowVolumeExpansion` 전제) | **없음** | **✅ 블록 온리 권장** — 성장 대응이 잦아 무중단 확장 이점이 큼 |
+| **`StatefulSet`**(기본) | `volumeClaimTemplates` 불변 → 확장 시 **STS 재생성·CH 재시작** | **있음**(비쌈) | △ 확장 잦으면 비용↑ |
+| **`Operator`** | operator가 PVC 직접 수정 → **재시작 없이** 온라인 확장¹ | **없음** | **✅ 블록 온리 권장** — 무중단 확장 이점 |
+
+¹ STS에서 VolumeClaimTemplate을 제거하고 operator가 PVC를 직접 수정하는 방식. CSI `allowVolumeExpansion` 전제.
 
 - **전환 주의**: 기존 CHI에서 `StatefulSet`→`Operator`로 바꾸면 operator가 기존 STS-생성 PVC를 넘겨받는데 **이 전환 자체가 1회 재시작을 요구**한다(그래서 기본값이 아님). 처음부터 `Operator`로 시작하는 게 깔끔. `✓`
 - SC에 **`allowVolumeExpansion: true`** 필수. `reclaimPolicy: Retain`(operator 레벨 + SC 레벨 이중)으로 실수 삭제 방어 — 기준 예제는 [02 §6]({{< relref "02-hot-storage-ebs.md" >}}). `✓`
@@ -192,13 +197,13 @@ operator 0.20+의 `spec.defaults.storageManagement.provisioner`가 "PVC를 누�
 
 ### 5.2 background / merge 풀 노브 `✓`
 
-| 설정 | 기본값 | 의미 | 블록 온리 튜닝 |
-|---|---|---|---|
-| `background_pool_size` | **16** | 백그라운드 머지·뮤테이션 스레드 수 | 상주 데이터·머지 백로그↑ 시 상향(beefy 노드는 코어 수에 맞춰 예: 32~36) |
-| `background_merges_mutations_concurrency_ratio` | **2** | 동시 머지 = pool_size × ratio (기본 16×2=**32**) | 백로그 청산엔 **1로 낮춰** 큰 머지에 스레드 몰아줌. **런타임 상향만 가능, 하향은 재시작** |
-| `max_bytes_to_merge_at_max_space_in_pool` | **~150 GB** | 자원 충분 시 한 머지로 합칠 최대 part 합 | 큰 part 위주 백로그면 조정. 너무 크면 단일 머지가 gp3 대역 독점 |
-| `number_of_free_entries_in_pool_to_lower_max_size_of_merge` | **8** | 여유 풀 슬롯 < 이 값이면 **최대 머지 크기를 지수적으로 낮춤**(작은 머지 우선) | aggressive는 pool_size의 90~95%(예 pool 36→32). 작은 part 적체 방어 |
-| `max_bytes_to_merge_at_min_space_in_pool` | (양수) | 디스크 여유 부족해도 허용하는 최대 머지 크기 | `TOO_MANY_PARTS` 방어용. 블록 온리는 여유가 빠듯해질 수 있어 관련성↑ |
+4열로는 설정명 자체가 길어 폭 제약을 넘어서므로 노브별 불릿으로 푼다. 각 항목은 **기본값 → 의미 → 블록 온리 튜닝** 순서다.
+
+- **`background_pool_size`**(기본 **16**) — 백그라운드 머지·뮤테이션 스레드 수. 튜닝: 상주 데이터·머지 백로그↑ 시 상향(beefy 노드는 코어 수에 맞춰 예: 32~36).
+- **`background_merges_mutations_concurrency_ratio`**(기본 **2**) — 동시 머지 = pool_size × ratio(기본 16×2=**32**). 튜닝: 백로그 청산엔 **1로 낮춰** 큰 머지에 스레드 몰아줌. **런타임 상향만 가능, 하향은 재시작**.
+- **`max_bytes_to_merge_at_max_space_in_pool`**(기본 **~150 GB**) — 자원 충분 시 한 머지로 합칠 최대 part 합. 튜닝: 큰 part 위주 백로그면 조정. 너무 크면 단일 머지가 gp3 대역 독점.
+- **`number_of_free_entries_in_pool_to_lower_max_size_of_merge`**(기본 **8**) — 여유 풀 슬롯 < 이 값이면 **최대 머지 크기를 지수적으로 낮춤**(작은 머지 우선). 튜닝: aggressive는 pool_size의 90~95%(예 pool 36→32). 작은 part 적체 방어.
+- **`max_bytes_to_merge_at_min_space_in_pool`**(기본 양수) — 디스크 여유 부족해도 허용하는 최대 머지 크기. 튜닝: `TOO_MANY_PARTS` 방어용. 블록 온리는 여유가 빠듯해질 수 있어 관련성↑.
 
 - **머지는 디스크 여유를 예약한다 — 합쳐질 part 합의 약 2배**를 booking `✓`. 즉 "여유 공간은 있는데 진행 중 대형 머지가 예약해버려 다른 머지가 못 시작 → 작은 part 누적 → `TOO_MANY_PARTS`" 상황이 블록 온리(꽉 찬 gp3)에서 특히 잘 난다. → **헤드룸 30~40%는 성능이 아니라 안정성 문제**다.
 - **aggressive 튜닝 주의**: "저지연 read/write를 상시 유지해야 하거나 이미 디스크 대역이 병목이면 aggressive 머지는 역효과" `Ⓥ`. 블록 온리 gp3 대역이 빠듯하면 오히려 머지 동시성을 낮춘다.

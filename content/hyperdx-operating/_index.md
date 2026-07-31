@@ -20,14 +20,12 @@ cascade:
 
 ## 6부 구성
 
-| 부 | 페이지 | 한 줄 요지 | 대응 기준 문서 |
-|---|---|---|---|
-| 1 | {{< relref "01-architecture.md" >}} | 4컴포넌트 조립·`clickhouse.enabled:false`(HyperDX Only)로 Altinity CHI/CHK 분리, RUM 인제스트엔 MongoDB 없음 | {{< relref "../hyperdx/01-stack-topology.md" >}} |
-| 2 | {{< relref "02-tiering.md" >}} | hot=단일 gp3, cold=S3 TTL MOVE, 리플레이는 hot 30일 DELETE, 티어링≠내구성 | {{< relref "../hyperdx/02-hot-storage-ebs.md" >}}·{{< relref "../hyperdx/03-s3-cold-tiering.md" >}}·{{< relref "../hyperdx/08-block-only-tuning.md" >}} |
-| 3 | {{< relref "03-availability.md" >}} | 컴포넌트별 blast radius 매트릭스, 무손실 2트랙(텔레메트리 vs 메타데이터) | {{< relref "../hyperdx/01-stack-topology.md" >}}(§7) |
-| 4 | {{< relref "04-operator-pattern.md" >}} | 승격 없는 멀티마스터 복제, EBS reattach가 재수화를 대체, Keeper 정족수가 진짜 SPOF, 6구성요소 독립 케이던스 | {{< relref "../hyperdx/04-operator-topology-downtime.md" >}}·{{< relref "../hyperdx/05-keeper.md" >}}·{{< relref "../hyperdx/06-replication-failover.md" >}}·{{< relref "../hyperdx/09-version-upgrade-compat.md" >}} |
-| 5 | {{< relref "05-capacity.md" >}} | 월 0.7TB raw vs on-disk 해석, 리플레이는 안 쌓인다, 1 shard×RF2로 prod ~$1.0K/mo | {{< relref "../hyperdx/07-capacity-planning.md" >}} |
-| 6 | {{< relref "06-decision-guide.md" >}} | 7축 결정 매트릭스(기본값·왜 안전/충분·승급 트리거) + 관측 지점 + 배포 전 실측 체크리스트 | 01~09 전체를 종합(축별 기준 문서는 06 표 각 행에 개별 링크) |
+- **1부 [아키텍처]({{< relref "01-architecture.md" >}})** — 4컴포넌트 조립·`clickhouse.enabled:false`(HyperDX Only)로 Altinity CHI/CHK 분리, RUM 인제스트엔 MongoDB 없음. 대응 기준 문서: {{< relref "../hyperdx/01-stack-topology.md" >}}
+- **2부 [티어링]({{< relref "02-tiering.md" >}})** — hot=단일 gp3, cold=S3 TTL MOVE, 리플레이는 hot 30일 DELETE, 티어링≠내구성. 대응 기준 문서: {{< relref "../hyperdx/02-hot-storage-ebs.md" >}}·{{< relref "../hyperdx/03-s3-cold-tiering.md" >}}·{{< relref "../hyperdx/08-block-only-tuning.md" >}}
+- **3부 [가용성]({{< relref "03-availability.md" >}})** — 컴포넌트별 blast radius 매트릭스, 무손실 2트랙(텔레메트리 vs 메타데이터). 대응 기준 문서: {{< relref "../hyperdx/01-stack-topology.md" >}}(§7)
+- **4부 [operator 패턴]({{< relref "04-operator-pattern.md" >}})** — 승격 없는 멀티마스터 복제, EBS reattach가 재수화를 대체, Keeper 정족수가 진짜 SPOF, 6구성요소 독립 케이던스. 대응 기준 문서: {{< relref "../hyperdx/04-operator-topology-downtime.md" >}}·{{< relref "../hyperdx/05-keeper.md" >}}·{{< relref "../hyperdx/06-replication-failover.md" >}}·{{< relref "../hyperdx/09-version-upgrade-compat.md" >}}
+- **5부 [규모 산정]({{< relref "05-capacity.md" >}})** — 월 0.7TB raw vs on-disk 해석, 리플레이는 안 쌓인다, 1 shard×RF2로 prod ~$1.0K/mo. 대응 기준 문서: {{< relref "../hyperdx/07-capacity-planning.md" >}}
+- **6부 [의사결정 가이드]({{< relref "06-decision-guide.md" >}})** — 7축 결정 매트릭스(기본값·왜 안전/충분·승급 트리거) + 관측 지점 + 배포 전 실측 체크리스트. 대응 기준 문서: 01~09 전체를 종합(축별 기준 문서는 06 표 각 행에 개별 링크)
 
 ## 기준 문서와의 관계
 

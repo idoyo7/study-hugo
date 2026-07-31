@@ -24,17 +24,17 @@ weight: 9
 
 ### 1.1 마스터 매트릭스 (2026-07 확인)
 
-| # | A ↔ B | 요구/권장 | 근거 |
-|---|---|---|---|
-| ① | **ClickStack/HyperDX ↔ ClickHouse** | **최소 24.8 LTS 이상**(24.8·25.x 지원). self-host에서 외부 CH 참조 시 24.8+ 필수 | `✓⁽ClickStack docs⁾` |
-| ② | **ClickStack 차트 기본 CH 이미지** | `clickhouse/clickhouse-server:25.7-alpine` (차트가 실제 배포하는 태그) | `✓⁽values.yaml⁾` — 최소요구(24.8)와 차트기본(25.7)은 **다른 숫자** |
-| ③ | **HyperDX app ↔ CH 스키마/기능** | `LowCardinality`·`Map`·bloom filter 2차 인덱스·`TTL ... ttl_only_drop_parts` 등 **MergeTree 표준 기능만** 사용 → 하한이 24.8 LTS로 낮게 유지됨(신규 JSON 타입 강제 아님) | `✓/≈` |
-| ④ | **MongoDB ↔ HyperDX** | **5.0.32**(차트 기본), ReplicaSet(차트 기본 `members:1`). 메타데이터 전용이라 버전 민감도 낮음 | `✓⁽values.yaml⁾` — 부하 프로파일은 {{< relref "../rum/07-hyperdx-mongodb.md" >}} |
-| ⑤ | **OTel Collector ↔ ClickStack** | `docker.clickhouse.com/clickstack-otel-collector:2.29.0`, mode: deployment. ClickStack 배포판(표준 upstream 아님) | `✓⁽values.yaml⁾` — persistent queue 확장 포함 여부는 {{< relref "05-keeper.md" >}} §옵션A로 재확인 |
-| ⑥ | **HyperDX 이미지 ↔ 차트** | `docker.hyperdx.io/hyperdx/hyperdx`, 태그 미지정 시 차트 `appVersion` 추종. 명시 오버라이드하면 appVersion과 어긋날 수 있음 | `✓⁽values.yaml⁾` |
-| ⑦ | **Altinity operator 0.27.1 ↔ CH / K8s** | operator 0.27.1 → **CH 21.11+**, **K8s 1.25+**. 더 오래된 CH는 operator 0.23.7 이하 필요 | `✓⁽Artifact Hub / release notes⁾` — 우리 CH(24.8~25.x)는 여유롭게 범위 안 |
-| ⑧ | **Altinity operator ↔ CRD apiVersion** | CHI=`clickhouse.altinity.com/v1`, CHK=`clickhouse-keeper.altinity.com/v1`. operator가 CRD를 소유(Helm이 기존 CRD 미수정) | `✓⁽CRD 원문·Helm README⁾` |
-| ⑨ | **operator 0.27.0+ 기본값 ↔ Keeper 버전** | operator 0.27.0+가 `async_replication`/`use_xid_64`를 **기본 활성화** → **Keeper 25.3+ 필요** | `✓⁽release notes⁾` — **매트릭스 함정**(§1.4) |
+4열로는 근거 주석까지 담기엔 폭 제약을 넘어서므로 항목별 불릿으로 푼다. 각 항목은 **A ↔ B — 요구/권장 (근거)** 순서다.
+
+- **① ClickStack/HyperDX ↔ ClickHouse** — **최소 24.8 LTS 이상**(24.8·25.x 지원). self-host에서 외부 CH 참조 시 24.8+ 필수 (`✓⁽ClickStack docs⁾`).
+- **② ClickStack 차트 기본 CH 이미지** — `clickhouse/clickhouse-server:25.7-alpine`(차트가 실제 배포하는 태그) (`✓⁽values.yaml⁾` — 최소요구(24.8)와 차트기본(25.7)은 **다른 숫자**).
+- **③ HyperDX app ↔ CH 스키마/기능** — `LowCardinality`·`Map`·bloom filter 2차 인덱스·`TTL ... ttl_only_drop_parts` 등 **MergeTree 표준 기능만** 사용 → 하한이 24.8 LTS로 낮게 유지됨(신규 JSON 타입 강제 아님) (`✓/≈`).
+- **④ MongoDB ↔ HyperDX** — **5.0.32**(차트 기본), ReplicaSet(차트 기본 `members:1`). 메타데이터 전용이라 버전 민감도 낮음 (`✓⁽values.yaml⁾` — 부하 프로파일은 {{< relref "../rum/07-hyperdx-mongodb.md" >}}).
+- **⑤ OTel Collector ↔ ClickStack** — `docker.clickhouse.com/clickstack-otel-collector:2.29.0`, mode: deployment. ClickStack 배포판(표준 upstream 아님) (`✓⁽values.yaml⁾` — persistent queue 확장 포함 여부는 {{< relref "05-keeper.md" >}} §옵션A로 재확인).
+- **⑥ HyperDX 이미지 ↔ 차트** — `docker.hyperdx.io/hyperdx/hyperdx`, 태그 미지정 시 차트 `appVersion` 추종. 명시 오버라이드하면 appVersion과 어긋날 수 있음 (`✓⁽values.yaml⁾`).
+- **⑦ Altinity operator 0.27.1 ↔ CH / K8s** — operator 0.27.1 → **CH 21.11+**, **K8s 1.25+**. 더 오래된 CH는 operator 0.23.7 이하 필요 (`✓⁽Artifact Hub / release notes⁾` — 우리 CH(24.8~25.x)는 여유롭게 범위 안).
+- **⑧ Altinity operator ↔ CRD apiVersion** — CHI=`clickhouse.altinity.com/v1`, CHK=`clickhouse-keeper.altinity.com/v1`. operator가 CRD를 소유(Helm이 기존 CRD 미수정) (`✓⁽CRD 원문·Helm README⁾`).
+- **⑨ operator 0.27.0+ 기본값 ↔ Keeper 버전** — operator 0.27.0+가 `async_replication`/`use_xid_64`를 **기본 활성화** → **Keeper 25.3+ 필요** (`✓⁽release notes⁾` — **매트릭스 함정**, §1.4).
 
 ### 1.2 매트릭스에서 나오는 실전 결정 3가지
 
@@ -109,12 +109,14 @@ spec:
 
 | 트리거 | 효과 | 근거 |
 |---|---|---|
-| **JSON 타입 advanced shared data 기본 활성화(v25.12)** | 25.8 미만이 새 JSON 컬럼 파트를 못 읽음 → **25.8 미만으로 불가** | `✓⁽v25.12 BIC⁾` |
-| **String `with_size_stream` 직렬화 기본 활성화(v25.11)** | 새 직렬화 포맷은 25.10부터 지원 → **25.10 미만으로 불가** | `✓⁽v25.11 BIC⁾` |
-| **marks 포맷 변경(25.8)** | 25.3.1이 25.8.2가 만든 파트의 marks를 못 읽어 startup fatal(`getMarksTypeFromFilesystem`) → **25.8→25.3 롤백 불가** | `✓⁽issue #86837⁾` |
-| **24.7의 pre-21 온디스크 포맷 비호환** | 24.7 첫 기동에서 다수 파트 detach → 24.6 복귀 시 broken 파트 재attach 필요 | `✓/≈⁽#68198·#68408⁾` |
+| **JSON advanced shared data 기본 활성화(v25.12)** | 새 JSON 컬럼 파트를 못 읽음 → **25.8 미만 롤백 불가** | `✓⁽v25.12 BIC⁾` |
+| **String `with_size_stream` 직렬화 기본 활성화(v25.11)** | 새 포맷은 25.10+ 지원 → **미만 롤백 불가** | `✓⁽v25.11 BIC⁾` |
+| **marks 포맷 변경(25.8)** | 25.3.1이 25.8.2 파트 marks를 못 읽어 startup fatal¹ → **25.8→25.3 롤백 불가** | `✓⁽issue #86837⁾` |
+| **24.7의 pre-21 온디스크 포맷 비호환** | 24.7 기동 시 파트 detach → 24.6 복귀 시 재attach 필요 | `✓/≈⁽#68198·#68408⁾` |
 | **`OPTIMIZE TABLE ... FINAL` 실행** | 파트를 새 버전 포맷으로 재작성 → 롤백 창을 스스로 닫음 | `✓` |
 | **신규 컬럼 타입(`Variant`/`JSON`)으로 신규 데이터 적재** | 옛 버전이 그 파트를 못 읽음 | `✓` |
+
+¹ `getMarksTypeFromFilesystem` 함수에서 fatal 발생.
 
 {{< callout type="warning" >}}
 **정정 — "CH는 언제든 이전 버전으로 되돌릴 수 있다"는 기각** `✓`. 25.10/25.8 같은 포맷 도입 이후로는 그 이전으로 못 내린다. 다운그레이드는 **버전 쌍마다 성립 여부가 다르며**, 안전한 롤백의 유일한 일반해는 스냅샷/백업이다.
@@ -223,9 +225,11 @@ S3 cold 티어가 없으면 업그레이드 중 **티어 간 정합(로컬 파�
 | 표면 | 경로 |
 |---|---|
 | **CH/Keeper** | ClickStack 차트 밖. [Altinity 롤링 업그레이드]({{< relref "../clickhouse/05-altinity-operations.md" >}}) 경로로 독립 처리(§1·§3·§4) |
-| **HyperDX 앱** | `docker.hyperdx.io/hyperdx/hyperdx` 태그 상향(기본 appVersion 추종). MergeTree 표준 기능만 쓰므로 CH 24.8+ 유지 시 앱 업그레이드가 CH 하한을 새로 요구하는 경우는 드묾 `≈` |
+| **HyperDX 앱** | `docker.hyperdx.io/hyperdx/hyperdx` 태그 상향(기본 appVersion 추종)¹ |
 | **OTel Collector** | 배포판 태그(2.29.0 기준) 상향. persistent queue 확장은 {{< relref "05-keeper.md" >}} 재확인 항목 |
-| **MongoDB** | 메타데이터 전용·소용량이라 리스크 낮음. v2에서 `MongoDBCommunity` CR로 관리 시 MCK operator 경로. 5.0.32 기준. 부하 프로파일 {{< relref "../rum/07-hyperdx-mongodb.md" >}} |
+| **MongoDB** | 메타데이터 전용·소용량, 리스크 낮음. v2도 `MongoDBCommunity` CR/MCK 경로 동일. 부하 프로파일 [rum/07]({{< relref "../rum/07-hyperdx-mongodb.md" >}}) |
+
+¹ MergeTree 표준 기능만 쓰므로 CH 24.8+ 유지 시 앱 업그레이드가 CH 하한을 새로 요구하는 경우는 드물다 `≈`.
 
 즉 HyperDX Only 구조가 ClickStack v1→v2의 가장 파괴적인 부분(내장 CH 삭제·재설치)을 **회피**시켜 준다 — 우리의 ClickStack 차트 업그레이드는 사실상 HyperDX + OTel + 외부 CH 참조 설정 표면으로 국한된다.
 

@@ -82,9 +82,9 @@ weight: 11
 | --- | --- | --- | --- | --- |
 | hdx (app·api·OpAMP) | **단일 Deployment** | 무상태 replica 2+ 수평 확장 | replicas **1** | UI·쿼리만 — 적재 경로와 무관 |
 | RUM 컨버터(자체) | Deployment | 무상태면 replica 수평 확장 | 구성 확인 | RUM 신규 수집만 정지 (텔레메트리·조회 무관) |
-| OTel Collector | Deployment | replica ≥2 + `file_storage` 퍼시스턴트 큐 | replica + **인메모리 큐만** | 표준 텔레메트리 ingest만 — stage는 재시작 시 in-flight 유실 리스크 |
-| ClickHouse | StatefulSet (Altinity CHI) | 1 shard × RF2, 2 AZ, `insert_quorum` | **Phase 1 replica 1** | replica 1대 상실은 조회·쓰기 유지(정족수 내) |
-| ClickHouse Keeper | StatefulSet (Altinity CHK) | 3노드 정족수, 3 AZ (client 2181) | 3노드 | **정족수 상실 시 CH 쓰기 정지** — 진짜 SPOF |
+| OTel Collector | Deployment | replica ≥2 + `file_storage` 큐 | replica, **인메모리 큐** | ingest 정지, stage는 유실 위험 |
+| ClickHouse | StatefulSet(CHI) | 1shard×RF2, 2AZ | **Phase 1 replica 1** | replica 1대 상실은 정족수 내 유지 |
+| ClickHouse Keeper | StatefulSet(CHK) | 3노드 정족수, 3AZ | 3노드 | **정족수 상실 시 CH 쓰기 정지** — SPOF |
 | MongoDB | ReplicaSet | `members:3` + `mongodump`→S3 | **`members:1`** | 설정·알럿·UI만 — 적재 데이터 무관 |
 
 광범위 관측 정지는 두 지점뿐이다 — **ClickHouse 전체 다운**(저장 원천)과 **Keeper 정족수 상실**(쓰기 경로). 나머지 컴포넌트 다운은 수집 일부·조회·설정에 국한된다 — 특히 RUM 컨버터와 OTel Collector는 독립 경로라 한쪽이 죽어도 다른 경로 적재는 계속된다. 단 stage는 위 축소 구성(replica 1·인메모리 큐·단일 티어)이라 이 방어선이 아직 prod만큼 두껍지 않다. 근거·매니페스트는 [가용성]({{< relref "../hyperdx-operating/03-availability.md" >}})·[Keeper]({{< relref "05-keeper.md" >}})·[복제·failover]({{< relref "06-replication-failover.md" >}})가 담당한다.

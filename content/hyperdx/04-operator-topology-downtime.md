@@ -104,7 +104,7 @@ EBS 볼륨은 **생성된 AZ에 물리적으로 고정**된다(zonal resource) `
 |---|---|---|
 | shard당 사본 | 2 | 3 |
 | 노드 급사 1대 | 데이터 생존(reattach), 그 replica 수 분 offline | 동일, 여유 큼 |
-| AZ 1개 소실 | 다른 AZ 1 replica가 서빙(그동안 그 shard 실질 RF1, 데이터는 살아있는 AZ에 온전) | 다른 2 AZ에 2 replica 잔존 → 무손실·무저하 |
+| AZ 1개 소실 | 다른 AZ 1 replica가 서빙(실질 RF1, 데이터 온전) | 다른 2 AZ에 2 replica 잔존 → 무손실·무저하 |
 | 볼륨 자체 장애(AFR ≤0.2%) | 다른 replica가 방어 | 2 replica 방어 |
 | 비용 배수(산정은 06) | ×2 (EBS $/GB + cross-AZ 복제 트래픽) `≈` | ×3 |
 
@@ -256,17 +256,17 @@ spec:
 
 전제: 위 **1 shard × RF2(2 AZ)** + CHK 3노드(3 AZ), operator PDB 자동(`pdbMaxUnavailable: 1`), 쓰기는 기본 async(`insert_quorum` 미설정).
 
-| # | 시나리오 | 무슨 일 | 읽기 | 쓰기 | 대략 소요 | EBS 특유 포인트 |
-|---|---|---|---|---|---|---|
-| S1 | **설정 변경 reconcile**(config.d) | ConfigMap 갱신 → 각 host 파드 순차 in-place 재시작 | 무중단(다른 replica 서빙) | 무중단(async) | 전파 대기 + replica 수 × 파드 재시작 | **볼륨 detach 안 함** — 같은 노드에서 파드만 재생성, EBS 그대로 유지 |
-| S2 | **CH 이미지 롤링 업그레이드** | replica 1개씩 restart, 분산쿼리에서 low-priority 제외 | 무중단 | 무중단(async) | replica 수 × (종료+startup+catch-up) | in-place restart, reattach 없음. 절차·혼합버전 창은 [clickhouse/05]({{< relref "../clickhouse/05-altinity-operations.md" >}}) |
-| S3 | **operator 업그레이드** | operator Deployment 교체, 대개 CH 파드 불변 | 무중단 | 무중단 | 분 단위 | 데이터 경로 무영향. minor 스킵·CRD 삭제 금지는 [clickhouse/05]({{< relref "../clickhouse/05-altinity-operations.md" >}}) |
-| S4 | **계획된 노드 교체**(drain / Karpenter voluntary) | cordon→drain(PDB 준수)→볼륨 detach→같은 AZ 새 노드 attach→startup→catch-up | 무중단(`pdbMaxUnavailable:1`) | 무중단 | detach+attach+startup ≈ **수 분** `≈` | **재수화 없음**. Karpenter ≥ v1.0은 VolumeAttachment 삭제까지 대기 후 노드 종료 `✓` |
-| S5 | **노드 재부팅**(같은 노드 복귀) | 파드 잠깐 down → 같은 노드에서 복귀, 볼륨 유지 | 그 replica만 잠깐 offline | 무중단(async) | 재부팅+CH startup | 볼륨 detach조차 없음 — 가장 가벼운 케이스 |
-| S6 | **파드 재스케줄**(graceful, `kubectl delete pod`) | 파드 정상 종료 → 볼륨 detach → 같은 AZ 노드에 reattach | 그 replica만 수 분 offline | 무중단(async) | detach+attach+startup ≈ 수 분 `≈` | graceful이라 CSI가 NodeUnstage를 정상 수행 → 자동 reattach 성공 |
-| S7 | **노드 급사**(hardware/OS hang, **ungraceful**) | 파드 Terminating에 걸림; 6분 force-detach; out-of-service taint로 즉시화 | 그 replica offline, 나머지 서빙 → **읽기 무중단** | **async면 무중단**(다른 replica로) | **무개입 시 무한/6분+**, taint 개입 시 수 분 `✓` | 아래 상세. **자동 복구 안 됨 — 개입 필요** |
-| S8 | **AZ 장애** | 그 AZ의 replica·EBS 접근 불가, **다른 AZ로 볼륨 못 옮김** | 다른 AZ replica가 서빙(cross-AZ RF 전제) | 다른 AZ replica로 무중단 | AZ 복구까지 그 replica 미가용 | **EBS AZ-bound** → reattach 불가. **RF(cross-AZ)만이 방어**. RF2 2AZ면 그 shard 실질 RF1 |
-| S9 | **Keeper 정족수 상실**(3노드 중 2 소실) | 조정 계층 정지 | 로컬 파트 read OK | **INSERT/DDL 정지(read-only 전락)** | 정족수 복구까지 | CHK gp3라 노드 급사해도 Raft 메타 생존 → reattach로 복구. 상세는 [05-keeper]({{< relref "05-keeper.md" >}}) |
+7열 매트릭스는 폭 제약을 넘어서므로 시나리오별 불릿으로 푼다. 각 항목은 **무슨 일 → 읽기/쓰기 영향 → 대략 소요 → EBS 특유 포인트** 순서다.
+
+- **S1 — 설정 변경 reconcile**(config.d) — ConfigMap 갱신 → 각 host 파드 순차 in-place 재시작. 읽기 무중단(다른 replica 서빙) · 쓰기 무중단(async) · 소요는 전파 대기 + replica 수 × 파드 재시작. EBS 특유: **볼륨 detach 안 함** — 같은 노드에서 파드만 재생성, EBS 그대로 유지.
+- **S2 — CH 이미지 롤링 업그레이드** — replica 1개씩 restart, 분산쿼리에서 low-priority 제외. 읽기·쓰기 모두 무중단(async) · 소요는 replica 수 × (종료+startup+catch-up). EBS 특유: in-place restart, reattach 없음. 절차·혼합버전 창은 [clickhouse/05]({{< relref "../clickhouse/05-altinity-operations.md" >}}).
+- **S3 — operator 업그레이드** — operator Deployment 교체, 대개 CH 파드 불변. 읽기·쓰기 모두 무중단 · 소요는 분 단위. EBS 특유: 데이터 경로 무영향. minor 스킵·CRD 삭제 금지는 [clickhouse/05]({{< relref "../clickhouse/05-altinity-operations.md" >}}).
+- **S4 — 계획된 노드 교체**(drain / Karpenter voluntary) — cordon→drain(PDB 준수)→볼륨 detach→같은 AZ 새 노드 attach→startup→catch-up. 읽기 무중단(`pdbMaxUnavailable:1`) · 쓰기 무중단 · 소요는 detach+attach+startup ≈ **수 분** `≈`. EBS 특유: **재수화 없음**. Karpenter ≥ v1.0은 VolumeAttachment 삭제까지 대기 후 노드 종료 `✓`.
+- **S5 — 노드 재부팅**(같은 노드 복귀) — 파드 잠깐 down → 같은 노드에서 복귀, 볼륨 유지. 읽기는 그 replica만 잠깐 offline · 쓰기 무중단(async) · 소요는 재부팅+CH startup. EBS 특유: 볼륨 detach조차 없음 — 가장 가벼운 케이스.
+- **S6 — 파드 재스케줄**(graceful, `kubectl delete pod`) — 파드 정상 종료 → 볼륨 detach → 같은 AZ 노드에 reattach. 읽기는 그 replica만 수 분 offline · 쓰기 무중단(async) · 소요는 detach+attach+startup ≈ 수 분 `≈`. EBS 특유: graceful이라 CSI가 NodeUnstage를 정상 수행 → 자동 reattach 성공.
+- **S7 — 노드 급사**(hardware/OS hang, **ungraceful**) — 파드 Terminating에 걸림; 6분 force-detach; out-of-service taint로 즉시화. 읽기는 그 replica offline, 나머지 서빙 → **읽기 무중단** · 쓰기는 **async면 무중단**(다른 replica로) · 소요는 **무개입 시 무한/6분+**, taint 개입 시 수 분 `✓`. EBS 특유: 아래 상세. **자동 복구 안 됨 — 개입 필요**.
+- **S8 — AZ 장애** — 그 AZ의 replica·EBS 접근 불가, **다른 AZ로 볼륨 못 옮김**. 읽기는 다른 AZ replica가 서빙(cross-AZ RF 전제) · 쓰기는 다른 AZ replica로 무중단 · 소요는 AZ 복구까지 그 replica 미가용. EBS 특유: **EBS AZ-bound** → reattach 불가. **RF(cross-AZ)만이 방어**. RF2 2AZ면 그 shard 실질 RF1.
+- **S9 — Keeper 정족수 상실**(3노드 중 2 소실) — 조정 계층 정지. 읽기는 로컬 파트 read OK · 쓰기는 **INSERT/DDL 정지(read-only 전락)** · 소요는 정족수 복구까지. EBS 특유: CHK gp3라 노드 급사해도 Raft 메타 생존 → reattach로 복구. 상세는 [05-keeper]({{< relref "05-keeper.md" >}}).
 
 **핵심 대비**: S4~S6에서 로컬 NVMe였다면 "재수화 이벤트"(수 시간, RF2→실질 RF1)였을 것이 EBS에선 "reattach + 델타 catch-up"(수 분, RF 온전)이 된다. 반면 S8(AZ 장애)은 EBS·로컬 NVMe 모두 cross-AZ RF가 유일 방어라는 점에서 동일하다.
 
@@ -327,9 +327,11 @@ replica를 2벌 두는 것만으로는 부족하고, **서로 다른 고장 도�
 
 | 기제 | 필드 | 막는 것 | EBS 관점 |
 |---|---|---|---|
-| hostname anti-affinity | `podDistribution: ClickHouseAntiAffinity`(hostname) | 같은 shard replica의 노드 co-location | 한 노드 죽어도 shard 생존 |
-| AZ topology spread | `topologySpreadConstraints`(`whenUnsatisfiable: DoNotSchedule`) — 다중 shard면 `ShardAntiAffinity`(zone) 병용 | 같은 shard replica의 AZ 몰림 | **EBS 핵심** — AZ 장애 시 reattach 불가라 cross-AZ replica가 유일 방어 |
-| PDB | `pdbManaged: yes` + `pdbMaxUnavailable: 1` | 자발적 중단이 같은 shard 2대 동시 down | drain/롤링/consolidation 직렬화 |
+| hostname 분산 | `podDistribution: ClickHouseAntiAffinity` | 같은 shard replica 노드 몰림 | 한 노드 죽어도 shard 생존 |
+| AZ topology spread¹ | `topologySpreadConstraints` | shard replica AZ 몰림 | **EBS 핵심** — reattach 불가, cross-AZ만 방어 |
+| PDB | `pdbManaged: yes` + `pdbMaxUnavailable: 1` | 자발적 중단의 shard 2대 동시 down | drain/롤링/consolidation 직렬화 |
+
+¹ 필드는 `whenUnsatisfiable: DoNotSchedule`로 설정. 다중 shard면 `ShardAntiAffinity`(zone)도 병용한다.
 
 - **RF2를 2 AZ에 펴면 AZ 1개 소실 시 그 shard가 단일 AZ 단일 사본으로 하락** `≈`. 데이터는 살아있는 AZ에 온전하나, 그 창 동안 그 AZ까지 흔들리면 가용성 상실. "AZ 무저하"가 요구면 RF3 3AZ.
 - **PDB는 자발적 중단만 막는다** `✓`. S7(급사) 같은 비자발적 시간차 장애는 PDB로 못 막고, 그 방어는 RF(+빠른 out-of-service 복구)다.
