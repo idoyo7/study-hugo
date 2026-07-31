@@ -13,6 +13,8 @@ weight: 11
 - **삭제형에는 가격 검사가 없다.** "모든 파드가 다른 노드에 들어가는가"만 본다. 엄격한 가격 부등식은 교체형에만 걸린다.
 - **disruption cost는 절대 0이 되지 않는다** — 노드 하나가 base `1.0`을 깔고 시작한다. 이 사실이 아래 §4의 근거다.
 - **`pod-deletion-cost`는 `Balanced`에서만 보호 장치다.** 다른 두 정책에서는 평가 **순서**만 바꾼다. 그리고 풀 분모도 같이 올라 **같은 풀의 다른 노드로 압력이 옮겨간다.**
+- **예산 `1`은 multi-node consolidation을 죽인다.** 예산이 실행 속도만이 아니라 **후보 풀 자체를 자르기** 때문이다(§2.4).
+- **`Balanced`는 `WhenEmptyOrUnderutilized`의 부분집합**이라 거부만 할 수 있다. 판별식은 대략 **상대 절감률 × (평균 파드밀도 / 그 노드의 파드밀도) ≥ 0.5** 로 정리된다(§5.4).
 {{< /callout >}}
 
 > **왜 이 문서인가.** "consolidation이 왜 이 노드를 골랐나"는 정책 이름만으로 답이 안 나온다. 실제로는 어떤 Method가 후보를 만들었는지, 삭제인지 교체인지, 비용 모델이 무엇을 셌는지가 갈린다. 이 문서가 그 층을 소유한다.
@@ -74,6 +76,29 @@ Emptiness → StaticDrift → Drift → MultiNode → SingleNode
 | 타임아웃 | 1분 (`const`) |
 
 **임의 부분집합을 시도하지 않는다.** "이 3대와 저 2대를 묶으면 최적"같은 조합 탐색은 없다. 게다가 이진 탐색은 "prefix 길이 n이 유효하면 n−1도 유효"라는 단조성을 전제하는데 코드에 그 보장이 없다 — **최적해를 놓칠 수 있고, 코드도 최적성을 주장하지 않는다.**
+
+### 2.4 예산이 후보 풀 자체를 자른다 — multi-node는 예산 1이면 죽는다
+
+탐색에 들어가기 **전에** 예산이 후보를 먼저 걸러낸다. 순서는 보존하되, 넣을 때마다 그 NodePool의 예산을 하나씩 깎는다.
+
+```go
+// multinodeconsolidation.go:65-77
+for _, candidate := range candidates {
+    if disruptionBudgetMapping[candidate.NodePool.Name] == 0 {
+        constrainedByBudgets = true
+        continue
+    }
+    disruptableCandidates = append(disruptableCandidates, candidate)
+    disruptionBudgetMapping[candidate.NodePool.Name]--
+}
+maxParallel := lo.Clamp(len(disruptableCandidates), 0, 100)
+```
+
+그리고 `firstNConsolidationOption`은 **후보가 2개 미만이면 즉시 빈 커맨드를 반환**한다.
+
+**두 사실을 겹치면 결론이 하나 나온다 — 한 NodePool의 예산이 `1`이면 그 풀에서 후보가 하나만 들어가므로, 그 풀 안에서의 multi-node consolidation은 아예 성립하지 않는다.** "여러 대를 한 대로 합치는" 경로가 통째로 꺼진다.
+
+`budgets: [{nodes: "1"}]`은 흔한 보수적 설정인데, 의도는 대개 "천천히 줄이자"이지 "합치기를 끄자"가 아니다. 노드를 줄이는 게 목적이라면 **최소 2 이상**이어야 하고, 퍼센트는 올림이므로([08 §2]({{< relref "08-disruption-budgets.md" >}})) 작은 풀에서는 `20%`도 1이 될 수 있다. 축소가 안 되는데 원인을 못 찾겠다면 여기를 먼저 본다.
 
 single-node는 정렬 뒤 NodePool별로 **인터리브**하고, 직전 라운드에 타임아웃으로 못 본 풀을 앞에 놓는다(`singlenodeconsolidation.go:141-172`). 타임아웃은 3분이고 초과하면 아무것도 반환하지 않는다 — multi-node가 마지막 유효 커맨드를 반환하는 것과 다르다.
 
@@ -166,20 +191,85 @@ func (c *Candidate) IsEmpty() bool {
 
 `WhenEmptyOrUnderutilized = k=∞`도 결과만 우연히 맞는다. 스코어 자체가 계산되지 않고, 교체 경로에는 `k`로 환원되지 않는 별도 게이트(strict 가격, spot-to-spot 15종 하한, `filterOutSameInstanceType`)가 따로 있다.
 
-## 5. Balanced 스코어
+## 5. Balanced — 기존과 무엇이 다른가
 
-스코어는 NodePool 총량으로 정규화한 두 비율의 나눗셈이다.
+### 5.1 Balanced는 `WhenEmptyOrUnderutilized`의 부분집합이다
+
+이게 가장 먼저 이해할 사실이다. Balanced는 새로운 통합을 **만들지 않는다.** `WhenEmptyOrUnderutilized`가 만들어낸 커맨드에 승인 게이트를 하나 더 얹을 뿐이라, **거부만 할 수 있고 추가로 승인할 수는 없다.**
 
 ```
-savings         = Σ(삭제 노드 가격) − Σ(생성 노드 가격)
-disruption_cost = Σ RescheduleDisruptionCost   (후보들)
-score = (savings / 풀_총비용) / (disruption_cost / 풀_총_disruption_cost)
-승인 조건: score ≥ 1/k
+Balanced가 승인하는 집합  ⊂  WhenEmptyOrUnderutilized가 승인하는 집합
 ```
 
-`BalancedK int32 = 2` 고정이라 임계는 `0.5`다. 상수 주석이 근거를 밝힌다 — *"the smallest value where within-family replaces pass, with 4-step max churn"*.
+그래서 "Balanced로 바꾸면 통합이 더 잘 될까"는 방향이 틀린 질문이다. 항상 **덜** 된다. 질문은 "무엇이 덜 되는가"다.
 
-경계 처리 둘을 알아야 한다. **`savingsFraction ≤ 0`이면 점수가 `0`** 이라 어떤 `k`에서도 거부되고, 풀 총비용이나 총 disruption cost가 `0` 이하면 zero-value가 반환되어 역시 거부된다.
+### 5.2 스코어는 커맨드가 만들어진 뒤에 얹힌다
+
+```
+computeConsolidation  →  Command 생성 (가격 필터까지 통과)
+        ↓
+ApproveCommand  →  후보를 NodePool별로 그룹핑
+        ↓
+   풀마다 ScoreMove   →  Balanced가 아닌 풀은 skip
+        ↓
+   모든 Balanced 풀이 통과해야 승인
+```
+
+크로스풀 커맨드면 `savings`를 **소스 풀의 비용 비율로 안분**해서 각 풀을 따로 심사한다. 한 풀이라도 미달이면 커맨드 전체가 거부된다.
+
+single-node에는 사전 컷이 하나 더 있다. `CanPassThreshold`가 **"이 노드를 통째로 삭제해 전액을 절감한다"는 상한 시나리오**로 미리 스코어를 돌려, 그 최선의 경우조차 임계를 못 넘으면 계산 자체를 건너뛴다.
+
+### 5.3 분모는 풀 전체다
+
+```
+savingsFraction    = savings / TotalCost
+disruptionFraction = disruptionCost / TotalDisruptionCost
+score = savingsFraction / disruptionFraction        승인: score ≥ 1/k = 0.5
+```
+
+`TotalDisruptionCost`가 후보의 합이 아니라 **그 NodePool에 속한 모든 노드의 합**이라는 게 핵심이다. 코드 주석이 명시한다 — *"Second pass over ALL nodes: sum disruption cost per pool."* 후보는 정확한 값을, 비후보는 증분 유지되는 값을 쓴다.
+
+**따라서 같은 액션이라도 풀이 클수록 통과하기 쉽다.** 분모가 커져 `disruptionFraction`이 작아지기 때문이다.
+
+한 가지 비대칭을 알아둘 것 — `TotalCost`는 `ClusterCost`가 주는 풀 총비용을 쓰되, 그게 없으면 **후보들의 가격 합**으로 폴백한다. 폴백이 걸리면 분모가 작아져 `savingsFraction`이 부풀고 통과가 쉬워진다.
+
+경계 처리 둘도 있다. **`savingsFraction ≤ 0`이면 점수가 `0`** 이라 어떤 `k`에서도 거부되고, 두 총량 중 하나라도 `0` 이하면 zero-value가 반환되어 역시 거부된다.
+
+### 5.4 실제로는 무엇이 걸러지나 — 판별식
+
+공식만으로는 감이 안 오므로 균질한 풀을 가정해 풀어 본다. **아래는 코드 인용이 아니라 유도**다 — 노드 `N`대, 가격 모두 `p`, 파드 파괴비용 평균 `d̄`, 교체 대상 노드의 파괴비용 `d_A`로 두면:
+
+```
+savingsFraction    = Δ / (N·p)          Δ = p_old − p_new
+disruptionFraction = d_A / (N·d̄)
+
+score = (Δ/p) × (d̄/d_A)
+```
+
+즉 **스코어 ≈ 그 노드의 상대 절감률 × (풀 평균 파드밀도 / 그 노드의 파드밀도)** 이고, 임계는 `0.5`다. 세 가지가 따라 나온다.
+
+| 상황 | 결과 |
+|---|---|
+| 평균 밀도 노드의 교체 | **50% 이상 싸져야** 통과 |
+| 파드가 적게 실린 노드 | 배수가 1보다 커져 **통과하기 쉽다** |
+| 파드가 빽빽한 노드 | 배수가 1보다 작아져 **보호된다** |
+
+첫 줄이 `k=2`의 설계 의도와 맞아떨어진다. 상수 주석이 *"the smallest value where within-family replaces pass"* 라고 적어 두었는데, **같은 패밀리에서 한 단계 다운사이징(4xlarge → 2xlarge)이 정확히 50% 절감**이다. `k=2`는 그 교체가 아슬아슬하게 통과하도록 고른 값이다.
+
+삭제형은 `Δ = p`(노드 값 전체)라 `score ≈ d̄/d_A`가 된다. **평균의 2배를 넘게 파드를 이고 있는 노드는 삭제도 거부된다.**
+
+### 5.5 언제 강점이고 언제 무의미한가
+
+| 상황 | Balanced의 효과 |
+|---|---|
+| 한계 절감 통합으로 churn이 잦다 | **정확히 이걸 겨냥한다** |
+| 바쁜 노드가 자꾸 흔들린다 | 파드밀도가 분모라 **자동으로 보호된다** |
+| 빈 노드 정리가 시끄럽다 | **효과 없음** — Emptiness가 우회한다(§2.1) |
+| drift로 노드가 갈린다 | **효과 없음** — consolidation 경로가 아니다 |
+| 세대가 자꾸 내려간다 | **효과 없음** — 스코어에 세대·weight가 없다([06]({{< relref "06-consolidation-traps.md" >}})) |
+| 비용 절감이 최우선이다 | **손해** — 한계 절감 액션이 거부되어 청구가 조금 오른다 |
+
+아래 세 줄이 중요하다. **"노드가 자꾸 교체된다"의 원인이 통합이 아니면 Balanced는 아무것도 바꾸지 않는다.** 원인을 먼저 `karpenter_nodeclaims_disrupted_total{reason}`으로 가른 뒤에 정책을 건드리는 순서가 맞다([09 §3]({{< relref "09-metrics-logs-events.md" >}})).
 
 **켜는 법은 한 줄이고 feature gate가 없다.**
 
