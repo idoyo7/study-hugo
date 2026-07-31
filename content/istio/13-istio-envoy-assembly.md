@@ -64,9 +64,11 @@ istio.io 아키텍처 문서도 같은 말을 한 줄로 한다 — "Istio uses 
 
 | 계층 | 필터 | 하는 일 |
 |---|---|---|
-| 네트워크(TCP) | `envoy.filters.network.metadata_exchange`<br>(설정 이름 `istio.metadata_exchange`) | 커넥션 위에서 피어 메타데이터를 주고받는다 |
-| HTTP | `envoy.wasm.metadata_exchange`<br>(`envoy.filters.http.wasm`으로 래핑) | 헤더로 피어 메타데이터를 주고받는다 |
-| HTTP | `envoy.wasm.stats`<br>(같은 wasm 필터로 래핑) | 표준 메트릭을 생성한다 |
+| 네트워크(TCP) | `envoy.filters.network.metadata_exchange` | 커넥션 위에서 피어 메타데이터를 주고받는다 |
+| HTTP | `envoy.wasm.metadata_exchange` | 헤더로 피어 메타데이터를 주고받는다 |
+| HTTP | `envoy.wasm.stats` | 표준 메트릭을 생성한다 |
+
+네트워크 계층 필터의 설정 이름은 `istio.metadata_exchange`다. HTTP 계층의 두 필터는 `envoy.filters.http.wasm`으로 래핑된 같은 wasm 필터다.
 
 ### peer metadata exchange — `source_*` / `destination_*` 라벨의 출처
 

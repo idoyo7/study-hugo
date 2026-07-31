@@ -33,14 +33,12 @@ weight: 20
 
 ## 문서 지도
 
-| 문서 | 게시일 | 성격 | 한 줄 요약 |
-|------|--------|------|-----------|
-| [01 왜 Ambient mode인가]({{< relref "01-why-ambient-mode.md" >}}) | 2026-03 | 의사결정 | 4,000 파드·240Gi라는 계산과 polynomial scaling problem, 그리고 SPoF를 감수한 이유 |
-| [02 Envoy config로 해부하는 Ambient mode]({{< relref "02-envoy-config-anatomy.md" >}}) | 2026-04 | 기술 해부 | 클러스터 하나가 endpoint 메타데이터로 세 갈래로 갈린다 · HBONE은 Envoy 부품 세 개의 조합 |
-| [03-1 503과 Half-open Connection]({{< relref "03-1-503-half-open-connection.md" >}}) | 2026-06 | 장애 추적 | waypoint가 `IP:Port`만을 키로 죽은 Pod의 HBONE 터널을 재사용한다 |
-| [03-2 Partially Enrolled Pod와 Untaint Controller]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}}) | 2026-07 | 장애 추적 | Running·Ready인데 메시 밖 — kube-scheduler는 DaemonSet 준비를 기다리지 않는다 |
-| [03-3 Ambient 안전하게 업그레이드하기]({{< relref "03-3-ambient-upgrade-in-place.md" >}}) | 2026-07 | 운영 런북 | istiod → istio-cni → ztunnel 순서, ztunnel만은 node pool blue-green |
-| [03-4 507과 istiod disconnected 탐지]({{< relref "03-4-507-istiod-disconnected.md" >}}) | 2026-07 | 부록 2건 | retry가 만든 보이지 않는 1MB 상한 · 사후 xDS 단절을 못 잡는 readinessProbe |
+- **[01 왜 Ambient mode인가]({{< relref "01-why-ambient-mode.md" >}})** · 2026-03 · 의사결정 — 4,000 파드·240Gi라는 계산과 polynomial scaling problem, 그리고 SPoF를 감수한 이유
+- **[02 Envoy config로 해부하는 Ambient mode]({{< relref "02-envoy-config-anatomy.md" >}})** · 2026-04 · 기술 해부 — 클러스터 하나가 endpoint 메타데이터로 세 갈래로 갈린다 · HBONE은 Envoy 부품 세 개의 조합
+- **[03-1 503과 Half-open Connection]({{< relref "03-1-503-half-open-connection.md" >}})** · 2026-06 · 장애 추적 — waypoint가 `IP:Port`만을 키로 죽은 Pod의 HBONE 터널을 재사용한다
+- **[03-2 Partially Enrolled Pod와 Untaint Controller]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}})** · 2026-07 · 장애 추적 — Running·Ready인데 메시 밖 — kube-scheduler는 DaemonSet 준비를 기다리지 않는다
+- **[03-3 Ambient 안전하게 업그레이드하기]({{< relref "03-3-ambient-upgrade-in-place.md" >}})** · 2026-07 · 운영 런북 — istiod → istio-cni → ztunnel 순서, ztunnel만은 node pool blue-green
+- **[03-4 507과 istiod disconnected 탐지]({{< relref "03-4-507-istiod-disconnected.md" >}})** · 2026-07 · 부록 2건 — retry가 만든 보이지 않는 1MB 상한 · 사후 xDS 단절을 못 잡는 readinessProbe
 
 ## 읽는 순서
 
@@ -55,12 +53,24 @@ weight: 20
 
 같은 문제를 상위 챕터(Sidecar mode)와 이 섹션(Ambient mode)이 각각 어떻게 다루는지의 대응표다.
 
-| 문제 축 | 상위 챕터 (Sidecar mode) | 이 섹션 (Ambient mode) |
-|---------|-------------------------|----------------------|
-| 메시의 비용 구조 | [01 서비스 메시와 Istio 기초]({{< relref "../01-mesh-basics.md" >}}) — 파드마다 붙는 프록시가 CPU·메모리·지연을 더한다 | [01 왜 Ambient mode인가]({{< relref "01-why-ambient-mode.md" >}}) — 프록시 개수를 파드 수에서 노드 수로 옮긴다 |
-| 컨트롤 플레인 부하 | [02 컨트롤 플레인 해부: istiod]({{< relref "../02-istiod-control-plane.md" >}}) — 설정 범위를 좁혀 push 부하를 줄인다 | [01]({{< relref "01-why-ambient-mode.md" >}}) — polynomial scaling problem의 분모(프록시 수) 자체를 줄인다 |
-| xDS 커넥션 | [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../09-istiod-scaling-connections.md" >}}) — 장수 gRPC는 스케일아웃해도 재분배되지 않는다 | [03-4]({{< relref "03-4-507-istiod-disconnected.md" >}}) — 한 번 끊긴 stream은 스스로 낫지 않아 탐지가 필요하다 |
-| 데이터 플레인 격리 | [03 데이터 플레인과 Ingress Gateway]({{< relref "../03-gateway-node-isolation.md" >}}) — 자원 경합을 피하려 게이트웨이를 노드로 뺀다 | [03-2]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}}) — 노드가 준비될 때까지 스케줄을 미룬다(시간 축의 격리) |
-| 5xx 추적 순서 | [05 장애 이야기: 간헐적 응답 이상]({{< relref "../05-incident-intermittent-5xx.md" >}}) — 게이트웨이 → 사이드카 → 앱으로 hop을 좁힌다 | [03-1]({{< relref "03-1-503-half-open-connection.md" >}}) — 게이트웨이 로그에는 `via_upstream`만 남으므로 waypoint부터 본다 |
-| 표준 CRD 밖의 조작 | [08 EnvoyFilter — 표준 CRD의 탈출구]({{< relref "../08-envoyfilter-extension.md" >}}) — 저수준 Envoy 설정을 직접 패치한다 | [02]({{< relref "02-envoy-config-anatomy.md" >}}) — 같은 저수준 부품을 istiod가 정식 경로로 조립해 내려준다 |
-| 프록시 업그레이드 | 워크로드 Pod 전부를 재시작해야 하고, 그 롤아웃이 곧 [istiod xDS 부하]({{< relref "../02-istiod-control-plane.md" >}}) 이벤트다 | [03-3]({{< relref "03-3-ambient-upgrade-in-place.md" >}}) — 앱 재시작은 사라지고 노드 DaemonSet 교체가 위험 지점이 된다 |
+- **메시의 비용 구조**
+  - 상위 챕터 (Sidecar mode): [01 서비스 메시와 Istio 기초]({{< relref "../01-mesh-basics.md" >}}) — 파드마다 붙는 프록시가 CPU·메모리·지연을 더한다
+  - 이 섹션 (Ambient mode): [01 왜 Ambient mode인가]({{< relref "01-why-ambient-mode.md" >}}) — 프록시 개수를 파드 수에서 노드 수로 옮긴다
+- **컨트롤 플레인 부하**
+  - 상위 챕터 (Sidecar mode): [02 컨트롤 플레인 해부: istiod]({{< relref "../02-istiod-control-plane.md" >}}) — 설정 범위를 좁혀 push 부하를 줄인다
+  - 이 섹션 (Ambient mode): [01]({{< relref "01-why-ambient-mode.md" >}}) — polynomial scaling problem의 분모(프록시 수) 자체를 줄인다
+- **xDS 커넥션**
+  - 상위 챕터 (Sidecar mode): [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../09-istiod-scaling-connections.md" >}}) — 장수 gRPC는 스케일아웃해도 재분배되지 않는다
+  - 이 섹션 (Ambient mode): [03-4]({{< relref "03-4-507-istiod-disconnected.md" >}}) — 한 번 끊긴 stream은 스스로 낫지 않아 탐지가 필요하다
+- **데이터 플레인 격리**
+  - 상위 챕터 (Sidecar mode): [03 데이터 플레인과 Ingress Gateway]({{< relref "../03-gateway-node-isolation.md" >}}) — 자원 경합을 피하려 게이트웨이를 노드로 뺀다
+  - 이 섹션 (Ambient mode): [03-2]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}}) — 노드가 준비될 때까지 스케줄을 미룬다(시간 축의 격리)
+- **5xx 추적 순서**
+  - 상위 챕터 (Sidecar mode): [05 장애 이야기: 간헐적 응답 이상]({{< relref "../05-incident-intermittent-5xx.md" >}}) — 게이트웨이 → 사이드카 → 앱으로 hop을 좁힌다
+  - 이 섹션 (Ambient mode): [03-1]({{< relref "03-1-503-half-open-connection.md" >}}) — 게이트웨이 로그에는 `via_upstream`만 남으므로 waypoint부터 본다
+- **표준 CRD 밖의 조작**
+  - 상위 챕터 (Sidecar mode): [08 EnvoyFilter — 표준 CRD의 탈출구]({{< relref "../08-envoyfilter-extension.md" >}}) — 저수준 Envoy 설정을 직접 패치한다
+  - 이 섹션 (Ambient mode): [02]({{< relref "02-envoy-config-anatomy.md" >}}) — 같은 저수준 부품을 istiod가 정식 경로로 조립해 내려준다
+- **프록시 업그레이드**
+  - 상위 챕터 (Sidecar mode): 워크로드 Pod 전부를 재시작해야 하고, 그 롤아웃이 곧 [istiod xDS 부하]({{< relref "../02-istiod-control-plane.md" >}}) 이벤트다
+  - 이 섹션 (Ambient mode): [03-3]({{< relref "03-3-ambient-upgrade-in-place.md" >}}) — 앱 재시작은 사라지고 노드 DaemonSet 교체가 위험 지점이 된다

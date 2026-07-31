@@ -90,7 +90,7 @@ Ambient에서는 Pod이 뜨는 시점에 이 노드 컴포넌트들이 준비돼
 
 | 구분 | 시나리오 1 | 시나리오 2 |
 | --- | --- | --- |
-| 무엇이 안 됐나 | istio-cni가 Pod 생성 시 아예 호출되지 않았거나 ambient 대상 판정에 실패 | 리다이렉션 규칙은 생성됐으나 ztunnel 연결 / ACK가 미준비 |
+| 무엇이 안 됐나 | istio-cni 미호출 또는 ambient 판정 실패 | 규칙은 생성됐으나 ztunnel 연결·ACK 미준비 |
 | netns 리다이렉션 규칙 | 없음 | 있음 |
 | `ambient.istio.io/redirection` | 미적용 | `pending` |
 | 실제 트래픽 | 메시를 그대로 우회 | 인바운드·아웃바운드가 동작하지 않음 |
@@ -287,8 +287,8 @@ untaint controller가 없애는 것은 경합의 큰 축 하나다. 원문이 �
 
 | 질문 | Sidecar mode에서의 답 | Ambient mode에서의 답 |
 | --- | --- | --- |
-| "이 Pod은 메시에 들어와 있나?" | 사이드카 컨테이너가 Ready면 그렇다 | Pod Ready와 무관. netns 규칙 + ztunnel 등록을 따로 봐야 한다 |
-| "노드를 늘리면 무슨 일이 생기나?" | 새 노드의 Pod이 각자 사이드카를 띄운다 | 노드의 istio-cni·ztunnel이 먼저 떠야 한다. 경합 구간이 생긴다 |
+| "이 Pod은 메시에 들어와 있나?" | 사이드카 Ready면 그렇다 | Pod Ready와 무관 — netns 규칙·ztunnel 등록을 따로 확인 |
+| "노드를 늘리면?" | 각 Pod이 사이드카를 각자 띄운다 | istio-cni·ztunnel이 먼저 떠야 함 — 경합 구간 발생 |
 | 컨트롤 플레인 부하의 형태 | 프록시 수에 비례한 xDS push ([02]({{< relref "../02-istiod-control-plane.md" >}})) | 노드 수 기준 컴포넌트 + 노드 taint 패치 |
 | 스케일아웃의 부작용 | xDS 커넥션이 재분배되지 않음 ([09]({{< relref "../09-istiod-scaling-connections.md" >}})) | 신규 노드마다 partially enrolled 윈도우 발생 |
 

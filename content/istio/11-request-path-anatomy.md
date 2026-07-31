@@ -132,8 +132,10 @@ Istio가 이 커넥션을 HTTP로 볼지 그냥 TCP로 볼지는 세 가지가 �
 | 순위 | 근거 | 비고 |
 |---|---|---|
 | 1 | Service 포트의 **`appProtocol`** | 공식 문서 명시: "appProtocol takes precedence over the port name" |
-| 2 | Service 포트의 **이름 규약** | `name: <protocol>[-<suffix>]` — `http`, `http2`, `https`, `tcp`, `tls`, `grpc`, `grpc-web`, `mongo`, `mysql`, `redis` |
+| 2 | Service 포트의 **이름 규약** | `name: <protocol>[-<suffix>]` (지원 접두사는 아래) |
 | 3 | **자동 감지** | 문서 표현 그대로 "Istio can automatically detect HTTP and HTTP/2 traffic" |
+
+이름 규약이 인식하는 접두사는 `http`, `http2`, `https`, `tcp`, `tls`, `grpc`, `grpc-web`, `mongo`, `mysql`, `redis`다.
 
 그리고 실패했을 때의 규칙이 이 절의 핵심이다. **"If the protocol cannot automatically be determined, traffic will be treated as plain TCP traffic."** 평문 TCP로 떨어지면 라우팅 규칙도, 재시도도, HTTP 메트릭도 함께 사라진다. [06]({{< relref "06-observability-points.md" >}})에서 "모든 서비스가 같은 언어로 말한다"고 한 그 지표가, 이 한 줄 때문에 특정 서비스에서만 비어 있을 수 있다.
 

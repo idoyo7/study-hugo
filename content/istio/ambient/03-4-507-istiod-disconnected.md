@@ -122,8 +122,8 @@ body: exceeded request buffer limit while retrying upstream
 
 | 방안 | 내용 | 채널팀의 판단 |
 | --- | --- | --- |
-| ① buffer limit 증설 | `per_connection_buffer_limit_bytes`를 키워 더 큰 payload의 retry buffer를 유지 | 상한선을 정하기 어렵고 메모리 압박·blast radius 문제로 채택 어려움 |
-| ② retry 비활성화 | retry를 안 하면 body를 replay할 필요도 없음 | 3-1편의 waypoint/ztunnel reset 대응이 무너져 503이 사용자에게 노출됨 |
+| ① buffer limit 증설 | buffer 키워 retry buffer 유지 | 상한 설정 어려움 · 메모리 압박 우려로 미채택 |
+| ② retry 비활성화 | retry를 끄면 replay 자체가 불필요 | 3-1편의 reset 대응이 무너져 503 노출 |
 | ③ client에서 retry | large payload 요청은 client/애플리케이션 레벨에서 재시도 | **가장 현실적인 방향으로 선택** |
 
 **① buffer limit을 늘린다.** 가장 직접적이다. 실제로 이 값을 늘리면 더 큰 payload에 대해서도 retry buffer를 유지할 수 있다. 하지만 몇 MB까지 허용할지 정해야 하고, media나 file upload처럼 payload가 매우 큰 요청까지 고려하면 값을 무작정 키우기 어렵다. buffer limit은 실제로 데이터가 쌓일 때 쓰이더라도, 많은 connection에서 큰 request가 동시에 들어오면 메모리 압박으로 이어질 수 있다. 전체 gateway/waypoint에 일괄 적용하면 blast radius가 커지고, 특정 route나 service에만 적용하면 관리 복잡도가 올라간다.
@@ -266,10 +266,8 @@ xDS stream이 왜 이렇게 오래 유지되는 장수 커넥션인지, 그리�
 
 채널팀이 검토한 메트릭은 두 가지다.
 
-| 메트릭 | 보는 대상 | 정상값 | 한계 |
-| --- | --- | --- | --- |
-| `envoy_control_plane_connected_state` | xDS gRPC stream 개폐 상태 | `1` | Envoy↔pilot-agent stream 상태이지 istiod 직결 상태가 아님 |
-| `envoy_cluster_upstream_cx_active{cluster_name="xds-grpc"}` | pilot-agent UDS에 맺은 upstream connection 수 | 보통 `1` | 같은 이유로 istiod 연결 상태를 직접 보지는 못함 |
+- **`envoy_control_plane_connected_state`** — xDS gRPC stream 개폐 상태. 정상값 `1`. 한계: Envoy↔pilot-agent stream 상태이지 istiod 직결 상태가 아님
+- **`envoy_cluster_upstream_cx_active{cluster_name="xds-grpc"}`** — pilot-agent UDS에 맺은 upstream connection 수. 정상값 보통 `1`. 한계: 같은 이유로 istiod 연결 상태를 직접 보지는 못함
 
 #### `envoy_control_plane_connected_state`
 
@@ -379,9 +377,9 @@ readinessProbe:
 
 | 이 문서의 소재 | 사이드카 모드에서 같은 문제가 나타나는 자리 | 관련 문서 |
 | --- | --- | --- |
-| waypoint의 507 retry buffer | 사이드카 Envoy·Ingress Gateway의 retry policy에서 동일하게 발생 | [01 서비스 메시와 Istio 기초]({{< relref "../01-mesh-basics.md" >}}) |
-| `xds-grpc` stream 단절과 stale config | 사이드카도 pilot-agent를 거쳐 istiod에 붙으므로 구조가 같다 | [02 컨트롤 플레인 해부: istiod]({{< relref "../02-istiod-control-plane.md" >}}) |
-| 한 번 맺힌 xDS stream이 스스로 낫지 않음 | 장수 gRPC 커넥션이 재분배되지 않는 문제와 같은 뿌리 | [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../09-istiod-scaling-connections.md" >}}) |
+| waypoint의 507 retry buffer | 사이드카 Envoy·Ingress Gateway도 동일하게 발생 | [01 서비스 메시와 Istio 기초]({{< relref "../01-mesh-basics.md" >}}) |
+| `xds-grpc` 단절·stale config | 사이드카도 pilot-agent 거쳐 istiod에 붙는 구조 동일 | [02 컨트롤 플레인 해부: istiod]({{< relref "../02-istiod-control-plane.md" >}}) |
+| xDS stream이 스스로 안 낫는다 | 장수 gRPC 커넥션 미재분배 문제와 같은 뿌리 | [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../09-istiod-scaling-connections.md" >}}) |
 | retry를 켤 수밖에 없게 만든 reset | Ambient 데이터 경로에서의 503 추적 | [03-1편 503과 Half-open Connection]({{< relref "03-1-503-half-open-connection.md" >}}) |
 
 Envoy config 레벨에서 `xds-grpc` cluster나 buffer limit이 실제로 어떻게 박혀 있는지는 [2편 Envoy config로 해부하는 Ambient mode]({{< relref "02-envoy-config-anatomy.md" >}})에서 확인할 수 있다.

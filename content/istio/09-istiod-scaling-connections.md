@@ -146,10 +146,10 @@ container_memory_working_set_bytes{container="discovery"} / limit > 0.85
 
 | 경로 | 기본값 |
 |---|---|
-| `pilot-discovery --keepaliveMaxServerConnectionAge` | `2562047h47m16.854775807s` — Go `time.Duration`의 MaxInt64, 사실상 **무제한(off)** |
+| `pilot-discovery --keepaliveMaxServerConnectionAge` | `2562047h47m16.854775807s` (사실상 무제한) |
 | Helm 차트 `values.yaml` | **`30m`** |
 
-즉 helm 경로로 배포된 istiod가 30분마다 커넥션을 끊는 건 **차트가 주입한 값** 때문이지 바이너리 기본 동작이 아니다. `pkg/keepalive/options.go`의 `DefaultOption()`은 `MaxServerConnectionAge: Infinity`를 반환한다.
+`2562047h47m16.854775807s`는 Go `time.Duration`의 MaxInt64로, 사실상 off다. 즉 helm 경로로 배포된 istiod가 30분마다 커넥션을 끊는 건 **차트가 주입한 값** 때문이지 바이너리 기본 동작이 아니다. `pkg/keepalive/options.go`의 `DefaultOption()`은 `MaxServerConnectionAge: Infinity`를 반환한다.
 
 ### 지터는 이미 들어가 있다
 
@@ -225,14 +225,12 @@ RequestRateLimit *rate.Limiter
 
 ### 그 밖의 수단
 
-| 수단 | 상태 | 트레이드오프 |
-|---|---|---|
-| **Delta xDS** (`ISTIO_DELTA_XDS`) | **1.22부터 기본 `true`** | 변경분만 전송해 push 비용↓. 재연결 절감폭은 실측 필요 — 아래 단서 참조 |
-| **HPA `behavior`** stabilization window | 차트 지원됨 (#42634 → PR #44425) | 파드 churn 자체를 억제. scaleDown이 느려짐. KEDA는 `advanced.horizontalPodAutoscalerConfig.behavior`로 전달 |
-| **사전 스케일링** | Google 공식 권고 | 이벤트 일정을 미리 아는 경우에만. 평시 낭비와 맞바꿈 |
-| **ambient / ztunnel** | 구조적 해법 | 커넥션이 **파드당 → 노드당 1개**, ztunnel용 xDS는 L4 전용이라 훨씬 작다. 마이그레이션 비용, L7 기능엔 waypoint 필요 |
-| **리비전 기반 샤딩** | 가능하나 목적 밖 | `istio.io/rev`로 프록시를 리비전별 istiod에 고정. 업그레이드/카나리아용 설계라 **동적 재분배가 아니라 정적 분할** |
-| **클라이언트측 `idle_timeout`** (EnvoyFilter) | 커뮤니티 기법 | 서버 강제 종료 대신 프록시 아웃바운드에 idle timeout을 주입해 재연결 유도. 근거 설명이 없어 **추정 수준** |
+- **Delta xDS** (`ISTIO_DELTA_XDS`) · **1.22부터 기본 `true`** — 변경분만 전송해 push 비용↓. 재연결 절감폭은 실측 필요 — 아래 단서 참조.
+- **HPA `behavior`** stabilization window · 차트 지원됨 (#42634 → PR #44425) — 파드 churn 자체를 억제. scaleDown이 느려짐. KEDA는 `advanced.horizontalPodAutoscalerConfig.behavior`로 전달.
+- **사전 스케일링** · Google 공식 권고 — 이벤트 일정을 미리 아는 경우에만. 평시 낭비와 맞바꿈.
+- **ambient / ztunnel** · 구조적 해법 — 커넥션이 **파드당 → 노드당 1개**, ztunnel용 xDS는 L4 전용이라 훨씬 작다. 마이그레이션 비용, L7 기능엔 waypoint 필요.
+- **리비전 기반 샤딩** · 가능하나 목적 밖 — `istio.io/rev`로 프록시를 리비전별 istiod에 고정. 업그레이드/카나리아용 설계라 **동적 재분배가 아니라 정적 분할**.
+- **클라이언트측 `idle_timeout`** (EnvoyFilter) · 커뮤니티 기법 — 서버 강제 종료 대신 프록시 아웃바운드에 idle timeout을 주입해 재연결 유도. 근거 설명이 없어 **추정 수준**.
 
 {{< callout type="important" >}}
 **Delta xDS와 재연결 — 확실하지 않은 부분**
@@ -246,13 +244,11 @@ xDS delta 프로토콜에는 재연결용 `initial_resource_versions` 필드가 
 
 조사에서 "istiod를 스케일아웃했는데 재분배가 안 돼 OOM"을 정확히 다룬 **named 회사의 공개 포스트모템은 찾지 못했다.** 조각별 근거는 이렇다.
 
-| 출처 | 확인된 내용 |
-|---|---|
-| Google Cloud (Anthos/CSM) 트러블슈팅 문서 | 장수 커넥션발 부하 불균형을 **공식 인정**. 30분 max-age + 레플리카 다중화 + 사전 스케일링 권고 |
-| istio/istio#42634 | istiod CPU 스파이크 → HPA 스레싱(~5대 → 30대+), 새 파드가 push 참여 못 함. PR #44425로 차트에 `behavior` 추가 |
-| istio/istio#57809 | 2,500노드에서 Gateway 롤링 재시작 시 xDS 수신 지연으로 Ready 실패. 재분배 문제는 아니지만 대규모 istiod 지연이 장애로 이어진 사례 |
-| Charles Xu (전 Google Cloud Istio 팀 / 전 Cruise / 현 Snowflake) | "long-lived gRPC connections that persist indefinitely, creating uneven load distribution across istiod replicas over time" — 같은 문제를 서술. **실제 인시던트인지 일반론인지 글에서 구분되지 않음** |
-| grpc-go `keepalive/keepalive.go` | `MaxConnectionAge` ±10% 지터 (1차 출처, 확정) |
+- **Google Cloud (Anthos/CSM) 트러블슈팅 문서** — 장수 커넥션발 부하 불균형을 **공식 인정**. 30분 max-age + 레플리카 다중화 + 사전 스케일링 권고.
+- **istio/istio#42634** — istiod CPU 스파이크 → HPA 스레싱(~5대 → 30대+), 새 파드가 push 참여 못 함. PR #44425로 차트에 `behavior` 추가.
+- **istio/istio#57809** — 2,500노드에서 Gateway 롤링 재시작 시 xDS 수신 지연으로 Ready 실패. 재분배 문제는 아니지만 대규모 istiod 지연이 장애로 이어진 사례.
+- **Charles Xu** (전 Google Cloud Istio 팀 / 전 Cruise / 현 Snowflake) — "long-lived gRPC connections that persist indefinitely, creating uneven load distribution across istiod replicas over time" — 같은 문제를 서술. **실제 인시던트인지 일반론인지 글에서 구분되지 않음**.
+- **grpc-go** `keepalive/keepalive.go` — `MaxConnectionAge` ±10% 지터 (1차 출처, 확정).
 
 **미확인으로 남긴 것:**
 

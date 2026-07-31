@@ -38,7 +38,7 @@ Ambient mode의 버전 업그레이드는 세 컴포넌트를 대상으로 한�
 | 컴포넌트 | 역할 | 업그레이드 특성 |
 | --- | --- | --- |
 | `istiod` | Gateway controller, Envoy config 전파 | — |
-| `istio-cni` | Pod 감지, iptables 설정, ztunnel proxy port 구성 | in-place 업그레이드. 실행 중인 Pod 네트워크에는 보통 영향 없음 |
+| `istio-cni` | Pod 감지·iptables 설정·ztunnel 포트 구성 | in-place — 실행 중 Pod엔 보통 영향 없음 |
 | `ztunnel` | node 단위 L4 data plane | 교체 시 해당 node의 long-lived connection이 reset될 수 있음 |
 
 `istiod`나 `istio-cni`도 중요하지만, 실제 운영에서 가장 조심해야 하는 컴포넌트는 ztunnel이다. ztunnel은 노드마다 하나씩 떠 있고, 그 노드에 올라간 Ambient workload의 트래픽을 직접 처리하기 때문이다. ztunnel이 무엇을 어떻게 처리하는지는 [2편 Envoy config 해부]({{< relref "02-envoy-config-anatomy.md" >}})에서 다룬다.
@@ -265,11 +265,9 @@ kubectl drain <blue-node> --ignore-daemonsets --delete-emptydir-data
 
 ## 6. 정리 — 컴포넌트별 업그레이드 방식 대조
 
-| 컴포넌트 | 방식 | 재시작 대상 | 주 위험 | 확인 지표 |
-| --- | --- | --- | --- | --- |
-| `istiod` | in-place | istiod Pod + gateway Envoy | gateway가 같이 rollout된다는 사실을 놓치는 것 | revision 상태, xDS sync, control plane 에러 로그 |
-| `istio-cni` | in-place (DaemonSet rollout) | istio-cni Pod | rollout 틈에 생성되는 Pod의 `FailedCreatePodSandBox` | DaemonSet rollout 완료, redirection 누락·pending Pod |
-| `ztunnel` | blue-green node pool | 노드 전체 (workload 재스케줄) | graceful shutdown 30초를 넘긴 long-lived connection 절단 | 5xx, TCP reset, latency |
+- **`istiod`** — 방식: in-place. 재시작 대상: istiod Pod + gateway Envoy. 주 위험: gateway가 같이 rollout된다는 사실을 놓치는 것. 확인 지표: revision 상태, xDS sync, control plane 에러 로그
+- **`istio-cni`** — 방식: in-place (DaemonSet rollout). 재시작 대상: istio-cni Pod. 주 위험: rollout 틈에 생성되는 Pod의 `FailedCreatePodSandBox`. 확인 지표: DaemonSet rollout 완료, redirection 누락·pending Pod
+- **`ztunnel`** — 방식: blue-green node pool. 재시작 대상: 노드 전체 (workload 재스케줄). 주 위험: graceful shutdown 30초를 넘긴 long-lived connection 절단. 확인 지표: 5xx, TCP reset, latency
 
 아래 대조는 원문이 직접 말한 것이 아니라, 이 지식베이스의 사이드카 모드 문서들과 맞춰 읽기 위한 정리다.
 

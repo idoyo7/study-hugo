@@ -47,7 +47,7 @@ Istio 외에 Linkerd와 Cilium도 검토했다.
 | 후보 | 검토 결과 |
 | --- | --- |
 | Linkerd | 가볍고 단순하지만, 사용 사례가 적어 참고할 자료가 부족했다 |
-| Cilium | eBPF 기반 CNI로 더 알려져 있고, 채널팀은 이미 다른 CNI를 쓰고 있어 서비스 메시만을 위해 채택하기엔 부담이었다 |
+| Cilium | eBPF 기반 CNI로 알려져 있고, 채널팀은 이미 다른 CNI를 쓰고 있어 메시만을 위해 채택하기엔 부담이었다 |
 | **Istio** | **커뮤니티와 생태계가 가장 크고, 레퍼런스와 자료가 가장 많다** |
 
 Cilium을 뺀 것은 기능 문제가 아니었다. 이미 다른 CNI를 쓰고 있었고, 서비스 메시를 위해 CNI를 갈아엎는 결정은 메시 도입보다 훨씬 큰 변경이다.
@@ -107,9 +107,13 @@ Gateway API 자체는 Sidecar mode에서도 쓸 수 있다. 다만 **Ambient mod
 
 | 단점 | 내용 |
 | --- | --- |
-| 장애 영향 범위 확대 | Sidecar mode에서는 프록시가 파드와 lifecycle을 같이 해 장애 범위가 각 파드에 그친다. Ambient는 ztunnel(노드 단위)과 waypoint(namespace·service 단위)에 의존하므로, 장애 시 노드 전체 혹은 namespace 전체로 영향이 번진다. **Sidecar mode에는 없던 SPoF(Single Point of Failure)가 생긴다.** |
-| 디버깅 난이도 증가 | ztunnel · waypoint · HBONE 같은 새 개념을 익혀야 하고, 프록시와 hop이 늘어난 만큼 문제 원인 추적이 까다롭다. |
-| 낮은 성숙도 | GA 직후라 프로덕션에서 검증된 사례가 적었고, Sidecar mode와 기존 Istio API(예: VirtualService)에 비해 덜 성숙하다. |
+| 장애 영향 범위 확대 | 파드 단위였던 장애 범위가 노드·namespace 단위로 커진다 |
+| 디버깅 난이도 증가 | 새 개념과 늘어난 hop 만큼 원인 추적이 까다롭다 |
+| 낮은 성숙도 | GA 직후라 검증 사례가 적고 기존 API보다 덜 성숙하다 |
+
+- **장애 영향 범위 확대**: Sidecar mode에서는 프록시가 파드와 lifecycle을 같이 해 장애 범위가 각 파드에 그친다. Ambient는 ztunnel(노드 단위)과 waypoint(namespace·service 단위)에 의존하므로, 장애 시 노드 전체 혹은 namespace 전체로 영향이 번진다. **Sidecar mode에는 없던 SPoF(Single Point of Failure)가 생긴다.**
+- **디버깅 난이도 증가**: ztunnel · waypoint · HBONE 같은 새 개념을 익혀야 하고, 프록시와 hop이 늘어난 만큼 문제 원인 추적이 까다롭다.
+- **낮은 성숙도**: GA 직후라 프로덕션에서 검증된 사례가 적었고, Sidecar mode와 기존 Istio API(예: VirtualService)에 비해 덜 성숙하다.
 
 ### 팀 내 의사결정
 
@@ -160,9 +164,11 @@ Ambient에서 워크로드가 놓일 수 있는 상태는 세 가지고, 각각 
 
 | 상태 | 경로 |
 | --- | --- |
-| 메시 미참여 (out-mesh) | 기존 쿠버네티스 네트워크(kube-proxy) 동작 방식과 동일하다. 서비스 디스커버리를 거쳐 엔드포인트로 직접 연결된다. |
-| 메시 참여 · waypoint 없음 | 파드에서 나가는 트래픽이 ztunnel로 투명하게 리다이렉트되고, destination이 메시에 포함된 경우 **암호화된 HBONE 채널**로 보내진다. 들어오는 트래픽도 해당 노드의 ztunnel을 거치며, `AuthorizationPolicy`에 위배되지 않는 한 파드로 전달된다. |
-| 메시 참여 · waypoint 설정 | ztunnel과 destination 사이에 waypoint가 끼어 L7 정책을 적용한다. |
+| 메시 미참여 (out-mesh) | 기존 kube-proxy 경로 그대로 — 서비스 디스커버리로 엔드포인트에 직접 연결 |
+| 메시 참여 · waypoint 없음 | 양쪽 ztunnel이 HBONE 채널로 감싸 전달 |
+| 메시 참여 · waypoint 설정 | ztunnel 사이에 waypoint가 끼어 L7 정책 적용 |
+
+**메시 미참여(out-mesh)**는 기존 쿠버네티스 네트워크(kube-proxy) 동작 방식과 동일하다. 서비스 디스커버리를 거쳐 엔드포인트로 직접 연결된다. **메시 참여 · waypoint 없음**은 파드에서 나가는 트래픽이 ztunnel로 투명하게 리다이렉트되고, destination이 메시에 포함된 경우 **암호화된 HBONE 채널**로 보내진다. 들어오는 트래픽도 해당 노드의 ztunnel을 거치며, `AuthorizationPolicy`에 위배되지 않는 한 파드로 전달된다. **메시 참여 · waypoint 설정**은 ztunnel과 destination 사이에 waypoint가 끼어 L7 정책을 적용한다.
 
 {{< flow caption="세 상태의 경로를 같은 축에 겹쳐 본 것 — out-mesh는 kube-proxy 경로 그대로고, 메시에 들면 양쪽 ztunnel이 HBONE 구간을 만들며, waypoint를 켜면 그 사이에 L7 홉이 하나 더 붙는다. 홉 수가 곧 디버깅 난이도다." >}}
 {

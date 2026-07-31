@@ -31,12 +31,14 @@ Ambient mode 시리즈 3편은 채널팀이 프로덕션에서 겪은 장애들�
 
 로그를 hop별로 늘어놓으면 어디를 봐야 하는지가 곧바로 드러난다.
 
-| hop | 남긴 기록 | 해석 |
+| hop | 핵심 신호 | 해석 |
 | --- | --- | --- |
-| public gateway | `response_code: 503`, `response_code_details: via_upstream` | 자기가 만든 503이 아니라 **업스트림에서 받은 것을 전달**했다는 뜻. 원인 정보가 없다 |
-| waypoint | `response_code: 503`, `response_code_details: upstream_reset_before_response_started{connection_termination}`, `response_flags: UC` | **응답 시작 전에 업스트림 커넥션이 reset**됐다. `UC`는 upstream connection termination |
+| public gateway | `via_upstream` | 업스트림에서 받은 것을 전달 — 원인 정보 없음 |
+| waypoint | `upstream_reset_before_response_started`, `UC` | 응답 시작 전 업스트림 커넥션 reset |
 | ztunnel | 이상 로그 없음 | 자기가 아는 한 아무 일도 없었다 |
 | istio-cni | 이상 로그 없음 | 마찬가지 |
+
+전체 로그는 이렇다. public gateway는 `response_code: 503`과 `response_code_details: via_upstream`을 남긴다 — 자기가 만든 503이 아니라 업스트림에서 받은 것을 전달했다는 뜻으로, 원인 정보가 없다. waypoint는 `response_code: 503`, `response_code_details: upstream_reset_before_response_started{connection_termination}`, `response_flags: UC`를 남긴다 — **응답 시작 전에 업스트림 커넥션이 reset**됐다는 뜻이고, `UC`는 upstream connection termination이다.
 
 {{< seq caption="업스트림 커넥션이 응답 시작 전에 끊기면서 503이 만들어지고, 그 사실을 구체적으로 적어 둔 hop은 waypoint 하나뿐이다." >}}
 {
@@ -278,8 +280,8 @@ connection pool key ~= "dst=10.90.142.96:15008 + dst_id=[spiffe://cluster.local/
 | --- | --- |
 | 타이밍 신호 부재 | ztunnel이 "지금 이 Pod가 종료된다"를 확실히 알 경로가 마땅치 않다 |
 | 이미 늦은 시점 | Pod가 완전히 종료된 뒤에는 정리 신호를 보낼 수 없다 |
-| 통로 자체가 사라진다 | Pod 종료 후 **CNI가 veth와 network namespace를 정리**하면서, ztunnel이 해당 connection을 통해 GOAWAY를 보낼 통로도 사라질 수 있다 |
-| GOAWAY의 사정거리 | GOAWAY는 **outer connection(HTTP/2 터널)에만 영향**을 준다. 그 안의 inner connection은 별도로 처리해야 한다 |
+| 통로 자체가 사라진다 | Pod 종료 후 CNI가 veth·netns를 정리하면서 GOAWAY를 보낼 통로도 사라질 수 있다 |
+| GOAWAY의 사정거리 | GOAWAY는 outer connection(HTTP/2 터널)에만 영향 — inner connection은 별도 처리 필요 |
 
 커뮤니티에서 논의 중인 후보들도 각각 타이밍과 복잡도에서 trade-off가 다르다.
 
@@ -317,9 +319,9 @@ retry 확대는 **멱등성을 전제로 한다.** `reset`은 "요청이 업스�
 
 | 수단 | 기대 효과 | 원문의 판단 |
 | --- | --- | --- |
-| `meshConfig.hboneIdleTimeout` 단축 | idle 상태의 stale connection을 더 빨리 정리 | 보조 수단. 원문은 기본값을 명시하지 않는다 |
+| `meshConfig.hboneIdleTimeout` 단축 | idle 상태의 stale connection을 더 빨리 정리 | 보조 수단 (기본값 미명시) |
 | HTTP/2 keepalive 주기 조정 | 죽은 터널을 keepalive 실패로 조기 감지 | 보조 수단 |
-| ztunnel `KEEPALIVE_*` 환경변수 | 커넥션 유지·감지 파라미터 조정 | **커뮤니티에서 이 문제 해결에 도움이 되지 않았다는 보고**가 있어 채택하지 않음 |
+| ztunnel `KEEPALIVE_*` 환경변수 | 커넥션 유지·감지 파라미터 조정 | 커뮤니티 보고상 효과 없어 미채택 |
 
 세 손잡이의 공통 한계는 타이밍 싸움일 뿐 원인을 없애지 못한다는 것이다. idle timeout을 아무리 줄여도, 그보다 짧은 간격으로 Pod가 죽고 IP가 재할당되면 창은 여전히 열린다. 게다가 과하게 줄이면 정상 트래픽에서도 터널 재수립이 잦아져 지연과 부하가 늘어난다. 장수 커넥션을 파라미터로만 다스릴 때 생기는 부작용은 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../09-istiod-scaling-connections.md" >}})에서 xDS 커넥션을 두고 다룬 것과 같다.
 

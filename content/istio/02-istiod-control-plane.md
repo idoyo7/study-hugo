@@ -85,12 +85,12 @@ istiod는 폭주를 막으려 **디바운스(debounce)**를 둔다. 변경이 �
 
 | 지표 | 무엇을 말하나 | 위험 신호 |
 |---|---|---|
-| **`pilot_proxy_convergence_time`** | 설정 변경 → 모든 프록시에 반영 완료까지 걸린 시간(히스토그램) | **가장 중요.** p99가 수 초로 늘면 컨트롤 플레인이 밀리는 것 |
+| **`pilot_proxy_convergence_time`** | 설정 변경→반영 완료 시간(히스토그램) | **가장 중요.** p99 수 초↑면 컨트롤 플레인 지연 |
 | **`pilot_proxy_queue_time`** | 변경이 push 큐에서 대기한 시간 | 상승 = istiod가 처리 속도를 못 따라감 |
 | **`pilot_xds`** | 이 istiod에 연결된 프록시(XDS 클라이언트) 수 | 인스턴스당 과다 = 수평 확장(replica↑) 신호 |
 | **`pilot_xds_pushes`** | 타입별(cds/eds/lds/rds) push 발생 수 | 급증 = endpoint churn·설정 변경 폭주 |
 | **`pilot_xds_push_time`** | push 생성·전송에 걸린 시간 | 상승 = 설정이 크거나 프록시가 많음 |
-| **`pilot_xds_push_context_errors` / `pilot_total_xds_rejects`** | push 생성 오류·프록시의 설정 거부 | 0이 아니면 설정 문제 조사 |
+| **`pilot_xds_push_context_errors`**/**`pilot_total_xds_rejects`** | push 생성 오류·설정 거부 | 0이 아니면 설정 문제 조사 |
 | **`container_cpu_usage` (istiod)** | istiod 파드의 실제 CPU | limit 근처 지속 = 증설/스케일 대상 |
 | **`process_virtual_memory` / `container_memory_working_set`** | istiod 메모리 | 설정·프록시 수에 비례해 증가 |
 

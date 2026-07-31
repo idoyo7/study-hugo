@@ -88,10 +88,12 @@ Istio(그리고 대부분의 메시)는 두 부분으로 나뉜다.
 
 | 범주 | 메시가 하는 일 | 관련 리소스(CRD) |
 |---|---|---|
-| **트래픽 관리** | L7 라우팅, 카나리/가중치 분할, 미러링, 재시도·타임아웃·서킷브레이킹, fault injection | VirtualService, DestinationRule |
+| **트래픽 관리** | L7 라우팅·가중치 분할·미러링·복원력 정책·fault injection | VirtualService, DestinationRule |
 | **보안** | 워크로드 간 자동 mTLS, 인증서 발급·회전, L7 인가 정책 | PeerAuthentication, AuthorizationPolicy |
 | **관측성** | 요청 단위 메트릭(RED: Rate·Error·Duration), 액세스 로그, 분산 트레이스 스팬 자동 생성 | Telemetry |
 | **연결 관리** | 인그레스/이그레스 게이트웨이, 외부 서비스 등록 | Gateway, ServiceEntry |
+
+트래픽 관리의 "복원력 정책"은 재시도·타임아웃·서킷브레이킹을 가리킨다.
 
 여기서 실무적으로 가장 크게 체감하는 둘:
 

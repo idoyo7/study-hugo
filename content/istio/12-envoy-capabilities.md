@@ -35,9 +35,9 @@ Envoy의 자기 정의는 홈페이지 첫 문장에 있다 — "A high performa
 
 | 항목 | Envoy가 제공하는 것 |
 |---|---|
-| **HTTP/1.1 · HTTP/2** | 둘 다 지원하며, **양방향 투명 변환 프록시**로 동작한다("a transparent HTTP/1.1 to HTTP/2 proxy in both directions") |
+| **HTTP/1.1 · HTTP/2** | 둘 다 지원, **양방향 투명 변환**("a transparent HTTP/1.1 to HTTP/2 proxy in both directions") |
 | **gRPC** | gRPC 요청·응답의 "routing and load balancing substrate" |
-| **HTTP/3** | downstream은 프로덕션 사용 가능, **upstream은 alpha** — "key features are implemented but have not been tested at scale" |
+| **HTTP/3** | downstream 가능, **upstream alpha** — "key features are implemented but have not been tested at scale" |
 | **hot restart** | 코드와 설정을 통째로 리로드하되 drain 과정에서 기존 커넥션을 끊지 않는다 |
 
 {{< callout type="important" >}}
@@ -88,14 +88,12 @@ HTTP 필터는 스트림마다 실행되고, 그중 **router 필터가 목적지
 
 아래는 전부 Envoy가 자체적으로 갖고 있는 기능이다. Istio가 없어도 이 스위치들은 존재한다.
 
-| 기능 | Envoy가 하는 일 | 붙는 층 |
-|---|---|---|
-| **재시도** | `x-envoy-retry-on`으로 조건을 고른다 — `5xx`, `gateway-error`, `reset`, `connect-failure`, `retriable-4xx`, `refused-stream` 등 | route |
-| **재시도 예산(retry budget)** | 재시도 폭주를 막는 클러스터 레벨 가드레일. route의 최대 재시도 횟수와는 **별개 장치** | cluster |
-| **타임아웃** | 요청이 무한정 매달리지 않게 끊는다 | route |
-| **서킷 브레이킹** | 업스트림 클러스터별·priority별로 임계치를 센다 — 최대 커넥션, 최대 대기 요청, 최대 요청, 최대 활성 재시도, 최대 동시 커넥션 풀 | cluster |
-| **아웃라이어 감지** | "a form of passive health checking" — 연속 5xx, 연속 게이트웨이 오류(502/503/504), 연속 local-origin 실패, 성공률·실패율 통계 이상치로 엔드포인트를 축출. `x-envoy-degraded` 헤더로 degraded 표시도 한다 | cluster |
-| **능동 헬스체크** | 업스트림 클러스터별로 설정. HTTP·gRPC·L3/L4(TCP 바이트 버퍼 에코)·Redis·Thrift 프로토콜 체크를 지원 | cluster |
+- **재시도** (route) — `x-envoy-retry-on`으로 조건을 고른다: `5xx`, `gateway-error`, `reset`, `connect-failure`, `retriable-4xx`, `refused-stream` 등.
+- **재시도 예산(retry budget)** (cluster) — 재시도 폭주를 막는 클러스터 레벨 가드레일. route의 최대 재시도 횟수와는 **별개 장치**.
+- **타임아웃** (route) — 요청이 무한정 매달리지 않게 끊는다.
+- **서킷 브레이킹** (cluster) — 업스트림 클러스터별·priority별로 임계치를 센다: 최대 커넥션, 최대 대기 요청, 최대 요청, 최대 활성 재시도, 최대 동시 커넥션 풀.
+- **아웃라이어 감지** (cluster) — "a form of passive health checking". 연속 5xx, 연속 게이트웨이 오류(502/503/504), 연속 local-origin 실패, 성공률·실패율 통계 이상치로 엔드포인트를 축출. `x-envoy-degraded` 헤더로 degraded 표시도 한다.
+- **능동 헬스체크** (cluster) — 업스트림 클러스터별로 설정. HTTP·gRPC·L3/L4(TCP 바이트 버퍼 에코)·Redis·Thrift 프로토콜 체크를 지원.
 
 수동/능동의 구분은 문서가 직접 대비시켜 놓은 것이다. **아웃라이어 감지는 실제 트래픽의 응답을 보고 판정**하고, **능동 헬스체크는 별도의 체크 요청을 보낸다.** 둘은 배타적이지 않고 같은 클러스터에 함께 걸린다.
 
@@ -175,15 +173,13 @@ Istio 쪽 서술도 이 방향과 맞는다. istio.io 1.5 릴리스 노트는 �
 
 | 필터 | 무엇 |
 |---|---|
-| `lua` | LuaJIT로 "Lua scripts to be run during both the request and response flows" — 요청·응답 양쪽 흐름에서 스크립트 실행 |
+| `lua` | LuaJIT 스크립트 실행(요청·응답 양쪽) — "Lua scripts to be run during both the request and response flows" |
 | `wasm` | "The HTTP Wasm filter is used to implement an HTTP filter with a Wasm plugin" |
 
 **밖의 서비스에 물어보는 쪽.**
 
-| 필터 | 무엇 | 실패·거부 시 |
-|---|---|---|
-| `ext_authz` | "calls an external gRPC or HTTP service to determine whether an incoming HTTP request is authorized" | deny면 **403** |
-| `rate_limit` | 요청의 route나 virtual host에 매칭되는 rate limit 설정이 있으면 rate limit 서비스를 호출한다 | 초과 시 **429**(설정 가능). **rate limit 서비스 자체가 오류일 때의 동작은 `failure_mode_deny`가 정한다** |
+- **`ext_authz`** — "calls an external gRPC or HTTP service to determine whether an incoming HTTP request is authorized". 거부 시 **403**.
+- **`rate_limit`** — route나 virtual host에 매칭되는 설정이 있으면 서비스를 호출한다. 초과 시 **429**(설정 가능).
 
 두 부류의 차이가 곧 운영 비용의 차이다. 안에서 도는 쪽은 요청 경로에 CPU를 더하고, 밖에 묻는 쪽은 요청마다 왕복 지연과 **외부 서비스라는 장애 지점**을 더한다. `failure_mode_deny`가 설정 항목으로 존재한다는 사실 자체가, 그 외부 서비스가 죽었을 때 통과시킬지 막을지를 미리 정해 두라는 요구다.
 

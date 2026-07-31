@@ -90,8 +90,8 @@ Istio 클러스터 이름의 `방향|포트|subset|FQDN` 관례를 그대로 따
 | 케이스 | endpoint 주소 | 선택되는 transport socket | 실제 경로 |
 | --- | --- | --- | --- |
 | Out-of-mesh 목적지 | Pod IP 직접 (`10.90.165.200:8080`) | `tlsMode-disabled` (RawBuffer) | Pod로 평문 직결, HBONE 없음 |
-| In-mesh 목적지 | `envoy_internal_address` (`server_listener_name: connect_originate`) | `InternalUpstreamTransport` | 내부 리스너를 거쳐 HBONE 터널링 |
-| Waypoint가 설정된 목적지 | Service ClusterIP (`172.20.134.88:8080`) | `InternalUpstreamTransport` | Gateway → Waypoint → Pod |
+| In-mesh 목적지 | `envoy_internal_address` | `InternalUpstreamTransport` | 내부 리스너를 거쳐 HBONE 터널링 |
+| Waypoint 목적지 | Service ClusterIP (`172.20.134.88:8080`) | `InternalUpstreamTransport` | Gateway → Waypoint → Pod |
 
 ### 케이스 1 — out-of-mesh: 아무 일도 일어나지 않는다
 
@@ -138,9 +138,11 @@ Istio 클러스터 이름의 `방향|포트|subset|FQDN` 관례를 그대로 따
 
 | 부품 | 하는 일 |
 | --- | --- |
-| `InternalUpstreamTransport` | endpoint에서 internal listener까지 메타데이터를 통과시킨다. 실제 destination 주소(`local: 10.90.165.200:8080`)가 이 경로로 internal listener까지 도달한다 |
-| `tcp_proxy`의 `tunneling_config` | HTTP/2 CONNECT 요청을 만든다. `tunneling_config`에 설정된 hostname이 CONNECT 요청의 `:authority` 헤더가 된다 |
-| `UpstreamTlsContext` | 터널 위에 mTLS를 수립한다. SPIFFE ID로 상대 워크로드 신원을 검증하고, ALPN은 `h2`로 협상한다 |
+| `InternalUpstreamTransport` | endpoint→internal listener로 메타데이터(실제 destination 주소)를 통과시킨다 |
+| `tcp_proxy`의 `tunneling_config` | HTTP/2 CONNECT 요청을 만든다 |
+| `UpstreamTlsContext` | 터널 위에 mTLS를 수립한다 |
+
+각 부품의 상세는 다음과 같다. `InternalUpstreamTransport`는 endpoint에서 internal listener까지 메타데이터를 통과시키며, 실제 destination 주소(`local: 10.90.165.200:8080`)가 이 경로로 internal listener까지 도달한다. `tcp_proxy`의 `tunneling_config`에 설정된 hostname은 CONNECT 요청의 `:authority` 헤더가 된다. `UpstreamTlsContext`는 SPIFFE ID로 상대 워크로드 신원을 검증하고, ALPN은 `h2`로 협상한다.
 
 `connect_originate` 리스너 자체에는 **`original_dst` listener filter**가 걸려 있어, `InternalUpstreamTransport`로 넘어온 메타데이터에서 원래 목적지를 복원한다. 그 위의 `tcp_proxy` 필터가 `connect_originate` 클러스터로 연결하면서 CONNECT를 발행한다.
 
@@ -193,9 +195,9 @@ upstream_port_override:15008 → 실제 TCP 목적지를 ztunnel HBONE 포트로
 
 | 컴포넌트 | 역할 |
 | --- | --- |
-| istio-cni plugin | 체인드 CNI 플러그인으로 설치되어, **Pod 생성 이벤트를 감지**하고 이를 istio-cni node agent로 전달한다 |
-| istio-cni node agent | **Pod의 네트워크 네임스페이스에 진입해 iptables 규칙을 설정**하고, Unix Domain Socket을 통해 ztunnel에게 Pod 정보와 **네트워크 네임스페이스 파일 디스크립터(FD)** 를 전달한다 |
-| ztunnel | 전달받은 netns FD를 이용해 **리눅스 저수준 소켓 API로 Pod 네임스페이스 내에 직접 listening 소켓을 생성**한다 |
+| istio-cni plugin | 체인드 CNI 플러그인 — Pod 생성 이벤트를 감지해 node agent로 전달한다 |
+| istio-cni node agent | Pod netns에 진입해 iptables 규칙을 설정, UDS로 ztunnel에 Pod 정보·netns FD 전달 |
+| ztunnel | 전달받은 netns FD로 Pod 네임스페이스 안에 직접 listening 소켓을 생성한다 |
 
 결과가 직관에 반한다. **Pod 안에서 localhost의 `15001`·`15006`·`15008`에 listening 소켓이 보이지만, 이 소켓을 소유한 건 Pod의 컨테이너가 아니라 ztunnel DaemonSet 프로세스다.** 원문의 표현대로 ztunnel 프로세스는 Node level에서 동작하고, 소켓만 Pod 네트워크 안에 만든다.
 
@@ -212,9 +214,9 @@ istio-cni node agent가 Pod 네임스페이스에 심는 규칙은 방향별로 
 | 방향 | 훅 | 체인 | 동작 |
 | --- | --- | --- | --- |
 | Ingress | `PREROUTING` | `ISTIO_PRERT` | Pod으로 들어오는 모든 TCP 트래픽이 이 체인을 거친다 |
-| Egress | `OUTPUT` | `ISTIO_OUTPUT` | 모든 TCP 송신 트래픽을 **ztunnel의 `15001` 포트로 REDIRECT**한다. ztunnel이 여기서 HBONE 캡슐화를 적용한 뒤 목적지로 보낸다 |
+| Egress | `OUTPUT` | `ISTIO_OUTPUT` | 모든 TCP 송신을 ztunnel의 `15001`로 REDIRECT한다 |
 
-원문은 이 두 체인의 존재와 리다이렉트 목적지까지를 설명하고, 규칙 한 줄 한 줄의 매칭 조건을 전부 나열하지는 않는다. 다만 **모든 REDIRECT 규칙에 `! --mark 0x539` 조건이 붙어 있다**는 점은 명시한다.
+ztunnel은 `15001`로 받은 트래픽에 HBONE 캡슐화를 적용한 뒤 목적지로 보낸다. 원문은 이 두 체인의 존재와 리다이렉트 목적지까지를 설명하고, 규칙 한 줄 한 줄의 매칭 조건을 전부 나열하지는 않는다. 다만 **모든 REDIRECT 규칙에 `! --mark 0x539` 조건이 붙어 있다**는 점은 명시한다.
 
 ### 패킷 마킹: `0x539`와 `0x111`
 
@@ -222,8 +224,10 @@ istio-cni node agent가 Pod 네임스페이스에 심는 규칙은 방향별로 
 
 | 마크 | 종류 | 언제 붙나 | 무엇을 막나 |
 | --- | --- | --- | --- |
-| `0x539` | packet mark | ztunnel이 자신이 보내는 패킷에 설정 | REDIRECT 규칙이 `! --mark 0x539`를 달고 있어 ztunnel 발신 패킷은 리다이렉션을 우회한다. **무한루프 방지** |
-| `0x111` | connection mark (connmark) | ztunnel이 앱에 트래픽을 전달할 때(`mark 0x539`), `PREROUTING`의 mangle 테이블에서 해당 커넥션에 기록 | 앱이 같은 커넥션으로 보내는 **응답 패킷의 리다이렉트 방지** |
+| `0x539` | packet mark | ztunnel 발신 패킷에 설정 | REDIRECT 우회 — 무한루프 방지 |
+| `0x111` | connection mark (connmark) | ztunnel→앱 전달 시 `PREROUTING`에서 커넥션에 기록 | 응답 패킷의 리다이렉트 방지 |
+
+REDIRECT 규칙은 전부 `! --mark 0x539`를 달고 있어 ztunnel 발신 패킷은 리다이렉션을 우회한다. `0x111`은 ztunnel이 `mark 0x539`로 앱에 트래픽을 전달할 때 기록되며, 앱이 같은 커넥션으로 보내는 응답 패킷까지 리다이렉트에서 제외한다.
 
 {{< seq caption="요청은 리다이렉트하되 그 응답은 리다이렉트하지 않기 위해, 커넥션 단위의 상태를 connmark로 기억한다 — 이 기억이 없으면 응답이 ztunnel로 되돌아가 루프가 된다." >}}
 {
@@ -258,10 +262,10 @@ istio-cni node agent가 Pod 네임스페이스에 심는 규칙은 방향별로 
 | # | 단계 | 관여하는 설정 |
 | --- | --- | --- |
 | 1 | 요청이 Gateway Listener에 도착 | `0.0.0.0:443` 리스너, `HttpConnectionManager` |
-| 2 | Route에서 Virtual Host를 매칭해 Cluster 결정 | RDS의 `http.443`, `Host: api.channel.io` → `outbound\|8080\|\|ch-dropwizard-public…` 클러스터 |
-| 3 | Envoy 내부 `connect_originate` internal listener로 연결 | endpoint의 `envoy_internal_address`, `InternalUpstreamTransport` |
-| 4 | `tcp_proxy`가 HTTP/2 CONNECT와 mTLS로 HBONE 터널 완성 | `tunneling_config`, `UpstreamTlsContext`, `upstream_port_override: 15008` |
-| 5 | destination node의 Pod 네트워크 안에서 ztunnel의 `15008` 소켓이 수신 | 크로스 네임스페이스 소켓, `ISTIO_PRERT` |
+| 2 | Route에서 Virtual Host를 매칭해 Cluster 결정 | RDS의 `http.443` → `outbound` 클러스터 (`Host: api.channel.io` 매칭) |
+| 3 | `connect_originate` internal listener로 연결 | endpoint의 `envoy_internal_address` |
+| 4 | `tcp_proxy`가 HTTP/2 CONNECT·mTLS로 HBONE 터널 완성 | `tunneling_config`, `UpstreamTlsContext`, port override |
+| 5 | destination node Pod netns 안에서 ztunnel `15008` 소켓이 수신 | 크로스 네임스페이스 소켓, `ISTIO_PRERT` |
 | 6 | HBONE 디캡슐레이션 후 애플리케이션 Pod에 전달 | 마크 `0x539` 부착, 커넥션에 `0x111` connmark 기록 |
 
 ## 7. 이 해부가 실무에서 쓰이는 곳

@@ -90,11 +90,9 @@ weight: 15
 
 각 연결 고리를 필드 수준으로 옮기면 이렇게 된다.
 
-| 연결 | 잇는 필드 | 근거 | 어긋나면 |
-|---|---|---|---|
-| Gateway → VirtualService | VirtualService의 `gateways` | 필드 설명 "The names of gateways and sidecars that should apply these routes" | 게이트웨이에 규칙이 안 걸리거나, 의도치 않게 메시 전체에 걸린다 |
-| VirtualService → DestinationRule | `destination.host` + `subset` | "The subset must be defined in a corresponding DestinationRule" | 부르는 subset이 정의돼 있지 않으면 그 경로가 성립하지 않는다 |
-| DestinationRule → 엔드포인트 | subset의 `labels` | "Labels apply a filter over the endpoints of a service in the service registry" | 라벨이 안 맞으면 subset이 비어 트래픽이 갈 곳이 없다 |
+- **Gateway → VirtualService** (잇는 필드: VirtualService의 `gateways`) — 근거: "The names of gateways and sidecars that should apply these routes". 어긋나면: 게이트웨이에 규칙이 안 걸리거나, 의도치 않게 메시 전체에 걸린다.
+- **VirtualService → DestinationRule** (잇는 필드: `destination.host` + `subset`) — 근거: "The subset must be defined in a corresponding DestinationRule". 어긋나면: 부르는 subset이 정의돼 있지 않으면 그 경로가 성립하지 않는다.
+- **DestinationRule → 엔드포인트** (잇는 필드: subset의 `labels`) — 근거: "Labels apply a filter over the endpoints of a service in the service registry". 어긋나면: 라벨이 안 맞으면 subset이 비어 트래픽이 갈 곳이 없다.
 
 ### `gateways` 필드의 기본값이 함정인 이유
 
@@ -128,10 +126,8 @@ security 그룹 3개는 서로 다른 층을 담당하는데, 셋 다 **단독�
 
 가장 헷갈리는 지점부터. mTLS는 양쪽이 합의해야 성립하는데, **Istio에서 그 양쪽을 서로 다른 CRD가 설정한다.** 공식 운영 문서가 역할을 명확히 갈라 놓는다.
 
-| | 리소스 | 무엇을 정하나 | 원문 |
-|---|---|---|---|
-| **수신(서버)** | `PeerAuthentication` | 사이드카가 **받아들일** mTLS 트래픽 유형 (`STRICT` / `PERMISSIVE` / `DISABLE`) | "configures what type of mTLS traffic the sidecar will accept" |
-| **송신(클라이언트)** | `DestinationRule` `trafficPolicy.tls` | 사이드카가 **보낼** TLS 트래픽 유형 (`ISTIO_MUTUAL` 등) | "configures what type of TLS traffic the sidecar will send" |
+- **수신(서버)** — `PeerAuthentication` — 사이드카가 **받아들일** mTLS 트래픽 유형 (`STRICT` / `PERMISSIVE` / `DISABLE`). 원문: "configures what type of mTLS traffic the sidecar will accept".
+- **송신(클라이언트)** — `DestinationRule` `trafficPolicy.tls` — 사이드카가 **보낼** TLS 트래픽 유형 (`ISTIO_MUTUAL` 등). 원문: "configures what type of TLS traffic the sidecar will send".
 
 두 리소스는 이름도 그룹도 다르고, 보통 다른 사람이 다른 PR로 고친다. 그래서 어긋난다. 증상은 공식 문서의 트러블슈팅 항목에 그대로 있다.
 
@@ -185,10 +181,8 @@ security 그룹 3개는 서로 다른 층을 담당하는데, 셋 다 **단독�
 
 여기서 나오는 기본 동작이 운영상 가장 중요하다.
 
-| 워크로드의 정책 상태 | 매치 안 되는 요청은 | 원문 |
-|---|---|---|
-| 정책이 하나도 없음 | **허용** | "For workloads without authorization policies applied, Istio allows all requests." |
-| ALLOW 정책이 하나라도 있음 | **거부** | "the 'deny by default' behavior applies only if the workload has at least one authorization policy with the ALLOW action." |
+- **정책이 하나도 없음** → 매치 안 되는 요청은 **허용**. 원문: "For workloads without authorization policies applied, Istio allows all requests."
+- **ALLOW 정책이 하나라도 있음** → 매치 안 되는 요청은 **거부**. 원문: "the 'deny by default' behavior applies only if the workload has at least one authorization policy with the ALLOW action."
 
 **ALLOW 정책 하나를 추가하는 순간 그 워크로드의 기본 동작이 전면 허용에서 전면 거부로 뒤집힌다.** 정책 하나를 좁게 넣었다고 생각했는데 커버하지 못한 다른 경로가 전부 막히는 형태로 나타나므로, 첫 ALLOW 정책을 넣는 PR은 "무엇을 허용하나"가 아니라 **"이 워크로드로 오는 경로를 전부 열거했나"**로 리뷰해야 한다.
 
@@ -200,8 +194,8 @@ security 그룹 3개는 서로 다른 층을 담당하는데, 셋 다 **단독�
 
 | 리소스 | 조정 대상 | 계층 규칙 |
 |---|---|---|
-| `Sidecar` | 프록시가 받는 설정 범위 — 수용할 포트·프로토콜, egress host 목록 | 네임스페이스 단위 `default` + 워크로드 셀렉터 |
-| `ProxyConfig` | 프록시 프로세스 파라미터 — `concurrency`, `image`, `environmentVariables` | CR이 어노테이션·메시 전역 설정을 덮어씀 |
+| `Sidecar` | 프록시가 받는 설정 범위(포트·프로토콜·egress host) | 네임스페이스 단위 `default` + 워크로드 셀렉터 |
+| `ProxyConfig` | 프록시 파라미터 — `concurrency`, `image`, `environmentVariables` | CR이 어노테이션·메시 전역 설정을 덮어씀 |
 | `Telemetry` | 메트릭·트레이싱·액세스 로그의 생성 방식 | 워크로드 > 네임스페이스 > 루트 네임스페이스 |
 
 ### Sidecar — 설정 범위 축소이지 트래픽 차단이 아니다
@@ -246,7 +240,7 @@ ProxyConfig가 다루는 것은 트래픽이 아니라 프록시 프로세스다
 
 | 버전 상태 | CRD | 읽는 법 |
 |---|---|---|
-| `v1` 포함 (11개) | Gateway · VirtualService · DestinationRule · ServiceEntry · Sidecar · WorkloadEntry · WorkloadGroup · PeerAuthentication · RequestAuthentication · AuthorizationPolicy · Telemetry | API 계약이 안정화됐다 |
+| `v1` 포함 (11개) | 1절 표 참고 — Gateway·VirtualService·DestinationRule 등 14개 중 11개 | API 계약이 안정화됐다 |
 | `v1beta1`만 | ProxyConfig | 아직 승격 전 |
 | `v1alpha3`만 | **EnvoyFilter** | 승격 대상이 아니다 |
 | `v1alpha1`만 | **WasmPlugin** | 확장 API는 아직 초기 |
