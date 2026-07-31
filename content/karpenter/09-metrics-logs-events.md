@@ -11,7 +11,7 @@ weight: 9
 - **`karpenter_nodeclaims_disrupted_total{reason}` 하나가 "노드가 왜 갈렸나"를 전부 가른다.** reason 값은 10종이고 §3에 전부 있다.
 - **`karpenter_nodes_*`의 라벨 수는 프로바이더에 따라 달라진다.** EKS에서는 `instance_family`·`instance_size` 등이 더 붙는다 — 대시보드를 코어 기준으로 짜면 어긋난다.
 - **판정 로그는 `--log-level debug`에서만 나온다.** `consolidation score`, `marking drifted`, `abandoning ... due to timeout` 전부 `V(1)`이다.
-- **ICE와 NodeClass 미준비가 같은 로그 문자열을 쓴다**(`failed launching nodeclaim`). 로그만으로는 구분이 안 되고 메트릭 `reason`을 봐야 한다.
+- **ICE(Insufficient Capacity Error)와 NodeClass 미준비가 같은 로그 문자열을 쓴다**(`failed launching nodeclaim`). 로그만으로는 구분이 안 되고 메트릭 `reason`을 봐야 한다.
 - 이벤트에는 **dedupe 창**이 있다. `Unconsolidatable`은 15분, `FailedScheduling`은 5분 — 카운트를 빈도로 읽으면 안 된다.
 {{< /callout >}}
 

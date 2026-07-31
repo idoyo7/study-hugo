@@ -140,7 +140,7 @@ Balanced는 새로운 통합을 **만들지 않는다.** 위 경로가 만든 �
 {{< flow caption="Balanced는 WhenEmptyOrUnderutilized의 승인분을 입력으로 받는다 — 빈 노드 삭제는 Emptiness 출신이라 스코어를 우회하고, 나머지만 채점된다" >}}
 {
   "nodes": [
-    { "id": "W", "col": 0, "row": 1, "label": "WEOU 승인분", "sub": "5.1 도식의 결과", "kind": "src" },
+    { "id": "W", "col": 0, "row": 1, "label": "앞 단계 승인분", "sub": "WhenEmptyOrUnderutilized의 결과", "kind": "src" },
     { "id": "EM", "col": 1, "row": 0, "label": "Emptiness 출신", "sub": "ApproveCommand를 안 탄다", "kind": "query" },
     { "id": "SC", "col": 1, "row": 1, "label": "ScoreMove", "sub": "NodePool별로 채점", "kind": "proc" },
     { "id": "OK", "col": 2, "row": 0, "label": "승인", "sub": "예산 단계로", "kind": "sink" },

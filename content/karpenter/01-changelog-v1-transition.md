@@ -8,17 +8,17 @@ weight: 1
 {{< callout type="info" >}}
 **한눈에**
 - v1beta1→v1을 "필드 이름이 바뀐 일"로 읽으면 사고가 난다. changelog에서 위험한 절은 **Behavior Changes**이고 그중 둘은 **옵트아웃이 없다** — drift는 Stable 승격과 함께 feature gate가 삭제됐고([core#1311](https://github.com/kubernetes-sigs/karpenter/pull/1311)), expiration은 forceful로 되돌아갔다([core#1333](https://github.com/kubernetes-sigs/karpenter/pull/1333)).
-- **forceful expiration이 무시하는 건 PDB가 아니다.** 무시하는 것은 "대체 노드가 `Initialized`가 될 때까지 드레인을 시작하지 않는다"는 사전 안전장치와 disruption budget이다. `nodeclaim.expiration` 컨트롤러는 후보 평가 없이 NodeClaim을 바로 `Delete`한다(`controllers/nodeclaim/expiration/controller.go:82`).
+- **forceful expiration이 무시하는 건 PodDisruptionBudget(PDB)이 아니다.** 무시하는 것은 "대체 노드가 `Initialized`가 될 때까지 드레인을 시작하지 않는다"는 사전 안전장치와 disruption budget이다. `nodeclaim.expiration` 컨트롤러는 후보 평가 없이 NodeClaim을 바로 `Delete`한다(`controllers/nodeclaim/expiration/controller.go:82`).
 - **`consolidateAfter`가 v1에서 필수 필드다.** v1beta1의 `WhenUnderutilized`에서는 설정조차 불가능했던 값이라, 기존 동작을 유지하려면 `0s`를 명시해야 한다. `Never`는 그 NodePool의 consolidation을 통째로 끈다.
 - **`terminationGracePeriod`([core#916](https://github.com/kubernetes-sigs/karpenter/pull/916))가 최종 승자다.** 만료되면 PDB·`do-not-disrupt` 무관하게 남은 파드가 강제 삭제된다. 반대로 TGP를 걸면 drift가 "PDB·`do-not-disrupt` 파드가 있는 노드"까지 후보로 채택한다 — 안전장치를 스스로 꺼주는 대가로 CVE 패치를 밀 수 있게 된다. 노드 최대 수명 = `expireAfter`(기본 `720h`, 상한이지 하한이 아니다) + TGP.
 - disruption budgets가 `Drifted`/`Underutilized`/`Empty` **reason별로** 나뉘었다([core#991](https://github.com/kubernetes-sigs/karpenter/pull/991), [core#1377](https://github.com/kubernetes-sigs/karpenter/pull/1377)). 삭제된 drift feature gate의 자리를 이것이 메운다 — 업스트림이 제시하는 유일한 drift 통제 수단이다.
 - **1.1.0이 v1beta1 서빙을 끝냈다.** `nodeClassRef.group`/`kind`가 강제 필수가 되고 kubelet 호환 어노테이션이 사라진다. 같은 릴리스의 Bottlerocket + `instanceStorePolicy: RAID0`은 **v1.22.0 미만 이미지에서 노드가 join하지 못한다.**
 - **1.2.0의 메트릭 reason 라벨 snake_case 전환은 CI가 못 잡는 조용한 알람 무효화다.** `reason="Drifted"` 쿼리는 에러 없이 결과가 0이 된다. 같은 릴리스에서 `nodeclass.status`·`nodeclass.termination`이 `nodeclass`로 합쳐졌다([aws#7597](https://github.com/aws/karpenter-provider-aws/pull/7597)).
-- **1.6.0에서 native ODCR이 beta·기본 활성화됐다**([core#2365](https://github.com/kubernetes-sigs/karpenter/pull/2365)). `open` eligibility ODCR을 `capacityReservationSelectorTerms`에 등재하지 않고 올리면 **예약을 안 쓰면서 요금은 계속 나간다** — 이 구간에서 가장 비싼 회귀다.
+- **1.6.0에서 native On-Demand Capacity Reservation(ODCR)이 beta·기본 활성화됐다**([core#2365](https://github.com/kubernetes-sigs/karpenter/pull/2365)). `open` eligibility ODCR을 `capacityReservationSelectorTerms`에 등재하지 않고 올리면 **예약을 안 쓰면서 요금은 계속 나간다** — 이 구간에서 가장 비싼 회귀다.
 - `MinValuesPolicy`(1.6, [core#2299](https://github.com/kubernetes-sigs/karpenter/pull/2299)·[aws#8250](https://github.com/aws/karpenter-provider-aws/pull/8250))는 전역 옵션, 기본 `Strict`다. `minValues` 자체는 v0.35.0([core#963](https://github.com/kubernetes-sigs/karpenter/pull/963))부터 있던 API로 0.36 운영자에게 새 기능이 아니다.
 {{< /callout >}}
 
-> **왜 이 문서인가.** v1 마이그레이션 가이드는 763줄이고 절반이 "필드가 어디로 갔다"는 표다. 표의 항목은 `kubectl apply`가 실패하면 알 수 있으니 오히려 덜 위험하다. 위험한 건 **매니페스트가 그대로 통과하는데 클러스터가 다르게 행동하는** 항목이다 — 만료된 노드가 대체 없이 드레인을 시작하고, 끄고 있던 drift가 켜지고, 쓴 적 없는 `consolidateAfter`가 필수가 된다.
+> **왜 이 문서인가.** v1 마이그레이션 가이드 763줄의 절반은 "필드가 어디로 갔다"는 표라 `kubectl apply` 실패로 바로 드러난다. 진짜 위험한 건 **매니페스트가 그대로 통과하는데 클러스터가 다르게 행동하는** 항목이다 — 만료된 노드가 대체 없이 드레인을 시작하고, 끄고 있던 drift가 켜지고, 쓴 적 없는 `consolidateAfter`가 필수가 된다.
 
 > 근거 기준: 릴리스노트는 `aws/karpenter-provider-aws` v0.36.0~v1.14.0 및 `kubernetes-sigs/karpenter` v1.0.0~v1.14.0, 문서·코드·릴리스일은 2026-07-30 기준 두 레포 main 체크아웃과 git 태그다. 줄 번호는 그 시점 스냅샷이다.
 
@@ -60,13 +60,15 @@ Kubernetes 호환 하한이 버전 선택을 사실상 결정한다(`upgrading/c
 | `FEATURE_GATES.DRIFT=true` | (삭제) | §2.1 |
 | `httpPutResponseHopLimit: 2` | `1` | IMDS 접근 기본 차단(`hostNetwork` 미사용 파드) |
 
-taint는 값 제거로 기존 `karpenter.sh/disruption=disrupting`을 tolerate하던 워크로드가 `karpenter.sh/disrupted`로 재설정해야 하고(`apis/v1/taints.go:32-37`), `amiSelectorTerms` 누락은 EC2NodeClass를 `NotReady`로 만들어 이를 참조하는 NodePool을 스케줄링 후보에서 제외시킨다.
+taint는 값 제거로 `karpenter.sh/disruption=disrupting`을 tolerate하던 워크로드의 재설정이 필요하고(`apis/v1/taints.go:32-37`), `amiSelectorTerms` 누락은 EC2NodeClass를 `NotReady`로 만들어 참조 NodePool을 스케줄링 후보에서 제외한다.
 
 ### 2.1 drift가 GA됐고, 이제 끌 수 없다
 
 drift는 0.21 alpha → 0.33 beta(기본 true)였고 그때까지는 `FEATURE_GATES`로 **끌 수 있었다.** v1.0에서 게이트가 삭제됐다 — "Users currently opting out of drift, disabling the drift feature flag will no longer be able to do so"(`v1-migration.md:700-701`).
 
 **무슨 일이 나나.** drift는 NodePool의 `spec.template.spec.requirements`와 EC2NodeClass의 `subnetSelectorTerms`·`securityGroupSelectorTerms`·`amiSelectorTerms`를 NodeClaim에 박힌 해시(`karpenter.sh/nodepool-hash`, `karpenter.k8s.aws/ec2nodeclass-hash`)와 비교한다. 게이트를 끄고 운영해온 클러스터는 이 비교가 한 번도 수행된 적이 없어서 **켜지는 순간 누적된 모든 불일치가 한꺼번에 발견된다.** `amiSelectorTerms`가 `alias: al2023@latest`면 새 AMI가 나올 때마다 클러스터 전체가 후보가 된다 — CRD를 안 건드렸는데 drift가 나는 유일한 경로다.
+
+**전형적인 사례.** `FEATURE_GATES.DRIFT=false`로 1~2년 운영해온 프로덕션 클러스터가 그 기간 서브넷 추가·시큐리티그룹 변경·AMI 롤링을 CRD 수정 없이 여러 번 거쳤다면, v1.0 업그레이드 직후 그 누적분이 한꺼번에 drift 후보로 잡혀 다수 노드가 동시에 교체 큐에 들어간다. 업그레이드 **전에** 확인하려면 기존 NodeClaim의 `karpenter.sh/nodepool-hash` 값을 대상 NodePool의 `status.hash`와 대조한다 — 다르면 그 NodeClaim은 게이트가 사라지는 순간 즉시 후보가 된다. 업그레이드 **후에는** `karpenter_nodeclaims_disrupted_total{reason="Drifted"}`(1.2+는 `reason="drifted"`, §4)가 평소 대비 튀는지로 확인한다.
 
 **대비.** drift는 Automated **Graceful** Method라 disruption budget으로 rate-limit이 된다. 삭제된 게이트를 대체하는 유일한 수단이고, 기본 budget이 `nodes: 10%` 하나뿐이라는 게 함정이다. 아래가 §2.1~2.5를 한 매니페스트에 반영한 형태다.
 
@@ -101,9 +103,7 @@ spec:
 
 ### 2.2 expiration이 대체 노드를 기다리지 않는다
 
-0.37 이전에는 만료된 노드도 다른 자발적 disruption과 같은 후보 단계를 거쳤다 — budget을 확인하고 대체 용량이 `Initialized`가 될 때까지 기다린 뒤 드레인을 시작했다. v1.0에서 그 경로가 사라졌다. 원래 설계 의도가 forceful이었고, 대체 용량 오케스트레이션을 위해 graceful로 바꿨던 PR#59를 되돌린 것이다(`designs/forceful-expiration.md:37-67`, RFC [core#1303](https://github.com/kubernetes-sigs/karpenter/pull/1303) → [core#1333](https://github.com/kubernetes-sigs/karpenter/pull/1333)).
-
-코드로 보면 차이가 분명하다. graceful 경로는 `controllers/disruption/`의 Method 파이프라인(Emptiness → StaticDrift → Drift → MultiNodeConsolidation → SingleNodeConsolidation, `controller.go:101-114`)을 타고, queue가 대체 NodeClaim의 `Initialized`를 확인한 **뒤에** 후보를 삭제한다(`queue.go:196-241`). expiration은 이 파이프라인에 속하지 않는 별도 컨트롤러이고, 만료 판정 직후 `kubeClient.Delete(ctx, nodeClaim)` 한 줄이다.
+0.37 이전에는 만료된 노드도 다른 자발적 disruption과 같은 후보 단계를 거쳐 budget을 확인하고 대체 용량이 `Initialized`될 때까지 기다린 뒤 드레인을 시작했다. v1.0에서 이 경로가 사라졌다 — 원래 forceful이던 설계를 대체 용량 오케스트레이션을 위해 graceful로 바꿨던 PR#59를 되돌린 것이다(`designs/forceful-expiration.md:37-67`, RFC [core#1303](https://github.com/kubernetes-sigs/karpenter/pull/1303) → [core#1333](https://github.com/kubernetes-sigs/karpenter/pull/1333)). graceful 경로는 `controllers/disruption/`의 Method 파이프라인(`controller.go:101-114`)을 타고 대체 NodeClaim의 `Initialized` 확인 **후**에 삭제하지만(`queue.go:196-241`), expiration은 이 파이프라인 밖의 별도 컨트롤러로 만료 판정 직후 `kubeClient.Delete(ctx, nodeClaim)` 한 줄이다.
 
 {{< seq caption="두 경로는 NodeClaim 삭제 전까지만 다르다 — graceful은 budget 평가와 대체 노드 Initialized 대기를 거치고 forceful(expiration·interruption)은 둘 다 건너뛴다. 드레인 단계는 동일하며 PDB·do-not-disrupt는 여기서만 개입하고 TGP가 그 개입을 끝낸다." >}}
 {
@@ -162,9 +162,9 @@ spec:
 | 4 | PDB | 드레인을 지연시킨다. TGP 만료까지만 유효 |
 | 5 | `do-not-disrupt: "true"`(영구) | TGP가 **없으면** 무기한 이긴다 |
 
-순위 2의 선제 삭제는 노드 TGP 1h + 파드 TGPS 300s면 **55분 시점에** `do-not-disrupt` 파드도 삭제된다는 뜻이다. 파드 TGPS가 노드 TGP보다 크면 드레인 즉시 삭제되고 TGPS를 온전히 못 받는다.
+순위 2의 선제 삭제는 노드 TGP 1h + 파드 TGPS 300s면 **55분 시점에** `do-not-disrupt` 파드도 삭제된다는 뜻이다.
 
-대칭적인 부작용이 있다. TGP를 설정한 NodeClaim은 **drift 후보 선정 단계**에서부터 PDB·`do-not-disrupt` 블로킹 파드가 있어도 후보로 채택된다(`disruption.md:299-301`) — 원래는 그런 노드가 후보에서 빠져 무한정 안전했는데 TGP가 그 안전장치를 걷어낸다. 업스트림은 이를 의도로 설명한다("crucial updates (e.g. AMI updates addressing CVEs) can't be blocked by misconfigured applications").
+대칭적인 부작용도 있다 — TGP를 설정한 NodeClaim은 **drift 후보 선정 단계**부터 PDB·`do-not-disrupt` 블로킹 파드가 있어도 채택된다(`disruption.md:299-301`, 콜아웃 참고). 업스트림은 이를 의도로 설명한다("crucial updates (e.g. AMI updates addressing CVEs) can't be blocked by misconfigured applications").
 
 그래서 두 방향을 분리해 결정한다 — **`expireAfter`를 쓰는 NodePool**은 TGP 필수, **`expireAfter` 없이 drift만 도는 NodePool**은 CVE 패치를 강제로 밀 필요가 있을 때만 건다. `do-not-disrupt`가 애초에 못 막는 것은 Expiration·Interruption·Node Repair·수동 삭제이고, 그중 **Interruption(스팟 2분)과 Node Repair(컨디션별 toleration)는 암묵적 상한이 있지만 Expiration·수동 삭제는 상한이 없다**(`disruption.md:444-447`).
 
@@ -187,7 +187,7 @@ budgets 자체는 v0.34.0부터 있었고 v1.0에서 `reasons: ["Drifted"|"Under
 - **generic operator 메트릭 deprecated** — 접두사 없는 `operator_*`가 node/nodeclaim/nodepool/ec2nodeclass별로 쪼개졌다(`upgrade-guide.md:302`) — 리소스 구분 없이 집계하던 패널이 값을 잃는다
 - **내부 `karpenter.k8s.aws/cluster` 태그 제거** — launch template 관리용 내부 태그가 `eks:eks-cluster-name`으로 통합됐다. 이 태그로 비용 할당·SCP를 걸어둔 계정은 확인 필요
 
-Node Auto Repair(`NodeRepair` gate)가 이 릴리스에서 alpha로 들어왔다([core#1793](https://github.com/kubernetes-sigs/karpenter/pull/1793)·[aws#7459](https://github.com/aws/karpenter-provider-aws/pull/7459)). **1.14 기준으로도 여전히 alpha·기본 false**다(`reference/settings.md` Feature Gates 표의 Until 칸이 비어 있다). 표준 drain·grace period를 **우회**하고 disruption budget도 적용받지 않으므로, 켜기 전에 NPD나 EKS Node Monitoring Agent가 실제로 컨디션을 달아주는지부터 확인해야 한다 — 에이전트가 없으면 이 기능은 아무 일도 하지 않는다.
+Node Auto Repair(`NodeRepair` gate)가 이 릴리스에서 alpha로 들어왔다([core#1793](https://github.com/kubernetes-sigs/karpenter/pull/1793)·[aws#7459](https://github.com/aws/karpenter-provider-aws/pull/7459)). **1.14 기준으로도 여전히 alpha·기본 false**다(`reference/settings.md` Feature Gates 표의 Until 칸이 비어 있다). 표준 drain·grace period를 **우회**하고 disruption budget도 적용받지 않으므로, 켜기 전에 Node Problem Detector(NPD)나 EKS Node Monitoring Agent가 실제로 컨디션을 달아주는지부터 확인해야 한다 — 에이전트가 없으면 이 기능은 아무 일도 하지 않는다.
 
 ## 4. 1.2 — 컨트롤러·메트릭 정리
 
@@ -254,6 +254,8 @@ NodePool도 `requirements`에 `capacity-type In ["reserved", "on-demand"]`로 �
 
 문서가 따로 못박는 문장도 같은 취지다 — "Karpenter does **not** support open matching for ODCRs"(`tasks/odcrs.md:61-62`). **순서가 중요하다** — 게이트가 켜진 뒤에 셀렉터를 심으면 그 사이에 예약이 유실된다.
 
+**증상.** `open` eligibility ODCR을 EC2 콘솔에서만 등록해두고 EC2NodeClass에는 셀렉터를 심지 않은 채 1.6으로 올라온 클러스터는, 노드는 계속 정상적으로 뜨는데 그 노드가 전부 on-demand로 과금된다 — 스케줄링 실패나 에러 없이 조용히 예약을 놀린다. `kubectl get nodes -L karpenter.sh/capacity-type`로 확인한다 — 예약해 둔 인스턴스 패밀리인데도 `reserved` 라벨이 붙은 노드가 하나도 없다면 이 상황이다(§5.1 — 이 라벨은 reserved 노드에만 붙는다). AWS 콘솔의 Capacity Reservations에서 "사용 가능한 용량"이 줄지 않는 것도 같은 신호다.
+
 ```yaml
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
@@ -282,7 +284,7 @@ Capacity Blocks 지원([aws#8011](https://github.com/aws/karpenter-provider-aws/
 | `Strict`(기본) | `minValues` 미충족 시 스케줄링 **실패** → 폴백 탐색 | **기본** — 완화 시 가용성 보장이 조용히 깨진다 |
 | `BestEffort` | 실패 대신 `minValues`를 **완화**해 진행(어노테이션·메트릭 라벨로 표시) | **조건부** — 폴백 NodePool도 없을 때만 |
 
-완화된 NodeClaim에는 `karpenter.sh/nodeclaim-min-values-relaxed` 어노테이션이 붙고 `karpenter_nodeclaims_created_total`의 `min_values_relaxed` 라벨로 집계된다. `Strict`가 기본인 이유는 `minValues`가 사용자가 명시적으로 건 하한선이라 몰래 완화되면 기대한 가용성 보장이 조용히 깨지기 때문이고, `BestEffort`는 소규모 리전·신규 패밀리라 요구 개수를 못 채우고 폴백 NodePool도 없어 파드가 영구 Pending인 상황에서만 쓴다.
+완화된 NodeClaim에는 `karpenter.sh/nodeclaim-min-values-relaxed` 어노테이션이 붙고 `min_values_relaxed` 라벨로 집계된다. `Strict`가 기본인 이유는 사용자가 명시한 하한선이 몰래 완화되면 가용성 보장이 조용히 깨지기 때문이고, `BestEffort`는 요구 개수를 못 채우고 폴백 NodePool도 없어 파드가 영구 Pending인 상황에서만 쓴다.
 
 `BestEffort`의 함정 둘. 전역이라 **NodePool별로 다르게 줄 수 없다** — "일부 워크로드만 완화"가 필요하면 NodePool을 분리하고 `minValues`를 낮추는 쪽이 명확하다. 그리고 완화된 값이 그 NodeClaim의 requirements에 기록되므로 완화가 반복되면 실질 유연성 하한이 서서히 낮아진다. spot-to-spot replace consolidation의 하한(`MinInstanceTypesForSpotToSpotConsolidation = 15`, `controllers/disruption/consolidation.go:48`)과도 상호작용한다. 전환 전에 근거부터 확인한다 — `NoCompatibleInstanceTypes` 이벤트가 실제로 찍히는지, `karpenter_scheduler_unschedulable_pods_count`가 특정 NodePool에서만 쌓이는지.
 
@@ -290,7 +292,7 @@ Capacity Blocks 지원([aws#8011](https://github.com/aws/karpenter-provider-aws/
 
 `DISABLE_DRY_RUN` / `--disable-dry-run`은 EC2NodeClass 검증 과정의 dry-run EC2 API 호출을 끈다. **1.6.0이 아니라 1.6.2에서 들어왔다**(`upgrade-guide.md:233`, 마이너 릴리스노트에는 없다).
 
-필요한 상황은 하나다 — EC2NodeClass 수가 많거나 리전의 EC2 API 쿼터를 다른 워크로드가 이미 많이 써서 **검증용 dry-run 자체가 `RequestLimitExceeded`를 유발**하는 경우. 1.5의 검증 인스턴스 동적 선택이 완화책이었고 1.6.2가 탈출구다. 끄면 잘못된 IAM 역할·서브넷·보안그룹을 **검증 단계에서 못 잡고** 실제 `CreateFleet` 시점에야 실패가 드러난다 — **EC2NodeClass 스펙이 안정화되어 거의 안 바뀌는 계정에서만** 켠다.
+필요한 상황은 하나다 — EC2NodeClass 수가 많거나 리전의 EC2 API 쿼터를 다른 워크로드가 이미 많이 써서 **검증용 dry-run 자체가 `RequestLimitExceeded`를 유발**하는 경우다. 끄면 잘못된 IAM 역할·서브넷·보안그룹을 **검증 단계에서 못 잡고** 실제 `CreateFleet` 시점에야 실패가 드러난다 — **EC2NodeClass 스펙이 안정화되어 거의 안 바뀌는 계정에서만** 켠다.
 
 1.6은 kube-reserved 메모리 계산 방식도 바꿔 allocatable 값이 달라진다 — allocatable 변화가 메모리 오버커밋 튜닝값에 주는 영향을 업그레이드 후 재확인해야 한다.
 
@@ -313,9 +315,8 @@ Capacity Blocks 지원([aws#8011](https://github.com/aws/karpenter-provider-aws/
 - **1.1** — `nodeClassRef`·Bottlerocket 이미지 버전 확인, `inferentia` 하드코딩 셀렉터 grep
 - **1.2** — Prometheus 룰의 `reason=~"Drifted|Empty|Expired|Underutilized"`와 `controller=~"nodeclass\.(status|termination)"` 전수 검색·수정
 - **1.3** — 셀렉터 grep → `nodeAffinity` 전환. `karpenter_ignored_pod_count` 리네임
-- **1.4** — 런북에 `NodeRegistrationHealthy` 추가. `PreferencePolicy` 기본값 유지
-- **1.5** — EKS 1.33 이상이면 여기가 실질 최저선
-- **1.6** — **전** `capacityReservationSelectorTerms` 선등록. allocatable 영향 재확인
+- **1.4** — 런북에 `NodeRegistrationHealthy` 추가
+- **1.6** — **전** `capacityReservationSelectorTerms` 선등록(§6.1 체크리스트)
 - **1.7+** — [02]({{< relref "02-changelog-maturity.md" >}})
 
 두 문장으로 줄이면 이렇다. **1.0은 "동작이 바뀌는" 유일한 경계이고, 나머지는 "관측성이 깨지거나 조용히 비용이 나가는" 경계다.** 목표 EKS 버전이 이미 최저 Karpenter 버전을 정해버리므로 실제 선택지는 "어디까지 한 번에 갈 것인가"뿐이다.
@@ -324,12 +325,11 @@ Capacity Blocks 지원([aws#8011](https://github.com/aws/karpenter-provider-aws/
 
 로컬 경로 접두사: `AWS` = `karpenter-provider-aws`, `CORE` = `karpenter-core`. 문서 경로는 `AWS/website/content/en/` 이하.
 
-- v1 changelog 전문(Behavior Changes·API Moves·Defaults changed), forceful expiration 서술, 메트릭 rename/drop 표, 버전별 breaking change 원문(0.36~1.14)·k8s 호환 매트릭스 — `v1.0/upgrading/v1-migration.md:20-60, 670-760`, `docs/upgrading/upgrade-guide.md:96-345`, `compatibility.md:18-20`
-- disruption 분류(graceful/forceful), consolidation 정책 3종·`consolidateAfter`, `expireAfter` 720h·상한 성격, TGP 우선순위·선제 삭제 예시, budgets 계산식·reason — `docs/concepts/disruption.md:60-145, 185-215, 283-330`
-- ODCR 셀렉터 문법, `reserved` 우선순위, open matching 미지원, Capacity Block 선제 드레인 10분, `instanceMatchCriteria` — `docs/tasks/odcrs.md:1-130`, `docs/concepts/nodeclasses.md:912-990, 1824`
-- Feature gate 단계·도입 버전, `MIN_VALUES_POLICY`·`DISABLE_DRY_RUN` 기본값, `min_values_relaxed` 라벨 — `docs/reference/settings.md:55-70`, `docs/reference/metrics.md:45-47`, `CORE/pkg/metrics/constants.go:34`
-- expiration이 후보 평가 없이 삭제 / graceful은 대체 노드 `Initialized` 대기 후 삭제·reason snake_case 변환 / Method 파이프라인 순서 / 드레인→볼륨 detach→인스턴스 종료 순서와 `disrupted` taint 부착 — `CORE/pkg/controllers/nodeclaim/expiration/controller.go:69-105`, `disruption/queue.go:186-250`, `disruption/controller.go:101-114`, `node/termination/controller.go:134-227`
-- `disrupted` taint가 값 없음, `consolidateAfter` required, spot-to-spot 하한 15, `nodeclass` 컨트롤러 단일화 — `CORE/pkg/apis/v1/taints.go:32-37`, `apis/v1/nodepool.go:93`, `controllers/disruption/consolidation.go:48`, `AWS/pkg/controllers/nodeclass/controller.go:120`
+- v1 changelog 전문·메트릭 rename/drop 표·버전별 breaking change 원문(0.36~1.14)·k8s 호환 매트릭스 — `v1.0/upgrading/v1-migration.md:20-60, 670-760`, `docs/upgrading/upgrade-guide.md:96-345`, `compatibility.md:18-20`
+- disruption 분류·consolidation 정책·`expireAfter`·TGP 우선순위·budgets 계산식 — `docs/concepts/disruption.md:60-145, 185-215, 283-330`
+- ODCR 셀렉터 문법·`reserved` 우선순위·open matching 미지원·Capacity Block 선제 드레인 10분 — `docs/tasks/odcrs.md:1-130`, `docs/concepts/nodeclasses.md:912-990, 1824`
+- Feature gate 단계·`MIN_VALUES_POLICY`·`DISABLE_DRY_RUN` 기본값·`min_values_relaxed` 라벨 — `docs/reference/settings.md:55-70`, `docs/reference/metrics.md:45-47`, `CORE/pkg/metrics/constants.go:34`
+- expiration 즉시삭제/graceful 대기삭제·reason snake_case 변환·Method 파이프라인·드레인→detach→종료 순서와 `disrupted` taint — `CORE/pkg/controllers/nodeclaim/expiration/controller.go:69-105`, `disruption/queue.go:186-250`, `disruption/controller.go:101-114`, `node/termination/controller.go:134-227`
 - forceful expiration RFC의 설계 대안과 graceful 전환 경위, budgets by reason 계산식 — `CORE/designs/forceful-expiration.md:3-67`, `designs/disruption-controls-by-reason.md:220-226, 337-339`
 - 도입 버전 — `minValues`=v0.35.0(`0fea7ce`), ReservedCapacity alpha=v1.3.0(`a863104`)·beta=v1.6.0(`20e1ad4`), `MinValuesPolicy`=v1.6.0(`7034d83`), `Gte`/`Lte`=v1.9.0(`c81e6ac`), NodeOverlay 게이트=v1.7.0(`2613a66`) — 두 레포 `git tag --contains <sha>`
 - 릴리스일, 마이너별 PR 목록 — `git log -1 --format=%ai <tag>`(AWS), 두 레포 릴리스노트 v0.36.0~v1.14.0

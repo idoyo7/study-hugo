@@ -15,13 +15,13 @@ aliases: ["/k8s-features/karpenter/"]
 - v1beta1→v1을 "필드 이름이 바뀐 일"로 읽으면 사고가 난다. 위험한 건 **매니페스트가 그대로 통과하는데 클러스터가 다르게 행동하는** 변경이다 — drift는 feature gate가 삭제돼 끌 수 없게 됐고([core#1311](https://github.com/kubernetes-sigs/karpenter/pull/1311)), expiration은 대체 노드 없이 드레인을 시작하는 forceful로 되돌아갔다([core#1333](https://github.com/kubernetes-sigs/karpenter/pull/1333)).
 - **"No breaking changes 🎉"는 "아무 일도 안 일어난다"가 아니다.** 1.12는 업그레이드 가이드상 breaking이 아니지만 CA bundle 해시 변경으로 **기존 노드 전체가 drift 대상**이 된다.
 - **메트릭 이름·라벨 변경은 CI가 못 잡는 사고다.** 1.2의 reason 라벨 snake_case 전환 이후 `reason="Drifted"` 쿼리는 에러 없이 결과가 빈다. 1.7의 리네임 2건도 같은 성질이다.
-- **1.6의 native ODCR 기본 활성화가 이 구간 가장 비싼 회귀다.** `open` eligibility 예약을 `capacityReservationSelectorTerms`에 등재하지 않고 올리면 **예약을 안 쓰면서 요금은 계속 나간다.**
+- **1.6의 native On-Demand Capacity Reservation(ODCR) 기본 활성화가 이 구간 가장 비싼 회귀다.** `open` eligibility 예약을 `capacityReservationSelectorTerms`에 등재하지 않고 올리면 **예약을 안 쓰면서 요금은 계속 나간다.**
 
 *알고리즘 축 (04~07)*
 - **"싸서 고른다"의 주어는 Karpenter가 아니다.** 코어 스케줄러는 인스턴스 타입을 확정하지 않고 후보 집합을 통째로 NodeClaim에 실어 보낸다. 가격으로 하나를 뽑는 주체는 **EC2 CreateFleet**이다.
 - **단일 NodePool 안에는 세대 선호를 표현할 축이 아예 없다.** `requirements`는 집합 연산일 뿐 서열이 아니고 `weight`는 NodePool **레벨**에만 있다. 업스트림도 이 요구를 두 번 반려했다(karpenter#1829, provider-aws#6721).
 - **consolidation은 weight를 아예 모른다.** 교체 조건은 `launchPrice < candidatePrice` 부등식 하나라, **한 번 7세대로 내려가면 consolidation으로는 절대 안 돌아온다** — 복귀 경로는 `expireAfter`와 drift뿐이다.
-- **없는 기능을 만들기 전에 있는 기능을 확인한다.** ICE 폴백은 이미 공짜로 동작한다(오퍼링 unavailable 마킹, TTL 3분). 실제로 만들어야 하는 건 폴백이 아니라 반대 방향의 **상향 강제**다.
+- **없는 기능을 만들기 전에 있는 기능을 확인한다.** Insufficient Capacity Error(ICE) 폴백은 이미 공짜로 동작한다(오퍼링 unavailable 마킹, TTL 3분). 실제로 만들어야 하는 건 폴백이 아니라 반대 방향의 **상향 강제**다.
 {{< /callout >}}
 
 > **왜 한 챕터인가.** 두 축은 성질이 같다 — **판단 근거가 공식 문서에 없다.** 버전 축의 근거는 릴리스노트의 Behavior Changes 절과 PR diff에 있고, 알고리즘 축의 근거는 정렬·절단·부등식 몇 줄의 소스 코드에 있다. 어느 쪽도 "Karpenter는 적당한 노드를 알아서 띄운다"는 소개 문장에서는 나오지 않는다. 이 챕터는 그 두 층을 각각 함수·PR 단위로 내려가 뜯고, **그 위에서 "그래서 무엇을 선언하고 무엇을 켤 것인가"까지** 결정한다.
@@ -35,7 +35,7 @@ aliases: ["/k8s-features/karpenter/"]
 | 버전 | 언제 쓰나 (조건) | 무엇이 가능해졌나 | 대가 |
 |---|---|---|---|
 | **0.36~0.37** | 선택 아님 | EC2NodeClass readiness | CRD 선행 없으면 중단 |
-| **1.0** | **v1 진입 — 선택 아님** | TGP · reason별 budget | **drift를 못 끈다** · 만료 forceful |
+| **1.0** | **v1 진입 — 선택 아님** | `terminationGracePeriod` · reason별 budget | **drift를 못 끈다** · 만료 forceful |
 | **1.1** | 선택 아님 | Node Repair(alpha) | v1beta1 서빙 종료 |
 | **1.2~1.3** | ODCR을 쓰고 싶다 | `capacity-type: reserved` | reason 라벨 snake_case |
 | **1.4~1.5** | 등록 실패를 감지하고 싶다 | `NodeRegistrationHealthy` | 없음 |

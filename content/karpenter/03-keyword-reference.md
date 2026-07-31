@@ -11,16 +11,16 @@ weight: 3
 - NodePool이 어떤 well-known 라벨에 requirement를 걸지 않으면 **그 축은 클라우드가 파는 모든 값이 허용**된다. arch·capacity-type·세대처럼 조직 차원에서 강제할 조건을 파드에만 두면, 요구를 빠뜨린 워크로드가 무제한 오퍼링을 얻는다.
 - 연산자는 8개다 — 표준 6개 + Karpenter 확장 **`Gte`/`Lte`(v1.9.0, [core#2674](https://github.com/kubernetes-sigs/karpenter/pull/2674))**. 이 4개 비교 연산자는 값이 **정확히 1개인 음이 아닌 정수**여야 하고, 정수로 파싱되지 않는 라벨값에는 매치 자체가 안 된다.
 - **preferred는 힌트가 아니다.** Karpenter는 preferred affinity를 처음엔 required로 취급하고 실패하면 정해진 순서로 한 겹씩 벗긴다. 그 순서에서 **required nodeAffinity의 OR term 순회가 preferred 제거보다 먼저**다 — "내가 원한 인스턴스가 왜 안 떴나"의 답이 §3.2다.
-- topologySpread의 `topologyKey`는 AWS에서 **zone·hostname·capacity-type 세 개뿐**이고 `topology.kubernetes.io/region`은 미지원이다. `DoNotSchedule`은 완화 대상이 아니라 도메인이 부족하면 그대로 영구 Pending이다. 그리고 다른 파드가 나에게 걸어둔 **preferred** anti-affinity는 코드가 **의도적으로 추적하지 않아** 전혀 반영되지 않는다.
+- topologySpreadConstraint(TSC)의 `topologyKey`는 AWS에서 **zone·hostname·capacity-type 세 개뿐**이고 `topology.kubernetes.io/region`은 미지원이다. `DoNotSchedule`은 완화 대상이 아니라 도메인이 부족하면 그대로 영구 Pending이다. 그리고 다른 파드가 나에게 걸어둔 **preferred** anti-affinity는 코드가 **의도적으로 추적하지 않아** 전혀 반영되지 않는다.
 - `karpenter.k8s.aws/instance-capability-flex`(1.7, [aws#8315](https://github.com/aws/karpenter-provider-aws/pull/8315) → 개명 [aws#8490](https://github.com/aws/karpenter-provider-aws/pull/8490))로 flex를 배제할 때 **`DoesNotExist`를 쓰면 인스턴스 타입 전체가 배제**된다. 정답은 `In ["false"]`다.
-- `karpenter.sh/capacity-type`은 `spot`/`on-demand`/`reserved` 3값이고 **reserved가 최우선 소비**된다. `nodeSelector`로 `on-demand`를 정확 일치시킨 워크로드는 ODCR 노드에 절대 안 뜬다 — nodeAffinity `In [on-demand, reserved]`로 바꿔야 한다.
+- `karpenter.sh/capacity-type`은 `spot`/`on-demand`/`reserved` 3값이고 **reserved가 최우선 소비**된다. `nodeSelector`로 `on-demand`를 정확 일치시킨 워크로드는 On-Demand Capacity Reservation(ODCR) 노드에 절대 안 뜬다 — nodeAffinity `In [on-demand, reserved]`로 바꿔야 한다.
 - `minValues`는 **NodePool 전용**이고 `In`에서만 값 개수가 검증된다. 패밀리를 여러 개 나열해도 minValues가 없으면 스케줄러는 다양성을 강제하지 않는다 — 스팟 동시 회수 리스크가 이 한 필드로 갈린다.
 - 교집합이 비면 실패로 끝나지 않고 **파드가 Pending으로 남아 백오프 재시도**된다. 즉 오설정과 일시적 용량 부족이 같은 겉모습을 갖는다. 구분은 `FailedScheduling`(파드)·`NoCompatibleInstanceTypes`(NodePool) 이벤트 메시지로만 가능하다.
 {{< /callout >}}
 
-> **왜 이 문서인가.** Karpenter를 운영하면 "파드에 affinity를 걸었는데 노드가 안 뜬다"를 반드시 한 번 만난다. 원인은 거의 항상 같다 — 파드 쪽 요구만 보고 NodePool 쪽 우주를 안 봤기 때문이다. Karpenter의 스케줄링은 kube-scheduler식 술어 평가가 아니라 **"NodePool requirements ∩ 파드 요구 ∩ 클라우드 offering"의 집합 연산**이고, 교집합이 비면 아무 노드도 만들어지지 않는다. 이 문서는 키워드별 레퍼런스이면서 그 교집합 모델을 축으로 삼는다.
+> **왜 이 문서인가.** Karpenter의 스케줄링은 kube-scheduler식 술어 평가가 아니라 **"NodePool requirements ∩ 파드 요구 ∩ 클라우드 offering"의 집합 연산**이다 — 교집합이 비면 노드가 안 만들어진다. "파드에 affinity를 걸었는데 노드가 안 뜬다"의 원인은 거의 항상 파드 쪽 요구만 보고 NodePool 쪽 우주를 안 본 것이다. 이 문서는 키워드별 레퍼런스이면서 그 교집합 모델을 축으로 삼는다.
 
-> 근거 기준: 릴리스노트는 `aws/karpenter-provider-aws` 및 `kubernetes-sigs/karpenter`의 **v1.14.0까지**, 문서·코드 인용은 **2026-07-30 기준 로컬 체크아웃**이다. 문서 경로는 `karpenter-provider-aws/website/content/en/docs/` 기준, 코드 경로는 `karpenter-core/pkg/` 기준이며 줄 번호는 그 시점 스냅샷이다. 인용 전체 목록은 §10에 있다. 버전별 도입 이력·업그레이드 함정은 이 챕터 01·02가 담당하고 여기서는 "지금 1.14 기준으로 무엇이 있고 어떻게 쓰나"만 다룬다. 0.36 → 1.14 실제 업그레이드 절차는 [eks-upgrade / karpenter]({{< relref "../eks-upgrade/components/01-karpenter.md" >}})에 있다.
+> 근거 기준: 릴리스노트는 `aws/karpenter-provider-aws`·`kubernetes-sigs/karpenter`의 **v1.14.0까지**, 문서·코드 인용은 **2026-07-30 기준 로컬 체크아웃**(문서 `karpenter-provider-aws/website/content/en/docs/`, 코드 `karpenter-core/pkg/`, 줄 번호는 스냅샷 시점)이다. 전체 인용은 §10. 버전별 도입 이력·업그레이드 함정은 01·02가 담당하고 0.36 → 1.14 실제 절차는 [eks-upgrade / karpenter]({{< relref "../eks-upgrade/components/01-karpenter.md" >}})에 있다.
 
 ## 1. 제약의 3층 — 교집합이 비면 노드는 안 뜬다
 
@@ -65,27 +65,31 @@ if err := baseRequirements.Compatible(podData.Requirements, scheduling.AllowUnde
 
 ### 1.1 교집합이 비었을 때 무엇을 보나
 
-| 비어버린 층위 | 관측 지점 |
-|---|---|
-| 파드 요구 ∩ NodePool 우주 | 파드 이벤트 `FailedScheduling`(Warning) |
-| NodePool 우주 ∩ 클라우드 offering | NodePool 이벤트 `NoCompatibleInstanceTypes`(Warning) |
-| minValues 조합 불가 | 같은 이벤트의 변형 |
-| 컨트롤러 로그 | info 레벨 |
+| 비어버린 층위 | 관측 지점(Warning) | 메시지 |
+|---|---|---|
+| 파드 ∩ NodePool 우주 | 파드 `FailedScheduling` | `Failed to schedule pod, incompatible requirements, ...` |
+| NodePool ∩ offering | NodePool `NoCompatibleInstanceTypes` | `... filtered out all compatible instance types` |
+| minValues 조합 불가 | 위 이벤트의 변형 | 위 문구 + `due to minValues incompatibility` |
+| 컨트롤러 로그 | info 레벨 | `skipping, nodepool requirements filtered out all instance types` |
 
-각 지점의 실제 메시지:
-
-- 파드 `FailedScheduling`: `Failed to schedule pod, incompatible requirements, ...`
-- NodePool `NoCompatibleInstanceTypes`: `NodePool requirements filtered out all compatible available instance types`
-- minValues 조합 불가(위 이벤트의 변형): 위 문구 + `due to minValues incompatibility`
-- 컨트롤러 로그(info 레벨): `skipping, nodepool requirements filtered out all instance types`
-
-Karpenter는 여기서 포기하지 않고 백오프 후 재시도한다 — "if capacity becomes available, it will schedule the pod without user intervention". 그래서 **오설정과 일시적 용량 부족의 겉모습이 같다.** 알람은 세 메트릭이면 충분하다.
+Karpenter는 여기서 포기하지 않고 백오프 후 재시도한다 — "if capacity becomes available, it will schedule the pod without user intervention". 그래서 **오설정과 Insufficient Capacity Error(ICE) 같은 일시적 용량 부족의 겉모습이 같다.** 알람은 세 메트릭이면 충분하다.
 
 | 메트릭 | 안정성 | 보는 이유 |
 |---|---|---|
 | `karpenter_scheduler_unschedulable_pods_count` | ALPHA | 스케줄 불가 파드 적체 — 교집합 문제의 최상위 신호 |
 | `karpenter_pods_unbound_time_seconds` | ALPHA | 언바운드로 머문 시간 — "느린가 막혔나"의 구분 |
 | `karpenter_cloudprovider_instance_launch_failures_total` | BETA | AZ·capacity-type·이유 라벨로 ICE·설정오류 구분 |
+
+### 1.2 Pending인데 원인이 안 보일 때
+
+교집합 모델을 알아도 "어느 층위가 비었나"는 바로 안 보인다. 흔한 네 가지:
+
+| 증상 | 원인 | 확인 |
+|---|---|---|
+| 원하는 타입이 있어도 Pending | 다른 축 공집합, 또는 커스텀 라벨 미선언(§5.3) | `NoCompatibleInstanceTypes` 이벤트 |
+| `nodeSelector`로 `on-demand` 고정, ODCR에 안 뜬다 | equality라 `reserved`와 불일치(§6) | `incompatible requirements` |
+| 팀 라벨 요구가 영구 Pending, 다른 팀은 됨 | 그 NodePool만 `Exists` 미선언(§5.3) | requirements diff, 컨트롤러 로그 |
+| 패밀리 여러 개인데 스팟 회수가 몰린다 | `minValues` 없어 다양성 미강제(§2.2) | `minValues`+`Exists` 추가 |
 
 ## 2. requirements 문법 레퍼런스
 
@@ -104,9 +108,9 @@ requirement 하나는 `key` + `operator` + `values`(+ `minValues`)다. 문법 �
 | `Gte` | 정수 이상 | **정확히 1개** | Karpenter 확장, **v1.9.0**([core#2674](https://github.com/kubernetes-sigs/karpenter/pull/2674)) |
 | `Lte` | 정수 이하 | **정확히 1개** | 상동 |
 
-검증 실패 메시지는 `key %s with operator %s must have a single positive integer value`다. 그리고 이 4개 연산자는 후보 라벨값이 정수로 파싱되지 않으면 **아예 매치하지 않는다** — `withinBounds()`가 `strconv.Atoi` 실패 시 `false`를 반환한다. 즉 `instance-cpu`·`instance-memory`·`instance-generation`처럼 숫자형 라벨에만 실질적 의미가 있다.
+검증 실패 메시지는 `key %s with operator %s must have a single positive integer value`다. 이 4개 연산자는 라벨값이 정수로 파싱되지 않으면 **아예 매치하지 않는다** — `withinBounds()`가 `strconv.Atoi` 실패 시 `false`를 반환하므로, `instance-cpu`·`instance-memory`·`instance-generation`처럼 숫자형 라벨에만 실질적 의미가 있다.
 
-교집합 규칙 둘. **키가 다르면 AND, 같으면 교집합**이다(`Requirements.Add()`가 `Requirement.Intersection()`으로 합친다). 그리고 **같은 키의 `Gte`/`Lte`는 각각 max/min으로 좁혀지고, 범위가 뒤집히면(`gte > lte`) 그 requirement는 `DoesNotExist`로 축약되어 매치 불가**가 된다 — NodePool과 파드가 각자 범위를 걸었을 때 조용히 공집합이 되는 경로다.
+교집합 규칙 둘. **키가 다르면 AND, 같으면 교집합**이다(`Requirements.Add()`가 `Requirement.Intersection()`으로 합친다). **같은 키의 `Gte`/`Lte`는 각각 max/min으로 좁혀지고, 범위가 뒤집히면(`gte > lte`) `DoesNotExist`로 축약되어 매치 불가**가 된다 — NodePool과 파드가 각자 범위를 걸었을 때 조용히 공집합이 되는 경로다.
 
 ### 2.2 `minValues`와 MinValuesPolicy
 
@@ -151,14 +155,10 @@ spec:
 
 | 정책 | 동작 | 판정 |
 |---|---|---|
-| `Strict`(기본) | 미충족 시 스케줄링 실패 → 폴백 또는 완전 실패 | **기본 유지가 안전** |
-| `BestEffort` | 될 때까지 minValues를 점진적으로 완화 | **반쪽** — 상시 Pending일 때만 검토 |
+| `Strict`(기본) | 미충족 시 스케줄링 실패 → 폴백 또는 완전 실패 | **기본 유지가 안전** — 가용성 하한을 조용히 안 깬다 |
+| `BestEffort` | 조건 만족까지 minValues 점진 완화 | **반쪽** — 완화값이 새 하한으로 굳어짐. 상시 Pending일 때만 검토 |
 
-`Strict`는 미충족 시 그 NodePool로의 스케줄링을 실패시키고, 낮은 weight NodePool로 폴백하거나 완전히 실패한다. 기본값을 유지하는 것이 안전하다 — 사용자가 명시한 가용성 하한을 조용히 깨지 않는다.
-
-`BestEffort`는 조건을 만족할 때까지 minValues를 점진적으로 낮춘다. 완화된 값은 NodeClaim에 기록되고 `karpenter.sh/nodeclaim-min-values-relaxed: "true"`가 붙는다. 반쪽짜리 해법이라 소규모 리전·신규 패밀리에서 Pending이 상시화될 때만 고려한다 — 완화값이 그 NodeClaim의 새 하한으로 굳어져 유연성이 서서히 낮아진다.
-
-전역 옵션이라 NodePool별로 다르게 줄 수 없다. "일부만 완화"가 필요하면 NodePool을 분리하고 minValues 자체를 낮추는 쪽이 명확하다.
+`BestEffort`의 완화값은 NodeClaim에 `karpenter.sh/nodeclaim-min-values-relaxed: "true"`로 기록된다. 전역 옵션이라 NodePool별로 다르게 줄 수 없다 — "일부만 완화"가 필요하면 NodePool을 분리하고 minValues 자체를 낮추는 쪽이 명확하다.
 
 ### 2.3 NodePool 우선순위 — `weight`, `limits`, `karpenter.sh/nodepool`
 
@@ -172,8 +172,6 @@ spec:
 | `spec.limits.cpu` / `.memory` | 총 리소스 상한. 초과 시 provisioning 정지 | CPU `DecimalSI`, 메모리 `BinarySI`(문자열 권장) |
 | `spec.limits.nodes` | 스케일·drift 교체 중 최대 노드 수 | **1.11**([core#2526](https://github.com/kubernetes-sigs/karpenter/pull/2526))부터 일반 NodePool 적용 |
 | `karpenter.sh/nodepool` | 노드 라벨 — 특정 풀에 파드를 묶는 셀렉터 | `requirements`·`labels`엔 불가(검증 실패). 파드 전용 |
-
-CPU 상한은 문자열로 `DecimalSI`, 메모리는 `BinarySI` 단위를 쓰며, GitOps skew 회피를 위해 숫자보다 문자열 표기를 권장한다.
 
 전형적 조합 둘. **예약 용량 우선 소비**(Savings Plan·RI)는 높은 weight + `limits`로 "이 풀을 먼저 쓰되 계약분까지만"을 표현한다. **폴백 기본값**은 반대로 넓은 기본 NodePool에 높은 weight를 주고 특수 NodePool을 weight 없이 두어 "아무 요구도 없는 파드는 기본 구성으로"를 만든다.
 
@@ -267,7 +265,7 @@ if p.ToleratePreferNoSchedule {
 전역 스위치는 `--preference-policy` / `PREFERENCE_POLICY`, 기본값 `Respect`(**1.4.0**, [core#2122](https://github.com/kubernetes-sigs/karpenter/pull/2122)).
 
 - `Respect`(기본): 위 로직 전체가 동작한다.
-- `Ignore`: `NewStrictPodRequirements()`를 써서 애초에 preferred를 요구사항에 넣지 않는다. topology 구성에서도 required만 보고 preferred는 group을 만들지 않으며, topologySpread는 `whenUnsatisfiable != DoNotSchedule`인 항목을 건너뛴다. 결과적으로 완화 2~5단계가 트리거될 일이 거의 없다 — **스케줄 성공률·빈패킹 밀도가 오르고 배치 품질이 떨어지는** 교환이다.
+- `Ignore`: `NewStrictPodRequirements()`로 preferred를 애초에 요구사항에서 뺀다. topology도 required만 보고, TSC는 `whenUnsatisfiable != DoNotSchedule` 항목을 건너뛴다 — 완화 2~5단계가 거의 트리거되지 않는다. **스케줄 성공률·빈패킹 밀도는 오르고 배치 품질은 떨어지는** 교환이다.
 
 ### 3.3 NodePool에 둘 것 vs 파드에 둘 것
 
@@ -284,7 +282,7 @@ if p.ToleratePreferNoSchedule {
 
 "클러스터 전체 하한·상한"의 예: on-demand만, amd64만, 세대 하한 등.
 
-원칙 한 줄: **NodePool은 우주를 정의하고 파드는 그 안에서 좁힌다.** NodePool이 정의하지 않은 축은 무제한 허용이므로, 비용·보안 관점에서 강제할 조건은 예외 없이 NodePool에 있어야 한다.
+원칙 한 줄: **NodePool은 우주를 정의하고 파드는 그 안에서 좁힌다.** 비용·보안 관점에서 강제할 조건은 예외 없이 NodePool에 있어야 한다.
 
 ## 4. topologySpread · podAffinity · podAntiAffinity
 
@@ -305,7 +303,7 @@ if p.ToleratePreferNoSchedule {
 | `nodeAffinityPolicy` / `nodeTaintsPolicy` | `TopologyNodeFilter`로 구현. 기본 taints=`Ignore`/affinity=`Honor`(상세 아래) |
 | `matchLabelKeys` | 파드 자신의 라벨 값을 셀렉터에 주입해 처리 |
 
-`minDomains`는 "지원 가능한 도메인 수가 minDomains 미만이면 전역 min을 0으로 강제"라는 규칙이다 — 스큐 계산을 느슨하게 만들어 **새 도메인 개방을 유도**한다.
+`minDomains` 미만이면 전역 min을 0으로 강제한다 — 스큐 계산을 느슨하게 해 **새 도메인 개방을 유도**하기 위해서다.
 
 `nodeAffinityPolicy`/`nodeTaintsPolicy`는 `TopologyNodeFilter`로 구현된다. `Honor`면 파드의 `nodeSelector`+required term을 재사용해 조건 불일치 노드를 스프레드 카운트에서 뺀다. **이 필터는 TSC에만 붙는다** — affinity 계열은 항상 전체 노드를 센다.
 
@@ -326,21 +324,15 @@ if p.ToleratePreferNoSchedule {
 
 ### 4.3 실패 패턴과 진단
 
-| 증상 | 원인 |
-|---|---|
-| `DoNotSchedule` TSC를 여러 개 겹침 | required라 완화 경로가 없다 → 영구 Pending |
-| zone 스프레드인데 한 존에만 뜬다 | NodePool의 zone requirement가 이미 하나로 좁혀져 도메인 우주가 1개 |
-| 다른 팀 파드가 피해줄 줄 알았는데 같은 노드에 온다 | 그쪽이 **preferred** anti-affinity를 썼다 → 절대 반영되지 않는다 |
-| 노드가 필요 이상으로 뜬다 | preferred/`ScheduleAnyway`를 required처럼 만족시키려 새 노드를 만든다 |
-| consolidation이 진행되지 않는다 | preferred anti-affinity·TSC가 있으면 노드를 안 건드린다 |
+| 증상 | 원인 | 확인 |
+|---|---|---|
+| `DoNotSchedule` TSC 여러 개 겹침 | 완화 경로 없음 → 영구 Pending | `FailedScheduling` + zone requirement |
+| zone 스프레드가 한 존에만 뜬다 | NodePool zone requirement가 이미 1개 | `nodepool`의 `topology.kubernetes.io/zone` |
+| 다른 팀 파드와 같은 노드에 온다 | 상대의 **preferred** anti-affinity는 미반영 | `preferredDuringScheduling` 확인 |
+| 노드가 필요 이상으로 뜬다 | preferred를 required처럼 만족시키려 새 노드 생성 | `PREFERENCE_POLICY=Ignore` 검토 |
+| consolidation이 정체됨 | preferred anti-affinity·TSC가 노드를 보호 | 로그 `prevent consolidation` |
 
-확인 방법:
-
-- TSC 겹침: 파드 `FailedScheduling` 메시지 + NodePool의 zone requirement
-- zone 스프레드: `kubectl get nodepool -o yaml`의 `topology.kubernetes.io/zone`
-- preferred anti-affinity 미반영: 상대 파드의 `preferredDuringScheduling` 여부. required로 바꾸는 것 외에 방법 없음
-- 과다 생성: `PREFERENCE_POLICY=Ignore` 검토(배치 품질과의 교환)
-- consolidation 막힘: 로그 `pod ... has a preferred Anti-Affinity which can prevent consolidation`, 메트릭 `karpenter_voluntary_disruption_failed_validations_total`
+preferred anti-affinity 미반영은 상대 쪽을 required로 바꾸는 것 외에 고칠 방법이 없다. `PREFERENCE_POLICY=Ignore`는 배치 품질과 맞바꾸는 전역 옵션이다. consolidation 정체는 메트릭 `karpenter_voluntary_disruption_failed_validations_total`로 확인한다.
 
 ## 5. well-known labels 레퍼런스
 
@@ -485,9 +477,9 @@ spec:
   values: ["false"]      # NotIn ["true"]도 동치. DoesNotExist는 금지(§9)
 ```
 
-`m7i-flex`·`c7i-flex` 같은 `-flex` 패밀리는 baseline 성능을 낮추고 크레딧 버스트로 저사용률 워크로드를 겨냥한다. 지속 고CPU 워크로드가 올라가면 크레딧 소진 후 baseline으로 떨어져 지연이 튄다. 라벨 값은 인스턴스 타입 문자열의 패밀리 부분에 `-flex`가 있는지로만 판정되고(`instancetype/types.go:261-265`), **모든 타입에 예외 없이 `true` 또는 `false`가 붙는다.**
+`m7i-flex`·`c7i-flex` 같은 `-flex` 패밀리는 baseline 성능을 낮추고 크레딧 버스트로 저사용률 워크로드를 겨냥한다 — 고CPU 워크로드가 크레딧을 소진하면 baseline으로 떨어져 지연이 튄다. 라벨 값은 인스턴스 타입 문자열의 패밀리 부분에 `-flex`가 있는지로만 판정되고(`instancetype/types.go:261-265`), **모든 타입에 예외 없이 `true` 또는 `false`가 붙는다.**
 
-이 규칙을 나중에 추가하면 **기존 flex 노드가 전부 drift로 잡혀 능동적으로 교체된다** — NodeClaim에 박힌 `instance-capability-flex=true` 라벨이 새 requirements와 호환되지 않기 때문이다. "다음부터 안 쓴다"가 아니라 "지금 있는 것을 몰아낸다"이므로 disruption budget을 먼저 좁히고 점진 롤아웃한다.
+이 규칙을 나중에 추가하면 **기존 flex 노드가 전부 drift로 잡혀 능동적으로 교체된다** — NodeClaim에 박힌 `instance-capability-flex=true` 라벨이 새 requirements와 호환되지 않기 때문이다. 신규 배포뿐 아니라 기존 노드까지 몰아내므로 disruption budget을 먼저 좁히고 점진 롤아웃한다.
 
 **⑥ 로컬 NVMe 노드**
 
@@ -515,7 +507,7 @@ spec:
 | `spot` | 스팟 | `price-capacity-optimized` 전략 — 최저가가 아니라 **회수 확률까지 반영한 가격-용량 최적** |
 | `on-demand` | 온디맨드 | 위 둘이 불가할 때의 기본 |
 
-`reserved`는 ODCR·Capacity Block에서 launch된 노드다 — **1.3 alpha**([core#1911](https://github.com/kubernetes-sigs/karpenter/pull/1911)) → **1.6 beta + 기본 활성**([core#2365](https://github.com/kubernetes-sigs/karpenter/pull/2365)). 선결제이므로 **가격 0으로 모델링해 최우선 소비**하며, 없거나 워크로드와 안 맞으면 spot/on-demand로 폴백하고 consolidation에서도 reserved를 우선한다.
+`reserved`는 ODCR·Capacity Block에서 launch된 노드다 — **1.3 alpha**([core#1911](https://github.com/kubernetes-sigs/karpenter/pull/1911)) → **1.6 beta + 기본 활성**([core#2365](https://github.com/kubernetes-sigs/karpenter/pull/2365)). 없거나 워크로드와 안 맞으면 spot/on-demand로 폴백하고, consolidation에서도 우선한다.
 
 ```yaml
 - key: karpenter.sh/capacity-type
@@ -539,7 +531,7 @@ spot 관련 세 키워드:
 | Spot Rebalance Recommendation | **미지원** | taint/drain/terminate 로직 없음. NTH 병행 가능하나 churn 증가 |
 | spot-to-spot consolidation(replace) | **alpha, 기본 off**(상세 아래) | single-node 15개+ 필요, multi-node 무관 |
 
-spot-to-spot consolidation의 feature gate는 `SpotToSpotConsolidation`(기본 `false`, v0.34+)이다. 켜면 single-node 교체에 **타입 유연성 15개 이상**을 요구하고, multi-node에는 이 요건이 없다.
+feature gate는 `SpotToSpotConsolidation`(기본 `false`, v0.34+)이다.
 
 spot의 **삭제(deletion) consolidation은 기본으로 켜져 있다** — 꺼져 있는 건 "더 싼 스팟으로 교체"뿐이다. 이 구분을 놓치면 "스팟 consolidation을 껐는데 노드가 지워진다"로 혼란이 생긴다.
 
@@ -582,7 +574,7 @@ spot의 **삭제(deletion) consolidation은 기본으로 켜져 있다** — 꺼
 | 키 | 기본값 | 성격 |
 |---|---|---|
 | `spec.template.spec.expireAfter` | `720h`(30일), `Never` 가능 | **forceful** — 즉시 드레인, 대체 노드 안 기다림 |
-| `spec.template.spec.terminationGracePeriod` | 미설정(무한 대기) | 시간 지나면 **PDB·`do-not-disrupt` 무시, 강제 종료** |
+| `spec.template.spec.terminationGracePeriod` | 미설정 | **PodDisruptionBudget(PDB)·`do-not-disrupt` 무시, 강제 종료** |
 | `spec.disruption.budgets` | `[{nodes: "10%"}]` | **자발적** disruption만 rate-limit |
 | `budgets[].reasons` | 미지정 = 전체 | `Drifted`·`Underutilized`·`Empty` 3종 |
 | `budgets[].schedule` + `.duration` | 없음(항상 active) | cron + Go duration(분·시간 단위) |
@@ -638,7 +630,7 @@ disruption 대상 노드에는 `karpenter.sh/disrupted:NoSchedule` taint가 붙�
 
 `Launched`는 **5분 내 launch 못 하면 재시도**한다(1.7, [core#2349](https://github.com/kubernetes-sigs/karpenter/pull/2349)). `Registered`는 kubelet 부트스트랩 실패, API 서버 도달 불가, 보안그룹·서브넷 오설정이 원인일 수 있고 **15분 내 안 되면 NodeClaim 삭제 + 인스턴스 종료**된다.
 
-NodePool 조건은 `ValidationSucceeded`·`NodeClassReady`·`NodeRegistrationHealthy` 3종이고 `Ready`는 앞 둘의 집계다. **`NodeRegistrationHealthy`는 NodeClaim이 아니라 NodePool의 조건**이고(1.4, [core#1969](https://github.com/kubernetes-sigs/karpenter/pull/1969)) 현재는 관찰용이다 — 스케줄링 페널티로 연결되지 않는다. 판정 메커니즘(링버퍼 4칸·실패 비율 0.5)과 이것이 세대 폴백을 구제하지 못하는 이유는 [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) §7에 있다. EC2NodeClass 조건은 `AMIsReady`·`SubnetsReady`·`SecurityGroupsReady`·`InstanceProfileReady`·`ValidationSucceeded`·`PlacementGroupReady` 6종(+ capacity reservation을 쓰면 `CapacityReservationsReady` 추가)과 그 전체의 집계인 `Ready`이고(`AWS/pkg/apis/v1/ec2nodeclass_status.go:169-181`), **NodeClass가 Ready가 아니면 이를 참조하는 NodePool은 스케줄링 대상에서 제외**된다(`core/pkg/controllers/provisioning/provisioner.go:276`).
+NodePool 조건은 `ValidationSucceeded`·`NodeClassReady`·`NodeRegistrationHealthy` 3종, `Ready`는 앞 둘의 집계다. **`NodeRegistrationHealthy`는 NodeClaim이 아니라 NodePool의 조건**(1.4, [core#1969](https://github.com/kubernetes-sigs/karpenter/pull/1969))이며 현재는 관찰용 — 스케줄링 페널티로 연결되지 않는다. 판정 메커니즘(링버퍼 4칸·실패 비율 0.5)과 세대 폴백을 구제 못 하는 이유는 [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) §7 참고. EC2NodeClass 조건은 `AMIsReady`·`SubnetsReady`·`SecurityGroupsReady`·`InstanceProfileReady`·`ValidationSucceeded`·`PlacementGroupReady` 6종(+ capacity reservation 사용 시 `CapacityReservationsReady`)과 집계 `Ready`(`AWS/pkg/apis/v1/ec2nodeclass_status.go:169-181`). **NodeClass가 Ready가 아니면 참조하는 NodePool은 스케줄링 대상에서 제외**된다(`core/pkg/controllers/provisioning/provisioner.go:276`).
 
 ### 8.2 EC2NodeClass에서 운영이 실제로 손대는 필드
 
@@ -668,7 +660,7 @@ NodePool 조건은 `ValidationSucceeded`·`NodeClassReady`·`NodeRegistrationHea
 - **NodeOverlay** — 인스턴스 offering의 가격·가용성·용량을 오버레이 CRD로 보정한다. 공개 가격 데이터가 없는 preview 타입도 이 게이트 아래에서 고려 가능(1.14, [aws#9249](https://github.com/aws/karpenter-provider-aws/pull/9249)). 상태: alpha, `NodeOverlay=false`. **1.7**([aws#8305](https://github.com/aws/karpenter-provider-aws/pull/8305)).
 - **Capacity Buffer** — virtual pod(실제 파드 없이 시뮬레이션에만 존재)로 headroom을 예약한다. pause-pod 트릭과 달리 preemption 오버헤드가 없고, buffer가 있는 노드를 consolidation이 empty로 오판하지 않는다. API는 `autoscaling.x-k8s.io/v1beta1`(1.14, [core#3129](https://github.com/kubernetes-sigs/karpenter/pull/3129))이지만 게이트는 여전히 `CapacityBuffer=false`.
 - **Static Capacity**(`spec.replicas`) — NodePool을 고정 노드 수 모드로 만든다. consolidation 대상에서 빠지고 `limits`는 `limits.nodes`만, `weight` 지정 불가. 한번 설정하면 dynamic으로 되돌릴 수 없다. 상태: alpha, `StaticCapacity=false`. **1.8**([core#2521](https://github.com/kubernetes-sigs/karpenter/pull/2521)).
-- **Node Auto Repair** — 진단 에이전트가 붙인 unhealthy 컨디션이 톨러레이션 시간을 넘으면 표준 drain·grace period를 **우회**해 강제 교체한다. NodePool의 20% 초과가 unhealthy면 repair를 멈춘다. 상태: alpha, `NodeRepair=false`. **1.1**. Node Monitoring Agent·NPD가 없으면 아무 일도 안 한다.
+- **Node Auto Repair** — 진단 에이전트가 붙인 unhealthy 컨디션이 톨러레이션 시간을 넘으면 표준 drain·grace period를 **우회**해 강제 교체한다. NodePool의 20% 초과가 unhealthy면 repair를 멈춘다. 상태: alpha, `NodeRepair=false`. **1.1**. Node Monitoring Agent·Node Problem Detector(NPD)가 없으면 아무 일도 안 한다.
 
 넷 다 기본 off이고, 켤지 여부의 판단 근거는 02가 담당한다.
 

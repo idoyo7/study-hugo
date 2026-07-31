@@ -119,7 +119,7 @@ message="'schedule' must be set with 'duration'"
 
 forceful은 **대체 노드가 건강해지기를 기다리지 않는다**는 게 공식 정의다(§8) — 기다리지 않으니 조절할 대상도 없다.
 
-**① 예산으로는 만료를 못 막는다.** 만료 컨트롤러(`nodeclaim/expiration/controller.go:81-83`)는 예산 조회 없이 곧바로 `Delete`를 호출한다. 드레인·PDB는 지켜지지만 예산은 그 경로 밖이다 — **피크 보호가 목적이면 `expireAfter`도 같이 봐야 한다.**
+**① 예산으로는 만료를 못 막는다.** 만료 컨트롤러(`nodeclaim/expiration/controller.go:81-83`)는 예산 조회 없이 곧바로 `Delete`를 호출한다. 드레인과 PodDisruptionBudget(PDB)은 지켜지지만 예산은 그 경로 밖이다 — **피크 보호가 목적이면 `expireAfter`도 같이 봐야 한다.**
 
 **② Node Repair는 자기 상한을 쓴다.** 예산을 0으로 걸어도 unhealthy 노드 복구는 진행되고, 대신 `allowedUnhealthyPercent = "20%"`라는 별도 하드코딩 상한이 걸린다(`node/health/controller.go:53`). 예산을 조인 상태에서 노드가 계속 교체된다면 이 경로를 의심한다.
 
@@ -212,7 +212,7 @@ budgets:
 |---|---|
 | `expireAfter: Never` | 복귀 경로가 drift 하나만 — AMI 갱신이 drift에만 의존 |
 | `instance-cpu In [16,32]` | 16 vCPU 미만 축소 불가 — 4·8 추가 시 통합 선택지 확대 |
-| `instance-generation In [8]` | 8세대 ICE 시 폴백 없음 — 07의 폴백 풀 구성과 함께 판단 |
+| `instance-generation In [8]` | 8세대 용량 부족(ICE) 시 폴백 없음 — 07의 폴백 풀 구성과 함께 판단 |
 | `zone In [2a,2c]` | AZ 2개, ICE 리스크 ↑ — 2b 추가 가능 여부 검토 |
 | `instance-family NotIn [*-flex]` | 신규 flex 패밀리 자동 미포함 — 1.7+면 라벨 한 줄로 대체 |
 
