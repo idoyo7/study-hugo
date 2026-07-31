@@ -65,7 +65,7 @@ v1.14에 들어온 `consolidationPolicy: Balanced`도 이 문제의 해법이 �
 
 따라서 `Balanced`는 "더 싼 쪽으로 가는 교체" 중 일부를 **추가로 거부**할 뿐, "더 비싼 쪽으로 가는 교체"를 만들어 내지 않는다. **§4의 복귀 경로 부재는 정책 선택과 무관하다.** 점수 함수도 이를 강화한다 — `SavingsFraction <= 0`이면 `Score()`가 0이라 어떤 `k`에서도 거부된다(`disruption/types.go:100-111`).
 
-정책 자체(disruption cost 모델·k=2 근거·도입 시점 판정)는 [02 지금 켤 만한 것과 미룰 것]({{< relref "02-changelog-maturity.md" >}}) §7.2가 소유한다.
+disruption cost 모델과 k=2 근거는 [11 consolidation은 무엇을 하는가]({{< relref "11-consolidation-model.md" >}})가, 도입 시점 판정은 [02]({{< relref "02-changelog-maturity.md" >}}) §7.2가 소유한다.
 {{< /callout >}}
 
 ## 2. disruption은 weight를 모른다

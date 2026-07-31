@@ -374,44 +374,11 @@ spec:
 
 그 밖의 제약: PVC·ephemeral 볼륨은 가상 파드에서 제거되고, `scalableRef` 변경 감지는 30초 폴링이며, 버퍼도 NodePool 리소스 limit에 걸린다.
 
-### 7.2 Balanced consolidation — 절감과 파괴의 비율로 판단한다
+### 7.2 Balanced consolidation — 언제 켤 것인가
 
-기존 두 정책은 양 극단이었다. `WhenEmpty`는 빈 노드만 지우고, `WhenEmptyOrUnderutilized`는 **절감이 조금이라도 있으면 규모를 묻지 않고 통합**한다. 후자의 불만이 "10원 아끼려고 파드 40개를 옮긴다"였다. `Balanced`([core#2962](https://github.com/kubernetes-sigs/karpenter/pull/2962), 설계 `designs/balanced-consolidation.md`)는 그 사이를 스코어로 메운다.
+기존 두 정책은 양 극단이었다. `WhenEmpty`는 빈 노드만 지우고, `WhenEmptyOrUnderutilized`는 **규모를 묻지 않고 통합**한다. 후자의 불만이 "10원 아끼려고 파드 40개를 옮긴다"였다. `Balanced`([core#2962](https://github.com/kubernetes-sigs/karpenter/pull/2962))는 그 사이에 스코어 게이트를 얹는다 — 절감 비율을 파괴 비율로 나눈 값이 `0.5` 이상일 때만 승인한다(k=2 고정).
 
-{{< flow caption="세 정책은 같은 disruption cost 모델의 서로 다른 임계값이다 — Balanced는 k=2, 즉 절감 비율이 파괴 비율의 절반 이상일 때만 승인한다" >}}
-{
-  "nodes": [
-    { "id": "A", "col": 0, "row": 1, "label": "통합 액션 후보", "sub": "노드 삭제 또는 저가 교체", "kind": "src" },
-    { "id": "E", "col": 1, "row": 0, "label": "WhenEmpty", "sub": "파드 disruption cost 0일 때만", "kind": "query" },
-    { "id": "B", "col": 1, "row": 1, "label": "Balanced", "sub": "score = 절감비율 / 파괴비율", "kind": "proc" },
-    { "id": "U", "col": 1, "row": 2, "label": "Underutilized", "sub": "WhenEmptyOrUnderutilized · k=∞", "kind": "query" },
-    { "id": "OK", "col": 2, "row": 1, "label": "승인", "sub": "score ≥ 1/k = 0.5", "kind": "sink" },
-    { "id": "NO", "col": 2, "row": 2, "label": "거부", "sub": "karpenter_consolidation_score에 기록", "kind": "store" }
-  ],
-  "edges": [
-    { "from": "A", "to": "E", "label": "가장 보수적", "rate": 1100, "speed": "slow" },
-    { "from": "A", "to": "B", "label": "스코어링", "rate": 520 },
-    { "from": "A", "to": "U", "label": "절감 > 0이면 통과", "rate": 380, "speed": "fast" },
-    { "from": "E", "to": "OK", "dashed": true },
-    { "from": "B", "to": "OK", "label": "score ≥ 0.5", "rate": 640 },
-    { "from": "B", "to": "NO", "label": "score < 0.5", "rate": 640 },
-    { "from": "U", "to": "OK", "dashed": true }
-  ]
-}
-{{< /flow >}}
-
-스코어는 NodePool 총량으로 정규화한 두 비율의 나눗셈이다(`balanced-consolidation.md:115-125`).
-
-```
-savings              = Σ(삭제 노드 가격) − Σ(생성 노드 가격)
-disruption_cost      = Σ max(0, EvictionCost(pod))  for 축출되는 모든 파드
-score = (savings / nodepool_총비용) / (disruption_cost / nodepool_총_disruption_cost)
-승인 조건: score ≥ 1/k
-```
-
-`Balanced`는 **k=2 고정**이라 임계값이 `score ≥ 0.5`이고, 상수가 코드에 박혀 있다(`nodepool.go`의 `BalancedK int32 = 2`). 노드 하나의 disruption cost는 **파드가 없어도 1.0**이고(cordon·drain·대체 노드 기동 지연 자체의 비용) 여기에 파드별 `max(0, EvictionCost)`가 더해진다. 파드 EvictionCost 기본이 1.0이므로 **아무 설정도 안 하면 스코어는 사실상 "절감 비율 대 파드 개수 비율"** 비교가 된다.
-
-세 정책은 같은 모델의 서로 다른 k다 — `WhenEmpty`는 "양의 disruption cost 파드가 하나도 없을 때만", `Balanced`는 k=2, `WhenEmptyOrUnderutilized`는 k=+∞. 부수 효과로 `WhenEmpty`의 정의가 "파드 0개"에서 "양의 cost 파드 0개"로 넓어졌다.
+**다만 `Balanced`가 모든 통합을 심사하지는 않는다.** 빈 노드 삭제는 `Emptiness`가 정책과 무관하게 처리하고 스코어를 아예 거치지 않는다. 게이트가 걸리는 것은 **비어있지 않은 노드의 통합**뿐이다. 스코어 공식·비용 모델·세 정책의 실제 게이트 차이는 [11 consolidation은 무엇을 하는가]({{< relref "11-consolidation-model.md" >}})가 소유한다.
 
 **켜는 법은 한 줄이고 feature gate가 없다.**
 
@@ -435,7 +402,7 @@ spec:
 | 비용 최우선, churn 감수 중 | **반쪽** — 한계 절감이 거부된다 |
 | 정책 전환 + 대규모 업그레이드 동시 | **부적합** — 원인이 섞인다 |
 
-파드 중요도를 스코어에 반영하려면 `pod-deletion-cost`를 붙인다. 값이 클수록 그 파드를 축출하는 액션의 스코어가 낮아져 노드가 살아남는다. 단 스코어는 NodePool 총량 대비 비율이라 **한 풀 안에서만 상대적**이다.
+파드 중요도를 스코어에 반영하려면 `pod-deletion-cost`를 붙인다. 단 **이게 보호로 작동하는 건 `Balanced` 풀에서뿐**이고, 같은 풀의 다른 노드로 압력이 옮겨가는 성질도 있다 — [11 §6]({{< relref "11-consolidation-model.md" >}}).
 
 ### 7.3 DRA와 preview instance types
 
