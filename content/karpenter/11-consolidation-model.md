@@ -14,7 +14,7 @@ weight: 11
 - **disruption cost는 절대 0이 되지 않는다** — 노드 하나가 base `1.0`을 깔고 시작한다. 이 사실이 아래 §4의 근거다.
 - **`pod-deletion-cost`는 `Balanced`에서만 보호 장치다.** 다른 두 정책에서는 평가 **순서**만 바꾼다. 그리고 풀 분모도 같이 올라 **같은 풀의 다른 노드로 압력이 옮겨간다.**
 - **예산 `1`은 multi-node consolidation을 죽인다.** 예산이 실행 속도만이 아니라 **후보 풀 자체를 자르기** 때문이다(§2.4).
-- **`Balanced`는 `WhenEmptyOrUnderutilized`의 부분집합**이라 거부만 할 수 있다. 판별식은 대략 **상대 절감률 × (평균 파드밀도 / 그 노드의 파드밀도) ≥ 0.5** 로 정리된다(§5.4).
+- **`Balanced`는 `WhenEmptyOrUnderutilized`의 부분집합**이라 거부만 할 수 있다. 판별식은 대략 **상대 절감률 × (평균 파드밀도 / 그 노드의 파드밀도) ≥ 0.5** 로 정리된다(§5.2).
 {{< /callout >}}
 
 > **왜 이 문서인가.** "consolidation이 왜 이 노드를 골랐나"는 정책 이름만으로 답이 안 나온다. 실제로는 어떤 Method가 후보를 만들었는지, 삭제인지 교체인지, 비용 모델이 무엇을 셌는지가 갈린다. 이 문서가 그 층을 소유한다.
@@ -193,111 +193,57 @@ func (c *Candidate) IsEmpty() bool {
 
 ## 5. Balanced — 기존과 무엇이 다른가
 
-### 5.1 Balanced는 `WhenEmptyOrUnderutilized`의 부분집합이다
+### 5.1 거부만 하는 게이트다
 
-이게 가장 먼저 이해할 사실이다. Balanced는 새로운 통합을 **만들지 않는다.** `WhenEmptyOrUnderutilized`가 만들어낸 커맨드에 승인 게이트를 하나 더 얹을 뿐이라, **거부만 할 수 있고 추가로 승인할 수는 없다.**
-
-```
-Balanced가 승인하는 집합  ⊂  WhenEmptyOrUnderutilized가 승인하는 집합
-```
-
-그래서 "Balanced로 바꾸면 통합이 더 잘 될까"는 방향이 틀린 질문이다. 항상 **덜** 된다. 질문은 "무엇이 덜 되는가"다.
-
-### 5.2 스코어는 커맨드가 만들어진 뒤에 얹힌다
+Balanced는 새로운 통합을 **만들지 않는다.** `WhenEmptyOrUnderutilized`가 만들어낸 커맨드에 승인 조건을 하나 더 얹을 뿐이라 **거부만 할 수 있다.**
 
 ```
-computeConsolidation  →  Command 생성 (가격 필터까지 통과)
-        ↓
-ApproveCommand  →  후보를 NodePool별로 그룹핑
-        ↓
-   풀마다 ScoreMove   →  Balanced가 아닌 풀은 skip
-        ↓
-   모든 Balanced 풀이 통과해야 승인
+Balanced 승인 집합  ⊂  WhenEmptyOrUnderutilized 승인 집합
 ```
 
-크로스풀 커맨드면 `savings`를 **소스 풀의 비용 비율로 안분**해서 각 풀을 따로 심사한다. 한 풀이라도 미달이면 커맨드 전체가 거부된다.
+그래서 "Balanced로 바꾸면 통합이 더 될까"는 방향이 틀린 질문이다. 항상 덜 된다. 물어야 할 것은 **무엇이 덜 되는가**다.
 
-single-node에는 사전 컷이 하나 더 있다. `CanPassThreshold`가 **"이 노드를 통째로 삭제해 전액을 절감한다"는 상한 시나리오**로 미리 스코어를 돌려, 그 최선의 경우조차 임계를 못 넘으면 계산 자체를 건너뛴다.
+### 5.2 무엇을 재는가
 
-### 5.3 분모는 풀 전체다
-
-```
-savingsFraction    = savings / TotalCost
-disruptionFraction = disruptionCost / TotalDisruptionCost
-score = savingsFraction / disruptionFraction        승인: score ≥ 1/k = 0.5
-```
-
-`TotalDisruptionCost`가 후보의 합이 아니라 **그 NodePool에 속한 모든 노드의 합**이라는 게 핵심이다. 코드 주석이 명시한다 — *"Second pass over ALL nodes: sum disruption cost per pool."* 후보는 정확한 값을, 비후보는 증분 유지되는 값을 쓴다.
-
-식을 옮겨 쓰면 무엇을 재는지가 분명해진다.
+식을 옮겨 쓰면 분명해진다.
 
 ```
 score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)
-         └─ 이 액션의 효율 ─┘        └─ 풀의 평균 효율 ─┘
+         └─ 이 액션의 효율 ─┘         └─ 풀의 평균 효율 ─┘      승인: ≥ 1/k = 0.5
 ```
 
-**풀의 "파괴 1단위당 비용"이 기준선이고, 액션은 그 절반 이상의 효율을 내야 한다.** 풀 크기 자체는 영향이 없다 — 노드 수는 분자·분모에서 약분된다. 영향을 주는 것은 풀의 **구성**이다. 한산하고 비싼 노드가 많은 풀은 기준선이 높아져 통과가 어려워지고, 빽빽하고 싼 노드가 많은 풀은 낮아져 쉬워진다.
+**풀의 "파괴 1단위당 비용"이 기준선이고, 액션은 그 절반 이상의 효율을 내야 한다.** 분모의 `TotalDisruptionCost`는 후보가 아니라 **풀의 모든 노드** 합이다(주석: *"Second pass over ALL nodes"*). 풀 크기 자체는 약분되어 영향이 없고, 영향을 주는 건 구성이다 — 한산하고 비싼 노드가 많은 풀일수록 기준선이 높아 통과가 어렵다.
 
-한 가지 비대칭을 알아둘 것 — `TotalCost`는 `ClusterCost`가 주는 풀 총비용을 쓰되, 그게 없으면 **후보들의 가격 합**으로 폴백한다. 폴백이 걸리면 분모가 작아져 `savingsFraction`이 부풀고 통과가 쉬워진다.
+균질한 풀에 평균 파드밀도를 가정하면 `score ≈ 절감률 × (평균 밀도 / 그 노드의 밀도)`로 줄어든다. **평균 밀도 노드라면 50% 이상 싸지는 교체만 통과**하고, 한산한 노드는 쉬워지며 빽빽한 노드는 보호된다. 코드 인용이 아니라 유도다.
 
-경계 처리 둘도 있다. **`savingsFraction ≤ 0`이면 점수가 `0`** 이라 어떤 `k`에서도 거부되고, 두 총량 중 하나라도 `0` 이하면 zero-value가 반환되어 역시 거부된다.
+### 5.3 `k`는 바꿀 수 없다
 
-### 5.4 실제로는 무엇이 걸러지나 — 판별식
-
-공식만으로는 감이 안 오므로 균질한 풀을 가정해 풀어 본다. **아래는 코드 인용이 아니라 유도**다 — 노드 `N`대, 가격 모두 `p`, 파드 파괴비용 평균 `d̄`, 교체 대상 노드의 파괴비용 `d_A`로 두면:
-
-```
-savingsFraction    = Δ / (N·p)          Δ = p_old − p_new
-disruptionFraction = d_A / (N·d̄)
-
-score = (Δ/p) × (d̄/d_A)
-```
-
-즉 **스코어 ≈ 그 노드의 상대 절감률 × (풀 평균 파드밀도 / 그 노드의 파드밀도)** 이고, 임계는 `0.5`다. 세 가지가 따라 나온다.
-
-| 상황 | 결과 |
-|---|---|
-| 평균 밀도 노드의 교체 | **50% 이상 싸져야** 통과 |
-| 파드가 적게 실린 노드 | 배수가 1보다 커져 **통과하기 쉽다** |
-| 파드가 빽빽한 노드 | 배수가 1보다 작아져 **보호된다** |
-
-**"50%"가 어디서 오는지 헷갈리지 않게 출처를 분리해 둔다.** 코드에 박힌 숫자는 `k=2` 하나뿐이고, 나머지는 그것을 옮겨 쓴 것이다.
-
-| 단계 | 출처 |
-|---|---|
-| `k = 2` | 코드 상수 `BalancedK` — **유일한 하드코딩 값** |
-| 임계 `0.5` | `Threshold() = 1/k` |
-| "50% 절감" | 위 두 가정 아래 임계를 풀어 쓴 **유도** |
-
-즉 50%는 독립적인 기준이 아니라 **임계 0.5가 "균질한 풀 + 평균 파드밀도"에서 갖는 모습**이다. 밀도가 평균에서 벗어나면 그만큼 달라진다.
-
-그런데 이 유도가 설계 의도와 맞아떨어진다. 상수 주석이 근거를 직접 적어 두었다.
+50%는 독립적인 기준이 아니라 `k=2`가 평균 조건에서 갖는 모습이다. 그리고 그 `k`에는 **설정 수단이 없다** — Go `const`이고 호출부 두 곳 모두 상수를 그대로 넘긴다. NodePool 필드도, 플래그도, feature gate도 없다.
 
 ```go
-// apis/v1/nodepool.go:166-171
-// A move is approved when score >= 1/k = 0.5. k=2 is the smallest value
-// where within-family replaces pass, with 4-step max churn.
+// apis/v1/nodepool.go:167-171
+// k=2 is the smallest value where within-family replaces pass, with 4-step max churn.
 const BalancedK int32 = 2
 ```
 
-**같은 패밀리에서 한 단계 다운사이징(4xlarge → 2xlarge)이 정확히 50% 절감**이다. `k=2`는 그 교체가 아슬아슬하게 통과하도록 고른 값이고, 유도가 같은 지점에 떨어진다.
+주석이 선택 근거를 밝힌다 — **같은 패밀리 한 단계 다운사이징(4xlarge → 2xlarge)이 정확히 50% 절감**이라, 그 교체가 겨우 통과하는 지점으로 잡은 값이다.
 
-삭제형은 `Δ = p`(노드 값 전체)라 `score ≈ d̄/d_A`가 된다. **평균의 2배를 넘게 파드를 이고 있는 노드는 삭제도 거부된다.**
+**조절하려면 임계가 아니라 분모를 건드려야 한다.** 유일한 수단이 `pod-deletion-cost`이고 성질과 부작용은 §6이 다룬다.
 
-### 5.5 언제 강점이고 언제 무의미한가
+### 5.4 언제 효과가 없나
 
-| 상황 | Balanced의 효과 |
+| 증상 | Balanced의 효과 |
 |---|---|
-| 한계 절감 통합으로 churn이 잦다 | **정확히 이걸 겨냥한다** |
-| 바쁜 노드가 자꾸 흔들린다 | 파드밀도가 분모라 **자동으로 보호된다** |
-| 빈 노드 정리가 시끄럽다 | **효과 없음** — Emptiness가 우회한다(§2.1) |
-| drift로 노드가 갈린다 | **효과 없음** — consolidation 경로가 아니다 |
-| 세대가 자꾸 내려간다 | **효과 없음** — 스코어에 세대·weight가 없다([06]({{< relref "06-consolidation-traps.md" >}})) |
-| 비용 절감이 최우선이다 | **손해** — 한계 절감 액션이 거부되어 청구가 조금 오른다 |
+| 한계 절감 통합으로 churn이 잦다 | **정확히 겨냥한다** |
+| 바쁜 노드가 자꾸 흔들린다 | **자동 보호** — 파드밀도가 분모다 |
+| 빈 노드 정리가 시끄럽다 | **없음** — Emptiness가 우회(§2.1) |
+| drift로 노드가 갈린다 | **없음** — 통합 경로가 아니다 |
+| 세대가 자꾸 내려간다 | **없음** — 스코어에 세대·weight가 없다 |
+| 비용 절감이 최우선이다 | **손해** — 한계 절감이 거부된다 |
 
-아래 세 줄이 중요하다. **"노드가 자꾸 교체된다"의 원인이 통합이 아니면 Balanced는 아무것도 바꾸지 않는다.** 원인을 먼저 `karpenter_nodeclaims_disrupted_total{reason}`으로 가른 뒤에 정책을 건드리는 순서가 맞다([09 §3]({{< relref "09-metrics-logs-events.md" >}})).
+가운데 셋이 중요하다. **"노드가 자꾸 교체된다"의 원인이 통합이 아니면 Balanced는 아무것도 바꾸지 않는다.** `karpenter_nodeclaims_disrupted_total{reason}`으로 원인을 먼저 가른 뒤 정책을 건드린다([09 §3]({{< relref "09-metrics-logs-events.md" >}})).
 
-**켜는 법은 한 줄이고 feature gate가 없다.**
+### 5.5 켜기
 
 ```yaml
 spec:
@@ -306,9 +252,7 @@ spec:
     consolidateAfter: 1m
 ```
 
-설계 RFC에는 `BalancedConsolidation` 게이트로 옵트인한다고 적혀 있지만 **실제 구현에는 그 게이트가 없다.** RFC와 구현의 불일치다. `Balanced`는 코어 **v1.14.0이 최초**이고(core#2962, 2026-07-01 머지) 그 이하에서는 enum에 없어 admission에서 거부된다.
-
-**지금 켤 것인가의 판정은 [02 §7.2]({{< relref "02-changelog-maturity.md" >}})가 소유한다.** 여기서는 무엇이 어떻게 계산되는지까지만 다룬다.
+feature gate가 없다 — 설계 RFC는 `BalancedConsolidation` 게이트로 옵트인한다고 적었지만 **구현에는 그 게이트가 없다.** 코어 **v1.14.0이 최초**이고(core#2962, 2026-07-01 머지) 그 이하에서는 enum에 없어 admission에서 거부된다. 지금 켤 것인가의 판정은 [02 §7.2]({{< relref "02-changelog-maturity.md" >}})가 소유한다.
 
 ## 6. `pod-deletion-cost`로 개입하기
 
