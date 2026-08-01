@@ -1,0 +1,67 @@
+{
+  "caption": "Envoy의 요청 처리 5단계 — istiod가 xDS API로 각 단계의 설정을 동적으로 밀어넣는다.",
+  "nodes": [
+    {
+      "id": "l",
+      "col": 0,
+      "row": 0,
+      "label": "Listener",
+      "sub": "포트 수신",
+      "kind": "src"
+    },
+    {
+      "id": "f",
+      "col": 1,
+      "row": 0,
+      "label": "Filter Chain",
+      "sub": "처리 로직",
+      "kind": "proc"
+    },
+    {
+      "id": "r",
+      "col": 2,
+      "row": 0,
+      "label": "Route",
+      "sub": "Virtual Host 매칭",
+      "kind": "query"
+    },
+    {
+      "id": "c",
+      "col": 3,
+      "row": 0,
+      "label": "Cluster",
+      "sub": "endpoint 논리 그룹",
+      "kind": "store"
+    },
+    {
+      "id": "e",
+      "col": 4,
+      "row": 0,
+      "label": "Endpoint",
+      "sub": "최종 목적지",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "l",
+      "to": "f",
+      "rate": 620
+    },
+    {
+      "from": "f",
+      "to": "r",
+      "rate": 620
+    },
+    {
+      "from": "r",
+      "to": "c",
+      "rate": 620
+    },
+    {
+      "from": "c",
+      "to": "e",
+      "rate": 620
+    }
+  ]
+}

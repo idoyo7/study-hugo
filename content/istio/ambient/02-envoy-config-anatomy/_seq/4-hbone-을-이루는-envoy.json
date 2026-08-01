@@ -1,0 +1,112 @@
+{
+  "caption": "HBONE 터널이 서는 순서 — 목적지는 EDS가 아니라 다운스트림 커넥션 메타데이터에서 나오고, waypoint 유무가 그 목적지를 한 번 더 갈아끼운다.",
+  "participants": [
+    {
+      "id": "GW",
+      "label": "Gateway Envoy"
+    },
+    {
+      "id": "IL",
+      "label": "internal listener"
+    },
+    {
+      "id": "CL",
+      "label": "ORIGINAL_DST 클러스터"
+    },
+    {
+      "id": "ZT",
+      "label": "ztunnel :15008"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "GW",
+        "IL"
+      ],
+      "label": "1. envoy_internal_address 로 user space 연결"
+    },
+    {
+      "note": [
+        "IL"
+      ],
+      "lines": [
+        "original_dst 리스너 필터가 메타데이터에서",
+        "원래 목적지 10.90.165.200:8080 을 복원"
+      ]
+    },
+    {
+      "msg": [
+        "IL",
+        "CL"
+      ],
+      "label": "2. tcp_proxy → connect_originate 클러스터"
+    },
+    {
+      "note": [
+        "CL"
+      ],
+      "lines": [
+        "EDS 미사용 — 다운스트림 커넥션 메타데이터로 upstream host 결정",
+        "upstream_port_override: 15008"
+      ]
+    },
+    {
+      "alt": "waypoint 없는 목적지",
+      "steps": [
+        {
+          "note": [
+            "CL"
+          ],
+          "lines": [
+            "upstream host = 목적지 노드의 ztunnel"
+          ]
+        }
+      ],
+      "elseLabel": "waypoint 붙은 목적지",
+      "elseSteps": [
+        {
+          "note": [
+            "CL"
+          ],
+          "lines": [
+            "upstream host 를 waypoint 주소로 override",
+            "최종 Pod 선택은 waypoint 가 맡는다"
+          ]
+        }
+      ]
+    },
+    {
+      "msg": [
+        "CL",
+        "ZT"
+      ],
+      "label": "3. UpstreamTlsContext — mTLS 시작 (ALPN h2)"
+    },
+    {
+      "msg": [
+        "ZT",
+        "CL"
+      ],
+      "label": "4. SPIFFE ID 상호 검증",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "CL",
+        "ZT"
+      ],
+      "label": "5. HTTP/2 CONNECT · :authority = 원래 목적지"
+    },
+    {
+      "note": [
+        "CL",
+        "ZT"
+      ],
+      "lines": [
+        "HBONE 터널 수립 — 이후 앱 트래픽은",
+        "이 터널 안의 HTTP/2 스트림으로 오간다"
+      ]
+    }
+  ]
+}

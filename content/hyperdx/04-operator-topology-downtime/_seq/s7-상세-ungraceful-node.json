@@ -1,0 +1,84 @@
+{
+  "caption": "죽은 노드에서 파드가 무한 Terminating에 빠지는 과정 — 개입 없으면 파드 교체가 사실상 무한 지연된다.",
+  "participants": [
+    {
+      "id": "N",
+      "label": "죽은 노드"
+    },
+    {
+      "id": "CP",
+      "label": "컨트롤 플레인"
+    },
+    {
+      "id": "ADC",
+      "label": "Attach/Detach 컨트롤러"
+    },
+    {
+      "id": "New",
+      "label": "새 노드(같은 AZ)"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "N",
+        "CP"
+      ],
+      "label": "heartbeat 중단",
+      "dashed": true
+    },
+    {
+      "note": [
+        "CP"
+      ],
+      "lines": [
+        "node-monitor-grace-period ~40s",
+        "→ 노드 NotReady/unreachable 표시",
+        "+ unreachable:NoExecute taint"
+      ]
+    },
+    {
+      "note": [
+        "CP"
+      ],
+      "lines": [
+        "기본 toleration 300s(5분)",
+        "→ 파드 삭제 \"요청\""
+      ]
+    },
+    {
+      "note": [
+        "CP"
+      ],
+      "lines": [
+        "StatefulSet+RWO: 파드는 Terminating에",
+        "무한정 잔류(kubelet 확인 불가)"
+      ]
+    },
+    {
+      "note": [
+        "ADC"
+      ],
+      "lines": [
+        "force-detach는 6분 후 시도하나",
+        "CSI 정합성에 따라 지연/보류"
+      ]
+    },
+    {
+      "note": [
+        "CP"
+      ],
+      "lines": [
+        "개입 없으면 파드 Pending 대체 안 됨 → 사실상 무한"
+      ]
+    },
+    {
+      "msg": [
+        "CP",
+        "New"
+      ],
+      "label": "out-of-service taint 개입 시 재스케줄 → 같은 AZ 볼륨 reattach",
+      "dashed": true
+    }
+  ]
+}

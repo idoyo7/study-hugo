@@ -1,0 +1,61 @@
+{
+  "caption": "Hot/Warm 2계층 — dual write(vmagent)와 쿼리 시간범위 기반 읽기 분기",
+  "nodes": [
+    {
+      "id": "A",
+      "col": 0,
+      "row": 0,
+      "label": "vmagent",
+      "kind": "proc"
+    },
+    {
+      "id": "QR",
+      "col": 0,
+      "row": 1,
+      "label": "쿼리 시간범위",
+      "kind": "query"
+    },
+    {
+      "id": "H",
+      "col": 1,
+      "row": 0,
+      "label": "Hot 클러스터",
+      "sub": "SSD · 12개월",
+      "kind": "store"
+    },
+    {
+      "id": "W",
+      "col": 1,
+      "row": 1,
+      "label": "Warm 클러스터",
+      "sub": "HDD · 36개월",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "A",
+      "to": "H",
+      "label": "이중 쓰기",
+      "rate": 700
+    },
+    {
+      "from": "A",
+      "to": "W",
+      "label": "이중 쓰기",
+      "rate": 700
+    },
+    {
+      "from": "QR",
+      "to": "H",
+      "label": "≤ 12개월 (99.97%)",
+      "rate": 700
+    },
+    {
+      "from": "QR",
+      "to": "W",
+      "label": "> 12개월 (0.03%)",
+      "rate": 700
+    }
+  ]
+}

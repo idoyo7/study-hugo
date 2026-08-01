@@ -1,0 +1,114 @@
+{
+  "caption": "resize 요청의 생애주기 — spec은 즉시 바뀌고, kubelet이 수락 여부를 판정한 뒤 cgroup을 '커지는 쪽 먼저' 순서로 반영한다",
+  "participants": [
+    {
+      "id": "cli",
+      "label": "kubectl / 컨트롤러"
+    },
+    {
+      "id": "api",
+      "label": "kube-apiserver"
+    },
+    {
+      "id": "kl",
+      "label": "kubelet"
+    },
+    {
+      "id": "rt",
+      "label": "CRI 런타임 · cgroup"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "cli",
+        "api"
+      ],
+      "label": "PATCH pods/<name>/resize"
+    },
+    {
+      "note": [
+        "api"
+      ],
+      "lines": [
+        "ValidatePodResize:",
+        "QoS 불변 · cpu/memory 값만 · 제거 금지"
+      ]
+    },
+    {
+      "msg": [
+        "api",
+        "cli"
+      ],
+      "label": "spec 즉시 갱신 — 반영은 비동기",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "api",
+        "kl"
+      ],
+      "label": "watch: desired ≠ allocated"
+    },
+    {
+      "note": [
+        "kl"
+      ],
+      "lines": [
+        "canAdmitPod:",
+        "다른 파드 allocated 합 vs node allocatable"
+      ]
+    },
+    {
+      "alt": "수락",
+      "steps": [
+        {
+          "note": [
+            "kl"
+          ],
+          "lines": [
+            "checkpoint 기록 → PodResizeInProgress"
+          ]
+        },
+        {
+          "msg": [
+            "kl",
+            "rt"
+          ],
+          "label": "① 커지는 limit: pod cgroup 먼저 확대"
+        },
+        {
+          "msg": [
+            "kl",
+            "rt"
+          ],
+          "label": "② UpdateContainerResources (감소 컨테이너부터)"
+        },
+        {
+          "msg": [
+            "kl",
+            "rt"
+          ],
+          "label": "③ 줄어드는 limit: pod cgroup 나중에 축소"
+        },
+        {
+          "msg": [
+            "kl",
+            "api"
+          ],
+          "label": "status.…resources 갱신 · 컨디션 해제"
+        }
+      ],
+      "elseLabel": "보류 / 불가",
+      "elseSteps": [
+        {
+          "msg": [
+            "kl",
+            "api"
+          ],
+          "label": "PodResizePending — Deferred(재시도 큐) / Infeasible(큐 이탈)"
+        }
+      ]
+    }
+  ]
+}

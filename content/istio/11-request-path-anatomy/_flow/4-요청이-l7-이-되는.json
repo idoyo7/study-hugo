@@ -1,0 +1,69 @@
+{
+  "caption": "게이트웨이를 경유하는 메시 내부 호출 — 같은 요청이 세 번 HTTP로 파싱되고, 그때마다 지표가 따로 남는다.",
+  "nodes": [
+    {
+      "id": "C",
+      "col": 0,
+      "row": 0,
+      "label": "클라이언트 앱",
+      "kind": "src"
+    },
+    {
+      "id": "S1",
+      "col": 1,
+      "row": 0,
+      "label": "소스 사이드카",
+      "sub": "L7 ① reporter=source",
+      "kind": "proc"
+    },
+    {
+      "id": "G",
+      "col": 2,
+      "row": 0,
+      "label": "게이트웨이 Envoy",
+      "sub": "L7 ② 게이트웨이 지표",
+      "kind": "proc"
+    },
+    {
+      "id": "S2",
+      "col": 3,
+      "row": 0,
+      "label": "목적지 사이드카",
+      "sub": "L7 ③ reporter=destination",
+      "kind": "proc"
+    },
+    {
+      "id": "P",
+      "col": 4,
+      "row": 0,
+      "label": "목적지 앱",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "C",
+      "to": "S1",
+      "label": "가로채기",
+      "rate": 620
+    },
+    {
+      "from": "S1",
+      "to": "G",
+      "label": "mTLS",
+      "rate": 620
+    },
+    {
+      "from": "G",
+      "to": "S2",
+      "label": "mTLS",
+      "rate": 620
+    },
+    {
+      "from": "S2",
+      "to": "P",
+      "label": "평문",
+      "rate": 620
+    }
+  ]
+}

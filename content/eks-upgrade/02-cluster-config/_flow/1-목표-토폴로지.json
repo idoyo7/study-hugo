@@ -1,0 +1,92 @@
+{
+  "caption": "Fargate profile({ns:karpenter}, {ns:kube-system·k8s-app:kube-dns})에 CoreDNS·karpenter(amd64, arm64 affinity 제거)를 두고, karpenter가 system(arm64)·service/airflow(amd64) NodePool을 프로비저닝한다. 플랫폼 컨트롤러·DaemonSet은 arch=arm64 required affinity.",
+  "groups": [
+    {
+      "id": "fg",
+      "label": "Fargate profile",
+      "members": [
+        "coredns",
+        "karp"
+      ]
+    },
+    {
+      "id": "sys",
+      "label": "NodePool: system (arm64)",
+      "members": [
+        "ebscsi",
+        "plat",
+        "ds"
+      ]
+    },
+    {
+      "id": "svc",
+      "label": "NodePool: service·airflow",
+      "members": [
+        "wl"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "coredns",
+      "col": 0,
+      "row": 0,
+      "label": "CoreDNS",
+      "sub": "replica 2 · Fargate",
+      "kind": "proc"
+    },
+    {
+      "id": "karp",
+      "col": 0,
+      "row": 1,
+      "label": "karpenter",
+      "sub": "controller · IRSA",
+      "kind": "proc"
+    },
+    {
+      "id": "ebscsi",
+      "col": 1,
+      "row": 0,
+      "label": "ebs-csi",
+      "sub": "controller",
+      "kind": "store"
+    },
+    {
+      "id": "plat",
+      "col": 1,
+      "row": 1,
+      "label": "플랫폼 컨트롤러",
+      "sub": "alb·ESO·argo·metrics",
+      "kind": "proc"
+    },
+    {
+      "id": "ds",
+      "col": 1,
+      "row": 2,
+      "label": "DaemonSet",
+      "sub": "datadog·fluentbit·…",
+      "kind": "proc"
+    },
+    {
+      "id": "wl",
+      "col": 1,
+      "row": 4,
+      "label": "일반 워크로드",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "karp",
+      "to": "sys",
+      "label": "프로비저닝",
+      "dashed": true
+    },
+    {
+      "from": "karp",
+      "to": "svc",
+      "label": "프로비저닝",
+      "dashed": true
+    }
+  ]
+}

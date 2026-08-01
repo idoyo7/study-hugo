@@ -1,0 +1,129 @@
+{
+  "caption": "sidecar는 파드 안 프록시 두 개가 L4+L7을 다 하고, ambient는 노드 공용 ztunnel이 L4(mTLS·L4 인가)만 처리한다. L7 정책이 필요한 서비스에만 waypoint가 경로에 끼어든다 — 그래서 ambient에서 L7은 '기본'이 아니라 '옵트인'이다. istio-cni는 이 그림에 없다: 파드 생성·라벨 부여 시점에 파드 netns로 들어가 리다이렉션 규칙을 세우고 ztunnel에 netns 파일 디스크립터를 넘기는 셋업 담당이고, 요청 경로에는 앉지 않는다",
+  "nodes": [
+    {
+      "id": "sa",
+      "col": 0,
+      "row": 0,
+      "label": "app A",
+      "sub": "sidecar 모드 파드",
+      "kind": "src"
+    },
+    {
+      "id": "sp1",
+      "col": 1,
+      "row": 0,
+      "label": "istio-proxy",
+      "sub": "파드 A netns · L4+L7",
+      "kind": "proc"
+    },
+    {
+      "id": "sp2",
+      "col": 3,
+      "row": 0,
+      "label": "istio-proxy",
+      "sub": "파드 B netns · L4+L7",
+      "kind": "proc"
+    },
+    {
+      "id": "sb",
+      "col": 4,
+      "row": 0,
+      "label": "app B",
+      "sub": "sidecar 모드 파드",
+      "kind": "sink"
+    },
+    {
+      "id": "aa",
+      "col": 0,
+      "row": 1,
+      "label": "app A",
+      "sub": "ambient 모드 파드",
+      "kind": "src"
+    },
+    {
+      "id": "z1",
+      "col": 1,
+      "row": 1,
+      "label": "ztunnel W1",
+      "sub": "노드당 1개 · L4 전용",
+      "kind": "proc"
+    },
+    {
+      "id": "z2",
+      "col": 3,
+      "row": 1,
+      "label": "ztunnel W2",
+      "sub": "노드당 1개 · L4 전용",
+      "kind": "proc"
+    },
+    {
+      "id": "ab",
+      "col": 4,
+      "row": 1,
+      "label": "app B",
+      "sub": "ambient 모드 파드",
+      "kind": "sink"
+    },
+    {
+      "id": "wp",
+      "col": 2,
+      "row": 2,
+      "label": "waypoint",
+      "sub": "L7 정책·라우팅 필요할 때만",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "sa",
+      "to": "sp1",
+      "label": "iptables REDIRECT",
+      "rate": 420
+    },
+    {
+      "from": "sp1",
+      "to": "sp2",
+      "label": "mTLS",
+      "rate": 420
+    },
+    {
+      "from": "sp2",
+      "to": "sb",
+      "label": "localhost",
+      "rate": 420
+    },
+    {
+      "from": "aa",
+      "to": "z1",
+      "label": "파드 netns 캡처",
+      "rate": 420
+    },
+    {
+      "from": "z1",
+      "to": "z2",
+      "label": "HBONE mTLS · :15008",
+      "rate": 420
+    },
+    {
+      "from": "z2",
+      "to": "ab",
+      "label": "파드 netns",
+      "rate": 420
+    },
+    {
+      "from": "z1",
+      "to": "wp",
+      "label": "L7 있으면 우회",
+      "rate": 900,
+      "speed": "slow"
+    },
+    {
+      "from": "wp",
+      "to": "z2",
+      "label": "정책 적용 후 전달",
+      "rate": 900,
+      "speed": "slow"
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "caption": "메시 안 두 파드의 한 번의 요청·응답 — 터널은 CONNECT와 그 응답으로 한 번 세워지고, 이후 요청과 응답이 같은 HBONE 터널을 왕복한다. 인가 판정은 도착 노드 ztunnel에서 일어나므로 위배된 요청은 도착 파드까지 가지 않는다.",
+  "participants": [
+    {
+      "id": "P1",
+      "label": "출발 파드"
+    },
+    {
+      "id": "Z1",
+      "label": "ztunnel(출발)"
+    },
+    {
+      "id": "Z2",
+      "label": "ztunnel(도착)"
+    },
+    {
+      "id": "P2",
+      "label": "도착 파드"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "P1",
+        "Z1"
+      ],
+      "label": "1. 평문 TCP → :15001 REDIRECT"
+    },
+    {
+      "msg": [
+        "Z1",
+        "Z2"
+      ],
+      "label": "2. :15008로 HTTP/2 CONNECT — x509 mTLS 상호 인증"
+    },
+    {
+      "msg": [
+        "Z2",
+        "Z1"
+      ],
+      "label": "3. 200 — 터널 수립",
+      "dashed": true
+    },
+    {
+      "note": [
+        "Z1",
+        "Z2"
+      ],
+      "lines": [
+        "이 구간만 mTLS로 감싸인 HTTP/2 스트림이다",
+        "앱은 자기가 평문 TCP를 보냈다고 알고 있다"
+      ]
+    },
+    {
+      "msg": [
+        "Z1",
+        "Z2"
+      ],
+      "label": "4. L4 페이로드 캡슐화 전송"
+    },
+    {
+      "alt": "AuthorizationPolicy 통과",
+      "steps": [
+        {
+          "msg": [
+            "Z2",
+            "P2"
+          ],
+          "label": "5. 복호화한 평문 전달"
+        },
+        {
+          "msg": [
+            "P2",
+            "Z2"
+          ],
+          "label": "6. 응답",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "Z2",
+            "Z1"
+          ],
+          "label": "7. 같은 터널로 역방향",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "Z1",
+            "P1"
+          ],
+          "label": "8. 평문 응답",
+          "dashed": true
+        }
+      ],
+      "elseLabel": "AuthorizationPolicy 위배",
+      "elseSteps": [
+        {
+          "msg": [
+            "Z2",
+            "Z1"
+          ],
+          "label": "도착 ztunnel이 차단 — 앱에 닿지 않음",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "Z1",
+            "P1"
+          ],
+          "label": "연결 실패",
+          "dashed": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "caption": "복제 실행 파이프라인 — /log → replication_queue → 타입별 실행(pull 모델)",
+  "nodes": [
+    {
+      "id": "log",
+      "col": 0,
+      "row": 1,
+      "label": "Keeper /log",
+      "sub": "공용 복제 로그",
+      "kind": "store"
+    },
+    {
+      "id": "queue",
+      "col": 1,
+      "row": 1,
+      "label": "/replicas/{r}/queue",
+      "sub": "(= system.replication_queue)",
+      "kind": "store"
+    },
+    {
+      "id": "exec",
+      "col": 2,
+      "row": 1,
+      "label": "타입별 실행",
+      "kind": "proc"
+    },
+    {
+      "id": "fetch",
+      "col": 3,
+      "row": 0,
+      "label": "sibling replica에서",
+      "sub": "part 바이트 직접 fetch",
+      "kind": "proc"
+    },
+    {
+      "id": "merge",
+      "col": 3,
+      "row": 1,
+      "label": "로컬에서 동일 입력 머지",
+      "kind": "proc"
+    },
+    {
+      "id": "mutate",
+      "col": 3,
+      "row": 2,
+      "label": "mutation 적용",
+      "kind": "proc"
+    },
+    {
+      "id": "partition",
+      "col": 3,
+      "row": 3,
+      "label": "파티션 조작",
+      "kind": "proc"
+    }
+  ],
+  "edges": [
+    {
+      "from": "log",
+      "to": "queue",
+      "label": "폴링·새 엔트리 발견",
+      "rate": 700
+    },
+    {
+      "from": "queue",
+      "to": "exec",
+      "label": "log_pointer 전진",
+      "rate": 700
+    },
+    {
+      "from": "exec",
+      "to": "fetch",
+      "label": "GET_PART",
+      "rate": 600
+    },
+    {
+      "from": "exec",
+      "to": "merge",
+      "label": "MERGE_PARTS",
+      "rate": 600
+    },
+    {
+      "from": "exec",
+      "to": "mutate",
+      "label": "MUTATE_PART",
+      "rate": 600
+    },
+    {
+      "from": "exec",
+      "to": "partition",
+      "label": "DROP_RANGE / REPLACE_RANGE",
+      "rate": 600
+    }
+  ]
+}

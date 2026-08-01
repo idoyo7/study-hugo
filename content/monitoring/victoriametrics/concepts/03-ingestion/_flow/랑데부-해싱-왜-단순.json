@@ -1,0 +1,75 @@
+{
+  "caption": "랑데부 해싱 — 노드별 점수 계산과 최고점 라우팅",
+  "nodes": [
+    {
+      "id": "M",
+      "col": 0,
+      "row": 1,
+      "label": "시계열",
+      "sub": "http_requests_total{method=get}",
+      "kind": "src"
+    },
+    {
+      "id": "SC",
+      "col": 1,
+      "row": 1,
+      "label": "노드별 점수 = hash(이름 + 노드명)",
+      "kind": "proc"
+    },
+    {
+      "id": "A",
+      "col": 2,
+      "row": 0,
+      "label": "node A · 0.82",
+      "kind": "store"
+    },
+    {
+      "id": "B",
+      "col": 2,
+      "row": 1,
+      "label": "node B · 0.45",
+      "kind": "store"
+    },
+    {
+      "id": "C",
+      "col": 2,
+      "row": 2,
+      "label": "node C · 0.91",
+      "kind": "store"
+    },
+    {
+      "id": "W",
+      "col": 3,
+      "row": 2,
+      "label": "최고점 노드에만 저장",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "M",
+      "to": "SC",
+      "rate": 600
+    },
+    {
+      "from": "SC",
+      "to": "A",
+      "rate": 700
+    },
+    {
+      "from": "SC",
+      "to": "B",
+      "rate": 700
+    },
+    {
+      "from": "SC",
+      "to": "C",
+      "rate": 700
+    },
+    {
+      "from": "C",
+      "to": "W",
+      "rate": 600
+    }
+  ]
+}

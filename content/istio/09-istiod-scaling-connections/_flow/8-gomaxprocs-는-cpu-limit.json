@@ -1,0 +1,101 @@
+{
+  "caption": "같은 600m인데 위 갈래에서는 1코어로 올림되고, 아래 갈래에서는 0.6코어 그대로다. Go는 1코어라 믿고 커널은 0.6만 준다 — 이 어긋남이 스로틀의 출발점",
+  "nodes": [
+    {
+      "id": "L",
+      "col": 0,
+      "row": 0,
+      "label": "limits.cpu: 600m",
+      "sub": "내가 건 값 하나",
+      "kind": "src"
+    },
+    {
+      "id": "D",
+      "col": 1,
+      "row": 0,
+      "label": "Istio 차트",
+      "sub": "GOMAXPROCS env로 주입",
+      "kind": "proc"
+    },
+    {
+      "id": "C",
+      "col": 2,
+      "row": 0,
+      "label": "kubelet",
+      "sub": "올림: 0.6 → 1",
+      "kind": "proc"
+    },
+    {
+      "id": "G",
+      "col": 3,
+      "row": 0,
+      "label": "GOMAXPROCS = 1",
+      "sub": "Go: 1코어 쓸 수 있다",
+      "kind": "sink"
+    },
+    {
+      "id": "P",
+      "col": 4,
+      "row": 0,
+      "label": "PushThrottle = 20",
+      "sub": "동시 push 슬롯",
+      "kind": "sink"
+    },
+    {
+      "id": "Q",
+      "col": 1,
+      "row": 1,
+      "label": "CFS quota 60ms",
+      "sub": "커널: 0.6코어만 허용",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "L",
+      "to": "D"
+    },
+    {
+      "from": "D",
+      "to": "C"
+    },
+    {
+      "from": "C",
+      "to": "G",
+      "label": "올림한다",
+      "rate": 500
+    },
+    {
+      "from": "G",
+      "to": "P",
+      "label": "여기서 파생",
+      "rate": 900,
+      "speed": "slow"
+    },
+    {
+      "from": "L",
+      "to": "Q",
+      "label": "올림 없다",
+      "rate": 500
+    }
+  ],
+  "groups": [
+    {
+      "id": "go",
+      "label": "Go 런타임이 믿는 값 — 1코어",
+      "members": [
+        "D",
+        "C",
+        "G",
+        "P"
+      ]
+    },
+    {
+      "id": "kernel",
+      "label": "커널이 강제하는 값 — 0.6코어",
+      "members": [
+        "Q"
+      ]
+    }
+  ]
+}

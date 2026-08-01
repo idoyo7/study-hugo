@@ -1,0 +1,97 @@
+{
+  "caption": "priceAdjustment가 인스턴스 선택에 닿는 경로. 아래 갈래는 페널티가 과할 때의 실패 모드다 — 오버레이 적용 인스턴스가 절단선 밖으로 전부 밀리면 어노테이션이 붙지 않아 Fleet 전략이 lowest-price로 되돌아간다",
+  "nodes": [
+    {
+      "id": "ov",
+      "col": 0,
+      "row": 0,
+      "label": "NodeOverlay",
+      "sub": "priceAdjustment +20%",
+      "kind": "src"
+    },
+    {
+      "id": "dec",
+      "col": 1,
+      "row": 0,
+      "label": "가격 데코레이터",
+      "sub": "GetInstanceTypes 래핑",
+      "kind": "proc"
+    },
+    {
+      "id": "off",
+      "col": 2,
+      "row": 0,
+      "label": "Offering.Price",
+      "sub": "AdjustedPrice로 변조",
+      "kind": "store"
+    },
+    {
+      "id": "ann",
+      "col": 3,
+      "row": 0,
+      "label": "NodeClaim 주석",
+      "sub": "price-overlay-applied",
+      "kind": "proc"
+    },
+    {
+      "id": "fleet",
+      "col": 4,
+      "row": 0,
+      "label": "EC2 Fleet",
+      "sub": "prioritized · Priority = 조정가",
+      "kind": "sink"
+    },
+    {
+      "id": "cut",
+      "col": 3,
+      "row": 1,
+      "label": "60개 절단",
+      "sub": "오버레이 인스턴스 전멸",
+      "kind": "query"
+    },
+    {
+      "id": "low",
+      "col": 4,
+      "row": 1,
+      "label": "lowest-price",
+      "sub": "주석 미부착 → 전략 원복",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "ov",
+      "to": "dec",
+      "label": "store.ApplyAll",
+      "rate": 700
+    },
+    {
+      "from": "dec",
+      "to": "off",
+      "rate": 700
+    },
+    {
+      "from": "off",
+      "to": "ann",
+      "label": "IsPricingOverlayApplied",
+      "rate": 700
+    },
+    {
+      "from": "ann",
+      "to": "fleet",
+      "label": "WithOverlay()",
+      "rate": 700
+    },
+    {
+      "from": "off",
+      "to": "cut",
+      "label": "페널티 과다",
+      "rate": 1400
+    },
+    {
+      "from": "cut",
+      "to": "low",
+      "dashed": true
+    }
+  ]
+}

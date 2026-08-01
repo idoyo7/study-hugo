@@ -1,0 +1,54 @@
+{
+  "caption": "Warm Tier 세트 단위 점진 전환 — 서비스 중단 없이 반복하는 4단계",
+  "nodes": [
+    {
+      "id": "s1",
+      "col": 0,
+      "row": 0,
+      "label": "① vminsert 제외",
+      "sub": "기존 장비 유입 중단",
+      "kind": "proc"
+    },
+    {
+      "id": "s2",
+      "col": 1,
+      "row": 0,
+      "label": "② 증분 백업·복원",
+      "sub": "vmbackup / vmrestore",
+      "kind": "store"
+    },
+    {
+      "id": "s3",
+      "col": 2,
+      "row": 0,
+      "label": "③ vmselect 교체",
+      "sub": "기존 제거·신규 투입",
+      "kind": "query"
+    },
+    {
+      "id": "s4",
+      "col": 3,
+      "row": 0,
+      "label": "④ vminsert 투입",
+      "sub": "실시간 수집 재개",
+      "kind": "proc"
+    }
+  ],
+  "edges": [
+    {
+      "from": "s1",
+      "to": "s2",
+      "rate": 700
+    },
+    {
+      "from": "s2",
+      "to": "s3",
+      "rate": 700
+    },
+    {
+      "from": "s3",
+      "to": "s4",
+      "rate": 700
+    }
+  ]
+}

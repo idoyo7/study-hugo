@@ -1,0 +1,59 @@
+{
+  "caption": "ring0-blue 허브의 ArgoCD → CAPA가 크로스계정 AssumeRole로 워크로드 클러스터를 reconcile",
+  "nodes": [
+    {
+      "id": "argocd",
+      "col": 0,
+      "row": 0,
+      "label": "ArgoCD root-app",
+      "sub": "ring0-blue 관리 계정",
+      "kind": "proc"
+    },
+    {
+      "id": "capa",
+      "col": 1,
+      "row": 0,
+      "label": "CAPA / CAPI 컨트롤러",
+      "sub": "ring0-blue 관리 계정",
+      "kind": "proc"
+    },
+    {
+      "id": "stage",
+      "col": 2,
+      "row": 0,
+      "label": "staging-finance-green",
+      "sub": "stage 계정",
+      "kind": "store"
+    },
+    {
+      "id": "prod",
+      "col": 2,
+      "row": 1,
+      "label": "prod-finance-green",
+      "sub": "prod 계정",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "argocd",
+      "to": "capa",
+      "rate": 700,
+      "speed": "normal"
+    },
+    {
+      "from": "capa",
+      "to": "stage",
+      "label": "AssumeRole 크로스계정",
+      "rate": 700,
+      "speed": "normal"
+    },
+    {
+      "from": "capa",
+      "to": "prod",
+      "label": "AssumeRole 크로스계정",
+      "rate": 700,
+      "speed": "normal"
+    }
+  ]
+}

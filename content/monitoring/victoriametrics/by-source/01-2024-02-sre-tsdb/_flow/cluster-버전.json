@@ -1,0 +1,54 @@
+{
+  "caption": "SingleNode에서 라우팅 게이트웨이까지, 이 문서가 따라가는 진화 단계",
+  "nodes": [
+    {
+      "id": "s",
+      "col": 0,
+      "row": 0,
+      "label": "SingleNode",
+      "sub": "SPOF",
+      "kind": "proc"
+    },
+    {
+      "id": "c",
+      "col": 1,
+      "row": 0,
+      "label": "Cluster",
+      "sub": "scale-out",
+      "kind": "proc"
+    },
+    {
+      "id": "m",
+      "col": 2,
+      "row": 0,
+      "label": "멀티 클러스터",
+      "sub": "접근 패턴 분리",
+      "kind": "proc"
+    },
+    {
+      "id": "g",
+      "col": 3,
+      "row": 0,
+      "label": "라우팅 게이트웨이",
+      "sub": "단일 진입점",
+      "kind": "proc"
+    }
+  ],
+  "edges": [
+    {
+      "from": "s",
+      "to": "c",
+      "dashed": true
+    },
+    {
+      "from": "c",
+      "to": "m",
+      "dashed": true
+    },
+    {
+      "from": "m",
+      "to": "g",
+      "dashed": true
+    }
+  ]
+}

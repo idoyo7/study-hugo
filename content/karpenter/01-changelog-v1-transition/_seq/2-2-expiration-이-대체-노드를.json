@@ -1,0 +1,117 @@
+{
+  "caption": "두 경로는 NodeClaim 삭제 전까지만 다르다 — graceful은 budget 평가와 대체 노드 Initialized 대기를 거치고 forceful(expiration·interruption)은 둘 다 건너뛴다. 드레인 단계는 동일하며 PDB·do-not-disrupt는 여기서만 개입하고 TGP가 그 개입을 끝낸다.",
+  "participants": [
+    {
+      "id": "exp",
+      "label": "nodeclaim.expiration"
+    },
+    {
+      "id": "dis",
+      "label": "disruption 컨트롤러"
+    },
+    {
+      "id": "q",
+      "label": "disruption queue"
+    },
+    {
+      "id": "term",
+      "label": "node.termination"
+    },
+    {
+      "id": "pod",
+      "label": "파드 · PDB"
+    }
+  ],
+  "steps": [
+    {
+      "alt": "drift · consolidation (graceful)",
+      "steps": [
+        {
+          "note": [
+            "dis"
+          ],
+          "lines": [
+            "budgets 평가 — reason별 최솟값",
+            "기본은 nodes: 10% 하나"
+          ]
+        },
+        {
+          "msg": [
+            "dis",
+            "q"
+          ],
+          "label": "Command(candidates + replacements)"
+        },
+        {
+          "note": [
+            "q"
+          ],
+          "lines": [
+            "markDisrupted: disrupted taint",
+            "대체 NodeClaim Initialized 대기"
+          ]
+        },
+        {
+          "msg": [
+            "q",
+            "term"
+          ],
+          "label": "Delete(NodeClaim) — 대체 준비 후"
+        }
+      ],
+      "elseLabel": "expiration (forceful)",
+      "elseSteps": [
+        {
+          "note": [
+            "exp"
+          ],
+          "lines": [
+            "expireAfter 초과 즉시",
+            "budget·후보 평가 없음"
+          ]
+        },
+        {
+          "msg": [
+            "exp",
+            "term"
+          ],
+          "label": "Delete(NodeClaim) — 대체 없이"
+        }
+      ]
+    },
+    {
+      "msg": [
+        "term",
+        "pod"
+      ],
+      "label": "disrupted:NoSchedule → Eviction API"
+    },
+    {
+      "note": [
+        "pod"
+      ],
+      "lines": [
+        "PDB · do-not-disrupt가 막는 지점은 여기뿐"
+      ]
+    },
+    {
+      "note": [
+        "term"
+      ],
+      "lines": [
+        "TGP 만료 = 강제 삭제",
+        "TGP 미설정이면 무기한 대기"
+      ]
+    },
+    {
+      "note": [
+        "term",
+        "pod"
+      ],
+      "lines": [
+        "awaitDrain → awaitVolumeDetachment → awaitInstanceTermination",
+        "1.6부터 Drained·VolumesDetached·InstanceTerminating 컨디션으로 노출"
+      ]
+    }
+  ]
+}

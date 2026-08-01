@@ -1,0 +1,71 @@
+{
+  "caption": "proxyv2 이미지가 만들어지는 경로 — Envoy는 커밋 단위로 pin되어 확장과 함께 컴파일되고, pilot-agent는 별도로 실려 엔트리포인트가 된다.",
+  "nodes": [
+    {
+      "id": "UE",
+      "col": 0,
+      "row": 0,
+      "label": "upstream Envoy",
+      "sub": "envoyproxy/envoy 특정 커밋",
+      "kind": "store"
+    },
+    {
+      "id": "EX",
+      "col": 0,
+      "row": 1,
+      "label": "Istio 확장",
+      "sub": "metadata exchange · stats · ALPN",
+      "kind": "store"
+    },
+    {
+      "id": "B",
+      "col": 1,
+      "row": 0,
+      "label": "istio/proxy 빌드",
+      "sub": "WORKSPACE의 ENVOY_SHA로 고정",
+      "kind": "proc"
+    },
+    {
+      "id": "PA",
+      "col": 1,
+      "row": 1,
+      "label": "pilot-agent",
+      "sub": "istio/istio에서 빌드",
+      "kind": "store"
+    },
+    {
+      "id": "IM",
+      "col": 2,
+      "row": 0,
+      "label": "proxyv2 이미지",
+      "sub": "ENTRYPOINT = pilot-agent",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "UE",
+      "to": "B",
+      "label": "pin",
+      "rate": 700
+    },
+    {
+      "from": "EX",
+      "to": "B",
+      "label": "함께 컴파일",
+      "rate": 700
+    },
+    {
+      "from": "B",
+      "to": "IM",
+      "label": "envoy",
+      "rate": 700
+    },
+    {
+      "from": "PA",
+      "to": "IM",
+      "label": "그대로 COPY",
+      "rate": 700
+    }
+  ]
+}

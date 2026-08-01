@@ -1,0 +1,119 @@
+{
+  "caption": "istiod 연결 실패는 pilot-agent를 거쳐 Envoy의 stream close로 전파되고, backoff 재연결 때 UDS가 잠깐 열리면서 connected_state가 0과 1 사이를 오간다.",
+  "participants": [
+    {
+      "id": "E",
+      "label": "Envoy"
+    },
+    {
+      "id": "A",
+      "label": "pilot-agent"
+    },
+    {
+      "id": "D",
+      "label": "istiod"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "E",
+        "A"
+      ],
+      "label": "1. xDS stream 생성 (Pod 내부 UDS)"
+    },
+    {
+      "msg": [
+        "A",
+        "D"
+      ],
+      "label": "2. istiod.istio-system.svc 연결 시도",
+      "dashed": true
+    },
+    {
+      "note": [
+        "A",
+        "D"
+      ],
+      "lines": [
+        "DNS lookup i/o timeout",
+        "istiod에 도달하지 못함"
+      ]
+    },
+    {
+      "msg": [
+        "A",
+        "E"
+      ],
+      "label": "3. Recv() 에러를 downstream에 전파",
+      "dashed": true
+    },
+    {
+      "note": [
+        "E",
+        "A"
+      ],
+      "lines": [
+        "connected_state = 0 · retry timer 시작"
+      ]
+    },
+    {
+      "msg": [
+        "E",
+        "A"
+      ],
+      "label": "4. backoff 후 재연결 — UDS는 잠깐 열린다"
+    },
+    {
+      "note": [
+        "E",
+        "A"
+      ],
+      "lines": [
+        "이 순간 connected_state = 1 로 보인다"
+      ]
+    },
+    {
+      "alt": "istiod 도달 가능",
+      "steps": [
+        {
+          "msg": [
+            "A",
+            "D"
+          ],
+          "label": "stream 재수립 → 정상"
+        }
+      ],
+      "elseLabel": "여전히 실패",
+      "elseSteps": [
+        {
+          "msg": [
+            "A",
+            "D"
+          ],
+          "label": "다시 연결 시도",
+          "dashed": true
+        },
+        {
+          "note": [
+            "A",
+            "D"
+          ],
+          "lines": [
+            "다시 i/o timeout"
+          ]
+        },
+        {
+          "note": [
+            "E",
+            "D"
+          ],
+          "lines": [
+            "2~4가 반복 — closed since 1614s ago",
+            "connected_state가 0↔1로 진동한다"
+          ]
+        }
+      ]
+    }
+  ]
+}

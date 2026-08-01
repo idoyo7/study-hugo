@@ -1,0 +1,57 @@
+{
+  "caption": "설정 변경 하나가 전파되는 대상 — 사이드카 모드는 파드 수만큼, Ambient는 노드 수(ztunnel)와 waypoint 수만큼이다.",
+  "nodes": [
+    {
+      "id": "d",
+      "col": 0,
+      "row": 1,
+      "label": "istiod",
+      "sub": "xDS 서버",
+      "kind": "proc"
+    },
+    {
+      "id": "sc",
+      "col": 1,
+      "row": 0,
+      "label": "사이드카",
+      "sub": "파드 수만큼 · 기존 모드",
+      "kind": "sink"
+    },
+    {
+      "id": "zt",
+      "col": 1,
+      "row": 1,
+      "label": "ztunnel",
+      "sub": "노드당 1개 · Ambient",
+      "kind": "sink"
+    },
+    {
+      "id": "wp",
+      "col": 1,
+      "row": 2,
+      "label": "waypoint",
+      "sub": "필요한 ns·service만",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "d",
+      "to": "sc",
+      "label": "파드 수 비례",
+      "rate": 200
+    },
+    {
+      "from": "d",
+      "to": "zt",
+      "label": "노드 수 비례",
+      "rate": 900
+    },
+    {
+      "from": "d",
+      "to": "wp",
+      "label": "선택적",
+      "rate": 1100
+    }
+  ]
+}

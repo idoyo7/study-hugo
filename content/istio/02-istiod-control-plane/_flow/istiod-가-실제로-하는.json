@@ -1,0 +1,78 @@
+{
+  "caption": "istiod가 Kube API를 watch해 상태를 계산하고 xDS로 각 Envoy에 push",
+  "nodes": [
+    {
+      "id": "K",
+      "col": 0,
+      "row": 0,
+      "label": "Kube API",
+      "sub": "Service · Endpoint · Pod · Istio CRD",
+      "kind": "store"
+    },
+    {
+      "id": "D",
+      "col": 1,
+      "row": 0,
+      "label": "istiod",
+      "sub": "1. 상태 수집 → 2. Envoy 설정 변환 → 3. push",
+      "kind": "proc"
+    },
+    {
+      "id": "E1",
+      "col": 2,
+      "row": 0,
+      "label": "Envoy₁",
+      "kind": "proc"
+    },
+    {
+      "id": "E2",
+      "col": 2,
+      "row": 1,
+      "label": "Envoy₂",
+      "kind": "proc"
+    },
+    {
+      "id": "E3",
+      "col": 2,
+      "row": 2,
+      "label": "Envoy₃",
+      "kind": "proc"
+    },
+    {
+      "id": "En",
+      "col": 2,
+      "row": 3,
+      "label": "Envoyₙ",
+      "kind": "proc"
+    }
+  ],
+  "edges": [
+    {
+      "from": "K",
+      "to": "D",
+      "label": "watch",
+      "rate": 700
+    },
+    {
+      "from": "D",
+      "to": "E1",
+      "label": "xDS (ADS/gRPC)",
+      "rate": 600
+    },
+    {
+      "from": "D",
+      "to": "E2",
+      "rate": 600
+    },
+    {
+      "from": "D",
+      "to": "E3",
+      "rate": 600
+    },
+    {
+      "from": "D",
+      "to": "En",
+      "rate": 600
+    }
+  ]
+}

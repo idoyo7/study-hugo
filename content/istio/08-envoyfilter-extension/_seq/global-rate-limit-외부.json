@@ -1,0 +1,100 @@
+{
+  "caption": "global rate limit — 매 요청이 외부 RLS를 한 번 왕복해 allow/deny를 받고, 그 판정이 통과와 429를 가른다.",
+  "participants": [
+    {
+      "id": "C",
+      "label": "클라이언트"
+    },
+    {
+      "id": "E",
+      "label": "Envoy"
+    },
+    {
+      "id": "F",
+      "label": "ratelimit 필터"
+    },
+    {
+      "id": "R",
+      "label": "RLS + Redis"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "C",
+        "E"
+      ],
+      "label": "1. 인바운드 요청"
+    },
+    {
+      "msg": [
+        "E",
+        "F"
+      ],
+      "label": "2. HTTP 필터 체인 → ratelimit 필터"
+    },
+    {
+      "msg": [
+        "F",
+        "R"
+      ],
+      "label": "3. descriptor로 쿼터 질의"
+    },
+    {
+      "note": [
+        "F",
+        "R"
+      ],
+      "lines": [
+        "Redis 카운터 하나가 클러스터 전역 한도를 센다",
+        "요청마다 이 왕복이 지연으로 더해진다"
+      ]
+    },
+    {
+      "msg": [
+        "R",
+        "F"
+      ],
+      "label": "4. allow / deny",
+      "dashed": true
+    },
+    {
+      "alt": "allow",
+      "steps": [
+        {
+          "msg": [
+            "F",
+            "E"
+          ],
+          "label": "5. 통과 — 업스트림으로"
+        },
+        {
+          "msg": [
+            "E",
+            "C"
+          ],
+          "label": "6. 정상 응답",
+          "dashed": true
+        }
+      ],
+      "elseLabel": "deny",
+      "elseSteps": [
+        {
+          "msg": [
+            "F",
+            "E"
+          ],
+          "label": "5'. 차단 판정"
+        },
+        {
+          "msg": [
+            "E",
+            "C"
+          ],
+          "label": "6'. 429 Too Many Requests",
+          "dashed": true
+        }
+      ]
+    }
+  ]
+}

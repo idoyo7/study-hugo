@@ -1,0 +1,148 @@
+{
+  "caption": "위쪽은 선제 전략, 아래쪽은 반응 전략이다. 선제는 노드가 뜨는 순간부터 격리 상태이므로 탐지 단계 자체가 없고, taint 제거 신호가 곧 스케줄 허용 신호가 된다. 반응은 워크로드가 이미 내려앉은 뒤에 갭을 발견하므로, 탐지에 걸리는 시간이 그대로 장애 노출 시간이 된다.",
+  "nodes": [
+    {
+      "id": "n",
+      "col": 0,
+      "row": 0,
+      "label": "새 노드 등록",
+      "sub": "Karpenter · MNG · 부트스트랩",
+      "kind": "src"
+    },
+    {
+      "id": "a1",
+      "col": 1,
+      "row": 0,
+      "label": "startup taint",
+      "sub": "부팅 시점부터 격리",
+      "kind": "proc"
+    },
+    {
+      "id": "a2",
+      "col": 2,
+      "row": 0,
+      "label": "DS Ready",
+      "sub": "CNI · 에이전트 준비",
+      "kind": "proc"
+    },
+    {
+      "id": "a3",
+      "col": 3,
+      "row": 0,
+      "label": "taint 제거",
+      "sub": "DS 자신 또는 컨트롤러",
+      "kind": "proc"
+    },
+    {
+      "id": "a4",
+      "col": 4,
+      "row": 0,
+      "label": "워크로드 배치",
+      "sub": "인프라 보장됨",
+      "kind": "sink"
+    },
+    {
+      "id": "b1",
+      "col": 1,
+      "row": 1,
+      "label": "워크로드 배치",
+      "sub": "DS와 동시 스케줄",
+      "kind": "proc"
+    },
+    {
+      "id": "b2",
+      "col": 2,
+      "row": 1,
+      "label": "갭 탐지",
+      "sub": "PromQL · NodeCondition",
+      "kind": "query"
+    },
+    {
+      "id": "b3",
+      "col": 3,
+      "row": 1,
+      "label": "taint · cordon",
+      "sub": "유입 차단",
+      "kind": "proc"
+    },
+    {
+      "id": "b4",
+      "col": 4,
+      "row": 1,
+      "label": "drain · 교체",
+      "sub": "PDB 준수 축출",
+      "kind": "sink"
+    }
+  ],
+  "groups": [
+    {
+      "id": "ga",
+      "label": "① 선제 — 탐지 없음",
+      "members": [
+        "a1",
+        "a2",
+        "a3",
+        "a4"
+      ]
+    },
+    {
+      "id": "gb",
+      "label": "② 반응 — 탐지가 지연",
+      "members": [
+        "b1",
+        "b2",
+        "b3",
+        "b4"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "n",
+      "to": "a1",
+      "label": "부착",
+      "rate": 620
+    },
+    {
+      "from": "a1",
+      "to": "a2",
+      "label": "대기",
+      "rate": 620
+    },
+    {
+      "from": "a2",
+      "to": "a3",
+      "label": "신호",
+      "rate": 620
+    },
+    {
+      "from": "a3",
+      "to": "a4",
+      "label": "허용",
+      "rate": 620
+    },
+    {
+      "from": "n",
+      "to": "b1",
+      "rate": 620
+    },
+    {
+      "from": "b1",
+      "to": "b2",
+      "label": "장애 노출",
+      "rate": 900
+    },
+    {
+      "from": "b2",
+      "to": "b3",
+      "label": "판정",
+      "rate": 900
+    },
+    {
+      "from": "b3",
+      "to": "b4",
+      "label": "축출",
+      "rate": 900
+    }
+  ]
+}

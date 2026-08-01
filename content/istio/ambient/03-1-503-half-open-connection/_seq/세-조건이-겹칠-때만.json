@@ -1,0 +1,131 @@
+{
+  "caption": "half-open은 아무도 신호를 보내지 않아서 생긴다 — Pod가 사라져도 waypoint의 pool에는 살아 있는 터널로 남고, 같은 IP를 받은 다음 Pod에게 handshake 없는 data frame이 날아간다. 터널이 이미 걷힌 뒤라면 같은 요청이 정상 처리된다.",
+  "participants": [
+    {
+      "id": "C",
+      "label": "클라이언트"
+    },
+    {
+      "id": "W",
+      "label": "waypoint"
+    },
+    {
+      "id": "Z",
+      "label": "ztunnel"
+    },
+    {
+      "id": "P",
+      "label": "destination Pod"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "C",
+        "W"
+      ],
+      "label": "1. Pod-aaa로 요청"
+    },
+    {
+      "msg": [
+        "W",
+        "Z"
+      ],
+      "label": "2. HBONE CONNECT :15008"
+    },
+    {
+      "msg": [
+        "Z",
+        "P"
+      ],
+      "label": "3. 복호화된 평문 → Pod-aaa"
+    },
+    {
+      "note": [
+        "W",
+        "Z"
+      ],
+      "lines": [
+        "pool key = 10.90.142.96:15008 → ConnectionId 79097"
+      ]
+    },
+    {
+      "note": [
+        "P"
+      ],
+      "lines": [
+        "Pod-aaa 종료 · 같은 IP를 Pod-bbb가 승계"
+      ]
+    },
+    {
+      "note": [
+        "W",
+        "P"
+      ],
+      "lines": [
+        "ztunnel은 GOAWAY도 FIN도 보내지 않는다",
+        "waypoint에게 79097은 여전히 살아 있는 터널이다"
+      ]
+    },
+    {
+      "msg": [
+        "C",
+        "W"
+      ],
+      "label": "4. 같은 IP:Port로 다음 요청"
+    },
+    {
+      "alt": "pool에 79097이 남아 있다 (hboneIdleTimeout 이내)",
+      "steps": [
+        {
+          "msg": [
+            "W",
+            "P"
+          ],
+          "label": "5. 재사용 · handshake 없이 data frame"
+        },
+        {
+          "msg": [
+            "P",
+            "W"
+          ],
+          "label": "6. RST · 새 netns에 상태 없음",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "W",
+            "C"
+          ],
+          "label": "7. 503 · UC",
+          "dashed": true
+        }
+      ],
+      "elseLabel": "pool에서 이미 걷혔다 — idle timeout 만료 또는 reset 재시도",
+      "elseSteps": [
+        {
+          "msg": [
+            "W",
+            "Z"
+          ],
+          "label": "5'. 새 HBONE 터널 handshake"
+        },
+        {
+          "msg": [
+            "Z",
+            "P"
+          ],
+          "label": "6'. 복호화된 평문 → Pod-bbb"
+        },
+        {
+          "msg": [
+            "W",
+            "C"
+          ],
+          "label": "7'. 200",
+          "dashed": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "caption": "downstream과 upstream은 internal listener 경계로 단절되어 있다 — 그 너머의 connect_originate(ORIGINAL_DST) cluster는 IP:Port만을 키로 HBONE 터널을 pool에 보관·재사용한다.",
+  "nodes": [
+    {
+      "id": "ds",
+      "col": 0,
+      "row": 0,
+      "label": "downstream",
+      "sub": "client 요청 수신 listener",
+      "kind": "src"
+    },
+    {
+      "id": "rt",
+      "col": 1,
+      "row": 0,
+      "label": "라우팅",
+      "sub": "route → cluster 선택",
+      "kind": "proc"
+    },
+    {
+      "id": "il",
+      "col": 2,
+      "row": 0,
+      "label": "internal listener",
+      "sub": "user-space 경계 — 여기서 단절",
+      "kind": "proc"
+    },
+    {
+      "id": "cl",
+      "col": 3,
+      "row": 0,
+      "label": "connect_originate",
+      "sub": "ORIGINAL_DST · pool key = IP:Port",
+      "kind": "store"
+    },
+    {
+      "id": "zt",
+      "col": 4,
+      "row": 0,
+      "label": "ztunnel",
+      "sub": "HTTP/2 CONNECT · HBONE :15008",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "ds",
+      "to": "rt",
+      "rate": 600
+    },
+    {
+      "from": "rt",
+      "to": "il",
+      "label": "터널 요청",
+      "rate": 600
+    },
+    {
+      "from": "il",
+      "to": "cl",
+      "rate": 600
+    },
+    {
+      "from": "cl",
+      "to": "zt",
+      "label": "outer 터널",
+      "rate": 600
+    }
+  ]
+}

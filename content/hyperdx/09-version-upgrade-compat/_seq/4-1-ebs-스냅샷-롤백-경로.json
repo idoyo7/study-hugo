@@ -1,0 +1,83 @@
+{
+  "caption": "replica 단위 롤링 업그레이드 — stop→스냅샷→업그레이드, 실패 시 스냅샷 복원 + Keeper 델타 catch-up.",
+  "participants": [
+    {
+      "id": "Op",
+      "label": "운영자"
+    },
+    {
+      "id": "R",
+      "label": "replica(대상)"
+    },
+    {
+      "id": "EBS",
+      "label": "EBS/스냅샷"
+    },
+    {
+      "id": "Rest",
+      "label": "나머지 healthy replica"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "Op",
+        "R"
+      ],
+      "label": "1. PDB 준수하며 이 replica만 stop"
+    },
+    {
+      "msg": [
+        "R",
+        "EBS"
+      ],
+      "label": "2. stop 상태에서 데이터 볼륨 스냅샷(정합)"
+    },
+    {
+      "msg": [
+        "Op",
+        "R"
+      ],
+      "label": "3. 이미지 업그레이드 → 재기동 → readiness"
+    },
+    {
+      "note": [
+        "Op",
+        "R"
+      ],
+      "lines": [
+        "관찰 24~48h: OPTIMIZE FINAL·신규 타입 금지",
+        "(롤백 창 유지)"
+      ]
+    },
+    {
+      "alt": "성공",
+      "steps": [
+        {
+          "msg": [
+            "Op",
+            "Rest"
+          ],
+          "label": "다음 replica로 진행"
+        }
+      ],
+      "elseLabel": "실패(포맷 손상/startup fatal)",
+      "elseSteps": [
+        {
+          "msg": [
+            "EBS",
+            "R"
+          ],
+          "label": "create-volume --snapshot-id --volume-type gp3 → PV/PVC 교체"
+        },
+        {
+          "msg": [
+            "Rest",
+            "R"
+          ],
+          "label": "Keeper 로그 델타만 catch-up"
+        }
+      ]
+    }
+  ]
+}

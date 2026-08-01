@@ -1,0 +1,116 @@
+{
+  "caption": "AddPodToMesh의 호출 순서 — netns 규칙까지는 성공해도 ztunnel ACK를 못 받으면 Pod은 pending으로 남는다. 두 단계 사이의 ACK 왕복이 partially enrolled를 가르는 지점이다.",
+  "participants": [
+    {
+      "id": "N",
+      "label": "Pod netns"
+    },
+    {
+      "id": "C",
+      "label": "istio-cni"
+    },
+    {
+      "id": "Z",
+      "label": "ztunnel"
+    },
+    {
+      "id": "K",
+      "label": "kube-apiserver"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "C",
+        "N"
+      ],
+      "label": "1. Pod UID 스냅샷 등록 · netns 열기"
+    },
+    {
+      "msg": [
+        "C",
+        "N"
+      ],
+      "label": "2. netns 안에 리다이렉션 규칙 생성"
+    },
+    {
+      "msg": [
+        "C",
+        "Z"
+      ],
+      "label": "3. AddWorkload — workload 정보 + netns fd"
+    },
+    {
+      "alt": "ACK 수신",
+      "steps": [
+        {
+          "msg": [
+            "Z",
+            "C"
+          ],
+          "label": "4. ACK",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "C",
+            "K"
+          ],
+          "label": "5. redirection=enabled 적용"
+        },
+        {
+          "note": [
+            "N",
+            "Z"
+          ],
+          "lines": [
+            "두 단계가 모두 끝났다 — captured"
+          ]
+        }
+      ],
+      "elseLabel": "PodAdded — no ztunnel connection",
+      "elseSteps": [
+        {
+          "msg": [
+            "Z",
+            "C"
+          ],
+          "label": "에러 반환",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "C",
+            "K"
+          ],
+          "label": "redirection=pending 적용"
+        },
+        {
+          "note": [
+            "N",
+            "Z"
+          ],
+          "lines": [
+            "규칙은 들어갔는데 ztunnel은 이 Pod을 모른다",
+            "= partially enrolled · 트래픽 유실 구간"
+          ]
+        },
+        {
+          "msg": [
+            "K",
+            "C"
+          ],
+          "label": "Pod update 이벤트",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "C",
+            "Z"
+          ],
+          "label": "PodPartiallyEnrolled → AddPodToMesh 재시도"
+        }
+      ]
+    }
+  ]
+}

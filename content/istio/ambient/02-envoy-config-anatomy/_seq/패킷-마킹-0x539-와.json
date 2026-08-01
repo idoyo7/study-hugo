@@ -1,0 +1,82 @@
+{
+  "caption": "요청은 리다이렉트하되 그 응답은 리다이렉트하지 않기 위해, 커넥션 단위의 상태를 connmark로 기억한다 — 이 기억이 없으면 응답이 ztunnel로 되돌아가 루프가 된다.",
+  "participants": [
+    {
+      "id": "ZT",
+      "label": "ztunnel (in-pod)"
+    },
+    {
+      "id": "IPT",
+      "label": "Pod netns iptables"
+    },
+    {
+      "id": "APP",
+      "label": "앱 컨테이너"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "ZT",
+        "IPT"
+      ],
+      "label": "1. HBONE 해제한 트래픽을 앱으로 (mark 0x539)"
+    },
+    {
+      "note": [
+        "IPT"
+      ],
+      "lines": [
+        "mangle PREROUTING: mark 0x539 를 보고",
+        "이 커넥션에 connmark 0x111 을 기록"
+      ]
+    },
+    {
+      "msg": [
+        "IPT",
+        "APP"
+      ],
+      "label": "2. REDIRECT 우회 — 규칙이 ! --mark 0x539 라서"
+    },
+    {
+      "msg": [
+        "APP",
+        "IPT"
+      ],
+      "label": "3. 같은 커넥션으로 응답 송신",
+      "dashed": true
+    },
+    {
+      "note": [
+        "IPT"
+      ],
+      "lines": [
+        "mangle OUTPUT: connmark 0x111 → 패킷 mark 로 복원"
+      ]
+    },
+    {
+      "alt": "mark 0x111 매치",
+      "steps": [
+        {
+          "note": [
+            "IPT"
+          ],
+          "lines": [
+            "nat: ACCEPT — ISTIO_OUTPUT 의 REDIRECT 를 타지 않는다",
+            "응답은 ztunnel 을 다시 거치지 않고 그대로 나간다"
+          ]
+        }
+      ],
+      "elseLabel": "connmark 를 안 남겼다면",
+      "elseSteps": [
+        {
+          "msg": [
+            "IPT",
+            "ZT"
+          ],
+          "label": "REDIRECT :15001 — 응답이 ztunnel 로 되돌아간다"
+        }
+      ]
+    }
+  ]
+}

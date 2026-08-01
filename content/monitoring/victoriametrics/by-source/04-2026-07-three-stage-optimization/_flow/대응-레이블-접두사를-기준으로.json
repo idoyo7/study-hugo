@@ -1,0 +1,91 @@
+{
+  "caption": "container 레이블 접두사 기준 36개 쿼리 분할(예시로 4개만 표시) — vmselect 부하 분산",
+  "nodes": [
+    {
+      "id": "q",
+      "col": 0,
+      "row": 1,
+      "label": "단일 집계 쿼리",
+      "sub": "전체 container 대상",
+      "kind": "query"
+    },
+    {
+      "id": "ba",
+      "col": 1,
+      "row": 0,
+      "label": "a.* 쿼리",
+      "kind": "proc"
+    },
+    {
+      "id": "bb",
+      "col": 1,
+      "row": 1,
+      "label": "b.* 쿼리",
+      "kind": "proc"
+    },
+    {
+      "id": "bz",
+      "col": 1,
+      "row": 2,
+      "label": "z.* 쿼리",
+      "kind": "proc"
+    },
+    {
+      "id": "bn",
+      "col": 1,
+      "row": 3,
+      "label": "0.* ~ 9.* 쿼리",
+      "kind": "proc"
+    },
+    {
+      "id": "v",
+      "col": 2,
+      "row": 1,
+      "label": "vmselect",
+      "sub": "부하 분산",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "q",
+      "to": "ba",
+      "rate": 650
+    },
+    {
+      "from": "q",
+      "to": "bb",
+      "rate": 650
+    },
+    {
+      "from": "q",
+      "to": "bz",
+      "rate": 650
+    },
+    {
+      "from": "q",
+      "to": "bn",
+      "rate": 650
+    },
+    {
+      "from": "ba",
+      "to": "v",
+      "rate": 650
+    },
+    {
+      "from": "bb",
+      "to": "v",
+      "rate": 650
+    },
+    {
+      "from": "bz",
+      "to": "v",
+      "rate": 650
+    },
+    {
+      "from": "bn",
+      "to": "v",
+      "rate": 650
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "caption": "INSERT ack 흐름과 유실 창 — ack 전에 서버가 죽으면 미커밋 데이터는 사라지고, Keeper는 그 데이터를 갖고 있지 않다.",
+  "participants": [
+    {
+      "id": "Cl",
+      "label": "Client(OTel/앱)"
+    },
+    {
+      "id": "S",
+      "label": "CH 서버(replica)"
+    },
+    {
+      "id": "D",
+      "label": "로컬 디스크(파트)"
+    },
+    {
+      "id": "K",
+      "label": "Keeper"
+    },
+    {
+      "id": "R",
+      "label": "다른 replica"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "Cl",
+        "S"
+      ],
+      "label": "INSERT (데이터 바이트)"
+    },
+    {
+      "note": [
+        "S"
+      ],
+      "lines": [
+        "동기 INSERT면 즉시 파트로 씀",
+        "async_insert면 메모리 버퍼(휘발)에 잠깐"
+      ]
+    },
+    {
+      "msg": [
+        "S",
+        "D"
+      ],
+      "label": "파트 write (fsync)"
+    },
+    {
+      "msg": [
+        "S",
+        "K"
+      ],
+      "label": "파트 등록·블록번호·로그 엔트리(~10)"
+    },
+    {
+      "msg": [
+        "K",
+        "R"
+      ],
+      "label": "복제 지시(포인터)",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "S",
+        "R"
+      ],
+      "label": "파트 바이트 직접 전송"
+    },
+    {
+      "msg": [
+        "S",
+        "Cl"
+      ],
+      "label": "ack (커밋 후)",
+      "dashed": true
+    },
+    {
+      "note": [
+        "S",
+        "K"
+      ],
+      "lines": [
+        "유실 창: ack 전에 S가 죽으면",
+        "메모리 버퍼/미커밋 파트는 사라진다",
+        "Keeper는 그 데이터를 갖고 있지 않다"
+      ]
+    }
+  ]
+}

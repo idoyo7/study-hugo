@@ -1,0 +1,80 @@
+{
+  "caption": "JWT 2단 관문 — 토큰이 없는 요청은 RequestAuthentication을 그냥 통과한다",
+  "nodes": [
+    {
+      "id": "R",
+      "col": 0,
+      "row": 0,
+      "label": "요청",
+      "kind": "src"
+    },
+    {
+      "id": "RA",
+      "col": 1,
+      "row": 0,
+      "label": "JWT 검증",
+      "sub": "RequestAuthentication · 토큰이 있을 때만",
+      "kind": "proc"
+    },
+    {
+      "id": "AP",
+      "col": 2,
+      "row": 0,
+      "label": "인가 판정",
+      "sub": "AuthorizationPolicy · CUSTOM → DENY → ALLOW",
+      "kind": "proc"
+    },
+    {
+      "id": "W",
+      "col": 3,
+      "row": 0,
+      "label": "워크로드",
+      "kind": "sink"
+    },
+    {
+      "id": "X1",
+      "col": 2,
+      "row": 1,
+      "label": "거부",
+      "sub": "유효하지 않은 토큰",
+      "kind": "sink"
+    },
+    {
+      "id": "X2",
+      "col": 3,
+      "row": 1,
+      "label": "거부",
+      "sub": "DENY 매치 · ALLOW 불일치",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "R",
+      "to": "RA",
+      "rate": 700
+    },
+    {
+      "from": "RA",
+      "to": "AP",
+      "label": "통과",
+      "rate": 700
+    },
+    {
+      "from": "AP",
+      "to": "W",
+      "label": "허용",
+      "rate": 700
+    },
+    {
+      "from": "RA",
+      "to": "X1",
+      "label": "invalid credential"
+    },
+    {
+      "from": "AP",
+      "to": "X2",
+      "label": "인가 판정에서 탈락"
+    }
+  ]
+}

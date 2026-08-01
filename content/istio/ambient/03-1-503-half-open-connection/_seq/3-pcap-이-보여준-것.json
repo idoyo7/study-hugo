@@ -1,0 +1,119 @@
+{
+  "caption": "정상이라면 SYN·ClientHello·CONNECT가 오가며 터널을 세운 뒤에야 data frame이 흐른다. 비정상 케이스에는 그 왕복이 통째로 없고, 애플리케이션에는 아무것도 닿지 않은 채 커널이 RST로 답한다.",
+  "participants": [
+    {
+      "id": "W",
+      "label": "waypoint"
+    },
+    {
+      "id": "Z",
+      "label": "ztunnel :15008"
+    },
+    {
+      "id": "A",
+      "label": "애플리케이션"
+    }
+  ],
+  "steps": [
+    {
+      "alt": "정상 — 터널을 새로 세운다",
+      "steps": [
+        {
+          "msg": [
+            "W",
+            "Z"
+          ],
+          "label": "1. TCP SYN"
+        },
+        {
+          "msg": [
+            "Z",
+            "W"
+          ],
+          "label": "2. SYN-ACK",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "W",
+            "Z"
+          ],
+          "label": "3. ACK · TLS ClientHello"
+        },
+        {
+          "msg": [
+            "Z",
+            "W"
+          ],
+          "label": "4. ServerHello · 인증서 교환",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "W",
+            "Z"
+          ],
+          "label": "5. HTTP/2 CONNECT"
+        },
+        {
+          "msg": [
+            "Z",
+            "W"
+          ],
+          "label": "6. 200",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "W",
+            "Z"
+          ],
+          "label": "7. data frame"
+        },
+        {
+          "msg": [
+            "Z",
+            "A"
+          ],
+          "label": "8. 복호화된 평문"
+        },
+        {
+          "msg": [
+            "A",
+            "Z"
+          ],
+          "label": "9. 응답",
+          "dashed": true
+        }
+      ],
+      "elseLabel": "비정상 — 재사용된 터널이라 handshake가 없다",
+      "elseSteps": [
+        {
+          "msg": [
+            "W",
+            "Z"
+          ],
+          "label": "1. data frame부터 도착"
+        },
+        {
+          "msg": [
+            "Z",
+            "W"
+          ],
+          "label": "2. RST",
+          "dashed": true
+        },
+        {
+          "note": [
+            "Z",
+            "A"
+          ],
+          "lines": [
+            "새로 생성된 Pod의 netns에는 이 TCP connection 상태가 없다",
+            "답한 것은 ztunnel이 아니라 커널 TCP 스택이다"
+          ]
+        }
+      ]
+    }
+  ]
+}

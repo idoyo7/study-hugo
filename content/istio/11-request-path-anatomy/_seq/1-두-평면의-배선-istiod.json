@@ -1,0 +1,104 @@
+{
+  "caption": "파드가 뜰 때 istio-agent가 순서대로 배선하는 것들 — Envoy는 istiod와 직접 연결되지 않는다.",
+  "participants": [
+    {
+      "id": "E",
+      "label": "Envoy"
+    },
+    {
+      "id": "A",
+      "label": "istio-agent"
+    },
+    {
+      "id": "D",
+      "label": "istiod :15012"
+    }
+  ],
+  "steps": [
+    {
+      "note": [
+        "E",
+        "A"
+      ],
+      "lines": [
+        "istio-proxy 컨테이너 하나 안에 둘이 같이 있다"
+      ]
+    },
+    {
+      "msg": [
+        "A",
+        "E"
+      ],
+      "label": "1. 부트스트랩 설정 생성 후 기동"
+    },
+    {
+      "msg": [
+        "A",
+        "D"
+      ],
+      "label": "2. 개인키·CSR + 워크로드 credential"
+    },
+    {
+      "msg": [
+        "D",
+        "A"
+      ],
+      "label": "3. 서명된 인증서",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "E",
+        "A"
+      ],
+      "label": "4. SDS 요청 (UDS)"
+    },
+    {
+      "msg": [
+        "A",
+        "E"
+      ],
+      "label": "5. 인증서·키",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "E",
+        "A"
+      ],
+      "label": "6. xDS 요청 (UDS)"
+    },
+    {
+      "msg": [
+        "A",
+        "D"
+      ],
+      "label": "7. xDS 중계"
+    },
+    {
+      "msg": [
+        "D",
+        "A"
+      ],
+      "label": "8. CDS·EDS·LDS·RDS",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "A",
+        "E"
+      ],
+      "label": "9. 그대로 전달",
+      "dashed": true
+    },
+    {
+      "note": [
+        "A",
+        "D"
+      ],
+      "lines": [
+        "agent는 여러 gRPC 스트림을 TCP 커넥션 하나에 모은다"
+      ]
+    }
+  ]
+}

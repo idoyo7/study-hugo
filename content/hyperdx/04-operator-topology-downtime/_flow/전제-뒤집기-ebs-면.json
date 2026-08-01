@@ -1,0 +1,85 @@
+{
+  "caption": "노드 급사 시 복구 경로 — 로컬 NVMe(전량 재수화) vs EBS(reattach+델타 catch-up)",
+  "nodes": [
+    {
+      "id": "A1",
+      "col": 0,
+      "row": 0,
+      "label": "노드 급사",
+      "sub": "로컬 NVMe (기존 corpus 전제)",
+      "kind": "src"
+    },
+    {
+      "id": "A2",
+      "col": 1,
+      "row": 0,
+      "label": "데이터 영구 소실",
+      "kind": "store"
+    },
+    {
+      "id": "A3",
+      "col": 2,
+      "row": 0,
+      "label": "healthy replica에서 전량 재수화",
+      "sub": "(수 시간, RF2→실질 RF1)",
+      "kind": "proc"
+    },
+    {
+      "id": "B1",
+      "col": 0,
+      "row": 1,
+      "label": "노드 급사",
+      "sub": "EBS gp3/io2 (이 문서 전제)",
+      "kind": "src"
+    },
+    {
+      "id": "B2",
+      "col": 1,
+      "row": 1,
+      "label": "데이터는 EBS에 생존",
+      "kind": "store"
+    },
+    {
+      "id": "B3",
+      "col": 2,
+      "row": 1,
+      "label": "볼륨 detach → 같은 AZ 새 노드에 reattach",
+      "kind": "proc"
+    },
+    {
+      "id": "B4",
+      "col": 3,
+      "row": 1,
+      "label": "기존 파트 그대로 + Keeper 로그 델타만 catch-up",
+      "sub": "(수 분, RF 안 떨어짐*)",
+      "kind": "proc"
+    }
+  ],
+  "edges": [
+    {
+      "from": "A1",
+      "to": "A2",
+      "dashed": true
+    },
+    {
+      "from": "A2",
+      "to": "A3",
+      "dashed": true
+    },
+    {
+      "from": "B1",
+      "to": "B2",
+      "dashed": true
+    },
+    {
+      "from": "B2",
+      "to": "B3",
+      "dashed": true
+    },
+    {
+      "from": "B3",
+      "to": "B4",
+      "dashed": true
+    }
+  ]
+}

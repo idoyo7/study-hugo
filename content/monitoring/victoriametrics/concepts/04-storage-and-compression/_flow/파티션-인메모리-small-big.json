@@ -1,0 +1,47 @@
+{
+  "caption": "파티션 — 인메모리에서 Small로 플러시, Small에서 Big으로 머지",
+  "nodes": [
+    {
+      "id": "IM",
+      "col": 0,
+      "row": 0,
+      "label": "인메모리 파츠",
+      "kind": "store"
+    },
+    {
+      "id": "SM",
+      "col": 1,
+      "row": 0,
+      "label": "Small 파티션",
+      "kind": "store"
+    },
+    {
+      "id": "BG",
+      "col": 2,
+      "row": 0,
+      "label": "Big 파티션",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "IM",
+      "to": "SM",
+      "label": "플러시",
+      "rate": 700
+    },
+    {
+      "from": "SM",
+      "to": "BG",
+      "label": "머지 (Merge Multiplier ↑)",
+      "rate": 700
+    },
+    {
+      "from": "IM",
+      "to": "BG",
+      "label": "아주 큰 블록",
+      "rate": 800,
+      "speed": "slow"
+    }
+  ]
+}

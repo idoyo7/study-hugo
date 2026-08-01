@@ -1,0 +1,99 @@
+{
+  "caption": "같은 요청이 두 갈래로 갈린다 — retry 시점에 buffer가 body를 들고 있으면 replay해서 재시도하고, 1MB를 넘겨 buffering을 포기한 뒤였다면 507 local reply가 나간다.",
+  "participants": [
+    {
+      "id": "C",
+      "label": "클라이언트"
+    },
+    {
+      "id": "E",
+      "label": "waypoint Envoy"
+    },
+    {
+      "id": "U",
+      "label": "upstream 앱"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "C",
+        "E"
+      ],
+      "label": "1. large POST body를 chunk로 전송"
+    },
+    {
+      "msg": [
+        "E",
+        "U"
+      ],
+      "label": "2. 받은 chunk를 그대로 흘려보냄"
+    },
+    {
+      "note": [
+        "E",
+        "U"
+      ],
+      "lines": [
+        "retry·shadow에 대비해 같은 body를 decoding buffer에도 적재",
+        "경계 = per_connection_buffer_limit_bytes (기본 1MB)"
+      ]
+    },
+    {
+      "alt": "누적 ≤ 1MB — replay 가능",
+      "steps": [
+        {
+          "msg": [
+            "U",
+            "E"
+          ],
+          "label": "3. upstream reset / 5xx",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "E",
+            "U"
+          ],
+          "label": "4. buffer의 body를 replay해 retry"
+        },
+        {
+          "msg": [
+            "E",
+            "C"
+          ],
+          "label": "5. 정상 응답",
+          "dashed": true
+        }
+      ],
+      "elseLabel": "누적 > 1MB — retry state reset",
+      "elseSteps": [
+        {
+          "note": [
+            "E",
+            "U"
+          ],
+          "lines": [
+            "buffering 포기 — 이 시점부터 body를 replay할 수 없다"
+          ]
+        },
+        {
+          "msg": [
+            "U",
+            "E"
+          ],
+          "label": "3'. upstream reset / 5xx",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "E",
+            "C"
+          ],
+          "label": "4'. 507 local reply",
+          "dashed": true
+        }
+      ]
+    }
+  ]
+}

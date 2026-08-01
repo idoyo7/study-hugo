@@ -1,0 +1,57 @@
+{
+  "caption": "메시 참여의 두 조건 — 1단계는 istio-cni node agent가 Pod network namespace에 진입해 트래픽 리다이렉션 규칙을 설정하는 것, 2단계는 istio-cni가 Pod의 workload 정보와 network namespace file descriptor를 ztunnel에 넘겨 ztunnel이 그 Pod의 소켓으로 인바운드·아웃바운드를 처리할 준비를 마치는 것이다. 레이블은 이 둘 중 어느 것도 대신하지 못한다.",
+  "nodes": [
+    {
+      "id": "l",
+      "col": 0,
+      "row": 0,
+      "label": "ambient 레이블",
+      "sub": "네임스페이스 · 의도 표명",
+      "kind": "src"
+    },
+    {
+      "id": "c",
+      "col": 1,
+      "row": 0,
+      "label": "istio-cni",
+      "sub": "1단계 · netns 리다이렉션 규칙",
+      "kind": "proc"
+    },
+    {
+      "id": "z",
+      "col": 2,
+      "row": 0,
+      "label": "ztunnel",
+      "sub": "2단계 · workload · netns fd",
+      "kind": "proc"
+    },
+    {
+      "id": "t",
+      "col": 3,
+      "row": 0,
+      "label": "메시 트래픽",
+      "sub": "inbound · outbound 처리",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "l",
+      "to": "c",
+      "label": "Pod 생성",
+      "rate": 640
+    },
+    {
+      "from": "c",
+      "to": "z",
+      "label": "netns fd",
+      "rate": 640
+    },
+    {
+      "from": "z",
+      "to": "t",
+      "label": "proxy",
+      "rate": 480
+    }
+  ]
+}

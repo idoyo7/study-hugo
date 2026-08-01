@@ -1,0 +1,76 @@
+{
+  "caption": "vmauth 라우팅 게이트웨이를 통한 사용자 요청 라우팅",
+  "nodes": [
+    {
+      "id": "u",
+      "col": 0,
+      "row": 1,
+      "label": "사용자",
+      "sub": "대시보드 · 알림",
+      "kind": "src"
+    },
+    {
+      "id": "gw",
+      "col": 1,
+      "row": 1,
+      "label": "vmauth",
+      "sub": "라우팅 게이트웨이",
+      "kind": "proc"
+    },
+    {
+      "id": "c1",
+      "col": 2,
+      "row": 0,
+      "label": "클러스터 1",
+      "kind": "store"
+    },
+    {
+      "id": "c2",
+      "col": 2,
+      "row": 1,
+      "label": "클러스터 2",
+      "kind": "store"
+    },
+    {
+      "id": "c3",
+      "col": 2,
+      "row": 2,
+      "label": "클러스터 3",
+      "kind": "store"
+    },
+    {
+      "id": "c4",
+      "col": 2,
+      "row": 3,
+      "label": "클러스터 4+α",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "u",
+      "to": "gw",
+      "rate": 700
+    },
+    {
+      "from": "gw",
+      "to": "c1",
+      "rate": 600
+    },
+    {
+      "from": "gw",
+      "to": "c2",
+      "rate": 600
+    },
+    {
+      "from": "gw",
+      "to": "c3",
+      "rate": 600
+    },
+    {
+      "from": "gw",
+      "to": "c4",
+      "rate": 600
+    }
+  ]
+}

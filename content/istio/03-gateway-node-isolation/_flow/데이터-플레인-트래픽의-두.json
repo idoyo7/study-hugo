@@ -1,0 +1,77 @@
+{
+  "caption": "데이터 플레인 트래픽의 두 방향 — 남북(Ingress Gateway)과 동서(사이드카)",
+  "nodes": [
+    {
+      "id": "client",
+      "col": 0,
+      "row": 0,
+      "label": "외부 클라이언트",
+      "kind": "src"
+    },
+    {
+      "id": "lb",
+      "col": 1,
+      "row": 0,
+      "label": "NLB / ALB",
+      "kind": "proc"
+    },
+    {
+      "id": "gw",
+      "col": 2,
+      "row": 0,
+      "label": "istio-ingressgw",
+      "sub": "Ingress Gateway · 독립 Envoy",
+      "kind": "proc"
+    },
+    {
+      "id": "pod1",
+      "col": 3,
+      "row": 0,
+      "label": "Pod + 사이드카",
+      "kind": "proc"
+    },
+    {
+      "id": "pod2",
+      "col": 4,
+      "row": 0,
+      "label": "Pod + 사이드카",
+      "kind": "proc"
+    },
+    {
+      "id": "pod3",
+      "col": 5,
+      "row": 0,
+      "label": "Pod + 사이드카",
+      "kind": "proc"
+    }
+  ],
+  "edges": [
+    {
+      "from": "client",
+      "to": "lb",
+      "label": "north-south (남북)",
+      "rate": 700
+    },
+    {
+      "from": "lb",
+      "to": "gw",
+      "rate": 700
+    },
+    {
+      "from": "gw",
+      "to": "pod1",
+      "label": "east-west (동서)",
+      "rate": 700
+    },
+    {
+      "from": "pod1",
+      "to": "pod2",
+      "rate": 700
+    },
+    {
+      "from": "pod2",
+      "to": "pod3",
+      "rate": 700
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "caption": "IndexDB 3단계 로테이션 — 슬롯이 Next→Current→Previous로 승격·강등되다 통째로 삭제된다",
+  "nodes": [
+    {
+      "id": "n",
+      "col": 0,
+      "row": 0,
+      "label": "Next",
+      "sub": "다음 로테이션 준비",
+      "kind": "store"
+    },
+    {
+      "id": "c",
+      "col": 1,
+      "row": 0,
+      "label": "Current",
+      "sub": "실시간 수신",
+      "kind": "store"
+    },
+    {
+      "id": "p",
+      "col": 2,
+      "row": 0,
+      "label": "Previous",
+      "sub": "과거 데이터 쿼리",
+      "kind": "store"
+    },
+    {
+      "id": "x",
+      "col": 3,
+      "row": 0,
+      "label": "통째로 삭제",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n",
+      "to": "c",
+      "label": "승격",
+      "rate": 700
+    },
+    {
+      "from": "c",
+      "to": "p",
+      "label": "강등",
+      "rate": 700
+    },
+    {
+      "from": "p",
+      "to": "x",
+      "label": "드롭",
+      "rate": 700
+    }
+  ]
+}

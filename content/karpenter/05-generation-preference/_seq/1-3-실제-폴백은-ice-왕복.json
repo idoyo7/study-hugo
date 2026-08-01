@@ -1,0 +1,112 @@
+{
+  "caption": "gen8 우선이 성립하는 자리와, 폴백이 실제로 걸리기까지의 왕복. 코어는 재고를 모르므로 ICE를 한 번 맞아야 gen7이 승리한다",
+  "participants": [
+    {
+      "id": "pod",
+      "label": "pending 파드"
+    },
+    {
+      "id": "sch",
+      "label": "스케줄러"
+    },
+    {
+      "id": "nc",
+      "label": "NodeClaim"
+    },
+    {
+      "id": "ec2",
+      "label": "EC2 Fleet"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "pod",
+        "sch"
+      ],
+      "label": "배치창 idle 1s / max 10s"
+    },
+    {
+      "note": [
+        "sch"
+      ],
+      "lines": [
+        "템플릿 병렬 시뮬레이션",
+        "성공한 것 중 최소 인덱스 채택",
+        "(가격 비교 없음)"
+      ]
+    },
+    {
+      "msg": [
+        "sch",
+        "nc"
+      ],
+      "label": "gen8 템플릿 승리 (w=100)"
+    },
+    {
+      "msg": [
+        "nc",
+        "ec2"
+      ],
+      "label": "CreateFleet · 8세대 후보만"
+    },
+    {
+      "alt": "용량 있음",
+      "steps": [
+        {
+          "msg": [
+            "ec2",
+            "nc"
+          ],
+          "label": "인스턴스 반환",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "nc",
+            "pod"
+          ],
+          "label": "8세대 노드에 배치",
+          "dashed": true
+        }
+      ],
+      "elseLabel": "ICE",
+      "elseSteps": [
+        {
+          "msg": [
+            "ec2",
+            "nc"
+          ],
+          "label": "ICE 응답",
+          "dashed": true
+        },
+        {
+          "note": [
+            "nc",
+            "ec2"
+          ],
+          "lines": [
+            "InsufficientInstanceCapacity",
+            "NodeClaim 즉시 삭제 (재큐 없음)",
+            "offering을 3분간 unavailable 마킹"
+          ]
+        },
+        {
+          "msg": [
+            "nc",
+            "pod"
+          ],
+          "label": "다시 pending",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "pod",
+            "sch"
+          ],
+          "label": "재평가 → gen7 템플릿 승리"
+        }
+      ]
+    }
+  ]
+}

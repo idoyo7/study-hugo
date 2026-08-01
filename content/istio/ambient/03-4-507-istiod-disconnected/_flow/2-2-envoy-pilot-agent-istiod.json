@@ -1,0 +1,57 @@
+{
+  "caption": "장애 지점은 두 구간으로 갈린다 — ① Envoy↔pilot-agent는 Pod 내부 UDS라 거의 실패하지 않고, 이번에 깨진 곳은 Kubernetes DNS와 network를 거치는 ② 구간이다.",
+  "nodes": [
+    {
+      "id": "envoy",
+      "col": 0,
+      "row": 0,
+      "label": "Envoy",
+      "sub": "xds-grpc cluster",
+      "kind": "src"
+    },
+    {
+      "id": "agent",
+      "col": 1,
+      "row": 0,
+      "label": "pilot-agent",
+      "sub": "같은 Pod · xDS proxy",
+      "kind": "proc"
+    },
+    {
+      "id": "istiod",
+      "col": 2,
+      "row": 0,
+      "label": "istiod",
+      "sub": "xDS 원본 · TCP/TLS",
+      "kind": "store"
+    },
+    {
+      "id": "dns",
+      "col": 2,
+      "row": 1,
+      "label": "cluster DNS",
+      "sub": "istiod.istio-system.svc",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "envoy",
+      "to": "agent",
+      "label": "① UDS",
+      "rate": 380
+    },
+    {
+      "from": "agent",
+      "to": "istiod",
+      "label": "② TCP/TLS",
+      "rate": 520
+    },
+    {
+      "from": "agent",
+      "to": "dns",
+      "label": "이름 해석",
+      "rate": 900
+    }
+  ]
+}

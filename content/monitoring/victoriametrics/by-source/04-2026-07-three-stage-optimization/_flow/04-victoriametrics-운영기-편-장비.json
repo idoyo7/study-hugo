@@ -1,0 +1,41 @@
+{
+  "caption": "장비 증설 없이 데이터 파이프라인 세 레이어를 각각 최적화했다.",
+  "nodes": [
+    {
+      "id": "c",
+      "col": 0,
+      "row": 0,
+      "label": "수집 레이어",
+      "sub": "비서비스 컨테이너 제외",
+      "kind": "proc"
+    },
+    {
+      "id": "s",
+      "col": 1,
+      "row": 0,
+      "label": "저장 레이어",
+      "sub": "Retention 12→6개월",
+      "kind": "store"
+    },
+    {
+      "id": "q",
+      "col": 2,
+      "row": 0,
+      "label": "조회 레이어",
+      "sub": "쿼리 36분할",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "c",
+      "to": "s",
+      "rate": 640
+    },
+    {
+      "from": "s",
+      "to": "q",
+      "rate": 640
+    }
+  ]
+}

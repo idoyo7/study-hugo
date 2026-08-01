@@ -1,0 +1,104 @@
+{
+  "caption": "데이터 플레인(Envoy)과 컨트롤 플레인(istiod)의 트래픽·설정 흐름",
+  "nodes": [
+    {
+      "id": "ext",
+      "col": 0,
+      "row": 0,
+      "label": "외부 트래픽",
+      "kind": "src"
+    },
+    {
+      "id": "appA",
+      "col": 0,
+      "row": 1,
+      "label": "app",
+      "sub": "Pod A",
+      "kind": "src"
+    },
+    {
+      "id": "D",
+      "col": 0,
+      "row": 2,
+      "label": "istiod · 컨트롤 플레인",
+      "sub": "Pilot · Citadel · Galley 통합",
+      "kind": "proc"
+    },
+    {
+      "id": "EG",
+      "col": 1,
+      "row": 0,
+      "label": "Ingress Gateway",
+      "sub": "Envoy",
+      "kind": "proc"
+    },
+    {
+      "id": "EA",
+      "col": 2,
+      "row": 0,
+      "label": "Envoy 사이드카",
+      "sub": "Pod A",
+      "kind": "proc"
+    },
+    {
+      "id": "EB",
+      "col": 3,
+      "row": 0,
+      "label": "Envoy 사이드카",
+      "sub": "Pod B",
+      "kind": "proc"
+    },
+    {
+      "id": "appB",
+      "col": 4,
+      "row": 0,
+      "label": "app",
+      "sub": "Pod B",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "ext",
+      "to": "EG",
+      "rate": 700
+    },
+    {
+      "from": "appA",
+      "to": "EA",
+      "rate": 700
+    },
+    {
+      "from": "EG",
+      "to": "EA",
+      "rate": 700
+    },
+    {
+      "from": "EA",
+      "to": "EB",
+      "label": "mTLS",
+      "rate": 600
+    },
+    {
+      "from": "EB",
+      "to": "appB",
+      "rate": 700
+    },
+    {
+      "from": "D",
+      "to": "EA",
+      "label": "xDS CDS/EDS/LDS/RDS/SDS",
+      "dashed": true
+    },
+    {
+      "from": "D",
+      "to": "EB",
+      "dashed": true
+    },
+    {
+      "from": "D",
+      "to": "EG",
+      "dashed": true
+    }
+  ]
+}

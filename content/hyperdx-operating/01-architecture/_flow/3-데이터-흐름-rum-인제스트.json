@@ -1,0 +1,124 @@
+{
+  "caption": "sdk=@hyperdx/browser SDK(rrweb 리플레이·에러·Web Vitals). otel=OTel Collector 게이트웨이(deployment ×2 + file_storage 큐). chi=CHI ClickHouse(otel_logs/traces/metrics + hyperdx_sessions). mongo=MCK members:3 또는 Atlas. api↔otel은 OpAMP(:4320) 한 축의 양방향 제어다 — Collector가 api에 접속하고 api가 파이프라인 설정을 배포한다. chi↔chk도 한 축의 양방향 코디네이션(CH가 복제 메타 등록 ↔ Keeper가 복제·머지·DDL 지시, 데이터 흐름 아님).",
+  "groups": [
+    {
+      "id": "browser",
+      "label": "브라우저",
+      "members": [
+        "sdk"
+      ]
+    },
+    {
+      "id": "byo",
+      "label": "clickhouse:false 영역",
+      "members": [
+        "otel",
+        "app",
+        "api"
+      ]
+    },
+    {
+      "id": "altinity",
+      "label": "Altinity operator 영역",
+      "members": [
+        "chi",
+        "chk"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "sdk",
+      "col": 0,
+      "row": 0,
+      "label": "브라우저 SDK",
+      "sub": "rrweb·에러·Web Vitals",
+      "kind": "src"
+    },
+    {
+      "id": "otel",
+      "col": 1,
+      "row": 0,
+      "label": "OTel Collector",
+      "sub": "게이트웨이 ×2+큐",
+      "kind": "proc"
+    },
+    {
+      "id": "chi",
+      "col": 3,
+      "row": 0,
+      "label": "CHI ClickHouse",
+      "sub": "logs/traces/metrics",
+      "kind": "store"
+    },
+    {
+      "id": "chk",
+      "col": 4,
+      "row": 0,
+      "label": "CHK Keeper",
+      "sub": "3노드",
+      "kind": "store"
+    },
+    {
+      "id": "app",
+      "col": 1,
+      "row": 1,
+      "label": "HyperDX app",
+      "kind": "proc"
+    },
+    {
+      "id": "api",
+      "col": 2,
+      "row": 1,
+      "label": "HyperDX api",
+      "sub": "OpAMP 서버 :4320",
+      "kind": "query"
+    },
+    {
+      "id": "mongo",
+      "col": 3,
+      "row": 2,
+      "label": "MongoDB",
+      "sub": "MCK 3 / Atlas",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "sdk",
+      "to": "otel",
+      "label": "OTLP :4318"
+    },
+    {
+      "from": "otel",
+      "to": "chi",
+      "label": "native :9000 batch INSERT"
+    },
+    {
+      "from": "app",
+      "to": "api"
+    },
+    {
+      "from": "api",
+      "to": "chi",
+      "label": "쿼리 :8123/:9000 (읽기)"
+    },
+    {
+      "from": "api",
+      "to": "mongo",
+      "label": "메타 R/W :27017"
+    },
+    {
+      "from": "otel",
+      "to": "api",
+      "label": "OpAMP 양방향",
+      "dashed": true
+    },
+    {
+      "from": "chi",
+      "to": "chk",
+      "label": "메타 ↔ 복제",
+      "dashed": true
+    }
+  ]
+}

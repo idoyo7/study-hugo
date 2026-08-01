@@ -1,0 +1,99 @@
+{
+  "caption": "1.24.0 이후 남는 것은 로컬 렌더링 두 갈래다 — istioctl이 IstioOperator 파일을 직접 읽어 적용하거나, manifest translate로 Helm values로 바꿔 Helm이 적용한다. 점선(파티클 없음)이 1.24.0에서 끊긴 경로다: 클러스터 안에서 IstioOperator CR을 감시하던 컨트롤러가 사라졌다",
+  "nodes": [
+    {
+      "id": "iop",
+      "col": 0,
+      "row": 1,
+      "label": "IstioOperator YAML",
+      "sub": "install.istio.io/v1alpha1 · 파일 형식으로 생존",
+      "kind": "src"
+    },
+    {
+      "id": "ictl",
+      "col": 1,
+      "row": 0,
+      "label": "istioctl install -f",
+      "sub": "로컬에서 Helm 템플릿 렌더링",
+      "kind": "proc"
+    },
+    {
+      "id": "tr",
+      "col": 1,
+      "row": 1,
+      "label": "manifest translate",
+      "sub": "1.24 신설 · values.yaml 산출",
+      "kind": "proc"
+    },
+    {
+      "id": "op",
+      "col": 1,
+      "row": 2,
+      "label": "in-cluster operator",
+      "sub": "1.23 폐기 → 1.24 삭제",
+      "kind": "query"
+    },
+    {
+      "id": "helm",
+      "col": 2,
+      "row": 1,
+      "label": "helm upgrade",
+      "sub": "base · istiod · cni · gateway",
+      "kind": "proc"
+    },
+    {
+      "id": "cp",
+      "col": 3,
+      "row": 1,
+      "label": "istio-system",
+      "sub": "적용된 컨트롤 플레인",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "iop",
+      "to": "ictl",
+      "label": "-f istio.yaml",
+      "rate": 480
+    },
+    {
+      "from": "iop",
+      "to": "tr",
+      "label": "Helm 이관 시 1회",
+      "rate": 900,
+      "speed": "slow"
+    },
+    {
+      "from": "tr",
+      "to": "helm",
+      "label": "values.yaml",
+      "rate": 900,
+      "speed": "slow"
+    },
+    {
+      "from": "helm",
+      "to": "cp",
+      "label": "GitOps로 적용",
+      "rate": 480
+    },
+    {
+      "from": "ictl",
+      "to": "cp",
+      "label": "직접 apply",
+      "rate": 480
+    },
+    {
+      "from": "iop",
+      "to": "op",
+      "label": "kubectl apply (1.23까지)",
+      "dashed": true
+    },
+    {
+      "from": "op",
+      "to": "cp",
+      "label": "1.24에서 끊김",
+      "dashed": true
+    }
+  ]
+}

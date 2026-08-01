@@ -1,0 +1,97 @@
+{
+  "caption": "taint를 붙이는 쪽과 떼는 쪽이 다르다 — 부착은 인프라(Karpenter NodePool·노드 그룹 등)가 노드 생성 시점에, 제거는 istiod 안의 untaint-controller가 istio-cni Ready를 보고 한다. 인프라 쪽이 비어 있으면 컨트롤러는 뗄 taint가 없어 아무것도 하지 않는다.",
+  "participants": [
+    {
+      "id": "I",
+      "label": "노드 프로비저너"
+    },
+    {
+      "id": "N",
+      "label": "새 노드"
+    },
+    {
+      "id": "C",
+      "label": "istio-cni"
+    },
+    {
+      "id": "U",
+      "label": "istiod untaint"
+    }
+  ],
+  "steps": [
+    {
+      "alt": "인프라가 startup taint를 붙였다",
+      "steps": [
+        {
+          "msg": [
+            "I",
+            "N"
+          ],
+          "label": "1. cni.istio.io/not-ready 부착 (NoSchedule)"
+        },
+        {
+          "note": [
+            "N",
+            "C"
+          ],
+          "lines": [
+            "taint가 붙어 있는 동안",
+            "일반 워크로드 Pod은 이 노드에 스케줄되지 않는다"
+          ]
+        },
+        {
+          "msg": [
+            "N",
+            "C"
+          ],
+          "label": "2. istio-cni DaemonSet만 배치 (toleration 보유)"
+        },
+        {
+          "msg": [
+            "C",
+            "N"
+          ],
+          "label": "3. CNI 설정 완료 · Ready",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "N",
+            "U"
+          ],
+          "label": "4. istio-cni Ready 감시",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "U",
+            "N"
+          ],
+          "label": "5. node patch — taint 제거"
+        },
+        {
+          "note": [
+            "N",
+            "U"
+          ],
+          "lines": [
+            "6. 이제 워크로드 Pod이 이 노드에 스케줄된다"
+          ]
+        }
+      ],
+      "elseLabel": "Istio 쪽만 켜고 taint를 안 붙임",
+      "elseSteps": [
+        {
+          "note": [
+            "I",
+            "U"
+          ],
+          "lines": [
+            "untaint-controller는 taint를 붙이지 않는다 — 뗄 것이 없으면",
+            "아무 일도 일어나지 않고 4장의 경합이 그대로 남는다"
+          ]
+        }
+      ]
+    }
+  ]
+}

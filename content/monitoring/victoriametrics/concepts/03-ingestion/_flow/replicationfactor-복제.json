@@ -1,0 +1,81 @@
+{
+  "caption": "replicationFactor 복제와 페일오버 재분배, 쿼리 시점 dedup",
+  "nodes": [
+    {
+      "id": "I",
+      "col": 0,
+      "row": 0,
+      "label": "vminsert",
+      "kind": "proc"
+    },
+    {
+      "id": "P",
+      "col": 1,
+      "row": 0,
+      "label": "vmstorage i",
+      "kind": "store"
+    },
+    {
+      "id": "R",
+      "col": 1,
+      "row": 1,
+      "label": "vmstorage i+1",
+      "kind": "store"
+    },
+    {
+      "id": "DED",
+      "col": 2,
+      "row": 0,
+      "label": "vmselect 중복 제거",
+      "kind": "query"
+    },
+    {
+      "id": "H",
+      "col": 0,
+      "row": 2,
+      "label": "헬스체크 · 다운 노드 감지",
+      "kind": "proc"
+    },
+    {
+      "id": "RB",
+      "col": 1,
+      "row": 2,
+      "label": "살아있는 노드로 균등 재분배",
+      "kind": "proc"
+    }
+  ],
+  "edges": [
+    {
+      "from": "I",
+      "to": "P",
+      "label": "primary 인덱스 i",
+      "rate": 600
+    },
+    {
+      "from": "I",
+      "to": "R",
+      "label": "복제 i+1 … i+N-1",
+      "rate": 600
+    },
+    {
+      "from": "H",
+      "to": "RB",
+      "label": "re-route",
+      "rate": 700
+    },
+    {
+      "from": "P",
+      "to": "DED",
+      "label": "쿼리시 dedup",
+      "rate": 800,
+      "dashed": true
+    },
+    {
+      "from": "R",
+      "to": "DED",
+      "label": "쿼리시 dedup",
+      "rate": 800,
+      "dashed": true
+    }
+  ]
+}

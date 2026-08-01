@@ -1,0 +1,87 @@
+{
+  "caption": "업스트림 커넥션이 응답 시작 전에 끊기면서 503이 만들어지고, 그 사실을 구체적으로 적어 둔 hop은 waypoint 하나뿐이다.",
+  "participants": [
+    {
+      "id": "C",
+      "label": "클라이언트"
+    },
+    {
+      "id": "G",
+      "label": "public gw"
+    },
+    {
+      "id": "W",
+      "label": "waypoint"
+    },
+    {
+      "id": "P",
+      "label": "destination Pod"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "C",
+        "G"
+      ],
+      "label": "1. 요청"
+    },
+    {
+      "msg": [
+        "G",
+        "W"
+      ],
+      "label": "2. HTTP 전달"
+    },
+    {
+      "msg": [
+        "W",
+        "P"
+      ],
+      "label": "3. HBONE :15008 업스트림 커넥션"
+    },
+    {
+      "msg": [
+        "P",
+        "W"
+      ],
+      "label": "4. 응답 시작 전 커넥션 reset",
+      "dashed": true
+    },
+    {
+      "note": [
+        "W",
+        "P"
+      ],
+      "lines": [
+        "이 구간의 ztunnel·istio-cni에는 이상 로그가 전혀 없다"
+      ]
+    },
+    {
+      "msg": [
+        "W",
+        "G"
+      ],
+      "label": "5. 503 · response_flags: UC",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "G",
+        "C"
+      ],
+      "label": "6. 503 · via_upstream",
+      "dashed": true
+    },
+    {
+      "note": [
+        "G",
+        "W"
+      ],
+      "lines": [
+        "upstream_reset_before_response_started{connection_termination}",
+        "구체적 원인을 남긴 것은 waypoint뿐 — 조사 시작점이다"
+      ]
+    }
+  ]
+}

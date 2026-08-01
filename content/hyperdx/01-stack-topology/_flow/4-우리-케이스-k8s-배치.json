@@ -1,0 +1,160 @@
+{
+  "caption": "우리 케이스 K8s 배치 — 전체는 Kubernetes(EKS, multi-AZ) 클러스터 내부: Altinity operator 영역(범용분석 겸용 CH) / HyperDX-only(clickhouse.enabled=false) / 메타스토어(택1). S3만 클러스터 외부 cold tier. CHI↔CHK는 한 축의 양방향 조정이다(CH가 Keeper에 복제 메타를 등록 ↔ Keeper가 복제·머지·DDL을 지시). Collector↔api도 OpAMP 4320 양방향(Collector가 접속, api가 설정 배포).",
+  "groups": [
+    {
+      "id": "altinity",
+      "label": "Altinity operator 영역",
+      "members": [
+        "chi",
+        "chk"
+      ]
+    },
+    {
+      "id": "hdx",
+      "label": "HyperDX Only",
+      "members": [
+        "app",
+        "api"
+      ]
+    },
+    {
+      "id": "meta",
+      "label": "메타스토어 (택1)",
+      "members": [
+        "mongo",
+        "atlas"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "sdk",
+      "col": 0,
+      "row": 0,
+      "label": "브라우저 @hyperdx/browser",
+      "kind": "src"
+    },
+    {
+      "id": "users",
+      "col": 0,
+      "row": 1,
+      "label": "운영자",
+      "kind": "src"
+    },
+    {
+      "id": "otel",
+      "col": 1,
+      "row": 0,
+      "label": "OTel Collector 게이트웨이",
+      "sub": "deployment ×2 + file_storage 큐(gp3)",
+      "kind": "proc"
+    },
+    {
+      "id": "app",
+      "col": 1,
+      "row": 1,
+      "label": "HyperDX app",
+      "kind": "proc"
+    },
+    {
+      "id": "api",
+      "col": 2,
+      "row": 1,
+      "label": "HyperDX api",
+      "sub": "OpAMP :4320",
+      "kind": "proc"
+    },
+    {
+      "id": "chi",
+      "col": 3,
+      "row": 0,
+      "label": "ClickHouse (CHI)",
+      "sub": "ReplicatedMergeTree RF2/3 · hot EBS gp3/io2 · cold S3",
+      "kind": "store"
+    },
+    {
+      "id": "chk",
+      "col": 4,
+      "row": 0,
+      "label": "Keeper (CHK)",
+      "sub": "3-node, AZ 분산",
+      "kind": "store"
+    },
+    {
+      "id": "s3",
+      "col": 4,
+      "row": 1,
+      "label": "S3 cold tier",
+      "kind": "store"
+    },
+    {
+      "id": "mongo",
+      "col": 3,
+      "row": 2,
+      "label": "MongoDBCommunity (MCK)",
+      "sub": "members:3 SCRAM · gp3 10Gi · mongodump CronJob→S3",
+      "kind": "store"
+    },
+    {
+      "id": "atlas",
+      "col": 3,
+      "row": 3,
+      "label": "Atlas M10 (외부 관리형)",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "sdk",
+      "to": "otel",
+      "label": "OTLP :4318"
+    },
+    {
+      "from": "otel",
+      "to": "chi",
+      "label": "INSERT async_insert=1"
+    },
+    {
+      "from": "users",
+      "to": "app"
+    },
+    {
+      "from": "app",
+      "to": "api"
+    },
+    {
+      "from": "api",
+      "to": "chi",
+      "label": "쿼리",
+      "kind": "query"
+    },
+    {
+      "from": "api",
+      "to": "mongo",
+      "label": "메타"
+    },
+    {
+      "from": "api",
+      "to": "atlas",
+      "label": "대안",
+      "dashed": true
+    },
+    {
+      "from": "otel",
+      "to": "api",
+      "label": "OpAMP 양방향",
+      "dashed": true
+    },
+    {
+      "from": "chi",
+      "to": "chk",
+      "label": "메타 ↔ 복제",
+      "dashed": true
+    },
+    {
+      "from": "chi",
+      "to": "s3",
+      "label": "TTL MOVE"
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "caption": "파드 하나가 메시에 등록되는 순서 — istio-cni가 파드 netns 안에 socket을 만들고 규칙을 넣은 뒤 ztunnel에 알리고, ztunnel이 그 socket에 붙어야 비로소 경로가 완성된다. 이 순서가 어긋난 채 파드가 뜨면 규칙 없는 파드가 메시 안에 표시된다.",
+  "participants": [
+    {
+      "id": "K",
+      "label": "kubelet · CNI"
+    },
+    {
+      "id": "C",
+      "label": "istio-cni agent"
+    },
+    {
+      "id": "N",
+      "label": "파드 netns"
+    },
+    {
+      "id": "Z",
+      "label": "ztunnel DaemonSet"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "K",
+        "C"
+      ],
+      "label": "1. 파드 생성 CNI 이벤트"
+    },
+    {
+      "msg": [
+        "C",
+        "N"
+      ],
+      "label": "2. netns 안에 TCP socket 생성"
+    },
+    {
+      "msg": [
+        "C",
+        "N"
+      ],
+      "label": "3. iptables REDIRECT 주입 (host side 아님)"
+    },
+    {
+      "note": [
+        "C",
+        "N"
+      ],
+      "lines": [
+        "세 socket 모두 파드 안 localhost에 뜬다",
+        ":15001 egress · :15006 plaintext · :15008 HBONE"
+      ]
+    },
+    {
+      "msg": [
+        "C",
+        "Z"
+      ],
+      "label": "4. 파드 등록 알림"
+    },
+    {
+      "msg": [
+        "Z",
+        "N"
+      ],
+      "label": "5. 파드 안 socket에 연결"
+    },
+    {
+      "note": [
+        "N",
+        "Z"
+      ],
+      "lines": [
+        "in-pod ztunnel의 실체 — ztunnel은 파드 밖 DaemonSet이고",
+        "리다이렉트 대상은 파드 안 socket이다"
+      ]
+    },
+    {
+      "alt": "istio-cni가 먼저 준비된 경우",
+      "steps": [
+        {
+          "msg": [
+            "N",
+            "Z"
+          ],
+          "label": "모든 TCP가 ztunnel 통과 — 인가 적용"
+        }
+      ],
+      "elseLabel": "istio-cni 준비 전에 파드가 스케줄됨",
+      "elseSteps": [
+        {
+          "msg": [
+            "N",
+            "Z"
+          ],
+          "label": "규칙 없음 — ztunnel 우회",
+          "dashed": true
+        },
+        {
+          "note": [
+            "K",
+            "Z"
+          ],
+          "lines": [
+            "partially enrolled — 메시 안에 있다고 표시된 채",
+            "mTLS도 AuthorizationPolicy도 없이 뜬다"
+          ]
+        }
+      ]
+    }
+  ]
+}

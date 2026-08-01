@@ -1,0 +1,79 @@
+{
+  "caption": "멀티버스 — vmauth 라우팅 게이트웨이가 대시보드·알림별 전용 클러스터로 분리 전달",
+  "nodes": [
+    {
+      "id": "U",
+      "col": 0,
+      "row": 1,
+      "label": "사용자 · 대시보드 · 알림",
+      "kind": "src"
+    },
+    {
+      "id": "GW",
+      "col": 1,
+      "row": 1,
+      "label": "vmauth",
+      "sub": "라우팅 게이트웨이",
+      "kind": "proc"
+    },
+    {
+      "id": "C1",
+      "col": 2,
+      "row": 0,
+      "label": "클러스터",
+      "sub": "서비스레벨 시각화",
+      "kind": "store"
+    },
+    {
+      "id": "C2",
+      "col": 2,
+      "row": 1,
+      "label": "클러스터",
+      "sub": "서비스레벨 알림",
+      "kind": "store"
+    },
+    {
+      "id": "C3",
+      "col": 2,
+      "row": 2,
+      "label": "클러스터",
+      "sub": "호스트레벨",
+      "kind": "store"
+    },
+    {
+      "id": "C4",
+      "col": 2,
+      "row": 3,
+      "label": "클러스터",
+      "sub": "4 + α",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "U",
+      "to": "GW",
+      "rate": 700
+    },
+    {
+      "from": "GW",
+      "to": "C1",
+      "rate": 700
+    },
+    {
+      "from": "GW",
+      "to": "C2",
+      "rate": 700
+    },
+    {
+      "from": "GW",
+      "to": "C3",
+      "rate": 700
+    },
+    {
+      "from": "GW",
+      "to": "C4",
+      "rate": 700
+    }
+  ]
+}

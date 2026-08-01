@@ -1,0 +1,157 @@
+{
+  "caption": "세 상태의 경로를 같은 축에 겹쳐 본 것 — out-mesh는 kube-proxy 경로 그대로고, 메시에 들면 양쪽 ztunnel이 HBONE 구간을 만들며, waypoint를 켜면 그 사이에 L7 홉이 하나 더 붙는다. 홉 수가 곧 디버깅 난이도다.",
+  "nodes": [
+    {
+      "id": "a0",
+      "col": 0,
+      "row": 0,
+      "label": "파드 A",
+      "sub": "메시 미참여",
+      "kind": "src"
+    },
+    {
+      "id": "kp",
+      "col": 2,
+      "row": 0,
+      "label": "kube-proxy",
+      "sub": "Service · Endpoint",
+      "kind": "store"
+    },
+    {
+      "id": "b0",
+      "col": 4,
+      "row": 0,
+      "label": "파드 B",
+      "sub": "메시 미참여",
+      "kind": "sink"
+    },
+    {
+      "id": "a1",
+      "col": 0,
+      "row": 1,
+      "label": "파드 A",
+      "sub": "메시 참여",
+      "kind": "src"
+    },
+    {
+      "id": "z1",
+      "col": 1,
+      "row": 1,
+      "label": "ztunnel",
+      "sub": "출발 노드",
+      "kind": "proc"
+    },
+    {
+      "id": "z2",
+      "col": 3,
+      "row": 1,
+      "label": "ztunnel",
+      "sub": "도착 노드",
+      "kind": "proc"
+    },
+    {
+      "id": "b1",
+      "col": 4,
+      "row": 1,
+      "label": "파드 B",
+      "sub": "메시 참여",
+      "kind": "sink"
+    },
+    {
+      "id": "a2",
+      "col": 0,
+      "row": 2,
+      "label": "파드 A",
+      "sub": "메시 참여",
+      "kind": "src"
+    },
+    {
+      "id": "z3",
+      "col": 1,
+      "row": 2,
+      "label": "ztunnel",
+      "sub": "출발 노드",
+      "kind": "proc"
+    },
+    {
+      "id": "wp",
+      "col": 2,
+      "row": 2,
+      "label": "waypoint",
+      "sub": "L7 정책 · 노드 무관",
+      "kind": "query"
+    },
+    {
+      "id": "z4",
+      "col": 3,
+      "row": 2,
+      "label": "ztunnel",
+      "sub": "도착 노드",
+      "kind": "proc"
+    },
+    {
+      "id": "b2",
+      "col": 4,
+      "row": 2,
+      "label": "파드 B",
+      "sub": "메시 참여",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "a0",
+      "to": "kp",
+      "label": "Service 조회",
+      "rate": 420
+    },
+    {
+      "from": "kp",
+      "to": "b0",
+      "label": "엔드포인트 직결",
+      "rate": 420
+    },
+    {
+      "from": "a1",
+      "to": "z1",
+      "label": ":15001",
+      "rate": 420
+    },
+    {
+      "from": "z1",
+      "to": "z2",
+      "label": "HBONE :15008",
+      "rate": 420
+    },
+    {
+      "from": "z2",
+      "to": "b1",
+      "label": "평문 전달",
+      "rate": 420
+    },
+    {
+      "from": "a2",
+      "to": "z3",
+      "label": ":15001",
+      "rate": 420
+    },
+    {
+      "from": "z3",
+      "to": "wp",
+      "label": "HBONE",
+      "rate": 420
+    },
+    {
+      "from": "wp",
+      "to": "z4",
+      "label": "L7 통과",
+      "rate": 420
+    },
+    {
+      "from": "z4",
+      "to": "b2",
+      "label": "평문 전달",
+      "rate": 420
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "caption": "클러스터 이름은 하나인데 endpoint 메타데이터가 세 갈래로 가른다 — 갈림길을 고르는 건 transport_socket_match다.",
+  "nodes": [
+    {
+      "id": "ep",
+      "col": 0,
+      "row": 1,
+      "label": "Endpoint 메타데이터",
+      "sub": "transport_socket_match",
+      "kind": "query"
+    },
+    {
+      "id": "oo",
+      "col": 1,
+      "row": 0,
+      "label": "out-of-mesh",
+      "sub": "tlsMode-disabled · RawBuffer",
+      "kind": "sink"
+    },
+    {
+      "id": "im",
+      "col": 1,
+      "row": 1,
+      "label": "in-mesh",
+      "sub": "envoy_internal_address",
+      "kind": "proc"
+    },
+    {
+      "id": "wp",
+      "col": 1,
+      "row": 2,
+      "label": "waypoint 있음",
+      "sub": "Service ClusterIP",
+      "kind": "proc"
+    },
+    {
+      "id": "co",
+      "col": 2,
+      "row": 1,
+      "label": "HBONE 터널",
+      "sub": "connect_originate",
+      "kind": "proc"
+    },
+    {
+      "id": "zt",
+      "col": 3,
+      "row": 1,
+      "label": "ztunnel :15008",
+      "sub": "목적지 Pod netns 안",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "ep",
+      "to": "oo",
+      "label": "tunnel 키 없음",
+      "rate": 900
+    },
+    {
+      "from": "ep",
+      "to": "im",
+      "label": "tunnel: http",
+      "rate": 520
+    },
+    {
+      "from": "ep",
+      "to": "wp",
+      "label": "waypoint 키",
+      "rate": 560
+    },
+    {
+      "from": "im",
+      "to": "co",
+      "rate": 520
+    },
+    {
+      "from": "wp",
+      "to": "co",
+      "rate": 560
+    },
+    {
+      "from": "co",
+      "to": "zt",
+      "label": "CONNECT",
+      "rate": 520
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "caption": "istio-cni rollout 중 Pod은 두 갈래로 갈린다 — 이미 Running인 Pod은 network namespace가 재생성되지 않아 무영향이고, 틈에 태어난 Pod만 sandbox 생성이 실패했다가 kubelet 재시도로 살아난다.",
+  "participants": [
+    {
+      "id": "Old",
+      "label": "기존 Running Pod"
+    },
+    {
+      "id": "CNI",
+      "label": "istio-cni"
+    },
+    {
+      "id": "Kub",
+      "label": "kubelet"
+    },
+    {
+      "id": "New",
+      "label": "신규 Pod"
+    }
+  ],
+  "steps": [
+    {
+      "note": [
+        "Old",
+        "New"
+      ],
+      "lines": [
+        "istio-cni DaemonSet rollout — 노드마다 CNI Pod이 재시작된다"
+      ]
+    },
+    {
+      "alt": "이미 Running인 Pod",
+      "steps": [
+        {
+          "msg": [
+            "CNI",
+            "Old"
+          ],
+          "label": "netns 재생성 없음 — 기존 경로 그대로",
+          "dashed": true
+        }
+      ],
+      "elseLabel": "rollout 틈에 생성되는 Pod",
+      "elseSteps": [
+        {
+          "msg": [
+            "Kub",
+            "CNI"
+          ],
+          "label": "sandbox 생성 — CNI 설정 요청"
+        },
+        {
+          "msg": [
+            "CNI",
+            "Kub"
+          ],
+          "label": "istio-cni 미준비 → 설정 실패",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "Kub",
+            "New"
+          ],
+          "label": "FailedCreatePodSandBox"
+        },
+        {
+          "msg": [
+            "Kub",
+            "CNI"
+          ],
+          "label": "backoff 후 재시도"
+        },
+        {
+          "msg": [
+            "CNI",
+            "Kub"
+          ],
+          "label": "istio-cni Ready → redirection 설정",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "Kub",
+            "New"
+          ],
+          "label": "정상 Running — ambient 편입"
+        }
+      ]
+    }
+  ]
+}

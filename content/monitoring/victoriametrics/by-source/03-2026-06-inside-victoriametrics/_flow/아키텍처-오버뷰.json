@@ -1,0 +1,99 @@
+{
+  "caption": "데이터가 수집 → 저장 → 조회로 흐르는 VM 클러스터. 색 점은 파이프라인을 흐르는 지표다.",
+  "nodes": [
+    {
+      "id": "t",
+      "col": 0,
+      "row": 1,
+      "label": "Targets",
+      "sub": "node_exporter",
+      "kind": "src"
+    },
+    {
+      "id": "a",
+      "col": 1,
+      "row": 1,
+      "label": "vmagent",
+      "kind": "proc"
+    },
+    {
+      "id": "i",
+      "col": 2,
+      "row": 1,
+      "label": "vminsert",
+      "kind": "proc"
+    },
+    {
+      "id": "s1",
+      "col": 3,
+      "row": 0,
+      "label": "vmstorage",
+      "sub": "node 1",
+      "kind": "store"
+    },
+    {
+      "id": "s2",
+      "col": 3,
+      "row": 2,
+      "label": "vmstorage",
+      "sub": "node N",
+      "kind": "store"
+    },
+    {
+      "id": "q",
+      "col": 4,
+      "row": 1,
+      "label": "vmselect",
+      "kind": "query"
+    },
+    {
+      "id": "g",
+      "col": 5,
+      "row": 1,
+      "label": "Grafana",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "t",
+      "to": "a",
+      "label": "scrape",
+      "rate": 900
+    },
+    {
+      "from": "a",
+      "to": "i",
+      "label": "remote_write",
+      "rate": 620
+    },
+    {
+      "from": "i",
+      "to": "s1",
+      "label": "샤딩",
+      "rate": 520
+    },
+    {
+      "from": "i",
+      "to": "s2",
+      "rate": 520
+    },
+    {
+      "from": "s1",
+      "to": "q",
+      "rate": 700
+    },
+    {
+      "from": "s2",
+      "to": "q",
+      "label": "fanout",
+      "rate": 700
+    },
+    {
+      "from": "q",
+      "to": "g",
+      "label": "PromQL",
+      "rate": 820
+    }
+  ]
+}

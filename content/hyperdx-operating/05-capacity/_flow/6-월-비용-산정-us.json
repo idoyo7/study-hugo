@@ -1,0 +1,42 @@
+{
+  "caption": "0.7TB 해석 분기 — raw ingest vs on-disk 단일사본",
+  "nodes": [
+    {
+      "id": "q",
+      "col": 0,
+      "row": 0,
+      "label": "월 0.7TB는?",
+      "kind": "proc"
+    },
+    {
+      "id": "a",
+      "col": 1,
+      "row": 0,
+      "label": "÷6 압축, on-disk 117GB/월",
+      "sub": "→ 2× 소형노드, ~$0.5K/mo",
+      "kind": "sink"
+    },
+    {
+      "id": "bp",
+      "col": 1,
+      "row": 1,
+      "label": "리플레이 30일 캡, 1yr 누적 ~2.35TB",
+      "sub": "hot gp3 고정+cold S3 증가 → 2× r7g.2xl RF2, ~$1.0K/mo",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "q",
+      "to": "a",
+      "label": "raw ingest",
+      "dashed": true
+    },
+    {
+      "from": "q",
+      "to": "bp",
+      "label": "on-disk 단일사본",
+      "dashed": true
+    }
+  ]
+}

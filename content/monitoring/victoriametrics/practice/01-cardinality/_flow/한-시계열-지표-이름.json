@@ -1,0 +1,41 @@
+{
+  "caption": "시계열 정의에서 갈리는 Worst/Best 레이블 설계",
+  "nodes": [
+    {
+      "id": "base",
+      "col": 0,
+      "row": 0,
+      "label": "metric 이름 + 레이블 집합",
+      "sub": "= 1 시계열",
+      "kind": "proc"
+    },
+    {
+      "id": "worst",
+      "col": 1,
+      "row": 0,
+      "label": "Worst — pod_name · session_id",
+      "sub": "재시작·요청마다 변경 → New TSID 폭발",
+      "kind": "sink"
+    },
+    {
+      "id": "best",
+      "col": 1,
+      "row": 1,
+      "label": "Best — 서비스 이름 등 안정 레이블",
+      "sub": "자주 바뀌는 값은 로그·트레이스로",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "base",
+      "to": "worst",
+      "dashed": true
+    },
+    {
+      "from": "base",
+      "to": "best",
+      "dashed": true
+    }
+  ]
+}

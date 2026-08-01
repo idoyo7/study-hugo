@@ -1,0 +1,68 @@
+{
+  "caption": "quota 소진이 사용자 경험까지 번지는 경로 — 커널이 재운 시간은 애플리케이션에서 '아무것도 안 한 구간'으로 보이고, 그 구간은 평균이 아니라 꼬리에 쌓인다",
+  "nodes": [
+    {
+      "id": "q",
+      "col": 0,
+      "row": 0,
+      "label": "quota 소진",
+      "sub": "period 잔여시간 동안 정지",
+      "kind": "src"
+    },
+    {
+      "id": "th",
+      "col": 1,
+      "row": 0,
+      "label": "스레드 동시 정지",
+      "sub": "컨테이너 전체가 함께 선다",
+      "kind": "proc"
+    },
+    {
+      "id": "w",
+      "col": 2,
+      "row": 0,
+      "label": "CPU wait 누적",
+      "sub": "실행 큐에서 대기",
+      "kind": "proc"
+    },
+    {
+      "id": "sp",
+      "col": 3,
+      "row": 0,
+      "label": "APM 스팬이 늘어남",
+      "sub": "일한 흔적 없이 시간만 흐름",
+      "kind": "query"
+    },
+    {
+      "id": "p99",
+      "col": 4,
+      "row": 0,
+      "label": "P99 악화",
+      "sub": "평균보다 꼬리가 크게 망가진다",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "q",
+      "to": "th",
+      "rate": 700
+    },
+    {
+      "from": "th",
+      "to": "w",
+      "rate": 700
+    },
+    {
+      "from": "w",
+      "to": "sp",
+      "rate": 700
+    },
+    {
+      "from": "sp",
+      "to": "p99",
+      "label": "요청마다 확률적으로",
+      "rate": 900
+    }
+  ]
+}

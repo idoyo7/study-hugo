@@ -1,0 +1,54 @@
+{
+  "caption": "vmselect의 쿼리 처리 4단계 — 파싱 → vmstorage 팬아웃 → 응답 → 병합",
+  "nodes": [
+    {
+      "id": "parse",
+      "col": 0,
+      "row": 0,
+      "label": "① 쿼리 파싱",
+      "sub": "함수·필터·윈도우 분리",
+      "kind": "query"
+    },
+    {
+      "id": "fanout",
+      "col": 1,
+      "row": 0,
+      "label": "② vmstorage 팬아웃",
+      "sub": "필터+시간범위를 전 노드에 전송",
+      "kind": "query"
+    },
+    {
+      "id": "resp",
+      "col": 2,
+      "row": 0,
+      "label": "③ vmstorage 응답",
+      "sub": "TSID 매칭 후 매칭 블록만 스트리밍",
+      "kind": "query"
+    },
+    {
+      "id": "merge",
+      "col": 3,
+      "row": 0,
+      "label": "④ 병합과 반환",
+      "sub": "시간순 정렬·병합 후 dedup",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "parse",
+      "to": "fanout",
+      "rate": 700
+    },
+    {
+      "from": "fanout",
+      "to": "resp",
+      "rate": 700
+    },
+    {
+      "from": "resp",
+      "to": "merge",
+      "rate": 700
+    }
+  ]
+}

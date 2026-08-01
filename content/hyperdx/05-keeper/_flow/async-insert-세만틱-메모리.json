@@ -1,0 +1,78 @@
+{
+  "caption": "async_insert 버퍼 flush 트리거와 크래시 시 유실 경로",
+  "nodes": [
+    {
+      "id": "I",
+      "col": 0,
+      "row": 0,
+      "label": "async INSERT",
+      "kind": "src"
+    },
+    {
+      "id": "B",
+      "col": 1,
+      "row": 0,
+      "label": "메모리 버퍼",
+      "sub": "shape별",
+      "kind": "proc"
+    },
+    {
+      "id": "F",
+      "col": 2,
+      "row": 0,
+      "label": "flush → 파트",
+      "kind": "proc"
+    },
+    {
+      "id": "D",
+      "col": 3,
+      "row": 0,
+      "label": "디스크 파트 + Keeper 등록",
+      "kind": "store"
+    },
+    {
+      "id": "X",
+      "col": 2,
+      "row": 1,
+      "label": "휘발 유실",
+      "sub": "wait=1 미ack 실패(클라 재시도) · wait=0 ack됐어도 유실",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "I",
+      "to": "B",
+      "rate": 600
+    },
+    {
+      "from": "B",
+      "to": "F",
+      "label": "size 100 MiB",
+      "rate": 700
+    },
+    {
+      "from": "B",
+      "to": "F",
+      "label": "time 200ms",
+      "rate": 750
+    },
+    {
+      "from": "B",
+      "to": "F",
+      "label": "query# 450",
+      "rate": 800
+    },
+    {
+      "from": "B",
+      "to": "X",
+      "label": "flush 전 크래시",
+      "dashed": true
+    },
+    {
+      "from": "F",
+      "to": "D",
+      "rate": 600
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "caption": "iptables로 가로챈 사이드카 우회 경로",
+  "nodes": [
+    {
+      "id": "app",
+      "col": 0,
+      "row": 0,
+      "label": "app",
+      "kind": "src"
+    },
+    {
+      "id": "le",
+      "col": 1,
+      "row": 0,
+      "label": "로컬 Envoy",
+      "kind": "proc"
+    },
+    {
+      "id": "re",
+      "col": 2,
+      "row": 0,
+      "label": "상대 Pod Envoy",
+      "kind": "proc"
+    },
+    {
+      "id": "ra",
+      "col": 3,
+      "row": 0,
+      "label": "상대 app",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "app",
+      "to": "le",
+      "label": "iptables 가로채기",
+      "rate": 700
+    },
+    {
+      "from": "le",
+      "to": "re",
+      "label": "mTLS",
+      "rate": 700
+    },
+    {
+      "from": "re",
+      "to": "ra",
+      "label": "iptables",
+      "rate": 700
+    }
+  ]
+}

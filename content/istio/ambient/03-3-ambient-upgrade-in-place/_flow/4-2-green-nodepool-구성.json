@@ -1,0 +1,83 @@
+{
+  "caption": "green 쪽은 세 곳이 맞물려야 성립한다 — Karpenter가 새 노드에 찍는 istio-version label, 그 label을 nodeSelector로 잡는 ztunnel DaemonSet, 그리고 두 service account를 모두 신뢰하는 istiod. 하나만 빠져도 green ztunnel은 뜨지 않거나 인증서를 받지 못한다.",
+  "nodes": [
+    {
+      "id": "np",
+      "col": 0,
+      "row": 1,
+      "label": "Karpenter NodePool",
+      "sub": "template에 green label 부여",
+      "kind": "src"
+    },
+    {
+      "id": "bn",
+      "col": 1,
+      "row": 0,
+      "label": "blue node",
+      "sub": "node.channel.io/istio-version: 1.25.0",
+      "kind": "store"
+    },
+    {
+      "id": "gn",
+      "col": 1,
+      "row": 1,
+      "label": "green node",
+      "sub": "node.channel.io/istio-version: 1.26.2",
+      "kind": "store"
+    },
+    {
+      "id": "za",
+      "col": 2,
+      "row": 0,
+      "label": "ztunnel-a",
+      "sub": "DaemonSet · 1.25.0",
+      "kind": "sink"
+    },
+    {
+      "id": "zb",
+      "col": 2,
+      "row": 1,
+      "label": "ztunnel-b",
+      "sub": "DaemonSet · 1.26.2",
+      "kind": "sink"
+    },
+    {
+      "id": "istiod",
+      "col": 3,
+      "row": 0,
+      "label": "istiod",
+      "sub": "trusted node account 2개",
+      "kind": "proc"
+    }
+  ],
+  "edges": [
+    {
+      "from": "np",
+      "to": "gn",
+      "label": "label 부여",
+      "rate": 820
+    },
+    {
+      "from": "bn",
+      "to": "za",
+      "rate": 700
+    },
+    {
+      "from": "gn",
+      "to": "zb",
+      "rate": 700
+    },
+    {
+      "from": "za",
+      "to": "istiod",
+      "label": "인증서 요청",
+      "rate": 640
+    },
+    {
+      "from": "zb",
+      "to": "istiod",
+      "label": "인증서 요청",
+      "rate": 640
+    }
+  ]
+}

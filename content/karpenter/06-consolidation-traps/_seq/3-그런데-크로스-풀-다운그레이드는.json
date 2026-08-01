@@ -1,0 +1,105 @@
+{
+  "caption": "consolidation 한 사이클. 평상시엔 대체안이 gen8에서 나와 strict 가격 필터에 걸려 no-op이 되고, gen8 풀이 CanAdd에 실패하는 순간에만 gen7 대체안이 만들어져 커밋된다",
+  "participants": [
+    {
+      "id": "n",
+      "label": "gen8 후보 노드"
+    },
+    {
+      "id": "d",
+      "label": "disruption 컨트롤러"
+    },
+    {
+      "id": "s",
+      "label": "시뮬레이션 스케줄러"
+    },
+    {
+      "id": "q",
+      "label": "교체 큐 · EC2"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "n",
+        "d"
+      ],
+      "label": "consolidateAfter 경과 · Consolidatable=True"
+    },
+    {
+      "note": [
+        "d"
+      ],
+      "lines": [
+        "예산 확인 (reason=Underutilized)",
+        "CanPassThreshold 사전 컷"
+      ]
+    },
+    {
+      "msg": [
+        "d",
+        "s"
+      ],
+      "label": "SimulateScheduling — 이 노드를 뺀 상태로 재배치"
+    },
+    {
+      "note": [
+        "s"
+      ],
+      "lines": [
+        "템플릿은 weight 내림차순 (OrderByWeight)",
+        "성공한 것 중 인덱스가 앞선 것을 채택"
+      ]
+    },
+    {
+      "alt": "gen8 풀이 파드를 수용 (평상시)",
+      "steps": [
+        {
+          "msg": [
+            "s",
+            "d"
+          ],
+          "label": "대체안 = gen8 풀",
+          "dashed": true
+        },
+        {
+          "note": [
+            "d"
+          ],
+          "lines": [
+            "launchPrice < candidatePrice (strict)",
+            "같은 세대끼리는 통과 못 함 → no-op"
+          ]
+        }
+      ],
+      "elseLabel": "gen8 CanAdd 실패 (ICE·limits·minValues·비호환)",
+      "elseSteps": [
+        {
+          "msg": [
+            "s",
+            "d"
+          ],
+          "label": "대체안 = gen7 풀",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "d",
+            "q"
+          ],
+          "label": "더 싸므로 필터 통과 → 교체 커밋"
+        }
+      ]
+    },
+    {
+      "note": [
+        "n",
+        "q"
+      ],
+      "lines": [
+        "교체 NodeClaim은 gen7 풀의 nodepool 라벨을 단다",
+        "consolidation은 이 이동을 되돌리지 않는다"
+      ]
+    }
+  ]
+}

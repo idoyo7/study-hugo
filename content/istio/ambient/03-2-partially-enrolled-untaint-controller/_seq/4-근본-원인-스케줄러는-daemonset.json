@@ -1,0 +1,102 @@
+{
+  "caption": "기대하는 순서와 실제로 벌어지는 일 — 기대하는 쪽은 DaemonSet이 Ready가 된 뒤에야 워크로드가 스케줄되는 것이지만, 실제로는 둘이 거의 동시에 진행된다. 그 사이에 뜬 Pod은 리다이렉션 없이 Running·Ready에 도달한다.",
+  "participants": [
+    {
+      "id": "N",
+      "label": "새 노드"
+    },
+    {
+      "id": "S",
+      "label": "kube-scheduler"
+    },
+    {
+      "id": "D",
+      "label": "istio-cni DS"
+    },
+    {
+      "id": "W",
+      "label": "워크로드 Pod"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "N",
+        "S"
+      ],
+      "label": "노드 클러스터 합류 · 스케줄 가능",
+      "dashed": true
+    },
+    {
+      "alt": "기대한 순서",
+      "steps": [
+        {
+          "msg": [
+            "S",
+            "D"
+          ],
+          "label": "1. DaemonSet Pod 먼저 배치"
+        },
+        {
+          "msg": [
+            "D",
+            "N"
+          ],
+          "label": "2. CNI chain 등록 · Ready",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "S",
+            "W"
+          ],
+          "label": "3. 그 다음 워크로드 Pod 스케줄"
+        },
+        {
+          "note": [
+            "D",
+            "W"
+          ],
+          "lines": [
+            "ztunnel DaemonSet도 이 사이에 Ready"
+          ]
+        }
+      ],
+      "elseLabel": "실제 — 거의 동시에 진행",
+      "elseSteps": [
+        {
+          "msg": [
+            "S",
+            "D"
+          ],
+          "label": "istio-cni DaemonSet Pod 스케줄"
+        },
+        {
+          "msg": [
+            "S",
+            "W"
+          ],
+          "label": "워크로드 Pod 스케줄 (같은 시점)"
+        },
+        {
+          "msg": [
+            "W",
+            "N"
+          ],
+          "label": "Running · Ready 도달",
+          "dashed": true
+        },
+        {
+          "note": [
+            "D",
+            "W"
+          ],
+          "lines": [
+            "istio-cni가 아직 CNI chain에 없거나 ambient 판정 실패",
+            "→ 리다이렉션 없이 떠버린 partially enrolled Pod"
+          ]
+        }
+      ]
+    }
+  ]
+}

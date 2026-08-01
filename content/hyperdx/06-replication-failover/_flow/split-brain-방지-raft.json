@@ -1,0 +1,68 @@
+{
+  "caption": "네트워크 분할 시 Keeper 정족수에 따른 split-brain 방지",
+  "nodes": [
+    {
+      "id": "partition_event",
+      "col": 0,
+      "row": 1,
+      "label": "네트워크 분할",
+      "kind": "src"
+    },
+    {
+      "id": "keeper_maj",
+      "col": 1,
+      "row": 0,
+      "label": "Keeper 과반 O",
+      "sub": "다수파 (Keeper 2/3 노드)",
+      "kind": "store"
+    },
+    {
+      "id": "keeper_min",
+      "col": 1,
+      "row": 2,
+      "label": "Keeper 과반 X",
+      "sub": "소수파 (Keeper 1/3 노드)",
+      "kind": "store"
+    },
+    {
+      "id": "ch_a",
+      "col": 2,
+      "row": 0,
+      "label": "CH replica-A",
+      "sub": "read+write OK",
+      "kind": "proc"
+    },
+    {
+      "id": "ch_b",
+      "col": 2,
+      "row": 2,
+      "label": "CH replica-B",
+      "sub": "read OK / write 거부 TABLE_IS_READ_ONLY",
+      "kind": "proc"
+    }
+  ],
+  "edges": [
+    {
+      "from": "partition_event",
+      "to": "keeper_maj",
+      "dashed": true
+    },
+    {
+      "from": "partition_event",
+      "to": "keeper_min",
+      "dashed": true
+    },
+    {
+      "from": "keeper_maj",
+      "to": "ch_a",
+      "label": "쓰기 허용",
+      "rate": 700
+    },
+    {
+      "from": "keeper_min",
+      "to": "ch_b",
+      "label": "쓰기 거부",
+      "rate": 700
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "caption": "vmagent 이중 쓰기와 쿼리 시간 범위 기반 Hot/Warm 분기",
+  "nodes": [
+    {
+      "id": "a",
+      "col": 0,
+      "row": 1,
+      "label": "vmagent",
+      "kind": "proc"
+    },
+    {
+      "id": "h",
+      "col": 1,
+      "row": 0,
+      "label": "Hot 클러스터",
+      "sub": "SSD·12개월",
+      "kind": "store"
+    },
+    {
+      "id": "w",
+      "col": 1,
+      "row": 2,
+      "label": "Warm 클러스터",
+      "sub": "HDD·36개월",
+      "kind": "store"
+    },
+    {
+      "id": "qr",
+      "col": 0,
+      "row": 3,
+      "label": "쿼리 시간 범위",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "a",
+      "to": "h",
+      "label": "이중 쓰기",
+      "rate": 600
+    },
+    {
+      "from": "a",
+      "to": "w",
+      "label": "이중 쓰기",
+      "rate": 600
+    },
+    {
+      "from": "qr",
+      "to": "h",
+      "label": "최근 12개월",
+      "dashed": true
+    },
+    {
+      "from": "qr",
+      "to": "w",
+      "label": "12개월 이전",
+      "dashed": true
+    }
+  ]
+}

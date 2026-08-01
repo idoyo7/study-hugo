@@ -1,0 +1,53 @@
+{
+  "caption": "vmselect 3-Prefix 검색 — 태그 필터에서 Metric ID·TSID를 거쳐 값·이름을 복원한다",
+  "nodes": [
+    {
+      "id": "t",
+      "col": 0,
+      "row": 0,
+      "label": "태그 필터",
+      "kind": "query"
+    },
+    {
+      "id": "p1",
+      "col": 1,
+      "row": 0,
+      "label": "Prefix 1",
+      "sub": "Metric ID 교집합",
+      "kind": "query"
+    },
+    {
+      "id": "p2",
+      "col": 2,
+      "row": 0,
+      "label": "Prefix 2",
+      "sub": "TSID 변환",
+      "kind": "query"
+    },
+    {
+      "id": "p3",
+      "col": 3,
+      "row": 0,
+      "label": "Prefix 3",
+      "sub": "값·이름 복원",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "t",
+      "to": "p1",
+      "rate": 700
+    },
+    {
+      "from": "p1",
+      "to": "p2",
+      "rate": 700
+    },
+    {
+      "from": "p2",
+      "to": "p3",
+      "rate": 700
+    }
+  ]
+}

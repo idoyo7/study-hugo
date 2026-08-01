@@ -1,0 +1,73 @@
+{
+  "caption": "스케일아웃으로 istiod-c가 떠도 기존 커넥션은 옮겨가지 않는다 — 새 파드는 '새로 맺어지는 커넥션'만 받으므로 한동안 빈손이다",
+  "nodes": [
+    {
+      "id": "A",
+      "col": 0,
+      "row": 0,
+      "label": "istiod-a",
+      "sub": "294 conn · 과부하",
+      "kind": "proc"
+    },
+    {
+      "id": "B",
+      "col": 0,
+      "row": 1,
+      "label": "istiod-b",
+      "sub": "246 conn",
+      "kind": "proc"
+    },
+    {
+      "id": "C",
+      "col": 0,
+      "row": 2,
+      "label": "istiod-c (신규)",
+      "sub": "3 conn · idle",
+      "kind": "query"
+    },
+    {
+      "id": "S1",
+      "col": 1,
+      "row": 0,
+      "label": "Envoy sidecar",
+      "sub": "기존 커넥션 다수",
+      "kind": "sink"
+    },
+    {
+      "id": "S2",
+      "col": 1,
+      "row": 1,
+      "label": "Envoy sidecar",
+      "sub": "기존 커넥션",
+      "kind": "sink"
+    },
+    {
+      "id": "S3",
+      "col": 1,
+      "row": 2,
+      "label": "Envoy sidecar",
+      "sub": "새로 맺은 것만",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "A",
+      "to": "S1",
+      "label": "xDS push",
+      "rate": 380,
+      "speed": "fast"
+    },
+    {
+      "from": "B",
+      "to": "S2",
+      "rate": 650
+    },
+    {
+      "from": "C",
+      "to": "S3",
+      "rate": 1400,
+      "speed": "slow"
+    }
+  ]
+}

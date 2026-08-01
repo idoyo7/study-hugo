@@ -1,0 +1,149 @@
+{
+  "caption": "RUM 볼륨 흐름 — 인입부터 hot·cold·삭제·백업까지",
+  "nodes": [
+    {
+      "id": "R",
+      "col": 0,
+      "row": 0,
+      "label": "세션 리플레이 rrweb",
+      "sub": "~65%",
+      "kind": "src"
+    },
+    {
+      "id": "L",
+      "col": 0,
+      "row": 1,
+      "label": "로그·Vitals",
+      "sub": "~20%",
+      "kind": "src"
+    },
+    {
+      "id": "T",
+      "col": 0,
+      "row": 2,
+      "label": "트레이스",
+      "sub": "~13%",
+      "kind": "src"
+    },
+    {
+      "id": "M",
+      "col": 0,
+      "row": 3,
+      "label": "메트릭",
+      "sub": "~2%",
+      "kind": "src"
+    },
+    {
+      "id": "S",
+      "col": 1,
+      "row": 0,
+      "label": "hyperdx_sessions",
+      "sub": "on-disk ~78% · hot gp3 ×RF2",
+      "kind": "store"
+    },
+    {
+      "id": "OL",
+      "col": 1,
+      "row": 1,
+      "label": "otel_logs",
+      "sub": "hot gp3 ×RF2",
+      "kind": "store"
+    },
+    {
+      "id": "OT",
+      "col": 1,
+      "row": 2,
+      "label": "otel_traces",
+      "sub": "hot gp3 ×RF2",
+      "kind": "store"
+    },
+    {
+      "id": "OM",
+      "col": 1,
+      "row": 3,
+      "label": "otel_metrics_*",
+      "sub": "hot gp3 ×RF2",
+      "kind": "store"
+    },
+    {
+      "id": "X",
+      "col": 2,
+      "row": 0,
+      "label": "삭제",
+      "kind": "sink"
+    },
+    {
+      "id": "C",
+      "col": 2,
+      "row": 2,
+      "label": "S3 cold",
+      "sub": "×RF2",
+      "kind": "store"
+    },
+    {
+      "id": "B",
+      "col": 3,
+      "row": 2,
+      "label": "S3/Glacier IR 백업",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "R",
+      "to": "S",
+      "rate": 700
+    },
+    {
+      "from": "L",
+      "to": "OL",
+      "rate": 700
+    },
+    {
+      "from": "T",
+      "to": "OT",
+      "rate": 700
+    },
+    {
+      "from": "M",
+      "to": "OM",
+      "rate": 700
+    },
+    {
+      "from": "OL",
+      "to": "C",
+      "label": "TTL 14d MOVE",
+      "rate": 700
+    },
+    {
+      "from": "OT",
+      "to": "C",
+      "label": "TTL 14d MOVE",
+      "rate": 700
+    },
+    {
+      "from": "OM",
+      "to": "C",
+      "label": "TTL 30d MOVE",
+      "rate": 700
+    },
+    {
+      "from": "S",
+      "to": "X",
+      "label": "TTL 30d DELETE (S3 안 감 → 누적 0)",
+      "rate": 800
+    },
+    {
+      "from": "OL",
+      "to": "X",
+      "label": "지평별 90/180/365d DELETE",
+      "rate": 800
+    },
+    {
+      "from": "C",
+      "to": "B",
+      "label": "clickhouse-backup (리플레이 제외)",
+      "dashed": true
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "caption": "세 레이어가 교집합으로 합쳐져 후보 인스턴스 타입이 되고, 그 결과가 NodeClaim의 requirements로 굳어져 CreateFleet에 들어간다. 교집합이 비면 launch가 시작되지 않고 파드는 Pending으로 남아 백오프 재시도된다",
+  "nodes": [
+    {
+      "id": "POD",
+      "col": 0,
+      "row": 0,
+      "label": "파드 요구",
+      "sub": "nodeSelector · affinity · TSC",
+      "kind": "src"
+    },
+    {
+      "id": "NP",
+      "col": 0,
+      "row": 1,
+      "label": "NodePool",
+      "sub": "requirements — 이 풀의 우주",
+      "kind": "src"
+    },
+    {
+      "id": "OFF",
+      "col": 0,
+      "row": 2,
+      "label": "클라우드 offering",
+      "sub": "타입 × 존 × capacity-type",
+      "kind": "store"
+    },
+    {
+      "id": "IX",
+      "col": 1,
+      "row": 1,
+      "label": "교집합",
+      "sub": "Requirements.Intersection()",
+      "kind": "proc"
+    },
+    {
+      "id": "FIL",
+      "col": 2,
+      "row": 0,
+      "label": "타입 필터링",
+      "sub": "minValues · 가격 · 용량",
+      "kind": "proc"
+    },
+    {
+      "id": "NC",
+      "col": 3,
+      "row": 0,
+      "label": "NodeClaim",
+      "sub": "requirements 확정 → CreateFleet",
+      "kind": "sink"
+    },
+    {
+      "id": "PEND",
+      "col": 2,
+      "row": 2,
+      "label": "공집합",
+      "sub": "FailedScheduling · 파드 Pending",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "POD",
+      "to": "IX",
+      "label": "부분집합이어야"
+    },
+    {
+      "from": "NP",
+      "to": "IX",
+      "label": "AND 결합"
+    },
+    {
+      "from": "OFF",
+      "to": "IX"
+    },
+    {
+      "from": "IX",
+      "to": "FIL",
+      "label": "후보 타입",
+      "rate": 500
+    },
+    {
+      "from": "FIL",
+      "to": "NC",
+      "label": "launch",
+      "rate": 620
+    },
+    {
+      "from": "IX",
+      "to": "PEND",
+      "label": "교집합 없음",
+      "rate": 1200,
+      "speed": "slow"
+    }
+  ]
+}

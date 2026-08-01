@@ -1,0 +1,62 @@
+{
+  "caption": "요청 하나가 지나는 프록시 홉",
+  "nodes": [
+    {
+      "id": "client",
+      "col": 0,
+      "row": 0,
+      "label": "client",
+      "kind": "src"
+    },
+    {
+      "id": "gw",
+      "col": 1,
+      "row": 0,
+      "label": "① ingress GW Envoy",
+      "kind": "proc"
+    },
+    {
+      "id": "ss",
+      "col": 2,
+      "row": 0,
+      "label": "② source sidecar",
+      "kind": "proc"
+    },
+    {
+      "id": "ds",
+      "col": 3,
+      "row": 0,
+      "label": "③ dest sidecar",
+      "kind": "proc"
+    },
+    {
+      "id": "app",
+      "col": 4,
+      "row": 0,
+      "label": "④ app",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "client",
+      "to": "gw",
+      "rate": 700
+    },
+    {
+      "from": "gw",
+      "to": "ss",
+      "rate": 700
+    },
+    {
+      "from": "ss",
+      "to": "ds",
+      "rate": 700
+    },
+    {
+      "from": "ds",
+      "to": "app",
+      "rate": 700
+    }
+  ]
+}

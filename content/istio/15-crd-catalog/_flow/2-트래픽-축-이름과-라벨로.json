@@ -1,0 +1,108 @@
+{
+  "caption": "트래픽 축의 참조 사슬 — 이름(gateways·host·subset)과 라벨로 이어져 엔드포인트에 닿는다",
+  "nodes": [
+    {
+      "id": "G",
+      "col": 0,
+      "row": 0,
+      "label": "Gateway",
+      "sub": "받을 포트·프로토콜·TLS",
+      "kind": "src"
+    },
+    {
+      "id": "VS",
+      "col": 1,
+      "row": 0,
+      "label": "VirtualService",
+      "sub": "매칭·가중치·재시도",
+      "kind": "proc"
+    },
+    {
+      "id": "DR",
+      "col": 2,
+      "row": 0,
+      "label": "DestinationRule",
+      "sub": "subset 정의 · trafficPolicy",
+      "kind": "proc"
+    },
+    {
+      "id": "EP",
+      "col": 3,
+      "row": 0,
+      "label": "엔드포인트",
+      "sub": "파드 IP · VM 주소",
+      "kind": "sink"
+    },
+    {
+      "id": "SE",
+      "col": 0,
+      "row": 1,
+      "label": "ServiceEntry",
+      "sub": "메시 밖 서비스를 등록",
+      "kind": "store"
+    },
+    {
+      "id": "RG",
+      "col": 2,
+      "row": 1,
+      "label": "서비스 레지스트리",
+      "kind": "store"
+    },
+    {
+      "id": "WG",
+      "col": 0,
+      "row": 2,
+      "label": "WorkloadGroup",
+      "sub": "WorkloadEntry 템플릿",
+      "kind": "store"
+    },
+    {
+      "id": "WE",
+      "col": 1,
+      "row": 2,
+      "label": "WorkloadEntry",
+      "sub": "VM 등 비-k8s 워크로드",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "G",
+      "to": "VS",
+      "label": "gateways",
+      "rate": 700
+    },
+    {
+      "from": "VS",
+      "to": "DR",
+      "label": "host+subset",
+      "rate": 700
+    },
+    {
+      "from": "DR",
+      "to": "EP",
+      "label": "라벨 필터",
+      "rate": 700
+    },
+    {
+      "from": "SE",
+      "to": "RG",
+      "label": "항목 추가"
+    },
+    {
+      "from": "WG",
+      "to": "WE",
+      "label": "템플릿"
+    },
+    {
+      "from": "WE",
+      "to": "RG",
+      "label": "엔드포인트 등록"
+    },
+    {
+      "from": "RG",
+      "to": "EP",
+      "label": "후보 집합 공급"
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "caption": "capacity-type이 결정되면 할당 전략이 따라오고, 할당 전략이 '인스턴스를 누가 고르는가'를 정한다 — spot을 허용한 순간 선택권이 EC2로 넘어간다",
+  "nodes": [
+    {
+      "id": "nc",
+      "col": 0,
+      "row": 1,
+      "label": "NodeClaim",
+      "sub": "capacity-type In [...]",
+      "kind": "src"
+    },
+    {
+      "id": "gct",
+      "col": 1,
+      "row": 1,
+      "label": "getCapacityType",
+      "sub": "가용 오퍼링이 있는 첫 단계",
+      "kind": "proc"
+    },
+    {
+      "id": "rsv",
+      "col": 2,
+      "row": 0,
+      "label": "reserved",
+      "sub": "가격 = odPrice / 10^7",
+      "kind": "store"
+    },
+    {
+      "id": "spt",
+      "col": 2,
+      "row": 1,
+      "label": "spot",
+      "sub": "price-capacity-optimized",
+      "kind": "query"
+    },
+    {
+      "id": "od",
+      "col": 2,
+      "row": 2,
+      "label": "on-demand",
+      "sub": "lowest-price",
+      "kind": "proc"
+    },
+    {
+      "id": "k",
+      "col": 3,
+      "row": 0,
+      "label": "사실상 확정",
+      "sub": "정렬·절단·Fleet 전부 1순위",
+      "kind": "sink"
+    },
+    {
+      "id": "e1",
+      "col": 3,
+      "row": 1,
+      "label": "EC2 · 용량 기준",
+      "sub": "세대 선호 무력화",
+      "kind": "sink"
+    },
+    {
+      "id": "e2",
+      "col": 3,
+      "row": 2,
+      "label": "EC2 · 가격 기준",
+      "sub": "가장 싼 세대가 이긴다",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "nc",
+      "to": "gct",
+      "rate": 700
+    },
+    {
+      "from": "gct",
+      "to": "rsv",
+      "label": "예약 있음",
+      "rate": 900
+    },
+    {
+      "from": "gct",
+      "to": "spt",
+      "label": "spot 허용",
+      "rate": 700
+    },
+    {
+      "from": "gct",
+      "to": "od",
+      "label": "나머지",
+      "rate": 800
+    },
+    {
+      "from": "rsv",
+      "to": "k",
+      "rate": 900
+    },
+    {
+      "from": "spt",
+      "to": "e1",
+      "rate": 700
+    },
+    {
+      "from": "od",
+      "to": "e2",
+      "rate": 800
+    }
+  ]
+}

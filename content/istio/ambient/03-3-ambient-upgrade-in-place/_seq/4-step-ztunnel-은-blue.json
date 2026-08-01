@@ -1,0 +1,108 @@
+{
+  "caption": "같은 노드에서 ztunnel을 교체하면 30초 안에 끝나지 않은 커넥션이 종료 순간 절단된다. blue-green은 그 종료 순간 자체를 없앤다.",
+  "participants": [
+    {
+      "id": "Op",
+      "label": "운영자"
+    },
+    {
+      "id": "W",
+      "label": "workload Pod"
+    },
+    {
+      "id": "ZO",
+      "label": "기존 ztunnel"
+    },
+    {
+      "id": "ZN",
+      "label": "새 ztunnel"
+    }
+  ],
+  "steps": [
+    {
+      "alt": "in-place rolling update",
+      "steps": [
+        {
+          "msg": [
+            "Op",
+            "ZO"
+          ],
+          "label": "같은 노드에서 old → new 교체"
+        },
+        {
+          "msg": [
+            "W",
+            "ZO"
+          ],
+          "label": "long-lived connection 처리 중"
+        },
+        {
+          "msg": [
+            "ZO",
+            "W"
+          ],
+          "label": "graceful 30초 초과 → 커넥션 절단",
+          "dashed": true
+        },
+        {
+          "note": [
+            "W",
+            "ZO"
+          ],
+          "lines": [
+            "client·앱에 retry가 없으면 그대로 요청 실패"
+          ]
+        }
+      ],
+      "elseLabel": "blue-green node pool",
+      "elseSteps": [
+        {
+          "msg": [
+            "Op",
+            "ZN"
+          ],
+          "label": "green node pool 생성 · 새 ztunnel Ready"
+        },
+        {
+          "msg": [
+            "Op",
+            "W"
+          ],
+          "label": "blue node cordon · drain — stateless 먼저"
+        },
+        {
+          "msg": [
+            "W",
+            "ZN"
+          ],
+          "label": "green node에서 커넥션 재수립"
+        },
+        {
+          "msg": [
+            "ZN",
+            "W"
+          ],
+          "label": "정상 처리 — 5xx · TCP reset 확인",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "Op",
+            "ZO"
+          ],
+          "label": "잔여 blue node 0 → 기존 ztunnel 제거"
+        },
+        {
+          "note": [
+            "W",
+            "ZN"
+          ],
+          "lines": [
+            "기존 ztunnel이 커넥션을 쥔 채 종료되는 순간이 없다",
+            "대신 blue node가 비워질 때까지 두 버전을 함께 운영한다"
+          ]
+        }
+      ]
+    }
+  ]
+}

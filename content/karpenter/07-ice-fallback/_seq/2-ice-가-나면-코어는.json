@@ -1,0 +1,114 @@
+{
+  "caption": "ICE 한 번의 전체 왕복 — 마킹은 provider-aws에, 재시도 트리거는 파드에 있다. 3분 뒤 TTL이 만료되면 8세대가 아무 조작 없이 후보로 돌아온다",
+  "participants": [
+    {
+      "id": "pod",
+      "label": "pending 파드"
+    },
+    {
+      "id": "core",
+      "label": "코어 컨트롤러"
+    },
+    {
+      "id": "prov",
+      "label": "provider-aws"
+    },
+    {
+      "id": "ec2",
+      "label": "EC2 Fleet"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "pod",
+        "core"
+      ],
+      "label": "① Trigger + 배치창 1~10초"
+    },
+    {
+      "msg": [
+        "core",
+        "prov"
+      ],
+      "label": "② Create — gen8 후보"
+    },
+    {
+      "msg": [
+        "prov",
+        "ec2"
+      ],
+      "label": "③ CreateFleet (instant)"
+    },
+    {
+      "msg": [
+        "ec2",
+        "prov"
+      ],
+      "label": "④ InsufficientInstanceCapacity",
+      "dashed": true
+    },
+    {
+      "note": [
+        "prov"
+      ],
+      "lines": [
+        "MarkUnavailable(on-demand:c8i.2xlarge:2a)",
+        "TTL 3분 · seqNum++ → 오퍼링 재계산"
+      ]
+    },
+    {
+      "msg": [
+        "prov",
+        "core"
+      ],
+      "label": "⑤ InsufficientCapacityError",
+      "dashed": true
+    },
+    {
+      "note": [
+        "core"
+      ],
+      "lines": [
+        "NodeClaim 삭제 · 재큐 없음 · 백오프 없음",
+        "nodeclaims_disrupted_total{insufficient_capacity}"
+      ]
+    },
+    {
+      "msg": [
+        "pod",
+        "core"
+      ],
+      "label": "⑥ 여전히 pending → 10초 재큐"
+    },
+    {
+      "alt": "TTL 3분 이내",
+      "steps": [
+        {
+          "msg": [
+            "core",
+            "prov"
+          ],
+          "label": "⑦ gen8이 Available()에서 빠짐 → gen7"
+        },
+        {
+          "msg": [
+            "prov",
+            "ec2"
+          ],
+          "label": "⑧ CreateFleet 성공"
+        }
+      ],
+      "elseLabel": "TTL 만료 후",
+      "elseSteps": [
+        {
+          "msg": [
+            "core",
+            "prov"
+          ],
+          "label": "⑦' gen8 재후보 — 복귀 또는 재실패"
+        }
+      ]
+    }
+  ]
+}

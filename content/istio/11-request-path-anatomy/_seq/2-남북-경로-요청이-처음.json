@@ -1,0 +1,94 @@
+{
+  "caption": "LB는 L4로만 넘기고, TLS 종료·HTTP 파싱·라우팅은 전부 게이트웨이 Envoy에서 일어난다.",
+  "participants": [
+    {
+      "id": "L",
+      "label": "NLB"
+    },
+    {
+      "id": "G",
+      "label": "gateway Envoy"
+    },
+    {
+      "id": "S",
+      "label": "사이드카 :15006"
+    },
+    {
+      "id": "P",
+      "label": "앱 컨테이너"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "L",
+        "G"
+      ],
+      "label": "1. TCP :443 — 여기까지 L4"
+    },
+    {
+      "note": [
+        "L",
+        "G"
+      ],
+      "lines": [
+        "Gateway CRD가 이 포트의 리스너를 만들고",
+        "credentialName이 가리킨 Secret이 SDS로 실려 와 있다"
+      ]
+    },
+    {
+      "msg": [
+        "G",
+        "S"
+      ],
+      "label": "2. TLS 종료 → HTTP 파싱 → 라우트 선택"
+    },
+    {
+      "note": [
+        "G",
+        "S"
+      ],
+      "lines": [
+        "VirtualService의 gateways 필드로 바인딩된 라우트가 여기서 걸린다"
+      ]
+    },
+    {
+      "msg": [
+        "G",
+        "S"
+      ],
+      "label": "3. 다시 mTLS로 감싸 파드 IP :15006"
+    },
+    {
+      "msg": [
+        "S",
+        "P"
+      ],
+      "label": "4. 복호화된 평문 · localhost"
+    },
+    {
+      "msg": [
+        "P",
+        "S"
+      ],
+      "label": "5. 응답",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "S",
+        "G"
+      ],
+      "label": "6. mTLS 응답",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "G",
+        "L"
+      ],
+      "label": "7. TLS 응답",
+      "dashed": true
+    }
+  ]
+}

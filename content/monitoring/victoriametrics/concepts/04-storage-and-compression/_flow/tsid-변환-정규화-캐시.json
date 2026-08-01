@@ -1,0 +1,99 @@
+{
+  "caption": "TSID 변환 — 캐시 hit이면 빠른 경로, 캐시·IndexDB 모두 miss면 New TSID 발급",
+  "nodes": [
+    {
+      "id": "RAW",
+      "col": 0,
+      "row": 0,
+      "label": "로우",
+      "sub": "metric name + labels",
+      "kind": "src"
+    },
+    {
+      "id": "CN",
+      "col": 1,
+      "row": 0,
+      "label": "Canonical Name 정규화",
+      "sub": "64bit TSID로 변환",
+      "kind": "proc"
+    },
+    {
+      "id": "Q1",
+      "col": 2,
+      "row": 0,
+      "label": "TSID 캐시",
+      "kind": "query"
+    },
+    {
+      "id": "Q2",
+      "col": 3,
+      "row": 1,
+      "label": "IndexDB 조회",
+      "kind": "query"
+    },
+    {
+      "id": "T",
+      "col": 4,
+      "row": 0,
+      "label": "TSID",
+      "sub": "빠른 경로",
+      "kind": "sink"
+    },
+    {
+      "id": "N",
+      "col": 4,
+      "row": 1,
+      "label": "New TSID 발급",
+      "kind": "proc"
+    },
+    {
+      "id": "X",
+      "col": 5,
+      "row": 1,
+      "label": "⚠ 남발 = 카디널리티 폭발",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "RAW",
+      "to": "CN",
+      "rate": 700
+    },
+    {
+      "from": "CN",
+      "to": "Q1",
+      "rate": 700
+    },
+    {
+      "from": "Q1",
+      "to": "T",
+      "label": "hit",
+      "rate": 600,
+      "speed": "fast"
+    },
+    {
+      "from": "Q1",
+      "to": "Q2",
+      "label": "miss",
+      "rate": 700
+    },
+    {
+      "from": "Q2",
+      "to": "T",
+      "label": "hit",
+      "rate": 700
+    },
+    {
+      "from": "Q2",
+      "to": "N",
+      "label": "miss",
+      "rate": 800
+    },
+    {
+      "from": "N",
+      "to": "X",
+      "rate": 800
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "caption": "업그레이드는 istiod → istio-cni → ztunnel 순서다. v1.x istio-cni·ztunnel이 v1.x 및 v1.x+1 control plane과 호환되므로 control plane이 항상 먼저 올라간다.",
+  "nodes": [
+    {
+      "id": "cp",
+      "col": 0,
+      "row": 0,
+      "label": "istiod",
+      "sub": "control plane + gateway Envoy",
+      "kind": "proc"
+    },
+    {
+      "id": "cni",
+      "col": 1,
+      "row": 0,
+      "label": "istio-cni",
+      "sub": "DaemonSet in-place",
+      "kind": "proc"
+    },
+    {
+      "id": "zt",
+      "col": 2,
+      "row": 0,
+      "label": "ztunnel",
+      "sub": "node pool blue-green",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "cp",
+      "to": "cni",
+      "rate": 700
+    },
+    {
+      "from": "cni",
+      "to": "zt",
+      "rate": 700
+    }
+  ]
+}

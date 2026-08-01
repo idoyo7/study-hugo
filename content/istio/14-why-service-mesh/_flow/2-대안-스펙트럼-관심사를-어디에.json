@@ -1,0 +1,100 @@
+{
+  "caption": "게이트웨이는 외부에서 들어오는 한 지점만 덮는다. 서비스끼리 주고받는 동서 호출은 그 지점을 지나지 않으므로, 정책도 지표도 그 구간에는 없다.",
+  "nodes": [
+    {
+      "id": "ext",
+      "col": 0,
+      "row": 0,
+      "label": "외부 클라이언트",
+      "kind": "src"
+    },
+    {
+      "id": "gw",
+      "col": 1,
+      "row": 0,
+      "label": "API 게이트웨이",
+      "sub": "TLS · 라우팅 · 인가",
+      "kind": "proc"
+    },
+    {
+      "id": "a",
+      "col": 2,
+      "row": 0,
+      "label": "서비스 A",
+      "kind": "proc"
+    },
+    {
+      "id": "b",
+      "col": 3,
+      "row": 0,
+      "label": "서비스 B",
+      "kind": "proc"
+    },
+    {
+      "id": "c",
+      "col": 3,
+      "row": 1,
+      "label": "서비스 C",
+      "kind": "proc"
+    },
+    {
+      "id": "d",
+      "col": 4,
+      "row": 0,
+      "label": "서비스 D",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "ext",
+      "to": "gw",
+      "rate": 700
+    },
+    {
+      "from": "gw",
+      "to": "a",
+      "rate": 700
+    },
+    {
+      "from": "a",
+      "to": "b",
+      "rate": 700
+    },
+    {
+      "from": "a",
+      "to": "c",
+      "rate": 700
+    },
+    {
+      "from": "b",
+      "to": "d",
+      "rate": 700
+    },
+    {
+      "from": "c",
+      "to": "d",
+      "rate": 700
+    }
+  ],
+  "groups": [
+    {
+      "id": "ns",
+      "label": "남북 — 게이트웨이가 덮는 구간",
+      "members": [
+        "ext",
+        "gw"
+      ]
+    },
+    {
+      "id": "ew",
+      "label": "동서 — 덮이지 않는 구간",
+      "members": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "caption": "두 인제스트 경로가 ClickHouse에서 합류한다. RUM(브라우저 SDK·Mobile RUM)은 자체 컨버터(Datadog Agent의 RUM 전송 방식 참조)를 통해 ClickHouse에 직접 적재하고, 표준 텔레메트리는 OTel Collector가 적재한다 — 컨버터·Collector는 서로 직접 호출하지 않는다. hdx는 app·api·OpAMP를 한 Deployment에서 함께 기동하며 ClickHouse(쿼리)·MongoDB(메타)를 읽는다. Keeper 3노드(client 2181)는 데이터가 지나가는 길이 아니라 복제 정족수를 잡는 조정 계층이다(점선). ClickHouse·Keeper는 Altinity operator가 StatefulSet으로 관리.",
+  "groups": [
+    {
+      "id": "op",
+      "label": "Altinity operator · StatefulSet",
+      "members": [
+        "cha",
+        "chb",
+        "k1",
+        "k2",
+        "k3"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rum",
+      "col": 0,
+      "row": 0,
+      "label": "브라우저 SDK",
+      "sub": "rrweb·에러·Web Vitals",
+      "kind": "src"
+    },
+    {
+      "id": "mob",
+      "col": 0,
+      "row": 1,
+      "label": "Mobile RUM",
+      "sub": "모바일 앱 RUM",
+      "kind": "src"
+    },
+    {
+      "id": "conv",
+      "col": 1,
+      "row": 0,
+      "label": "RUM 컨버터",
+      "sub": "자체 개발 · Datadog Agent 참조",
+      "kind": "proc"
+    },
+    {
+      "id": "tel",
+      "col": 0,
+      "row": 3,
+      "label": "앱·인프라 텔레메트리",
+      "sub": "로그·트레이스·메트릭",
+      "kind": "src"
+    },
+    {
+      "id": "otel",
+      "col": 1,
+      "row": 3,
+      "label": "OTel Collector",
+      "sub": "OTLP 4317/4318",
+      "kind": "proc"
+    },
+    {
+      "id": "cha",
+      "col": 2,
+      "row": 0,
+      "label": "ClickHouse",
+      "sub": "replica A",
+      "kind": "store"
+    },
+    {
+      "id": "chb",
+      "col": 2,
+      "row": 1,
+      "label": "ClickHouse",
+      "sub": "replica B",
+      "kind": "store"
+    },
+    {
+      "id": "k1",
+      "col": 3,
+      "row": 0,
+      "label": "Keeper",
+      "sub": "node 1 · 2181",
+      "kind": "store"
+    },
+    {
+      "id": "k2",
+      "col": 3,
+      "row": 1,
+      "label": "Keeper",
+      "sub": "node 2",
+      "kind": "store"
+    },
+    {
+      "id": "k3",
+      "col": 3,
+      "row": 2,
+      "label": "Keeper",
+      "sub": "node 3",
+      "kind": "store"
+    },
+    {
+      "id": "hdx",
+      "col": 1,
+      "row": 5,
+      "label": "HyperDX",
+      "sub": "app·api·OpAMP · 단일 Deployment",
+      "kind": "query"
+    },
+    {
+      "id": "mongo",
+      "col": 2,
+      "row": 5,
+      "label": "MongoDB",
+      "sub": "ReplicaSet",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "rum",
+      "to": "conv",
+      "label": "RUM 이벤트",
+      "rate": 720
+    },
+    {
+      "from": "mob",
+      "to": "conv",
+      "rate": 720
+    },
+    {
+      "from": "conv",
+      "to": "cha",
+      "label": "적재(RUM)",
+      "rate": 560
+    },
+    {
+      "from": "tel",
+      "to": "otel",
+      "label": "OTLP",
+      "rate": 720
+    },
+    {
+      "from": "otel",
+      "to": "chb",
+      "label": "insert",
+      "rate": 560
+    },
+    {
+      "from": "hdx",
+      "to": "chb",
+      "label": "쿼리",
+      "kind": "query",
+      "rate": 820
+    },
+    {
+      "from": "hdx",
+      "to": "mongo",
+      "label": "메타 R/W",
+      "rate": 900
+    },
+    {
+      "from": "chb",
+      "to": "k2",
+      "label": "복제 조정",
+      "dashed": true
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "caption": "같은 워크로드가 classic과 native에서 다르게 기동·종료한다. 핵심은 istio-init의 위치다 — classic은 initContainers 마지막이라 사용자 init이 메시를 우회하고, native는 맨 앞이라 메시 안으로 들어온다",
+  "participants": [
+    {
+      "id": "K",
+      "label": "kubelet"
+    },
+    {
+      "id": "I",
+      "label": "istio-init"
+    },
+    {
+      "id": "P",
+      "label": "istio-proxy"
+    },
+    {
+      "id": "A",
+      "label": "app"
+    }
+  ],
+  "steps": [
+    {
+      "alt": "classic (ENABLE_NATIVE_SIDECARS=false)",
+      "steps": [
+        {
+          "note": [
+            "I",
+            "A"
+          ],
+          "lines": [
+            "initContainers: istio-validation → 사용자 init → istio-init(마지막)",
+            "\"iptables setup last so we do not blackhole init containers\""
+          ]
+        },
+        {
+          "msg": [
+            "K",
+            "I"
+          ],
+          "label": "1. iptables 설치"
+        },
+        {
+          "msg": [
+            "K",
+            "P"
+          ],
+          "label": "2. istio-proxy 기동"
+        },
+        {
+          "msg": [
+            "P",
+            "K"
+          ],
+          "label": "3. postStart: pilot-agent wait",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "K",
+            "A"
+          ],
+          "label": "4. app 기동"
+        },
+        {
+          "note": [
+            "P",
+            "A"
+          ],
+          "lines": [
+            "종료: SIGTERM이 전 컨테이너에 동시에 간다",
+            "Job은 proxy가 살아 있어 Complete로 안 넘어간다"
+          ]
+        }
+      ],
+      "elseLabel": "native (기본 · 전 노드 kubelet ≥ 1.33)",
+      "elseSteps": [
+        {
+          "note": [
+            "I",
+            "P"
+          ],
+          "lines": [
+            "initContainers: istio-init → istio-proxy → 사용자 init",
+            "\"istio first, so init containers are part of the mesh\""
+          ]
+        },
+        {
+          "msg": [
+            "K",
+            "I"
+          ],
+          "label": "1. iptables 설치"
+        },
+        {
+          "msg": [
+            "K",
+            "P"
+          ],
+          "label": "2. restartPolicy: Always"
+        },
+        {
+          "msg": [
+            "P",
+            "K"
+          ],
+          "label": "3. startupProbe 통과",
+          "dashed": true
+        },
+        {
+          "msg": [
+            "K",
+            "A"
+          ],
+          "label": "4. app 기동(순서 보장)"
+        },
+        {
+          "note": [
+            "K",
+            "A"
+          ],
+          "lines": [
+            "종료: 일반 컨테이너 전부 종료 후 proxy에 SIGTERM(역순)",
+            "preStop이 drain을 먼저 친다 · Job은 proxy를 무시하고 Complete"
+          ]
+        }
+      ]
+    }
+  ]
+}

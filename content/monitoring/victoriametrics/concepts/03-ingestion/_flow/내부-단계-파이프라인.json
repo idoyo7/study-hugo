@@ -1,0 +1,107 @@
+{
+  "caption": "vmagent 내부 7단계 파이프라인",
+  "nodes": [
+    {
+      "id": "A",
+      "col": 0,
+      "row": 0,
+      "label": "① 스크랩 / API 수신",
+      "kind": "src"
+    },
+    {
+      "id": "B",
+      "col": 1,
+      "row": 0,
+      "label": "② 글로벌 릴레이블링",
+      "kind": "proc"
+    },
+    {
+      "id": "C",
+      "col": 2,
+      "row": 0,
+      "label": "③ dedup + 스트리밍 어그리게이션",
+      "kind": "proc"
+    },
+    {
+      "id": "D",
+      "col": 3,
+      "row": 0,
+      "label": "④ 샤딩 + 리플리케이션",
+      "kind": "proc"
+    },
+    {
+      "id": "E",
+      "col": 4,
+      "row": 0,
+      "label": "⑤ 퍼-리모트 튜닝",
+      "sub": "리모트별 릴레이블·드랍·dedup",
+      "kind": "proc"
+    },
+    {
+      "id": "F",
+      "col": 5,
+      "row": 0,
+      "label": "⑥ Fast Queue",
+      "sub": "메모리",
+      "kind": "store"
+    },
+    {
+      "id": "P",
+      "col": 6,
+      "row": 1,
+      "label": "Persistent Queue",
+      "sub": "디스크",
+      "kind": "store"
+    },
+    {
+      "id": "H",
+      "col": 7,
+      "row": 0,
+      "label": "⑦ 리모트 플러시 → vminsert",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "A",
+      "to": "B",
+      "rate": 600
+    },
+    {
+      "from": "B",
+      "to": "C",
+      "rate": 600
+    },
+    {
+      "from": "C",
+      "to": "D",
+      "rate": 600
+    },
+    {
+      "from": "D",
+      "to": "E",
+      "rate": 600
+    },
+    {
+      "from": "E",
+      "to": "F",
+      "rate": 600
+    },
+    {
+      "from": "F",
+      "to": "P",
+      "label": "가득 차면",
+      "rate": 700
+    },
+    {
+      "from": "F",
+      "to": "H",
+      "rate": 600
+    },
+    {
+      "from": "P",
+      "to": "H",
+      "rate": 700
+    }
+  ]
+}

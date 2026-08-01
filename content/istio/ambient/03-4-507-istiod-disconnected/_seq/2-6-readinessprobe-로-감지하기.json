@@ -1,0 +1,105 @@
+{
+  "caption": "같은 probe 결과라도 successThreshold 값에 따라 결말이 갈린다 — 기본값 1이면 재연결 루프의 우연한 1회 성공만으로 endpoint에 다시 들어가 flapping이 난다.",
+  "participants": [
+    {
+      "id": "K",
+      "label": "kubelet"
+    },
+    {
+      "id": "P",
+      "label": "gateway Pod"
+    },
+    {
+      "id": "S",
+      "label": "Service endpoint"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "K",
+        "P"
+      ],
+      "label": "/healthz/ready + control_plane.connected_state"
+    },
+    {
+      "msg": [
+        "P",
+        "K"
+      ],
+      "label": "connected_state = 0 → 실패",
+      "dashed": true
+    },
+    {
+      "note": [
+        "K",
+        "P"
+      ],
+      "lines": [
+        "3회 연속 실패 = failureThreshold 3 → NotReady"
+      ]
+    },
+    {
+      "msg": [
+        "K",
+        "S"
+      ],
+      "label": "endpoint에서 제외"
+    },
+    {
+      "msg": [
+        "K",
+        "P"
+      ],
+      "label": "재연결 루프 중 다시 probe"
+    },
+    {
+      "msg": [
+        "P",
+        "K"
+      ],
+      "label": "state 1 — 우연히 1회 성공",
+      "dashed": true
+    },
+    {
+      "alt": "successThreshold = 1 (기본값)",
+      "steps": [
+        {
+          "msg": [
+            "K",
+            "S"
+          ],
+          "label": "곧바로 Ready → endpoint 재진입"
+        },
+        {
+          "note": [
+            "K",
+            "S"
+          ],
+          "lines": [
+            "다음 실패에 다시 빠진다 — flapping"
+          ]
+        }
+      ],
+      "elseLabel": "successThreshold = 3",
+      "elseSteps": [
+        {
+          "note": [
+            "K",
+            "P"
+          ],
+          "lines": [
+            "연속 3회 성공까지 NotReady 유지"
+          ]
+        },
+        {
+          "msg": [
+            "K",
+            "S"
+          ],
+          "label": "3회 연속 성공 후에만 재진입"
+        }
+      ]
+    }
+  ]
+}

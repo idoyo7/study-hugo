@@ -1,0 +1,91 @@
+{
+  "caption": "아웃바운드는 :15001, 인바운드는 :15006. 가운데서 프로토콜 판별에 실패하면 경로가 TCP proxy로 갈린다.",
+  "nodes": [
+    {
+      "id": "A",
+      "col": 0,
+      "row": 0,
+      "label": "앱",
+      "sub": "http://svc-b:8080",
+      "kind": "src"
+    },
+    {
+      "id": "I",
+      "col": 1,
+      "row": 0,
+      "label": "iptables",
+      "sub": "아웃바운드 REDIRECT",
+      "kind": "proc"
+    },
+    {
+      "id": "O",
+      "col": 2,
+      "row": 0,
+      "label": "사이드카 outbound",
+      "sub": ":15001 · 프로토콜 판별",
+      "kind": "proc"
+    },
+    {
+      "id": "H",
+      "col": 3,
+      "row": 0,
+      "label": "HTTP 필터 체인",
+      "sub": "라우팅 · 재시도 · 요청 메트릭",
+      "kind": "proc"
+    },
+    {
+      "id": "T",
+      "col": 3,
+      "row": 1,
+      "label": "TCP proxy",
+      "sub": "바이트만 중계 · L7 기능 없음",
+      "kind": "query"
+    },
+    {
+      "id": "R",
+      "col": 4,
+      "row": 0,
+      "label": "상대 :15006",
+      "sub": "mTLS 종단 → 앱 localhost",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "A",
+      "to": "I",
+      "label": "가로채기",
+      "rate": 620
+    },
+    {
+      "from": "I",
+      "to": "O",
+      "label": ":15001",
+      "rate": 620
+    },
+    {
+      "from": "O",
+      "to": "H",
+      "label": "판별 성공",
+      "rate": 620
+    },
+    {
+      "from": "O",
+      "to": "T",
+      "label": "판별 실패 · server-first",
+      "rate": 900
+    },
+    {
+      "from": "H",
+      "to": "R",
+      "label": "mTLS",
+      "rate": 620
+    },
+    {
+      "from": "T",
+      "to": "R",
+      "label": "mTLS",
+      "rate": 900
+    }
+  ]
+}

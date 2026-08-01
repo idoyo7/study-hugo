@@ -1,0 +1,83 @@
+{
+  "caption": "완화는 한 번에 한 단계씩만 일어난다. \"다음 루프\"는 맨 왼쪽 trySchedule로 돌아가는 순환이며, 매 재진입마다 완화 리스트를 다시 맨 앞부터 검사한다. 버릴 것이 없으면 파드는 Pending으로 남아 백오프 재시도 대상이 된다",
+  "nodes": [
+    {
+      "id": "T",
+      "col": 0,
+      "row": 0,
+      "label": "trySchedule",
+      "sub": "파드 1개 add()",
+      "kind": "src"
+    },
+    {
+      "id": "F",
+      "col": 1,
+      "row": 0,
+      "label": "스케줄 실패",
+      "sub": "reserved · DRA 에러는 제외",
+      "kind": "query"
+    },
+    {
+      "id": "R",
+      "col": 2,
+      "row": 0,
+      "label": "Relax()",
+      "sub": "리스트 앞에서부터 딱 1개",
+      "kind": "proc"
+    },
+    {
+      "id": "M",
+      "col": 3,
+      "row": 0,
+      "label": "파드 spec 변형",
+      "sub": "term 제거 · toleration 추가",
+      "kind": "store"
+    },
+    {
+      "id": "G",
+      "col": 3,
+      "row": 1,
+      "label": "완화 소진",
+      "sub": "Pending 유지 · 백오프",
+      "kind": "sink"
+    },
+    {
+      "id": "N",
+      "col": 4,
+      "row": 0,
+      "label": "다음 루프",
+      "sub": "trySchedule 재진입",
+      "kind": "src"
+    }
+  ],
+  "edges": [
+    {
+      "from": "T",
+      "to": "F",
+      "label": "불가",
+      "rate": 600
+    },
+    {
+      "from": "F",
+      "to": "R"
+    },
+    {
+      "from": "R",
+      "to": "M",
+      "label": "1단계만"
+    },
+    {
+      "from": "M",
+      "to": "N",
+      "label": "재시도",
+      "rate": 480
+    },
+    {
+      "from": "R",
+      "to": "G",
+      "label": "버릴 게 없음",
+      "rate": 1300,
+      "speed": "slow"
+    }
+  ]
+}

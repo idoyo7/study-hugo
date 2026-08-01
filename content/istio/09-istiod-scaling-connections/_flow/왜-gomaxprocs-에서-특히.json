@@ -1,0 +1,70 @@
+{
+  "caption": "quota 60ms는 5ms 슬라이스로 쪼개져 CPU별로 넘어간다. 스레드가 잠들면 1ms만 남기고 반환되므로 새는 건 CPU 방문당 1ms 남짓 — 표본의 6.5%에서만 명목 60ms로 설명이 안 됐다",
+  "nodes": [
+    {
+      "id": "Q",
+      "col": 0,
+      "row": 0,
+      "label": "quota 60ms",
+      "sub": "limit 600m · period당",
+      "kind": "src"
+    },
+    {
+      "id": "S",
+      "col": 1,
+      "row": 0,
+      "label": "5ms씩 CPU로",
+      "sub": "sched_cfs_bandwidth_slice_us",
+      "kind": "proc"
+    },
+    {
+      "id": "T",
+      "col": 2,
+      "row": 0,
+      "label": "OS 스레드 17개",
+      "sub": "P는 1개 · 조각보다 많다",
+      "kind": "proc"
+    },
+    {
+      "id": "W",
+      "col": 3,
+      "row": 0,
+      "label": "대부분 반환",
+      "sub": "1ms만 남기고 글로벌 풀로",
+      "kind": "sink"
+    },
+    {
+      "id": "X",
+      "col": 3,
+      "row": 1,
+      "label": "CPU당 1ms 잔류",
+      "sub": "min_cfs_rq_runtime",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "Q",
+      "to": "S",
+      "label": "분할"
+    },
+    {
+      "from": "S",
+      "to": "T",
+      "label": "CPU별 배분",
+      "rate": 420
+    },
+    {
+      "from": "T",
+      "to": "W",
+      "rate": 700
+    },
+    {
+      "from": "T",
+      "to": "X",
+      "label": "조금씩 잔류",
+      "rate": 900,
+      "speed": "slow"
+    }
+  ]
+}

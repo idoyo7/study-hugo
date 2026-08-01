@@ -1,0 +1,113 @@
+{
+  "caption": "블록 온리 vs S3 티어링 결정 트리",
+  "nodes": [
+    {
+      "id": "q",
+      "col": 0,
+      "row": 0,
+      "label": "보존·규모·S3 접근성",
+      "kind": "query"
+    },
+    {
+      "id": "r",
+      "col": 1,
+      "row": 0,
+      "label": "보존 기간",
+      "kind": "query"
+    },
+    {
+      "id": "bo",
+      "col": 2,
+      "row": 0,
+      "label": "블록 온리(EBS gp3 단일 티어)",
+      "sub": "storage_configuration 없음·TTL DELETE-only",
+      "kind": "sink"
+    },
+    {
+      "id": "s3",
+      "col": 2,
+      "row": 1,
+      "label": "S3 cold 티어링",
+      "sub": "(03 기준 문서)",
+      "kind": "sink"
+    },
+    {
+      "id": "grow",
+      "col": 3,
+      "row": 0,
+      "label": "성장 대응",
+      "kind": "query"
+    },
+    {
+      "id": "back",
+      "col": 3,
+      "row": 1,
+      "label": "블록 온리로 회귀",
+      "sub": "storage XML·IRSA 철거(§1)",
+      "kind": "sink"
+    },
+    {
+      "id": "exp",
+      "col": 4,
+      "row": 0,
+      "label": "gp3 온라인 확장",
+      "sub": "(provisioner=Operator, §4)",
+      "kind": "sink"
+    },
+    {
+      "id": "alt",
+      "col": 4,
+      "row": 1,
+      "label": "TTL 단축 / 샤드 추가",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "q",
+      "to": "r",
+      "dashed": true
+    },
+    {
+      "from": "r",
+      "to": "bo",
+      "label": "≤90일·단순성",
+      "dashed": true
+    },
+    {
+      "from": "r",
+      "to": "s3",
+      "label": "180일~1년+ & 누적↑",
+      "dashed": true
+    },
+    {
+      "from": "q",
+      "to": "bo",
+      "label": "S3 미접근/규정상 금지",
+      "dashed": true
+    },
+    {
+      "from": "bo",
+      "to": "grow",
+      "dashed": true
+    },
+    {
+      "from": "grow",
+      "to": "exp",
+      "label": "유일 레버",
+      "dashed": true
+    },
+    {
+      "from": "grow",
+      "to": "alt",
+      "label": "대안",
+      "dashed": true
+    },
+    {
+      "from": "s3",
+      "to": "back",
+      "label": "보존 단축",
+      "dashed": true
+    }
+  ]
+}

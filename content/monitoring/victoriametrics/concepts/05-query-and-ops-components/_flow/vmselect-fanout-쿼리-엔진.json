@@ -1,0 +1,103 @@
+{
+  "caption": "vmselect의 Fanout 쿼리 흐름 — Grafana 요청을 모든 vmstorage로 뿌리고 결과를 Merge·Sort해 같은 Grafana로 되돌린다(응답 경로를 오른쪽으로 폈다)",
+  "nodes": [
+    {
+      "id": "g",
+      "col": 0,
+      "row": 1,
+      "label": "Grafana",
+      "sub": "PromQL/MetricsQL 발신",
+      "kind": "sink"
+    },
+    {
+      "id": "vs",
+      "col": 1,
+      "row": 1,
+      "label": "vmselect",
+      "kind": "proc"
+    },
+    {
+      "id": "s1",
+      "col": 2,
+      "row": 0,
+      "label": "vmstorage-1",
+      "kind": "store"
+    },
+    {
+      "id": "s2",
+      "col": 2,
+      "row": 1,
+      "label": "vmstorage-2",
+      "kind": "store"
+    },
+    {
+      "id": "s3",
+      "col": 2,
+      "row": 2,
+      "label": "vmstorage-N",
+      "kind": "store"
+    },
+    {
+      "id": "mg",
+      "col": 3,
+      "row": 1,
+      "label": "Merge → Sort → JSON",
+      "kind": "proc"
+    },
+    {
+      "id": "gr",
+      "col": 4,
+      "row": 1,
+      "label": "Grafana",
+      "sub": "JSON 응답 수신",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "g",
+      "to": "vs",
+      "label": "쿼리",
+      "rate": 700
+    },
+    {
+      "from": "vs",
+      "to": "s1",
+      "label": "Fanout",
+      "rate": 600
+    },
+    {
+      "from": "vs",
+      "to": "s2",
+      "label": "Fanout",
+      "rate": 600
+    },
+    {
+      "from": "vs",
+      "to": "s3",
+      "label": "Fanout",
+      "rate": 600
+    },
+    {
+      "from": "s1",
+      "to": "mg",
+      "rate": 600
+    },
+    {
+      "from": "s2",
+      "to": "mg",
+      "rate": 600
+    },
+    {
+      "from": "s3",
+      "to": "mg",
+      "rate": 600
+    },
+    {
+      "from": "mg",
+      "to": "gr",
+      "label": "응답",
+      "rate": 700
+    }
+  ]
+}

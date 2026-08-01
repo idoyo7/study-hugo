@@ -1,0 +1,71 @@
+{
+  "caption": "타입 선택은 이 파이프라인의 마지막 칸에서 끝난다. 중간의 두 절단은 가격순 정렬을 쓰지만 세대를 가르지 못하고, 세대를 실제로 정하는 것은 EC2의 lowest-price다",
+  "nodes": [
+    {
+      "id": "pod",
+      "col": 0,
+      "row": 0,
+      "label": "pending 파드",
+      "sub": "nodeSelector · affinity · 리소스",
+      "kind": "src"
+    },
+    {
+      "id": "flt",
+      "col": 1,
+      "row": 0,
+      "label": "후보 필터",
+      "sub": "호환 · fit · 오퍼링 존재 (가격 없음)",
+      "kind": "proc"
+    },
+    {
+      "id": "nc",
+      "col": 2,
+      "row": 0,
+      "label": "NodeClaim",
+      "sub": "instance-type In [...] · 코어 600 절단",
+      "kind": "store"
+    },
+    {
+      "id": "prov",
+      "col": 3,
+      "row": 0,
+      "label": "provider-aws",
+      "sub": "필터 6종 → Truncate 60",
+      "kind": "proc"
+    },
+    {
+      "id": "ec2",
+      "col": 4,
+      "row": 0,
+      "label": "EC2 CreateFleet",
+      "sub": "instant · target 1 · lowest-price",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "pod",
+      "to": "flt",
+      "label": "시뮬레이션",
+      "rate": 620
+    },
+    {
+      "from": "flt",
+      "to": "nc",
+      "label": "후보 집합",
+      "rate": 700
+    },
+    {
+      "from": "nc",
+      "to": "prov",
+      "label": "이름 셋",
+      "rate": 700
+    },
+    {
+      "from": "prov",
+      "to": "ec2",
+      "label": "상위 60개",
+      "rate": 520
+    }
+  ]
+}

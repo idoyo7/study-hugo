@@ -1,0 +1,59 @@
+{
+  "caption": "IndexDB 3-슬롯 로테이션 — next → current → prev → 통째로 삭제",
+  "nodes": [
+    {
+      "id": "next",
+      "col": 0,
+      "row": 0,
+      "label": "next",
+      "sub": "예비 인덱스",
+      "kind": "store"
+    },
+    {
+      "id": "current",
+      "col": 1,
+      "row": 0,
+      "label": "current",
+      "sub": "쓰기·읽기 메인",
+      "kind": "store"
+    },
+    {
+      "id": "prev",
+      "col": 2,
+      "row": 0,
+      "label": "prev",
+      "sub": "직전 주기 조회용",
+      "kind": "store"
+    },
+    {
+      "id": "drop",
+      "col": 3,
+      "row": 0,
+      "label": "통째로 삭제",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "next",
+      "to": "current",
+      "label": "rotate",
+      "rate": 700,
+      "dashed": true
+    },
+    {
+      "from": "current",
+      "to": "prev",
+      "label": "rotate",
+      "rate": 700,
+      "dashed": true
+    },
+    {
+      "from": "prev",
+      "to": "drop",
+      "label": "rotate",
+      "rate": 700,
+      "dashed": true
+    }
+  ]
+}

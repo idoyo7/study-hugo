@@ -1,0 +1,76 @@
+{
+  "caption": "INSERT 데이터 경로 — Keeper는 메타데이터만, 파트 바이트는 replica 직송",
+  "nodes": [
+    {
+      "id": "C",
+      "col": 0,
+      "row": 0,
+      "label": "Client / OTel Collector",
+      "kind": "src"
+    },
+    {
+      "id": "S1",
+      "col": 1,
+      "row": 0,
+      "label": "CH replica-1",
+      "sub": "파트를 자기 디스크에 씀",
+      "kind": "proc"
+    },
+    {
+      "id": "S2",
+      "col": 3,
+      "row": 0,
+      "label": "CH replica-2",
+      "kind": "proc"
+    },
+    {
+      "id": "Q",
+      "col": 0,
+      "row": 1,
+      "label": "SELECT 쿼리",
+      "kind": "query"
+    },
+    {
+      "id": "K",
+      "col": 2,
+      "row": 1,
+      "label": "Keeper 앙상블",
+      "sub": "3 or 5 노드",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "C",
+      "to": "S1",
+      "label": "데이터 바이트",
+      "rate": 600
+    },
+    {
+      "from": "S1",
+      "to": "S2",
+      "label": "파트 바이트 직접 fetch",
+      "rate": 500,
+      "speed": "fast"
+    },
+    {
+      "from": "S1",
+      "to": "K",
+      "label": "파트 등록·블록번호·로그",
+      "rate": 800,
+      "speed": "slow"
+    },
+    {
+      "from": "K",
+      "to": "S2",
+      "label": "복제 지시(포인터)",
+      "rate": 700
+    },
+    {
+      "from": "Q",
+      "to": "K",
+      "label": "Keeper 안 탐",
+      "dashed": true
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "caption": "수락 판정의 세 갈래 — Deferred는 큐에 남아 재시도되지만, Infeasible은 큐에서 이탈해 spec을 고치기 전까지 되살아나지 않는다",
+  "nodes": [
+    {
+      "id": "req",
+      "col": 0,
+      "row": 1,
+      "label": "resize PATCH",
+      "sub": "spec은 즉시 갱신",
+      "kind": "src"
+    },
+    {
+      "id": "adm",
+      "col": 1,
+      "row": 1,
+      "label": "kubelet 수락 판정",
+      "sub": "requests 합 vs node allocatable",
+      "kind": "proc"
+    },
+    {
+      "id": "ok",
+      "col": 2,
+      "row": 0,
+      "label": "수락",
+      "sub": "checkpoint 기록",
+      "kind": "proc"
+    },
+    {
+      "id": "def",
+      "col": 2,
+      "row": 1,
+      "label": "Deferred",
+      "sub": "지금은 불가 · 나중엔 가능",
+      "kind": "query"
+    },
+    {
+      "id": "inf",
+      "col": 2,
+      "row": 2,
+      "label": "Infeasible",
+      "sub": "스왑 · static manager 등",
+      "kind": "sink"
+    },
+    {
+      "id": "cg",
+      "col": 3,
+      "row": 0,
+      "label": "cgroup 반영",
+      "sub": "커지는 쪽 부모 먼저",
+      "kind": "proc"
+    },
+    {
+      "id": "retry",
+      "col": 3,
+      "row": 1,
+      "label": "재시도 큐 → 판정 재진입",
+      "sub": "이벤트 4종 · 30초→3분 타이머",
+      "kind": "query"
+    },
+    {
+      "id": "dead",
+      "col": 3,
+      "row": 2,
+      "label": "재평가 없음",
+      "sub": "spec을 고쳐 새 요청을 내야 한다",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "req",
+      "to": "adm",
+      "rate": 700
+    },
+    {
+      "from": "adm",
+      "to": "ok",
+      "rate": 700
+    },
+    {
+      "from": "adm",
+      "to": "def",
+      "label": "노드가 붐빔",
+      "rate": 900
+    },
+    {
+      "from": "adm",
+      "to": "inf",
+      "label": "정책 위반",
+      "rate": 1400
+    },
+    {
+      "from": "ok",
+      "to": "cg",
+      "rate": 700
+    },
+    {
+      "from": "def",
+      "to": "retry",
+      "rate": 900
+    },
+    {
+      "from": "inf",
+      "to": "dead",
+      "dashed": true
+    }
+  ]
+}
