@@ -1,9 +1,25 @@
 {{- /* vm-seq: 애니메이션 시퀀스 다이어그램.
-       사용: {{< seq caption="..." >}}{ "participants":[...], "steps":[...] }{{< /seq >}}
+       사용 (권장): {{< seq src="_seq/이름.json" />}}  — 스펙은 page bundle 리소스로 분리
+       사용 (인라인): {{< seq caption="..." >}}{ "participants":[...], "steps":[...] }{{< /seq >}}
+       src를 쓰면 caption은 JSON 최상위 "caption" 키에서 읽는다. caption 파라미터를 주면 그쪽이 이긴다.
        엔진/스타일은 /flow/seq.js, /flow/seq.css (custom/head-end.html에서 로드) */ -}}
+{{- $caption := .Get "caption" -}}
+{{- $spec := "" -}}
+{{- with .Get "src" -}}
+  {{- $res := $.Page.Resources.GetMatch . -}}
+  {{- if not $res -}}
+    {{- errorf "seq: %q 리소스를 찾을 수 없다 — %s" . $.Page.Path -}}
+  {{- end -}}
+  {{- $spec = $res.Content -}}
+  {{- if not $caption -}}
+    {{- $caption = index ($spec | transform.Unmarshal) "caption" -}}
+  {{- end -}}
+{{- else -}}
+  {{- $spec = $.Inner -}}
+{{- end -}}
 <figure class="vm-seq">
-<script type="application/json" class="seq-spec">{{ .Inner | safeJS }}</script>
-{{- with .Get "caption" }}
+<script type="application/json" class="seq-spec">{{ $spec | safeJS }}</script>
+{{- with $caption }}
 <figcaption class="seq-caption">{{ . }}</figcaption>
 {{- end }}
 </figure>

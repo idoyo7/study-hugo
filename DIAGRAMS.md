@@ -8,15 +8,56 @@
 | `{{< seq >}}` | 시퀀스 다이어그램 (왕복 화살표) | `static/flow/seq.js`, `static/flow/seq.css` |
 | `{{< cfstl >}}` | CFS period 타임라인 (재생 헤드 애니메이션) | `static/flow/cfstl.js`, `static/flow/cfstl.css` |
 
-셋 다 `layouts/partials/custom/head-end.html`에서 로드된다(공용 "크게 보기"는 `flow/expand.js`). 본문에는 JSON 스펙만 쓴다.
+셋 다 `layouts/partials/custom/head-end.html`에서 로드된다(공용 "크게 보기"는 `flow/expand.js`).
+
+---
+
+## 스펙은 문서 옆 파일에 둔다
+
+`flow`·`seq` 스펙은 본문에 인라인하지 않고 **page bundle 리소스**로 분리한다. nextra 쪽 `_components/` 와 같은 co-location이다.
+
+```
+content/karpenter/
+├── 06-consolidation-traps/
+│   ├── index.md
+│   └── _seq/
+│       └── 3-왜-돌아오지-않나.json
+└── 12-consolidation-models/
+    ├── index.md
+    └── _flow/
+        ├── 1-두-형태-삭제와-교체.json
+        ├── 5-1-먼저-기준선-whenemptyorunderutilized-가.json
+        └── 5-2-balanced-는-그-위에.json
+```
+
+본문에서는 self-closing으로 부른다.
+
+````
+{{< flow src="_flow/1-두-형태-삭제와-교체.json" />}}
+{{< seq src="_seq/3-왜-돌아오지-않나.json" />}}
+````
+
+- **`caption`은 JSON 최상위 `caption` 키**에 넣는다 — 도식 하나가 파일 하나로 완결된다. shortcode에 `caption=` 파라미터를 주면 그쪽이 이긴다.
+- 파일명은 `<절번호>-<제목 앞부분>` 규칙. 같은 문서 안에서만 유일하면 된다.
+- 인라인(`{{< flow caption="…" >}}…{{< /flow >}}`) 형태도 계속 동작한다. 새로 쓸 땐 쓰지 말 것.
+
+### 문서를 번들로 바꿀 때
+
+`doc.md` → `doc/index.md`로 옮기면 **URL은 그대로**이고 `{{< relref "doc.md" >}}` 같은 이름 참조도 그대로 해석된다. 단 **그 문서 안의 상대 참조는 한 단계 깊어진다** — `relref "../other/x.md"`를 `relref "../../other/x.md"`로 고쳐야 한다. 안 고치면 빌드가 `REF_NOT_FOUND`로 실패하므로 조용히 깨지지는 않는다.
+
+`_index.md`는 이미 섹션 번들이라 옮길 필요 없이 옆에 `_flow/`만 두면 된다.
 
 ---
 
 ## `{{< flow >}}`
 
 ````
-{{< flow caption="설명 한 줄" >}}
+{{< flow src="_flow/이름.json" />}}
+````
+
+```json
 {
+  "caption": "설명 한 줄",
   "nodes": [
     { "id": "A", "col": 0, "row": 0, "label": "Kube API", "sub": "Service · Endpoint", "kind": "store" },
     { "id": "B", "col": 1, "row": 0, "label": "istiod", "kind": "proc" }
@@ -25,8 +66,7 @@
     { "from": "A", "to": "B", "label": "watch", "rate": 700 }
   ]
 }
-{{< /flow >}}
-````
+```
 
 ### node
 
@@ -60,9 +100,20 @@
 
 ```json
 "groups": [
-  { "label": "컨트롤 플레인", "members": ["B", "C"] }
+  { "id": "cp", "label": "컨트롤 플레인", "members": ["B", "C"] },
+  { "id": "dp", "label": "데이터 플레인", "members": ["D", "E"] }
 ]
 ```
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `id` | ✅ | 그룹마다 **유일해야 한다**. 아래 주의 참고 |
+| `label` | | 박스 좌상단 라벨. 생략하면 박스만 그려진다 |
+| `members` | ✅ | node `id` 배열. 이들의 바운딩 박스가 그룹 박스가 된다 |
+
+**`id`를 빠뜨리면 그룹이 둘 이상일 때 조용히 깨진다.** `flow.js`가 `groupBox[g.id]`로 키를 잡아서, `id`가 없으면 전부 `undefined` 키를 덮어쓴다 — **마지막 그룹의 박스 하나만 그려지고 그 위에 라벨이 전부 겹쳐 찍힌다.** 에러도 경고도 없다. 그룹이 하나뿐일 때는 우연히 정상으로 보이므로, 그룹을 추가하는 순간 터진다.
+
+`members`는 인접할 필요가 없지만, 바운딩 박스로 계산되므로 **떨어진 노드를 한 그룹에 묶으면 사이에 낀 다른 노드까지 박스 안에 들어간다.**
 
 ### 레이아웃 상수 (`flow.js`)
 
@@ -77,8 +128,12 @@ NODE_W: 146,  COL_GAP: 218,  ROW_VGAP: 30,  MARGIN: 24,  MINH: 48
 ## `{{< seq >}}`
 
 ````
-{{< seq caption="설명 한 줄" >}}
+{{< seq src="_seq/이름.json" />}}
+````
+
+```json
 {
+  "caption": "설명 한 줄",
   "participants": [
     { "id": "C", "label": "client pod" },
     { "id": "Z", "label": "ztunnel" }
@@ -89,8 +144,7 @@ NODE_W: 146,  COL_GAP: 218,  ROW_VGAP: 30,  MARGIN: 24,  MINH: 48
     { "note": ["C", "Z"], "lines": ["mTLS 세션 수립", "(x509 SPIFFE ID)"] }
   ]
 }
-{{< /seq >}}
-````
+```
 
 **flow와 갈리는 지점: seq는 화살표가 좌→우, 우→좌 모두 그려진다.** 요청/응답 왕복, 핸드셰이크, 실패 후 재시도처럼 **되돌아오는 흐름은 flow가 아니라 seq로** 그린다 — flow는 `to`의 `col`이 `from` 이하면 선이 뒤로 그려져 화살표가 깨진다.
 
@@ -127,7 +181,7 @@ PBOX_W: 142,  PGAP: 182,  STEP_H: 46,  M: 20
 
 메시지는 **문서에 쓴 순서대로** 점이 하나씩 이동한다(`STEP_DELAY 640ms`). `alt` 안의 메시지도 같은 순번을 받으므로, 정상/실패 분기가 번갈아 재생되는 게 아니라 위에서 아래로 한 번씩 흐른다.
 
-사용처는 `content/` 에서 `{{< seq` 로 검색.
+사용처는 `content/` 에서 `{{< seq` 로 검색. 스펙 파일은 `content/**/_seq/*.json`.
 
 ---
 

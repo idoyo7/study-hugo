@@ -1,9 +1,25 @@
 {{- /* vm-flow: 애니메이션 플로우 다이어그램.
-       사용: {{< flow caption="..." >}}{ "nodes":[...], "edges":[...] }{{< /flow >}}
+       사용 (권장): {{< flow src="_flow/이름.json" />}}  — 스펙은 page bundle 리소스로 분리
+       사용 (인라인): {{< flow caption="..." >}}{ "nodes":[...], "edges":[...] }{{< /flow >}}
+       src를 쓰면 caption은 JSON 최상위 "caption" 키에서 읽는다. caption 파라미터를 주면 그쪽이 이긴다.
        엔진/스타일은 /flow/flow.js, /flow/flow.css (custom/head-end.html에서 로드) */ -}}
+{{- $caption := .Get "caption" -}}
+{{- $spec := "" -}}
+{{- with .Get "src" -}}
+  {{- $res := $.Page.Resources.GetMatch . -}}
+  {{- if not $res -}}
+    {{- errorf "flow: %q 리소스를 찾을 수 없다 — %s" . $.Page.Path -}}
+  {{- end -}}
+  {{- $spec = $res.Content -}}
+  {{- if not $caption -}}
+    {{- $caption = index ($spec | transform.Unmarshal) "caption" -}}
+  {{- end -}}
+{{- else -}}
+  {{- $spec = $.Inner -}}
+{{- end -}}
 <figure class="vm-flow">
-<script type="application/json" class="flow-spec">{{ .Inner | safeJS }}</script>
-{{- with .Get "caption" }}
+<script type="application/json" class="flow-spec">{{ $spec | safeJS }}</script>
+{{- with $caption }}
 <figcaption class="flow-caption">{{ . }}</figcaption>
 {{- end }}
 </figure>
