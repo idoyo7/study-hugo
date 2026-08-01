@@ -24,14 +24,13 @@ Karpenter 가 프로비저닝했던 노드들은 다음과 같은 루프를 돌�
 
 {{< flow src="_flow/1-한-바퀴.json" />}}
 
-이 과정에서 후보를 선별하는데 의의가있고, 삭제/교체 등도 후보선별을 거친 후에 이루어지게됩니다.
+이 과정에서 후보를 선별하는 데 의의가 있고, 삭제/교체도 모두 후보 선별을 거친 뒤에 이루어집니다.
 
 ## 2. 어떤 노드가 대상이 되나
 
 ### 2.1 노드 후보군의 세가지 분류
 
-Karpenter 에서 프로비저닝 된 노드들은 "잘 관리되고있는지" 10초마다 한번씩 Validation 을 진행합니다.
-그 결과 3가지 분류를 통해 평가를 진행합니다.
+Karpenter 가 프로비저닝한 노드들은 "잘 관리되고 있는지"를 매 바퀴 검사받고, 그 결과 세 가지로 분류됩니다.
 
 | 분류 | 세부 설명 |
 |---|---|
@@ -43,12 +42,13 @@ Karpenter 에서 프로비저닝 된 노드들은 "잘 관리되고있는지" 10
 이렇게 분류된 결과에 의해 **disruption을 수행** 단계로 이어집니다.
 
 {{< flow src="_flow/2-1-세-분류와-다섯-구현.json" />}}
+
 `Underutilized` 분류 안에서는 MultiNode와 SingleNode로 나뉩니다. **MultiNode는 여러 대를 묶어서, SingleNode는 한 대씩** 후보로 놓고 평가하며, MultiNode가 먼저 돌아 성공하면 그 라운드에 SingleNode는 돌지 않습니다.
 
 
 ### 2.2 후보들은 어떤 기준대로 평가가 될까
 
-노드들은 다음과 같은 기준들로 평가를하면서 잘 사용되고있는지 검증을 합니다.
+노드들은 다음과 같은 기준으로 잘 사용되고 있는지 검증을 받습니다.
 
 | 담기는 값 | 나중에 쓰이는 곳 |
 |---|---|
@@ -58,22 +58,20 @@ Karpenter 에서 프로비저닝 된 노드들은 "잘 관리되고있는지" 10
 | `instanceType` · `capacityType` · `zone` | 대체 노드를 고를 때의 비교 기준 |
 
 
-**파드 하나 옮기는 대가로 얼마나 아끼는가** — multi-node는 이 비율이 큰 노드부터 줄을 세웁니다.
+이 중 앞의 두 값이 나눗셈 하나로 짝을 이룹니다 — `Price / RescheduleDisruptionCost`, 즉 **파드 하나 옮기는 대가로 얼마나 아끼는가**입니다(`types.go:145`). 후보를 훑는 쪽은 이 비율이 큰 노드부터 줄을 세우므로, **비싸면서 한산한 노드가 먼저** 손에 잡힙니다.
 
 
 ## 3. 노드들은 어떻게 분류될까
 
-윗장에서 "어떤 노드들을 처리할까?" 를 선택했다면
-여기서는 **"그래서 노드들을 어떻게 처리할까"** 를 결정하는 단계입니다.
+윗장에서 "어떤 노드들을 처리할까"를 골랐다면, 여기서는 **"그래서 그 노드들을 어떻게 처리할까"** 를 결정합니다.
 
-아무것도 안 하거나(`no-op`), 그냥 지우거나(`delete`), 대신 한 대를 띄우고 지우거나(`replace`). 
+결과는 셋 중 하나입니다 — 아무것도 안 하거나(`no-op`), 그냥 지우거나(`delete`), 대신 한 대를 띄우고 지우거나(`replace`).
 
 ### 3.1 시뮬레이션 — 새 노드가 몇 대 필요한가
 
-아무것도 안 하거나(`no-op`), 그냥 지우거나(`delete`) 하는 상황은 크게 이해하기 어렵지 않습니다.
+앞의 둘은 어렵지 않은데 `replace`에는 하나가 남습니다 — **대신 띄울 그 한 대가 어디서 나오는가.** 그걸 정하는 게 시뮬레이션입니다.
 
-다만, 대신 한 대를 띄우고 지우거나(`replace`) 상황을 조금 더 살펴보겠습니다.
-내부적으로 시물레이션을 한차례 돌려보는데요, 후보로 선정된 노드를 클러스터에서 **가상으로 지우고** 그 위 파드를 다시 스케줄해본 뒤,  **새로 띄워야 할 노드가 몇 대인가.** 를 살펴봅니다.
+후보로 선정된 노드를 클러스터에서 **가상으로 지우고**, 그 위 파드를 다시 스케줄해본 뒤 **새로 띄워야 할 노드가 몇 대인가**를 셉니다.
 
 파드가 하나라도 갈 곳이 없으면 그 자리에서 끝납니다.
 
@@ -81,7 +79,7 @@ Karpenter 에서 프로비저닝 된 노드들은 "잘 관리되고있는지" 10
 
 시뮬레이션이 요구한 새 노드 대수가 그대로 형태를 정합니다.
 
-{{< flow src="_flow/1-두-형태-삭제와-교체.json" />}}
+{{< flow src="_flow/3-2-두-형태-삭제와-교체.json" />}}
 
 0대면 `Replacements`를 비운 채 반환하고, 
 1대면 가격 필터를 거쳐 채웁니다. 
@@ -97,7 +95,7 @@ Karpenter 에서 프로비저닝 된 노드들은 "잘 관리되고있는지" 10
 | **Reason** | 어느 분류가 잡았나 (§2.1) | `Empty` · `Drifted` · `Underutilized` |
 | **Decision** | 그 뒤에 무슨 일이 있었나 | `delete` · `replace` · `no-op` |
 
-{{< flow src="_flow/4-3-reason에서-decision까지.json" />}}
+{{< flow src="_flow/3-3-reason에서-decision까지.json" />}}
 
 시뮬레이션을 거치는 두 갈래에서는 같은 규칙이 돌아 `Drifted`+삭제 · `Drifted`+교체 · `Underutilized`+삭제 · `Underutilized`+교체가 전부 정상적으로 나옵니다. §3.2의 갈림목은 통합 전용이 아니라 **그 두 갈래가 함께 지나는 길**입니다.
 
@@ -105,7 +103,7 @@ Karpenter 에서 프로비저닝 된 노드들은 "잘 관리되고있는지" 10
 
 ## 4. 비용은 어떻게 계산할까
 
-위에서 노드 교체 후보를 선정할때 `RescheduleDisruptionCost`라는 파라미터를 통해 비용을 계산합니다.
+위에서 노드 교체 후보를 선정할 때 `RescheduleDisruptionCost`라는 파라미터를 통해 비용을 계산합니다.
 
 ```go
 // types.go:136-141
@@ -123,10 +121,10 @@ for _, p := range reschedulablePods {
 
 ## 5. 정책별 처리방식의 차이
 
-### 5.1 분류한것들을 어떻게 처리할까?
+### 5.1 분류한 것들을 어떻게 처리할까?
 위에서 분류를 진행했었고, 이제 분류된 노드들을 처리하는 방식에 대해서 알아보겠습니다.
 
-`consolidation` 정책은 세개지만 **빈 노드 처리하는 방법은 완전히 같습니다.** 
+`consolidation` 정책은 세 개지만 **빈 노드를 처리하는 방법은 완전히 같습니다.**
 
 | 정책 | 빈 노드 | 그 외 후보 | 통과해야 할 게이트 |
 |---|---|---|---|
@@ -166,7 +164,7 @@ WhenEmpty        Balanced        WhenEmptyOrUnderutilized
 
 Balanced를 이해하려면 그 아래 깔린 경로부터 봐야 합니다. 스코어는 여기 없습니다.
 
-{{< flow src="_flow/5-1-먼저-기준선-whenemptyorunderutilized-가.json" />}}
+{{< flow src="_flow/6-1-기준선-whenemptyorunderutilized.json" />}}
 
 **게이트가 둘뿐입니다** — "모든 파드가 다른 데 들어가는가", 그리고 교체라면 "엄격히 더 싼가". 절감의 **규모**를 묻는 곳이 없습니다. "10원 아끼려고 파드 40개를 옮긴다"가 여기서 나옵니다.
 
@@ -176,7 +174,7 @@ Balanced는 코어 v1.14.0에서 추가됐습니다. 위 경로로도 충분히 
 
 **Balanced는 새로운 통합을 만들지 않습니다.** 위 경로가 만든 커맨드를 받아 심사할 뿐이라 **거부만 할 수 있습니다.**
 
-{{< flow src="_flow/5-2-balanced-는-그-위에.json" />}}
+{{< flow src="_flow/6-2-balanced-는-그-위에.json" />}}
 
 승인 조건은 이것뿐입니다.
 
@@ -303,7 +301,8 @@ Balanced는 **승인만 이벤트를 남기고 거부는 메트릭만 남깁니�
 - **대체 최대 1대** — `consolidation.go:189-195`, 주석 `validation.go:326-329`
 - **Drift도 교체형을 만듦** — `drift.go:58`(자격), `:84`(시뮬레이션), `:98-100`(Command)
 - **Emptiness·StaticDrift는 시뮬레이션을 타지 않음** — `emptiness.go:96-99`(Replacements 미설정 → 항상 삭제), `staticdrift.go:92-99`(대체 1대를 무조건 생성 → 항상 교체). `SimulateScheduling` 호출은 `drift.go`와 `consolidation.go` 두 곳뿐
-- multi-node 정렬·탐색·예산 사전 필터 — `multinodeconsolidation.go:35, 65-81, 117-191`. single-node 타임아웃은 `singlenodeconsolidation.go:33`
+- **`SavingsRatio` 정렬은 multi-node 전용이 아님** — `consolidation.go:138-153`(`Price / RescheduleDisruptionCost` 내림차순), 호출부는 `emptiness.go:68` · `singlenodeconsolidation.go:142` · `multinodeconsolidation.go:56` 셋
+- multi-node 탐색·예산 사전 필터 — `multinodeconsolidation.go:65-81, 117-191`. single-node 타임아웃은 `singlenodeconsolidation.go:33`
 - 실행 · 재검증 — `queue.go:196-223, 293`, `validation.go:192-204`
 - base cost `1.0` · `IsEmpty` · `SavingsRatio` — `types.go:134, 136-142, 145, 155-157`
 - `EvictionCost` · `IsReschedulable` — `utils/disruption/disruption.go:47-69`, `utils/pod/scheduling.go:44-51`
