@@ -13,10 +13,10 @@ Karpenter 가 프로비저닝했던 노드들은 다음과 같은 루프를 돌�
 ① 삭제 대상 검사    전체 노드를 훑어 손대도 되는 것만 남긴다
 ② 삭제 분류        Empty · Drifted · Underutilized 중 어디에
 ③ 시뮬레이션       지우면 새 노드가 몇 대 필요한가
-④ 수행            삭제는 바로, 교체는 대체 노드 기동·대기 후
+④ 수행            삭제는 바로 · 교체는 대체 노드 기동 후 · 아니면 그대로
 
 이 네 단계들을 매번 반복합니다.
-Emptiness → StaticDrift → Drift → MultiNode → SingleNode
+Emptiness → Drift → MultiNode → SingleNode
 첫 성공에서 멈추고, 전부 실패하면 10초 뒤 재시도
 ```
 
@@ -71,21 +71,22 @@ Price / RescheduleDisruptionCost  =  $/시간 ÷ 파드 수  =  파드 하나 �
 
 ## 3. 어떤 이유로 노드를 삭제할까
 
-위에서 분류한 삭제될 노드들은 이제 어떻게 처리할지를 결정해야합니다.
+앞 장을 통과한 노드는 "손대도 되는" 상태일 뿐, 아직 지울 이유가 없습니다.
+여기서 그 이유를 붙입니다.
 
-노드는 세 가지 중 하나로 분류되고, 이 분류가 그 노드의 **Reason**이 됩니다.
+노드는 세 가지 중 하나로 분류되고, **Reason**으로 기록을 합니다.
 
-| 분류 | 세부 설명 |
+| Reason의 종류 | 세부 설명 |
 |---|---|
 | `Empty` | 파드가 없는 노드 |
 | `Drifted` | NodePool 스펙과 어긋난 노드 |
 | `Underutilized` | 합쳐서 줄일 수 있는 노드 |
 
-이 셋은 실제로 다섯 개의 구현으로 나뉘어 차례로 돕니다.
+이 셋을 위에서부터 차례로 시도하고, 먼저 걸리는 쪽이 그 노드의 Reason이 됩니다.
 
-{{< flow src="_flow/3-세-분류와-다섯-구현.json" />}}
+{{< flow src="_flow/3-세-분류.json" />}}
 
-`Underutilized` 분류는 MultiNode와 SingleNode로 나뉩니다. 
+`Underutilized`만 안에서 두 단계로 나뉩니다. 
 **MultiNode는 여러 대를 묶어서, SingleNode는 한 대씩** 후보로 놓고 평가하며, MultiNode가 먼저 평가가 성공하면 SingleNode는 평가하지 않습니다.
 
 ## 4. 삭제냐 교체냐
@@ -130,7 +131,7 @@ launchPrice  <  Σ Price(후보들)
 
 시뮬레이션을 거치는 두 갈래에서는 같은 규칙이 돌아 `Drifted`+삭제 · `Drifted`+교체 · `Underutilized`+삭제 · `Underutilized`+교체가 전부 정상적으로 나옵니다. 삭제·교체를 가르는 갈림목은 통합 전용이 아니라 **그 두 갈래가 함께 지나는 길**입니다.
 
-나머지 둘은 아예 판별을 받지 않아 결과가 고정됩니다. `Empty`는 빈 노드라 옮길 파드가 없어 **대체를 요구할 일이 없고**, static 풀의 `Drifted`는 `replicas`가 고정이라 **대수를 유지해야 해서** 무조건 1:1 교체입니다.
+`Empty`만 아예 판별을 받지 않아 결과가 고정됩니다. 빈 노드라 옮길 파드가 없어 **대체를 요구할 일이 아예 없기 때문**입니다.
 
 ## 5. 비용은 어떻게 계산할까
 
@@ -326,13 +327,13 @@ Balanced는 **승인만 이벤트를 남기고 거부는 메트릭만 남깁니�
 
 - 한 바퀴 순서 — `controller.go:150-181`(루프), `:184-231`(`disrupt()`), 폴링 `:71`
 - Method 등록 순서 · 인터페이스 — `controller.go:101-118`, `types.go:63-69`
-- `Reason()` 다섯 구현 — `emptiness.go:112`, `staticdrift.go:108`, `drift.go:110`, `multinodeconsolidation.go:248`, `singlenodeconsolidation.go:128`
+- `Reason()` 구현 — `emptiness.go:112`, `drift.go:110`, `multinodeconsolidation.go:248`, `singlenodeconsolidation.go:128`
 - 후보 1차 관문 · Candidate 구성 — `types.go:160-208`, 수집은 `helpers.go:196-216`
 - **Emptiness가 정책을 안 읽음** — `emptiness.go:42-59`, Command `:97-100`
 - 시뮬레이션 · 삭제/교체 판정 · 가격 필터 — `consolidation.go:162, 172-178, 181-195, 221`, `types.go:257-266`
 - **대체 최대 1대** — `consolidation.go:189-195`, 주석 `validation.go:326-329`
 - **Drift도 교체형을 만듦** — `drift.go:58`(자격), `:84`(시뮬레이션), `:98-100`(Command)
-- **Emptiness·StaticDrift는 시뮬레이션을 타지 않음** — `emptiness.go:96-99`(Replacements 미설정 → 항상 삭제), `staticdrift.go:92-99`(대체 1대를 무조건 생성 → 항상 교체). `SimulateScheduling` 호출은 `drift.go`와 `consolidation.go` 두 곳뿐
+- **Emptiness는 시뮬레이션을 타지 않음** — `emptiness.go:96-99`(Replacements 미설정 → 항상 삭제). `SimulateScheduling` 호출은 `drift.go`와 `consolidation.go` 두 곳뿐
 - **`SavingsRatio` 정렬은 multi-node 전용이 아님** — `consolidation.go:138-153`(`Price / RescheduleDisruptionCost` 내림차순), 호출부는 `emptiness.go:68` · `singlenodeconsolidation.go:142` · `multinodeconsolidation.go:56` 셋
 - multi-node 탐색·예산 사전 필터 — `multinodeconsolidation.go:65-81, 117-191`. single-node 타임아웃은 `singlenodeconsolidation.go:33`
 - 실행 · 재검증 — `queue.go:196-223, 293`, `validation.go:192-204`
