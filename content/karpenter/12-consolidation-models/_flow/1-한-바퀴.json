@@ -1,18 +1,17 @@
 {
-  "caption": "10초마다 도는 한 바퀴. 후보 선별이 출발점이고 Command는 시뮬레이션이 끝난 뒤에야 만들어진다 — 예산 컷은 2차 관문과 시뮬레이션 사이에 들어간다(§7.2)",
+  "caption": "10초마다 도는 한 바퀴. 검사 → 분류 → 시뮬레이션 → 수행이 기본 경로이고, Empty와 static 풀 Drifted만 시뮬레이션을 건너뛰어 곧장 수행으로 간다. 예산 컷은 분류와 시뮬레이션 사이에 들어간다",
   "nodes": [
-    { "id": "N", "col": 0, "row": 0, "label": "클러스터 전체 노드", "sub": "state.Cluster 스냅샷", "kind": "src" },
-    { "id": "G1", "col": 1, "row": 0, "label": "1차 관문", "sub": "NewCandidate · 4검사", "kind": "query" },
-    { "id": "G2", "col": 2, "row": 0, "label": "2차 관문", "sub": "Method의 ShouldDisrupt", "kind": "query" },
-    { "id": "S", "col": 3, "row": 0, "label": "시뮬레이션", "sub": "새 노드가 몇 대 필요한가", "kind": "proc" },
-    { "id": "C", "col": 4, "row": 0, "label": "Command", "sub": "삭제 또는 교체", "kind": "store" },
-    { "id": "X", "col": 2, "row": 1, "label": "탈락", "sub": "DisruptionBlocked 이벤트", "kind": "sink" }
+    { "id": "V", "col": 0, "row": 0, "label": "삭제 대상 검사", "sub": "PDB · 큐에 걸리면 탈락", "kind": "src" },
+    { "id": "K", "col": 1, "row": 0, "label": "삭제 분류", "sub": "세 이유 중 어디에 담기나", "kind": "query" },
+    { "id": "S", "col": 2, "row": 0, "label": "시뮬레이션", "sub": "새 노드가 몇 대 필요한가", "kind": "proc" },
+    { "id": "R", "col": 3, "row": 0, "label": "수행", "sub": "삭제 또는 교체", "kind": "store" },
+    { "id": "N", "col": 3, "row": 1, "label": "no-op", "sub": "커맨드를 안 만든다", "kind": "sink" }
   ],
   "edges": [
-    { "from": "N", "to": "G1", "label": "전부 훑는다", "rate": 380 },
-    { "from": "G1", "to": "G2", "label": "공통 자격 통과", "rate": 520 },
-    { "from": "G1", "to": "X", "label": "PDB · 큐 · NodePool", "rate": 900, "speed": "fast" },
-    { "from": "G2", "to": "S", "label": "그 Method의 후보", "rate": 520 },
-    { "from": "S", "to": "C", "label": "여기서 형태가 정해진다", "rate": 420 }
+    { "from": "V", "to": "K", "label": "후보가 된 노드", "rate": 520 },
+    { "from": "K", "to": "S", "label": "Drifted · Underutilized", "rate": 520 },
+    { "from": "K", "to": "R", "label": "Empty · static 풀 — 판별 없이", "rate": 900, "speed": "fast" },
+    { "from": "S", "to": "R", "label": "0대 삭제 · 1대 교체", "rate": 460 },
+    { "from": "S", "to": "N", "label": "2대+ · 못 넣음", "rate": 700 }
   ]
 }
