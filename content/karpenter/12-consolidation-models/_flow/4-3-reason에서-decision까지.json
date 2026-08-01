@@ -1,0 +1,22 @@
+{
+  "caption": "분류가 Decision을 정하지 않는다. 시뮬레이션을 거치는 두 갈래만 삭제·교체가 갈리고, Empty와 static 풀 Drifted는 판별 없이 결과가 고정된다",
+  "nodes": [
+    { "id": "E", "col": 0, "row": 0, "label": "Empty", "sub": "빈 노드", "kind": "src" },
+    { "id": "SD", "col": 0, "row": 1, "label": "Drifted", "sub": "static 풀", "kind": "src" },
+    { "id": "DR", "col": 0, "row": 2, "label": "Drifted", "sub": "그 외 풀", "kind": "src" },
+    { "id": "U", "col": 0, "row": 3, "label": "Underutilized", "sub": "합칠 수 있는 노드", "kind": "src" },
+    { "id": "S", "col": 1, "row": 2, "label": "시뮬레이션", "sub": "새 노드가 몇 대?", "kind": "proc" },
+    { "id": "DEL", "col": 2, "row": 0, "label": "delete", "sub": "Replacements 없음", "kind": "sink" },
+    { "id": "REP", "col": 2, "row": 1, "label": "replace", "sub": "Replacements 1대", "kind": "sink" },
+    { "id": "NOP", "col": 2, "row": 3, "label": "no-op", "sub": "커맨드 안 만듦", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "E", "to": "DEL", "label": "판별 없이", "rate": 900, "speed": "fast" },
+    { "from": "SD", "to": "REP", "label": "판별 없이 · 대수 유지", "rate": 900, "speed": "fast" },
+    { "from": "DR", "to": "S", "rate": 520 },
+    { "from": "U", "to": "S", "rate": 420 },
+    { "from": "S", "to": "DEL", "label": "0대", "rate": 460 },
+    { "from": "S", "to": "REP", "label": "1대 · 더 쌈", "rate": 460 },
+    { "from": "S", "to": "NOP", "label": "2대+ · 못 넣음", "rate": 700 }
+  ]
+}
