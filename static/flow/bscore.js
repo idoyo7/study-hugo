@@ -7,7 +7,7 @@
   'use strict';
   var NS = 'http://www.w3.org/2000/svg';
   var W = 840, H = 384;
-  var PHASE_MS = 2600, PHASE_COUNT = 5;
+  var PHASE_MS = 2600, PHASE_COUNT = 3;
   var REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* 그 NodePool 의 총계 — 기준선은 여기서 나온다 */
@@ -30,13 +30,11 @@
   var PASSED = CMDS.filter(function (c) { return c.ok; }).length;
 
   var CAPTIONS = [
-    '① Balanced 는 통합을 만들지 않는다 — 아래 경로가 만들어 올린 커맨드를 받는다',
-    '② 채점 재료는 둘뿐 — 얼마를 아끼나(savings), 그러려고 무엇을 건드리나(노드 수 + 파드 수)',
-    '③ 기준선은 풀의 평균 효율이다 — 이 액션의 효율을 그것으로 나눈 값이 score',
-    '④ 하나씩 심사대에 올린다 — 자기 score 자리에 가서 선다',
-    '⑤ 임계 0.5 를 넘은 하나만 통과. 나머지 셋은 거부된다 — 만들지 않고 거를 뿐이다'
+    '① Balanced 는 통합을 만들지 않는다 — 위 경로가 만든 커맨드가 그대로 올라온다. 얼마를 아끼고(savings) 그러려고 무엇을 건드리는지(노드 + 파드)가 붙어 있다',
+    '② 기준선은 그 풀의 평균 효율이다 — 액션의 효율을 그 값으로 나눈 것이 score, 임계는 1/k = 0.5',
+    '③ 도착하는 자리가 곧 점수다 — 넷 중 하나만 임계를 넘는다'
   ];
-  var GLYPHS = ['①', '②', '③', '④', '⑤'];
+  var GLYPHS = ['①', '②', '③'];
   var STATIC_CAPTION = 'Balanced 는 절감액이 아니라 "파괴 1단위당 절감"을 본다 — 아끼는 돈이 같아도 건드리는 파드가 많으면 거부된다';
 
   function el(tag, a) { var e = document.createElementNS(NS, tag); for (var k in a) e.setAttribute(k, a[k]); return e; }
@@ -67,34 +65,23 @@
     for (i = 0; i < CMDS.length; i++) { f.travel.push(0); f.verdict.push(0); }
 
     if (phase === 0) {
-      /* 커맨드가 하나씩 도착한다 */
-      for (i = 0; i < CMDS.length; i++) {
-        f.travel[i] = 0;
-      }
-      f.cardsOp = ease(winP(t, 0.08, 0.75));
+      /* 커맨드가 채점 재료를 달고 통째로 올라온다 — 빈 카드를 먼저 보일 이유가 없다 */
+      f.cardsOp = ease(winP(t, 0.05, 0.4));
+      f.factsOp = ease(winP(t, 0.3, 0.8));
     } else if (phase === 1) {
-      f.cardsOp = 1;
-      f.factsOp = ease(winP(t, 0.05, 0.6));
-    } else if (phase === 2) {
       f.cardsOp = 1; f.factsOp = 1;
-      f.formulaOp = ease(winP(t, 0.05, 0.4));
+      f.formulaOp = ease(winP(t, 0.05, 0.35));
       f.gaugeOp = ease(winP(t, 0.3, 0.7));
-    } else if (phase === 3) {
-      f.cardsOp = 1; f.factsOp = 1; f.formulaOp = 1; f.gaugeOp = 1;
-      f.scoreOp = ease(winP(t, 0.02, 0.2));
-      /* 커맨드가 차례로 심사대로 내려간다 */
-      for (i = 0; i < CMDS.length; i++) {
-        var s = 0.08 + i * 0.2;
-        f.travel[i] = ease(winP(t, s, s + 0.34));
-      }
+      f.scoreOp = ease(winP(t, 0.6, 0.9));
     } else {
       f.cardsOp = 1; f.factsOp = 1; f.formulaOp = 1; f.gaugeOp = 1; f.scoreOp = 1;
+      /* 하나씩 내려가 도착하는 즉시 판정된다 — 줄 서서 심사받는 모양 */
       for (i = 0; i < CMDS.length; i++) {
-        f.travel[i] = 1;
-        /* 판정이 하나씩 확정된다 */
-        f.verdict[i] = winP(t, 0.1 + i * 0.12, 0.22 + i * 0.12);
+        var s0 = 0.05 + i * 0.15;
+        f.travel[i] = ease(winP(t, s0, s0 + 0.22));
+        f.verdict[i] = winP(t, s0 + 0.22, s0 + 0.3);
       }
-      f.summaryOp = winP(t, 0.62, 0.78);
+      f.summaryOp = winP(t, 0.78, 0.9);
     }
     return f;
   }

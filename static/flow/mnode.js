@@ -121,16 +121,18 @@
         f.plannedUnits = cfg.totalRd;
         f.newOp = 1; f.ghostPods = FLIGHT.length;
         var step = FLIGHT.length > 4 ? 0.085 : 0.19;
-        var landed = 0;
+        var landed = 0, moved = 0;
         for (j = 0; j < FLIGHT.length; j++) {
           var st = 0.08 + j * step;
           var pp = ease(winP(t, st, st + 0.3));
           f.flightP.push(pp);
+          moved += pp;
           if (pp >= 1) landed++;
         }
         f.landed = landed;
-        /* 노드 몫은 드레인이 시작될 때, 파드 몫은 하나씩 도착할 때 치러진다 */
-        f.paidUnits = ease(winP(t, 0.02, 0.14)) * BATCH + landed;
+        /* 미터는 "착지한 개수"가 아니라 "이동한 정도"를 따라간다 — 공중에 떠 있는
+           동안 미터가 멈추면 눈에 보이는 움직임과 최대 4칸까지 어긋난다 */
+        f.paidUnits = ease(winP(t, 0.02, 0.14)) * BATCH + moved;
       } else {
         f.batchOp = 1 - winP(t, 0.1, 0.4); f.batchN = BATCH; f.batchState = 'ok';
         f.plannedUnits = cfg.totalRd; f.paidUnits = cfg.totalRd;
