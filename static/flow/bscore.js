@@ -52,7 +52,7 @@
   var CARD_W = 185, CARD_H = 106, CARD_Y = 48, CARD_GAP = 12;
   function cardX(i) { return 26 + i * (CARD_W + CARD_GAP); }
   function cardMid(i) { return cardX(i) + CARD_W / 2; }
-  var GAUGE = { x: 60, y: 268, w: 700, h: 14, max: 1.5 };
+  var GAUGE = { x: 60, y: 280, w: 700, h: 14, max: 1.5 };
   function gx(v) { return GAUGE.x + clamp01(v / GAUGE.max) * GAUGE.w; }
   var TOK_R = 11;
 
@@ -118,8 +118,8 @@
 
     /* 식 */
     var formula = el('g', { opacity: 0 });
-    formula.appendChild(txt(26, 200, 'score  =  (savings / 풀 총비용)  ÷  (cost / 풀 총 disruption cost)', 'bs-frac'));
-    formula.appendChild(txt(26, 220, '풀 총비용 $' + POOL_COST.toFixed(3) + '/h · 풀 총 disruption cost ' + POOL_RD.toFixed(1) + ' · 가격은 ap-northeast-2 온디맨드', 'bs-note'));
+    formula.appendChild(txt(26, 190, 'score  =  (savings / 풀 총비용)  ÷  (cost / 풀 총 disruption cost)', 'bs-frac'));
+    formula.appendChild(txt(26, 208, '풀 총비용 $' + POOL_COST.toFixed(3) + '/h · 풀 총 disruption cost ' + POOL_RD.toFixed(1) + ' · 가격은 ap-northeast-2 온디맨드', 'bs-note'));
     svg.appendChild(formula);
 
     /* 심사대 */
@@ -147,8 +147,8 @@
     });
 
     var summary = el('g', { opacity: 0 });
-    summary.appendChild(txt(26, 348, '승인 ' + PASSED + '건 · 거부 ' + (CMDS.length - PASSED) + '건', 'bs-summary'));
-    summary.appendChild(txt(W - 26, 348, 'Balanced 는 만들지 않는다 — 받아서 거를 뿐이다', 'bs-note', 'end'));
+    summary.appendChild(txt(26, 352, '승인 ' + PASSED + '건 · 거부 ' + (CMDS.length - PASSED) + '건', 'bs-summary'));
+    summary.appendChild(txt(W - 26, 352, 'Balanced 는 만들지 않는다 — 받아서 거를 뿐이다', 'bs-note', 'end'));
     svg.appendChild(summary);
 
     container.insertBefore(svg, container.firstChild);

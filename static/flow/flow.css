@@ -76,5 +76,3 @@ html.dark .vm-flow {
 
 /* 토큰 모드 — 파티클을 뿌리는 대신 노드 한 대가 단계를 지나간다 */
 .flow-token { stroke: var(--flow-surface, #fcfcfb); stroke-width: 2.5; }
-/* 토큰이 머무는 단계를 살짝 들어올린다 */
-.flow-node[data-active="1"] .flow-rect { stroke-width: 2.6; filter: brightness(1.04); }

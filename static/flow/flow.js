@@ -166,46 +166,20 @@
       gPk.innerHTML = buf; rafId = requestAnimationFrame(frame);
     }
     /* ── 토큰 모드 상태 ── */
-    var lap = 0, segIdx = 0, segT = 0, hold = 0;
-    var HOLD = 0.42;          /* 노드에서 머무는 시간(초) — 단계가 끊겨 보이게 */
-    var nodeEls = {};
-    gNodes.querySelectorAll('[data-nid]').forEach(function (g) { nodeEls[g.getAttribute('data-nid')] = g; });
-    function markActive(id) {
-      for (var k in nodeEls) nodeEls[k].setAttribute('data-active', k === id ? '1' : '0');
-    }
-    var holdX = 0, holdY = 0, holdAt = null, primed = false, pendingStart = false;
+    var lap = 0, segIdx = 0, segT = 0;
     function tokenFrame(ts) {
       if (!prev) prev = ts; var dt = Math.min((ts - prev) / 1000, 0.05); prev = ts;
       var path = paths[lap % paths.length], ed = path[segIdx];
-      /* 첫 프레임: 출발 단계에서 한 박자 쉬고 시작한다 */
-      if (!primed) { primed = true; holdX = ed._x1; holdY = ed._y1; holdAt = ed.from; hold = HOLD; }
-      var x, y, at;
-      if (hold > 0) {
-        hold -= dt;
-        /* 마지막 단계에서 다 쉬었으면, 다음 바퀴의 출발 단계로 옮겨 한 박자 더 쉰다.
-           끝 단계와 출발 단계 둘 다 보여야 한 바퀴가 닫힌 것으로 읽힌다 */
-        if (hold <= 0 && pendingStart) {
-          var nx = paths[lap % paths.length][0];
-          holdX = nx._x1; holdY = nx._y1; holdAt = nx.from;
-          hold = HOLD; pendingStart = false;
-        }
-        /* 머무는 자리는 파생시키지 않고 기억해 둔다 — 한 바퀴 끝에서 시작 노드로 튀는 걸 막는다 */
-        x = holdX; y = holdY; at = holdAt;
-      } else {
-        segT += dt / ed._dur;
-        if (segT >= 1) {
-          holdX = ed._x2; holdY = ed._y2; holdAt = ed.to;
-          segT = 0; segIdx++;
-          if (segIdx >= path.length) { segIdx = 0; lap++; hold = HOLD; pendingStart = true; }
-          else hold = HOLD;
-          x = holdX; y = holdY; at = holdAt;
-        } else {
-          x = ed._x1 + (ed._x2 - ed._x1) * segT;
-          y = ed._y1 + (ed._y2 - ed._y1) * segT;
-          at = null;
-        }
+      segT += dt / ed._dur;
+      if (segT >= 1) {
+        segT -= 1;                       /* 넘친 만큼은 다음 구간에 넘겨 끊김 없이 이어간다 */
+        segIdx++;
+        if (segIdx >= path.length) { segIdx = 0; lap++; }
+        ed = path[segIdx];
+        if (segT > 1) segT = 0;
       }
-      markActive(at);
+      var x = ed._x1 + (ed._x2 - ed._x1) * segT;
+      var y = ed._y1 + (ed._y2 - ed._y1) * segT;
       gPk.innerHTML = '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
         '" r="6.5" class="flow-token pk-' + ed._kind + '"/>';
       rafId = requestAnimationFrame(tokenFrame);
