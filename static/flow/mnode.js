@@ -69,8 +69,8 @@
       captions: [
         '① 후보와 그 위의 파드 — 옮겨야 할 파드가 곧 그 노드의 무게다 (DaemonSet은 세지 않는다)',
         '② Price / RescheduleDisruptionCost 로 줄을 세운다 — 비싸면서 한산한 노드가 앞으로',
-        one ? '③ SingleNode 는 맨 앞 한 대만 집어 시뮬레이션한다 — 이 파드 ' + flight.length + '개가 다 들어가나?'
-            : '③ MultiNode 는 앞에서부터 세 대를 한꺼번에 집는다 — 파드 ' + flight.length + '개가 다 들어가나?',
+        (one ? '③ 맨 앞 한 대만 집어 ' : '③ 앞에서부터 세 대를 한꺼번에 집어 ')
+          + '가상으로 지워본다 — 파드 ' + flight.length + '개가 새 노드 한 대에 다 들어간다(점선이 그 답)',
         '④ 새 노드 한 대를 띄우고 파드를 옮긴다 — cost 가 실제로는 이 일이다',
         one ? '⑤ 옛 노드 한 대를 반납한다. 한 번에 한 대씩이라 여러 대를 합칠 기회는 놓친다'
             : '⑤ 옛 노드 세 대를 한 대로 접었다. 한 대씩 봤다면 나오지 않았을 커맨드다'
@@ -91,7 +91,8 @@
       var f = {
         cardsOp: 0, podsP: 0, ratioOp: 0, sortP: 0,
         batchN: 0, batchOp: 0, batchState: '',
-        newOp: 0, flightP: [], landed: 0, meterUnits: 0,
+        newOp: 0, simMode: false, ghostPods: 0,
+        flightP: [], landed: 0, meterUnits: 0,
         oldFade: 0, savOp: 0, laneDone: false
       };
       var j;
@@ -106,11 +107,15 @@
         f.cardsOp = 1; f.podsP = 1; f.ratioOp = 1; f.sortP = 1;
         f.batchOp = ease(winP(t, 0.05, 0.3));
         f.batchN = BATCH; f.batchState = 'try';
-        f.meterUnits = Math.min(BATCH, winP(t, 0.35, 0.9) * (BATCH + 0.999));
+        f.meterUnits = Math.min(BATCH, winP(t, 0.3, 0.6) * (BATCH + 0.999));
+        /* 가상으로 지우고 다시 스케줄해보는 구간 — 답이 자리로 보인다 */
+        f.newOp = ease(winP(t, 0.45, 0.62));
+        f.simMode = true;
+        f.ghostPods = Math.floor(winP(t, 0.55, 0.95) * (FLIGHT.length + 0.999));
       } else if (phase === 3) {
         f.cardsOp = 1; f.podsP = 1; f.ratioOp = 1; f.sortP = 1;
         f.batchOp = 1; f.batchN = BATCH; f.batchState = 'ok';
-        f.newOp = ease(winP(t, 0.02, 0.18));
+        f.newOp = 1; f.ghostPods = FLIGHT.length;
         /* 파드가 겹쳐 날아간다 — 개수가 적으면 넉넉히, 많으면 촘촘히 */
         var step = FLIGHT.length > 4 ? 0.075 : 0.16;
         var landed = 0;
@@ -125,7 +130,7 @@
       } else {
         f.cardsOp = 1; f.podsP = 1; f.ratioOp = 1; f.sortP = 1;
         f.batchOp = 1 - winP(t, 0.1, 0.4); f.batchN = BATCH; f.batchState = 'ok';
-        f.newOp = 1;
+        f.newOp = 1; f.ghostPods = 0;
         for (j = 0; j < FLIGHT.length; j++) f.flightP.push(1);
         f.landed = FLIGHT.length;
         f.meterUnits = cfg.totalRd;
@@ -146,11 +151,19 @@
 
     /* 새 노드 */
     var newG = el('g', { opacity: 0 });
-    newG.appendChild(el('rect', { x: NEWX, y: ROW_Y, width: CARD_W, height: CARD_H, rx: 10, class: 'mn-card mn-card-new' }));
+    var newRect = el('rect', { x: NEWX, y: ROW_Y, width: CARD_W, height: CARD_H, rx: 10, class: 'mn-card mn-card-new' });
+    newG.appendChild(newRect);
     newG.appendChild(txt(NEWX + 12, ROW_Y + 22, '새 노드', 'mn-name'));
     newG.appendChild(txt(NEWX + CARD_W - 12, ROW_Y + 22, '$' + cfg.newPrice.toFixed(3), 'mn-price', 'end'));
-    newG.appendChild(txt(NEWX + 12, ROW_Y + CARD_H - 10, '파드 ' + cfg.movePods + '개를 받는다', 'mn-sub'));
+    var newSub = txt(NEWX + 12, ROW_Y + CARD_H - 10, '', 'mn-sub');
+    newG.appendChild(newSub);
     svg.appendChild(newG);
+    /* 시뮬레이션이 배치해본 자리 — 실물이 도착하면 그 자리부터 지워진다 */
+    var ghostG = el('g', {});
+    for (i = 0; i < cfg.movePods; i++) {
+      ghostG.appendChild(el('circle', { cx: podX(NEWX, i), cy: podY(i), r: POD_R, class: 'mn-pod-ghost', opacity: 0 }));
+    }
+    svg.appendChild(ghostG);
     var landG = el('g', {});
     for (i = 0; i < cfg.movePods; i++) {
       landG.appendChild(el('circle', { cx: podX(NEWX, i), cy: podY(i), r: POD_R, class: 'mn-pod mn-pod-new', opacity: 0 }));
@@ -240,6 +253,16 @@
       } else batch.setAttribute('opacity', 0);
 
       newG.setAttribute('opacity', f.newOp);
+      newRect.setAttribute('class', f.simMode ? 'mn-card mn-card-sim' : 'mn-card mn-card-new');
+      newSub.textContent = f.simMode
+        ? '시뮬레이션 — 파드 ' + cfg.movePods + '개가 들어간다'
+        : '파드 ' + cfg.movePods + '개를 받는다';
+
+      /* 실물이 도착한 자리의 유령은 지운다 */
+      var ghosts = ghostG.querySelectorAll('circle');
+      for (j = 0; j < cfg.movePods; j++) {
+        ghosts[j].setAttribute('opacity', (j < f.ghostPods && (f.flightP[j] || 0) < 1) ? 1 : 0);
+      }
 
       var flys = flyG.querySelectorAll('circle'), lands = landG.querySelectorAll('circle');
       for (j = 0; j < FLIGHT.length; j++) {

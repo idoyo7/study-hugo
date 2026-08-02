@@ -94,7 +94,7 @@ Price / RescheduleDisruptionCost  =  $/시간 ÷ 파드 수  =  파드 하나 �
 
 `Underutilized`만 안에서 두 단계로 나뉩니다. 개념은 한 대씩 보는 쪽이 쉬우니 그것부터 봅니다.
 
-**SingleNode — 한 대를 지우고 그 위 파드를 새 노드로 옮깁니다.** 옮길 파드가 몇 개인지가 그대로 그 노드의 cost가 됩니다.
+**SingleNode — 한 대를 지우고 그 위 파드를 새 노드로 옮깁니다.** 후보는 여러 개를 받아놓고 **앞에서부터 한 대씩** 시도하다, 처음 성공하는 노드로 커맨드를 만들고 나옵니다. 옮길 파드가 몇 개인지가 그대로 그 노드의 cost가 됩니다.
 
 {{< mnode variant="single" >}}
 
@@ -102,7 +102,9 @@ Price / RescheduleDisruptionCost  =  $/시간 ÷ 파드 수  =  파드 하나 �
 
 {{< mnode variant="multi" >}}
 
-**실행 순서는 설명 순서의 반대입니다.** MultiNode가 먼저 돌고, 커맨드를 하나라도 만들면 그 라운드는 거기서 끝납니다. SingleNode는 MultiNode가 빈손일 때만 내려옵니다.
+**둘의 차이는 후보 수가 아니라 커맨드 하나에 몇 대를 담느냐입니다.** 둘 다 같은 후보 목록을 같은 순서로 받습니다.
+
+**실행 순서는 설명 순서의 반대입니다.** MultiNode가 먼저 돌고, 커맨드를 하나라도 만들면 그 라운드는 거기서 끝납니다. SingleNode는 MultiNode가 빈손일 때만 내려오고, 후보를 다 훑기 전에 3분이 지나면 중단합니다 — 이때 못 본 NodePool을 기억해뒀다가 다음 라운드에 먼저 봅니다(`singlenodeconsolidation.go:33, 74`).
 
 ## 4. 삭제냐 교체냐
 
@@ -236,6 +238,8 @@ score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)  ≥  1/
 ```
 
 크로스풀 커맨드면 `savings`를 소스 풀의 비용 비율로 안분해 **풀마다 따로** 심사하고, 한 풀이라도 미달이면 커맨드 전체가 거부됩니다.
+
+**심사가 시뮬레이션 뒤에만 도는 건 아닙니다.** 후보의 최선인 "그냥 삭제"조차 임계를 못 넘으면 **시뮬레이션 자체를 건너뜁니다**(`CanPassThreshold`, `singlenodeconsolidation.go:86-88`). 교체는 새 노드 값을 빼야 하니 삭제보다 절감이 작을 수밖에 없어서, 삭제가 떨어지면 볼 것도 없습니다. 이 사전 컷은 **`Balanced` 풀에만** 걸립니다 — 다른 정책에서는 무조건 통과입니다(`balanced.go:287-289`).
 
 ```
 Balanced 승인 집합  ⊂  WhenEmptyOrUnderutilized 승인 집합
