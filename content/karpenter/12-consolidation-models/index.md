@@ -17,7 +17,6 @@ Karpenter 가 프로비저닝했던 노드들은 다음과 같은 루프를 돌�
 
 이 네 단계들을 매번 반복합니다.
 Emptiness → Drift → MultiNode → SingleNode
-첫 성공에서 멈추고, 전부 실패하면 10초 뒤 재시도
 ```
 
 {{< flow src="_flow/1-한-바퀴.json" />}}
@@ -27,7 +26,7 @@ Emptiness → Drift → MultiNode → SingleNode
 검사는 **클러스터의 모든 Karpenter 노드**들이 대상입니다. 
 매 바퀴 모든 노드들을 검사하면서, **결격 사유 있는 노드들을 배제**하는 형태로 동작합니다.
 
-### 2.1 전체 노드에서 대상을 추린다
+### 2.1 검사 대상에 예외가 있는데
 
 중간에 노드 삭제대상으로 분류하지 않는 케이스는 이렇습니다.
 
@@ -43,36 +42,33 @@ Emptiness → Drift → MultiNode → SingleNode
 검사에서 떨어지면 `DisruptionBlocked` 이벤트가 남습니다.
 여기서는 “죽일까?” 정도의 분류만 진행한거고 이제 “왜?” 를 찾게되는 단계로 넘어갑니다.
 
-### 2.2 후보는 어떤것들을 볼까
+### 2.2 삭제 후보는 어떤것들을 볼까
 
 검사를 통과하면 그 노드는 `Candidate`가 되고, 이때 다음 값들이 함께 계산을 합니다.
 
-| 키워드 | 설명 | 비고 |
-|---|---|---|
-| `Price` | 그 노드의 **시간당 가격** | 교체 시 “더 싼가” 비교 |
-| `reschedulablePods` | 실제로 옮겨야 할 파드 목록 | **DaemonSet은 제외** |
-| `RescheduleDisruptionCost` | 노드 몫 `1.0` + 위 파드들의 비용 합 | 노드 자체를 교체하는데 가중치 부여.Balanced 스코어 계산에 사용 |
-| `instanceType` · `capacityType` · `zone` | `Price`를 조회하는 **복합 키** | 셋 중 하나라도 없으면 통합 후보에서 탈락 |
+| 키워드 | 설명 | 비고 | 1.14 이전 |
+|---|---|---|---|
+| `Price` | 그 노드의 **시간당 가격** | 교체 시 “더 싼가” 비교 | 필드가 아니라 그때그때 계산 — **정렬엔 미관여** |
+| `reschedulablePods` | 실제로 옮겨야 할 파드 목록 | **DaemonSet은 제외** | 있었음 — 단 **비용 계산에는 안 씀** |
+| `RescheduleDisruptionCost` | 노드 몫 `1.0` + 위 파드들의 비용 합 | 노드 자체를 교체하는데 가중치 부여. Balanced 스코어 계산에 사용 | **없음** — `DisruptionCost` 하나뿐 |
+| `instanceType` · `capacityType` · `zone` | `Price`를 조회하는 **복합 키** | 셋 중 하나라도 없으면 통합 후보에서 탈락 | 같음 |
 
-<!-- ▼▼▼ 병합용 (A안) — RescheduleDisruptionCost 행. 위 표의 같은 행과 바꿔치울 것 ▼▼▼ -->
 
-| `RescheduleDisruptionCost` | 노드 몫 `1.0` + 위 파드들의 비용 합 | **v1.14 신설** — 노드를 지울 때 치를 대가에 **가중치를 매긴 값**입니다. 이 값으로 후보를 정렬하고, 빈 노드를 판정하고, Balanced 스코어의 분모로 씁니다 |
+오른쪽 열이 말하듯 **1.14 이전에는 비용 필드가 `DisruptionCost` 하나였습니다.** 값은 `ReschedulingCost(노드의 모든 파드) × LifetimeRemaining(노드)`이고 정렬은 이 값의 **오름차순**이라, 가격을 보지 않으니 시간당 $0.05 노드와 $3 GPU 노드가 정렬상 동급이었고 **파드가 적어 옮기기 싼 노드**가 늘 먼저 검토됐습니다(v1.13.0 `consolidation.go:125-131`). 노드 몫 base가 없어 빈 노드의 비용은 `0.0`이었고, 대상을 재배치 가능 파드로 좁히지도 않아 **DaemonSet 파드까지 셌습니다** — 소스 주석이 “not just the reschedulable pods”라고 못을 박아뒀습니다(v1.13.0 `types.go:133`). 이 공식은 v1.0.0부터 v1.13.0까지 수식이 바뀐 적이 없습니다.
 
-<!-- ▲▲▲ 병합용 끝 ▲▲▲ -->
-
-`RescheduleDisruptionCost`는 v1.14 에서 Balanced 모드 계산을 위해 추가된 필등비니다.
-같은 `m8i.xlarge`라도 AZ, spot혹은 on-demand 상태의 노드가또 다르기때문에, 하나라도 다르다면 비교 자체를 하지않습니다.
+`RescheduleDisruptionCost`는 v1.14 에서 Balanced 모드 계산을 위해 추가된 필드입니다.
+같은 `m8g.xlarge`라도 AZ, spot혹은 on-demand 상태의 노드가또 다르기때문에, 하나라도 다르다면 비교를 진행하지않습니다.
 
 ```
 Price / RescheduleDisruptionCost  =  $/시간 ÷ 파드 수  =  파드 하나 옮기는 대가로 시간당 아끼는 돈
 ```
 
-**파드 하나 옮기는 대가로 얼마나 아끼는가**를 Karpenter 내부적으로 계산합니다.
+**파드 하나 옮기는 비용이 얼마나 되는가**를 Karpenter 내부적으로 계산합니다.
 이 비율이 큰 노드부터 정렬하니, **비싸면서 한산한 노드가 먼저** 정리하겠죠?
 
 ### 2.3 비용은 어떻게 계산할까
 
-표의 `RescheduleDisruptionCost`가 어떻게 만들어지는지만 짚고 넘어가겠습니다.
+표의 `RescheduleDisruptionCost`가 어떻게 계산되는지 짚고 넘어가겠습니다.
 
 ```go
 // types.go:136-141
@@ -82,11 +78,11 @@ for _, p := range reschedulablePods {
 }
 ```
 
-코드로 살펴보면 다음과 같은데요, base `1.0`은 cordon·drain·대체 노드 기동 지연 자체의 비용입니다. **그래서 비용은 어떤 경우에도 1.0 미만이 되지 않습니다.**
+노드 자체를 삭제하는 Cost 를 base로 `1.0` 설정해 cordon·drain·대체 노드 기동 지연 자체의 비용으로 계산합니다.
 
 파드별 비용은 기본 `1.0`에 `pod-deletion-cost / 2^27`과 `priority / 2^25`를 더하고 `[-10, 10]`으로 클램프합니다(`utils/disruption/disruption.go:47-69`). 대상은 `IsReschedulable` 통과분뿐이라 **DaemonSet은 세지 않습니다.**
 
-**시간 가중치는 없습니다.** `LifetimeRemaining`이 곱해지는 `Candidate.DisruptionCost`는 읽는 비테스트 코드가 없는 dead field입니다(`types.go:207`). “만료 임박 노드가 먼저 지워진다”는 서술은 v1.14.0 기준으로 틀렸습니다.
+**시간 가중치는 없습니다.** `LifetimeRemaining`이 곱해지는 `Candidate.DisruptionCost` **필드**는 계산만 남고 읽는 비테스트 코드가 없습니다(`types.go:207`). 앞 절에서 봤듯 1.14 이전에는 이게 유일한 정렬 키였으니, **v1.14가 필드를 지우지 않은 채 소비자만 걷어낸 것**입니다. `grep`이 잡는 `balanced.go:84`의 `DisruptionCost()`는 이 필드가 아니라 `state.StateNode`의 동명이인 메서드로, 후보가 아닌 노드 몫을 증분 유지하는 살아있는 코드입니다(`state/statenode.go:430`). “만료 임박 노드가 먼저 지워진다”는 서술은 v1.14.0 통합 경로 기준으로 틀렸습니다 — 다만 같은 공식이 static NodePool의 deprovisioning 정렬에서는 여전히 쓰입니다(`controllers/static/deprovisioning/controller.go:302-303`).
 
 ## 3. 어떤 이유로 노드를 삭제할까
 
@@ -301,13 +297,24 @@ launchPrice  <  Σ Price(후보들)
 
 ### 7.1 `pod-deletion-cost`로 비용을 조절한다
 
-값을 키우면 그 파드의 `EvictionCost`가 올라 노드의 disruption cost가 오릅니다. 알아야 할 것 셋입니다.
+값을 키우면 그 파드의 `EvictionCost`가 올라 노드의 disruption cost가 오릅니다. **다만 자릿수를 먼저 알아야 합니다.** 나눗수 `2^27`이 어노테이션의 int32 전 범위(±21억)를 ±16파드분으로 사상하기 때문에, 사람이 흔히 쓰는 값은 비용에 도달하지 못합니다.
+
+| 설정값 | 기여분 | 그 파드의 비용 |
+|---|---|---|
+| `"1000"` | `+0.0000075` | `1.0000` |
+| `"1000000"` | `+0.0075` | `1.0075` |
+| **`"134217728"`** (= `2^27`) | **`+1.0`** | **`2.0`** |
+| `"2147483647"` (int32 최대) | `+16.0` | `17.0` |
+
+k8s 문서가 ReplicaSet 다운스케일 예시로 드는 `100`·`1000` 수준의 값은 **Karpenter 비용 계산에서는 no-op입니다.** 파드 하나를 두 개 무게로 만들려면 **1억 3천만 단위**를 써야 합니다. 그 위에서 알아야 할 것 셋입니다.
 
 - **`Balanced`에서만 보호로 작동합니다.** 다른 두 정책은 스코어 게이트가 없어 삭제 여부가 안 바뀌고, 바뀌는 건 정렬 **순서**뿐입니다.
 - **제로섬입니다.** 노드 A의 분자만 오르는 게 아니라 **풀 분모도 함께 오릅니다.** A는 불리해지지만 같은 풀의 B는 오히려 삭제되기 쉬워집니다 — “이 파드를 보호하면 끝”이 아니라 “압력을 옮긴다”가 정확합니다.
-- **큰 음수는 역효과입니다.** `EvictionCost`가 `-10`으로 클램프되고 노드 합산에서 `max(0,·)`로 0이 되어 그 노드가 `IsEmpty() == true`가 됩니다. 그러면 **정책과 무관하게 Emptiness가 지웁니다.**
+- **큰 음수는 역효과입니다.** `-10` 클램프까지 갈 필요도 없습니다 — **`"-134217728"`(= `-2^27`) 하나로 `EvictionCost`가 `0`이 되고** 노드 합산의 `max(0,·)`에 먹혀 그 파드는 비용에서 사라집니다. 재배치 대상 파드가 전부 그러면 `RescheduleDisruptionCost`가 정확히 `1.0`이라 `IsEmpty() == true`가 되고, **정책과 무관하게 Emptiness가 지웁니다.**
 
-아무 설정도 안 하면 파드별 비용이 전부 `1.0`이라 스코어는 사실상 **“절감 비율 대 파드 개수 비율”** 비교로 축퇴합니다.
+**설정하지 않아도 걸리는 가중치가 하나 있습니다 — `priority`입니다.** 나눗수가 `2^25`라 `pod-deletion-cost`보다 정확히 **4배 강합니다.** 평범한 PriorityClass(`1000`)는 `+0.00003`으로 역시 무의미하지만, `system-cluster-critical`은 `2 × HighestUserDefinablePriority` = `2,000,000,000`이라 `+59.6` → 클램프에 걸려 **`10.0`** 이 됩니다. coredns는 DaemonSet이 아니라 Deployment라 `IsReschedulable`을 통과하니, **coredns 파드 하나가 평범한 파드 10개 무게**이고 두 개가 뜬 노드는 그것만으로 비용이 `21.0`입니다. 5.6 표의 “바쁜 노드가 자꾸 흔들린다 → 자동 보호”는 파드밀도만이 아니라 **priority로도 기본 작동합니다.** 단 `priority`는 스케줄링·preemption 동작을 함께 바꾸므로 **비용 조절용 손잡이가 아니라 이미 걸려 있는 값으로 읽어야 합니다.**
+
+아무 설정도 없고 system 우선순위 파드도 없으면 파드별 비용이 전부 `1.0`이라, 스코어는 사실상 **“절감 비율 대 파드 개수 비율”** 비교로 축퇴합니다.
 
 ### 7.2 예산으로 실행량을 조인다
 
@@ -360,9 +367,11 @@ Balanced는 **승인만 이벤트를 남기고 거부는 메트릭만 남깁니�
 - base cost `1.0` · `IsEmpty` · `SavingsRatio` — `types.go:134, 136-142, 145, 155-157`
 - `EvictionCost` · `IsReschedulable` — `utils/disruption/disruption.go:47-69`, `utils/pod/scheduling.go:44-51`
 - `Score` · `Threshold` · `Approved` — `types.go:99-111`
-- **`LifetimeRemaining`이 dead field에만 곱해짐** — `types.go:207` 대 읽기 지점 부재
+- **`LifetimeRemaining`이 dead field에만 곱해짐** — `types.go:207` 대 읽기 지점 부재. 단 동명이인 `state.StateNode.DisruptionCost()`는 살아있음(`state/statenode.go:430`, 호출 `balanced.go:84`), 공식 자체도 `controllers/static/deprovisioning/controller.go:302-303`에서 계속 쓰임
 - `ScoreMove` · `BalancedK` — `balanced.go:47-121`, `apis/v1/nodepool.go:167-176`
 - `Balanced` 도입 — core#2962, 최초 태그 `v1.14.0`
 - `Unconsolidatable` message · 거부는 이벤트 없음 — `consolidation.go:111-313`, `balanced.go:218-219`
 
-**확인하지 못한 것** — `controller.kubernetes.io/pod-deletion-cost`의 상수 원문은 `k8s.io/api` 모듈 소스가 로컬에 없어 확인하지 못했습니다.
+**1.14 이전 대조** — v1.13.0 태그 기준. `Candidate` 구조체 `types.go:72-79`, 비용 대입 `types.go:133-134`(`ReschedulingCost(모든 파드) × LifetimeRemaining`), 정렬 `consolidation.go:125-131`(오름차순) · `singlenodeconsolidation.go:138-148`. `Price` · `RescheduleDisruptionCost` · `PerNodeBaseDisruptionCost` · `SavingsRatio`는 v1.13.0 `pkg/` 전체에 심볼 부재 — 넷 다 커밋 `43964dc5`(#2962)로 함께 유입, 포함 태그는 `v1.14.0`뿐. v1.0.0~v1.13.0 사이 수식 변경 없음(필드 export 리네임 `4372b529`, 로깅 정리 `a1aedde7`, 접근자 변경 `1b5824bc`뿐). single-node의 NodePool 교차배치·3분 타임아웃은 v1.4.0(#2035) 산이라 1.14 경계와 무관.
+
+**가중치 자릿수** — 나눗수가 int32 극단에 맞춰져 `pod-deletion-cost`는 ±16파드분(`2^27` = 134,217,728), `priority`는 −64~+29.8파드분(`2^25` = 33,554,432)으로 사상됩니다. 파드 하나를 2.0으로 만들려면 각각 134,217,728 / 33,554,432가 필요해 `1000` 수준의 값은 사실상 no-op입니다. `priority` 상한은 `HighestUserDefinablePriority = int32(1000000000)`, `system-cluster-critical`은 그 두 배라 클램프에 걸려 `10.0`이 됩니다(kubernetes `v1.35.1 pkg/apis/scheduling/types.go:30, 32`). 어노테이션 상수 원문은 `v1.35.1 staging/src/k8s.io/api/core/v1/annotation_key_constants.go:142` — karpenter-core v1.14.0이 핀한 `k8s.io/api v0.35.1`과 같은 소스입니다.
