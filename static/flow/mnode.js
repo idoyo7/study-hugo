@@ -16,21 +16,24 @@
 
   /* 후보 4대는 두 variant 가 공유한다 — 같은 클러스터를 두 방식으로 보는 그림이다.
      rd = 노드 몫 1.0 + 파드 수, ratio = price / rd.  from = 정렬 전 자리, to = ratio 내림차순 자리 */
+  /* 가격은 ap-northeast-2 온디맨드 Linux 실가 (AWS pricing API) */
   var VCPU_MAX = 16;
   var NODES = [
-    { id: 'A', type: 'm5.4xlarge', vcpu: 16, price: 0.768, pods: 3, to: 0 },
-    { id: 'B', type: 'm5.2xlarge', vcpu: 8, price: 0.384, pods: 2, to: 1 },
+    { id: 'A', type: 'm8g.4xlarge', vcpu: 16, price: 0.8827, pods: 3, to: 0 },
+    { id: 'B', type: 'm8g.2xlarge', vcpu: 8, price: 0.4414, pods: 2, to: 1 },
     /* B 와 크기·가격이 같은데 파드가 많아 뒤로 밀린다 — 순서를 가르는 게 파드라는 증거 */
-    { id: 'C', type: 'm5.2xlarge', vcpu: 8, price: 0.384, pods: 3, to: 2 },
-    { id: 'D', type: 'm5.xlarge', vcpu: 4, price: 0.192, pods: 5, to: 3 }
+    { id: 'C', type: 'm8g.2xlarge', vcpu: 8, price: 0.4414, pods: 3, to: 2 },
+    { id: 'D', type: 'm8g.xlarge', vcpu: 4, price: 0.2207, pods: 5, to: 3 }
   ];
   NODES.forEach(function (n) { n.rd = 1 + n.pods; n.ratio = n.price / n.rd; });
 
   /* cost 는 "값이 어디서 나오나" 전용 — 후보를 집지 않는다(batch 0).
      single·multi 는 그 결과(정렬된 목록)를 전제로 시작한다. */
+  /* multi 의 교체 노드는 일부러 다른 패밀리다 — 옛 세 대의 메모리 합(128 GiB)은 그대로 두고
+     vCPU 만 32 -> 16 으로 줄인다. 교체는 같은 패밀리일 필요가 없다. */
   var VARIANTS = {
-    single: { batch: 1, newType: 'm5.2xlarge', newVcpu: 8, newPrice: 0.384, meterMax: 6, lane: 'SingleNode' },
-    multi: { batch: 3, newType: 'm5.4xlarge', newVcpu: 16, newPrice: 0.768, meterMax: 12, lane: 'MultiNode' }
+    single: { batch: 1, newType: 'm8g.2xlarge', newVcpu: 8, newPrice: 0.4414, meterMax: 6, lane: 'SingleNode' },
+    multi: { batch: 3, newType: 'r8g.4xlarge', newVcpu: 16, newPrice: 1.1370, meterMax: 12, lane: 'MultiNode' }
   };
 
   var GLYPHS = ['①', '②', '③', '④', '⑤'];
@@ -77,11 +80,11 @@
         '② 가상으로 지워보고 파드를 다시 스케줄해본다 — 점선이 시뮬레이션이 앉혀본 자리다',
         '③ 실제로 새 노드를 띄우고 파드를 옮긴다 — 확정돼 있던 cost 를 하나씩 치른다 (진한 칸)',
         one ? '④ 옛 노드 한 대를 반납한다. 한 번에 한 대씩이라 여러 대를 합칠 기회는 놓친다'
-            : '④ 옛 노드 세 대를 한 대로 접었다. 한 대씩 봤다면 나오지 않았을 커맨드다'
+            : '④ 옛 노드 세 대를 r8g 한 대로 접었다 — 교체 노드는 같은 패밀리일 필요가 없다. 메모리 128GiB는 그대로, vCPU만 32→16'
       ],
       still: one
           ? 'SingleNode — 맨 앞 한 대를 집어 그 파드를 새 노드로 옮긴다. cost 는 집는 순간 확정되고 옮기면서 치러진다'
-          : 'MultiNode — 앞 세 대를 한꺼번에 집어 한 대로 접는다. 한 대씩 봐서는 나오지 않을 커맨드다'
+          : 'MultiNode — 앞 세 대를 한꺼번에 집어 한 대로 접는다. 교체 노드는 파드 요구에 맞는 것 중 싼 것이면 되고, 같은 패밀리일 필요가 없다'
     };
   }
 

@@ -1,4 +1,4 @@
-/* vm-bscore — Balanced 스코어 조립 과정. 팔레트는 cfstl과 같은 계열, 다크는 이 레포 규약(html.dark). */
+/* vm-bscore — Balanced 심사대. 팔레트는 mnode·cfstl과 같은 계열, 다크는 이 레포 규약(html.dark). */
 .vm-bscore {
   --bs-surface: #fcfcfb;
   --bs-ink: #0b0b0b;
@@ -7,11 +7,11 @@
   --bs-track: #ecebe4;
   --bs-node: #2a78d6;
   --bs-node-soft: #dbeafe;
-  --bs-pod: #4a8de0;
-  --bs-sav: #15803d;
-  --bs-sav-soft: #dcfce7;
+  --bs-ok: #15803d;
+  --bs-ok-soft: #dcfce7;
   --bs-warn: #d97706;
   --bs-no: #dc2626;
+  --bs-no-soft: #fee2e2;
   --bs-border: rgba(11, 11, 11, 0.10);
   margin: 1.5rem 0;
   background: var(--bs-surface);
@@ -28,11 +28,11 @@ html.dark .vm-bscore {
   --bs-track: #2c2c2a;
   --bs-node: #4a8de0;
   --bs-node-soft: #22334a;
-  --bs-pod: #60a5fa;
-  --bs-sav: #4ade80;
-  --bs-sav-soft: #1e3a2a;
+  --bs-ok: #4ade80;
+  --bs-ok-soft: #1e3a2a;
   --bs-warn: #f59e0b;
   --bs-no: #ef4444;
+  --bs-no-soft: #3a2020;
   --bs-border: rgba(255, 255, 255, 0.10);
 }
 
@@ -40,36 +40,34 @@ html.dark .vm-bscore {
 
 .bs-step { fill: var(--bs-muted); font-size: 15px; font-weight: 600; transition: fill 0.2s; }
 .bs-step-on { fill: var(--bs-node); font-size: 18px; font-weight: 800; }
+.bs-hint { fill: var(--bs-muted); font-size: 11px; }
 
-.bs-card { fill: var(--bs-node-soft); stroke: var(--bs-node); stroke-width: 1.5; }
-.bs-card-new { fill: var(--bs-sav-soft); stroke: var(--bs-sav); }
-.bs-cardlabel { fill: var(--bs-ink2); font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
-.bs-cardname { fill: var(--bs-ink); font-size: 14px; font-weight: 700; }
-.bs-price { fill: var(--bs-ink); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.bs-note { fill: var(--bs-ink2); font-size: 10.5px; }
+/* 심사 대상 커맨드 */
+.bs-cmd { fill: var(--bs-node-soft); stroke: var(--bs-node); stroke-width: 1.5; }
+.bs-cardname { fill: var(--bs-ink); font-size: 13px; font-weight: 700; }
+.bs-note { fill: var(--bs-ink2); font-size: 11px; }
+.bs-factlabel { fill: var(--bs-muted); font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; }
+.bs-factval { fill: var(--bs-ink); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bs-cardscore { fill: var(--bs-ink2); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-.bs-pod { fill: var(--bs-pod); stroke: var(--bs-surface); stroke-width: 2; }
-.bs-ds { fill: none; stroke: var(--bs-muted); stroke-width: 1.6; stroke-dasharray: 3 2; }
+.bs-frac { fill: var(--bs-ink2); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 
-.bs-rowlabel { fill: var(--bs-ink2); font-size: 11.5px; font-weight: 700; }
+/* 심사대 */
 .bs-track { fill: var(--bs-track); }
-.bs-unit { fill: var(--bs-pod); }
-.bs-unit-node { fill: var(--bs-node); }
-.bs-sav { fill: var(--bs-sav); }
-.bs-val { fill: var(--bs-ink); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
-
-.bs-frac { fill: var(--bs-ink2); font-size: 12px; font-variant-numeric: tabular-nums; }
-
 .bs-reject-zone { fill: var(--bs-no); opacity: 0.13; }
 .bs-thr { stroke: var(--bs-warn); stroke-width: 2; stroke-dasharray: 4 3; }
-.bs-thrlabel { fill: var(--bs-warn); font-size: 11px; font-weight: 700; }
-.bs-needle { fill: var(--bs-node); stroke: var(--bs-surface); stroke-width: 2.5; }
-.bs-needlelabel { fill: var(--bs-node); font-size: 12.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.bs-ghost { fill: none; stroke: var(--bs-no); stroke-width: 2.2; stroke-dasharray: 3 2; }
-.bs-ghostlabel { fill: var(--bs-no); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bs-zonelabel { font-size: 11.5px; font-weight: 700; }
+.bs-tick { fill: var(--bs-muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
 
-.bs-verdict { font-size: 17px; font-weight: 800; }
-.bs-ok { fill: var(--bs-sav); }
+/* 심사대로 내려가는 커맨드 */
+.bs-tok { fill: var(--bs-node); stroke: var(--bs-surface); stroke-width: 2.5; }
+.bs-tok-ok { fill: var(--bs-ok); }
+.bs-tok-no { fill: var(--bs-no); }
+.bs-toklabel { fill: var(--bs-ink2); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.bs-summary { fill: var(--bs-ink); font-size: 14px; font-weight: 800; }
+
+.bs-ok { fill: var(--bs-ok); }
 .bs-no { fill: var(--bs-no); }
 
 .bs-caption { font-size: 12.5px; color: var(--bs-ink2); margin: 10px 0 0; line-height: 1.6; }

@@ -1,39 +1,43 @@
-/* vm-bscore engine — Balanced 스코어가 만들어지는 과정.
-   nextra 블로그 ThrottleGate와 같은 phase-stepped 상태머신:
-   단계마다 ~2.2초 멈춰 보여주고, computeFrame(phase,t)가 프레임 전체를 순수 함수로 계산한다.
-   ① 후보 확정 → ② disruptionCost 누적 → ③ savings 계산 → ④ 풀 기준선 → ⑤ 심사
+/* vm-bscore engine — Balanced 는 심사관이다. 통합을 만들지 않고 받아서 거른다.
+   phase-stepped 상태머신(단계당 2.6초, computeFrame 은 (phase,t)의 순수 함수).
+   ① WhenEmptyOrUnderutilized 가 만든 커맨드들이 도착 → ② 채점 재료(savings·cost) →
+   ③ 풀 평균을 기준선으로 → ④ 하나씩 심사대에 오름 → ⑤ 대부분 거부, 하나만 통과
    정적 호스팅에서 동작. prefers-reduced-motion / IntersectionObserver 존중. */
 (function () {
   'use strict';
   var NS = 'http://www.w3.org/2000/svg';
-  var W = 840, H = 372;
-  var PHASE_MS = 2600, PHASE_COUNT = 5;   /* mnode 와 같은 박자 — 한 페이지에서 위상이 맞는다 */
+  var W = 840, H = 384;
+  var PHASE_MS = 2600, PHASE_COUNT = 5;
   var REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ── 시나리오 ── k=2 주석이 근거로 든 "같은 패밀리 한 단계 다운사이징"이다.
-     4xlarge → 2xlarge 는 정확히 50% 절감이고, 평균 밀도 노드에서 겨우 통과한다. */
-  var OLD_PRICE = 0.768, NEW_PRICE = 0.384;
-  var PODS = 4, DS_PODS = 1;                 /* DaemonSet 은 비용에 안 들어간다 */
-  var RD_COST = 1.0 + PODS;                  /* 노드 몫 1.0 + 파드마다 1.0 */
-  var SAVINGS = OLD_PRICE - NEW_PRICE;
-  var POOL_COST = 3.84, POOL_RD = 50.0;
-  var SAV_FRAC = SAVINGS / POOL_COST;        /* 0.10 */
-  var DIS_FRAC = RD_COST / POOL_RD;          /* 0.10 */
-  var SCORE = SAV_FRAC / DIS_FRAC;           /* 1.00 */
-  var GHOST_PODS = 12;
-  var GHOST_RD = 1.0 + GHOST_PODS;
-  var GHOST_SCORE = SAV_FRAC / (GHOST_RD / POOL_RD); /* ≈ 0.385 */
-  var THRESHOLD = 0.5;
+  /* 그 NodePool 의 총계 — 기준선은 여기서 나온다 */
+  var POOL_COST = 4.414, POOL_RD = 50.0;
+  var THRESHOLD = 0.5;   /* 1/k, k=2 */
+
+  /* 위 경로가 만들어 올린 커맨드들. rd = 노드 수 × 1.0 + 옮길 파드 수 */
+  /* 가격은 ap-northeast-2 온디맨드 Linux 실가 (AWS pricing API) */
+  var CMDS = [
+    { label: 'm8g.4xl → m8g.2xl', sub: '한 단계 다운사이징', sav: 0.4413, nodes: 1, pods: 4 },
+    { label: 'm8g.2xl → m8g.xl', sub: '빽빽한 노드', sav: 0.2207, nodes: 1, pods: 11 },
+    { label: 'm8g.2xl ×2 → r8g.2xl', sub: '묶어서 접기', sav: 0.3143, nodes: 2, pods: 18 },
+    { label: 'm8g.xl → m8g.large', sub: '푼돈 절감', sav: 0.1104, nodes: 1, pods: 8 }
+  ];
+  CMDS.forEach(function (c) {
+    c.rd = c.nodes + c.pods;
+    c.score = (c.sav / POOL_COST) / (c.rd / POOL_RD);
+    c.ok = c.score >= THRESHOLD;
+  });
+  var PASSED = CMDS.filter(function (c) { return c.ok; }).length;
 
   var CAPTIONS = [
-    '① 후보가 정해진다 — m5.4xlarge 한 대, 그 위에 옮겨야 할 파드 4개 (DaemonSet은 세지 않는다)',
-    '② disruptionCost 를 쌓는다 — 노드 몫 1.0 에 파드마다 1.0 씩. 돈이 아니라 개수다',
-    '③ savings 를 잰다 — 지울 노드 가격에서 새로 띄울 노드 가격을 뺀다',
-    '④ 풀 평균을 기준선으로 삼는다 — 이 액션의 효율을 풀 전체의 효율로 나눈다',
-    '⑤ 심사 — score 가 임계 0.5 를 넘으면 승인. 같은 절감이라도 파드가 3배면 떨어진다'
+    '① Balanced 는 통합을 만들지 않는다 — 아래 경로가 만들어 올린 커맨드를 받는다',
+    '② 채점 재료는 둘뿐 — 얼마를 아끼나(savings), 그러려고 무엇을 건드리나(노드 수 + 파드 수)',
+    '③ 기준선은 풀의 평균 효율이다 — 이 액션의 효율을 그것으로 나눈 값이 score',
+    '④ 하나씩 심사대에 올린다 — 자기 score 자리에 가서 선다',
+    '⑤ 임계 0.5 를 넘은 하나만 통과. 나머지 셋은 거부된다 — 만들지 않고 거를 뿐이다'
   ];
   var GLYPHS = ['①', '②', '③', '④', '⑤'];
-  var STATIC_CAPTION = 'Balanced 는 절감액이 아니라 "파괴 1단위당 절감"을 본다 — 분모가 파드 수라 빽빽한 노드일수록 통과가 어렵다';
+  var STATIC_CAPTION = 'Balanced 는 절감액이 아니라 "파괴 1단위당 절감"을 본다 — 아끼는 돈이 같아도 건드리는 파드가 많으면 거부된다';
 
   function el(tag, a) { var e = document.createElementNS(NS, tag); for (var k in a) e.setAttribute(k, a[k]); return e; }
   function txt(x, y, s, cls, anchor) {
@@ -45,189 +49,168 @@
   function ease(t) { return 1 - Math.pow(1 - t, 3); }
   function lerp(a, b, t) { return a + (b - a) * t; }
   function winP(t, s, e) { return clamp01((t - s) / (e - s)); }
-  function f2(v) { return v.toFixed(2); }
 
-  /* ── 레이아웃 상수 ── */
-  var CARD = { y: 52, h: 96, w: 196 };
-  var OLDX = 26, NEWX = 300;
-  var BAR = { x: 26, y: 196, w: 470, h: 22 };   /* disruptionCost 누적 막대 */
-  var SBAR = { x: 26, y: 246, w: 470, h: 18 };  /* savings 막대 */
-  var GAUGE = { x: 26, y: 316, w: 640, h: 14, max: 1.6 };
+  /* ── 레이아웃 ── */
+  var CARD_W = 185, CARD_H = 106, CARD_Y = 48, CARD_GAP = 12;
+  function cardX(i) { return 26 + i * (CARD_W + CARD_GAP); }
+  function cardMid(i) { return cardX(i) + CARD_W / 2; }
+  var GAUGE = { x: 60, y: 268, w: 700, h: 14, max: 1.5 };
   function gx(v) { return GAUGE.x + clamp01(v / GAUGE.max) * GAUGE.w; }
+  var TOK_R = 11;
 
-  /* (phase, t) → 이번 프레임의 상태 전부. 파티클 배열을 들고 있지 않는다. */
   function computeFrame(phase, t) {
     var f = {
-      phase: phase,
-      podsShown: 0, dsShown: 0, dsRejected: 0,
-      costUnits: 0, costLabel: 0,
-      newCardOp: 0, savFrac: 0,
-      baseOp: 0, gaugeOp: 0, needle: 0, ghostOp: 0, ghostNeedle: 0,
-      verdictOp: 0, fracOp: 0
+      cardsOp: 0, factsOp: 0, gaugeOp: 0, formulaOp: 0,
+      scoreOp: 0, travel: [], verdict: [], summaryOp: 0
     };
+    var i;
+    for (i = 0; i < CMDS.length; i++) { f.travel.push(0); f.verdict.push(0); }
+
     if (phase === 0) {
-      f.podsShown = Math.round(lerp(0, PODS, ease(winP(t, 0.15, 0.7))));
-      f.dsShown = t > 0.75 ? DS_PODS : 0;
+      /* 커맨드가 하나씩 도착한다 */
+      for (i = 0; i < CMDS.length; i++) {
+        f.travel[i] = 0;
+      }
+      f.cardsOp = ease(winP(t, 0.08, 0.75));
     } else if (phase === 1) {
-      f.podsShown = PODS; f.dsShown = DS_PODS;
-      /* 바닥 1.0 이 먼저, 그 다음 파드가 하나씩 얹힌다 */
-      var n = t < 0.18 ? 0 : Math.min(PODS, Math.floor(winP(t, 0.18, 0.86) * (PODS + 0.999)));
-      f.costUnits = (t < 0.08 ? ease(winP(t, 0, 0.08)) : 1) + n;
-      f.costLabel = f.costUnits;
-      f.dsRejected = t > 0.88 ? 1 : 0;
+      f.cardsOp = 1;
+      f.factsOp = ease(winP(t, 0.05, 0.6));
     } else if (phase === 2) {
-      f.podsShown = PODS; f.dsShown = DS_PODS; f.dsRejected = 1;
-      f.costUnits = RD_COST; f.costLabel = RD_COST;
-      f.newCardOp = ease(winP(t, 0.05, 0.4));
-      f.savFrac = ease(winP(t, 0.45, 0.9));
+      f.cardsOp = 1; f.factsOp = 1;
+      f.formulaOp = ease(winP(t, 0.05, 0.4));
+      f.gaugeOp = ease(winP(t, 0.3, 0.7));
     } else if (phase === 3) {
-      f.podsShown = PODS; f.dsShown = DS_PODS; f.dsRejected = 1;
-      f.costUnits = RD_COST; f.costLabel = RD_COST;
-      f.newCardOp = 1; f.savFrac = 1;
-      f.fracOp = ease(winP(t, 0.05, 0.45));
-      f.baseOp = ease(winP(t, 0.35, 0.8));
-      f.gaugeOp = ease(winP(t, 0.55, 0.95));
+      f.cardsOp = 1; f.factsOp = 1; f.formulaOp = 1; f.gaugeOp = 1;
+      f.scoreOp = ease(winP(t, 0.02, 0.2));
+      /* 커맨드가 차례로 심사대로 내려간다 */
+      for (i = 0; i < CMDS.length; i++) {
+        var s = 0.08 + i * 0.2;
+        f.travel[i] = ease(winP(t, s, s + 0.34));
+      }
     } else {
-      f.podsShown = PODS; f.dsShown = DS_PODS; f.dsRejected = 1;
-      f.costUnits = RD_COST; f.costLabel = RD_COST;
-      f.newCardOp = 1; f.savFrac = 1; f.fracOp = 1; f.baseOp = 1; f.gaugeOp = 1;
-      f.needle = lerp(0, SCORE, ease(winP(t, 0.05, 0.45)));
-      f.verdictOp = winP(t, 0.45, 0.6);
-      f.ghostOp = winP(t, 0.62, 0.78);
-      f.ghostNeedle = lerp(SCORE, GHOST_SCORE, ease(winP(t, 0.65, 0.92)));
+      f.cardsOp = 1; f.factsOp = 1; f.formulaOp = 1; f.gaugeOp = 1; f.scoreOp = 1;
+      for (i = 0; i < CMDS.length; i++) {
+        f.travel[i] = 1;
+        /* 판정이 하나씩 확정된다 */
+        f.verdict[i] = winP(t, 0.1 + i * 0.12, 0.22 + i * 0.12);
+      }
+      f.summaryOp = winP(t, 0.62, 0.78);
     }
     return f;
   }
 
   function build(container) {
     var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'bs-svg', role: 'img', 'aria-label': STATIC_CAPTION });
+    var i;
 
-    /* 단계 글리프 */
     var steps = el('g', {});
-    for (var i = 0; i < PHASE_COUNT; i++) steps.appendChild(txt(26 + i * 26, 26, GLYPHS[i], 'bs-step'));
+    for (i = 0; i < PHASE_COUNT; i++) steps.appendChild(txt(26 + i * 26, 26, GLYPHS[i], 'bs-step'));
     svg.appendChild(steps);
+    svg.appendChild(txt(W - 26, 26, 'WhenEmptyOrUnderutilized 가 만든 커맨드', 'bs-hint', 'end'));
 
-    /* 지울 노드 카드 */
-    svg.appendChild(el('rect', { x: OLDX, y: CARD.y, width: CARD.w, height: CARD.h, rx: 10, class: 'bs-card bs-card-old' }));
-    svg.appendChild(txt(OLDX + 12, CARD.y + 22, '지울 노드', 'bs-cardlabel'));
-    svg.appendChild(txt(OLDX + 12, CARD.y + 42, 'm5.4xlarge', 'bs-cardname'));
-    svg.appendChild(txt(OLDX + CARD.w - 12, CARD.y + 42, '$' + OLD_PRICE.toFixed(3) + '/h', 'bs-price', 'end'));
-    var podG = el('g', {});
-    for (i = 0; i < PODS; i++) podG.appendChild(el('circle', { cx: OLDX + 24 + i * 30, cy: CARD.y + 72, r: 9, class: 'bs-pod', opacity: 0 }));
-    var dsG = el('g', {});
-    for (i = 0; i < DS_PODS; i++) dsG.appendChild(el('rect', { x: OLDX + 24 + (PODS + i) * 30 - 8, y: CARD.y + 64, width: 16, height: 16, rx: 4, class: 'bs-ds', opacity: 0 }));
-    svg.appendChild(podG); svg.appendChild(dsG);
-    var dsNote = txt(OLDX + 24 + PODS * 30 + 16, CARD.y + 77, 'DaemonSet — 안 셈', 'bs-note'); dsNote.setAttribute('opacity', 0); svg.appendChild(dsNote);
+    /* 커맨드 카드 */
+    var cards = [];
+    CMDS.forEach(function (c, idx) {
+      var g = el('g', { opacity: 0 });
+      g.appendChild(el('rect', { x: cardX(idx), y: CARD_Y, width: CARD_W, height: CARD_H, rx: 10, class: 'bs-cmd' }));
+      g.appendChild(txt(cardX(idx) + 12, CARD_Y + 22, c.label, 'bs-cardname'));
+      g.appendChild(txt(cardX(idx) + 12, CARD_Y + 38, c.sub, 'bs-note'));
+      var facts = el('g', { opacity: 0 });
+      facts.appendChild(txt(cardX(idx) + 12, CARD_Y + 63, 'savings', 'bs-factlabel'));
+      facts.appendChild(txt(cardX(idx) + CARD_W - 12, CARD_Y + 63, '$' + c.sav.toFixed(3) + '/h', 'bs-factval', 'end'));
+      facts.appendChild(txt(cardX(idx) + 12, CARD_Y + 84, 'cost', 'bs-factlabel'));
+      facts.appendChild(txt(cardX(idx) + CARD_W - 12, CARD_Y + 84,
+        '노드 ' + c.nodes + ' + 파드 ' + c.pods + ' = ' + c.rd.toFixed(1), 'bs-factval', 'end'));
+      g.appendChild(facts);
+      var score = txt(cardX(idx) + CARD_W - 12, CARD_Y + 22, '', 'bs-cardscore', 'end');
+      score.setAttribute('opacity', 0);
+      g.appendChild(score);
+      svg.appendChild(g);
+      cards.push({ g: g, facts: facts, score: score, c: c, idx: idx });
+    });
 
-    /* 새 노드 카드 */
-    var newG = el('g', { opacity: 0 });
-    newG.appendChild(el('rect', { x: NEWX, y: CARD.y, width: CARD.w, height: CARD.h, rx: 10, class: 'bs-card bs-card-new' }));
-    newG.appendChild(txt(NEWX + 12, CARD.y + 22, '새로 띄울 노드', 'bs-cardlabel'));
-    newG.appendChild(txt(NEWX + 12, CARD.y + 42, 'm5.2xlarge', 'bs-cardname'));
-    newG.appendChild(txt(NEWX + CARD.w - 12, CARD.y + 42, '$' + NEW_PRICE.toFixed(3) + '/h', 'bs-price', 'end'));
-    newG.appendChild(txt(NEWX + 12, CARD.y + 74, '한 단계 다운사이징 = 정확히 50% 절감', 'bs-note'));
-    svg.appendChild(newG);
+    /* 식 */
+    var formula = el('g', { opacity: 0 });
+    formula.appendChild(txt(26, 200, 'score  =  (savings / 풀 총비용)  ÷  (cost / 풀 총 disruption cost)', 'bs-frac'));
+    formula.appendChild(txt(26, 220, '풀 총비용 $' + POOL_COST.toFixed(3) + '/h · 풀 총 disruption cost ' + POOL_RD.toFixed(1) + ' · 가격은 ap-northeast-2 온디맨드', 'bs-note'));
+    svg.appendChild(formula);
 
-    /* disruptionCost 누적 막대 */
-    svg.appendChild(txt(BAR.x, BAR.y - 8, 'RescheduleDisruptionCost', 'bs-rowlabel'));
-    svg.appendChild(el('rect', { x: BAR.x, y: BAR.y, width: BAR.w, height: BAR.h, rx: 5, class: 'bs-track' }));
-    var unitW = BAR.w / 8;   /* 8칸 스케일 — 5.0 이 6할쯤 */
-    var costG = el('g', {});
-    for (i = 0; i < 8; i++) {
-      costG.appendChild(el('rect', {
-        x: BAR.x + i * unitW + 1.5, y: BAR.y + 1.5, width: unitW - 3, height: BAR.h - 3, rx: 3,
-        class: i === 0 ? 'bs-unit bs-unit-node' : 'bs-unit', opacity: 0
-      }));
-    }
-    svg.appendChild(costG);
-    var costTx = txt(BAR.x + BAR.w + 12, BAR.y + 16, '', 'bs-val'); svg.appendChild(costTx);
-
-    /* savings 막대 */
-    svg.appendChild(txt(SBAR.x, SBAR.y - 7, 'savings', 'bs-rowlabel'));
-    svg.appendChild(el('rect', { x: SBAR.x, y: SBAR.y, width: SBAR.w, height: SBAR.h, rx: 5, class: 'bs-track' }));
-    var savFill = el('rect', { x: SBAR.x + 1.5, y: SBAR.y + 1.5, width: 0, height: SBAR.h - 3, rx: 3, class: 'bs-sav' });
-    svg.appendChild(savFill);
-    var savTx = txt(SBAR.x + SBAR.w + 12, SBAR.y + 14, '', 'bs-val'); svg.appendChild(savTx);
-
-    /* 두 분수 */
-    var fracG = el('g', { opacity: 0 });
-    fracG.appendChild(txt(26, 292, 'savings / TotalCost = ' + f2(SAV_FRAC) + '   ÷   RDCost / TotalDisruptionCost = ' + f2(DIS_FRAC), 'bs-frac'));
-    svg.appendChild(fracG);
-
-    /* 스코어 게이지 */
+    /* 심사대 */
     var gaugeG = el('g', { opacity: 0 });
     gaugeG.appendChild(el('rect', { x: GAUGE.x, y: GAUGE.y, width: GAUGE.w, height: GAUGE.h, rx: 7, class: 'bs-track' }));
     gaugeG.appendChild(el('rect', { x: GAUGE.x, y: GAUGE.y, width: gx(THRESHOLD) - GAUGE.x, height: GAUGE.h, rx: 7, class: 'bs-reject-zone' }));
-    gaugeG.appendChild(el('line', { x1: gx(THRESHOLD), y1: GAUGE.y - 10, x2: gx(THRESHOLD), y2: GAUGE.y + GAUGE.h + 10, class: 'bs-thr' }));
-    gaugeG.appendChild(txt(gx(THRESHOLD), GAUGE.y - 16, '임계 1/k = 0.5', 'bs-thrlabel', 'middle'));
-    gaugeG.appendChild(txt(GAUGE.x, GAUGE.y + GAUGE.h + 22, 'score', 'bs-rowlabel'));
+    gaugeG.appendChild(el('line', { x1: gx(THRESHOLD), y1: GAUGE.y - 34, x2: gx(THRESHOLD), y2: GAUGE.y + GAUGE.h + 12, class: 'bs-thr' }));
+    gaugeG.appendChild(txt(gx(THRESHOLD) - 8, GAUGE.y - 40, '거부', 'bs-zonelabel bs-no', 'end'));
+    gaugeG.appendChild(txt(gx(THRESHOLD) + 8, GAUGE.y - 40, '승인   임계 1/k = 0.5', 'bs-zonelabel bs-ok'));
+    gaugeG.appendChild(txt(GAUGE.x, GAUGE.y + GAUGE.h + 26, '0', 'bs-tick', 'middle'));
+    gaugeG.appendChild(txt(gx(0.5), GAUGE.y + GAUGE.h + 26, '0.5', 'bs-tick', 'middle'));
+    gaugeG.appendChild(txt(gx(1.0), GAUGE.y + GAUGE.h + 26, '1.0', 'bs-tick', 'middle'));
     svg.appendChild(gaugeG);
 
-    var ghostG = el('g', { opacity: 0 });
-    var ghostDot = el('circle', { cx: gx(0), cy: GAUGE.y + GAUGE.h / 2, r: 8, class: 'bs-ghost' });
-    ghostG.appendChild(ghostDot);
-    var ghostTx = txt(gx(GHOST_SCORE), GAUGE.y + GAUGE.h + 24, '파드가 3배면 ' + f2(GHOST_SCORE) + ' — 거부', 'bs-ghostlabel', 'middle');
-    ghostG.appendChild(ghostTx);
-    svg.appendChild(ghostG);
+    /* 심사대로 내려가는 토큰 */
+    var toks = [];
+    CMDS.forEach(function (c, idx) {
+      var g = el('g', { opacity: 0 });
+      var circ = el('circle', { cx: cardMid(idx), cy: CARD_Y + CARD_H, r: TOK_R, class: 'bs-tok' });
+      var lab = txt(cardMid(idx), GAUGE.y - 12, '', 'bs-toklabel', 'middle');
+      lab.setAttribute('opacity', 0);
+      g.appendChild(circ); g.appendChild(lab);
+      svg.appendChild(g);
+      toks.push({ g: g, circ: circ, lab: lab, c: c, idx: idx });
+    });
 
-    var needle = el('circle', { cx: gx(0), cy: GAUGE.y + GAUGE.h / 2, r: 10, class: 'bs-needle', opacity: 0 });
-    svg.appendChild(needle);
-    var needleTx = txt(gx(0), GAUGE.y - 16, '', 'bs-needlelabel', 'middle'); svg.appendChild(needleTx);
-
-    var verdict = txt(W - 26, GAUGE.y + GAUGE.h / 2 + 5, '', 'bs-verdict', 'end'); verdict.setAttribute('opacity', 0); svg.appendChild(verdict);
+    var summary = el('g', { opacity: 0 });
+    summary.appendChild(txt(26, 348, '승인 ' + PASSED + '건 · 거부 ' + (CMDS.length - PASSED) + '건', 'bs-summary'));
+    summary.appendChild(txt(W - 26, 348, 'Balanced 는 만들지 않는다 — 받아서 거를 뿐이다', 'bs-note', 'end'));
+    svg.appendChild(summary);
 
     container.insertBefore(svg, container.firstChild);
     var cap = container.querySelector('.bs-caption');
-    if (cap && !cap.textContent.trim()) cap.textContent = STATIC_CAPTION;
+    var fixed = cap && cap.textContent.trim();
+    if (cap && !fixed) cap.textContent = STATIC_CAPTION;
 
     var lastPhase = -1;
     function paintSteps(p) {
       if (lastPhase === p) return;
       lastPhase = p;
       var ns = steps.querySelectorAll('text');
-      for (var i = 0; i < ns.length; i++) ns[i].setAttribute('class', i === p ? 'bs-step bs-step-on' : 'bs-step');
-      if (cap) cap.textContent = CAPTIONS[p];
+      for (var j = 0; j < ns.length; j++) ns[j].setAttribute('class', j === p ? 'bs-step bs-step-on' : 'bs-step');
+      if (cap && !fixed) cap.textContent = CAPTIONS[p];
     }
 
     function paint(f) {
-      var i, ps = podG.querySelectorAll('circle'), ds = dsG.querySelectorAll('rect');
-      for (i = 0; i < ps.length; i++) ps[i].setAttribute('opacity', i < f.podsShown ? 1 : 0);
-      for (i = 0; i < ds.length; i++) {
-        ds[i].setAttribute('opacity', i < f.dsShown ? (f.dsRejected ? 0.35 : 1) : 0);
-      }
-      dsNote.setAttribute('opacity', f.dsRejected ? 1 : 0);
-
-      var us = costG.querySelectorAll('rect');
-      for (i = 0; i < us.length; i++) {
-        var full = f.costUnits - i;
-        us[i].setAttribute('opacity', full <= 0 ? 0 : 1);
-        us[i].setAttribute('width', Math.max(0, Math.min(1, full)) * (unitW - 3));
-      }
-      costTx.textContent = f.costLabel > 0 ? f2(f.costLabel) : '';
-
-      newG.setAttribute('opacity', f.newCardOp);
-      savFill.setAttribute('width', f.savFrac * (SBAR.w - 3) * (SAVINGS / OLD_PRICE));
-      savTx.textContent = f.savFrac > 0.02 ? '$' + (SAVINGS * f.savFrac).toFixed(3) + '/h' : '';
-
-      fracG.setAttribute('opacity', f.fracOp);
+      cards.forEach(function (k) {
+        k.g.setAttribute('opacity', f.cardsOp);
+        k.facts.setAttribute('opacity', f.factsOp);
+        k.score.setAttribute('opacity', f.scoreOp);
+        k.score.textContent = f.scoreOp > 0.02 ? k.c.score.toFixed(2) : '';
+        k.score.setAttribute('class', f.verdict[k.idx] > 0.5
+          ? (k.c.ok ? 'bs-cardscore bs-ok' : 'bs-cardscore bs-no') : 'bs-cardscore');
+      });
+      formula.setAttribute('opacity', f.formulaOp);
       gaugeG.setAttribute('opacity', f.gaugeOp);
 
-      needle.setAttribute('opacity', f.needle > 0 ? 1 : 0);
-      needle.setAttribute('cx', gx(f.needle));
-      needleTx.setAttribute('opacity', f.needle > 0.02 ? 1 : 0);
-      needleTx.setAttribute('x', gx(f.needle));
-      needleTx.textContent = f.needle > 0.02 ? 'score ' + f2(f.needle) : '';
+      toks.forEach(function (k) {
+        var p = f.travel[k.idx];
+        var x0 = cardMid(k.idx), y0 = CARD_Y + CARD_H;
+        var x1 = gx(k.c.score), y1 = GAUGE.y + GAUGE.h / 2;
+        k.g.setAttribute('opacity', p > 0.001 ? 1 : 0);
+        k.circ.setAttribute('cx', lerp(x0, x1, p));
+        k.circ.setAttribute('cy', lerp(y0, y1, p));
+        var decided = f.verdict[k.idx] > 0.5;
+        k.circ.setAttribute('class', decided
+          ? (k.c.ok ? 'bs-tok bs-tok-ok' : 'bs-tok bs-tok-no') : 'bs-tok');
+        k.lab.setAttribute('opacity', p >= 1 ? 1 : 0);
+        k.lab.setAttribute('x', x1);
+        k.lab.textContent = p >= 1 ? (decided ? (k.c.ok ? '승인' : '거부') : k.c.score.toFixed(2)) : '';
+        k.lab.setAttribute('class', decided
+          ? (k.c.ok ? 'bs-toklabel bs-ok' : 'bs-toklabel bs-no') : 'bs-toklabel');
+      });
 
-      verdict.setAttribute('opacity', f.verdictOp);
-      var approved = f.ghostOp > 0.5 ? false : f.needle >= THRESHOLD;
-      verdict.textContent = approved ? '승인' : '거부';
-      verdict.setAttribute('class', approved ? 'bs-verdict bs-ok' : 'bs-verdict bs-no');
-
-      ghostG.setAttribute('opacity', f.ghostOp);
-      ghostDot.setAttribute('cx', gx(f.ghostNeedle));
+      summary.setAttribute('opacity', f.summaryOp);
     }
 
-    function done() { paintSteps(PHASE_COUNT - 1); paint(computeFrame(PHASE_COUNT - 1, 1)); if (cap) cap.textContent = STATIC_CAPTION; }
+    function done() { paintSteps(PHASE_COUNT - 1); paint(computeFrame(PHASE_COUNT - 1, 1)); if (cap && !fixed) cap.textContent = STATIC_CAPTION; }
 
     if (REDUCE) { done(); return; }
     var rafId = 0, running = false, t0 = -1;
@@ -241,10 +224,10 @@
       rafId = requestAnimationFrame(frame);
     }
     function start() { if (running) return; running = true; rafId = requestAnimationFrame(frame); }
-    function stop() { running = false; cancelAnimationFrame(rafId); }
+    function halt() { running = false; cancelAnimationFrame(rafId); }
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (es) {
-        es.forEach(function (e) { e.isIntersecting ? start() : stop(); });
+        es.forEach(function (e) { e.isIntersecting ? start() : halt(); });
       }, { threshold: 0.25 }).observe(container);
     } else start();
   }
