@@ -16,17 +16,21 @@
 
   /* 후보 4대는 두 variant 가 공유한다 — 같은 클러스터를 두 방식으로 보는 그림이다.
      rd = 노드 몫 1.0 + 파드 수, ratio = price / rd.  from = 정렬 전 자리, to = ratio 내림차순 자리 */
+  var VCPU_MAX = 16;
   var NODES = [
-    { id: 'A', price: 0.768, pods: 3, from: 2, to: 0 },
-    { id: 'B', price: 0.384, pods: 2, from: 0, to: 1 },
-    { id: 'C', price: 0.384, pods: 3, from: 3, to: 2 },
-    { id: 'D', price: 0.192, pods: 5, from: 1, to: 3 }
+    { id: 'A', type: 'm5.4xlarge', vcpu: 16, price: 0.768, pods: 3, to: 0 },
+    { id: 'B', type: 'm5.2xlarge', vcpu: 8, price: 0.384, pods: 2, to: 1 },
+    /* B 와 크기·가격이 같은데 파드가 많아 뒤로 밀린다 — 순서를 가르는 게 파드라는 증거 */
+    { id: 'C', type: 'm5.2xlarge', vcpu: 8, price: 0.384, pods: 3, to: 2 },
+    { id: 'D', type: 'm5.xlarge', vcpu: 4, price: 0.192, pods: 5, to: 3 }
   ];
   NODES.forEach(function (n) { n.rd = 1 + n.pods; n.ratio = n.price / n.rd; });
 
+  /* cost 는 "값이 어디서 나오나" 전용 — 후보를 집지 않는다(batch 0).
+     single·multi 는 그 결과(정렬된 목록)를 전제로 시작한다. */
   var VARIANTS = {
-    single: { batch: 1, newPrice: 0.384, meterMax: 6, lane: 'SingleNode' },
-    multi: { batch: 3, newPrice: 0.768, meterMax: 12, lane: 'MultiNode' }
+    single: { batch: 1, newType: 'm5.2xlarge', newVcpu: 8, newPrice: 0.384, meterMax: 6, lane: 'SingleNode' },
+    multi: { batch: 3, newType: 'm5.4xlarge', newVcpu: 16, newPrice: 0.768, meterMax: 12, lane: 'MultiNode' }
   };
 
   var GLYPHS = ['①', '②', '③', '④', '⑤'];
@@ -60,24 +64,24 @@
     picked.forEach(function (n) { for (var i = 0; i < n.pods; i++) flight.push({ node: n, idx: i }); });
     var oldSum = picked.reduce(function (s, n) { return s + n.price; }, 0);
     var one = v.batch === 1;
+    var totalRd = picked.reduce(function (s, n) { return s + n.rd; }, 0);
     return {
       variant: variant, batch: v.batch, lane: v.lane, picked: picked, flight: flight,
       movePods: flight.length,
-      totalRd: picked.reduce(function (s, n) { return s + n.rd; }, 0),
+      totalRd: totalRd, newType: v.newType, newVcpu: v.newVcpu,
       oldSum: oldSum, newPrice: v.newPrice, savings: oldSum - v.newPrice,
-      meterMax: v.meterMax, unitW: METER.w / v.meterMax, one: one,
+      meterMax: v.meterMax, unitW: METER.w / v.meterMax, one: one, phases: 4,
       captions: [
-        '① 후보와 그 위의 파드 — 옮겨야 할 파드가 곧 그 노드의 무게다 (DaemonSet은 세지 않는다)',
-        '② Price / RescheduleDisruptionCost 로 줄을 세운다 — 비싸면서 한산한 노드가 앞으로',
-        (one ? '③ 맨 앞 한 대만 집어 ' : '③ 앞에서부터 세 대를 한꺼번에 집어 ')
-          + '가상으로 지워본다 — 파드 ' + flight.length + '개가 새 노드 한 대에 다 들어간다(점선이 그 답)',
-        '④ 새 노드 한 대를 띄우고 파드를 옮긴다 — cost 가 실제로는 이 일이다',
-        one ? '⑤ 옛 노드 한 대를 반납한다. 한 번에 한 대씩이라 여러 대를 합칠 기회는 놓친다'
-            : '⑤ 옛 노드 세 대를 한 대로 접었다. 한 대씩 봤다면 나오지 않았을 커맨드다'
+        (one ? '① 정렬된 후보에서 맨 앞 한 대를 집는다' : '① 정렬된 후보에서 앞 세 대를 한꺼번에 집는다')
+          + ' — 이 순간 cost 합계 ' + totalRd.toFixed(1) + ' 이 확정된다 (옅은 칸)',
+        '② 가상으로 지워보고 파드를 다시 스케줄해본다 — 점선이 시뮬레이션이 앉혀본 자리다',
+        '③ 실제로 새 노드를 띄우고 파드를 옮긴다 — 확정돼 있던 cost 를 하나씩 치른다 (진한 칸)',
+        one ? '④ 옛 노드 한 대를 반납한다. 한 번에 한 대씩이라 여러 대를 합칠 기회는 놓친다'
+            : '④ 옛 노드 세 대를 한 대로 접었다. 한 대씩 봤다면 나오지 않았을 커맨드다'
       ],
       still: one
-        ? 'SingleNode — 한 대를 지우고 그 파드를 새 노드로 옮긴다. cost 는 노드 몫 1.0 에 옮긴 파드 수를 더한 값이다'
-        : 'MultiNode — 여러 대를 한 대로 접는다. 묶은 만큼 cost 도 합산되지만, 한 대씩으로는 나오지 않을 절감을 만든다'
+          ? 'SingleNode — 맨 앞 한 대를 집어 그 파드를 새 노드로 옮긴다. cost 는 집는 순간 확정되고 옮기면서 치러진다'
+          : 'MultiNode — 앞 세 대를 한꺼번에 집어 한 대로 접는다. 한 대씩 봐서는 나오지 않을 커맨드다'
     };
   }
 
@@ -89,60 +93,56 @@
 
     function computeFrame(phase, t) {
       var f = {
-        cardsOp: 0, podsP: 0, ratioOp: 0, sortP: 0,
+        cardsOp: 1, podsP: 1, countP: 1, ratioOp: 1, sortP: 1,
         batchN: 0, batchOp: 0, batchState: '',
         newOp: 0, simMode: false, ghostPods: 0,
-        flightP: [], landed: 0, meterUnits: 0,
+        flightP: [], landed: 0, plannedUnits: 0, paidUnits: 0,
         oldFade: 0, savOp: 0, laneDone: false
       };
       var j;
+
+      /* single · multi — 정렬은 이미 끝난 상태에서 출발한다 */
       if (phase === 0) {
-        f.cardsOp = ease(winP(t, 0.05, 0.35));
-        f.podsP = ease(winP(t, 0.3, 0.85));
-      } else if (phase === 1) {
-        f.cardsOp = 1; f.podsP = 1;
-        f.ratioOp = ease(winP(t, 0.05, 0.3));
-        f.sortP = ease(winP(t, 0.35, 0.9));
-      } else if (phase === 2) {
-        f.cardsOp = 1; f.podsP = 1; f.ratioOp = 1; f.sortP = 1;
-        f.batchOp = ease(winP(t, 0.05, 0.3));
+        f.batchOp = ease(winP(t, 0.1, 0.35));
         f.batchN = BATCH; f.batchState = 'try';
-        f.meterUnits = Math.min(BATCH, winP(t, 0.3, 0.6) * (BATCH + 0.999));
-        /* 가상으로 지우고 다시 스케줄해보는 구간 — 답이 자리로 보인다 */
-        f.newOp = ease(winP(t, 0.45, 0.62));
+        /* 집는 순간 합계가 확정된다 — 옮기기 전에 이미 안다 */
+        f.plannedUnits = ease(winP(t, 0.35, 0.72)) * cfg.totalRd;
+      } else if (phase === 1) {
+        f.batchOp = 1; f.batchN = BATCH; f.batchState = 'try';
+        f.plannedUnits = cfg.totalRd;
+        f.newOp = ease(winP(t, 0.05, 0.25));
         f.simMode = true;
-        f.ghostPods = Math.floor(winP(t, 0.55, 0.95) * (FLIGHT.length + 0.999));
-      } else if (phase === 3) {
-        f.cardsOp = 1; f.podsP = 1; f.ratioOp = 1; f.sortP = 1;
+        f.ghostPods = Math.floor(winP(t, 0.2, 0.85) * (FLIGHT.length + 0.999));
+      } else if (phase === 2) {
         f.batchOp = 1; f.batchN = BATCH; f.batchState = 'ok';
+        f.plannedUnits = cfg.totalRd;
         f.newOp = 1; f.ghostPods = FLIGHT.length;
-        /* 파드가 겹쳐 날아간다 — 개수가 적으면 넉넉히, 많으면 촘촘히 */
-        var step = FLIGHT.length > 4 ? 0.075 : 0.16;
+        var step = FLIGHT.length > 4 ? 0.085 : 0.19;
         var landed = 0;
         for (j = 0; j < FLIGHT.length; j++) {
-          var s = 0.22 + j * step;
-          var p = ease(winP(t, s, s + 0.32));
-          f.flightP.push(p);
-          if (p >= 1) landed++;
+          var st = 0.08 + j * step;
+          var pp = ease(winP(t, st, st + 0.3));
+          f.flightP.push(pp);
+          if (pp >= 1) landed++;
         }
         f.landed = landed;
-        f.meterUnits = BATCH + landed;
+        /* 노드 몫은 드레인이 시작될 때, 파드 몫은 하나씩 도착할 때 치러진다 */
+        f.paidUnits = ease(winP(t, 0.02, 0.14)) * BATCH + landed;
       } else {
-        f.cardsOp = 1; f.podsP = 1; f.ratioOp = 1; f.sortP = 1;
         f.batchOp = 1 - winP(t, 0.1, 0.4); f.batchN = BATCH; f.batchState = 'ok';
+        f.plannedUnits = cfg.totalRd; f.paidUnits = cfg.totalRd;
         f.newOp = 1; f.ghostPods = 0;
         for (j = 0; j < FLIGHT.length; j++) f.flightP.push(1);
         f.landed = FLIGHT.length;
-        f.meterUnits = cfg.totalRd;
         f.oldFade = ease(winP(t, 0.05, 0.4));
-        f.savOp = winP(t, 0.35, 0.55);
-        f.laneDone = t > 0.5;
+        f.savOp = winP(t, 0.3, 0.5);
+        f.laneDone = t > 0.45;
       }
       return f;
     }
 
     var steps = el('g', {});
-    for (i = 0; i < PHASE_COUNT; i++) steps.appendChild(txt(26 + i * 26, 26, GLYPHS[i], 'mn-step'));
+    for (i = 0; i < cfg.phases; i++) steps.appendChild(txt(26 + i * 26, 26, GLYPHS[i], 'mn-step'));
     svg.appendChild(steps);
     svg.appendChild(txt(W - 26, 26, cfg.lane, 'mn-badge', 'end'));
 
@@ -153,8 +153,11 @@
     var newG = el('g', { opacity: 0 });
     var newRect = el('rect', { x: NEWX, y: ROW_Y, width: CARD_W, height: CARD_H, rx: 10, class: 'mn-card mn-card-new' });
     newG.appendChild(newRect);
-    newG.appendChild(txt(NEWX + 12, ROW_Y + 22, '새 노드', 'mn-name'));
-    newG.appendChild(txt(NEWX + CARD_W - 12, ROW_Y + 22, '$' + cfg.newPrice.toFixed(3), 'mn-price', 'end'));
+    newG.appendChild(el('rect', { x: NEWX + 10, y: ROW_Y + 37, width: CARD_W - 20, height: 46, rx: 7, class: 'mn-well' }));
+    newG.appendChild(txt(NEWX + 12, ROW_Y + 21, cfg.newType, 'mn-name'));
+    newG.appendChild(txt(NEWX + CARD_W - 12, ROW_Y + 21, '$' + cfg.newPrice.toFixed(3), 'mn-price', 'end'));
+    newG.appendChild(el('rect', { x: NEWX + 12, y: ROW_Y + 28, width: CARD_W - 24, height: 3, rx: 1.5, class: 'mn-sizetrack' }));
+    newG.appendChild(el('rect', { x: NEWX + 12, y: ROW_Y + 28, width: (CARD_W - 24) * (cfg.newVcpu / VCPU_MAX), height: 3, rx: 1.5, class: 'mn-size-new' }));
     var newSub = txt(NEWX + 12, ROW_Y + CARD_H - 10, '', 'mn-sub');
     newG.appendChild(newSub);
     svg.appendChild(newG);
@@ -176,11 +179,17 @@
       var g = el('g', { opacity: 0 });
       var rect = el('rect', { x: 0, y: ROW_Y, width: CARD_W, height: CARD_H, rx: 10, class: 'mn-card' });
       g.appendChild(rect);
-      g.appendChild(txt(12, ROW_Y + 22, '노드 ' + n.id, 'mn-name'));
-      g.appendChild(txt(CARD_W - 12, ROW_Y + 22, '$' + n.price.toFixed(3), 'mn-price', 'end'));
+      /* 파드가 담기는 자리 — 점이 카드 위에 떠 있는 게 아니라 안에 들어있음을 보인다 */
+      g.appendChild(el('rect', { x: 10, y: ROW_Y + 37, width: CARD_W - 20, height: 46, rx: 7, class: 'mn-well' }));
+      g.appendChild(txt(12, ROW_Y + 21, n.type, 'mn-name'));
+      g.appendChild(txt(CARD_W - 12, ROW_Y + 21, '$' + n.price.toFixed(3), 'mn-price', 'end'));
+      /* 크기 막대 — 가격이 vCPU 에 비례한다는 걸 읽지 않고도 보이게 */
+      g.appendChild(el('rect', { x: 12, y: ROW_Y + 28, width: CARD_W - 24, height: 3, rx: 1.5, class: 'mn-sizetrack' }));
+      g.appendChild(el('rect', { x: 12, y: ROW_Y + 28, width: (CARD_W - 24) * (n.vcpu / VCPU_MAX), height: 3, rx: 1.5, class: 'mn-size' }));
       var pods = [];
       for (var k = 0; k < n.pods; k++) {
-        var c = el('circle', { cx: POD_X0 + (k % POD_COLS) * POD_DX, cy: podY(k) - ROW_Y, r: POD_R, class: 'mn-pod', opacity: 0 });
+        /* 그룹은 X 만 옮긴다 — cy 는 절대 좌표라야 카드 안에 앉는다 */
+        var c = el('circle', { cx: POD_X0 + (k % POD_COLS) * POD_DX, cy: podY(k), r: POD_R, class: 'mn-pod', opacity: 0 });
         g.appendChild(c); pods.push(c);
       }
       var rt = txt(12, ROW_Y + CARD_H - 10, '', 'mn-sub'); rt.setAttribute('opacity', 0); g.appendChild(rt);
@@ -196,8 +205,10 @@
     svg.appendChild(flyG);
 
     /* cost 미터 */
-    svg.appendChild(txt(METER.x, METER.y - 9, 'RescheduleDisruptionCost — 실제로 하는 일', 'mn-lane'));
-    svg.appendChild(el('rect', { x: METER.x, y: METER.y, width: METER.w, height: METER.h, rx: 6, class: 'mn-track' }));
+    var meterWrap = el('g', {});
+    meterWrap.appendChild(txt(METER.x, METER.y - 9, 'RescheduleDisruptionCost — 집는 순간 정해지고, 옮기면서 치러진다', 'mn-lane'));
+    meterWrap.appendChild(el('rect', { x: METER.x, y: METER.y, width: METER.w, height: METER.h, rx: 6, class: 'mn-track' }));
+    svg.appendChild(meterWrap);
     var meterG = el('g', {});
     for (i = 0; i < cfg.meterMax; i++) {
       meterG.appendChild(el('rect', {
@@ -206,6 +217,15 @@
       }));
     }
     svg.appendChild(meterG);
+    /* 위 겹: 실제로 치른 몫 */
+    var paidG = el('g', {});
+    for (i = 0; i < cfg.meterMax; i++) {
+      paidG.appendChild(el('rect', {
+        x: METER.x + i * cfg.unitW + 2, y: METER.y + 2, width: cfg.unitW - 4, height: METER.h - 4, rx: 3,
+        class: i < BATCH ? 'mn-paid mn-paid-node' : 'mn-paid', opacity: 0
+      }));
+    }
+    svg.appendChild(paidG);
     var meterTx = txt(METER.x + METER.w + 14, METER.y + 17, '', 'mn-val'); svg.appendChild(meterTx);
     var meterNote = txt(METER.x, METER.y + METER.h + 20, '', 'mn-sub'); svg.appendChild(meterNote);
 
@@ -232,16 +252,22 @@
     function paint(f) {
       var j, k;
       cards.forEach(function (c) {
-        var x = lerp(slotX(c.n.from), slotX(c.n.to), f.sortP);
+        var x = slotX(c.n.to);
         var picked = c.n.to < BATCH;
         c.g.setAttribute('transform', 'translate(' + x.toFixed(1) + ',0)');
         c.g.setAttribute('opacity', (picked ? 1 - f.oldFade * 0.72 : 1) * f.cardsOp);
         c.rect.setAttribute('class', picked && f.oldFade > 0.4 ? 'mn-card mn-card-gone' : 'mn-card');
         var flown = 0;
         for (k = 0; k < FLIGHT.length; k++) if (FLIGHT[k].node === c.n && f.flightP[k] > 0.02) flown++;
-        for (k = 0; k < c.pods.length; k++) c.pods[k].setAttribute('opacity', (picked && k < flown) ? 0 : f.podsP);
-        c.rt.setAttribute('opacity', f.ratioOp);
-        c.rt.textContent = 'cost ' + c.n.rd.toFixed(1);
+        var counted = Math.min(c.n.pods, Math.floor(f.countP * (c.n.pods + 0.999)));
+        var counting = f.countP > 0 && f.countP < 1;
+        for (k = 0; k < c.pods.length; k++) {
+          var gone = picked && k < flown;
+          /* 아직 안 센 파드는 옅게 — 이 점들이 저 숫자를 만든다는 걸 보이게 */
+          c.pods[k].setAttribute('opacity', gone ? 0 : (counting && k >= counted ? f.podsP * 0.25 : f.podsP));
+        }
+        c.rt.setAttribute('opacity', f.countP > 0.02 ? 1 : 0);
+        c.rt.textContent = 'cost ' + (1 + counted).toFixed(1);
         c.rv.setAttribute('opacity', f.ratioOp);
         c.rv.textContent = c.n.ratio.toFixed(3);
       });
@@ -267,7 +293,7 @@
       var flys = flyG.querySelectorAll('circle'), lands = landG.querySelectorAll('circle');
       for (j = 0; j < FLIGHT.length; j++) {
         var p = f.flightP[j] || 0;
-        var src = FLIGHT[j], sx = lerp(slotX(src.node.from), slotX(src.node.to), f.sortP);
+        var src = FLIGHT[j], sx = slotX(src.node.to);
         var x0 = podX(sx, src.idx), y0 = podY(src.idx);
         var x1 = podX(NEWX, j), y1 = podY(j);
         /* 안 보이는 동안에도 좌표는 유효하게 둔다 — 대기 위치가 viewBox 밖이면 안 된다 */
@@ -277,35 +303,38 @@
         lands[j].setAttribute('opacity', p >= 1 ? 1 : 0);
       }
 
-      var us = meterG.querySelectorAll('rect');
+      var us = meterG.querySelectorAll('rect'), pd = paidG.querySelectorAll('rect');
       for (j = 0; j < us.length; j++) {
-        var full = f.meterUnits - j;
-        us[j].setAttribute('opacity', full <= 0 ? 0 : 1);
-        us[j].setAttribute('width', Math.max(0, Math.min(1, full)) * (cfg.unitW - 4));
+        var pl = f.plannedUnits - j, pv = f.paidUnits - j;
+        us[j].setAttribute('opacity', pl <= 0 ? 0 : 1);
+        us[j].setAttribute('width', Math.max(0, Math.min(1, pl)) * (cfg.unitW - 4));
+        pd[j].setAttribute('opacity', pv <= 0 ? 0 : 1);
+        pd[j].setAttribute('width', Math.max(0, Math.min(1, pv)) * (cfg.unitW - 4));
       }
-      meterTx.textContent = f.meterUnits > 0.02 ? f.meterUnits.toFixed(1) : '';
-      meterNote.textContent = f.meterUnits > 0.02
-        ? '노드 ' + Math.min(BATCH, Math.ceil(f.meterUnits)) + '대 × 1.0  +  옮긴 파드 ' + f.landed + '개 × 1.0'
-        : '';
+      meterTx.textContent = f.plannedUnits > 0.02 ? cfg.totalRd.toFixed(1) : '';
+      meterNote.textContent = f.plannedUnits < 0.02 ? ''
+        : f.paidUnits < 0.02
+          ? '집는 순간 확정 — 노드 ' + BATCH + '대 × 1.0  +  옮길 파드 ' + cfg.movePods + '개 × 1.0'
+          : '치르는 중 — 옮긴 파드 ' + f.landed + ' / ' + cfg.movePods + '개';
 
       resultPill.setAttribute('opacity', f.laneDone ? 1 : 0);
       resultPill.setAttribute('class', f.laneDone ? 'mn-pill mn-pill-ok' : 'mn-pill');
       resultTx.setAttribute('opacity', f.laneDone ? 1 : 0);
       resultTx.textContent = cfg.one
-        ? '노드 1대 → 1대 · 커맨드 1건'
-        : '노드 ' + BATCH + '대 → 1대 · 커맨드 1건';
+        ? '1대 → 1대 · 커맨드 1건'
+        : BATCH + '대 → 1대 · 커맨드 1건';
       savTx.setAttribute('opacity', f.savOp);
       savTx.textContent = 'savings  $' + cfg.oldSum.toFixed(3) + ' − $' + cfg.newPrice.toFixed(3) + ' = $' + cfg.savings.toFixed(3) + '/h';
     }
 
-    function done() { paintSteps(PHASE_COUNT - 1); paint(computeFrame(PHASE_COUNT - 1, 1)); if (cap && !fixed) cap.textContent = cfg.still; }
+    function done() { paintSteps(cfg.phases - 1); paint(computeFrame(cfg.phases - 1, 1)); if (cap && !fixed) cap.textContent = cfg.still; }
 
     if (REDUCE) { done(); return; }
     var rafId = 0, running = false, t0 = -1;
     function frame(ts) {
       /* 0 은 유효한 타임스탬프다 — falsy 검사로는 첫 프레임이 0 일 때 영영 안 걸린다 */
       if (t0 < 0) t0 = ts;
-      var total = (ts - t0) % (PHASE_MS * PHASE_COUNT);
+      var total = (ts - t0) % (PHASE_MS * cfg.phases);
       var p = Math.floor(total / PHASE_MS);
       paintSteps(p);
       paint(computeFrame(p, (total % PHASE_MS) / PHASE_MS));

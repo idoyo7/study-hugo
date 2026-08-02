@@ -1,6 +1,9 @@
-{{- /* vm-mnode: 노드를 지우고 파드를 새 노드로 옮기는 5단계 애니메이션.
-       사용: {{< mnode variant="single" >}}  (variant: single | multi, 기본 single)
-       single 은 한 대만, multi 는 앞에서부터 세 대를 집는다 — 나머지 경로는 같다.
+{{- /* vm-mnode: 후보 평가 → 집기 → 파드 이동을 단계별로 보이는 애니메이션.
+       사용: {{< mnode variant="cost" >}}  (variant: cost | single | multi, 기본 single)
+         cost   — 파드를 세어 cost 를 만들고 Price/cost 로 줄 세우기까지 (§2.2)
+         single — 정렬된 후보에서 한 대를 집어 옮기기 (§3)
+         multi  — 같은 목록에서 앞 세 대를 한꺼번에 집기 (§3)
+       single·multi 는 cost 가 끝난 상태(정렬 완료)에서 출발한다.
        caption을 주면 그 문장이 고정되고, 생략하면 캡션이 단계마다 바뀐다.
        엔진/스타일은 /flow/mnode.js, /flow/mnode.css (custom/head-end.html에서 로드) */ -}}
 <figure class="vm-mnode" data-variant="{{ default "single" (.Get "variant") }}">

@@ -48,10 +48,17 @@ html.dark .vm-mnode {
 .mn-card-gone { fill: var(--mn-track); stroke: var(--mn-muted); stroke-dasharray: 5 3; }
 /* 시뮬레이션이 그려본 노드 — 아직 실재하지 않는다 */
 .mn-card-sim { fill: none; stroke: var(--mn-ok); stroke-width: 1.6; stroke-dasharray: 6 4; }
-.mn-name { fill: var(--mn-ink); font-size: 13.5px; font-weight: 700; }
+.mn-name { fill: var(--mn-ink); font-size: 12.5px; font-weight: 700; }
+/* 가격 옆의 크기 막대 — vCPU 비례 */
+.mn-sizetrack { fill: var(--mn-track); }
+.mn-size { fill: var(--mn-node); opacity: 0.55; }
+.mn-size-new { fill: var(--mn-ok); opacity: 0.6; }
 .mn-price { fill: var(--mn-ink); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .mn-sub { fill: var(--mn-ink2); font-size: 11px; font-variant-numeric: tabular-nums; }
 .mn-ratio { fill: var(--mn-node); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* 파드가 담기는 자리 */
+.mn-well { fill: var(--mn-surface); opacity: 0.55; stroke: var(--mn-node); stroke-width: 0.8; stroke-opacity: 0.35; }
 
 /* 파드 */
 .mn-pod { fill: var(--mn-pod); stroke: var(--mn-surface); stroke-width: 2; }
@@ -67,8 +74,12 @@ html.dark .vm-mnode {
 /* cost 미터 */
 .mn-lane { fill: var(--mn-ink); font-size: 12.5px; font-weight: 800; }
 .mn-track { fill: var(--mn-track); }
-.mn-unit { fill: var(--mn-warn); }
+/* 아래 겹 — 후보를 집는 순간 확정되는 값 (아직 치르지 않았다) */
+.mn-unit { fill: var(--mn-warn); opacity: 0.22; }
 .mn-unit-node { fill: var(--mn-node); }
+/* 위 겹 — 실제로 치른 몫 */
+.mn-paid { fill: var(--mn-warn); }
+.mn-paid-node { fill: var(--mn-node); }
 .mn-val { fill: var(--mn-ink); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .mn-sav { fill: var(--mn-ok); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
