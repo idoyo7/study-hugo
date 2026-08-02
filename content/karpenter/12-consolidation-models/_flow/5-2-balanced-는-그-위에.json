@@ -1,25 +1,9 @@
 {
-  "caption": "Balanced는 WhenEmptyOrUnderutilized의 승인분을 입력으로 받는다 — 빈 노드 삭제는 Emptiness 출신이라 스코어를 우회하고, 나머지만 채점된다",
+  "caption": "Balanced가 하는 일은 채점 하나뿐이다 — ScoreMove가 NodePool별로 점수를 내고 0.5를 넘는 것만 통과시킨다",
   "nodes": [
     {
-      "id": "W",
-      "col": 0,
-      "row": 1,
-      "label": "앞 단계 승인분",
-      "sub": "WhenEmptyOrUnderutilized의 결과",
-      "kind": "src"
-    },
-    {
-      "id": "EM",
-      "col": 1,
-      "row": 0,
-      "label": "Emptiness 출신",
-      "sub": "ApproveCommand를 안 탄다",
-      "kind": "query"
-    },
-    {
       "id": "SC",
-      "col": 1,
+      "col": 0,
       "row": 1,
       "label": "ScoreMove",
       "sub": "NodePool별로 채점",
@@ -27,7 +11,7 @@
     },
     {
       "id": "OK",
-      "col": 2,
+      "col": 1,
       "row": 0,
       "label": "승인",
       "sub": "예산 단계로",
@@ -35,7 +19,7 @@
     },
     {
       "id": "NO",
-      "col": 2,
+      "col": 1,
       "row": 1,
       "label": "거부",
       "sub": "메트릭만 · 이벤트 없음",
@@ -43,25 +27,6 @@
     }
   ],
   "edges": [
-    {
-      "from": "W",
-      "to": "EM",
-      "label": "빈 노드 삭제",
-      "rate": 900,
-      "speed": "fast"
-    },
-    {
-      "from": "W",
-      "to": "SC",
-      "label": "그 외 전부",
-      "rate": 520
-    },
-    {
-      "from": "EM",
-      "to": "OK",
-      "label": "무조건 통과",
-      "dashed": true
-    },
     {
       "from": "SC",
       "to": "OK",

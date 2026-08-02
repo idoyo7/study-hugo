@@ -78,15 +78,13 @@ for _, p := range reschedulablePods {
 }
 ```
 
-노드 자체를 삭제하는 Cost 를 base로 `1.0` 설정해 cordon·drain·대체 노드 기동 지연 자체의 비용으로 계산합니다.
-
-파드별 비용은 기본 `1.0`에 `pod-deletion-cost / 2^27`과 `priority / 2^25`를 더하고 `[-10, 10]`으로 클램프합니다(`utils/disruption/disruption.go:47-69`). 대상은 `IsReschedulable` 통과분뿐이라 **DaemonSet은 세지 않습니다.**
-
-**시간 가중치는 없습니다.** `LifetimeRemaining`이 곱해지는 `Candidate.DisruptionCost` **필드**는 계산만 남고 읽는 비테스트 코드가 없습니다(`types.go:207`). 앞 절에서 봤듯 1.14 이전에는 이게 유일한 정렬 키였으니, **v1.14가 필드를 지우지 않은 채 소비자만 걷어낸 것**입니다. `grep`이 잡는 `balanced.go:84`의 `DisruptionCost()`는 이 필드가 아니라 `state.StateNode`의 동명이인 메서드로, 후보가 아닌 노드 몫을 증분 유지하는 살아있는 코드입니다(`state/statenode.go:430`). “만료 임박 노드가 먼저 지워진다”는 서술은 v1.14.0 통합 경로 기준으로 틀렸습니다 — 다만 같은 공식이 static NodePool의 deprovisioning 정렬에서는 여전히 쓰입니다(`controllers/static/deprovisioning/controller.go:302-303`).
+노드 자체를 삭제하는 Cost 를 base로 `1` 설정해 cordon·drain·대체 노드 기동 지연 자체의 비용으로 계산합니다.
+파드별 비용은 기본 `1`에 `pod-deletion-cost` 로 같이 합산되어 계산합니다.
+- 여기서 **DaemonSet은 세지 않습니다.**
 
 ## 3. 어떤 이유로 노드를 삭제할까
 
-앞 장을 통과한 노드는 “손대도 되는” 상태일 뿐, 아직 지울 이유가 없습니다.
+앞에서 검사대상으로 확인된 노드는 “손대도 되는” 상태일 뿐, 아직 지울 이유가 없습니다.
 여기서 그 이유를 붙입니다.
 
 노드는 세 가지 중 하나로 분류되고, **Reason**으로 기록을 합니다.
@@ -101,37 +99,35 @@ for _, p := range reschedulablePods {
 
 {{< flow src="_flow/3-세-분류.json" />}}
 
-`Underutilized`만 안에서 두 단계로 나뉩니다. 개념은 한 대씩 보는 쪽이 쉬우니 그것부터 봅니다.
+`Underutilized`는 두가지로 나뉘는데요, `SingleNode`와 `MultiNode` 로 나눠집니다.
 
-둘 다 **줄이 다 선 목록을 그대로 받아** 시작합니다. 다른 건 그 목록에서 **몇 대를 집느냐**뿐입니다.
-
-**SingleNode — 맨 앞 한 대를 집어 그 위 파드를 새 노드로 옮깁니다.** 실패하면 다음 후보로 내려가고, 처음 성공하는 노드로 커맨드를 만들고 나옵니다.
+**SingleNode — 맨 앞 한 대의 파드를 새 노드로 옮깁니다.** 
+실패하면 다음 후보로 내려가고, 삭제가 가능한 노드를 찾을때까지 수행합니다.
 
 {{< mnode variant="single" >}}
 
-**MultiNode — 앞에서부터 여러 대를 한꺼번에 집습니다.** 묶은 만큼 cost도 합쳐지지만, **한 대씩 봐서는 나오지 않을 조합**이 여기서 나옵니다.
+**MultiNode — 앞에서부터 여러 대를 한꺼번에 집습니다.** 
+여러대를 동시에 묶은 만큼 cost도 합쳐지지만, **한 대씩 정리하는것만으로는 나오지 않을 조합**이 여기서 나옵니다.
 
 {{< mnode variant="multi" >}}
 
 두 도식 모두 **집는 순간 cost 합계가 확정되고**(옅은 칸), 파드를 옮기면서 그 값을 치릅니다(진한 칸). 옮기면서 계산하는 게 아니라 **후보를 만들 때 이미 정해진 값**입니다.
 
-**실행 순서는 설명 순서의 반대입니다.** MultiNode가 먼저 돌고, 커맨드를 하나라도 만들면 그 라운드는 거기서 끝납니다. SingleNode는 MultiNode가 빈손일 때만 내려오고, 후보를 다 훑기 전에 3분이 지나면 중단합니다 — 이때 못 본 NodePool을 기억해뒀다가 다음 라운드에 먼저 봅니다(`singlenodeconsolidation.go:33, 74`).
+**실행 순서는 MultiNode -> SingleNode 순서대로 진행됩니다.** 
+MultiNode가 먼저 돌고, 수행 가능한 시나리오를 찾으면 그 라운드는 거기서 끝납니다. 
+SingleNode는 MultiNode가 실패했을때, 후보를 다 훑기 전에 3분이 지나면 중단합니다 — 이때 못 본 NodePool이 있었다면, 다음 라운드에 먼저 봅니다
 
 ## 4. 정책 셋은 무엇이 다른가
 
-앞에서 본 `Underutilized` 경로가 여기서부터 정책을 탑니다. 세 정책이 갈라지는 곳은 딱 한 군데뿐입니다. 표에 나오는 "삭제 또는 교체"가 무엇에서 갈리는지는 뒤에서 따로 봅니다.
+앞에서 본 `Underutilized` 의 실행이 실제로는 세가지 정책에 맞게 갈라집니다.
+표에 나오는 "삭제 또는 교체"가 무엇에서 갈리는지는 뒤에서 따로 봅니다.
 
-`consolidation` 정책은 세 개지만 **빈 노드를 처리하는 방법은 완전히 같습니다.**
 
 | 정책 | 빈 노드 | 그 외 후보 | 통과해야 할 게이트 |
 |---|---|---|---|
-| `WhenEmpty` | 삭제 | **후보로 만들지 않음** | 없음 — 경로 자체가 없습니다 |
+| `WhenEmpty` | 삭제 | **그냥 삭제대상임** | 없음 |
 | `WhenEmptyOrUnderutilized` | 삭제 (같음) | 시뮬레이션 후 삭제 또는 교체 | 파드 재배치 + (교체면) 가격 |
-| `Balanced` | 삭제 (같음) | 시뮬레이션 후 **스코어 심사** | 위 둘 + `score ≥ 0.5` |
-
-빈 노드 열이 셋 다 같은 이유는 **빈 노드를 담당하는 쪽이 `consolidationPolicy`를 아예 읽지 않기 때문**입니다. 그래서 정책을 뭘로 두든 빈 노드는 똑같이 지워집니다. 실제로 갈리는 건 가운데 열 하나뿐입니다.
-
-그리고 **세 정책은 “얼마나 지우느냐”로 한 줄에 세울 수 있습니다.**
+| `Balanced` | 삭제 (같음) | 시뮬레이션 후 **스코어 심사** | `WhenEmptyOrUnderutilized`방식 + `score ≥ 0.5` |
 
 ```
 적게 지움  ←────────────────────────────────────→  많이 지움
@@ -139,35 +135,40 @@ for _, p := range reschedulablePods {
 WhenEmpty        Balanced        WhenEmptyOrUnderutilized
 ```
 
-단순히 양만 다른 게 아닙니다. **왼쪽이 지우는 노드는 오른쪽도 빠짐없이 지웁니다.** 반대는 성립하지 않습니다. 양끝을 각각 보면 이유가 나옵니다.
-
-**`WhenEmpty`가 지우는 걸 `Balanced`도 지우는 이유** — `WhenEmpty`는 빈 노드만 지웁니다. 그런데 `Balanced`도 빈 노드는 그냥 지웁니다(위 표 첫 열). 그래서 `WhenEmpty`가 하는 일이 통째로 `Balanced` 안에 들어갑니다.
-
-**`Balanced`가 지우는 걸 `WhenEmptyOrUnderutilized`도 지우는 이유** — `Balanced`는 새 통합을 스스로 만들지 않습니다. `WhenEmptyOrUnderutilized`가 만들어낸 것을 받아 **거부만** 하는 구조라 원본보다 많아질 수가 없습니다.
-
-그래서 정책을 바꾸는 일은 이 줄 위에서 좌우로 움직이는 것과 같습니다. **`Balanced`로 바꾸면 통합은 반드시 줄어듭니다** — 늘어나는 경우는 없습니다.
+**세 정책은 “얼마나 지우느냐”정도로 보시면 될것 같습니다.**
+오른쪽으로 갈수록 삭제 강도가 커지는 개념이지만, 실제로는 Empty 노드가 아닌 WhenEmptyOrUnderutilized 개념이 Karpenter 의 강점이였다고 생각합니다.
+이후에 1.14버전에서 생긴 Balanced가 너무 공격적인 Eviction 을 방지하기위해 새로운 기준들을 보강했습니다.
 
 ## 5. 새로 추가된 Balanced 정책
 
-앞 장의 세 정책 중 하나를 더 파고듭니다. **새 경로를 여는 게 아니라 이미 있는 경로 위에 얹히는 층**입니다.
+새로 추가된 Balanced 개념에선 봐야할게, "어떻게 보수적으로 노드를 제거할수있을까?" 입니다.
 
 ### 5.1 기준선 — `WhenEmptyOrUnderutilized`가 하는 일
 
-Balanced를 이해하려면 그 아래 깔린 경로부터 봐야 합니다. 스코어는 여기 없습니다.
+Balanced를 이해하려면 기존에 `WhenEmptyOrUnderutilized` 가 수행되는 방식을 먼저 봐야합니다.
 
 {{< flow src="_flow/5-1-기준선-whenemptyorunderutilized.json" />}}
 
-**게이트가 둘뿐입니다** — “모든 파드가 다른 데 들어가는가”, 그리고 교체라면 “엄격히 더 싼가”. 절감의 **규모**를 묻는 곳이 없습니다. “10원 아끼려고 파드 40개를 옮긴다”가 여기서 나옵니다.
+“모든 파드가 다른 데 들어가는가”, 그리고 교체라면 “엄격히 더 싼가”. 
+두개의 기준으로만 판단하다보면, 10원 아끼려고 파드 40개를 옮겨버리는 케이스가 발생합니다.
+- init 단계에서 부하가 더 발생되는경우나, pdb로 보호를 하고있어도 서비스의 안정성이 더 떨어지는 것들이죠.
 
 ### 5.2 Balanced가 얹는 게이트
 
-Balanced는 코어 v1.14.0에서 추가됐습니다. 위 경로로도 충분히 많은 것을 할 수 있었지만, 절감 규모를 묻지 않는다는 구멍이 남아 있었습니다.
+Balanced는 이런 심한 Drift 를 방지하기위해 v1.14.0에서 추가됐습니다. 
+`WhenEmptyOrUnderutilized`가 놓치는걸 잡고, Drift를 조금 더 조심스럽게 수행하기로 했습니다.
+`WhenEmptyOrUnderutilized`에서 삭제대상으로 잡힌 노드여도, Validation을 한차례 더 수행하여 "절감을 수행하는것" 자체의 Cost를 따집니다.
 
-**Balanced는 새로운 통합을 만들지 않습니다.** 위 경로가 만든 커맨드를 받아 심사할 뿐이라 **거부만 할 수 있습니다.**
+```
+Balanced 승인 집합  ⊂  WhenEmptyOrUnderutilized 승인 집합
+```
+애초에 추가 Validation을 한단계 더 추가한만큼, `WhenEmptyOrUnderutilized` 이 10개를 지운다고해도, Balanced 모드는 10개를 초과해 삭제하는일은 없을겁니다.
 
 {{< flow src="_flow/5-2-balanced-는-그-위에.json" />}}
 
-승인 조건은 이것뿐입니다.
+추가된 Validation 과정입니다.
+기존의 `WhenEmptyOrUnderutilized` 말고 `WhenEmpty`조건에서부터 삭제대상으로 잡히는 Empty 노드는 볼 필요가 없고
+ScoreMove 라는 Validation을 통해 0.5점 이상이 기록되어야 삭제를 수행합니다.
 
 ```
 score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)  ≥  1/k = 0.5
@@ -175,22 +176,14 @@ score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)  ≥  1/
   savings              삭제 노드 가격 합 − 생성 노드 가격
   disruptionCost       후보들의 RescheduleDisruptionCost 합
   TotalCost            그 NodePool의 총비용
-  TotalDisruptionCost  그 NodePool에 속한 **모든 노드**의 disruption cost 합
+  TotalDisruptionCost  그 NodePool에 속한 모든 노드의 disruption cost 합
 ```
 
-크로스풀 커맨드면 `savings`를 소스 풀의 비용 비율로 안분해 **풀마다 따로** 심사하고, 한 풀이라도 미달이면 커맨드 전체가 거부됩니다.
-
-**심사가 시뮬레이션 뒤에만 도는 건 아닙니다.** 후보의 최선인 "그냥 삭제"조차 임계를 못 넘으면 **시뮬레이션 자체를 건너뜁니다**(`CanPassThreshold`, `singlenodeconsolidation.go:86-88`). 교체는 새 노드 값을 빼야 하니 삭제보다 절감이 작을 수밖에 없어서, 삭제가 떨어지면 볼 것도 없습니다. 이 사전 컷은 **`Balanced` 풀에만** 걸립니다 — 다른 정책에서는 무조건 통과입니다(`balanced.go:287-289`).
-
-```
-Balanced 승인 집합  ⊂  WhenEmptyOrUnderutilized 승인 집합
-```
-
-“Balanced로 바꾸면 통합이 더 될까”는 방향이 틀린 질문입니다. 항상 덜 됩니다. 물어야 할 것은 **무엇이 덜 되는가**입니다.
+공식에 들어가는 변수가 좀 많지만, 조금 더 간단하게 풀어보겠습니다.
 
 ### 5.3 그 조건이 실제로 뜻하는 것
 
-식을 옮겨 쓰면 무엇을 재는지가 분명해집니다.
+식에 담겨있는 변수들은 크게 두가지 관점에서 볼 수 있습니다.
 
 ```
 score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)

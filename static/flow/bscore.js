@@ -1,5 +1,5 @@
 /* vm-bscore engine — Balanced 는 심사관이다. 통합을 만들지 않고 받아서 거른다.
-   phase-stepped 상태머신(단계당 2.6초, computeFrame 은 (phase,t)의 순수 함수).
+   phase-stepped 상태머신(단계별 3·2·6.8초, computeFrame 은 (phase,t)의 순수 함수 — t는 그 단계 내 0~1).
    ① WhenEmptyOrUnderutilized 가 만든 커맨드들이 도착 → ② 채점 재료(savings·cost) →
    ③ 풀 평균을 기준선으로 → ④ 하나씩 심사대에 오름 → ⑤ 대부분 거부, 하나만 통과
    정적 호스팅에서 동작. prefers-reduced-motion / IntersectionObserver 존중. */
@@ -7,7 +7,9 @@
   'use strict';
   var NS = 'http://www.w3.org/2000/svg';
   var W = 840, H = 384;
-  var PHASE_MS = 2600, PHASE_COUNT = 3;
+  /* 단계별로 길이가 다르다 — ①은 카드 4장을 읽어야 하고 ③은 4건이 줄 서서 판정받는다 */
+  var PHASE_MS = [3000, 2000, 6800], PHASE_COUNT = PHASE_MS.length;
+  var CYCLE_MS = PHASE_MS.reduce(function (a, b) { return a + b; }, 0);
   var REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* 그 NodePool 의 총계 — 기준선은 여기서 나온다 */
@@ -204,10 +206,12 @@
     function frame(ts) {
       /* 0 은 유효한 타임스탬프다 — falsy 검사로는 첫 프레임이 0 일 때 영영 안 걸린다 */
       if (t0 < 0) t0 = ts;
-      var total = (ts - t0) % (PHASE_MS * PHASE_COUNT);
-      var p = Math.floor(total / PHASE_MS);
+      var total = (ts - t0) % CYCLE_MS;
+      /* 단계 길이가 제각각이라 나눗셈으로는 못 찾는다 — 누적해서 걸리는 칸을 고른다 */
+      var p = 0, acc = 0;
+      while (p < PHASE_COUNT - 1 && total >= acc + PHASE_MS[p]) { acc += PHASE_MS[p]; p++; }
       paintSteps(p);
-      paint(computeFrame(p, (total % PHASE_MS) / PHASE_MS));
+      paint(computeFrame(p, (total - acc) / PHASE_MS[p]));
       rafId = requestAnimationFrame(frame);
     }
     function start() { if (running) return; running = true; rafId = requestAnimationFrame(frame); }
