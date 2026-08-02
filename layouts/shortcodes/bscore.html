@@ -1,0 +1,7 @@
+{{- /* vm-bscore: Balanced 스코어가 조립되는 5단계 애니메이션.
+       사용: {{< bscore >}}  (인자 없음 — 데이터가 곧 개념이라 엔진에 박아뒀다)
+       caption을 주면 그 문장이, 생략하면 엔진의 기본 설명이 들어간다.
+       엔진/스타일은 /flow/bscore.js, /flow/bscore.css (custom/head-end.html에서 로드) */ -}}
+<figure class="vm-bscore">
+<figcaption class="bs-caption">{{ with .Get "caption" }}{{ . }}{{ end }}</figcaption>
+</figure>

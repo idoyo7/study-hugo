@@ -1,0 +1,76 @@
+/* vm-mnode — MultiNode / SingleNode 분기. 팔레트는 bscore·cfstl과 같은 계열. */
+.vm-mnode {
+  --mn-surface: #fcfcfb;
+  --mn-ink: #0b0b0b;
+  --mn-ink2: #52514e;
+  --mn-muted: #898781;
+  --mn-track: #ecebe4;
+  --mn-node: #2a78d6;
+  --mn-node-soft: #dbeafe;
+  --mn-batch: rgba(42, 120, 214, 0.10);
+  --mn-ok: #15803d;
+  --mn-ok-soft: #dcfce7;
+  --mn-warn: #d97706;
+  --mn-no: #dc2626;
+  --mn-no-soft: #fee2e2;
+  --mn-border: rgba(11, 11, 11, 0.10);
+  margin: 1.5rem 0;
+  background: var(--mn-surface);
+  border: 1px solid var(--mn-border);
+  border-radius: 14px;
+  padding: 16px 18px 12px;
+  color: var(--mn-ink);
+}
+html.dark .vm-mnode {
+  --mn-surface: #1a1a19;
+  --mn-ink: #fff;
+  --mn-ink2: #c3c2b7;
+  --mn-muted: #898781;
+  --mn-track: #2c2c2a;
+  --mn-node: #4a8de0;
+  --mn-node-soft: #22334a;
+  --mn-batch: rgba(74, 141, 224, 0.16);
+  --mn-ok: #4ade80;
+  --mn-ok-soft: #1e3a2a;
+  --mn-warn: #f59e0b;
+  --mn-no: #ef4444;
+  --mn-no-soft: #3a2020;
+  --mn-border: rgba(255, 255, 255, 0.10);
+}
+
+.mn-svg { display: block; width: 100%; height: auto; }
+
+.mn-step { fill: var(--mn-muted); font-size: 15px; font-weight: 600; transition: fill 0.2s; }
+.mn-step-on { fill: var(--mn-node); font-size: 18px; font-weight: 800; }
+.mn-hint { fill: var(--mn-muted); font-size: 11px; }
+
+.mn-card { fill: var(--mn-node-soft); stroke: var(--mn-node); stroke-width: 1.5; }
+.mn-card-cut { fill: var(--mn-track); stroke: var(--mn-muted); stroke-dasharray: 4 3; }
+.mn-name { fill: var(--mn-ink); font-size: 13px; font-weight: 700; }
+.mn-ratio { fill: var(--mn-ink2); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mn-track { fill: var(--mn-track); }
+.mn-fill { fill: var(--mn-node); }
+
+.mn-batch { fill: var(--mn-batch); stroke: var(--mn-node); stroke-width: 1.6; stroke-dasharray: 5 3; }
+.mn-batch-ok { stroke: var(--mn-ok); }
+.mn-batch-fail { stroke: var(--mn-no); }
+
+.mn-budgetline { stroke: var(--mn-warn); stroke-width: 2; stroke-dasharray: 4 3; }
+.mn-budgetlabel { fill: var(--mn-warn); font-size: 11px; font-weight: 700; }
+
+.mn-lane { fill: var(--mn-ink); font-size: 13.5px; font-weight: 800; }
+.mn-pill { fill: var(--mn-node-soft); stroke: var(--mn-node); stroke-width: 1.4; }
+.mn-pill-ok { fill: var(--mn-ok-soft); stroke: var(--mn-ok); }
+.mn-pill-fail { fill: var(--mn-no-soft); stroke: var(--mn-no); }
+.mn-pill-off { fill: var(--mn-track); stroke: var(--mn-muted); stroke-dasharray: 4 3; }
+.mn-pilltext { fill: var(--mn-ink); font-size: 12px; font-weight: 600; }
+.mn-pilltext-off { fill: var(--mn-muted); }
+
+.mn-cmd { fill: var(--mn-ok-soft); stroke: var(--mn-ok); stroke-width: 1.6; }
+.mn-cmdtext { fill: var(--mn-ink); font-size: 12.5px; font-weight: 700; }
+.mn-stop { fill: var(--mn-ok); font-size: 12px; font-weight: 700; }
+.mn-alt { fill: var(--mn-ink2); font-size: 12px; }
+
+.mn-scan { fill: none; stroke: var(--mn-warn); stroke-width: 2.4; }
+
+.mn-caption { font-size: 12.5px; color: var(--mn-ink2); margin: 10px 0 0; line-height: 1.6; }

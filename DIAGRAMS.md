@@ -7,6 +7,8 @@
 | `{{< flow >}}` | 노드·엣지 흐름도 (파티클 애니메이션) | `static/flow/flow.js`, `static/flow/flow.css` |
 | `{{< seq >}}` | 시퀀스 다이어그램 (왕복 화살표) | `static/flow/seq.js`, `static/flow/seq.css` |
 | `{{< cfstl >}}` | CFS period 타임라인 (재생 헤드 애니메이션) | `static/flow/cfstl.js`, `static/flow/cfstl.css` |
+| `{{< bscore >}}` | Balanced 스코어 조립 (5단계 상태머신) | `static/flow/bscore.js`, `static/flow/bscore.css` |
+| `{{< mnode >}}` | MultiNode/SingleNode 분기 (5단계 상태머신) | `static/flow/mnode.js`, `static/flow/mnode.css` |
 
 셋 다 `layouts/partials/custom/head-end.html`에서 로드된다(공용 "크게 보기"는 `flow/expand.js`).
 
@@ -202,6 +204,39 @@ CFS bandwidth control의 period 타임라인. **JSON 스펙이 아니라 `varian
 `caption`을 주면 그 문장이, 생략하면 variant별 기본 설명이 들어간다. 새 variant를 넣을 땐 `ROWS`와 `CAPTION`에 같은 키를 추가한다.
 
 **렌더 검증**: 브라우저 없이 확인하려면 엔진을 최소 DOM 스텁 위에서 돌려 rect가 viewBox를 벗어나지 않는지·`NaN` 속성이 없는지 본다(`<defs>`의 clipPath 마스크는 렌더되지 않으므로 검사에서 제외). 막대 길이 합이 서술한 수치와 맞는지도 같이 세어볼 것 — 도식과 산문이 어긋나기 쉬운 지점이다.
+
+---
+
+## `{{< bscore >}}` · `{{< mnode >}}` — 단계형 상태머신
+
+`flow`가 정해진 선 위로 파티클을 계속 흘리는 것과 달리, 이 둘은 **단계마다 멈춰 보여주는** 방식이다. nextra 블로그의 `ThrottleGate`에서 가져온 구조로, `cfstl`처럼 **JSON 스펙이 아니라 인자가 없다** — 데이터가 곧 개념이라 엔진에 박아뒀다.
+
+````
+{{< bscore >}}
+{{< mnode >}}
+````
+
+| shortcode | 5단계 |
+|---|---|
+| `bscore` | 후보 확정 → disruptionCost 누적 → savings → 풀 기준선 → 심사(승인/거부) |
+| `mnode` | SavingsRatio 정렬 → 예산 컷 → 묶어서 시도 → 성공하면 SingleNode 생략 → 빈손이면 한 대씩 |
+
+`caption`을 주면 그 문장이 고정되고, 생략하면 **캡션이 단계마다 바뀐다**(그 단계 설명으로). 애니메이션이 꺼진 상태(`prefers-reduced-motion`)에서는 마지막 단계 정지 화면 + 기본 설명이 남는다.
+
+### 구조
+
+```js
+PHASE_MS = 2200, PHASE_COUNT = 5
+computeFrame(phase, t) → Frame      // (단계, 0~1 진행률)의 순수 함수
+```
+
+**파티클 배열을 들고 있지 않는 게 핵심이다.** 매 프레임 `(phase, t)`만으로 전체 상태를 다시 계산하고 SVG 속성만 갈아끼운다. 그래서 단계를 넣고 빼거나 순서를 바꿀 때 `computeFrame`의 분기 하나만 손대면 된다.
+
+수치를 바꿀 땐 파일 상단 상수 블록만 고친다 — `bscore`는 가격·파드 수·풀 총계가 서로 맞아떨어져야 하고(`SCORE`가 유도값이라 임계 `0.5`와의 관계가 저절로 정해진다), `mnode`는 `NODES`의 `from`/`to`가 `ratio` 내림차순과 일치해야 정렬 애니메이션이 맞는다.
+
+### 렌더 검증
+
+브라우저 없이 확인하려면 최소 DOM 스텁 위에서 rAF 루프를 여러 시점으로 돌려 `NaN`·`undefined` 속성과 viewBox 이탈을 본다. 단계형이라 **한 시점만 보면 안 되고 전 구간을 훑어야** 한다 — 특정 단계에서만 음수 `width`가 나오는 식으로 깨진다.
 
 ---
 

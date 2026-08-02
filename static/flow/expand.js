@@ -29,7 +29,7 @@
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && cur) closeBox(); });
 
   function init() {
-    var l = document.querySelectorAll('.vm-flow, .vm-seq, .vm-cfstl');
+    var l = document.querySelectorAll('.vm-flow, .vm-seq, .vm-cfstl, .vm-bscore, .vm-mnode');
     for (var i = 0; i < l.length; i++) enhance(l[i]);
   }
   if (document.readyState !== 'loading') init();
