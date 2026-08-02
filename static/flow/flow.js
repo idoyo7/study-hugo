@@ -28,6 +28,28 @@
     return lines.length ? lines : [str];
   }
 
+  /* 시작 노드(들어오는 엣지 없음)에서 끝 노드(나가는 엣지 없음)까지의 단순 경로를 모두 모은다.
+     갈래가 있으면 여러 개가 나오고, 토큰이 한 바퀴마다 하나씩 돌아가며 탄다. */
+  function buildPaths(nodes, edges, byId) {
+    var adj = {}, indeg = {}, out = [];
+    nodes.forEach(function (n) { adj[n.id] = []; indeg[n.id] = 0; });
+    for (var i = 0; i < edges.length; i++) {
+      var ed = edges[i];
+      if (ed.dashed) continue;
+      if (!byId[ed.from] || !byId[ed.to]) return [];   /* 그룹을 끝점으로 쓰면 토큰 모드 포기 */
+      adj[ed.from].push(ed); indeg[ed.to]++;
+    }
+    function dfs(id, acc, seen) {
+      if (seen[id]) return;
+      var nx = {}; for (var k in seen) nx[k] = 1; nx[id] = 1;
+      var outs = adj[id] || [];
+      if (!outs.length) { if (acc.length) out.push(acc.slice()); return; }
+      outs.forEach(function (e) { acc.push(e); dfs(e.to, acc, nx); acc.pop(); });
+    }
+    nodes.forEach(function (n) { if (!indeg[n.id]) dfs(n.id, [], {}); });
+    return out;
+  }
+
   function build(container) {
     var specEl = container.querySelector('script.flow-spec');
     if (!specEl || container.dataset.flowReady) return;
@@ -103,11 +125,14 @@
         gEdges.appendChild(el('rect', { x: lx - lw / 2 - 3, y: ly - 10, width: lw + 6, height: 13, rx: 3, class: 'flow-elabel-bg' }));
         var lt = el('text', { x: lx, y: ly, class: 'flow-elabel', 'text-anchor': 'middle' }); lt.textContent = ed.label; gEdges.appendChild(lt);
       }
-      if (!dashed) anim.push({ x1: x1, y1: y1, x2: x2, y2: y2, rate: ed.rate || 720, dur: Math.hypot(x2 - x1, y2 - y1) / (SPEED[ed.speed] || SPEED.normal), kind: ed.kind || (byId[ed.from] && byId[ed.from].kind) || 'proc', particles: [], last: 0 });
+      ed._x1 = x1; ed._y1 = y1; ed._x2 = x2; ed._y2 = y2;
+      ed._dur = Math.hypot(x2 - x1, y2 - y1) / (SPEED[ed.speed] || SPEED.normal);
+      ed._kind = ed.kind || (byId[ed.from] && byId[ed.from].kind) || 'proc';
+      if (!dashed) anim.push({ x1: x1, y1: y1, x2: x2, y2: y2, rate: ed.rate || 720, dur: ed._dur, kind: ed._kind, particles: [], last: 0 });
     });
 
     nodes.forEach(function (nd) {
-      var g = el('g', { class: 'flow-node kind-' + (nd.kind || 'proc') });
+      var g = el('g', { class: 'flow-node kind-' + (nd.kind || 'proc'), 'data-nid': nd.id });
       g.appendChild(el('rect', { x: nd._x, y: nd._y, width: L.NODE_W, height: nd._h, rx: 10, class: 'flow-rect' }));
       var th = nd._lab.length * LAB_LH + (nd._sub.length ? 3 + nd._sub.length * SUB_LH : 0);
       var ty = nd._y + (nd._h - th) / 2 + LAB_F - 1;
@@ -122,6 +147,12 @@
     container.insertBefore(svg, container.firstChild);
 
     if (REDUCE || !anim.length) return;
+
+    /* token 모드: 파티클을 뿌리는 대신 하나가 경로를 따라 단계별로 넘어간다.
+       갈래가 여러 개면 한 바퀴마다 다른 갈래를 탄다. */
+    var paths = spec.token ? buildPaths(nodes, edges, byId) : null;
+    if (paths && !paths.length) paths = null;
+
     var running = false, rafId = 0, prev = 0;
     function frame(ts) {
       if (!prev) prev = ts; var dt = Math.min((ts - prev) / 1000, 0.05); prev = ts; var buf = '';
@@ -134,7 +165,53 @@
       }
       gPk.innerHTML = buf; rafId = requestAnimationFrame(frame);
     }
-    function start() { if (running) return; running = true; prev = 0; rafId = requestAnimationFrame(frame); }
+    /* ── 토큰 모드 상태 ── */
+    var lap = 0, segIdx = 0, segT = 0, hold = 0;
+    var HOLD = 0.42;          /* 노드에서 머무는 시간(초) — 단계가 끊겨 보이게 */
+    var nodeEls = {};
+    gNodes.querySelectorAll('[data-nid]').forEach(function (g) { nodeEls[g.getAttribute('data-nid')] = g; });
+    function markActive(id) {
+      for (var k in nodeEls) nodeEls[k].setAttribute('data-active', k === id ? '1' : '0');
+    }
+    var holdX = 0, holdY = 0, holdAt = null, primed = false, pendingStart = false;
+    function tokenFrame(ts) {
+      if (!prev) prev = ts; var dt = Math.min((ts - prev) / 1000, 0.05); prev = ts;
+      var path = paths[lap % paths.length], ed = path[segIdx];
+      /* 첫 프레임: 출발 단계에서 한 박자 쉬고 시작한다 */
+      if (!primed) { primed = true; holdX = ed._x1; holdY = ed._y1; holdAt = ed.from; hold = HOLD; }
+      var x, y, at;
+      if (hold > 0) {
+        hold -= dt;
+        /* 마지막 단계에서 다 쉬었으면, 다음 바퀴의 출발 단계로 옮겨 한 박자 더 쉰다.
+           끝 단계와 출발 단계 둘 다 보여야 한 바퀴가 닫힌 것으로 읽힌다 */
+        if (hold <= 0 && pendingStart) {
+          var nx = paths[lap % paths.length][0];
+          holdX = nx._x1; holdY = nx._y1; holdAt = nx.from;
+          hold = HOLD; pendingStart = false;
+        }
+        /* 머무는 자리는 파생시키지 않고 기억해 둔다 — 한 바퀴 끝에서 시작 노드로 튀는 걸 막는다 */
+        x = holdX; y = holdY; at = holdAt;
+      } else {
+        segT += dt / ed._dur;
+        if (segT >= 1) {
+          holdX = ed._x2; holdY = ed._y2; holdAt = ed.to;
+          segT = 0; segIdx++;
+          if (segIdx >= path.length) { segIdx = 0; lap++; hold = HOLD; pendingStart = true; }
+          else hold = HOLD;
+          x = holdX; y = holdY; at = holdAt;
+        } else {
+          x = ed._x1 + (ed._x2 - ed._x1) * segT;
+          y = ed._y1 + (ed._y2 - ed._y1) * segT;
+          at = null;
+        }
+      }
+      markActive(at);
+      gPk.innerHTML = '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
+        '" r="6.5" class="flow-token pk-' + ed._kind + '"/>';
+      rafId = requestAnimationFrame(tokenFrame);
+    }
+
+    function start() { if (running) return; running = true; prev = 0; rafId = requestAnimationFrame(paths ? tokenFrame : frame); }
     function stop() { running = false; cancelAnimationFrame(rafId); }
     if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { es.forEach(function (e) { e.isIntersecting ? start() : stop(); }); }, { threshold: 0.15 }).observe(container);
     else start();
