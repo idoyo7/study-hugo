@@ -1,6 +1,6 @@
 # 도식 shortcode 레퍼런스
 
-이 레포는 자체 도식 엔진 두 개를 쓴다. **mermaid가 아니다.**
+이 레포는 자체 도식 엔진 다섯 개를 쓴다. **mermaid가 아니다.**
 
 | shortcode | 용도 | 엔진 |
 |---|---|---|
@@ -8,9 +8,9 @@
 | `{{< seq >}}` | 시퀀스 다이어그램 (왕복 화살표) | `static/flow/seq.js`, `static/flow/seq.css` |
 | `{{< cfstl >}}` | CFS period 타임라인 (재생 헤드 애니메이션) | `static/flow/cfstl.js`, `static/flow/cfstl.css` |
 | `{{< bscore >}}` | Balanced 스코어 조립 (5단계 상태머신) | `static/flow/bscore.js`, `static/flow/bscore.css` |
-| `{{< mnode >}}` | MultiNode/SingleNode 분기 (5단계 상태머신) | `static/flow/mnode.js`, `static/flow/mnode.css` |
+| `{{< mnode >}}` | 노드 삭제 → 파드 이동 (5단계 상태머신, variant 둘) | `static/flow/mnode.js`, `static/flow/mnode.css` |
 
-셋 다 `layouts/partials/custom/head-end.html`에서 로드된다(공용 "크게 보기"는 `flow/expand.js`).
+전부 `layouts/partials/custom/head-end.html`에서 로드된다(공용 "크게 보기"는 `flow/expand.js`).
 
 ---
 
@@ -27,15 +27,15 @@ content/karpenter/
 └── 12-consolidation-models/
     ├── index.md
     └── _flow/
-        ├── 1-두-형태-삭제와-교체.json
-        ├── 5-1-먼저-기준선-whenemptyorunderutilized-가.json
-        └── 5-2-balanced-는-그-위에.json
+        ├── 3-세-분류.json
+        ├── 4-2-두-형태-삭제와-교체.json
+        └── 7-2-balanced-는-그-위에.json
 ```
 
 본문에서는 self-closing으로 부른다.
 
 ````
-{{< flow src="_flow/1-두-형태-삭제와-교체.json" />}}
+{{< flow src="_flow/4-2-두-형태-삭제와-교체.json" />}}
 {{< seq src="_seq/3-왜-돌아오지-않나.json" />}}
 ````
 
@@ -213,30 +213,35 @@ CFS bandwidth control의 period 타임라인. **JSON 스펙이 아니라 `varian
 
 ````
 {{< bscore >}}
-{{< mnode >}}
+{{< mnode variant="single" >}}
+{{< mnode variant="multi" >}}
 ````
 
 | shortcode | 5단계 |
 |---|---|
 | `bscore` | 후보 확정 → disruptionCost 누적 → savings → 풀 기준선 → 심사(승인/거부) |
-| `mnode` | SavingsRatio 정렬 → 예산 컷 → 묶어서 시도 → 성공하면 SingleNode 생략 → 빈손이면 한 대씩 |
+| `mnode` | 후보와 파드 → SavingsRatio 정렬 → 앞에서 집기 → 새 노드로 파드 이동 → 옛 노드 반납 |
+
+`mnode`의 두 variant는 **"앞에서 몇 대를 집는가" 하나만 다르다**(`single` 1대, `multi` 3대). 후보 넷과 정렬은 공유하므로 두 그림을 나란히 두면 차이가 그 한 지점으로 보인다. 개념은 `single`이 쉬우니 문서에서도 그 순서로 놓고, **실행 순서가 반대(multi 먼저)라는 건 산문이 말한다** — 그림으로 그리면 오히려 헷갈린다.
 
 `caption`을 주면 그 문장이 고정되고, 생략하면 **캡션이 단계마다 바뀐다**(그 단계 설명으로). 애니메이션이 꺼진 상태(`prefers-reduced-motion`)에서는 마지막 단계 정지 화면 + 기본 설명이 남는다.
 
 ### 구조
 
 ```js
-PHASE_MS = 2200, PHASE_COUNT = 5
+PHASE_MS = 2600, PHASE_COUNT = 5
 computeFrame(phase, t) → Frame      // (단계, 0~1 진행률)의 순수 함수
 ```
 
 **파티클 배열을 들고 있지 않는 게 핵심이다.** 매 프레임 `(phase, t)`만으로 전체 상태를 다시 계산하고 SVG 속성만 갈아끼운다. 그래서 단계를 넣고 빼거나 순서를 바꿀 때 `computeFrame`의 분기 하나만 손대면 된다.
 
-수치를 바꿀 땐 파일 상단 상수 블록만 고친다 — `bscore`는 가격·파드 수·풀 총계가 서로 맞아떨어져야 하고(`SCORE`가 유도값이라 임계 `0.5`와의 관계가 저절로 정해진다), `mnode`는 `NODES`의 `from`/`to`가 `ratio` 내림차순과 일치해야 정렬 애니메이션이 맞는다.
+수치를 바꿀 땐 파일 상단 상수 블록만 고친다 — `bscore`는 가격·파드 수·풀 총계가 서로 맞아떨어져야 하고(`SCORE`가 유도값이라 임계 `0.5`와의 관계가 저절로 정해진다), `mnode`는 `NODES`의 `from`/`to`가 `ratio` 내림차순과 일치해야 정렬 애니메이션이 맞고, `VARIANTS`의 `meterMax`가 그 variant의 총 cost보다 커야 미터가 넘치지 않는다.
 
 ### 렌더 검증
 
-브라우저 없이 확인하려면 최소 DOM 스텁 위에서 rAF 루프를 여러 시점으로 돌려 `NaN`·`undefined` 속성과 viewBox 이탈을 본다. 단계형이라 **한 시점만 보면 안 되고 전 구간을 훑어야** 한다 — 특정 단계에서만 음수 `width`가 나오는 식으로 깨진다.
+브라우저 없이 확인하려면 최소 DOM 스텁 위에서 rAF 루프를 여러 시점으로 돌려 `NaN`·`undefined` 속성과 viewBox 이탈을 본다. 단계형이라 **한 시점만 보면 안 되고 전 구간을 훑어야** 한다 — 특정 단계에서만 음수 `width`가 나오는 식으로 깨진다. 숨겨진(`opacity="0"`) 요소는 범위 검사에서 빼되, **좌표 자체는 항상 유효하게** 둘 것.
+
+한 가지 함정: 프레임 루프의 시작 시각을 `if (!t0) t0 = ts` 로 잡으면 **첫 타임스탬프가 정확히 0일 때 영영 안 걸린다.** 브라우저의 `ts`는 0이 아니라 안 드러나지만, 시계를 주입해 테스트하거나 스크럽을 붙이면 바로 터진다. `t0 = -1` 로 두고 `if (t0 < 0)` 로 검사한다.
 
 ---
 

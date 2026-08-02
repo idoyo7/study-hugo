@@ -7,7 +7,7 @@
   'use strict';
   var NS = 'http://www.w3.org/2000/svg';
   var W = 840, H = 372;
-  var PHASE_MS = 2200, PHASE_COUNT = 5;
+  var PHASE_MS = 2600, PHASE_COUNT = 5;   /* mnode 와 같은 박자 — 한 페이지에서 위상이 맞는다 */
   var REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ── 시나리오 ── k=2 주석이 근거로 든 "같은 패밀리 한 단계 다운사이징"이다.
@@ -230,9 +230,10 @@
     function done() { paintSteps(PHASE_COUNT - 1); paint(computeFrame(PHASE_COUNT - 1, 1)); if (cap) cap.textContent = STATIC_CAPTION; }
 
     if (REDUCE) { done(); return; }
-    var rafId = 0, running = false, t0 = 0;
+    var rafId = 0, running = false, t0 = -1;
     function frame(ts) {
-      if (!t0) t0 = ts;
+      /* 0 은 유효한 타임스탬프다 — falsy 검사로는 첫 프레임이 0 일 때 영영 안 걸린다 */
+      if (t0 < 0) t0 = ts;
       var total = (ts - t0) % (PHASE_MS * PHASE_COUNT);
       var p = Math.floor(total / PHASE_MS);
       paintSteps(p);

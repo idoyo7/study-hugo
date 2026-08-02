@@ -1,7 +1,8 @@
-{{- /* vm-mnode: MultiNode / SingleNode 가 갈리는 5단계 애니메이션.
-       사용: {{< mnode >}}  (인자 없음 — 데이터가 곧 개념이라 엔진에 박아뒀다)
-       caption을 주면 그 문장이, 생략하면 엔진의 기본 설명이 들어간다.
+{{- /* vm-mnode: 노드를 지우고 파드를 새 노드로 옮기는 5단계 애니메이션.
+       사용: {{< mnode variant="single" >}}  (variant: single | multi, 기본 single)
+       single 은 한 대만, multi 는 앞에서부터 세 대를 집는다 — 나머지 경로는 같다.
+       caption을 주면 그 문장이 고정되고, 생략하면 캡션이 단계마다 바뀐다.
        엔진/스타일은 /flow/mnode.js, /flow/mnode.css (custom/head-end.html에서 로드) */ -}}
-<figure class="vm-mnode">
+<figure class="vm-mnode" data-variant="{{ default "single" (.Get "variant") }}">
 <figcaption class="mn-caption">{{ with .Get "caption" }}{{ . }}{{ end }}</figcaption>
 </figure>

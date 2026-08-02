@@ -92,10 +92,17 @@ Price / RescheduleDisruptionCost  =  $/시간 ÷ 파드 수  =  파드 하나 �
 
 {{< flow src="_flow/3-세-분류.json" />}}
 
-`Underutilized`만 안에서 두 단계로 나뉩니다. 
-**MultiNode는 여러 대를 묶어서, SingleNode는 한 대씩** 후보로 놓고 평가하며, MultiNode가 먼저 평가가 성공하면 SingleNode는 평가하지 않습니다.
+`Underutilized`만 안에서 두 단계로 나뉩니다. 개념은 한 대씩 보는 쪽이 쉬우니 그것부터 봅니다.
 
-{{< mnode >}}
+**SingleNode — 한 대를 지우고 그 위 파드를 새 노드로 옮깁니다.** 옮길 파드가 몇 개인지가 그대로 그 노드의 cost가 됩니다.
+
+{{< mnode variant="single" >}}
+
+**MultiNode — 앞에서부터 여러 대를 한꺼번에 집습니다.** 묶은 만큼 cost도 합쳐지지만, **한 대씩 봐서는 나오지 않을 조합**이 여기서 나옵니다.
+
+{{< mnode variant="multi" >}}
+
+**실행 순서는 설명 순서의 반대입니다.** MultiNode가 먼저 돌고, 커맨드를 하나라도 만들면 그 라운드는 거기서 끝납니다. SingleNode는 MultiNode가 빈손일 때만 내려옵니다.
 
 ## 4. 삭제냐 교체냐
 
