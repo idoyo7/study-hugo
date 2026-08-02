@@ -1,0 +1,78 @@
+{
+  "caption": "Balanced는 앞 경로의 결과를 받아 채점한다 — 빈 노드 삭제는 Emptiness 출신이라 스코어를 우회한다",
+  "nodes": [
+    {
+      "id": "W",
+      "col": 0,
+      "row": 1,
+      "label": "앞 단계 승인분",
+      "sub": "WhenEmptyOrUnderutilized의 결과",
+      "kind": "src"
+    },
+    {
+      "id": "EM",
+      "col": 1,
+      "row": 0,
+      "label": "Emptiness 출신",
+      "sub": "ApproveCommand를 안 탄다",
+      "kind": "query"
+    },
+    {
+      "id": "SC",
+      "col": 1,
+      "row": 1,
+      "label": "ScoreMove",
+      "sub": "NodePool별로 채점",
+      "kind": "proc"
+    },
+    {
+      "id": "OK",
+      "col": 2,
+      "row": 0,
+      "label": "승인",
+      "sub": "예산 단계로",
+      "kind": "sink"
+    },
+    {
+      "id": "NO",
+      "col": 2,
+      "row": 1,
+      "label": "거부",
+      "sub": "메트릭만 · 이벤트 없음",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "W",
+      "to": "EM",
+      "label": "빈 노드 삭제",
+      "rate": 900,
+      "speed": "fast"
+    },
+    {
+      "from": "W",
+      "to": "SC",
+      "label": "그 외 전부",
+      "rate": 520
+    },
+    {
+      "from": "EM",
+      "to": "OK",
+      "label": "무조건 통과",
+      "dashed": true
+    },
+    {
+      "from": "SC",
+      "to": "OK",
+      "label": "score ≥ 0.5",
+      "rate": 640
+    },
+    {
+      "from": "SC",
+      "to": "NO",
+      "label": "score < 0.5",
+      "rate": 640
+    }
+  ]
+}

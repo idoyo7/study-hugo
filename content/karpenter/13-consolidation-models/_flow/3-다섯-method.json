@@ -1,0 +1,90 @@
+{
+  "caption": "등록 순서대로 물어보고, 처음 커맨드를 만든 method에서 그 라운드가 끝난다",
+  "token": true,
+  "nodes": [
+    {
+      "id": "E",
+      "col": 0,
+      "row": 0,
+      "label": "Emptiness",
+      "sub": "빈 노드",
+      "kind": "src"
+    },
+    {
+      "id": "SD",
+      "col": 1,
+      "row": 0,
+      "label": "StaticDrift",
+      "sub": "static NodePool",
+      "kind": "query"
+    },
+    {
+      "id": "D",
+      "col": 2,
+      "row": 0,
+      "label": "Drift",
+      "sub": "그 외 NodePool",
+      "kind": "query"
+    },
+    {
+      "id": "M",
+      "col": 3,
+      "row": 0,
+      "label": "MultiNode",
+      "sub": "여러 대를 묶어서",
+      "kind": "proc"
+    },
+    {
+      "id": "S",
+      "col": 4,
+      "row": 0,
+      "label": "SingleNode",
+      "sub": "한 대씩",
+      "kind": "proc"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-drift",
+      "label": "Drifted",
+      "members": [
+        "SD",
+        "D"
+      ]
+    },
+    {
+      "id": "g-under",
+      "label": "Underutilized",
+      "members": [
+        "M",
+        "S"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "E",
+      "to": "SD",
+      "label": "못 잡으면",
+      "rate": 620
+    },
+    {
+      "from": "SD",
+      "to": "D",
+      "label": "못 잡으면",
+      "rate": 620
+    },
+    {
+      "from": "D",
+      "to": "M",
+      "label": "못 잡으면",
+      "rate": 620
+    },
+    {
+      "from": "M",
+      "to": "S",
+      "label": "못 잡으면",
+      "rate": 620
+    }
+  ]
+}

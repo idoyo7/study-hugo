@@ -1,0 +1,111 @@
+{
+  "caption": "WhenEmptyOrUnderutilized의 게이트는 둘뿐이다 — 파드 재배치, 그리고 교체라면 가격",
+  "nodes": [
+    {
+      "id": "C",
+      "col": 0,
+      "row": 1,
+      "label": "후보 노드",
+      "sub": "Consolidatable = true",
+      "kind": "src"
+    },
+    {
+      "id": "E",
+      "col": 1,
+      "row": 0,
+      "label": "Emptiness",
+      "sub": "정책을 읽지 않는다",
+      "kind": "query"
+    },
+    {
+      "id": "S",
+      "col": 1,
+      "row": 1,
+      "label": "시뮬레이션",
+      "sub": "파드가 어디로 가나",
+      "kind": "proc"
+    },
+    {
+      "id": "D",
+      "col": 2,
+      "row": 0,
+      "label": "삭제",
+      "sub": "가격 검사 없음",
+      "kind": "sink"
+    },
+    {
+      "id": "P",
+      "col": 2,
+      "row": 1,
+      "label": "가격 필터",
+      "sub": "엄격히 더 싼가",
+      "kind": "proc"
+    },
+    {
+      "id": "R",
+      "col": 3,
+      "row": 1,
+      "label": "교체",
+      "sub": "대체는 최대 1대",
+      "kind": "sink"
+    },
+    {
+      "id": "B",
+      "col": 4,
+      "row": 0,
+      "label": "예산",
+      "sub": "이유별 허용량이 다시 조인다",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "C",
+      "to": "E",
+      "label": "IsEmpty",
+      "rate": 900,
+      "speed": "fast"
+    },
+    {
+      "from": "C",
+      "to": "S",
+      "label": "비어있지 않음",
+      "rate": 520
+    },
+    {
+      "from": "E",
+      "to": "D",
+      "label": "스코어 없음",
+      "rate": 900,
+      "speed": "fast"
+    },
+    {
+      "from": "S",
+      "to": "D",
+      "label": "파드가 다 들어감",
+      "rate": 420
+    },
+    {
+      "from": "S",
+      "to": "P",
+      "label": "대체 1대 필요",
+      "rate": 420
+    },
+    {
+      "from": "P",
+      "to": "R",
+      "label": "더 싸다",
+      "rate": 640
+    },
+    {
+      "from": "D",
+      "to": "B",
+      "dashed": true
+    },
+    {
+      "from": "R",
+      "to": "B",
+      "dashed": true
+    }
+  ]
+}
