@@ -22,12 +22,10 @@ Emptiness → Drift → MultiNode → SingleNode
 
 {{< flow src="_flow/1-한-바퀴.json" />}}
 
-
 ## 2. 어떤 노드가 검사 대상인가
 
 검사는 **클러스터의 모든 Karpenter 노드**들이 대상입니다. 
 매 바퀴 모든 노드들을 검사하면서, **결격 사유 있는 노드들을 배제**하는 형태로 동작합니다.
-
 
 ### 2.1 전체 노드에서 대상을 추린다
 
@@ -65,7 +63,6 @@ Emptiness → Drift → MultiNode → SingleNode
 `RescheduleDisruptionCost`는 v1.14 에서 Balanced 모드 계산을 위해 추가된 필등비니다.
 같은 `m8i.xlarge`라도 AZ, spot혹은 on-demand 상태의 노드가또 다르기때문에, 하나라도 다르다면 비교 자체를 하지않습니다.
 
-
 ```
 Price / RescheduleDisruptionCost  =  $/시간 ÷ 파드 수  =  파드 하나 옮기는 대가로 시간당 아끼는 돈
 ```
@@ -73,7 +70,23 @@ Price / RescheduleDisruptionCost  =  $/시간 ÷ 파드 수  =  파드 하나 �
 **파드 하나 옮기는 대가로 얼마나 아끼는가**를 Karpenter 내부적으로 계산합니다.
 이 비율이 큰 노드부터 정렬하니, **비싸면서 한산한 노드가 먼저** 정리하겠죠?
 
+### 2.3 비용은 어떻게 계산할까
 
+표의 `RescheduleDisruptionCost`가 어떻게 만들어지는지만 짚고 넘어가겠습니다.
+
+```go
+// types.go:136-141
+cost := PerNodeBaseDisruptionCost          // = 1.0
+for _, p := range reschedulablePods {
+    cost += math.Max(0, disruptionutils.EvictionCost(ctx, p))
+}
+```
+
+코드로 살펴보면 다음과 같은데요, base `1.0`은 cordon·drain·대체 노드 기동 지연 자체의 비용입니다. **그래서 비용은 어떤 경우에도 1.0 미만이 되지 않습니다.**
+
+파드별 비용은 기본 `1.0`에 `pod-deletion-cost / 2^27`과 `priority / 2^25`를 더하고 `[-10, 10]`으로 클램프합니다(`utils/disruption/disruption.go:47-69`). 대상은 `IsReschedulable` 통과분뿐이라 **DaemonSet은 세지 않습니다.**
+
+**시간 가중치는 없습니다.** `LifetimeRemaining`이 곱해지는 `Candidate.DisruptionCost`는 읽는 비테스트 코드가 없는 dead field입니다(`types.go:207`). “만료 임박 노드가 먼저 지워진다”는 서술은 v1.14.0 기준으로 틀렸습니다.
 
 ## 3. 어떤 이유로 노드를 삭제할까
 
@@ -94,7 +107,7 @@ Price / RescheduleDisruptionCost  =  $/시간 ÷ 파드 수  =  파드 하나 �
 
 `Underutilized`만 안에서 두 단계로 나뉩니다. 개념은 한 대씩 보는 쪽이 쉬우니 그것부터 봅니다.
 
-둘 다 §2.2에서 **줄이 다 선 목록을 그대로 받아** 시작합니다. 다른 건 그 목록에서 **몇 대를 집느냐**뿐입니다.
+둘 다 **줄이 다 선 목록을 그대로 받아** 시작합니다. 다른 건 그 목록에서 **몇 대를 집느냐**뿐입니다.
 
 **SingleNode — 맨 앞 한 대를 집어 그 위 파드를 새 노드로 옮깁니다.** 실패하면 다음 후보로 내려가고, 처음 성공하는 노드로 커맨드를 만들고 나옵니다.
 
@@ -152,27 +165,11 @@ launchPrice  <  Σ Price(후보들)
 
 `Empty`만 아예 판별을 받지 않아 결과가 고정됩니다. 빈 노드라 옮길 파드가 없어 **대체를 요구할 일이 아예 없기 때문**입니다.
 
-## 5. 비용은 어떻게 계산할까
+## 5. 정책별 처리방식의 차이
 
-위에서 노드 교체 후보를 선정할 때 `RescheduleDisruptionCost`라는 파라미터를 통해 비용을 계산합니다.
+앞에서 본 `Underutilized` 경로가 여기서부터 정책을 탑니다. 세 정책이 갈라지는 곳은 딱 한 군데뿐입니다.
 
-```go
-// types.go:136-141
-cost := PerNodeBaseDisruptionCost          // = 1.0
-for _, p := range reschedulablePods {
-    cost += math.Max(0, disruptionutils.EvictionCost(ctx, p))
-}
-```
-
-코드로 살펴보면 다음과 같은데요, base `1.0`은 cordon·drain·대체 노드 기동 지연 자체의 비용입니다. **그래서 비용은 어떤 경우에도 1.0 미만이 되지 않습니다.**
-
-파드별 비용은 기본 `1.0`에 `pod-deletion-cost / 2^27`과 `priority / 2^25`를 더하고 `[-10, 10]`으로 클램프합니다(`utils/disruption/disruption.go:47-69`). 대상은 `IsReschedulable` 통과분뿐이라 **DaemonSet은 세지 않습니다.**
-
-**시간 가중치는 없습니다.** `LifetimeRemaining`이 곱해지는 `Candidate.DisruptionCost`는 읽는 비테스트 코드가 없는 dead field입니다(`types.go:207`). “만료 임박 노드가 먼저 지워진다”는 서술은 v1.14.0 기준으로 틀렸습니다.
-
-## 6. 정책별 처리방식의 차이
-
-### 6.1 분류한 것들을 어떻게 처리할까?
+### 5.1 분류한 것들을 어떻게 처리할까?
 
 위에서 분류를 진행했었고, 이제 분류된 노드들을 처리하는 방식에 대해서 알아보겠습니다.
 
@@ -202,7 +199,7 @@ WhenEmpty        Balanced        WhenEmptyOrUnderutilized
 
 그래서 정책을 바꾸는 일은 이 줄 위에서 좌우로 움직이는 것과 같습니다. **`Balanced`로 바꾸면 통합은 반드시 줄어듭니다** — 늘어나는 경우는 없습니다.
 
-### 6.2 그래도 “같은 스코어식의 서로 다른 k”는 아니다
+### 5.2 그래도 “같은 스코어식의 서로 다른 k”는 아니다
 
 설계 문서를 따라 세 정책을 하나의 스코어식에 다른 `k`를 넣은 것으로 읽는 설명이 흔합니다. 사슬은 맞지만 **식은 그렇게 되어 있지 않습니다.**
 
@@ -210,23 +207,25 @@ WhenEmpty        Balanced        WhenEmptyOrUnderutilized
 
 `k→0`으로 표현할 수도 없습니다. 임계 `1/k`가 무한대가 되어 `Score`가 `+Inf`여야 통과하는데 앞에서 봤듯 **비용은 절대 0이 되지 않습니다.** `k→0`은 “빈 노드를 지운다”가 아니라 **“아무것도 지우지 않는다”** 에 수렴합니다.
 
-## 7. 새로 추가된 Balanced 정책
+## 6. 새로 추가된 Balanced 정책
 
-### 7.1 기준선 — `WhenEmptyOrUnderutilized`가 하는 일
+앞 장의 세 정책 중 하나를 더 파고듭니다. **새 경로를 여는 게 아니라 이미 있는 경로 위에 얹히는 층**입니다.
+
+### 6.1 기준선 — `WhenEmptyOrUnderutilized`가 하는 일
 
 Balanced를 이해하려면 그 아래 깔린 경로부터 봐야 합니다. 스코어는 여기 없습니다.
 
-{{< flow src="_flow/7-1-기준선-whenemptyorunderutilized.json" />}}
+{{< flow src="_flow/6-1-기준선-whenemptyorunderutilized.json" />}}
 
 **게이트가 둘뿐입니다** — “모든 파드가 다른 데 들어가는가”, 그리고 교체라면 “엄격히 더 싼가”. 절감의 **규모**를 묻는 곳이 없습니다. “10원 아끼려고 파드 40개를 옮긴다”가 여기서 나옵니다.
 
-### 7.2 Balanced가 얹는 게이트
+### 6.2 Balanced가 얹는 게이트
 
 Balanced는 코어 v1.14.0에서 추가됐습니다. 위 경로로도 충분히 많은 것을 할 수 있었지만, 절감 규모를 묻지 않는다는 구멍이 남아 있었습니다.
 
 **Balanced는 새로운 통합을 만들지 않습니다.** 위 경로가 만든 커맨드를 받아 심사할 뿐이라 **거부만 할 수 있습니다.**
 
-{{< flow src="_flow/7-2-balanced-는-그-위에.json" />}}
+{{< flow src="_flow/6-2-balanced-는-그-위에.json" />}}
 
 승인 조건은 이것뿐입니다.
 
@@ -249,7 +248,7 @@ Balanced 승인 집합  ⊂  WhenEmptyOrUnderutilized 승인 집합
 
 “Balanced로 바꾸면 통합이 더 될까”는 방향이 틀린 질문입니다. 항상 덜 됩니다. 물어야 할 것은 **무엇이 덜 되는가**입니다.
 
-### 7.3 그 조건이 실제로 뜻하는 것
+### 6.3 그 조건이 실제로 뜻하는 것
 
 식을 옮겨 쓰면 무엇을 재는지가 분명해집니다.
 
@@ -266,7 +265,7 @@ score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)
 
 {{< bscore >}}
 
-### 7.4 `k`는 바꿀 수 없다
+### 6.4 `k`는 바꿀 수 없다
 
 Go `const`이고 호출부 두 곳 모두 상수를 그대로 넘깁니다. NodePool 필드도, 플래그도, feature gate도 없습니다.
 
@@ -278,7 +277,7 @@ const BalancedK int32 = 2
 
 주석이 선택 근거를 밝힙니다 — **같은 패밀리 한 단계 다운사이징(4xlarge → 2xlarge)이 정확히 50% 절감**이라, 그 교체가 겨우 통과하는 지점입니다. **조절하려면 임계가 아니라 분모(`pod-deletion-cost`)를 건드려야 합니다.**
 
-### 7.5 언제 효과가 없나
+### 6.5 언제 효과가 없나
 
 | 증상 | Balanced의 효과 |
 |---|---|
@@ -289,9 +288,9 @@ const BalancedK int32 = 2
 | 세대가 자꾸 내려간다 | **없음** — 스코어에 세대·weight가 없다 |
 | 비용 절감이 최우선이다 | **손해** — 한계 절감이 거부된다 |
 
-가운데 셋이 중요합니다. **“노드가 자꾸 교체된다”의 원인이 통합이 아니면 Balanced는 아무것도 바꾸지 않습니다.** `karpenter_nodeclaims_disrupted_total{reason}`으로 원인을 먼저 가릅니다([09 §3]({{< relref "09-metrics-logs-events.md" >}})).
+가운데 셋이 중요합니다. **“노드가 자꾸 교체된다”의 원인이 통합이 아니면 Balanced는 아무것도 바꾸지 않습니다.** `karpenter_nodeclaims_disrupted_total{reason}`으로 원인을 먼저 가릅니다([무엇을 봐야 하나 — 메트릭·로그·이벤트]({{< relref "09-metrics-logs-events.md" >}})).
 
-### 7.6 켜기
+### 6.6 켜기
 
 ```yaml
 spec:
@@ -300,11 +299,11 @@ spec:
     consolidateAfter: 1m
 ```
 
-feature gate가 없습니다 — 설계 RFC는 `BalancedConsolidation` 게이트로 옵트인한다고 적었지만 **구현에는 없습니다.** 코어 **v1.14.0이 최초**이고(core#2962) 그 이하에서는 enum에 없어 admission에서 거부됩니다. 도입 판정은 [02 §6.2]({{< relref "02-changelog-maturity.md" >}})가 소유합니다.
+feature gate가 없습니다 — 설계 RFC는 `BalancedConsolidation` 게이트로 옵트인한다고 적었지만 **구현에는 없습니다.** 코어 **v1.14.0이 최초**이고(core#2962) 그 이하에서는 enum에 없어 admission에서 거부됩니다. 도입 판정은 [1.7 → 1.14 — 운영에 쓸 기능들]({{< relref "02-changelog-maturity.md" >}})가 소유합니다.
 
-## 8. 어떻게 개입하나
+## 7. 어떻게 개입하나
 
-### 8.1 `pod-deletion-cost`로 비용을 조절한다
+### 7.1 `pod-deletion-cost`로 비용을 조절한다
 
 값을 키우면 그 파드의 `EvictionCost`가 올라 노드의 disruption cost가 오릅니다. 알아야 할 것 셋입니다.
 
@@ -314,7 +313,7 @@ feature gate가 없습니다 — 설계 RFC는 `BalancedConsolidation` 게이트
 
 아무 설정도 안 하면 파드별 비용이 전부 `1.0`이라 스코어는 사실상 **“절감 비율 대 파드 개수 비율”** 비교로 축퇴합니다.
 
-### 8.2 예산으로 실행량을 조인다
+### 7.2 예산으로 실행량을 조인다
 
 정책과 예산은 **다른 축입니다.**
 
@@ -326,11 +325,11 @@ feature gate가 없습니다 — 설계 RFC는 `BalancedConsolidation` 게이트
 
 `Drifted`는 consolidation이 만들지 않습니다. drift는 별도 경로라 v1에서 끌 수 없어, 정책을 뭘로 두든 계속 판정됩니다.
 
-예산은 실행 속도만 조이는 게 아니라 **후보 풀 자체를 자릅니다.** 탐색 전에 예산이 0인 NodePool의 후보는 건너뛰고, 넣을 때마다 그 풀의 예산을 하나씩 깎습니다(`multinodeconsolidation.go:65-77`). multi-node는 후보가 2개 미만이면 즉시 빈 커맨드를 반환하므로, **한 NodePool의 예산이 `1`이면 그 풀의 multi-node 통합은 아예 성립하지 않습니다.** `nodes: "1"`은 흔한 보수적 설정인데 의도는 대개 “천천히 줄이자”이지 “합치기를 끄자”가 아닙니다. 퍼센트는 올림이라 작은 풀에서는 `20%`도 1이 될 수 있습니다([08 §2]({{< relref "08-disruption-budgets.md" >}})).
+예산은 실행 속도만 조이는 게 아니라 **후보 풀 자체를 자릅니다.** 탐색 전에 예산이 0인 NodePool의 후보는 건너뛰고, 넣을 때마다 그 풀의 예산을 하나씩 깎습니다(`multinodeconsolidation.go:65-77`). multi-node는 후보가 2개 미만이면 즉시 빈 커맨드를 반환하므로, **한 NodePool의 예산이 `1`이면 그 풀의 multi-node 통합은 아예 성립하지 않습니다.** `nodes: "1"`은 흔한 보수적 설정인데 의도는 대개 “천천히 줄이자”이지 “합치기를 끄자”가 아닙니다. 퍼센트는 올림이라 작은 풀에서는 `20%`도 1이 될 수 있습니다([언제 무엇을 멈출 것인가 — disruption 예산]({{< relref "08-disruption-budgets.md" >}})).
 
-**흔적이 다른 것이 실무적으로 중요합니다.** `consolidationPolicy: WhenEmpty`로 막으면 후보 단계에서 탈락해 **이벤트가 안 남고**, 예산 `0`으로 막으면 후보는 만들어지고 실행만 차단되어 `DisruptionBlocked`가 쌓입니다. **예산 쪽이 진단 가능성 면에서 낫습니다** — [08 §5]({{< relref "08-disruption-budgets.md" >}})이 예산을 진단 1순위에 두는 이유입니다.
+**흔적이 다른 것이 실무적으로 중요합니다.** `consolidationPolicy: WhenEmpty`로 막으면 후보 단계에서 탈락해 **이벤트가 안 남고**, 예산 `0`으로 막으면 후보는 만들어지고 실행만 차단되어 `DisruptionBlocked`가 쌓입니다. **예산 쪽이 진단 가능성 면에서 낫습니다** — [언제 무엇을 멈출 것인가 — disruption 예산]({{< relref "08-disruption-budgets.md" >}})이 예산을 진단 1순위에 두는 이유입니다.
 
-## 9. 어떻게 관측하나
+## 8. 어떻게 관측하나
 
 `Unconsolidatable` 이벤트의 message가 사유를 그대로 말합니다.
 
@@ -342,11 +341,11 @@ feature gate가 없습니다 — 설계 RFC는 `BalancedConsolidation` 게이트
 | `Node %q has buffer pods` | Capacity Buffers가 잡고 있다 |
 | `NodePool %q has consolidation disabled` | `consolidateAfter`가 `nil` |
 
-**제약이 하나 있습니다 — 위 사유들은 후보가 1대일 때만 발행됩니다.** multi-node가 왜 실패했는지는 `--log-level debug`의 판정 로그를 봐야 합니다([09 §5]({{< relref "09-metrics-logs-events.md" >}})).
+**제약이 하나 있습니다 — 위 사유들은 후보가 1대일 때만 발행됩니다.** multi-node가 왜 실패했는지는 `--log-level debug`의 판정 로그를 봐야 합니다([무엇을 봐야 하나 — 메트릭·로그·이벤트]({{< relref "09-metrics-logs-events.md" >}})).
 
 Balanced는 **승인만 이벤트를 남기고 거부는 메트릭만 남깁니다**(`balanced.go:218-219`). 거부 사유는 `karpenter_consolidation_score`와 debug 로그의 `consolidation score` 줄로 봅니다.
 
-## 10. 근거
+## 9. 근거
 
 `kubernetes-sigs/karpenter` **v1.14.0** 로컬 체크아웃. 경로는 `pkg/` 기준이고, 별도 표기가 없으면 `controllers/disruption/`입니다.
 
