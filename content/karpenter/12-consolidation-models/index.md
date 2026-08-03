@@ -7,7 +7,7 @@ weight: 12
 
 ## 1. 10초마다 무슨 일이 일어나나
 
-Karpenter 가 프로비저닝했던 노드들은 다음과 같은 루프를 돌며 “잘 쓰고 있었는가” 를 평가합니다.
+Karpenter가 프로비저닝했던 노드들은 다음과 같은 루프를 돌며 “잘 쓰고 있었는가” 를 평가합니다.
 
 ```
 ① 삭제 대상 검사    전체 노드를 훑어 손대도 되는 것만 남긴다
@@ -28,53 +28,49 @@ Emptiness → Drift → MultiNode → SingleNode
 
 ### 2.1 검사 대상에 예외가 있는데
 
-중간에 노드 삭제대상으로 분류하지 않는 케이스는 이렇습니다.
+중간에 노드 삭제 대상으로 분류하지 않는 케이스는 이렇습니다.
 
 | 삭제 방지 조건 | 상세 설명 |
 |---|---|
 | **PDB에 걸림** | 파드를 노드에서 축출 불가능 |
 | 파드에 `do-not-disrupt` | 사용자가 명시적으로 제한 |
 | 노드에 `do-not-disrupt` | 사용자가 명시적으로 제한 |
-| `Initialized`상태가 아님 | 기동 중인 노드는 대상에서 배제 |
+| `Initialized` 상태가 아님 | 기동 중인 노드는 대상에서 배제 |
 
-외에도 새로운 pod들을 스케줄링중이거나, NodePool을 자체의 상태가 변경되는 엣지케이스들이 있지만 여기서는 다루지 않겠습니다.
+외에도 새로운 pod들을 스케줄링 중이거나, NodePool 자체의 상태가 변경되는 엣지 케이스들이 있지만 여기서는 다루지 않겠습니다.
 
 검사에서 떨어지면 `DisruptionBlocked` 이벤트가 남습니다.
-여기서는 “죽일까?” 정도의 분류만 진행한거고 이제 “왜?” 를 찾게되는 단계로 넘어갑니다.
+여기서는 “죽일까?” 정도의 분류만 진행한 것이고 이제 “왜?” 를 찾게 되는 단계로 넘어갑니다.
 
-### 2.2 삭제 후보는 어떤것들을 볼까
+### 2.2 삭제 후보는 어떤 것들을 볼까
 
-검사를 통과하면 그 노드는 `Candidate`가 되고, 이때 다음 값들이 함께 계산을 합니다.
+검사를 통과하면 그 노드는 `Candidate`가 되고, 이때 다음 값들이 함께 계산됩니다.
 
-| 키워드 | 설명 | 비고 | 1.14 이전 |
-|---|---|---|---|
-| `Price` | 그 노드의 **시간당 가격** | 교체 시 “더 싼가” 비교 | 필드가 아니라 그때그때 계산 — **정렬엔 미관여** |
-| `reschedulablePods` | 실제로 옮겨야 할 파드 목록 | **DaemonSet은 제외** | 있었음 — 단 **비용 계산에는 안 씀** |
-| `RescheduleDisruptionCost` | 노드 몫 `1.0` + 위 파드들의 비용 합 | 노드 자체를 교체하는데 가중치 부여. Balanced 스코어 계산에 사용 | **없음** — `DisruptionCost` 하나뿐 |
-| `instanceType` · `capacityType` · `zone` | `Price`를 조회하는 **복합 키** | 셋 중 하나라도 없으면 통합 후보에서 탈락 | 같음 |
+| 키워드 | 설명 | 비고 |
+|---|---|---|
+| `Price` | 그 노드의 **시간당 가격** | 교체 시 “더 싼가” 비교 |
+| `reschedulablePods` | 실제로 옮겨야 할 파드 목록 | **DaemonSet은 제외** |
+| `RescheduleDisruptionCost` | 노드 몫 `1.0` + 위 파드들의 비용 합 | 노드 자체를 교체하는데 가중치 부여. Balanced 스코어 계산에 사용 |
+| `instanceType`<br>`capacityType`<br>`zone` | `Price`를 조회하는 **복합 키** | 셋 중 하나라도 없으면 통합 후보에서 탈락 |
 
 
-오른쪽 열이 말하듯 **1.14 이전에는 비용 필드가 `DisruptionCost` 하나였습니다.** 값은 `ReschedulingCost(노드의 모든 파드) × LifetimeRemaining(노드)`이고 정렬은 이 값의 **오름차순**이라, 가격을 보지 않으니 시간당 $0.05 노드와 $3 GPU 노드가 정렬상 동급이었고 **파드가 적어 옮기기 싼 노드**가 늘 먼저 검토됐습니다(v1.13.0 `consolidation.go:125-131`). 노드 몫 base가 없어 빈 노드의 비용은 `0.0`이었고, 대상을 재배치 가능 파드로 좁히지도 않아 **DaemonSet 파드까지 셌습니다** — 소스 주석이 “not just the reschedulable pods”라고 못을 박아뒀습니다(v1.13.0 `types.go:133`). 이 공식은 v1.0.0부터 v1.13.0까지 수식이 바뀐 적이 없습니다.
-
-`RescheduleDisruptionCost`는 v1.14 에서 Balanced 모드 계산을 위해 추가된 필드입니다.
-같은 `m8g.xlarge`라도 AZ, spot혹은 on-demand 상태의 노드가또 다르기때문에, 하나라도 다르다면 비교를 진행하지않습니다.
+`RescheduleDisruptionCost`는 v1.14에서 Balanced 모드 계산을 위해 추가된 필드입니다.
+같은 `m8g.xlarge`라도 AZ, spot 혹은 on-demand 상태의 노드가 또 다르기 때문에, 하나라도 다르다면 비교를 진행하지 않습니다.
 
 ```
 Price / RescheduleDisruptionCost  =  $/시간 ÷ 파드 수  =  파드 하나 옮기는 대가로 시간당 아끼는 돈
 ```
 
 **파드 하나 옮기는 비용이 얼마나 되는가**를 Karpenter 내부적으로 계산합니다.
-이 비율이 큰 노드부터 정렬하니, **비싸면서 한산한 노드가 먼저** 정리하겠죠?
+이 비율이 큰 노드부터 정렬하니, **비싸면서 한산한 노드가 먼저** 정리됩니다.
 
 RescheduleDisruptionCost는 **DaemonSet는 모두 제외하고**
-노드 자체를 삭제하는 Cost 를 base로 `1` 설정해 cordon·drain·대체 노드 기동 지연 자체의 비용으로 계산합니다.
+노드 자체를 삭제하는 Cost를 base로 `1` 설정해 cordon·drain·대체 노드 기동 지연 자체의 비용으로 계산합니다.
 파드별 비용은 기본 `1`에 `pod-deletion-cost` 로 같이 합산되어 계산합니다.
 
 ## 3. 어떤 이유로 노드를 삭제할까
 
-앞에서 검사대상으로 확인된 노드는 “손대도 되는” 상태일 뿐, 아직 지울 이유가 없습니다.
-여기서 그 이유를 붙입니다.
-
+앞에서 검사 대상으로 확인된 노드는 아직 어떻게 할지를 결정하지 않았었습니다.
 노드는 세 가지 중 하나로 분류되고, **Reason**으로 기록을 합니다.
 
 | Reason의 종류 | 세부 설명 |
@@ -87,15 +83,15 @@ RescheduleDisruptionCost는 **DaemonSet는 모두 제외하고**
 
 {{< flow src="_flow/3-세-분류.json" />}}
 
-`Underutilized`는 두가지로 나뉘는데요, `SingleNode`와 `MultiNode` 로 나눠집니다.
+`Underutilized`는 두 가지로 나뉘는데요, `SingleNode`와 `MultiNode`로 나눠집니다.
 
 **SingleNode — 맨 앞 한 대의 파드를 새 노드로 옮깁니다.** 
-실패하면 다음 후보로 내려가고, 삭제가 가능한 노드를 찾을때까지 수행합니다.
+실패하면 다음 후보로 내려가고, 삭제가 가능한 노드를 찾을 때까지 수행합니다.
 
 {{< mnode variant="single" >}}
 
 **MultiNode — 앞에서부터 여러 대를 한꺼번에 집습니다.** 
-여러대를 동시에 묶은 만큼 cost도 합쳐지지만, **한 대씩 정리하는것만으로는 나오지 않을 조합**이 여기서 나옵니다.
+여러 대를 동시에 묶은 만큼 cost도 합쳐지지만, **한 대씩 정리하는 것만으로는 나오지 않을 조합**이 여기서 나옵니다.
 
 {{< mnode variant="multi" >}}
 
@@ -103,19 +99,19 @@ RescheduleDisruptionCost는 **DaemonSet는 모두 제외하고**
 
 **실행 순서는 MultiNode -> SingleNode 순서대로 진행됩니다.** 
 MultiNode가 먼저 돌고, 수행 가능한 시나리오를 찾으면 그 라운드는 거기서 끝납니다. 
-SingleNode는 MultiNode가 실패했을때, 후보를 다 훑기 전에 3분이 지나면 중단합니다 — 이때 못 본 NodePool이 있었다면, 다음 라운드에 먼저 봅니다
+SingleNode는 MultiNode가 실패했을 때, 후보를 다 훑기 전에 3분이 지나면 중단합니다 — 이때 못 본 NodePool이 있었다면, 다음 라운드에 먼저 봅니다
 
 ## 4. 정책 셋은 무엇이 다른가
 
-앞에서 본 `Underutilized` 의 실행이 실제로는 세가지 정책에 맞게 갈라집니다.
+앞에서 본 `Underutilized`의 실행이 실제로는 세 가지 정책에 맞게 갈라집니다.
 표에 나오는 "삭제 또는 교체"가 무엇에서 갈리는지는 뒤에서 따로 봅니다.
 
 
 | 정책 | 빈 노드 | 그 외 후보 | 통과해야 할 게이트 |
 |---|---|---|---|
-| `WhenEmpty` | 삭제 | **그냥 삭제대상임** | 없음 |
+| `WhenEmpty` | 삭제 | **그냥 삭제 대상임** | 없음 |
 | `WhenEmptyOrUnderutilized` | 삭제 (같음) | 시뮬레이션 후 삭제 또는 교체 | 파드 재배치 + (교체면) 가격 |
-| `Balanced` | 삭제 (같음) | 시뮬레이션 후 **스코어 심사** | `WhenEmptyOrUnderutilized`방식 + `score ≥ 0.5` |
+| `Balanced` | 삭제 (같음) | 시뮬레이션 후 **스코어 심사** | `WhenEmptyOrUnderutilized` 방식 + `score ≥ 0.5` |
 
 ```
 적게 지움  ←────────────────────────────────────→  많이 지움
@@ -123,40 +119,40 @@ SingleNode는 MultiNode가 실패했을때, 후보를 다 훑기 전에 3분이 
 WhenEmpty        Balanced        WhenEmptyOrUnderutilized
 ```
 
-**세 정책은 “얼마나 지우느냐”정도로 보시면 될것 같습니다.**
-Empty 노드가 아닌 WhenEmptyOrUnderutilized 개념이 Karpenter 의 강점이였다고 생각합니다.
-오른쪽으로 갈수록 삭제 강도가 커지는 개념이지만, 너무 공격적인 Eviction 을 방지하기위해 1.14버전에서 생긴 Balanced가 새로운 기준들을 보강했습니다.
+**세 정책은 “얼마나 지우느냐”정도로 보시면 될 것 같습니다.**
+Empty 노드가 아닌 WhenEmptyOrUnderutilized 개념이 Karpenter의 강점이었다고 생각합니다.
+오른쪽으로 갈수록 삭제 강도가 커지는 개념이지만, 너무 공격적인 Eviction을 방지하기 위해 1.14 버전에서 생긴 Balanced가 새로운 기준들을 보강했습니다.
 
 ## 5. 새로 추가된 Balanced 정책
 
-어떻게 보수적으로 노드를 제거할수있을까요?
+어떻게 보수적으로 노드를 제거할 수 있을까요?
 
 ### 5.1 기준선 — `WhenEmptyOrUnderutilized`가 하는 일
 
-Balanced를 이해하려면 기존에 `WhenEmptyOrUnderutilized` 가 수행되는 방식을 먼저 봐야합니다.
+Balanced를 이해하려면 기존에 `WhenEmptyOrUnderutilized`가 수행되는 방식을 먼저 봐야 합니다.
 
 {{< flow src="_flow/5-1-기준선-whenemptyorunderutilized.json" />}}
 
-"파드들을 전부 다른 노드에 배치 할 수 있을까?", 그리고 "새로운 노드로 교체하면 저렴해?"
-두개의 조건으로만 필터링을 한다면, 10원 아끼려고 파드 40개를 옮겨버리는 케이스가 발생합니다.
-- init 단계에서 부하가 더 발생되는경우나, pdb로 보호를 하고있어도 서비스의 안정성이 더 떨어지는 것들이죠.
+"파드들을 전부 다른 노드에 배치할 수 있을까?", 그리고 "새로운 노드로 교체하면 저렴해?"
+두 개의 조건으로만 필터링을 한다면, 10원 아끼려고 파드 40개를 옮겨버리는 케이스가 발생합니다.
+- init 단계에서 부하가 더 발생되는 경우나, pdb로 보호를 하고 있어도 서비스의 안정성이 더 떨어지는 것들이죠.
 
 ### 5.2 Balanced가 얹는 게이트
 
-Balanced는 이런 심한 Drift 를 방지하기위해 v1.14.0에서 추가됐습니다. 
-`WhenEmptyOrUnderutilized`가 놓치는걸 잡고, Drift를 조금 더 조심스럽게 수행하기로 했습니다.
-기존에는 삭제대상으로 잡힌 노드여도, Validation을 한차례 더 수행하여 "절감을 수행하는것" 자체의 Cost를 따집니다.
+Balanced는 이런 심한 Drift를 방지하기 위해 v1.14.0에서 추가됐습니다. 
+`WhenEmptyOrUnderutilized`가 놓치는 걸 잡고, Drift를 조금 더 조심스럽게 수행하기로 했습니다.
+기존에는 삭제 대상으로 잡힌 노드여도, Validation을 한 차례 더 수행하여 "절감을 수행하는것" 자체의 Cost를 따집니다.
 
 ```
 Balanced 승인 집합  ⊂  WhenEmptyOrUnderutilized 승인 집합
 ```
-애초에 추가 Validation을 한단계 더 추가한만큼, `WhenEmptyOrUnderutilized` 이 10개를 지운다고해도, Balanced 모드는 10개를 초과해 삭제하는일은 없을겁니다.
+애초에 추가 Validation을 한 단계 더 추가한 만큼, `WhenEmptyOrUnderutilized`가 10개를 지운다고 해도, Balanced 모드는 10개를 초과해 삭제하는 일은 없을 겁니다.
 
 {{< flow src="_flow/5-2-balanced-는-그-위에.json" />}}
 
 추가된 Validation 과정입니다.
-기존의 `WhenEmptyOrUnderutilized` 말고 `WhenEmpty`조건에서부터 삭제대상으로 잡히는 Empty 노드는 볼 필요가 없고
-ScoreMove 라는 Validation을 통해 0.5점 이상이 기록되어야 삭제를 수행합니다.
+기존의 `WhenEmptyOrUnderutilized` 말고 `WhenEmpty` 조건에서부터 삭제 대상으로 잡히는 Empty 노드는 볼 필요가 없고
+ScoreMove라는 Validation을 통해 0.5점 이상이 기록되어야 삭제를 수행합니다.
 
 ```
 score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)  ≥  1/k = 0.5
@@ -171,7 +167,7 @@ score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)  ≥  1/
 
 ### 5.3 그 조건이 실제로 뜻하는 것
 
-식에 담겨있는 변수들은 크게 두가지 관점에서 볼 수 있습니다.
+식에 담겨있는 변수들은 크게 두 가지 관점에서 볼 수 있습니다.
 
 ```
 score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)
@@ -180,17 +176,14 @@ score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)
 
 | 위치 | 항목 | 정체 | 커지는 경우 |
 |---|---|---|---|
-| **분자** | `savings` | 삭제면 후보 가격 **전액**, 교체면 가용한 노드중 **최저가** | **순수 삭제** — 제일 비용절감이 큼|
-| **분자** | `TotalDisruptionCost` | 그 풀 **전체 노드**의 disruption cost 합 | 노드가 많고 파드가 빽빽한 노드풀 |
-| **분모** | `TotalCost` | 그 노드풀의 총비용 | 큰 인스턴스 타입 · 온디맨드 · 노드 갯수 많음 |
-| **분모** | `disruptionCost` | **이 커맨드** 후보들의 `RescheduleDisruptionCost` 합 | 빽빽한 노드 · multi-node 묶음(노드 수만큼 base가 더 붙음) |
+| 분자 | `savings` | 삭제면 후보 가격 **전액**<br>교체면 −대체 노드 최저가 | 순수 삭제 |
+| 분자 | `TotalDisruptionCost` | 풀 **전체 노드**의 비용 합 | 파드가 빽빽한 풀 |
+| 분모 | `TotalCost` | 풀 총비용 | 큰 타입 · 온디맨드 |
+| 분모 | `disruptionCost` | **이 커맨드** 후보들의 합 | 빽빽한 노드 · multi-node 묶음 |
 
+`savings`와 `TotalCost`는 달러이고, `disruptionCost`와 `TotalDisruptionCost`는 사실상 파드 개수입니다.
 
-`savings`,`TotalCost`는 단위가 실제 절감금액으로, 둘 다 달러로 계산되며 
-`disruptionCost`,`TotalDisruptionCost`는 배치된 파드들의 밀도,비용 등으로 단위가 파드 갯수입니다
-
-아껴지는 비용이 크려면, 분모가 작고 분자가 커야하므로
-**적은 파드갯수를 죽이면서 노드당 절감금액이 큰** 절감이 제일 크게. 아껴집니다.
+분모가 작고 분자가 클수록 점수가 높으니, **적은 파드를 옮기면서 절감액이 큰** 통합이 가장 잘 통과합니다.
 
 균질한 풀에 평균 파드밀도를 가정하면 `score ≈ 절감률 × (평균 밀도 / 그 노드의 밀도)`로 줄어듭니다. 
 **평균 밀도 노드라면 50% 이상 싸지는 교체만 통과**하고, 한산한 노드는 쉬워지며 빽빽한 노드는 보호됩니다.
@@ -204,7 +197,7 @@ score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)
 
 노드 교체가 잦다.
 - 기존에 "더 싸기만 하면 Drift" 에서 추가된 안전한(보수적인) 절감입니다.
-파드가 많이 떠있는 노드도 교체를 실시한다.
+파드가 많이 떠 있는 노드도 교체를 실시한다.
 - 옮길 파드 수를 같이 고려해 아무 노드나 교체하지 않습니다.
 
 
@@ -215,15 +208,15 @@ score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)
 
 ### 6.1 시뮬레이션 — 새 노드가 몇 대 필요한가
 
-`no-op` : 아무것도 하지않음
+`no-op` : 아무것도 하지 않음
 `delete` : 그저 삭제함 
-`replace` : 교체 대상은 신규노드일까? 기존노드일까?
+`replace` : 교체 대상은 신규 노드일까? 기존 노드일까?
 
 후보로 선정된 노드를 클러스터에서 **가상으로 지우고**, 파드를 다시 스케줄해본 뒤 **새로 띄워야 할 노드가 몇 대인가**를 계산해봅니다.
 
 파드가 하나라도 갈 곳이 없으면 그 자리에서 끝납니다.
 
-### 6.2 얼마짜리를 몇대?
+### 6.2 얼마짜리를 몇 대?
 
 시뮬레이션이 요구한 새 노드 대수가 그대로 형태를 정합니다.
 

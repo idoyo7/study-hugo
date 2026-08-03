@@ -44,7 +44,8 @@ html.dark .vm-bscore {
 
 /* 심사 대상 커맨드 */
 .bs-cmd { fill: var(--bs-node-soft); stroke: var(--bs-node); stroke-width: 1.5; }
-.bs-cardname { fill: var(--bs-ink); font-size: 13px; font-weight: 700; }
+/* 카드 폭 185px − 좌우 여백 24px = 161px 안에 가장 긴 라벨이 들어가야 한다 */
+.bs-cardname { fill: var(--bs-ink); font-size: 12.5px; font-weight: 700; }
 .bs-note { fill: var(--bs-ink2); font-size: 11px; }
 .bs-factlabel { fill: var(--bs-muted); font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; }
 .bs-factval { fill: var(--bs-ink); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }

@@ -111,7 +111,9 @@
       facts.appendChild(txt(cardX(idx) + CARD_W - 12, CARD_Y + 84,
         '노드 ' + c.nodes + ' + 파드 ' + c.pods + ' = ' + c.rd.toFixed(1), 'bs-factval', 'end'));
       g.appendChild(facts);
-      var score = txt(cardX(idx) + CARD_W - 12, CARD_Y + 22, '', 'bs-cardscore', 'end');
+      /* 점수는 이름과 같은 줄에 두면 긴 라벨(m8g.2xl ×2 → r8g.2xl)과 정면으로 부딪힌다.
+         이름에 한 줄을 통째로 주고 점수는 sub 줄 오른쪽으로 내린다 — sub 는 짧아 여유가 있다 */
+      var score = txt(cardX(idx) + CARD_W - 12, CARD_Y + 39, '', 'bs-cardscore', 'end');
       score.setAttribute('opacity', 0);
       g.appendChild(score);
       svg.appendChild(g);
