@@ -46,21 +46,46 @@
   });
 </script>
 
+{{- /* 도식 엔진은 그 문서가 실제로 쓰는 것만 싣는다.
+       전부 무조건 싣던 때는 도식이 없는 문서도 6종 86KB 를 받았다 —
+       mnode·bscore 는 쓰는 문서가 2개뿐인데 164 페이지 전부에 실렸다.
+       판정은 .RawContent 의 shortcode 호출로 한다. 원문 문자열이라
+       렌더를 강제하지 않아 head 에서 부르기 안전하다.
+       생성된 목록 페이지처럼 원문이 없는 경우는 빈 문자열이 되어 아무것도 싣지 않는다. */ -}}
+{{- $raw := "" -}}
+{{- with .RawContent }}{{ $raw = . }}{{ end -}}
+{{- $useFlow := strings.Contains $raw "{{< flow" -}}
+{{- $useSeq := strings.Contains $raw "{{< seq" -}}
+{{- $useCfstl := strings.Contains $raw "{{< cfstl" -}}
+{{- $useBscore := strings.Contains $raw "{{< bscore" -}}
+{{- $useMnode := strings.Contains $raw "{{< mnode" -}}
+{{- if $useFlow }}
 {{- /* vm-flow 애니메이션 플로우 다이어그램 엔진 + 스타일 */ -}}
 <link rel="stylesheet" href="{{ "flow/flow.css" | relURL }}">
 <script defer src="{{ "flow/flow.js" | relURL }}"></script>
+{{- end }}
+{{- if $useSeq }}
 {{- /* vm-seq 애니메이션 시퀀스 다이어그램 엔진 + 스타일 */ -}}
 <link rel="stylesheet" href="{{ "flow/seq.css" | relURL }}">
 <script defer src="{{ "flow/seq.js" | relURL }}"></script>
+{{- end }}
+{{- if $useCfstl }}
 {{- /* vm-cfstl CFS period 타임라인 엔진 + 스타일 */ -}}
 <link rel="stylesheet" href="{{ "flow/cfstl.css" | relURL }}">
 <script defer src="{{ "flow/cfstl.js" | relURL }}"></script>
+{{- end }}
+{{- if $useBscore }}
 {{- /* vm-bscore Balanced 스코어 조립 애니메이션 엔진 + 스타일 */ -}}
 <link rel="stylesheet" href="{{ "flow/bscore.css" | relURL }}">
 <script defer src="{{ "flow/bscore.js" | relURL }}"></script>
+{{- end }}
+{{- if $useMnode }}
 {{- /* vm-mnode MultiNode/SingleNode 분기 애니메이션 엔진 + 스타일 */ -}}
 <link rel="stylesheet" href="{{ "flow/mnode.css" | relURL }}">
 <script defer src="{{ "flow/mnode.js" | relURL }}"></script>
-{{- /* vm-flow/seq/cfstl/bscore/mnode 공용 "크게 보기"(전체화면 확대) */ -}}
+{{- end }}
+{{- if or $useFlow $useSeq $useCfstl $useBscore $useMnode }}
+{{- /* vm-flow/seq/cfstl/bscore/mnode 공용 "크게 보기"(전체화면 확대) — 하나라도 쓰면 싣는다 */ -}}
 <link rel="stylesheet" href="{{ "flow/expand.css" | relURL }}">
 <script defer src="{{ "flow/expand.js" | relURL }}"></script>
+{{- end }}

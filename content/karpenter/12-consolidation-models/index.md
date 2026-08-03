@@ -326,9 +326,9 @@ k8s 문서가 ReplicaSet 다운스케일 예시로 드는 `100`·`1000`은 **Kar
 
 `Drifted`는 통합이 만들지 않습니다. `Drift`는 별도 경로라 v1에서 끌 수 없어, 정책을 뭘로 두든 계속 판정됩니다.
 
-예산은 실행 속도만 조이는 게 아니라 **후보 풀 자체를 자릅니다.** 탐색 전에 예산이 0인 NodePool의 후보는 건너뛰고, 넣을 때마다 그 풀의 예산을 하나씩 깎습니다(`multinodeconsolidation.go:65-77`). multi-node는 후보가 2개 미만이면 즉시 빈 커맨드를 반환하므로, **한 NodePool의 예산이 `1`이면 그 풀의 multi-node 통합은 아예 성립하지 않습니다.** `nodes: "1"`은 흔한 보수적 설정인데 의도는 대개 “천천히 줄이자”이지 “합치기를 끄자”가 아닙니다. 퍼센트는 올림이라 작은 풀에서는 `20%`도 1이 될 수 있습니다([언제 무엇을 멈출 것인가 — disruption 예산]({{< relref "08-disruption-budgets.md" >}})).
+예산은 실행 속도만 조이는 게 아니라 **후보 풀 자체를 자릅니다.** 탐색 전에 예산이 0인 NodePool의 후보는 건너뛰고, 넣을 때마다 그 풀의 예산을 하나씩 깎습니다(`multinodeconsolidation.go:65-77`). multi-node는 후보가 2개 미만이면 즉시 빈 커맨드를 반환하므로, **한 NodePool의 예산이 `1`이면 그 풀의 multi-node 통합은 아예 성립하지 않습니다.** `nodes: "1"`은 흔한 보수적 설정인데 의도는 대개 “천천히 줄이자”이지 “합치기를 끄자”가 아닙니다. 퍼센트는 올림이라 작은 풀에서는 `20%`도 1이 될 수 있습니다.
 
-**흔적이 다른 것이 실무적으로 중요합니다.** `consolidationPolicy: WhenEmpty`로 막으면 후보 단계에서 탈락해 **이벤트가 안 남고**, 예산 `0`으로 막으면 후보는 만들어지고 실행만 차단되어 `DisruptionBlocked`가 쌓입니다. **예산 쪽이 진단 가능성 면에서 낫습니다** — [언제 무엇을 멈출 것인가 — disruption 예산]({{< relref "08-disruption-budgets.md" >}})이 예산을 진단 1순위에 두는 이유입니다.
+**흔적이 다른 것이 실무적으로 중요합니다.** `consolidationPolicy: WhenEmpty`로 막으면 후보 단계에서 탈락해 **이벤트가 안 남고**, 예산 `0`으로 막으면 후보는 만들어지고 실행만 차단되어 `DisruptionBlocked`가 쌓입니다. **진단 가능성 면에서는 예산 쪽이 낫습니다** — 막힌 흔적이 이벤트로 남기 때문입니다.
 
 -->
 
@@ -344,7 +344,7 @@ k8s 문서가 ReplicaSet 다운스케일 예시로 드는 `100`·`1000`은 **Kar
 | `Node %q has buffer pods` | Capacity Buffers가 잡고 있다 |
 | `NodePool %q has consolidation disabled` | `consolidateAfter`가 `nil` |
 
-**제약이 하나 있습니다 — 위 사유들은 후보가 1대일 때만 발행됩니다.** multi-node가 왜 실패했는지는 `--log-level debug`의 판정 로그를 봐야 합니다([무엇을 봐야 하나 — 메트릭·로그·이벤트]({{< relref "09-metrics-logs-events.md" >}})).
+**제약이 하나 있습니다 — 위 사유들은 후보가 1대일 때만 발행됩니다.** `MultiNode`가 왜 실패했는지는 `--log-level debug`의 판정 로그를 봐야 합니다.
 
 `Balanced`는 **승인만 이벤트를 남기고 거부는 메트릭만 남깁니다**(`balanced.go:218-219`). 거부 사유는 `karpenter_consolidation_score`와 debug 로그의 `consolidation score` 줄로 봅니다.
 
