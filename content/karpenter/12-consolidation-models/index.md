@@ -66,21 +66,9 @@ Price / RescheduleDisruptionCost  =  $/시간 ÷ 파드 수  =  파드 하나 �
 **파드 하나 옮기는 비용이 얼마나 되는가**를 Karpenter 내부적으로 계산합니다.
 이 비율이 큰 노드부터 정렬하니, **비싸면서 한산한 노드가 먼저** 정리하겠죠?
 
-### 2.3 비용은 어떻게 계산할까
-
-표의 `RescheduleDisruptionCost`가 어떻게 계산되는지 짚고 넘어가겠습니다.
-
-```go
-// types.go:136-141
-cost := PerNodeBaseDisruptionCost          // = 1.0
-for _, p := range reschedulablePods {
-    cost += math.Max(0, disruptionutils.EvictionCost(ctx, p))
-}
-```
-
+RescheduleDisruptionCost는 **DaemonSet는 모두 제외하고**
 노드 자체를 삭제하는 Cost 를 base로 `1` 설정해 cordon·drain·대체 노드 기동 지연 자체의 비용으로 계산합니다.
 파드별 비용은 기본 `1`에 `pod-deletion-cost` 로 같이 합산되어 계산합니다.
-- 여기서 **DaemonSet은 세지 않습니다.**
 
 ## 3. 어떤 이유로 노드를 삭제할까
 
@@ -136,12 +124,12 @@ WhenEmpty        Balanced        WhenEmptyOrUnderutilized
 ```
 
 **세 정책은 “얼마나 지우느냐”정도로 보시면 될것 같습니다.**
-오른쪽으로 갈수록 삭제 강도가 커지는 개념이지만, 실제로는 Empty 노드가 아닌 WhenEmptyOrUnderutilized 개념이 Karpenter 의 강점이였다고 생각합니다.
-이후에 1.14버전에서 생긴 Balanced가 너무 공격적인 Eviction 을 방지하기위해 새로운 기준들을 보강했습니다.
+Empty 노드가 아닌 WhenEmptyOrUnderutilized 개념이 Karpenter 의 강점이였다고 생각합니다.
+오른쪽으로 갈수록 삭제 강도가 커지는 개념이지만, 너무 공격적인 Eviction 을 방지하기위해 1.14버전에서 생긴 Balanced가 새로운 기준들을 보강했습니다.
 
 ## 5. 새로 추가된 Balanced 정책
 
-새로 추가된 Balanced 개념에선 봐야할게, "어떻게 보수적으로 노드를 제거할수있을까?" 입니다.
+어떻게 보수적으로 노드를 제거할수있을까요?
 
 ### 5.1 기준선 — `WhenEmptyOrUnderutilized`가 하는 일
 
@@ -149,15 +137,15 @@ Balanced를 이해하려면 기존에 `WhenEmptyOrUnderutilized` 가 수행되�
 
 {{< flow src="_flow/5-1-기준선-whenemptyorunderutilized.json" />}}
 
-“모든 파드가 다른 데 들어가는가”, 그리고 교체라면 “엄격히 더 싼가”. 
-두개의 기준으로만 판단하다보면, 10원 아끼려고 파드 40개를 옮겨버리는 케이스가 발생합니다.
+"파드들을 전부 다른 노드에 배치 할 수 있을까?", 그리고 "새로운 노드로 교체하면 저렴해?"
+두개의 조건으로만 필터링을 한다면, 10원 아끼려고 파드 40개를 옮겨버리는 케이스가 발생합니다.
 - init 단계에서 부하가 더 발생되는경우나, pdb로 보호를 하고있어도 서비스의 안정성이 더 떨어지는 것들이죠.
 
 ### 5.2 Balanced가 얹는 게이트
 
 Balanced는 이런 심한 Drift 를 방지하기위해 v1.14.0에서 추가됐습니다. 
 `WhenEmptyOrUnderutilized`가 놓치는걸 잡고, Drift를 조금 더 조심스럽게 수행하기로 했습니다.
-`WhenEmptyOrUnderutilized`에서 삭제대상으로 잡힌 노드여도, Validation을 한차례 더 수행하여 "절감을 수행하는것" 자체의 Cost를 따집니다.
+기존에는 삭제대상으로 잡힌 노드여도, Validation을 한차례 더 수행하여 "절감을 수행하는것" 자체의 Cost를 따집니다.
 
 ```
 Balanced 승인 집합  ⊂  WhenEmptyOrUnderutilized 승인 집합
@@ -190,7 +178,18 @@ score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)
          └─ 이 액션의 효율 ─┘         └─ 풀의 평균 효율 ─┘
 ```
 
-**풀의 “파괴 1단위당 비용”이 기준선이고, 액션은 그 절반 이상의 효율을 내야 합니다.** 분모가 풀 전체라 **풀 크기는 약분되어 영향이 없고**, 한산하고 비싼 노드가 많은 풀일수록 기준선이 높아 통과가 어렵습니다.
+**풀의 “파괴 1단위당 비용”이 기준선이고, 액션은 그 절반 이상의 효율을 내야 합니다.** 식을 완전히 펼치면 항목이 넷 — 분자 둘, 분모 둘입니다.
+
+| 위치 | 항목 | 정체 | 커지는 경우 |
+|---|---|---|---|
+| **분자** | `savings` | 삭제면 후보 가격 **전액**, 교체면 후보 가격 합 − 대체 노드 최저가 | **순수 삭제** — 대체가 0이라 어떤 교체도 이걸 못 넘습니다 |
+| **분자** | `TotalDisruptionCost` | 그 풀 **모든 노드**의 disruption cost 합 | 노드가 많고 파드가 빽빽한 풀 — 노드 N대면 base만 N |
+| **분모** | `TotalCost` | 그 풀 총비용 | 큰 인스턴스 타입 · 온디맨드 · 노드 수 많음 |
+| **분모** | `disruptionCost` | **이 커맨드** 후보들의 `RescheduleDisruptionCost` 합 | 빽빽한 노드 · multi-node 묶음(노드 수만큼 base가 더 붙음) |
+
+항목은 넷이지만 **짝이 맞물려 있습니다** — `savings`↔`TotalCost`는 둘 다 달러, `disruptionCost`↔`TotalDisruptionCost`는 둘 다 파드분입니다. 그래서 재는 것은 결국 하나입니다: **내 “달러 대비 파괴” 비율이 풀 평균의 절반은 되는가.** 풀 항목 둘은 그 라운드의 상수라 커맨드끼리의 우열에는 관여하지 않고 **합격선 높이만** 정합니다.
+
+분모가 풀 전체라 **풀 크기는 물론 풀의 절대 가격 수준까지 함께 약분됩니다.** 통과 여부는 그 노드가 풀 평균보다 비싼지 한산한지 — **풀 안에서의 상대 위치**로 정해집니다. 설계 문서가 이걸 의도로 못 박아뒀습니다 — *“A score of 2.0 in a \$50/hr pool and 2.0 in a \$10,000/hr pool look identical”*(`designs/balanced-consolidation.md:381`). 반대로 주변 노드가 비싸고 한산할수록 기준선이 올라가므로 **같은 풀의 싸거나 붐비는 노드**는 통과가 어려워집니다.
 
 균질한 풀에 평균 파드밀도를 가정하면 `score ≈ 절감률 × (평균 밀도 / 그 노드의 밀도)`로 줄어듭니다. **평균 밀도 노드라면 50% 이상 싸지는 교체만 통과**하고, 한산한 노드는 쉬워지며 빽빽한 노드는 보호됩니다. 코드 인용이 아니라 유도입니다.
 
@@ -198,25 +197,8 @@ score = (savings / disruptionCost) ÷ (TotalCost / TotalDisruptionCost)
 
 {{< bscore >}}
 
-### 5.4 그래도 “같은 스코어식의 서로 다른 k”는 아니다
+**`k`는 바꿀 수 없습니다.** `BalancedK`는 Go `const int32 = 2`이고 호출부 두 곳 모두 상수를 그대로 넘겨(`balanced.go:159, 297`) NodePool 필드도 플래그도 feature gate도 없습니다 — 설계 문서는 `consolidationPolicy: 3`으로 `k`를 노출한다고 적었지만(`balanced-consolidation.md:361`) enum이 문자열 셋뿐이라(`nodepool.go:100`) admission에서 거부됩니다. `0.5`라는 값 자체는 **같은 인스턴스 패밀리 한 단계 다운사이징이 정확히 50% 절감**이라는 가격 구조에 맞춘 것이고, `k=1`이면 대체 노드가 무료여야 통과라 아무 교체도 못 지나갑니다. 그래서 세 정책을 “같은 스코어식에 다른 `k`”로 읽는 설명은 틀립니다 — `WhenEmpty`의 판정은 비율이 아니라 `IsEmpty()`의 **절대 임계**입니다(`types.go:155-157`). 조절하려면 임계가 아니라 분모(`pod-deletion-cost`)를 건드려야 합니다.
 
-식을 봤으니 흔한 오해 하나를 짚고 갑니다. 설계 문서를 따라 **세 정책을 이 스코어식에 다른 `k`를 넣은 것**으로 읽는 설명이 많습니다. 앞의 포함 사슬은 맞지만 **식은 그렇게 되어 있지 않습니다.**
-
-`WhenEmpty`의 판정은 비율이 아니라 **원시 비용에 대한 절대 임계**입니다 — `IsEmpty()`는 `RescheduleDisruptionCost <= 1.0`이고(`types.go:155-157`) 분모도 savings도 등장하지 않습니다.
-
-`k→0`으로 표현할 수도 없습니다. 임계 `1/k`가 무한대가 되어 `Score`가 `+Inf`여야 통과하는데 앞에서 봤듯 **비용은 절대 0이 되지 않습니다.** `k→0`은 “빈 노드를 지운다”가 아니라 **“아무것도 지우지 않는다”** 에 수렴합니다.
-
-### 5.5 `k`는 바꿀 수 없다
-
-Go `const`이고 호출부 두 곳 모두 상수를 그대로 넘깁니다. NodePool 필드도, 플래그도, feature gate도 없습니다.
-
-```go
-// apis/v1/nodepool.go:167-171
-// k=2 is the smallest value where within-family replaces pass, with 4-step max churn.
-const BalancedK int32 = 2
-```
-
-주석이 선택 근거를 밝힙니다 — **같은 패밀리 한 단계 다운사이징(4xlarge → 2xlarge)이 정확히 50% 절감**이라, 그 교체가 겨우 통과하는 지점입니다. **조절하려면 임계가 아니라 분모(`pod-deletion-cost`)를 건드려야 합니다.**
 
 ### 5.6 언제 효과가 없나
 
@@ -231,24 +213,15 @@ const BalancedK int32 = 2
 
 가운데 셋이 중요합니다. **“노드가 자꾸 교체된다”의 원인이 통합이 아니면 Balanced는 아무것도 바꾸지 않습니다.** `karpenter_nodeclaims_disrupted_total{reason}`으로 원인을 먼저 가릅니다([무엇을 봐야 하나 — 메트릭·로그·이벤트]({{< relref "09-metrics-logs-events.md" >}})).
 
-### 5.7 켜기
-
-```yaml
-spec:
-  disruption:
-    consolidationPolicy: Balanced
-    consolidateAfter: 1m
-```
-
-feature gate가 없습니다 — 설계 RFC는 `BalancedConsolidation` 게이트로 옵트인한다고 적었지만 **구현에는 없습니다.** 코어 **v1.14.0이 최초**이고(core#2962) 그 이하에서는 enum에 없어 admission에서 거부됩니다. 도입 판정은 [1.7 → 1.14 — 운영에 쓸 기능들]({{< relref "02-changelog-maturity.md" >}})가 소유합니다.
-
 ## 6. 삭제냐 교체냐
 
 앞에서 계속 나온 **삭제와 교체**가 실제로 무엇에서 갈리는지 볼 차례입니다. 결과는 셋 중 하나 — 아무것도 안 하거나(`no-op`), 그냥 지우거나(`delete`), 대신 한 대를 띄우고 지우거나(`replace`). 그걸 가르는 건 판정식 여러 개가 아니라 **시뮬레이션 한 번**입니다.
 
 ### 6.1 시뮬레이션 — 새 노드가 몇 대 필요한가
 
-`no-op`과 `delete`는 어렵지 않습니다. 남는 건 `replace` 하나 — **대신 띄울 그 한 대가 어디서 나오는가.** 그걸 정하는 게 시뮬레이션입니다.
+`no-op` : 아무것도 하지않음
+`delete` : 그저 삭제함 
+`replace` : 교체 대상은 신규노드일까? 기존노드일까?
 
 후보로 선정된 노드를 클러스터에서 **가상으로 지우고**, 그 위 파드를 다시 스케줄해본 뒤 **새로 띄워야 할 노드가 몇 대인가**를 셉니다.
 
