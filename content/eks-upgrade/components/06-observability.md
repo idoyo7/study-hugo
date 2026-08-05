@@ -28,7 +28,7 @@ CRD 쪽 변화가 가장 구조적이다. 로컬 `crds` 서브차트가 아예 �
 
 - **0.74.0 라벨 표준화** — 커스텀 `app` 라벨이 `app.kubernetes.io/component`로 대체된다. vmagent의 `topologySpreadConstraints`가 라벨 셀렉터를 쓰고 있다면 렌더 후 실제로 매칭되는지 재확인해야 한다(불일치 시 spread 제약이 무력화될 수 있다).
 - **0.81.0 `defaultRules.create`→`enabled` 리네임** — 구키는 fallback으로 당장 동작하지만 개명이 권장된다.
-- **kube-state-metrics 태그 bump 별도 필요** — 서브차트를 올려도 이미지 태그가 핀돼 있으면 KSM 앱 자체는 그대로다. 목표(≥2.17)를 달성하려면 태그를 명시적으로 올려야 하고, v2.14.0의 `kube_endpoint_address_*` 메트릭 제거·v2.18.0의 endpoints→endpointslices 기본 전환에 걸리는 알림룰/대시보드가 있는지 감사해야 한다.
+- **kube-state-metrics 태그 bump 별도 필요** — 서브차트를 올려도 이미지 태그가 핀돼 있으면 KSM 앱 자체는 그대로다. 목표(k8s 1.35를 지원하는 최신 정식 릴리스 라인 **≥2.19**. 원 조사의 ≥2.17은 1.33 기준값이었다)를 달성하려면 태그를 명시적으로 올려야 하고, v2.14.0의 `kube_endpoint_address_*` 메트릭 제거·v2.18.0의 endpoints→endpointslices 기본 전환에 걸리는 알림룰/대시보드가 있는지 감사해야 한다.
 - **grafana 서브차트 12.x vs 핀 이미지 11.3.0 괴리** — 서브차트는 12.7.x로 올라가지만 이미지 태그를 11.3.0에 고정할지 12.x로 함께 올릴지는 별도 결정이 필요하다(11→12는 그 자체로 breaking이 있다).
 - **operator env/CLI 매핑 변경** — `disable_prometheus_converter: true`는 v0.73.1에서도 하위호환되지만, finance가 커스텀으로 넣은 operator env 4종(config-reloader·alertmanager 기본 이미지 지정용)의 키가 여전히 유효한지는 배포 전 검증이 필요하다.
 

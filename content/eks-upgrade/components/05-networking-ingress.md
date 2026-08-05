@@ -8,7 +8,7 @@ weight: 5
 {{< callout type="info" >}}
 **한눈에**
 - chart **1.8.1**(앱 v2.8.x) → **chart 3.4.2**(앱 v3.4.2). v3.0.0에서 **chartVersion=appVersion 정렬**이라는 관례 자체가 바뀌면서, 차트 라인이 1.x에서 곧바로 3.x로 점프한다(2.x 차트는 존재하지 않는다) `✓`
-- k8s 1.33 지원에 하드 블로커는 아니다(v2.8.x도 동작) — 다만 ~2년 구버전이라 최신 stable로 올리는 것을 권장한다 `✓`
+- 목표 k8s **1.35** 지원에 하드 블로커는 아니다(v2.8.x도 동작) — 다만 ~2년 구버전이라 최신 stable로 올리는 것을 권장한다 `✓`
 - CRD `TargetGroupBinding`·`IngressClassParams`는 **storage 버전이 v1beta1로 불변**이라 기존 CR 변환이 필요 없다 `✓`
 - **IAM 정책에 8개 액션이 새로 필요**하다 — 없으면 컨트롤러 reconcile 중 AccessDenied로 ALB 갱신이 실패한다 `✓`
 - finance에서는 **`cluster-bootstrap-v2` umbrella의 서브차트**로 배포되므로 독립 bump가 불가능하다 — umbrella 리워크 + ECR 재퍼블리시가 선행돼야 한다 `✓`
@@ -24,7 +24,7 @@ v3.0.0(2026-01-23)이 메이저 breaking 경계다. 세 가지가 동시에 일�
 
 `keepTLSSecret` values 키 제거, `--aws-vpc-tag-key` flag deprecated는 finance가 애초에 미사용이라 해당 없다. v2.8.1→v3.4.2 사이 IAM 정책 실 diff를 대조하면 ec2 3개(`GetSecurityGroupsForVpc`·`DescribeIpamPools`·`DescribeRouteTables`), elasticloadbalancing 5개(`DescribeListenerAttributes`·`ModifyListenerAttributes`·`DescribeCapacityReservation`·`ModifyCapacityReservation`·`ModifyIpPools`), 총 8개 액션이 새로 추가됐다. v3 컨트롤러는 리스너 attribute·capacity reservation을 조회·수정하므로, 이 액션들이 IRSA 정책에 없으면 reconcile 중 AccessDenied로 ALB 갱신이 실패한다.
 
-직행은 가능하다 — 공식 문서에 강제 스텝 버전 요구가 없고 최소 k8s 1.22+로 1.33/1.35와 무관하다. 다만 v2.8→v2.11 구간에서 리스너 규칙 재계산이 발생한 사례가 upstream에 보고돼 있어, 대점프 시 최초 sync에서 기존 ALB 리스너 규칙이 한 번 갱신될 수 있다(무중단이지만 스테이징 선검증을 권장한다).
+직행은 가능하다 — 공식 문서에 강제 스텝 버전 요구가 없고 최소 k8s 1.22+라 목표 1.35와 무관하다. 다만 v2.8→v2.11 구간에서 리스너 규칙 재계산이 발생한 사례가 upstream에 보고돼 있어, 대점프 시 최초 sync에서 기존 ALB 리스너 규칙이 한 번 갱신될 수 있다(무중단이지만 스테이징 선검증을 권장한다).
 
 ## finance 적용 절차
 

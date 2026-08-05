@@ -7,7 +7,7 @@ weight: 3
 
 {{< callout type="info" >}}
 **한눈에**
-- **argocd(워크로드 spoke)**: chart 7.5.2(앱 v2.12) → **chart 10.1.4(앱 v3.4.5)**. 최대 breaking 구간은 앱 **2.14→3.0**(logs RBAC 강제, 리소스 추적 label→annotation) — 현행 2.12는 애초에 k8s 1.33 tested 목록 밖이라 bump가 사실상 필수다 `✓`
+- **argocd(워크로드 spoke)**: chart 7.5.2(앱 v2.12) → **chart 10.1.4(앱 v3.4.5)**. 최대 breaking 구간은 앱 **2.14→3.0**(logs RBAC 강제, 리소스 추적 label→annotation) — 현행 2.12는 애초에 목표 k8s **1.35** tested 목록 밖이고, 3.4가 정확히 v1.32~1.35를 커버하므로 bump가 사실상 필수다 `✓`
 - **argo-rollouts**: chart 2.37.2(앱 v1.7.1) → **chart 2.41.1(앱 v1.9.1)**. k8s 지원 매트릭스가 없는 tolerant 컴포넌트라 하드 블로커는 아니지만, **CVE-2026-35469(HIGH, 원격 DoS)** 수정판이라 강력 권장이다 `✓`
 - 둘 다 finance에서 **umbrella 서브차트로 배포되는 argo-rollouts**와 **독립 upstream 차트로 배포되는 argocd**라는 구조가 다르다 — argocd는 `yo-charts` 리워크가 필요 없고, argo-rollouts는 `cluster-bootstrap-v2` umbrella의 `Chart.yaml` dependency를 고쳐야 한다 `✓`
 - argo-rollouts는 istio canary 트래픽 라우팅만 쓴다(ALB rollout trafficRouting은 finance 템플릿에 없음) — v1.9.0의 istio DestinationRule/weight 순서 변화가 직접 관련된다 `✓`

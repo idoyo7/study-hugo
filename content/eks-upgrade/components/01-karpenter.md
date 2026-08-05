@@ -7,7 +7,7 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- 최신 stable **1.14.0**(2026-07-11 릴리스)로 직행한다. k8s 1.33을 지원하는 최소가 1.5이고 1.14는 1.30~1.36을 커버하므로 "가능한 최신 stable" 방침에 맞는다 `✓`
+- 최신 stable **1.14.0**(2026-07-11 릴리스)로 직행한다. 목표 k8s **1.35**를 지원하는 최소가 1.9이고 1.14는 1.30~1.36을 커버하므로 "가능한 최신 stable" 방침에 맞는다 — 1.36으로 재검토할 때도 하한이 1.13이라 1.14.0이 그대로 유효하다 `✓`
 - **선행 사실**: finance가 쓰는 0.36.2는 이미 **v1beta1**(`karpenter.sh/v1beta1` NodePool·`karpenter.k8s.aws/v1beta1` EC2NodeClass) 스키마다. v1alpha5(Provisioner/AWSNodeTemplate)는 v0.33에서 이미 졸업했으므로 finance에는 해당 없다 — 남은 경계는 **v1beta1 → v1** 하나뿐이다 `✓`
 - v1에서 **`amiSelectorTerms`가 필수화**된다. 누락하면 EC2NodeClass와 이를 참조하는 모든 NodePool이 통째로 `NotReady`가 된다 `✓`
 - v1은 **drift를 GA로 승격시키며 비활성화가 불가능**해진다 — finance가 명시한 `featureGates.drift: false`는 무효화되고 drift가 강제로 켜진다 `✓`
@@ -16,7 +16,7 @@ weight: 1
 
 ## 버전 diff와 무엇이 바뀌는가
 
-컨트롤러는 `0.36.2`에서 `1.14.0`으로, 차트는 org의 `karpenter-v2`(v1beta1 스키마)를 폐기하고 이미 v1 스키마인 신 차트 `karpenter`를 채택한다. org 차트의 tip(appVersion 1.1.0)은 이미 v1 스키마이지만 **k8s 1.33을 지원하지 않으므로**(1.1.0은 k8s ≤1.31까지), appVersion을 1.14.0으로 리워크한 뒤 재퍼블리시해야 한다.
+컨트롤러는 `0.36.2`에서 `1.14.0`으로, 차트는 org의 `karpenter-v2`(v1beta1 스키마)를 폐기하고 이미 v1 스키마인 신 차트 `karpenter`를 채택한다. org 차트의 tip(appVersion 1.1.0)은 이미 v1 스키마이지만 **k8s 1.35를 지원하지 않으므로**(1.1.0은 k8s ≤1.31까지), appVersion을 1.14.0으로 리워크한 뒤 재퍼블리시해야 한다.
 
 CRD 경계가 이 업그레이드의 핵심이다. `NodePool`과 `EC2NodeClass`가 각각 `karpenter.sh/v1beta1`→`v1`, `karpenter.k8s.aws/v1beta1`→`v1`로 이동한다. 이와 함께 세 가지가 같이 바뀐다.
 
@@ -52,7 +52,7 @@ CRD 경계가 이 업그레이드의 핵심이다. `NodePool`과 `EC2NodeClass`�
 - [ ] **컨트롤러 리소스 과소 설정** — `cpu=1/memory≥1Gi` 미명시 시 CPU 기아로 리더 election이 반복 유실된다(사내 실사고 이력).
 - [ ] **drift 강제 ON** — `featureGates.drift: false` 무효화로 v1에서 drift가 상시 활성화된다. AMI·설정 변경 시 대량 노드 교체가 유발될 수 있으므로 disruption budget(`defaultBudgets`)을 사전 검토한다.
 - [ ] **`amiSelectorTerms` 누락 시 전면 `NotReady`** — override로 비우지 않는다.
-- [ ] **org 차트 tip(1.1.0)이 1.33 미지원** — appVersion을 반드시 1.14.0(최소 1.5)으로 bump한다.
+- [ ] **org 차트 tip(1.1.0)이 1.35 미지원** — appVersion을 반드시 1.14.0(1.35 하한 1.9)으로 bump한다.
 - [ ] **IAM v1 정책 미적용 시 프로비저닝 실패** — `eks:eks-cluster-name` 태그 스코핑 + 1.7/1.11/1.12에서 추가된 권한 포함 여부를 확인한다.
 - [ ] **AMI 핀 정책 결정** — 특정 AMI를 핀할지 `alias: al2023@latest` 자동해석을 쓸지는 팀 결정 사항이다.
 - [ ] **CRD 적용 경로 확정** — v1 CRD가 ArgoCD로 확실히 적용되는지 배포 전 확인한다.
@@ -60,7 +60,7 @@ CRD 경계가 이 업그레이드의 핵심이다. `NodePool`과 `EC2NodeClass`�
 
 ## 근거
 
-- 호환 매트릭스(1.33=≥1.5, 1.14=1.30~1.36): `https://karpenter.sh/docs/upgrading/compatibility/`
+- 호환 매트릭스(1.35=≥1.9, 1.36=≥1.13, 1.14=1.30~1.36): `https://karpenter.sh/docs/upgrading/compatibility/`
 - v1 마이그레이션(conversion 웹훅, amiSelectorTerms 필수, kubelet 이동, drift GA, IAM 스코핑, disruption 리네임): `https://karpenter.sh/v1.0/upgrading/v1-migration/`
 - 마이너별 breaking(1.1 v1beta1 종료, 1.7/1.11/1.12 IAM 추가, 1.14 capacity buffers/DRA): `https://karpenter.sh/docs/upgrading/upgrade-guide/`
 - v1.0.0 릴리스노트: `https://github.com/aws/karpenter-provider-aws/releases/tag/v1.0.0`
