@@ -1,0 +1,27 @@
+{
+  "caption": "재개는 파드 사이의 인수인계가 아니다. POS 가 들고 온 Last-Event-ID 를 XREAD 시작점으로 그대로 넘기면 끝나므로, 새 파드는 이전 파드가 무엇을 어디까지 보냈는지 알 필요가 없다.",
+  "participants": [
+    { "id": "P", "label": "POS" },
+    { "id": "G", "label": "게이트웨이 B" },
+    { "id": "R", "label": "Redis Stream" }
+  ],
+  "steps": [
+    { "note": ["P", "G"], "lines": ["게이트웨이 A 종료", "SSE 스트림 끊김"] },
+    { "msg": ["P", "G"], "label": "1. 재접속 · Last-Event-ID 1712-0" },
+    { "msg": ["G", "R"], "label": "2. XREAD pos-ev:17 1712-0" },
+    {
+      "alt": "1712-0 이 재개 창 안",
+      "steps": [
+        { "msg": ["R", "G"], "label": "3. 1713-0 … 1719-0", "dashed": true },
+        { "msg": ["G", "P"], "label": "4. 밀린 이벤트 재생" },
+        { "msg": ["G", "P"], "label": "5. 라이브 tail" }
+      ],
+      "elseLabel": "창 밖 (트리밍됨)",
+      "elseSteps": [
+        { "msg": ["R", "G"], "label": "3'. 시작점 없음", "dashed": true },
+        { "msg": ["G", "P"], "label": "4'. event: resync" },
+        { "note": ["P", "G"], "lines": ["POS 가 REST 로", "전체 상태 재조회"] }
+      ]
+    }
+  ]
+}

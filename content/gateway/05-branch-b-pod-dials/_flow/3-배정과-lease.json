@@ -1,0 +1,19 @@
+{
+  "caption": "링은 후보를 하나로 좁힐 뿐 소유를 확정하지 않는다. 멤버십 전파가 끝나지 않아 두 파드가 같은 단말을 자기 것으로 계산해도, lease 를 통과하는 쪽은 하나뿐이라 중복 다이얼이 생기지 않는다. 단말 하나가 이 경로를 지나간다.",
+  "token": true,
+  "nodes": [
+    { "id": "M", "col": 0, "row": 0, "label": "멤버십", "sub": "EndpointSlice · Redis 등록", "kind": "store" },
+    { "id": "H", "col": 1, "row": 0, "label": "링 계산", "sub": "hash(deviceId) → 소유 파드", "kind": "proc" },
+    { "id": "L", "col": 2, "row": 0, "label": "lease 획득", "sub": "SET own:… NX PX 15s", "kind": "query" },
+    { "id": "D", "col": 3, "row": 0, "label": "다이얼 유지", "sub": "연결 수립 · lease 갱신", "kind": "proc" },
+    { "id": "X", "col": 3, "row": 1, "label": "포기", "sub": "다른 파드가 소유 중", "kind": "sink" },
+    { "id": "P", "col": 4, "row": 0, "label": "POS", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "M", "to": "H", "label": "멤버 변화" },
+    { "from": "H", "to": "L", "label": "내 것이면" },
+    { "from": "L", "to": "D", "label": "NX 성공" },
+    { "from": "D", "to": "P", "label": "푸시" },
+    { "from": "L", "to": "X", "label": "NX 실패" }
+  ]
+}
