@@ -1,0 +1,31 @@
+{
+  "caption": "EC2 primary·EC2 Sentinel이 각각 NLB 리스너(:6380 / :26380)로 보내면 타깃 그룹이 클러스터 전 노드의 nodePort(:31000 / :31001)로 fanout하고, 파드별 Service가 컨테이너까지 라우팅한다. 파드는 server.conf의 replica-announce-ip/port, sentinel.conf의 announce-ip/port에 이 NLB 주소를 적어 자신을 광고한다 — 그 덕에 nodePort로 어느 노드에 도착하든 EC2 쪽 원본이 정확히 그 파드를 찾아 양방향 replication을 맺을 수 있다.",
+  "nodes": [
+    { "id": "ec2_primary", "col": 0, "row": 0, "label": "EC2 primary", "kind": "src" },
+    { "id": "nlb_server", "col": 1, "row": 0, "label": "NLB 리스너", "sub": ":6380", "kind": "proc" },
+    { "id": "tg_server", "col": 2, "row": 0, "label": "타깃 그룹", "sub": "전 노드 · nodePort :31000", "kind": "proc" },
+    { "id": "svc_server", "col": 3, "row": 0, "label": "파드별 Service", "kind": "proc" },
+    { "id": "pod_server", "col": 4, "row": 0, "label": "server 컨테이너", "sub": "replica-announce = NLB 주소", "kind": "store" },
+
+    { "id": "ec2_sentinel", "col": 0, "row": 1, "label": "EC2 Sentinel", "sub": "3→4대(총 7)", "kind": "src" },
+    { "id": "nlb_sentinel", "col": 1, "row": 1, "label": "NLB 리스너", "sub": ":26380", "kind": "proc" },
+    { "id": "tg_sentinel", "col": 2, "row": 1, "label": "타깃 그룹", "sub": "전 노드 · nodePort :31001", "kind": "proc" },
+    { "id": "svc_sentinel", "col": 3, "row": 1, "label": "파드별 Service", "kind": "proc" },
+    { "id": "pod_sentinel", "col": 4, "row": 1, "label": "sentinel 컨테이너", "sub": "announce = NLB 주소", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "ec2_primary", "to": "nlb_server", "label": ":6380" },
+    { "from": "nlb_server", "to": "tg_server", "label": "전 노드 fanout" },
+    { "from": "tg_server", "to": "svc_server", "label": "nodePort 31000" },
+    { "from": "svc_server", "to": "pod_server" },
+
+    { "from": "ec2_sentinel", "to": "nlb_sentinel", "label": ":26380" },
+    { "from": "nlb_sentinel", "to": "tg_sentinel", "label": "전 노드 fanout" },
+    { "from": "tg_sentinel", "to": "svc_sentinel", "label": "nodePort 31001" },
+    { "from": "svc_sentinel", "to": "pod_sentinel" }
+  ],
+  "groups": [
+    { "id": "server_path", "label": "server 트래픽 (:6380)", "members": ["ec2_primary", "nlb_server", "tg_server", "svc_server", "pod_server"] },
+    { "id": "sentinel_path", "label": "sentinel 트래픽 (:26380)", "members": ["ec2_sentinel", "nlb_sentinel", "tg_sentinel", "svc_sentinel", "pod_sentinel"] }
+  ]
+}

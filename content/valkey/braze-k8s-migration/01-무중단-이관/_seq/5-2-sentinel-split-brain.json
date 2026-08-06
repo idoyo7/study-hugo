@@ -1,0 +1,52 @@
+{
+  "caption": "이관 중에는 Sentinel이 6대(EC2 3 + k8s 3)로 늘어난다. 발표자는 플랫폼 사이가 끊기면 각 3대가 독립적으로 failover를 결의해 한 샤드에 primary가 둘 생기고 데이터 손실이 난다고 설명한다. 고치려면 EC2 쪽에 7번째 Sentinel을 띄우고 quorum을 5로 올린다 — EC2 4표·k8s 3표 어느 쪽도 단독으로 5표를 못 채운다. 이관 전 quorum 값은 발표에 나오지 않는다.",
+  "participants": [
+    { "id": "es", "label": "EC2 Sentinel" },
+    { "id": "ks", "label": "k8s Sentinel" },
+    { "id": "shard", "label": "샤드" }
+  ],
+  "steps": [
+    {
+      "alt": "고침 전 — 6대가 3:3으로 갈린다",
+      "steps": [
+        {
+          "note": ["es", "ks"],
+          "lines": ["EC2 3대 + k8s 3대 = 6대", "플랫폼 간 파티션 발생"]
+        },
+        {
+          "msg": ["es", "shard"],
+          "label": "3대끼리 합의 → failover 결의"
+        },
+        {
+          "msg": ["ks", "shard"],
+          "label": "3대끼리 합의 → failover 결의"
+        },
+        {
+          "note": ["shard"],
+          "lines": ["양쪽이 독립적으로 새 primary 선출", "한 샤드에 primary 2개 → 데이터 손실"]
+        }
+      ],
+      "elseLabel": "고침 후 — EC2 +1, quorum 5",
+      "elseSteps": [
+        {
+          "note": ["es", "ks"],
+          "lines": ["EC2 3+1(7번째)=4대, k8s 3대 = 7대", "quorum을 5로 상향"]
+        },
+        {
+          "msg": ["es", "shard"],
+          "label": "4표뿐 → quorum 5 미달",
+          "dashed": true
+        },
+        {
+          "msg": ["ks", "shard"],
+          "label": "3표뿐 → quorum 5 미달",
+          "dashed": true
+        },
+        {
+          "note": ["shard"],
+          "lines": ["어느 쪽도 단독 failover 불가", "파티션 해소 후 정상 재개"]
+        }
+      ]
+    }
+  ]
+}

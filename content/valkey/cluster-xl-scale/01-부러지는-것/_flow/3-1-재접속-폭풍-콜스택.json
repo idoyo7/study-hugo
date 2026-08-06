@@ -1,0 +1,139 @@
+{
+  "caption": "재접속 폭풍에서 CPU가 실제로 타는 지점 — serverCron의 100ms tick마다 clusterCron이 죽은 peer 전원에 connect syscall을 다시 건다. #2154는 이 재시도를 cluster-node-timeout 창 안에서 ~750ms 간격 · ~10회로 흩뿌린다.",
+  "nodes": [
+    {
+      "id": "serverCron",
+      "col": 0,
+      "row": 1,
+      "label": "serverCron",
+      "sub": "메인 이벤트루프 tick",
+      "kind": "proc"
+    },
+    {
+      "id": "clusterCron",
+      "col": 1,
+      "row": 1,
+      "label": "clusterCron",
+      "sub": "죽은 peer 전원 재접속 시도",
+      "kind": "proc"
+    },
+    {
+      "id": "freeClusterLink",
+      "col": 2,
+      "row": 0,
+      "label": "freeClusterLink",
+      "sub": "끊긴 소켓 정리",
+      "kind": "proc"
+    },
+    {
+      "id": "connSocketConnect",
+      "col": 2,
+      "row": 1,
+      "label": "connSocketConnect",
+      "kind": "proc"
+    },
+    {
+      "id": "fix",
+      "col": 2,
+      "row": 3,
+      "label": "재접속 스로틀",
+      "sub": "cluster-node-timeout 내 분산 · ~750ms 간격 · ~10회 (#2154)",
+      "kind": "store"
+    },
+    {
+      "id": "connSocketClose",
+      "col": 3,
+      "row": 0,
+      "label": "connSocketClose",
+      "kind": "proc"
+    },
+    {
+      "id": "anetTcpGenericConnect",
+      "col": 3,
+      "row": 1,
+      "label": "anetTcpGenericConnect",
+      "kind": "proc"
+    },
+    {
+      "id": "__close",
+      "col": 4,
+      "row": 0,
+      "label": "__close",
+      "sub": "syscall",
+      "kind": "sink"
+    },
+    {
+      "id": "connect",
+      "col": 4,
+      "row": 1,
+      "label": "connect",
+      "kind": "proc"
+    },
+    {
+      "id": "__sys_connect",
+      "col": 5,
+      "row": 1,
+      "label": "__sys_connect",
+      "sub": "syscall",
+      "kind": "proc"
+    },
+    {
+      "id": "tcp_v4_connect",
+      "col": 6,
+      "row": 1,
+      "label": "tcp_v4_connect",
+      "sub": "커널 · CPU 소모 지점",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "serverCron",
+      "to": "clusterCron",
+      "label": "매 100ms 틱",
+      "rate": 100
+    },
+    {
+      "from": "clusterCron",
+      "to": "connSocketConnect",
+      "label": "죽은 peer 재접속",
+      "rate": 110
+    },
+    {
+      "from": "clusterCron",
+      "to": "freeClusterLink",
+      "label": "끊긴 링크 해제",
+      "rate": 110
+    },
+    {
+      "from": "clusterCron",
+      "to": "fix",
+      "label": "#2154 이후",
+      "dashed": true
+    },
+    {
+      "from": "freeClusterLink",
+      "to": "connSocketClose"
+    },
+    {
+      "from": "connSocketClose",
+      "to": "__close"
+    },
+    {
+      "from": "connSocketConnect",
+      "to": "anetTcpGenericConnect"
+    },
+    {
+      "from": "anetTcpGenericConnect",
+      "to": "connect"
+    },
+    {
+      "from": "connect",
+      "to": "__sys_connect"
+    },
+    {
+      "from": "__sys_connect",
+      "to": "tcp_v4_connect"
+    }
+  ]
+}

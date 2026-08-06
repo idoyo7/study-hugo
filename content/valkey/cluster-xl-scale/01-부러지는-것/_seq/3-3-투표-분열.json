@@ -1,0 +1,75 @@
+{
+  "caption": "shard1·shard3 replica가 같은 epoch에서 동시에 투표를 요청하면 생존 primary들의 표가 갈려 어느 쪽도 quorum을 못 채운다. #1018은 shard-id 사전순으로 랭크를 매겨 요청을 ~500ms씩 스태거해 shard1이 먼저, shard3가 뒤이어 당선되게 한다.",
+  "participants": [
+    {
+      "id": "r1",
+      "label": "shard1 replica"
+    },
+    {
+      "id": "r3",
+      "label": "shard3 replica"
+    },
+    {
+      "id": "v",
+      "label": "생존 primary들"
+    }
+  ],
+  "steps": [
+    {
+      "alt": "고침 전 — 동시 요청",
+      "steps": [
+        {
+          "msg": ["r1", "v"],
+          "label": "FAILOVER_AUTH_REQUEST (epoch=E)"
+        },
+        {
+          "msg": ["r3", "v"],
+          "label": "FAILOVER_AUTH_REQUEST (epoch=E)"
+        },
+        {
+          "note": ["v"],
+          "lines": ["epoch당 1표만 행사 가능", "두 요청 동시 도착 → 표 분산"]
+        },
+        {
+          "msg": ["v", "r1"],
+          "label": "AUTH_ACK (일부)",
+          "dashed": true
+        },
+        {
+          "msg": ["v", "r3"],
+          "label": "AUTH_ACK (일부)",
+          "dashed": true
+        },
+        {
+          "note": ["r1", "r3"],
+          "lines": ["양쪽 다 quorum 미달", "failover 실패 → 재시도"]
+        }
+      ],
+      "elseLabel": "고침 후 — #1018 rank 순 stagger",
+      "elseSteps": [
+        {
+          "note": ["r1", "r3"],
+          "lines": ["shard-id 사전순 랭크: shard1 < shard3", "shard3는 shard1보다 ~500ms 늦게 요청"]
+        },
+        {
+          "msg": ["r1", "v"],
+          "label": "FAILOVER_AUTH_REQUEST (epoch=E, t1)"
+        },
+        {
+          "msg": ["v", "r1"],
+          "label": "AUTH_ACK (quorum 확보)",
+          "dashed": true
+        },
+        {
+          "msg": ["r3", "v"],
+          "label": "FAILOVER_AUTH_REQUEST (epoch=E+1, t2≈t1+500ms)"
+        },
+        {
+          "msg": ["v", "r3"],
+          "label": "AUTH_ACK (quorum 확보)",
+          "dashed": true
+        }
+      ]
+    }
+  ]
+}
