@@ -378,7 +378,7 @@ spec:
 
 기존 두 정책은 양 극단이다 — `WhenEmpty`는 빈 노드만 지우고 `WhenEmptyOrUnderutilized`는 **규모를 안 묻고 통합**해 "10원 아끼려고 파드 40개를 옮긴다"는 불만을 낳았다. `Balanced`([core#2962](https://github.com/kubernetes-sigs/karpenter/pull/2962))는 절감/파괴 비율이 `0.5` 이상일 때만 승인하는 스코어 게이트를 그 사이에 얹는다(k=2 고정).
 
-**다만 `Balanced`는 모든 통합을 심사하지 않는다** — 빈 노드 삭제(`Emptiness`)는 정책 무관, 스코어 미적용이다. 게이트는 **비어있지 않은 노드**에만 걸린다. 스코어 공식·비용 모델은 [11 consolidation은 무엇을 하는가]({{< relref "11-consolidation-model.md" >}})가 소유한다.
+**다만 `Balanced`는 모든 통합을 심사하지 않는다** — 빈 노드 삭제(`Emptiness`)는 정책 무관, 스코어 미적용이다. 게이트는 **비어있지 않은 노드**에만 걸린다. 스코어 공식·비용 모델은 [13 consolidation 처리 흐름]({{< relref "13-consolidation-models.md" >}})이 소유한다.
 
 **켜는 법은 한 줄이고 feature gate가 없다.**
 
@@ -402,7 +402,7 @@ spec:
 | 비용 최우선, churn 감수 중 | **반쪽** — 한계 절감이 거부된다 |
 | 정책 전환 + 대규모 업그레이드 동시 | **부적합** — 원인이 섞인다 |
 
-`pod-deletion-cost`로 파드 중요도를 스코어에 반영할 수 있다 — 단 **`Balanced` 풀에서만** 보호로 작동하고, 같은 풀 다른 노드로 압력이 옮겨가기도 한다 — [11 §6]({{< relref "11-consolidation-model.md" >}}).
+`pod-deletion-cost`로 파드 중요도를 스코어에 반영할 수 있다 — 단 **`Balanced` 풀에서만** 보호로 작동하고, 같은 풀 다른 노드로 압력이 옮겨가기도 한다 — [13 §8.2]({{< relref "13-consolidation-models.md" >}}).
 
 ### 7.3 DRA와 preview instance types
 

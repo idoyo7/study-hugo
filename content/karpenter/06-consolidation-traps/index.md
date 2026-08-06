@@ -63,7 +63,7 @@ v1.14의 `consolidationPolicy: Balanced`도 해법이 아니다 — `ScoreMove`�
 {{< callout type="info" >}}
 **`Balanced`(1.14)를 켜도 이 부등식은 그대로다.** `RemoveInstanceTypeOptionsByPriceAndMinValues` 호출 지점(`consolidation.go:221`(일반)·`:278`(spot→spot)·`multinodeconsolidation.go:241`) 중 어느 것도 정책 분기 안에 없다 — `Balanced`는 그 필터를 통과한 커맨드에 나중에 얹히는 승인 게이트일 뿐이다(`balanced.go:220-221`). 따라서 "더 싼 쪽" 교체 일부를 **추가로 거부**할 뿐 "더 비싼 쪽" 교체는 만들지 않는다 — **§4의 복귀 경로 부재는 정책 선택과 무관하다.** `SavingsFraction <= 0`이면 `Score()`가 0이라 거부된다(`disruption/types.go:100-111`).
 
-스코어·k=2 근거는 [11 consolidation은 무엇을 하는가]({{< relref "11-consolidation-model.md" >}})가, 도입 시점 판정은 [02]({{< relref "02-changelog-maturity.md" >}}) §7.2가 소유한다.
+스코어·k=2 근거는 [13 consolidation 처리 흐름]({{< relref "13-consolidation-models.md" >}}) §7.2·§7.7이, 도입 시점 판정은 [02]({{< relref "02-changelog-maturity.md" >}}) §7.2가 소유한다.
 {{< /callout >}}
 
 ## 2. disruption은 weight를 모른다
