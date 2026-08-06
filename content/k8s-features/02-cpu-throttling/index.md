@@ -84,6 +84,7 @@ limit이 1코어(quota 100ms/period)일 때, 1코어에서만 돌면 100ms를 �
 | Go 1.24 이하 | 노드 코어 수 | `uber-go/automaxprocs` 필요. 이쪽은 **내림**(최소 1) |
 | JVM | cgroup 인지(`UseContainerSupport`, 기본 on) | 힙은 시작 시점 고정. GC 스레드 수가 많으면 대표적인 bursty 패턴 |
 | Node.js | libuv 스레드풀은 고정 4 | V8 old space는 시작 시 고정 |
+| Python | 노드 코어 수 (`os.cpu_count()`) | cgroup 자동 감지 없음 — 워커 공식 `2n+1`이 노드 기준으로 폭증. GIL 덕에 프로세스 하나는 ~1코어가 천장이지만, 그래서 워커·네이티브 스레드풀이 범인이 된다 → [06]({{< relref "06-python-gil-cfs" >}}) |
 
 **소수점 limit은 이 배선에서 항상 어긋난다.** kubelet의 Downward API는 `limits.cpu`를 **올림**해서 넘기는데(`ceil(0.6) = 1`) 커널 quota는 올림 없이 정확히 60ms다. `600m`·`1500m`·`2500m` 모두 같은 문제이고, **정수 코어만 둘이 맞는다.** 자세한 배선은 [01 §5 ④]({{< relref "01-inplace-pod-resize.md" >}})에 있다.
 
