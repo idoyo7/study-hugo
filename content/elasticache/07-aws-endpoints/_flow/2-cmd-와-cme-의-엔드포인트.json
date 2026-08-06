@@ -1,0 +1,153 @@
+{
+  "caption": "같은 애플리케이션이 두 모드에서 전혀 다른 경로를 탄다. 위쪽 CMD 는 엔드포인트가 역할별로 갈려 있고 홉마다 AWS 의 DNS 가 끼며, 아래쪽 CME 는 진입점 하나를 거친 뒤 클라이언트가 슬롯 소유 노드로 직결한다.",
+  "groups": [
+    {
+      "id": "gcmd",
+      "label": "① CMD — 라우팅은 DNS",
+      "members": ["ca", "cep", "cer", "cnp", "cnr", "cfo"]
+    },
+    {
+      "id": "gcme",
+      "label": "② CME — 라우팅은 클라이언트",
+      "members": ["ma", "mcfg", "mslot", "mnode"]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "ca",
+      "col": 0,
+      "row": 0,
+      "label": "앱 · 표준 클라",
+      "sub": "주소 2개만 안다",
+      "kind": "src"
+    },
+    {
+      "id": "cep",
+      "col": 1,
+      "row": 0,
+      "label": "primary EP",
+      "sub": "…ng.0001… · 항상 현 primary",
+      "kind": "proc"
+    },
+    {
+      "id": "cnp",
+      "col": 2,
+      "row": 0,
+      "label": "primary 노드",
+      "sub": "쓰기 전량",
+      "kind": "store"
+    },
+    {
+      "id": "cfo",
+      "col": 3,
+      "row": 0,
+      "label": "failover",
+      "sub": "DNS 갱신 · 앱 설정 무변경",
+      "kind": "sink"
+    },
+    {
+      "id": "cer",
+      "col": 1,
+      "row": 1,
+      "label": "reader EP",
+      "sub": "-ro · 라운드로빈 A 레코드",
+      "kind": "proc"
+    },
+    {
+      "id": "cnr",
+      "col": 2,
+      "row": 1,
+      "label": "replica 0~5",
+      "sub": "커넥션 재사용 시 편중",
+      "kind": "store"
+    },
+    {
+      "id": "ma",
+      "col": 0,
+      "row": 3,
+      "label": "앱 · cluster 클라",
+      "sub": "슬롯 맵을 직접 보유",
+      "kind": "src"
+    },
+    {
+      "id": "mcfg",
+      "col": 1,
+      "row": 3,
+      "label": "config EP",
+      "sub": "clustercfg · 멀티 A 레코드",
+      "kind": "query"
+    },
+    {
+      "id": "mslot",
+      "col": 2,
+      "row": 3,
+      "label": "슬롯 맵 적재",
+      "sub": "CLUSTER SLOTS · SHARDS",
+      "kind": "proc"
+    },
+    {
+      "id": "mnode",
+      "col": 3,
+      "row": 3,
+      "label": "샤드 1~500",
+      "sub": "슬롯 소유 노드로 직결",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "ca",
+      "to": "cep",
+      "label": "쓰기",
+      "rate": 620
+    },
+    {
+      "from": "cep",
+      "to": "cnp",
+      "label": "DNS 1홉",
+      "rate": 620
+    },
+    {
+      "from": "cnp",
+      "to": "cfo",
+      "label": "승격 시 이름 유지",
+      "dashed": true
+    },
+    {
+      "from": "ca",
+      "to": "cer",
+      "label": "읽기",
+      "rate": 900
+    },
+    {
+      "from": "cer",
+      "to": "cnr",
+      "label": "노드 1개로 해소",
+      "rate": 900
+    },
+    {
+      "from": "ma",
+      "to": "mcfg",
+      "label": "부트스트랩 1회",
+      "rate": 620
+    },
+    {
+      "from": "mcfg",
+      "to": "mslot",
+      "label": "임의 노드 1개",
+      "rate": 620
+    },
+    {
+      "from": "mslot",
+      "to": "mnode",
+      "label": "키마다 직접",
+      "rate": 620
+    },
+    {
+      "from": "ma",
+      "to": "mslot",
+      "label": "MOVED · ASK 면 재적재",
+      "dashed": true
+    }
+  ]
+}

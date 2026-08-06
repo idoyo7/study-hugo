@@ -1,0 +1,148 @@
+{
+  "caption": "Valkey 9.0 의 atomic slot migration 은 새 프로토콜을 발명하지 않고 replication + manual failover 를 슬롯 범위로 좁혀 재사용한다 — 스냅샷·증분·pause·takeover·정리의 다섯 국면이 CLUSTER SYNCSLOTS 서브커맨드 하나로 조율되고, 슬롯 소유권은 마지막 takeover 순간에만 넘어간다. 쓰기가 실제로 멈추는 구간은 PAUSED 부터 토폴로지 갱신 수신까지다.",
+  "participants": [
+    {
+      "id": "op",
+      "label": "운영자"
+    },
+    {
+      "id": "src",
+      "label": "source"
+    },
+    {
+      "id": "tgt",
+      "label": "target"
+    },
+    {
+      "id": "rep",
+      "label": "target 복제"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "op",
+        "src"
+      ],
+      "label": "CLUSTER MIGRATESLOTS SLOTSRANGE 0 100 NODE <target-id>"
+    },
+    {
+      "msg": [
+        "src",
+        "tgt"
+      ],
+      "label": "SYNCSLOTS ESTABLISH — 미소유 슬롯 쓰기 인가"
+    },
+    {
+      "msg": [
+        "tgt",
+        "rep"
+      ],
+      "label": "ESTABLISH 전달"
+    },
+    {
+      "msg": [
+        "tgt",
+        "src"
+      ],
+      "label": "+OK → 이후 양방향 ACK 하트비트",
+      "dashed": true
+    },
+    {
+      "note": [
+        "src"
+      ],
+      "lines": [
+        "fork → 해당 슬롯 키만 직렬화",
+        "형식은 RDB 가 아니라 AOF 커맨드 스트림"
+      ]
+    },
+    {
+      "msg": [
+        "src",
+        "tgt"
+      ],
+      "label": "스냅샷 … SYNCSLOTS SNAPSHOT-EOF"
+    },
+    {
+      "msg": [
+        "tgt",
+        "rep"
+      ],
+      "label": "스냅샷·증분 forward"
+    },
+    {
+      "note": [
+        "src",
+        "tgt"
+      ],
+      "lines": [
+        "이 구간 내내 source 는 정상 서빙 — ASK 도 TRYAGAIN 도 없다",
+        "변경분은 별도로 축적해 스냅샷 뒤에 증분으로 보낸다"
+      ]
+    },
+    {
+      "msg": [
+        "tgt",
+        "src"
+      ],
+      "label": "SYNCSLOTS REQUEST-PAUSE"
+    },
+    {
+      "note": [
+        "src"
+      ],
+      "lines": [
+        "출력 버퍼가 slot-migration-max-failover-repl-bytes",
+        "이하로 줄어든 뒤에만 pause — 그 슬롯 쓰기만 정지"
+      ]
+    },
+    {
+      "msg": [
+        "src",
+        "tgt"
+      ],
+      "label": "증분 잔량 … SYNCSLOTS PAUSED"
+    },
+    {
+      "msg": [
+        "tgt",
+        "src"
+      ],
+      "label": "SYNCSLOTS REQUEST-FAILOVER"
+    },
+    {
+      "msg": [
+        "src",
+        "tgt"
+      ],
+      "label": "FAILOVER-GRANTED",
+      "dashed": true
+    },
+    {
+      "note": [
+        "tgt"
+      ],
+      "lines": [
+        "takeover — 슬롯 primary 로 승격 후 토폴로지 전파",
+        "소유권이 넘어가는 유일한 순간"
+      ]
+    },
+    {
+      "msg": [
+        "tgt",
+        "rep"
+      ],
+      "label": "SYNCSLOTS FINISH"
+    },
+    {
+      "note": [
+        "src"
+      ],
+      "lines": [
+        "토폴로지 갱신 수신 → unpause",
+        "이제 소유하지 않는 키 삭제(trim)"
+      ]
+    }
+  ]
+}

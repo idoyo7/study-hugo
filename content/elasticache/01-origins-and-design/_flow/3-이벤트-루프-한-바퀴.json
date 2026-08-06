@@ -1,0 +1,98 @@
+{
+  "caption": "6.0 threaded I/O 가 떼어낸 것은 한 바퀴의 양 끝 두 구간뿐이다 — 소켓 read·프로토콜 파싱과 소켓 write. 가운데 구간은 메인 스레드가 직렬로 잡고 있다.",
+  "groups": [
+    {
+      "id": "gr",
+      "label": "① io-threads opt-in",
+      "members": ["read"]
+    },
+    {
+      "id": "gm",
+      "label": "메인 스레드 전용 · 직렬",
+      "members": ["exec", "aof"]
+    },
+    {
+      "id": "gw",
+      "label": "② io-threads 구간",
+      "members": ["write"]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "poll",
+      "col": 0,
+      "row": 0,
+      "label": "aeApiPoll",
+      "sub": "evport→epoll→kqueue→select",
+      "kind": "src"
+    },
+    {
+      "id": "read",
+      "col": 1,
+      "row": 0,
+      "label": "소켓 read",
+      "sub": "버퍼 채우기 + 첫 커맨드 파싱",
+      "kind": "proc"
+    },
+    {
+      "id": "exec",
+      "col": 2,
+      "row": 0,
+      "label": "커맨드 실행",
+      "sub": "processCommandAndResetClient",
+      "kind": "query"
+    },
+    {
+      "id": "aof",
+      "col": 3,
+      "row": 0,
+      "label": "AOF flush",
+      "sub": "flushAppendOnlyFile(0)",
+      "kind": "store"
+    },
+    {
+      "id": "write",
+      "col": 4,
+      "row": 0,
+      "label": "소켓 write",
+      "sub": "writeToClient · 배리어로 회수",
+      "kind": "proc"
+    },
+    {
+      "id": "next",
+      "col": 5,
+      "row": 0,
+      "label": "다음 바퀴",
+      "sub": "freeClientsInAsyncFreeQueue 후",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "poll",
+      "to": "read",
+      "label": "파일 이벤트 디스패치"
+    },
+    {
+      "from": "read",
+      "to": "exec",
+      "label": "fan-in 배리어 통과"
+    },
+    {
+      "from": "exec",
+      "to": "aof",
+      "label": "같은 스레드"
+    },
+    {
+      "from": "aof",
+      "to": "write",
+      "label": "fan-out 라운드로빈"
+    },
+    {
+      "from": "write",
+      "to": "next",
+      "label": "pending 합 = 0",
+      "dashed": true
+    }
+  ]
+}

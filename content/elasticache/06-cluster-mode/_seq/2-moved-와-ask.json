@@ -1,0 +1,132 @@
+{
+  "caption": "두 에러는 포맷이 한 글자만 다르고 같은 코드 경로에서 나오는데, 클라이언트가 해야 하는 일은 정반대다 — 왼쪽은 슬롯 맵을 갱신하고, 오른쪽은 절대 갱신하지 않은 채 ASKING 을 앞세워 그 요청 한 번만 옮긴다. 노드 A 는 클라이언트의 캐시가 가리킨 노드이고 노드 B 는 에러가 지목한 노드다.",
+  "participants": [
+    {
+      "id": "cli",
+      "label": "클라이언트"
+    },
+    {
+      "id": "a",
+      "label": "노드 A"
+    },
+    {
+      "id": "b",
+      "label": "노드 B"
+    }
+  ],
+  "steps": [
+    {
+      "alt": "슬롯 맵이 낡았다 → MOVED",
+      "steps": [
+        {
+          "msg": [
+            "cli",
+            "a"
+          ],
+          "label": "GET user:1 (슬롯 10778)"
+        },
+        {
+          "note": [
+            "a"
+          ],
+          "lines": [
+            "getNodeByQuery() base case:",
+            "이 슬롯의 정당한 주인은 B 다"
+          ]
+        },
+        {
+          "msg": [
+            "a",
+            "cli"
+          ],
+          "label": "-MOVED 10778 10.0.0.2:6379",
+          "dashed": true
+        },
+        {
+          "note": [
+            "cli"
+          ],
+          "lines": [
+            "영구 재배치 → 슬롯 맵 갱신",
+            "보통 CLUSTER SHARDS 로 전량 재조회"
+          ]
+        },
+        {
+          "msg": [
+            "cli",
+            "b"
+          ],
+          "label": "GET user:1 — 이후 계속 B 로"
+        }
+      ],
+      "elseLabel": "슬롯이 마이그레이션 중 → ASK",
+      "elseSteps": [
+        {
+          "msg": [
+            "cli",
+            "a"
+          ],
+          "label": "GET user:1 (A 는 여전히 슬롯 주인)"
+        },
+        {
+          "note": [
+            "a"
+          ],
+          "lines": [
+            "migrating_slot && missing_keys:",
+            "슬롯은 내 것인데 이 키만 이미 넘어갔다"
+          ]
+        },
+        {
+          "msg": [
+            "a",
+            "cli"
+          ],
+          "label": "-ASK 10778 10.0.0.3:6379",
+          "dashed": true
+        },
+        {
+          "note": [
+            "cli"
+          ],
+          "lines": [
+            "단발성 → 슬롯 맵을 갱신하면 안 된다"
+          ]
+        },
+        {
+          "msg": [
+            "cli",
+            "b"
+          ],
+          "label": "ASKING"
+        },
+        {
+          "msg": [
+            "cli",
+            "b"
+          ],
+          "label": "GET user:1 — 이 한 번만"
+        },
+        {
+          "note": [
+            "b"
+          ],
+          "lines": [
+            "importing_slot && c->flag.asking → 서빙",
+            "resetClient() 가 플래그를 즉시 지운다"
+          ]
+        }
+      ]
+    },
+    {
+      "note": [
+        "cli",
+        "a"
+      ],
+      "lines": [
+        "ASKING 을 빼면 B 가 MOVED 로 A 를 가리키고 A 는 다시 ASK → 핑퐁",
+        "다중 키가 걸치면 ASK 대신 -TRYAGAIN — 슬롯 이동이 끝나야 풀린다"
+      ]
+    }
+  ]
+}

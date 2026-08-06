@@ -1,0 +1,112 @@
+{
+  "caption": "같은 코어 수를 쓰는 방법이 다르다 — memcached 는 커넥션을 워커에 배분한 뒤 read·parse·execute·write 를 그 워커에서 끝내고 경쟁은 해시값으로 샤딩된 아이템 락에서만 해소하는 반면, Redis 는 io-threads 로 소켓 읽기·쓰기와 프로토콜 파싱까지만 나누고 커맨드 실행을 메인 스레드 하나로 모은다.",
+  "groups": [
+    {
+      "id": "mc",
+      "label": "memcached 1.6.45",
+      "members": ["c1", "w", "lock", "bg"]
+    },
+    {
+      "id": "rd",
+      "label": "Redis 8.10.0",
+      "members": ["c2", "io", "main", "scale"]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "c1",
+      "col": 0,
+      "row": 0,
+      "label": "커넥션 N",
+      "kind": "src"
+    },
+    {
+      "id": "w",
+      "col": 1,
+      "row": 0,
+      "label": "워커 -t N",
+      "sub": "각자 event base · 실행까지",
+      "kind": "proc"
+    },
+    {
+      "id": "lock",
+      "col": 2,
+      "row": 0,
+      "label": "item_locks",
+      "sub": "hv 해시로 1k~32k 샤딩",
+      "kind": "store"
+    },
+    {
+      "id": "bg",
+      "col": 3,
+      "row": 0,
+      "label": "배경 스레드",
+      "sub": "lru_maintainer · crawler · mover",
+      "kind": "sink"
+    },
+    {
+      "id": "c2",
+      "col": 0,
+      "row": 2,
+      "label": "커넥션 N",
+      "kind": "src"
+    },
+    {
+      "id": "io",
+      "col": 1,
+      "row": 2,
+      "label": "io-threads",
+      "sub": "read/write + 프로토콜 파싱",
+      "kind": "proc"
+    },
+    {
+      "id": "main",
+      "col": 2,
+      "row": 2,
+      "label": "메인 스레드",
+      "sub": "커맨드 실행 전량",
+      "kind": "query"
+    },
+    {
+      "id": "scale",
+      "col": 3,
+      "row": 2,
+      "label": "인스턴스 N개",
+      "sub": "수평 확장 = 샤딩 운영",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "c1",
+      "to": "w",
+      "label": "round-robin 또는 NAPI ID"
+    },
+    {
+      "from": "w",
+      "to": "lock",
+      "label": "아이템 1개 단위"
+    },
+    {
+      "from": "lock",
+      "to": "bg",
+      "label": "축출·만료·페이지 재배치",
+      "dashed": true
+    },
+    {
+      "from": "c2",
+      "to": "io"
+    },
+    {
+      "from": "io",
+      "to": "main",
+      "label": "직렬화 지점"
+    },
+    {
+      "from": "main",
+      "to": "scale",
+      "label": "코어를 더 쓰려면",
+      "dashed": true
+    }
+  ]
+}

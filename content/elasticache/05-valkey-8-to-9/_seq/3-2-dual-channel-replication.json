@@ -1,0 +1,91 @@
+{
+  "caption": "full sync 가 두 커넥션으로 갈라진다 — main channel 은 fork 시점의 end offset 부터 증분을 흘리고, bgsave 자식 프로세스가 rdb-channel 소켓에 RDB 를 직접 쓴다. 증분이 쌓이는 곳이 primary 의 client output buffer 에서 replica 의 로컬 버퍼로 옮겨간 것이 이 설계의 전부이고, 그 버퍼의 상한은 replica 쪽 client-output-buffer-limit replica 하드 리밋이다.",
+  "participants": [
+    {
+      "id": "rep",
+      "label": "replica"
+    },
+    {
+      "id": "pri",
+      "label": "primary"
+    },
+    {
+      "id": "child",
+      "label": "bgsave 자식"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "rep",
+        "pri"
+      ],
+      "label": "REPLCONF capa dual-channel (main channel)"
+    },
+    {
+      "msg": [
+        "pri",
+        "rep"
+      ],
+      "label": "+DUALCHANNELSYNC — RDB 대신 이 응답"
+    },
+    {
+      "msg": [
+        "rep",
+        "pri"
+      ],
+      "label": "두 번째 연결 개설 = rdb-channel"
+    },
+    {
+      "note": [
+        "pri"
+      ],
+      "lines": [
+        "fork 전에 snapshot 의 end repl-offset 통지",
+        "main channel 을 replication backlog 에 부착"
+      ]
+    },
+    {
+      "msg": [
+        "pri",
+        "child"
+      ],
+      "label": "fork"
+    },
+    {
+      "msg": [
+        "child",
+        "rep"
+      ],
+      "label": "RDB 바이트 — 자식이 소켓에 직접 write"
+    },
+    {
+      "msg": [
+        "pri",
+        "rep"
+      ],
+      "label": "end offset 이후 증분 스트림 (동시 진행)",
+      "dashed": true
+    },
+    {
+      "note": [
+        "rep"
+      ],
+      "lines": [
+        "증분은 replica 로컬 버퍼에 축적",
+        "COB 하드 리밋 초과 → 읽기 핸들러 분리",
+        "\"Replication buffer limit reached, stopping buffering.\""
+      ]
+    },
+    {
+      "note": [
+        "rep",
+        "pri"
+      ],
+      "lines": [
+        "RDB 로드 완료 → rdb-channel close → 버퍼 적용 → 정상 스트리밍",
+        "관측: replicas_repl_buffer_size / _peak / replicas_waiting_psync"
+      ]
+    }
+  ]
+}
