@@ -94,7 +94,7 @@ GIL의 천장은 **프로세스당**이다. gunicorn 워커 N개면 N코어분�
 
 HuggingFace text-embeddings-inference의 실측이 크기를 보여준다. 같은 `--cpus=2` 제한에서 스레드풀 환경변수만 limit에 맞췄을 때 처리량이 **1.82 → 11.03 req/s, 6배**다(제한 없는 기준선은 16.87 — "limit을 걸면 9배 느려진다"가 아니라, 그중 CPU가 4→2로 준 몫을 뺀 스레드풀 불일치의 몫이 6배라는 게 정확한 독해다).
 
-파이썬 고유의 복병도 하나 있다. FastAPI에서 `async def`가 아닌 `def` 경로 함수는 anyio 스레드풀에서 돌고, 그 풀의 기본 토큰은 **40개**다. `os.cpu_count()`와 무관하게, 500m 파드 안에서 GIL을 다투는 스레드 40개가 생길 수 있다 — "워커 수만 줄이면 된다"는 처방의 사각지대다.
+파이썬 고유의 복병도 하나 있다. FastAPI에서 `async def`가 아닌 `def` 경로 함수는 [anyio 스레드풀](https://anyio.readthedocs.io/en/stable/threads.html)에서 돌고, 그 풀의 기본 토큰은 **40개**다. `os.cpu_count()`와 무관하게, 500m 파드 안에서 GIL을 다투는 스레드 40개가 생길 수 있다 — "워커 수만 줄이면 된다"는 처방의 사각지대다.
 
 ### ③ 1코어 미만 limit — 슬라이스 입도가 무기가 된다
 
@@ -108,7 +108,7 @@ PEP 703의 free-threaded 빌드는 3.13에서 실험(`python3.13t`), PEP 779 승
 
 ## 5. 잘리면 더 아프게 잘린다 — GIL 홀더 스로틀
 
-[02 §3]({{< relref "02-cpu-throttling.md" >}})의 "컨테이너 전체가 동시에 멈춘다"는 파이썬에서 한 단계 더 나쁘게 성립한다. §2에서 본 대로 throttle은 per-CPU 런큐 단위다 — 그런데 **GIL 홀더가 있는 런큐 하나만 잘려도, 다른 코어에서 아직 quota가 남아 멀쩡히 돌 수 있는 스레드들까지 전부 GIL 대기로 멈춘다.** 커널 회계로는 일부만 잘렸는데 애플리케이션은 전면 정지다. 잘린 시간은 [02 §3]({{< relref "02-cpu-throttling.md" >}})의 경로 그대로 APM 스팬 사이의 빈 구간이 되고, 여기에 GIL 대기분이 얹힌다.
+§4가 **잘리게 되는 경로**였다면 이 절은 **잘린 순간의 비용**이다 — 네 갈래 중 어느 길로 잘렸든 여기부터는 공통이다. [02 §3]({{< relref "02-cpu-throttling.md" >}})의 "컨테이너 전체가 동시에 멈춘다"는 파이썬에서 한 단계 더 나쁘게 성립한다. §2에서 본 대로 throttle은 per-CPU 런큐 단위다 — 그런데 **GIL 홀더가 있는 런큐 하나만 잘려도, 다른 코어에서 아직 quota가 남아 멀쩡히 돌 수 있는 스레드들까지 전부 GIL 대기로 멈춘다.** 커널 회계로는 일부만 잘렸는데 애플리케이션은 전면 정지다. 잘린 시간은 [02 §3]({{< relref "02-cpu-throttling.md" >}})의 경로 그대로 APM 스팬 사이의 빈 구간이 되고, 여기에 GIL 대기분이 얹힌다.
 
 이 모양은 OS 이론의 **lock-holder preemption**과 같은 구조다(락을 쥔 스레드가 멈추면 코어가 남아돌아도 대기자 전원이 멈춘다). 흥미로운 건 커널의 최근 행보다 — "CFS tasks can end up **throttled while holding locks** that other, non-throttled tasks are blocking on"이라는 문제 인식 아래, 스로틀 대상을 즉시 dequeue하지 않고 **유저스페이스 복귀 지점까지 미루는** 작업(defer throttle to user entry)이 진행돼 왔다. 커널 락을 쥔 채 얼어붙는 일을 없애기 위해서다. 그런데 GIL은 futex 기반 **유저스페이스 락이라 이 보호의 범위 밖이다.** 커널이 자기 집의 우선순위 역전은 고쳐도, 같은 형태의 파이썬 문제는 구조적으로 남는다.
 
@@ -190,5 +190,5 @@ exec gunicorn -w "$WORKERS" app:app
 - [CPython #109595](https://github.com/python/cpython/issues/109595) — `PYTHON_CPU_COUNT`가 "자동 감지의 의도적 포기"인 이유(JDK-8281571 인용) · [#80235](https://github.com/python/cpython/issues/80235) — 2019년 요청이 2023년 수동 오버라이드로 닫힌 경위
 - [Go 1.25 — container-aware GOMAXPROCS](https://go.dev/blog/container-aware-gomaxprocs) — 대비군: quota 자동 반영 + 주기 재조정
 - 사례: [Numerator — Requests are all you need](https://www.numeratorengineering.com/requests-are-all-you-need-cpu-limits-and-throttling-in-kubernetes/)(§4 ③으로 재해석) · [HuggingFace TEI #170](https://github.com/huggingface/text-embeddings-inference/issues/170)(§4 ②) · [LiteLLM prod 가이드](https://docs.litellm.ai/docs/proxy/prod)(§4 ①) · [OpenBLAS #1155](https://github.com/OpenMathLib/OpenBLAS/issues/1155)
-- [FastAPI — Docker 배포](https://fastapi.tiangolo.com/deployment/docker/) · [gunicorn design](https://gunicorn.org/design/) — 워커 산정의 공식 입장
+- [FastAPI — Docker 배포](https://fastapi.tiangolo.com/deployment/docker/) · [gunicorn design](https://gunicorn.org/design/) — 워커 산정의 공식 입장 · [anyio — threads](https://anyio.readthedocs.io/en/stable/threads.html) — §4 ②의 기본 40토큰 리미터
 - [kernel PSI](https://docs.kernel.org/accounting/psi.html) · [commit e7fcd7622823](https://github.com/torvalds/linux/commit/e7fcd762282332f765af2035a9568fb126fa3c01) — cgroup 레벨 `full`의 의미 · [K8s PSI metrics](https://kubernetes.io/docs/reference/instrumentation/understand-psi-metrics/) · [py-spy](https://github.com/benfred/py-spy)
