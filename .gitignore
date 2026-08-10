@@ -7,3 +7,6 @@
 _work/
 # eks-upgrade 섹션의 원본 소스(마스킹 전 계정ID·endpoint·실명 포함) — 발행 대상 아님
 finance-upgrade/
+
+# humanize-docs 작업 디렉토리
+_workspace/
