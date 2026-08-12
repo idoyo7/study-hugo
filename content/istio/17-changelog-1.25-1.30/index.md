@@ -7,22 +7,22 @@ weight: 17
 
 {{< callout type="info" >}}
 **한눈에**
-- 이 구간 최대 사건은 ambient가 아니라 **native sidecar 기본화(1.27.0)**다. `istio-proxy`가 일반 컨테이너에서 **init 컨테이너(`restartPolicy: Always`)**로 옮겨가면서 파드 스펙·기동 순서·종료 순서·Job 완료 판정이 전부 바뀐다.
-- **1.27 change-notes의 "default to `true`"는 틀렸다.** 코드가 등록하는 기본값은 문자열 `"auto"`다(1.27.0 `pilot/pkg/features/pilot.go:307`, 직전 1.26.0은 `experimental.go:179`에서 bool `false`). `true`는 무조건 활성, `"auto"`는 **노드 kubelet 버전 조건부**라 판단이 완전히 다르다.
-- **전환 시점을 정하는 건 Istio 버전이 아니라 노드 kubelet 버전이다.** `DetectNativeSidecar`는 **모든 Node**를 훑어 kubelet 마이너가 하나라도 33 미만이면 끈다(`pkg/kube/inject/webhook.go:1235-1286`, `minVersion := 33`). 1.30 + k8s 1.32에서는 **안 켜진다.** 우리 목표(k8s **1.35**)에서는 켜지고, green(k8s 1.31)에서는 끝까지 안 켜진다.
-- **green(k8s 1.31)에는 1.30을 설치할 수 없다** — 1.30의 k8s 하한이 1.32다. green 위에서 도달 가능한 상한은 1.29(EOL ~2026-08)이므로, 목표 1.30.3은 **k8s 1.35 신규 클러스터에서만** 성립한다(§1·§8).
-- **`holdApplicationUntilProxyStarts`는 native가 켜지면 조용히 무효가 된다.** 템플릿이 `$holdProxy := and (…hold…) (not $nativeSidecar)`로 계산해 `postStart: pilot-agent wait` 훅을 아예 렌더하지 않고 대신 `preStop` drain 훅을 붙인다(1.30.3 `injection-template.yaml:71-77,215-235`). **값을 지우는 게 조치가 아니다 — 남아 있어도 아무 일도 안 한다.**
-- **사용자 init 컨테이너가 메시 안으로 들어온다.** `reorderPod`가 classic에서는 `istio-init`을 initContainers **마지막**에("iptables setup last so we do not blackhole init containers"), native에서는 **맨 앞**에("istio first, so init containers are part of the mesh") 놓는다(`webhook.go:805-825`). init의 egress가 iptables·mTLS·`AuthorizationPolicy` 대상이 된다. **릴리스노트에 이 항목이 없다.**
+- 이 구간의 최대 사건은 ambient가 아니라 **native sidecar 기본화(1.27.0)**다. `istio-proxy`가 일반 컨테이너를 떠나 **init 컨테이너(`restartPolicy: Always`)**가 되면서 파드 스펙·기동 순서·종료 순서·Job 완료 판정이 한꺼번에 달라진다.
+- **1.27 change-notes의 "default to `true`"는 틀렸다.** 코드가 등록하는 기본값은 문자열 `"auto"`다(1.27.0 `pilot/pkg/features/pilot.go:307`, 직전 1.26.0은 `experimental.go:179`의 bool `false`). `true`면 무조건 활성이지만 `"auto"`는 **노드 kubelet 버전 조건부**라 판단이 완전히 달라진다.
+- **전환 시점을 정하는 건 Istio 버전이 아니라 노드 kubelet 버전이다.** `DetectNativeSidecar`가 **모든 Node**를 훑어 kubelet 마이너가 하나라도 33 미만이면 끈다(`pkg/kube/inject/webhook.go:1235-1286`, `minVersion := 33`). 1.30 + k8s 1.32 조합에서는 **안 켜진다.** 목표인 k8s **1.35**에서는 켜지고, green(k8s 1.31)에서는 끝까지 안 켜진다.
+- **green(k8s 1.31)에는 1.30을 설치할 수 없다** — 1.30의 k8s 하한이 1.32다. green에서 닿는 상한이 1.29(EOL ~2026-08)이니 목표 1.30.3은 **k8s 1.35 신규 클러스터에서만** 성립한다(§1·§8).
+- **`holdApplicationUntilProxyStarts`는 native가 켜지면 조용히 무효가 된다.** 템플릿이 `$holdProxy := and (…hold…) (not $nativeSidecar)`로 계산해 `postStart: pilot-agent wait` 훅을 렌더에서 빼고 그 자리에 `preStop` drain 훅을 놓는다(1.30.3 `injection-template.yaml:71-77,215-235`). **값을 지우는 게 조치가 아니다 — 남겨둬도 아무 일도 일어나지 않는다.**
+- **사용자 init 컨테이너가 메시 안으로 들어온다.** `reorderPod`는 classic에서 `istio-init`을 initContainers **마지막**에("iptables setup last so we do not blackhole init containers"), native에서 **맨 앞**에("istio first, so init containers are part of the mesh") 둔다(`webhook.go:805-825`). init의 egress가 iptables·mTLS·`AuthorizationPolicy` 대상이 된다. **릴리스노트에 이 항목이 없다.**
 - **1.29 차트 통합의 이름 변경은 우리에게 해당 없을 가능성이 크다.** upgrade-notes는 `ClusterRole istiod` → `istiod-clusterrole` 매핑표를 싣지만, 로컬 클론의 istiod 차트는 **1.22.0부터 이미 신 이름**이고 base 차트 템플릿은 1.28.0↔1.30.3이 동일하다. 체크리스트를 "rename 대응"에서 "구 이름 orphan 탐색"으로 바꿔야 한다.
-- **알람이 조용히 죽는 자리가 셋, 라우팅이 조용히 바뀌는 자리가 둘이다** — 1.29의 서킷브레이커 remaining 메트릭 기본 비활성·stats 압축 기본 활성·디버그 엔드포인트 인증(15014→1.30의 15010)이 앞의 셋, 1.30의 동일 hostname 서비스 선택 로직 변경(`PILOT_SIDECAR_PICK_BEST_SERVICE_NAMESPACE`, 기본 `true`)과 `retryBudget` 기본 `percent` 0.2%→20% 수정([#59504](https://github.com/istio/istio/issues/59504), **100배 차이**)이 뒤의 둘이다. 다섯 다 에러가 없다.
-- **sidecar deprecate 신호는 이 구간에 없다.** 1.30까지 어떤 공지·문서도 sidecar mode를 deprecated로 표시하지 않았고, native sidecar 기본화·sidecar용 nftables 지원(1.27)은 sidecar 경로에 대한 **투자**다. 재검토 트리거는 §5에 다섯 개로 못박았다. 판정은 native sidecar 검증·플래그/메트릭 grep·Gateway API CRD 확인·CVE 패치가 **지금**, stats 압축·디버그 엔드포인트 정리·`seccompProfile`이 **다음 분기**, nftables·`TrafficExtension`·agentgateway·ambient가 **보류**다.
+- **알람이 조용히 죽는 자리가 셋, 라우팅이 조용히 바뀌는 자리가 둘이다** — 앞의 셋은 1.29의 서킷브레이커 remaining 메트릭 기본 비활성·stats 압축 기본 활성·디버그 엔드포인트 인증(15014→1.30의 15010), 뒤의 둘은 1.30의 동일 hostname 서비스 선택 로직 변경(`PILOT_SIDECAR_PICK_BEST_SERVICE_NAMESPACE`, 기본 `true`)과 `retryBudget` 기본 `percent` 0.2%→20% 수정([#59504](https://github.com/istio/istio/issues/59504), **100배 차이**)이다. 다섯 다 에러가 없다.
+- **sidecar deprecate 신호는 이 구간에 없다.** 1.30까지 어떤 공지·문서도 sidecar mode를 deprecated로 표시하지 않았고, native sidecar 기본화와 sidecar용 nftables 지원(1.27)은 sidecar 경로에 대한 **투자**다. 재검토 트리거는 §5에 다섯 개로 못박았다. 판정은 native sidecar 검증·플래그/메트릭 grep·Gateway API CRD 확인·CVE 패치가 **지금**, stats 압축·디버그 엔드포인트 정리·`seccompProfile`이 **다음 분기**, nftables·`TrafficExtension`·agentgateway·ambient가 **보류**다.
 {{< /callout >}}
 
-> **왜 이 문서인가.** 우리가 목표로 잡은 **1.30.3이 정확히 이 구간의 끝**이다. 그래서 이건 남의 릴리스노트 요약이 아니고 **우리 업그레이드가 반드시 통과할 변경 목록**이다. 이 구간의 헤드라인은 전부 ambient(멀티클러스터 beta, DNS 캡처 기본화, 마이그레이션 가이드 신설)인데 우리는 ambient를 안 쓴다. 그런데도 못 넘어가는 게 세 종류 남는다 — ① **파드 스펙 자체를 바꾸는 것**(native sidecar), ② **리소스 이름·차트 구조를 바꾸는 것**(1.29 통합), ③ **플래그·메트릭 기본값을 바꿔 알람을 무효화하는 것**. CI는 셋 중 어느 것도 못 잡는다. ①은 렌더 결과가 유효한 yaml이고, ②는 Helm이 에러를 안 내고, ③은 쿼리가 0을 리턴할 뿐이다.
+> **왜 이 문서인가.** 목표로 잡은 **1.30.3이 정확히 이 구간의 끝**이다. 그러니 남의 릴리스노트 요약이 아닌 **우리 업그레이드가 반드시 통과할 변경 목록**이다. 헤드라인은 전부 ambient(멀티클러스터 beta, DNS 캡처 기본화, 마이그레이션 가이드 신설)이고 우리는 ambient를 안 쓰는데, 그래도 못 넘어갈 것이 세 종류 남는다 — ① **파드 스펙 자체를 바꾸는 것**(native sidecar), ② **리소스 이름·차트 구조를 바꾸는 것**(1.29 통합), ③ **플래그·메트릭 기본값을 바꿔 알람을 무효화하는 것**. CI는 셋 중 어느 것도 못 잡는다. ①의 렌더 결과는 유효한 yaml이고 ②에서 Helm은 에러를 안 낸다. ③은 쿼리가 0을 리턴할 뿐이다.
 >
-> 축이 겹치는 문서는 넘긴다. istiod 부하·`GOMAXPROCS`·xDS 커넥션 재분배 같은 **메커니즘**은 [09 istiod 스케일링]({{< relref "09-istiod-scaling-connections.md" >}})이 소유하고 여기서는 "**버전이 그 메커니즘의 무엇을 바꿨나**"만 쓴다. 1.20~1.24 구간은 [10 changelog 1.20→1.24]({{< relref "16-changelog-1.20-1.24.md" >}})가, 우리 클러스터의 차트·values·이관 절차는 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}})가 소유한다.
+> 축이 겹치는 문서는 넘긴다. istiod 부하·`GOMAXPROCS`·xDS 커넥션 재분배 같은 **메커니즘**은 [09 istiod 스케일링]({{< relref "09-istiod-scaling-connections.md" >}})의 몫이고 여기서는 "**버전이 그 메커니즘의 무엇을 바꿨나**"만 쓴다. 1.20~1.24 구간은 [10 changelog 1.20→1.24]({{< relref "16-changelog-1.20-1.24.md" >}}), 우리 클러스터의 차트·values·이관 절차는 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}})가 소유한다.
 
-> 근거 기준: 릴리스노트·업그레이드 노트는 `istio/istio.io` 로컬 클론의 `content/en/news/releases/1.2{5..9}.x`·`1.30.x`(`--depth 1` 스냅샷이라 문서 git 이력은 없다), 코드·차트 인용은 `istio/istio` full-history 클론의 **태그 체크아웃**(주로 `1.30.3`, 도입 시점 판정은 `1.26.0`/`1.27.0`/`1.28.0`/`1.29.0` 대조)이다. 릴리스일은 `gh release` API, EOL은 istio.io의 `data/compatibility/supportStatus.yml`. 기준 시각 2026-07-30. **문서와 코드가 어긋나는 곳은 코드를 따르고, 어긋난 사실 자체를 본문에 남긴다.**
+> 근거 기준: 릴리스노트·업그레이드 노트는 `istio/istio.io` 로컬 클론의 `content/en/news/releases/1.2{5..9}.x`·`1.30.x`(`--depth 1` 스냅샷이라 문서 git 이력은 없다). 코드·차트 인용은 `istio/istio` full-history 클론의 **태그 체크아웃**으로, 주로 `1.30.3`이고 도입 시점 판정은 `1.26.0`/`1.27.0`/`1.28.0`/`1.29.0` 대조다. 릴리스일은 `gh release` API, EOL은 istio.io의 `data/compatibility/supportStatus.yml`. 기준 시각 2026-07-30. **문서와 코드가 어긋나는 곳은 코드를 따른다. 어긋났다는 사실 자체도 본문에 남긴다.**
 
 ## 1. 타임라인 — 1.25~1.30
 
@@ -37,18 +37,16 @@ weight: 17
 
 버전별 breaking·필수 조치는 이렇다.
 
-- **1.25.0**: **OpenCensus 트레이싱 제거.** Grafana ≥7.2 요구. `istioctl analyze --recursive`·`proxy-status --xds-via-agents` 플래그 제거.
-- **1.26.0**: `ENABLE_AUTO_SNI` 플래그·코드패스 제거. **`MAX_CONNECTIONS_PER_SOCKET_EVENT_LOOP` 기본 0→1** — upgrade-notes엔 없고 change-notes에만 있다.
-- **1.27.0**: **native sidecar 기본화**(§2). Lightstep·OpenCensus **완전 제거**. Grafana 대시보드 UID 고정 → **업그레이드 후 재생성 필요**. 플러그인 CA `cacerts` 불완전 시 조용한 self-signed 폴백 → **명시적 기동 실패**.
-- **1.28.0**: `METRIC_ROTATION_INTERVAL`·`METRIC_GRACEFUL_DELETION_INTERVAL` **제거** → `sidecar.istio.io/statsEvictionInterval`. `PILOT_SPAWN_UPSTREAM_SPAN_FOR_GATEWAY` 기본 `true`. accept 제한이 **명시 포트 바인드 리스너까지** 확장. `BackendTLSPolicy` v1alpha3·`InferencePool` alpha/rc 제거.
-- **1.29.0**: **base/istiod 차트 통합**(§3). **디버그 엔드포인트 인가 기본 on**(15014). **CB remaining 메트릭 기본 off**. **stats 압축 기본 on** + `statsCompression` 어노테이션 제거. istiod `GOMEMLIMIT` 100%→90%.
-- **1.30.0**: **Gateway API CRD v1.5.x 필수**(설치돼 있는 경우). **sidecar 서비스 네임스페이스 선택 로직 변경.** **XDS 디버그(15010) 인증 필수** — CVE-2026-31838. `retryBudget` 기본 `percent` 0.2%→20% 수정. CNI config 권한 0644→0600. `istioctl` 최소 k8s 1.32.
+- **1.25.0**: **OpenCensus 트레이싱 제거.** Grafana는 ≥7.2를 요구한다. 플래그 `istioctl analyze --recursive`·`proxy-status --xds-via-agents` 제거.
+- **1.26.0**: `ENABLE_AUTO_SNI`는 플래그와 코드패스가 함께 제거. **`MAX_CONNECTIONS_PER_SOCKET_EVENT_LOOP` 기본 0→1** — upgrade-notes엔 없고 change-notes에만 있다.
+- **1.27.0**: **native sidecar 기본화**(§2). Lightstep·OpenCensus **완전 제거**. Grafana 대시보드 UID가 고정돼 **업그레이드 후 재생성이 필요**하다. 플러그인 CA `cacerts`가 불완전할 때의 조용한 self-signed 폴백이 **명시적 기동 실패**로 바뀐다.
+- **1.28.0**: `METRIC_ROTATION_INTERVAL`·`METRIC_GRACEFUL_DELETION_INTERVAL` **제거**, 대체는 `sidecar.istio.io/statsEvictionInterval`. `PILOT_SPAWN_UPSTREAM_SPAN_FOR_GATEWAY` 기본 `true`. accept 제한이 **명시 포트 바인드 리스너까지** 확장. `BackendTLSPolicy` v1alpha3·`InferencePool` alpha/rc 제거.
+- **1.29.0**: **base/istiod 차트 통합**(§3). **디버그 엔드포인트 인가 기본 on**(15014). **CB remaining 메트릭 기본 off**. **stats 압축 기본 on**과 함께 `statsCompression` 어노테이션 제거. istiod `GOMEMLIMIT` 100%→90%.
+- **1.30.0**: **Gateway API CRD v1.5.x 필수**(설치돼 있는 경우). **sidecar 서비스 네임스페이스 선택 로직 변경.** **XDS 디버그(15010) 인증 필수** — CVE-2026-31838. `retryBudget` 기본 `percent` 0.2%→20% 수정. CNI config 권한 0644→0600. `istioctl`의 최소 k8s는 1.32.
 
-**오늘(2026-07-30) 기준 공식 지원 중인 마이너는 1.29와 1.30 둘뿐이다.** 1.28은 29일 전에 EOL됐고, 우리가 하한으로 가정한 1.24는 **13개월 전(2025-06-24)에 이미 EOL**이다. 지원 규칙은 "N+2 마이너 릴리스 후 6주까지"이므로 1.29도 약 한 달 안에 나간다 — **1.30.3은 지금 여유가 있는 유일한 선택지**이고 그 여유도 1.32가 나오면 끝난다.
+**오늘(2026-07-30) 기준 공식 지원 마이너는 1.29와 1.30 둘뿐이다.** 1.28은 29일 전 EOL, 하한으로 가정한 1.24는 **13개월 전(2025-06-24)에 이미 EOL**이다. 지원 규칙이 "N+2 마이너 릴리스 후 6주까지"라 1.29도 약 한 달 안에 나간다. **여유가 남은 선택지는 1.30.3뿐**이고 그 여유마저 1.32가 나오면 끝난다.
 
-k8s 하한이 순서 제약을 만든다. 1.28까지는 k8s 1.29를 받아주지만 1.29부터 하한이 1.31, 1.30부터 1.32다. 반대로 **1.24 계열은 k8s ≤1.31이라 목표 1.35에서 아예 지원 대상 밖**이다. k8s를 먼저 올리면 현재 istio가 범위를 벗어나고, istio를 늦게 올리면 목표 버전이 EOL로 밀린다(§8).
-
-**이 하한이 경로 하나를 통째로 지운다.** green은 k8s **1.31**이므로 1.30(하한 1.32)을 green에 설치할 수 없다 — green에서 도달 가능한 상한은 **1.29**(1.31~1.35)이고 그마저 EOL이 ~2026-08이다. 즉 목표 1.30.3은 **1.35 신규 클러스터에서만** 성립한다(§8).
+k8s 하한은 순서 제약을 만든다. 1.28까지는 k8s 1.29를 받아주지만 하한이 1.29부터 1.31, 1.30부터 1.32로 오른다. 거꾸로 **1.24 계열은 k8s ≤1.31이라 목표 1.35에서는 지원 대상 밖**이다. k8s를 먼저 올리면 현재 istio가 범위를 벗어나고 istio를 늦게 올리면 목표 버전이 EOL로 밀린다(§8). **이 하한 하나가 경로를 통째로 지운다.** green은 k8s **1.31**이니 하한 1.32인 1.30을 설치할 수 없다. 닿는 상한은 **1.29**(1.31~1.35)인데 그마저 EOL이 ~2026-08이다. 목표 1.30.3은 **1.35 신규 클러스터에서만** 성립한다(§8).
 
 ## 2. native sidecar 기본화 — 파드 스펙이 바뀐다
 
@@ -62,9 +60,9 @@ k8s 하한이 순서 제약을 만든다. 1.28까지는 k8s 1.29를 받아주지
 | **1.27.0** | **string `"auto"`** | 1.27.0 태그 `pilot/pkg/features/pilot.go:307`(상세는 아래) |
 | 1.28.0 ~ 1.30.3 | string `"auto"` | 태그별 `pilot/pkg/features/pilot.go` 동일 |
 
-1.27.0의 `"auto"` 전환은 마스터 커밋 `da90b3536f`([#56428](https://github.com/istio/istio/pull/56428))가 release-1.27로 백포트(`55ea856868`, [#56918](https://github.com/istio/istio/pull/56918))되어 **1.27.0 태그에 실제로 포함**됐다.
+`"auto"` 전환은 마스터 커밋 `da90b3536f`([#56428](https://github.com/istio/istio/pull/56428))가 release-1.27로 백포트(`55ea856868`, [#56918](https://github.com/istio/istio/pull/56918))되면서 **1.27.0 태그에 실제로 들어갔다.**
 
-1.27 change-notes:153은 *"**Promoted** the environment variable `ENABLE_NATIVE_SIDECARS` to default to `true`"*라고 적었다. **코드는 `true`가 아니라 `"auto"`를 등록한다.**
+1.27 change-notes:153의 문장은 *"**Promoted** the environment variable `ENABLE_NATIVE_SIDECARS` to default to `true`"*다. **코드가 등록하는 것은 `true`가 아니라 `"auto"`다.**
 
 ```go
 // 1.30.3 pilot/pkg/features/pilot.go
@@ -77,20 +75,20 @@ default:      log.Warnf("Unknown value …, defaulting to false"); return Native
 }
 ```
 
-`"auto"`의 판정은 인젝션 웹훅의 `DetectNativeSidecar`가 한다(`pkg/kube/inject/webhook.go:1235-1286`). 파드가 이미 노드에 스케줄돼 있으면 그 노드만 보고, 스케줄 전이면(어드미션 시점의 통상 상태) **클러스터의 모든 Node를 순회**해 kubelet 마이너가 하나라도 `minVersion := 33` 미만이면 `false`를 리턴한다. 주석이 이유와 상수 출처를 둘 다 적어뒀다 — *"This avoids issues with mixed clusters where some nodes support native sidecars and others do not"*, *"Native sidecars feature graduated to stable in Kubernetes 1.33"*(KEP-753).
+`"auto"`를 실제로 해석하는 쪽은 인젝션 웹훅의 `DetectNativeSidecar`(`pkg/kube/inject/webhook.go:1235-1286`)다. 파드가 이미 노드에 스케줄돼 있으면 그 노드만 본다. 스케줄 전이면(어드미션 시점의 통상 상태) **클러스터의 모든 Node를 순회**해 kubelet 마이너가 하나라도 `minVersion := 33` 미만이면 `false`를 리턴한다. 주석이 이유와 상수 출처를 함께 밝혀 뒀다 — *"This avoids issues with mixed clusters where some nodes support native sidecars and others do not"*, *"Native sidecars feature graduated to stable in Kubernetes 1.33"*(KEP-753).
 
-- **1.27~1.30 전부 `"auto"`가 기본**: **Istio 업그레이드만으로는 전환이 안 일어난다.** 1.30 + k8s 1.32(지원 하한)에서는 계속 꺼진 채다.
+- **1.27~1.30 전부 `"auto"`가 기본**: **Istio 업그레이드만으로는 전환이 안 일어난다.** 1.30 + k8s 1.32(지원 하한)면 계속 꺼진 채다.
 - **전 노드 kubelet ≥1.33이 되는 순간 켜짐**: 전환 시점이 **노드 그룹 업그레이드 완료 시점**에 붙는다. istiod 재기동도 values 변경도 없이 **다음 파드 재생성부터** 조용히 바뀐다.
-- **1.33 미만 노드가 하나라도 돌아오면 다시 꺼짐**: 노드 롤백·구버전 노드 임시 추가가 있으면 **생성 시점에 따라 스펙이 다른 파드**가 공존한다. 코드는 "혼재 클러스터"를 막지만 시간축의 혼재는 막지 않는다.
-- **`auto`/`true`면 istiod가 모든 Node를 watch한다**: `webhook.go:222`가 `EnableNativeSidecars != Disabled`일 때만 Node kclient를 만든다(`StripNodeUnusedFields` 적용). 노드가 많으면 istiod 인포머 비용이 는다. RBAC은 이미 `nodes: get/list/watch`가 있어 추가 조치 없음.
+- **1.33 미만 노드가 하나라도 돌아오면 다시 꺼짐**: 노드 롤백이나 구버전 노드 임시 추가가 있으면 **생성 시점에 따라 스펙이 다른 파드**가 공존한다. 코드가 막는 것은 "혼재 클러스터"이고 시간축의 혼재는 막지 않는다.
+- **`auto`/`true`면 istiod가 모든 Node를 watch한다**: `webhook.go:222`는 `EnableNativeSidecars != Disabled`일 때만 Node kclient를 만든다(`StripNodeUnusedFields` 적용). 노드가 많을수록 istiod 인포머 비용이 는다. RBAC에는 이미 `nodes: get/list/watch`가 있어 추가 조치 없음.
 
-우리 목표는 k8s **1.35**이므로 **결국 켜진다** — 신규 클러스터로 가면 첫 설치부터 native다. 검증 일정은 Istio 업그레이드 창이 아니라 **k8s 노드 업그레이드 창**에 맞춰야 하고, 검증 환경도 **k8s ≥1.33 노드가 실제로 있는 곳**이어야 한다. 1.32 이하 노드에서 테스트하면 `auto`가 계속 disabled라 검증 자체가 성립하지 않는다 — green(1.31)이 검증 환경으로 쓸 수 없는 이유다.
+목표가 k8s **1.35**이므로 **결국 켜진다**. 신규 클러스터는 첫 설치부터 native다. 검증 일정은 Istio 업그레이드 창 대신 **k8s 노드 업그레이드 창**에 붙여야 하고 검증 환경도 **k8s ≥1.33 노드가 실제로 있는 곳**이어야 한다. 1.32 이하 노드에서는 `auto`가 계속 disabled라 검증이 성립하지 않는다 — green(1.31)을 검증 환경으로 쓸 수 없는 이유다.
 
 ### 2.2 무엇이 바뀌나 — 기동·종료 순서와 init 컨테이너의 소속
 
 {{< seq src="_seq/2-2-무엇이-바뀌나-기동-종료.json" />}}
 
-순서를 정하는 코드는 `reorderPod`(`pkg/kube/inject/webhook.go:785-828`)이고 분기 조건은 "initContainers에 `istio-proxy`가 있는가", 즉 native 여부다.
+순서를 정하는 코드는 `reorderPod`(`pkg/kube/inject/webhook.go:785-828`)이고 분기 조건은 initContainers에 `istio-proxy`가 있는지 — 즉 native 여부다.
 
 ```go
 if hasContainer(pod.Spec.InitContainers, ProxyContainerName) {
@@ -104,18 +102,18 @@ if hasContainer(pod.Spec.InitContainers, ProxyContainerName) {
 }
 ```
 
-**이게 릴리스노트에 없는 가장 큰 동작 변경이다.** classic에서 사용자 init 컨테이너는 iptables가 깔리기 **전에** 돌았으므로 메시를 우회했다 — DB 마이그레이션, 시크릿 페치, 의존성 대기 코드가 mTLS·`AuthorizationPolicy`·`VirtualService` 없이 직접 나갔다. native에서는 `istio-init`·`istio-proxy`가 앞에 있으므로 **init의 egress가 프록시를 경유**한다.
+**릴리스노트에 없는 동작 변경 중 가장 큰 것이 이거다.** classic에서 사용자 init 컨테이너는 iptables가 깔리기 **전에** 돌아 메시를 우회했다. DB 마이그레이션, 시크릿 페치, 의존성 대기 코드가 mTLS·`AuthorizationPolicy`·`VirtualService` 없이 직접 나갔다. native에서는 `istio-init`·`istio-proxy`가 앞에 서므로 **init의 egress가 프록시를 경유한다.**
 
-- **메시 내부 서비스 호출**: classic — 평문 직통. mTLS STRICT면 **상대가 거부**. native — 프록시 경유로 mTLS 성립. 판정: **좋음**(오히려 고쳐진다).
+- **메시 내부 서비스 호출**: classic — 평문 직통이라 mTLS STRICT면 **상대가 거부**. native — 프록시 경유로 mTLS 성립. 판정: **좋음**(오히려 고쳐진다).
 - **메시 외부 호출**(외부 API·DB): classic — 직통. native — `ServiceEntry`·`Sidecar` egress 스코프·`outboundTrafficPolicy`의 지배를 받는다. 판정: **반쪽**(`REGISTRY_ONLY`면 **init에서 처음 막힌다**).
 - **인바운드 `AuthorizationPolicy`가 걸린 대상 호출**: classic — 정책 우회(source가 메시 밖으로 보인다). native — principal 기반 규칙이 실제로 판정된다. 판정: **반쪽**(우회로 통과했던 호출이 403이 된다).
 - **순수 로컬 작업**(파일 준비·볼륨 권한): classic — 무영향. native — 무영향(기동이 프록시 Ready 뒤로 밀린다). 판정: **좋음**.
 
-확인할 것은 하나다 — **finance 워크로드의 init 컨테이너가 네트워크를 쓰는가.** 쓰면 목적지가 `ServiceEntry`·`Sidecar` 스코프 안에 있는지, `AuthorizationPolicy`가 그 호출자를 허용하는지 native 상태에서 재검증한다. 안 쓰면 무해하다.
+확인할 것은 하나다 — **finance 워크로드의 init 컨테이너가 네트워크를 쓰는가.** 쓰면 목적지가 `ServiceEntry`·`Sidecar` 스코프 안인지, `AuthorizationPolicy`가 그 호출자를 허용하는지 native 상태에서 재검증한다. 안 쓰면 무해하다.
 
 ### 2.3 `holdApplicationUntilProxyStarts`는 지워지지 않고 무시된다
 
-우리 values에 이 설정이 있다는 사실이 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}})에 기록돼 있고, istio.io는 이 필드와 native sidecar의 관계를 어디에도 쓰지 않았다. 인젝션 템플릿에 답이 있다(1.30.3 `istio-discovery/files/injection-template.yaml:71-77`, `:215-235`).
+우리 values에 이 설정이 들어 있다는 사실은 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}})에 기록돼 있다. istio.io는 이 필드와 native sidecar의 관계를 어디에도 쓰지 않았다. 답은 인젝션 템플릿에 있다(1.30.3 `istio-discovery/files/injection-template.yaml:71-77`, `:215-235`).
 
 ```gotemplate
 {{- $holdProxy := and
@@ -132,21 +130,21 @@ if hasContainer(pod.Spec.InitContainers, ProxyContainerName) {
 {{- end }}
 ```
 
-`$holdProxy`가 `false`가 되면 `postStart`의 `pilot-agent wait` 훅이 아예 렌더되지 않고 native 분기의 `preStop` drain 훅이 붙는다. 이 분기 구조는 `3639a4f44f`([#47226](https://github.com/istio/istio/pull/47226), 최초 포함 태그 **1.21.0**)에서 들어왔다 — 코드는 1.21부터 준비돼 있었고 **1.27의 기본값 플립이 그 코드를 켠 것**이다. 그래서 릴리스노트에 "hold가 무효화된다"는 항목이 없다. 1.27에서 바뀐 건 플래그 하나뿐이니까.
+`$holdProxy`가 `false`가 되면 `postStart`의 `pilot-agent wait` 훅은 렌더되지 않고 native 분기의 `preStop` drain 훅이 붙는다. 이 분기 구조 자체는 `3639a4f44f`([#47226](https://github.com/istio/istio/pull/47226), 최초 포함 태그 **1.21.0**)에서 들어왔다. 코드는 1.21부터 준비돼 있었고 **1.27의 기본값 플립이 그 코드를 켰다.** 그래서 릴리스노트에 "hold가 무효화된다"는 항목이 없다. 1.27에서 바뀐 건 플래그 하나뿐이니까.
 
 - **기동 순서 보장**: classic+hold=true — Istio가 `postStart` 훅으로 구현. native — **kubelet이 보장.** init 컨테이너가 Ready 되기 전엔 일반 컨테이너를 안 띄운다.
 - **Ready 판정**: classic+hold=true — `postStart` 완료 = xDS 최초 수신 완료(`pilot-agent wait`). native — `startupProbe`(기본 활성, `failureThreshold: 600` ≈ 10분) + readinessProbe.
-- **종료 시 drain**: classic+hold=true — 없음. SIGTERM 동시 수신. native — `preStop`에서 `POST /drain` 선행.
-- **컨테이너 순서 부수효과**: classic+hold=true — `proxyLocation = MoveFirst` — `kubectl exec`·`logs` 기본이 프록시. native — `istio-proxy`가 `spec.containers`에 없으므로 기본이 사용자 컨테이너로 돌아온다.
+- **종료 시 drain**: classic+hold=true — 없다. SIGTERM을 동시에 받는다. native — `preStop`에서 `POST /drain`이 선행한다.
+- **컨테이너 순서 부수효과**: classic+hold=true — `proxyLocation = MoveFirst`라 `kubectl exec`·`logs` 기본이 프록시. native — `istio-proxy`가 `spec.containers`에 없으므로 기본이 사용자 컨테이너로 돌아온다.
 - **`holdApplicationUntilProxyStarts` 값**: classic+hold=true — 동작함. native — **무시됨(에러·경고 없음)**.
 
-**"값을 지워라"가 조치가 아니다.** 실제 조치는 ① 순서 보장 주체가 kubelet으로 옮겨간 것을 알고 ② `startupProbe`가 켜져 있는지 확인하고(1.30.3 `values.yaml:394-396` 기본 `enabled: true`) ③ **`global.proxy.lifecycle`을 직접 지정하고 있지 않은지** 확인하는 것이다. 지정하고 있으면 위 템플릿의 첫 분기가 이겨 **native의 `preStop` drain 훅이 안 붙는다** — 종료 시 인플라이트 요청이 끊기는 회귀가 여기서 나온다.
+**조치는 "값을 지워라"가 아니다.** 실제로 할 일은 ① 순서 보장의 주체가 kubelet으로 넘어갔음을 인지하고 ② `startupProbe`가 켜져 있는지 확인하고(1.30.3 `values.yaml:394-396` 기본 `enabled: true`) ③ **`global.proxy.lifecycle`을 직접 지정하고 있지 않은지** 확인하는 것이다. 지정하고 있으면 위 템플릿의 첫 분기가 이겨 **native의 `preStop` drain 훅이 안 붙는다** — 종료 시 인플라이트 요청이 끊기는 회귀가 여기서 나온다.
 
 ### 2.4 Job/CronJob과 주변 도구
 
-Job 완료 문제는 Istio 릴리스노트로 추적되지 않는다. 판정 주체가 kubelet이기 때문이다 — `restartPolicy: Always` init 컨테이너는 **Job 완료 판정에서 제외**되고, 일반 컨테이너가 모두 종료되면 kubelet이 역순으로 sidecar에 SIGTERM을 보낸다(KEP-753). 그래서 classic 시절의 우회책이 불필요해진다. Job 파드의 `sidecar.istio.io/inject: "false"`는 떼도 되지만 **떼면 그 Job이 메시 안으로 들어오므로** 목적지 정책을 먼저 확인해야 한다. 앱 종료 직전의 `POST localhost:15020/quitquitquit` 관용구는 무해하지만 의미가 없어져 정리 대상이고, `EXIT_ON_ZERO_ACTIVE_CONNECTIONS`는 1.25~1.30 구간에 기본값 변경이 없으니 그대로 둔다.
+Job 완료 문제는 Istio 릴리스노트로 추적되지 않는다. 판정 주체가 kubelet이기 때문이다. `restartPolicy: Always` init 컨테이너는 **Job 완료 판정에서 제외**되고 일반 컨테이너가 모두 종료되면 kubelet이 역순으로 sidecar에 SIGTERM을 보낸다(KEP-753). classic 시절의 우회책이 불필요해진다. Job 파드의 `sidecar.istio.io/inject: "false"`는 떼도 되지만 **떼면 그 Job이 메시 안으로 들어오므로** 목적지 정책을 먼저 확인해야 한다. 앱 종료 직전의 `POST localhost:15020/quitquitquit` 관용구는 무해하되 의미를 잃어 정리 대상이고 `EXIT_ON_ZERO_ACTIVE_CONNECTIONS`는 1.25~1.30 구간에 기본값 변경이 없으니 그대로 둔다.
 
-주의: **istio.io 문서가 이 갱신을 반영하지 않았다.** `docs/overview/dataplane-modes/index.md:117-119`의 비교표는 지금도 "Support for Kubernetes Jobs: **Complicated by long life of sidecar**"다. 1.27 이전 기준이고 1.30 스냅샷까지 고쳐지지 않았다 — 문서만 읽고 "sidecar는 Job이 안 된다"고 판단하면 안 된다.
+주의할 것은 **istio.io 문서가 이 갱신을 반영하지 않았다는 점**이다. `docs/overview/dataplane-modes/index.md:117-119`의 비교표는 지금도 "Support for Kubernetes Jobs: **Complicated by long life of sidecar**"다. 1.27 이전 기준이고 1.30 스냅샷까지 고쳐지지 않았다 — 문서만 읽고 "sidecar는 Job이 안 된다"고 판단하면 안 된다.
 
 같은 결로 확인할 것이 셋 더 있다.
 
@@ -156,18 +154,18 @@ Job 완료 문제는 Istio 릴리스노트로 추적되지 않는다. 판정 주
 
 ### 2.5 되돌리는 방법과 되돌리면 잃는 것
 
-- **`values.pilot.env.ENABLE_NATIVE_SIDECARS=false`**: 부작용 — istiod의 Node watch도 사라진다. 1.27 이후 sidecar 개선을 native 전제로 받은 것은 없으므로 기능 손실 없음. 판정 — **좋음**(전환 시점을 우리가 정하고 싶을 때 가장 단순).
+- **`values.pilot.env.ENABLE_NATIVE_SIDECARS=false`**: 부작용 — istiod의 Node watch도 함께 사라진다. 1.27 이후 sidecar 개선을 native 전제로 받은 것이 없으니 기능 손실은 없다. 판정 — **좋음**(전환 시점을 우리가 정하고 싶을 때 가장 단순).
 - **`compatibilityVersion` 1.25/1.26**: 부작용 — 1.30.3 `manifests/helm-profiles/compatibility-version-1.26.yaml`은 `ENABLE_NATIVE_SIDECARS=false`와 함께 `DISABLE_SHADOW_HOST_SUFFIX`·`PILOT_SPAWN_UPSTREAM_SPAN_FOR_GATEWAY`·`DISABLE_TRACK_REMAINING_CB_METRICS`·`PILOT_SIDECAR_PICK_BEST_SERVICE_NAMESPACE`를 **한꺼번에** 옛 값으로 되돌린다(1.27 프로필은 native만 빠진 나머지, 1.28은 뒤 셋, 1.29는 마지막 하나). 판정 — **반쪽**(원치 않는 항목까지 묶여 와 §4의 변경들이 조용히 되돌아간다).
-- **`sidecar.istio.io/nativeSidecar: "false"`**(파드 단위): 부작용 — 값이 정확히 `"false"`여야 한다(§2.4). 워크로드마다 관리해 누락이 생긴다. 판정 — **반쪽**(특정 워크로드만 예외 처리할 때).
+- **`sidecar.istio.io/nativeSidecar: "false"`**(파드 단위): 부작용 — 값이 정확히 `"false"`여야 한다(§2.4). 워크로드마다 관리해야 하니 누락이 생긴다. 판정 — **반쪽**(특정 워크로드만 예외 처리할 때).
 - **노드를 1.33 미만으로 유지**: 부작용 — k8s 업그레이드 자체가 목적이므로 성립 불가. 판정 — **부적합**.
 
-우리 판정: **되돌리지 않는다.** 목표가 k8s 1.35이므로 native가 최종 상태고, 되돌림은 "검증이 끝나기 전에 노드가 ≥1.33이 되는" 일정 사고를 막는 임시 수단으로만 쓴다. 쓰더라도 `compatibilityVersion`이 아니라 **`ENABLE_NATIVE_SIDECARS=false` 한 줄**로 — 묶여 오는 항목이 없어야 원인 추적이 된다.
+우리 판정: **되돌리지 않는다.** 목표가 k8s 1.35이므로 native가 최종 상태고 되돌림은 "검증이 끝나기 전에 노드가 ≥1.33이 되는" 일정 사고를 막는 임시 수단으로만 쓴다. 쓰더라도 `compatibilityVersion` 말고 **`ENABLE_NATIVE_SIDECARS=false` 한 줄**로 — 묶여 오는 항목이 없어야 원인 추적이 된다.
 
 ## 3. Helm 차트 통합과 리소스 이름 — 문서와 코드가 어긋난다
 
 ### 3.1 upgrade-notes가 싣는 매핑표
 
-1.29 upgrade-notes "Base Helm chart removals" 절이 근거다. *"A number of configurations previously present in the `base` Helm chart were copied to the `istiod` chart in previous releases. In this release, the duplicated configurations are fully removed from the `base` chart."*
+근거는 1.29 upgrade-notes의 "Base Helm chart removals" 절이다. *"A number of configurations previously present in the `base` Helm chart were copied to the `istiod` chart in previous releases. In this release, the duplicated configurations are fully removed from the `base` chart."*
 
 | 이전 | 신규 |
 |---|---|
@@ -177,17 +175,17 @@ Job 완료 문제는 Istio 릴리스노트로 추적되지 않는다. 판정 주
 | `Role istiod` / `RoleBinding istiod` | 변경 없음 |
 | `ServiceAccount istiod-service-account` | `ServiceAccount istiod` |
 
-이름보다 중요한 게 같은 절에 하나 더 있다 — **접미사 규칙이 바뀐다.** 구 차트는 `-{{ .Values.global.istioNamespace }}`를 붙였고, 신 차트는 네임스페이스 스코프에 `-{{ .Values.revision }}`(revision이 빈 문자열이 아닐 때만), 클러스터 스코프에는 거기에 `-{{ .Release.Namespace }}`를 더 붙인다. **revision을 쓰는 우리 구성에서는 이름에 revision이 끼어들고 canary 홉마다 달라진다.**
+이름보다 중요한 게 같은 절에 하나 더 있다 — **접미사 규칙이 바뀐다.** 구 차트는 `-{{ .Values.global.istioNamespace }}`를 붙였다. 신 차트는 네임스페이스 스코프에 `-{{ .Values.revision }}`(revision이 빈 문자열이 아닐 때만)을, 클러스터 스코프에는 거기에 `-{{ .Release.Namespace }}`를 더 붙인다. **revision을 쓰는 우리 구성에서는 이름에 revision이 끼어들고 canary 홉마다 값이 달라진다.**
 
 ### 3.2 코드로 대조하면 시점이 다르다
 
-로컬 `istio/istio` 클론의 태그별 확인 결과는 문서와 어긋난다. `istio-discovery/templates/clusterrole.yaml`의 `metadata.name`은 **1.22.0부터 1.30.3까지 전부** `istiod-clusterrole{…revision}-{{ .Release.Namespace }}`이고, 같은 차트의 `clusterrolebinding`·`serviceaccount`는 1.28.0과 1.30.3이 **바이트 단위로 동일**하고 템플릿 파일 목록도 diff가 없다. 예외는 `reader-clusterrole.yaml` 하나로, 1.30.3에서 `global.enableReaderRBAC` 게이팅이 붙고 `resources`에 `configmaps`가 추가돼 21줄이 달라진다(§3.3이 소개하는 1.30 신설 값이 게이팅하는 파일이 바로 이것이다). `charts/base/templates/`는 1.24.0~1.30.3이 동일하고 **`clusterrole.yaml`류가 애초에 없다**(1.20.0까지 내려가도 없음).
+태그별로 로컬 `istio/istio` 클론을 확인한 결과는 문서와 어긋난다. `istio-discovery/templates/clusterrole.yaml`의 `metadata.name`은 **1.22.0부터 1.30.3까지 전부** `istiod-clusterrole{…revision}-{{ .Release.Namespace }}`다. 같은 차트의 `clusterrolebinding`·`serviceaccount`는 1.28.0과 1.30.3이 **바이트 단위로 동일**하고 템플릿 파일 목록에도 diff가 없다. 예외는 `reader-clusterrole.yaml` 하나다. 1.30.3에서 `global.enableReaderRBAC` 게이팅이 붙고 `resources`에 `configmaps`가 추가돼 21줄이 달라진다(§3.3이 소개하는 1.30 신설 값이 게이팅하는 파일이 바로 이것이다). `charts/base/templates/`는 1.24.0~1.30.3이 동일하고 **`clusterrole.yaml`류가 애초에 없다**(1.20.0까지 내려가도 없음).
 
-즉 **이 클론에서는 1.28→1.29 사이의 rename을 재현할 수 없다.** 신 이름은 1.22.0에 이미 자리 잡았고 base 차트의 중복본은 그보다 전에 사라졌다. 1.29 매핑표는 그 시점의 코드 변경이 아니라 **훨씬 오래된 차트에서 올라오는 사용자를 위한 누적 매핑표**로 읽는 게 맞다. change-notes 1.29:229는 *"Removed obsolete manifests from the base Helm chart"* 한 줄뿐이고 그 대상 파일은 특정하지 못했다.
+**이 클론에서 1.28→1.29 사이의 rename은 재현되지 않는다.** 신 이름은 1.22.0에 이미 자리를 잡았고 base 차트의 중복본은 그보다 전에 사라졌다. 1.29 매핑표는 그 시점의 코드 변경이 아니라 **훨씬 오래된 차트에서 올라오는 사용자를 위한 누적 매핑표**로 읽는 게 맞다. change-notes 1.29:229는 *"Removed obsolete manifests from the base Helm chart"* 한 줄뿐이고 그 대상 파일은 특정하지 못했다.
 
 ### 3.3 그래서 우리가 할 일
 
-우리 하한 가정은 chart tip **1.24.1**이고 그 태그의 istiod 차트는 이미 `istiod-clusterrole`을 만든다. 따라서 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}}) 체크리스트의 *"base/istiod 차트 통합(1.29+) — 리소스 rename을 참조하는 커스텀 role/role-binding 점검"*은 **전제가 틀렸을 가능성이 크다.**
+우리 하한 가정은 chart tip **1.24.1**이고 그 태그의 istiod 차트는 이미 `istiod-clusterrole`을 만든다. 그래서 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}}) 체크리스트의 *"base/istiod 차트 통합(1.29+) — 리소스 rename을 참조하는 커스텀 role/role-binding 점검"*은 **전제가 틀렸을 가능성이 크다.**
 
 ```bash
 # ① 구 이름 orphan이 실제로 있는지 — 있으면 1.22 이전 설치의 잔재다
@@ -199,38 +197,38 @@ grep -rnE 'istiod-service-account|name:[[:space:]]*istiod$' --include='*.yaml' .
 kubectl get clusterrole -o name | grep istiod-clusterrole
 ```
 
-`kubectl get clusterrole istiod`가 **비어 있으면 이 절 전체가 해당 없음**이고, 뭔가 나오면 1.22 이전 설치의 orphan이니 참조가 없는지 확인한 뒤 지운다.
+`kubectl get clusterrole istiod`가 **비면 이 절 전체가 해당 없음**이고 뭔가 나오면 1.22 이전 설치의 orphan이니 참조가 없는지 확인한 뒤 지운다.
 
-경로별 차이는 그대로 유효하다. **Helm은 차트 출력에서 사라진 리소스를 지우지 않는다** — 이름이 바뀐 리소스는 신 이름으로 새로 생기고 구 이름은 남는다. 기능은 정상 동작하고 `helm upgrade`도 성공하므로 **아무 신호가 없다.** revision 기반 canary(매 revision이 독립된 풀 스택 설치)나 blue-green 신규 설치는 처음부터 신 이름으로 올라가 이 문제를 만들지 않는다.
+경로별 차이는 그대로 유효하다. **Helm은 차트 출력에서 사라진 리소스를 지우지 않는다.** 이름이 바뀐 리소스는 신 이름으로 새로 생기고 구 이름은 남는다. 기능은 정상 동작하고 `helm upgrade`도 성공하니 **아무 신호가 없다.** revision 기반 canary(매 revision이 독립된 풀 스택 설치)나 blue-green 신규 설치는 처음부터 신 이름으로 올라가므로 이 문제를 만들지 않는다.
 
-1.30이 차트 축에 추가한 것은 둘이다. **Helm v4(server-side apply) 지원** — 웹훅 `failurePolicy` 필드 소유권 충돌 문제도 함께 해결됐으므로 ArgoCD가 SSA를 쓰면 관련 영구 OutOfSync가 해소될 수 있다(Helm v3 유지면 무영향). **`global.enableReaderRBAC`**(기본 `true`) — istio-reader SA·ClusterRole·ClusterRoleBinding 설치 여부이고, 1.30.3 `charts/base/values.yaml:22-24`에 있고 1.28.0에는 없다. 주석이 *"only needed for multicluster remote-secret workflows"*라 단일 클러스터면 `false`로 줄일 여지가 있다(선택).
+1.30이 차트 축에 더한 것은 둘이다. **Helm v4(server-side apply) 지원** — 웹훅 `failurePolicy` 필드 소유권 충돌도 함께 풀렸으니 ArgoCD가 SSA를 쓰면 관련 영구 OutOfSync가 해소될 수 있다(Helm v3 유지면 무영향). **`global.enableReaderRBAC`**(기본 `true`) — istio-reader SA·ClusterRole·ClusterRoleBinding의 설치 여부를 정하고 1.30.3 `charts/base/values.yaml:22-24`에 있고 1.28.0에는 없다. 주석이 *"only needed for multicluster remote-secret workflows"*라 단일 클러스터면 `false`로 줄일 여지가 있다(선택).
 
 ## 4. 조용히 깨지는 것들 — CI가 못 잡는 종류
 
-여기 모은 변경들의 공통점은 **렌더 결과가 유효하고, 배포가 성공하고, 파드가 Ready가 된다**는 것이다. 깨지는 건 대시보드 쿼리, 알람 룰, 운영 스크립트, 라우팅 대상이다. Helm lint·kubeconform·`istioctl analyze`·smoke test 어느 것도 신호를 주지 않는다.
+여기 모은 변경의 공통점은 **렌더 결과가 유효하고 배포가 성공하고 파드가 Ready가 된다**는 것이다. 깨지는 쪽은 대시보드 쿼리, 알람 룰, 운영 스크립트, 라우팅 대상이다. Helm lint·kubeconform·`istioctl analyze`·smoke test 어느 것도 신호를 주지 않는다.
 
 ### 4.1 플래그 기본값 변경
 
-- **`PILOT_ENABLE_IP_AUTOALLOCATE`**(1.25.0, `false`→`true`): sidecar 영향 — `ServiceEntry.status.addresses`가 채워진다. 트래픽 경로 불변. 되돌리기: `false`.
+- **`PILOT_ENABLE_IP_AUTOALLOCATE`**(1.25.0, `false`→`true`): sidecar 영향 — `ServiceEntry.status.addresses`가 채워진다. 트래픽 경로는 불변. 되돌리기: `false`.
 - **`ENABLE_AUTO_SNI`**(1.26.0, `true`→**플래그 삭제**(항상 on)): sidecar 영향 — 명시적 `false`로 끄고 있었다면 그 오버라이드가 무의미해진다. 되돌리기: 없음.
 - **`MAX_CONNECTIONS_PER_SOCKET_EVENT_LOOP`**(1.26.0(gateway·virtual outbound) → 1.28.0(**명시 포트 바인드 리스너까지**), unset(무제한)→`1`): sidecar 영향 — 소켓 이벤트당 accept 1개. 초고빈도 신규 연결 워크로드에서 연결 수립 지연 가능. 되돌리기: `0`.
 - **`ENABLE_NATIVE_SIDECARS`**(1.27.0, `false`→`"auto"`): sidecar 영향 — §2 전체. 되돌리기: `false`.
-- **`PILOT_SPAWN_UPSTREAM_SPAN_FOR_GATEWAY`**(1.28.0, `false`→`true`): sidecar 영향 — 게이트웨이 요청마다 upstream 스팬이 하나 더 — **트레이싱 볼륨·비용 증가**. 되돌리기: `false`.
+- **`PILOT_SPAWN_UPSTREAM_SPAN_FOR_GATEWAY`**(1.28.0, `false`→`true`): sidecar 영향 — 게이트웨이 요청마다 upstream 스팬이 하나 더 붙어 **트레이싱 볼륨·비용 증가**. 되돌리기: `false`.
 - **`METRIC_ROTATION_INTERVAL`·`METRIC_GRACEFUL_DELETION_INTERVAL`**(1.28.0, 존재→**제거**): sidecar 영향 — 설정해 뒀으면 무시된다 → `sidecar.istio.io/statsEvictionInterval`. 되돌리기: 없음.
-- **`proxyConfig.statsCompression`**(1.29.0, (없음)→`true`): sidecar 영향 — Envoy stats 엔드포인트가 brotli/gzip/zstd 협상. `sidecar.istio.io/statsCompression` 어노테이션은 **제거**. 되돌리기: `proxy.istio.io/config`로 파드별 `statsCompression: false`.
-- **`ENABLE_DEBUG_ENDPOINT_AUTH`**(1.29.0(15014) → 1.30.0(**15010 확장**), (없음)→`true`): sidecar 영향 — non-system 네임스페이스는 `config_dump`·`ndsz`·`edsz`만, 동일 네임스페이스 proxy만. 되돌리기: `false`(1.30은 **CVE-2026-31838 수정 무력화**, 비권장). 1.30부터 `DEBUG_ENDPOINT_AUTH_ALLOWED_NAMESPACES` 화이트리스트.
+- **`proxyConfig.statsCompression`**(1.29.0, (없음)→`true`): sidecar 영향 — Envoy stats 엔드포인트가 brotli/gzip/zstd를 협상한다. `sidecar.istio.io/statsCompression` 어노테이션은 **제거**. 되돌리기: `proxy.istio.io/config`로 파드별 `statsCompression: false`.
+- **`ENABLE_DEBUG_ENDPOINT_AUTH`**(1.29.0(15014) → 1.30.0(**15010 확장**), (없음)→`true`): sidecar 영향 — non-system 네임스페이스는 `config_dump`·`ndsz`·`edsz`만, 그것도 동일 네임스페이스 proxy만. 되돌리기: `false`(1.30은 **CVE-2026-31838 수정 무력화**, 비권장). 1.30부터 `DEBUG_ENDPOINT_AUTH_ALLOWED_NAMESPACES` 화이트리스트.
 - **`DISABLE_TRACK_REMAINING_CB_METRICS`**(1.29.0, (없음)→`true`(트래킹 **비활성**)): sidecar 영향 — 서킷브레이커 remaining 메트릭이 사라진다. 되돌리기: `false`.
 - **`GOMEMLIMIT`**(istiod, `automemlimit`, 1.29.0, limit의 100%→**90%**): sidecar 영향 — OOM 위험은 줄고 GC 빈도는 는다. istiod 메모리를 limit에 맞춰 운용 중이면 헤드룸 재산정 → [09]({{< relref "09-istiod-scaling-connections.md" >}}). 되돌리기: `AUTOMEMLIMIT=1`(비율 리터럴이므로 `1`=100%) 또는 `GOMEMLIMIT` 직접 지정.
 - **`PILOT_SIDECAR_PICK_BEST_SERVICE_NAMESPACE`**(1.30.0, (없음, 알파벳순)→`true`): sidecar 영향 — **라우팅 대상이 바뀔 수 있다**(§6.1). 되돌리기: `false` 또는 `compatibilityVersion: "1.28"`.
 
-`DISABLE_TRACK_REMAINING_CB_METRICS`는 **문서가 서로 모순된다.** 1.29 change-notes는 *"When set to `false` (default) …"*로 적었지만 upgrade-notes는 *"tracking is disabled by default … set `DISABLE_TRACK_REMAINING_CB_METRICS=false` to maintain the previous behavior"*이고 코드는 `env.Register("DISABLE_TRACK_REMAINING_CB_METRICS", true, …)`다. **코드가 맞다 — 기본은 트래킹 비활성이고 메트릭이 사라진다.**
+`DISABLE_TRACK_REMAINING_CB_METRICS`는 **문서끼리 모순된다.** 1.29 change-notes는 *"When set to `false` (default) …"*로 적고, upgrade-notes는 *"tracking is disabled by default … set `DISABLE_TRACK_REMAINING_CB_METRICS=false` to maintain the previous behavior"*로 적고, 코드는 `env.Register("DISABLE_TRACK_REMAINING_CB_METRICS", true, …)`다. **코드가 맞다 — 기본은 트래킹 비활성이고 메트릭이 사라진다.**
 
 ### 4.2 메트릭·라벨·스크랩 경로
 
 - **CB remaining 메트릭 기본 비활성**(1.29.0): `envoy_cluster_circuit_breakers_*_remaining_*` 계열 패널·알람이 **No data**가 된다. 서킷브레이커 여유를 알람으로 쓰던 룰이 침묵한다.
-- **stats 압축 기본 활성**(1.29.0): 스크레이퍼가 `Accept-Encoding`을 보내면서 디코드를 못 하는 구성이면 stats 수집이 실패한다.
+- **stats 압축 기본 활성**(1.29.0): 스크레이퍼가 `Accept-Encoding`을 보내는데 디코드를 못 하는 구성이면 stats 수집이 실패한다.
 - **메트릭 eviction 메커니즘 교체**(1.28.0): `METRIC_ROTATION_INTERVAL`로 조율하던 stats 카디널리티 관리가 무효 → `sidecar.istio.io/statsEvictionInterval`로 다시 설정. 안 하면 카디널리티가 늘거나 반대로 조기 만료된다 → [06 관측성]({{< relref "06-observability-points.md" >}}).
-- **`source_app`·`destination_app` fallback 확장**(1.30.0): 우선순위가 `app` → `app.kubernetes.io/name` → `service.istio.io/canonical-name`으로 늘었다. `app` 라벨이 있으면 **동작 불변**이고, `app`이 없어 `unknown`이던 워크로드가 갑자기 이름을 가져 **시계열이 갈린다**.
+- **`source_app`·`destination_app` fallback 확장**(1.30.0): 우선순위가 `app` → `app.kubernetes.io/name` → `service.istio.io/canonical-name`으로 늘었다. `app` 라벨이 있으면 **동작 불변**이고, `app`이 없어 `unknown`이던 워크로드는 갑자기 이름을 얻어 **시계열이 갈린다**.
 - **upstream span 기본 생성**(1.28.0): 트레이스 저장 볼륨·비용이 는다. 샘플링률을 그대로 두면 백엔드가 먼저 아프다.
 
 ### 4.3 제거된 `istioctl` 서브커맨드·플래그
@@ -265,16 +263,16 @@ kubectl get crd tlsroutes.gateway.networking.k8s.io \
 
 ## 5. ambient 이후 sidecar의 위치 — 우리 방침을 언제 재검토하나
 
-우리는 ambient를 안 쓴다. 그 결정이 **여전히 유효한가**가 이 절의 질문이다.
+우리는 ambient를 안 쓴다. 그 결정이 **여전히 유효한가**를 본다.
 
 - **sidecar mode를 deprecated로 지정한 공지**: 방향 — **없음**. 근거 — 1.25~1.30의 `_index.md`·upgrade-notes·change-notes 전수 확인.
 - **현재 문서의 sidecar 서술**: 방향 — 유지. 근거 — `docs/overview/dataplane-modes/index.md:25` — *"well understood and thoroughly battle-tested, but comes with a resource cost and operational overhead."* 비교표에서 트래픽 관리·보안·관측성 모두 sidecar가 **"Full Istio feature set"**.
-- **native sidecar 기본화 · sidecar용 native `nftables`**(둘 다 1.27): 방향 — **sidecar 경로에 대한 투자**. 근거 — 파드 라이프사이클 문제를 k8s 표준으로 해결했고 [#56487](https://github.com/istio/istio/issues/56487)은 sidecar 모드용이다. 폐기 예정 경로에는 이런 작업을 하지 않는다.
-- **ambient 마이그레이션 가이드 신설**(1.30): 방향 — 중립. 근거 — *"gradual and reversible, sidecar and ambient workloads can coexist during the process."* 전환을 **쉽게** 만들었지만 **강제**하지 않는다.
+- **native sidecar 기본화 · sidecar용 native `nftables`**(둘 다 1.27): 방향 — **sidecar 경로에 대한 투자**. 근거 — 파드 라이프사이클 문제를 k8s 표준으로 해결했고 [#56487](https://github.com/istio/istio/issues/56487)은 sidecar 모드용이다. 폐기 예정 경로에 이런 작업을 하지는 않는다.
+- **ambient 마이그레이션 가이드 신설**(1.30): 방향 — 중립. 근거 — *"gradual and reversible, sidecar and ambient workloads can coexist during the process."* 전환을 **쉽게** 만들었을 뿐 **강제**하지 않는다.
 - **ambient의 하드 블로커**: 방향 — **우리 이동을 막는 쪽**. 근거 — `docs/ambient/migrate/_index.md:75-106` — VM 워크로드·SPIRE·`PeerAuthentication mode: DISABLE`·**primary-remote 멀티클러스터**는 마이그레이션 불가. **`EnvoyFilter`는 waypoint에 미지원**.
 - **`TrafficExtension` 신설**(1.30): 방향 — **확장 축의 방향 전환**. 근거 — 릴리스 공지가 *"replacing `WasmPlugin` as the primary proxy extensibility mechanism"*로 소개한다. change-notes:92는 Lua 확장만 적고 `WasmPlugin` deprecate·`EnvoyFilter` 언급은 없다 → [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}}).
 
-**결론: "sidecar 유지" 방침을 무효화할 근거는 1.30까지 어디에도 없다.** 우리 쪽 하드 블로커도 그대로다 — waypoint에 `EnvoyFilter`가 안 되는데 우리는 `local-reply` EnvoyFilter 2개(SIDECAR_OUTBOUND·GATEWAY)를 쓴다. **아래 중 하나가 관측되면 그 분기에 방침을 다시 심사한다.**
+**결론: "sidecar 유지" 방침을 무효화할 근거는 1.30까지 어디에도 없다.** 우리 쪽 하드 블로커도 그대로다. waypoint에 `EnvoyFilter`가 안 되는데 우리는 `local-reply` EnvoyFilter 2개(SIDECAR_OUTBOUND·GATEWAY)를 쓴다. **아래 중 하나가 관측되면 그 분기에 방침을 다시 심사한다.**
 
 1. 공지·`docs/overview/dataplane-modes/`가 sidecar를 **deprecated로 표기** — 그때는 선택이 아니라 일정 문제다. 어디서 보나: 매 마이너의 `_index.md`·upgrade-notes.
 2. **ambient 전용으로만 출시된 기능**이 우리 요건에 필요해짐 — 기능 격차가 비용 논의를 대체한다. 어디서 보나: change-notes의 "ambient only" 표기.
@@ -303,21 +301,21 @@ kubectl get crd tlsroutes.gateway.networking.k8s.io \
 
 ### 6.1 동일 hostname의 서비스 선택이 바뀐다 (1.30, 트래픽 라우팅)
 
-upgrade-notes가 breaking으로 분류한 유일한 **트래픽 경로** 변경이다. 1.29 이하는 보이는 네임스페이스 중 **알파벳순 첫 번째**를 골랐고, 1.30은 **K8s `Service` 우선 → 없으면 생성 시각이 가장 오래된 non-K8s 서비스**를 고른다. 위험한 조합은 같은 hostname을 K8s `Service`와 `ServiceEntry`로 동시에 노출하는 패턴(외부 서비스의 로컬 오버라이드)이고, 되돌리기는 `PILOT_SIDECAR_PICK_BEST_SERVICE_NAMESPACE=false` 또는 `compatibilityVersion: "1.28"` 이하다.
+upgrade-notes가 breaking으로 분류한 유일한 **트래픽 경로** 변경이다. 1.29 이하는 보이는 네임스페이스 중 **알파벳순 첫 번째**를 골랐고 1.30은 **K8s `Service` 우선 → 없으면 생성 시각이 가장 오래된 non-K8s 서비스**를 고른다. 위험한 조합은 같은 hostname을 K8s `Service`와 `ServiceEntry`로 동시에 노출하는 패턴이다(외부 서비스의 로컬 오버라이드). 되돌리기는 `PILOT_SIDECAR_PICK_BEST_SERVICE_NAMESPACE=false` 또는 `compatibilityVersion: "1.28"` 이하다.
 
-의도는 명시적 K8s `Service`가 있는데도 알파벳순 때문에 엉뚱한 `ServiceEntry`가 선택되던 문제를 고치는 것이다. **문제는 우리가 그 "엉뚱한 선택"에 의존하고 있었는지 모른다는 점이다.** §4.4의 ⑥으로 중복 노출을 먼저 센다. 0건이면 무해하고, 1건 이상이면 업그레이드 전에 **어느 쪽이 선택되고 있는지**(`istioctl proxy-config cluster <pod>`)를 캡처해 전후를 비교한다.
+의도는 명시적 K8s `Service`가 있는데도 알파벳순 때문에 엉뚱한 `ServiceEntry`가 선택되던 문제를 고치는 것이다. **우리가 그 "엉뚱한 선택"에 의존하고 있었는지는 모른다.** §4.4의 ⑥으로 중복 노출을 먼저 센다. 0건이면 무해하고 1건 이상이면 업그레이드 전에 **어느 쪽이 선택되고 있는지**(`istioctl proxy-config cluster <pod>`)를 캡처해 전후를 비교한다.
 
 ### 6.2 Gateway API CRD가 있으면 조용히 깨진다 (1.30)
 
 1.30은 Gateway API 의존성을 `v1.5.1`로 올리고 `TLSRoute`·`ReferenceGrant`를 **Standard 채널(`gateway.networking.k8s.io/v1`)**에서 읽는다. CRD가 `v1.5.x`보다 낮으면 그 리소스들이 **istiod에 보이지 않게** 되고, 기존 TLS passthrough `Gateway` 리스너는 `status.listeners[].attachedRoutes: 0`을 조용히 보고하며 Envoy 리스너가 프로그램되지 않는다 — upgrade-notes가 직접 *"silently"*라고 적은 케이스다.
 
-우리는 classic `Gateway`를 쓰므로 **CRD가 클러스터에 없으면 무관**이다. 하지만 다른 워크로드나 애드온이 깔아 뒀을 수 있어 확인은 해야 한다(§4.4의 ⑦). 있으면 **Istio보다 먼저** `kubectl apply -k "github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.5.1"`(experimental 채널을 쓰고 있었다면 `config/crd/experimental`)로 올린다.
+우리는 classic `Gateway`를 쓰므로 **CRD가 클러스터에 없으면 무관**이다. 다만 다른 워크로드나 애드온이 깔아 뒀을 수 있어 확인은 해야 한다(§4.4의 ⑦). 있으면 **Istio보다 먼저** `kubectl apply -k "github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.5.1"`(experimental 채널을 쓰고 있었다면 `config/crd/experimental`)로 올린다.
 
 ### 6.3 디버그 엔드포인트 인증과 CVE — 목표를 1.30.3으로 잡는 이유
 
-1.29가 포트 15014의 debug 엔드포인트에 네임스페이스 인가를 기본 활성화했고, 1.30이 그것을 **plaintext XDS 포트 15010의 `syncz`·`config_dump`까지** 확장했다(CVE-2026-31838). 같은 릴리스에서 `StatusGen`이 서빙하는 XDS 디버그 엔드포인트도 non-system 호출자에 동일 네임스페이스 인가를 강제하도록 고쳐졌다 — 그전에는 **인증된 워크로드면 아무 네임스페이스에서나 타 네임스페이스의 proxy를 열거나 config dump를 받을 수 있었다.**
+1.29가 포트 15014의 debug 엔드포인트에 네임스페이스 인가를 기본 활성화했고 1.30이 그것을 **plaintext XDS 포트 15010의 `syncz`·`config_dump`까지** 확장했다(CVE-2026-31838). 같은 릴리스에서 `StatusGen`이 서빙하는 XDS 디버그 엔드포인트도 non-system 호출자에 동일 네임스페이스 인가를 강제하도록 고쳐졌다 — 그전에는 **인증된 워크로드면 아무 네임스페이스에서나 타 네임스페이스의 proxy를 열거나 config dump를 받을 수 있었다.**
 
-깨지는 것은 우리 쪽 도구다. `istioctl --plaintext`를 쓰는 내부 스크립트는 표준 인증 경로(`istioctl proxy-status` 등)로 옮기고, Kiali가 istio-system 밖에 있으면 이전하거나 `DEBUG_ENDPOINT_AUTH_ALLOWED_NAMESPACES`(1.30 신설)에 추가한다. 15010에 직접 붙는 커스텀 모니터링은 고치거나 제거한다 — `ENABLE_DEBUG_ENDPOINT_AUTH=false`는 **CVE 수정을 무력화**하므로 쓰지 않는다.
+깨지는 것은 우리 쪽 도구다. `istioctl --plaintext`를 쓰는 내부 스크립트는 표준 인증 경로(`istioctl proxy-status` 등)로 옮기고 Kiali가 istio-system 밖에 있으면 이전하거나 `DEBUG_ENDPOINT_AUTH_ALLOWED_NAMESPACES`(1.30 신설)에 추가한다. 15010에 직접 붙는 커스텀 모니터링은 고치거나 제거한다. `ENABLE_DEBUG_ENDPOINT_AUTH=false`는 **CVE 수정을 무력화**하므로 쓰지 않는다.
 
 - **CVE-2026-31837**(critical): JWKS fallback 메커니즘이 **RSA 개인키를 유출** → JWT 위조·인증 우회([GHSA-v75c-crr9-733c](https://github.com/istio/istio/security/advisories/GHSA-v75c-crr9-733c)). 우리에게: `RequestAuthentication`(JWT)을 쓰면 **최우선**. 1.30.0 이상 필수.
 - **인가 우회**([#59992](https://github.com/istio/istio/issues/59992)): `source.principals`(suffix 매칭)·`source.namespaces`의 정규식 메타문자가 이스케이프되지 않아 **의도치 않은 identity가 정책에 매칭**될 수 있었다. 우리에게: `AuthorizationPolicy`를 쓰는 모든 클러스터. 수정 후 매칭이 **좁아질 수 있으니** 정책 재검증.
@@ -336,7 +334,7 @@ upgrade-notes가 breaking으로 분류한 유일한 **트래픽 경로** 변경�
 | top-level `retryBudget` + subset이 자체 `trafficPolicy` | top-level 예산이 **드롭**(예산 없음 = 재시도 무제한) | 정상 상속 |
 | subset 레벨 `retryBudget` | **무시** | 적용 |
 
-**즉 `retryBudget`을 쓰고 있었다면 실제 동작이 무엇이었는지 모르는 상태였다.** 1.30에서 처음으로 선언한 대로 동작하고, 결과는 "재시도가 늘어난다" 방향이므로 **업스트림 부하가 는다.** 우리 `DestinationRule`에 `retryBudget`이 있으면 값을 다시 정하고, 없으면 무해하다.
+**즉 `retryBudget`을 쓰고 있었다면 실제 동작이 무엇이었는지 모르는 상태였다.** 1.30에서 처음으로 선언한 대로 동작하고 결과는 "재시도가 늘어난다" 방향이므로 **업스트림 부하가 는다.** 우리 `DestinationRule`에 `retryBudget`이 있으면 값을 다시 정하고 없으면 무해하다.
 
 ## 7. 판단 목록
 
@@ -365,16 +363,16 @@ upgrade-notes가 breaking으로 분류한 유일한 **트래픽 경로** 변경�
 
 ## 8. 1.24 → 1.30 점프의 현실
 
-공식 정책을 먼저 못박는다. **모든 방식 공통 전제**는 *"Upgrading across more than two minor versions … in one step is not officially tested or recommended"*(`docs/setup/upgrade/_index.md:10`)이고, **revision 기반 canary**는 *"jumping across two minor versions is supported"*(`canary/index.md:32`), **in-place**는 *"no more than one minor version less than the upgrade version"*(`in-place/index.md:30`)이다. 여기에 스큐 정책이 겹친다 — 컨트롤 플레인은 데이터 플레인보다 한 버전 앞설 수 있지만 반대는 안 된다. 즉 홉마다 **전 sidecar 재시작을 끝내고** 다음 홉으로 가야 한다. 우리가 하려는 것은 **하한 가정 1.24 → 1.30, 6 마이너**로 단일 스텝은 두 메커니즘 모두에서 지원 밖이다.
+**모든 방식 공통 전제**는 *"Upgrading across more than two minor versions … in one step is not officially tested or recommended"*(`docs/setup/upgrade/_index.md:10`)이고, **revision 기반 canary**는 *"jumping across two minor versions is supported"*(`canary/index.md:32`), **in-place**는 *"no more than one minor version less than the upgrade version"*(`in-place/index.md:30`)이다. 여기에 스큐 정책이 겹친다. 컨트롤 플레인은 데이터 플레인보다 한 버전 앞설 수 있지만 반대는 안 되므로 홉마다 **전 sidecar 재시작을 끝내고** 다음 홉으로 가야 한다. 우리가 하려는 것은 **하한 가정 1.24 → 1.30, 6 마이너**로 단일 스텝은 두 메커니즘 모두에서 지원 밖이다.
 
-여기에 **k8s 축의 제약이 하나 더 겹친다**(§1). green은 k8s 1.31이고 istio 1.30의 하한은 1.32다 — 즉 **어떤 홉 전략을 쓰든 green 위에서는 1.30에 도달할 수 없다.** 아래 판정은 그 사실을 반영한 것이다.
+여기에 **k8s 축의 제약이 하나 더 겹친다**(§1). green은 k8s 1.31이고 istio 1.30의 하한은 1.32다 — **어떤 홉 전략을 쓰든 green 위에서는 1.30에 도달할 수 없다.**
 
-- **in-place 순차 1.24→…→1.30**(홉 6): §2·§3·§4 사건을 하나씩. 홉마다 istiod 교체 + 전량 재시작. 판정: **부적합**(6번의 전량 재시작과 검증 창. §3의 orphan을 유일하게 실제로 만나는 경로. 게다가 마지막 홉이 k8s 하한에 막힌다).
+- **in-place 순차 1.24→…→1.30**(홉 6): §2·§3·§4 사건을 하나씩 맞는다. 홉마다 istiod 교체 + 전량 재시작. 판정: **부적합**(6번의 전량 재시작과 검증 창. §3의 orphan을 유일하게 실제로 만나는 경로. 게다가 마지막 홉이 k8s 하한에 막힌다).
 - **canary 2마이너 1.24→1.26→1.28→1.30**(홉 3): 공식 최단 경로였지만 **green에서는 마지막 홉이 성립하지 않는다** — 1.26(k8s 1.29~1.33)·1.28(1.30~1.34)까지는 1.31이 범위 안이고 1.30은 밖이다. native 플립도 일어나지 않는다(kubelet 1.31 < 33). 판정: **1.29까지만 가능**(목표 미달).
 - **canary + 노드 버전 통제**(홉 3 이후 노드를 올려 native 플립을 분리): `auto`의 성질(§2.1)을 일정 도구로 쓰는 방법이지만, **노드를 올리는 순간 그 클러스터는 더 이상 green이 아니라 새 클러스터를 짓는 일**이 된다. 판정: **1.35 신규 클러스터로 가는 것과 동일**(별도 경로가 아니다).
 - **blue-green 신규 설치 1.30.3 직행**(홉 0): 아무것도 통과하지 않는다. k8s 1.35 + 처음부터 1.30.3 + native + 신 차트 이름. 판정: **최적이자 목표를 만족하는 유일한 경로**.
 
-**blue-green이 유리한 이유는 "빠르다"가 아니라 "통과하지 않는다"다.** 이 문서가 다룬 사건의 절반은 **버전을 통과할 때만** 문제가 된다 — §3의 orphan은 발생하지 않고, §4의 기본값 변경은 "변경"이 아니라 "초기값"이 되어 되돌릴 이전 상태가 없고, §6.1·§6.4는 "바뀜"이 아니라 "그렇게 시작"이 되고, 스큐 자체가 없다. 그래도 **남는 것이 둘 반 있다.** ① **§2 native sidecar** — k8s 1.35 노드에서 신규 설치하면 처음부터 native이므로 검증은 어차피 해야 한다. ② **§6.3의 도구 정리** — CVE는 수정 포함이지만 `--plaintext` 스크립트는 그대로 죽는다. 그리고 §6.1이 반쪽 — 규칙 변경 자체는 무관해지지만 **의도한 대상으로 가는지는 여전히 확인해야 한다.**
+**blue-green이 유리한 이유는 "빠르다"가 아니라 "통과하지 않는다"다.** 이 문서가 다룬 사건의 절반은 **버전을 통과할 때만** 문제가 된다 — §3의 orphan은 발생하지 않고 §4의 기본값 변경은 "변경"이 아니라 "초기값"이 되어 되돌릴 이전 상태가 없고 §6.1·§6.4는 "바뀜" 없이 "그렇게 시작"한다. 스큐 자체도 없다. 그래도 **남는 것이 둘 반 있다.** ① **§2 native sidecar** — k8s 1.35 노드에서 신규 설치하면 처음부터 native이므로 검증은 어차피 해야 한다. ② **§6.3의 도구 정리** — CVE는 수정 포함이지만 `--plaintext` 스크립트는 그대로 죽는다. 그리고 §6.1이 반쪽 — 규칙 변경 자체는 무관해지지만 **의도한 대상으로 가는지는 여전히 확인해야 한다.**
 
 절차 상세(차트 리워크, 이미지 ECR 미러, app-of-apps 핀 갱신, 배포 순서, 트래픽 컷오버 게이트, 롤백)는 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}})가 소유한다. 다만 그 문서의 첫 체크리스트 항목은 그대로 유효하다 — **라이브 istiod/proxy 버전이 미확인이면 위 목록의 홉 산정 전부가 무의미하다.** 그리고 §3의 결과로 "base/istiod 차트 통합" 항목은 문구를 고쳐야 한다.
 
@@ -401,4 +399,3 @@ upgrade-notes가 breaking으로 분류한 유일한 **트래픽 경로** 변경�
 - **`MAX_CONNECTIONS_PER_SOCKET_EVENT_LOOP=1`의 정량적 영향.** 릴리스노트·커밋 메시지에 벤치마크 수치가 없다. 정성 판단까지만 가능하고 실측은 스테이징에서 해야 한다.
 - **finance가 `istio-cni`(CNI 체이닝) 방식인지 기본 `istio-init` 방식인지.** 1.25의 `DAC_OVERRIDE`·AppArmor, 1.27의 `cni.istioOwnedCNIConfig`·istio-cni 차트 `GOMEMLIMIT` divisor 수정, 1.30의 CNI config 권한 0600이 전부 이 여부로 갈린다. 라이브 Helm values 확인이 필요하다.
 - **`WasmPlugin`의 deprecate 일정과 proxy 기본 리소스 requests·limits 변경 이력.** 앞은 1.30 공지의 "replacing" 문구뿐이고 change-notes에 deprecate 항목이 없다. 뒤는 1.25~1.30 change-notes 전체에 해당 항목이 없다.
-</content>

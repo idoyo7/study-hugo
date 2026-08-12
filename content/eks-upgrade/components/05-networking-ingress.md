@@ -7,51 +7,65 @@ weight: 5
 
 {{< callout type="info" >}}
 **한눈에**
-- chart **1.8.1**(앱 v2.8.x) → **chart 3.4.2**(앱 v3.4.2). v3.0.0에서 **chartVersion=appVersion 정렬**이라는 관례 자체가 바뀌면서, 차트 라인이 1.x에서 곧바로 3.x로 점프한다(2.x 차트는 존재하지 않는다) `✓`
-- 목표 k8s **1.35** 지원에 하드 블로커는 아니다(v2.8.x도 동작) — 다만 ~2년 구버전이라 최신 stable로 올리는 것을 권장한다 `✓`
-- CRD `TargetGroupBinding`·`IngressClassParams`는 **storage 버전이 v1beta1로 불변**이라 기존 CR 변환이 필요 없다 `✓`
-- **IAM 정책에 8개 액션이 새로 필요**하다 — 없으면 컨트롤러 reconcile 중 AccessDenied로 ALB 갱신이 실패한다 `✓`
-- finance에서는 **`cluster-bootstrap-v2` umbrella의 서브차트**로 배포되므로 독립 bump가 불가능하다 — umbrella 리워크 + ECR 재퍼블리시가 선행돼야 한다 `✓`
+- chart **1.8.1**(앱 v2.8.x)에서 **chart 3.4.2**(앱 v3.4.2)로 간다. v3.0.0이 **chartVersion=appVersion 정렬**로 관례 자체를 갈아치운 탓에 차트 라인은 1.x에서 곧바로 3.x로 건너뛴다 — 2.x 차트는 아예 존재하지 않는다 `✓`
+- 목표 k8s **1.35**에서 v2.8.x도 동작하므로 하드 블로커는 아니다. 그럼에도 ~2년 구버전이라 최신 stable로 올리는 것을 권장한다 `✓`
+- CRD `TargetGroupBinding`·`IngressClassParams`는 **storage 버전이 v1beta1로 불변**이어서 기존 CR을 변환할 일이 없다 `✓`
+- **IAM 정책에 8개 액션이 새로 필요**하다. 빠지면 컨트롤러 reconcile 중 AccessDenied로 ALB 갱신이 실패한다 `✓`
+- finance는 이 컨트롤러를 **`cluster-bootstrap-v2` umbrella의 서브차트**로 배포하므로 독립 bump가 불가능하다 — umbrella 리워크와 ECR 재퍼블리시가 선행 조건이다 `✓`
 {{< /callout >}}
 
-## 버전 diff와 무엇이 바뀌는가
+## 1. 왜 chart 3.4.2인가
 
-v3.0.0(2026-01-23)이 메이저 breaking 경계다. 세 가지가 동시에 일어난다.
+목표 k8s만 놓고 보면 이 컴포넌트는 급하지 않다. 현행 앱 v2.8.x도 1.35에서 동작하므로 하드 블로커가 아니다. 그럼에도 손대는 이유는 버전 나이다 — v2.8.x는 ~2년 구버전이다. 최신 stable인 chart 3.4.2(앱 v3.4.2)로 올리는 것을 권장한다.
 
-- **chartVersion=appVersion 정렬** — v2.x는 차트 v1.x를 썼지만(예: LBC 2.17=차트 1.17), v3.0.0부터 차트/앱 버전이 일치한다. eks-charts에는 2.x 차트가 없어 finance의 dependency 핀도 1.8.1에서 곧장 3.4.2로 점프해야 한다.
-- **CRD 수동 재적용 요건** — 공식 설치 문서는 "`helm install`은 CRD를 자동 적용하지만 `helm upgrade`는 하지 않는다"고 명시한다. in-place bump라면 CRD를 먼저 수동 적용해야 하지만, blue-green 신규 클러스터는 fresh 설치이므로 ArgoCD/Helm이 crds/를 자동 렌더·적용해 이 단계를 생략할 수 있다.
-- **Gateway API GA 승격** — finance는 istio 기반 + TargetGroupBinding/Ingress를 쓰므로 기능적으로 해당 없지만, v3 컨트롤러가 참조하는 Gateway/ListenerSet CRD가 helm crds.yaml에서 누락되면 업데이트가 깨진 사례가 upstream에 보고돼 있다 — CRD를 전량 적용했는지 확인이 필요하다.
+폭이 chart 1.8.1에서 3.4.2로 커 보이는 것은 중간이 비어 있기 때문이다. v3.0.0이 chartVersion=appVersion 정렬을 도입하면서 차트 번호가 앱 번호로 갈아탔다. eks-charts에는 2.x 차트가 없다. finance의 dependency 핀도 1.8.1에서 곧장 3.4.2로 점프하는 수밖에 없다.
 
-`keepTLSSecret` values 키 제거, `--aws-vpc-tag-key` flag deprecated는 finance가 애초에 미사용이라 해당 없다. v2.8.1→v3.4.2 사이 IAM 정책 실 diff를 대조하면 ec2 3개(`GetSecurityGroupsForVpc`·`DescribeIpamPools`·`DescribeRouteTables`), elasticloadbalancing 5개(`DescribeListenerAttributes`·`ModifyListenerAttributes`·`DescribeCapacityReservation`·`ModifyCapacityReservation`·`ModifyIpPools`), 총 8개 액션이 새로 추가됐다. v3 컨트롤러는 리스너 attribute·capacity reservation을 조회·수정하므로, 이 액션들이 IRSA 정책에 없으면 reconcile 중 AccessDenied로 ALB 갱신이 실패한다.
+직행 자체는 가능하다. 공식 문서에 강제 스텝 버전 요구가 없고 최소 k8s 1.22+라 목표 1.35와는 무관하다.
 
-직행은 가능하다 — 공식 문서에 강제 스텝 버전 요구가 없고 최소 k8s 1.22+라 목표 1.35와 무관하다. 다만 v2.8→v2.11 구간에서 리스너 규칙 재계산이 발생한 사례가 upstream에 보고돼 있어, 대점프 시 최초 sync에서 기존 ALB 리스너 규칙이 한 번 갱신될 수 있다(무중단이지만 스테이징 선검증을 권장한다).
+한 가지 전망을 덧붙인다. aws-load-balancer-controller는 1.36으로 갈 경우 **서드파티 차단 6종** 중 하나다. 1.35 기준 목표(chart 3.4.2)는 그대로 유효하다. 1.36 재검토 시점은 [목표버전 판정]({{< relref "../01-target-version.md" >}})을 따른다.
 
-## finance 적용 절차
+## 2. v3.0.0이 깨는 것
 
-finance의 LBC는 독립 ArgoCD 앱이 아니라 `cluster-bootstrap-v2` umbrella 차트의 서브차트다. targetRevision 하나만 올려서는 서브차트가 바뀌지 않는다.
+메이저 breaking 경계는 v3.0.0(2026-01-23)이다. 이 릴리스에서 세 가지가 동시에 일어나고 여기에 IAM과 리스너 쪽 실무 영향이 둘 더 붙는다.
 
-1. **차트 소스 리워크** — umbrella `Chart.yaml`의 `aws-load-balancer-controller` dependency를 3.4.2로 교체하고 umbrella 버전을 bump해 ECR에 재퍼블리시한다. 서브차트의 `elbv2.k8s.aws` CRD는 v1beta1 storage가 불변이라 기존 CR과 호환되지만, Gateway/ListenerSet 같은 신규 CRD가 포함돼 있는지는 별도로 확인한다.
-2. **app-of-apps targetRevision 핀** — umbrella targetRevision을 새 버전으로 교체한다(stage/prod 모두). `clusterName` Helm 파라미터는 그대로 자동 주입되므로 별도 변경이 필요 없다. syncPolicy가 `prune:false / selfHeal:false`이므로 자동 sync가 아니라 수동 sync가 필요하다는 점도 유의한다.
-3. **values 검증** — 제거된 키(`keepTLSSecret`)가 없는지 확인 완료. 이미지 repo가 미러 ECR이므로 v3.4.2 태그를 그 경로에 먼저 미러 퍼블리시해야 pull이 가능하다.
-4. **IRSA 정책 갱신** — 8개 신규 액션을 IAM 정책에 반영한다. 정책의 실제 관리 경로(어느 레포가 이 role을 관리하는지)가 확인되지 않은 상태라면, 먼저 관리 주체를 특정한 뒤 v3.4.2 공식 `iam_policy.json` 기준으로 액션을 추가한다.
+- **chartVersion=appVersion 정렬** — v2.x 앱은 차트 v1.x를 썼다(예: LBC 2.17=차트 1.17). v3.0.0부터는 차트와 앱 버전이 일치한다. eks-charts에 2.x 차트가 없으니 finance의 dependency 핀도 1.8.1에서 곧장 3.4.2로 점프해야 한다.
+- **CRD 수동 재적용 요건** — 공식 설치 문서는 "`helm install`은 CRD를 자동 적용하지만 `helm upgrade`는 하지 않는다"고 명시한다. in-place bump라면 CRD를 먼저 수동 적용해야 한다. 반면 blue-green 신규 클러스터는 fresh 설치이므로 ArgoCD/Helm이 crds/를 자동 렌더·적용해 이 단계를 생략할 수 있다.
+- **Gateway API GA 승격** — finance는 istio 기반에 TargetGroupBinding/Ingress를 쓰므로 기능적으로 해당 없다. 다만 v3 컨트롤러는 Gateway/ListenerSet CRD를 참조한다. 이 CRD가 helm crds.yaml에서 누락되면 업데이트가 깨진 사례가 upstream에 보고돼 있다 — CRD를 전량 적용했는지 확인이 필요하다.
+- **IAM 8액션** — v2.8.1→v3.4.2 사이 IAM 정책 실 diff를 대조하면 ec2 3개(`GetSecurityGroupsForVpc`·`DescribeIpamPools`·`DescribeRouteTables`), elasticloadbalancing 5개(`DescribeListenerAttributes`·`ModifyListenerAttributes`·`DescribeCapacityReservation`·`ModifyCapacityReservation`·`ModifyIpPools`), 총 8개 액션이 새로 추가됐다. v3 컨트롤러가 리스너 attribute·capacity reservation을 조회·수정하기 때문이다. 이 액션들이 IRSA 정책에 없으면 reconcile 중 AccessDenied로 ALB 갱신이 실패한다.
+- **리스너 규칙 재계산** — v2.8→v2.11 구간에서 리스너 규칙 재계산이 발생한 사례가 upstream에 보고돼 있다. 이만한 대점프에서는 최초 sync에서 기존 ALB 리스너 규칙이 한 번 갱신될 수 있다(무중단이지만 스테이징 선검증을 권장한다).
+
+깨지지 않는 쪽도 못박아 둔다. `keepTLSSecret` values 키 제거와 `--aws-vpc-tag-key` flag deprecated는 finance가 애초에 미사용이라 해당 없다.
+
+## 3. 적용 절차
+
+finance의 LBC는 독립 ArgoCD 앱이 아니라 `cluster-bootstrap-v2` umbrella 차트의 서브차트다. targetRevision 하나만 올려서는 서브차트가 바뀌지 않는다. 이 절차는 거기서 출발한다.
+
+1. **차트 소스 리워크** — umbrella `Chart.yaml`에서 `aws-load-balancer-controller` dependency를 3.4.2로 교체하고 umbrella 자체 버전도 bump해 ECR에 재퍼블리시한다. 서브차트가 들고 오는 `elbv2.k8s.aws` CRD는 v1beta1 storage가 불변이라 기존 CR과 호환된다. 다만 Gateway/ListenerSet 같은 신규 CRD가 포함돼 있는지는 별도로 확인한다.
+2. **app-of-apps targetRevision 핀** — stage/prod 양쪽의 umbrella targetRevision을 새 버전으로 교체한다. `clusterName` Helm 파라미터는 그대로 자동 주입되므로 별도 변경이 필요 없다. syncPolicy가 `prune:false / selfHeal:false`이므로 자동 sync가 아니라 수동 sync가 필요하다는 점도 유의한다.
+3. **values 검증** — 제거된 키(`keepTLSSecret`)가 없는지는 확인 완료다. 이미지 repo가 미러 ECR이므로 v3.4.2 태그를 그 경로에 먼저 미러 퍼블리시해야 pull이 가능하다.
+4. **IRSA 정책 갱신** — 8개 신규 액션을 IAM 정책에 반영한다. 이 role을 어느 레포가 관리하는지, 즉 정책의 실제 관리 경로가 확인되지 않은 상태라면 먼저 관리 주체를 특정한 뒤 v3.4.2 공식 `iam_policy.json` 기준으로 액션을 추가한다.
 5. **CRD 선적용** — in-place 갱신이라면 CRD를 수동으로 먼저 적용한다. blue 클러스터 fresh 설치라면 ArgoCD가 crds/를 렌더·적용하므로 생략 가능하다.
 
 배포 순서는 (1) IRSA role + v3.4.2 IAM 정책 준비 → (2) 이미지 미러 퍼블리시 → (3) umbrella 리워크·재퍼블리시 → app-of-apps targetRevision 핀 → (4) fresh 설치라면 CRD 자동 적용, in-place라면 수동 선적용이다. `cluster-bootstrap-v2`가 전체 클러스터 부트스트랩 순서에서 어느 위치에 배포되는지는 [클러스터 부트스트랩]({{< relref "../04-cluster-bootstrap.md" >}}) 참고.
 
-aws-load-balancer-controller는 1.36으로 갈 경우 **서드파티 차단 6종** 중 하나다 — 1.35 기준 목표(chart 3.4.2)는 그대로 유효하며, 1.36 재검토 시점은 [목표버전 판정]({{< relref "../01-target-version.md" >}})을 따른다.
+## 4. 검증과 롤백
 
-검증은 아래 실행 체크리스트를 따른다.
+배포 전에 통과시켜야 하는 게이트부터 본다.
 
-## 실행 체크리스트
-
-- [ ] **IAM 8액션 추가 선반영** — 미반영 시 reconcile AccessDenied. role 관리 경로를 먼저 특정한다.
-- [ ] **번들 리워크 없이는 불가** — targetRevision만 올려도 서브차트는 그대로 1.8.1이다.
+- [ ] **IAM 8액션 선반영** — role 관리 경로를 먼저 특정하고 v3.4.2 공식 `iam_policy.json` 기준으로 추가한다. 미반영 시 reconcile AccessDenied.
+- [ ] **umbrella 리워크·ECR 재퍼블리시** — targetRevision만 올려도 서브차트는 그대로 1.8.1이다.
 - [ ] **v3.4.2 이미지 미러 ECR 퍼블리시 선행** — 누락 시 ImagePullBackOff.
-- [ ] **CRD 처리** — in-place는 crds.yaml 수동 선적용. TargetGroupBinding/IngressClassParams는 v1beta1 storage 불변이라 기존 CR은 안전하다.
-- [ ] **ListenerSet/Gateway CRD 누락 리스크** — Gateway API 미사용이어도 관련 CRD 누락만으로 업데이트가 깨진 upstream 사례가 있다. crds.yaml 적용 후 컨트롤러가 요구하는 CRD가 전부 존재하는지 확인한다.
-- [ ] **리스너 규칙 1회 재계산 가능성** — prod 적용 전 staging에서 ALB 규칙 diff를 선검증한다.
-- [ ] TargetGroupBinding 사용처는 istio ingressgateway 타깃그룹 바인딩 1곳뿐 — v3에서 스키마 무변경이나 sync 후 대상 재등록을 확인한다.
-- [ ] **배포 후 검증** — 컨트롤러 이미지가 v3.4.2인지, 로그에 AccessDenied(특히 `DescribeListenerAttributes`/`DescribeCapacityReservation`)가 없는지, `TargetGroupBinding` 대상(istio ingressgateway 타깃그룹)이 정상 healthy인지, 리스너 규칙이 예상치 못하게 재계산되지 않는지, webhook 인증서가 정상이고 ALB 신규 생성/삭제 e2e가 통과하는지 확인한다.
+- [ ] **CRD 전량 존재 확인** — in-place는 crds.yaml 수동 선적용. 적용 후 컨트롤러가 요구하는 CRD(ListenerSet/Gateway 포함)가 전부 존재하는지 본다.
+- [ ] **staging ALB 규칙 diff 선검증** — 리스너 규칙 1회 재계산 가능성이 있으므로 prod 적용 전 staging에서 diff를 대조한다.
+
+배포 후에는 세 갈래를 본다.
+
+- [ ] 컨트롤러 이미지가 v3.4.2인지, 로그에 AccessDenied(특히 `DescribeListenerAttributes`/`DescribeCapacityReservation`)가 없는지
+- [ ] `TargetGroupBinding` 대상(istio ingressgateway 타깃그룹)이 정상 healthy인지 — 사용처는 istio ingressgateway 타깃그룹 바인딩 1곳뿐이고 v3에서 스키마는 무변경이나 sync 후 대상 재등록을 확인한다
+- [ ] 리스너 규칙이 예상치 못하게 재계산되지 않는지, webhook 인증서가 정상이고 ALB 신규 생성/삭제 e2e가 통과하는지
+
+되돌릴 길은 한 줄이다.
+
 - [ ] **rollback** — umbrella targetRevision을 1.8.1로 되돌린다. TargetGroupBinding CRD storage가 불변이라 기존 CR은 영향 없다.
 
 ## 근거
