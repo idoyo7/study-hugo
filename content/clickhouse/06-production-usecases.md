@@ -85,21 +85,7 @@ Netflix는 5PB/day를 내려고 세 곳을 갈아엎었다 `Ⓥ`: 유사 로그 
 | **ClickHouse LogHouse** | O | O(ClickHouse Operator) | 오브젝트 스토리지 | `Ⓥ` |
 | **mrkrbrts**(참조 아키텍처) | O(EKS) | O(Altinity) | r7gd NVMe = **S3 write-through 캐시** | `✓`(개인 참조 아키텍처) |
 
-즉 **K8s + operator 자체는 eBay·Anthropic·Trip.com·LogHouse·ClickHouse 자신이 검증**한 패턴이다. 그러나 "로컬 NVMe를 hot으로" 쓰는 실증은 대부분 **오브젝트 스토리지 백킹 위의 캐시**(Anthropic·Character.AI·mrkrbrts) 형태이지, 로컬 NVMe를 primary durable로 두는 순수형이 아니다. 순수 로컬 NVMe primary는 성능이 최선이나 아래의 대가를 진다.
-
-### 대가 — node lifecycle 운영
-
-로컬 NVMe는 인스턴스에 물리 부착돼 network block(EBS)의 예측 불가한 tail latency를 피하지만 **휘발성**이다 — 노드가 죽으면 그 디스크 데이터도 사라진다. 그래서 다음이 세트로 강제된다 `✓`.
-
-- **재복제(re-replication)**: 소실 노드의 데이터는 다른 노드의 replica에서 전량 재전송받아 복구한다. 재복제 동안 클러스터 용량·부하에 영향이 가고, **노드당 데이터가 크면(예: 40TB) 재수화가 길어져 그동안 redundancy가 준다** → 노드당 데이터량과 replica 수, shard 수의 균형 설계가 필요하다.
-- **drain / upgrade 절차**: 로컬 NVMe + node affinity 조합에서는 노드 drain이 곧 데이터 재복제를 유발할 수 있어 rolling 업그레이드 절차 설계가 까다롭다. Altinity operator issue #1859(로컬 NVMe 전환 질의)은 "노드 장애 시 CH 복제가 교체 노드로 자동 복구되는가"에 스레드가 명확한 답을 남기지 않은 채 종료됐다 — **로컬 스토리지 노드 교체 절차가 잘 문서화돼 있지 않다는 방증**이다.
-- **`reclaimPolicy: Retain`**: CH 클러스터/Helm 삭제 시 PVC가 함께 삭제돼 데이터가 날아가는 사고를 막는 필수 설정. 노드 장애 복구 베스트 프랙티스는 "0 replica로 스케일다운 → 노드 재부팅 → 스케일업"이며 사전에 모든 PVC가 retain인지 확인해야 한다.
-
-{{< callout type="warning" >}}
-pulse.support의 요약이 본질을 찌른다 — "ClickHouse는 IO-bound·merge-heavy이고 복제 조정을 위해 **안정적 노드 정체성**에 의존한다. Kubernetes는 **disposable pod + 네트워크 스토리지**를 전제로 설계됐다. 잘 동작하게 만들 수 있지만, **기본값은 당신과 싸운다.**"
-
-스토리지 내구성 3종 세트(멀티 AZ replica·clickhouse-backup·Keeper)와 Karpenter 주의는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}), operator 채택·롤링 절차는 [Altinity operator]({{< relref "03-operator.md" >}})에서 다룬다.
-{{< /callout >}}
+즉 **K8s + operator 자체는 eBay·Anthropic·Trip.com·LogHouse·ClickHouse 자신이 검증**한 패턴이다. 그러나 "로컬 NVMe를 hot으로" 쓰는 실증은 대부분 **오브젝트 스토리지 백킹 위의 캐시**(Anthropic·Character.AI·mrkrbrts) 형태이지, 로컬 NVMe를 primary durable로 두는 순수형이 아니다. 순수 로컬 NVMe primary는 성능이 최선이나 그 대가로 **node lifecycle 운영**을 진다 — 재복제·drain 절차·`reclaimPolicy` 함정과 Altinity issue #1859의 미결 스레드는 [로컬 NVMe 데이터스토어 벤치마킹 §대가]({{< relref "07-local-nvme-datastore-patterns.md" >}})가 9개 시스템 횡단 증거와 함께 소유한다. 이 페이지는 실증 범위와 출처 편향만 다룬다.
 
 ## 관측성 아키텍처 패턴
 

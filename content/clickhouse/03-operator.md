@@ -13,7 +13,7 @@ weight: 3
 - **배제 근거**: 공식 operator는 알파(`v1alpha1`), Bitnami는 폐기 경로, 순수 StatefulSet은 단일 노드만.
 {{< /callout >}}
 
-"Helm에서 clickhouse-operator를 쓸까 말까"는 이미 답이 정해진 질문이다. ClickHouse는 스토리지만 붙은 컨테이너가 아니라 **엄격한 토폴로지·설정 요구를 가진 분산 시스템**이라, replica가 2개 이상이거나 shard가 하나라도 생기는 순간 수동 StatefulSet은 remote_servers 관리·스키마 전파·롤링 순서·PDB·anti-affinity를 전부 손으로 짜야 해서 오류투성이가 된다 `✓`. 그래서 진짜 결정은 "operator를 쓸지"가 아니라 **"어느 operator를 쓸지"**다. 2026-07 기준 답은 **Altinity clickhouse-operator**다 — 7년+ 프로덕션 트랙레코드로 사실상 표준이고, 공식·Bitnami·수동 경로는 각각 미성숙·폐기·비효율의 이유로 밀린다. 이 페이지는 "어느 operator냐"까지만 다룬다 — 실제 배포 구성은 [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), 배포 후 스케일 in/out·롤링 업그레이드 같은 운영 실무는 [Altinity operator 운영]({{< relref "05-altinity-operations.md" >}})에서 이어간다.
+"Helm에서 clickhouse-operator를 쓸까 말까"는 이미 답이 정해진 질문이다. ClickHouse는 스토리지만 붙은 컨테이너가 아니라 **엄격한 토폴로지·설정 요구를 가진 분산 시스템**이라, replica가 2개 이상이거나 shard가 하나라도 생기는 순간 수동 StatefulSet은 remote_servers 관리·스키마 전파·롤링 순서·PDB·anti-affinity를 전부 손으로 짜야 해서 오류투성이가 된다 `✓`. 그래서 진짜 결정은 "operator를 쓸지"가 아니라 **"어느 operator를 쓸지"**다. 2026-07 기준 답은 **Altinity clickhouse-operator**다 — 7년+ 프로덕션 트랙레코드로 사실상 표준이고, 공식·Bitnami·수동 경로는 각각 미성숙·폐기·비효율의 이유로 밀린다. 이 페이지는 "어느 operator냐"까지만 다룬다 — 실제 배포 구성은 [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), 배포 후 스케일 in/out·롤링 업그레이드·GitOps 함정·복구 같은 운영 실무는 [변경관리·복구]({{< relref "05-altinity-operations.md" >}})에서 이어간다.
 
 ## 프레이밍 전환 — 손익분기점은 replica≥2
 
@@ -73,19 +73,6 @@ operator 간 마이그레이션(수동 STS→Altinity, Altinity↔공식)은 PVC
 **권고: 옵션 ③.** 관측성·범용 CH를 하나의 성숙한 operator(Altinity)로 수렴시키는 가장 깔끔한 형태다. ClickStack의 내장 CH를 끄고 Altinity가 관리하는 외부 CH를 바라보게 하면, 미션크리티컬 CH의 안정성을 알파 operator에 의존시키지 않으면서 관측성 스택도 유지된다. 공식 문서도 프로덕션에선 CH를 별도 관리하도록 권고한다 `✓`. 공식 operator는 병렬로 스테이징에서 **베타/GA 승격을 추적하다가** 이후 재평가한다 `≈`.
 {{< /callout >}}
 
-## 운영 주의
-
-Altinity operator를 GitOps(ArgoCD)·Helm 워크플로에 얹을 때 반복되는 함정이다.
-
-{{< callout type="warning" >}}
-**설정은 반드시 CHI `settings`/`files`로만 주입한다.** operator가 관리하는 설정과 외부에서 주입한 config가 충돌하면 CH 파드가 CrashLoop에 빠진다 — ArgoCD로 Vault의 `named_collections.xml`을 외부 주입했다가 operator 렌더링과 충돌한 실제 이슈(#1456)가 있다 `✓`. 커스텀 `config.xml`은 `configuration.settings`(구조화) 또는 `configuration.files`(원본 XML)로, `users.xml`은 `configuration.users`/`profiles`/`quotas`로 선언하면 operator가 XML로 렌더링해 ConfigMap으로 마운트한다 `✓`.
-{{< /callout >}}
-
-- **ArgoCD `ignoreDifferences`가 필요하다.** operator가 CR 상태를 계속 갱신하고 일부 필드(예: `resourceFieldRef.divisor`)를 채워 넣어 GitOps 도구가 **영구 OutOfSync diff**를 보이는 이슈가 있었다(0.27.1에서 수정) `✓`. operator는 **0.27.1+를 권장**하고, Altinity가 제공하는 argocd-examples를 참고해 diff/self-heal을 신중히 설정한다.
-- **PVC `reclaimPolicy`와 삭제 보호.** operator/Helm이 만든 PVC는 `helm uninstall`로 삭제되지 않는다(데이터 보호) `✓`. EBS 계열은 `reclaimPolicy: Retain`이 churn·재생성 시 데이터를 지키는 직접적 의미가 크고(문서 예제는 `Delete`), 로컬 NVMe에서는 데이터가 어차피 노드와 함께 사라지므로 "PVC를 지워도 STS만 재생성되게" 하는 운영상 보호 용도로 쓴다 `≈`.
-- **operator 업그레이드도 스테이징에서 검증한다.** operator 자체 업그레이드가 리컨사일 동작을 바꿔 예기치 않은 롤링 재시작을 유발할 수 있다 — RollingUpdate 중 CrashLoopBackOff(0.26.3 수정), 동시 config+version 업데이트 race(0.26.2 수정) 등 회귀 이력이 있다 `✓`. STS를 scale-to-0 없이 삭제하면 스키마가 재생성되지 않는 등 특정 조작 순서에서 나는 엣지 버그(#1500, #1602)가 있으니 스케일 순서 등 운영 룰을 지킨다 `✓`.
-- **Keeper 재시작이 쿼럼을 잃었던 이력이 있다.** 0.24.0은 이전 Keeper 파드가 Running 상태인지 확인하지 않고 순차 재시작해, CHK 설정 변경 시 한 파드가 ContainerCreating인 동안 다음 파드가 Terminating으로 겹쳐 **일시적 쿼럼 손실**(테이블 read-only 전락)을 유발했다. 이 문제는 0.25.3(2025-08 보고)까지 잔존해 CHK PodDisruptionBudget도 준수하지 않았고, **v0.26.1(2026-03-13)에서 수정**됐다(issue #1598) `✓`. 마이그레이션·업그레이드 계획 시 **최소 0.26.1 이상**을 쓰고, 신규 도입이면 실무상 최신 0.27.x를 권장한다.
-
 ## 로컬 NVMe(i7i)와 CHI 상호작용
 
 로컬 NVMe hot 티어를 쓰는 스토리지 전략의 상세는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})에서 다룬다. operator 관점에서 핵심은 **"노드=데이터" 결합이 강해진다**는 점이다.
@@ -98,12 +85,7 @@ Altinity operator를 GitOps(ArgoCD)·Helm 워크플로에 얹을 때 반복되�
 
 ## Keeper는 CHK로 3노드 분리 배포
 
-Keeper는 Altinity operator의 **CHK(`ClickHouseKeeperInstallation`)로 3노드 분리 배포**한다.
-
-- **CHK가 replica ordinal별 `server_id`(Raft peer 식별)를 자동 할당**해 파드 재시작 시 Raft peer discovery가 깨지지 않는다(수동 관리 시 흔한 실패 지점). 0.27.0부터 Keeper 지원이 GA 수준으로 승격돼 **CHI에서 Keeper를 서비스 엔드포인트가 아니라 이름으로 직접 참조**할 수 있다 `✓`.
-- **정족수는 프로덕션 최소 3노드**(1 장애 허용)다. 2노드는 분할 시 과반을 못 만들어 단일 장애가 전체 복제를 중단시킨다 `✓`. 더 높은 가용성이 필요하면 5노드로 확장 가능하다 `✓`.
-- **분리 배치**는 Keeper를 쿼리 부하와 격리하고, CH 파드 안에 co-locate했을 때 생길 수 있는 순환 의존성(CH가 replicated 테이블 초기화에 Keeper quorum이 필요한데 Keeper가 CH 파드에 박혀 기동 순서가 비결정적)을 피하는 실무 관행이다. 공식 문서는 분리·co-locate를 모두 정식 옵션으로 병기한다 `✓`.
-- **Keeper 스토리지는 저지연 `fdatasync`가 관건**이고 용량은 소량(20Gi급)이면 충분하다 `✓`. 로컬 NVMe에 함께 두더라도 무방하나, Keeper 데이터는 영속 볼륨(gp3)에 두어 노드 교체와 무관하게 quorum을 지키는 편이 안전하다.
+operator 선택의 결론만 여기 남긴다: Keeper는 Altinity operator의 **CHK(`ClickHouseKeeperInstallation`)로 3노드(프로덕션 최소, 1 장애 허용) 분리 배포**하고 데이터는 gp3(영속)에 둔다 `✓`. **2노드는 분할 시 과반을 못 만들어 단일 장애가 전체 복제를 중단시키므로 금지**이고, 더 높은 가용성이 필요하면 5노드로 확장한다 `✓`. 분리 배치는 Keeper를 쿼리 부하와 격리하고, CH 파드에 co-locate했을 때 생기는 순환 의존성(CH가 replicated 테이블 초기화에 Keeper quorum을 요구하는데 Keeper가 그 CH 파드에 박혀 기동 순서가 비결정적이 된다)을 피하는 실무 관행이다 — 공식 문서는 분리·co-locate를 모두 정식 옵션으로 병기한다 `✓`. 정족수 산술(왜 3, 언제 5)·`server_id` 자동 할당·`fdatasync`와 20Gi급 용량·CHK 매니페스트 필드는 [operator 배포 플레이북 §CHK]({{< relref "04-deployment-playbook.md" >}})가 정본이다.
 
 ZooKeeper 별도 운영은 무겁고 신규 구축에서 권하지 않는다 — operator를 쓴다면 그 operator의 Keeper CRD(Altinity면 CHK)를 쓰는 것이 자연스럽고 안전하다 `✓`.
 
@@ -111,4 +93,4 @@ ZooKeeper 별도 운영은 무겁고 신규 구축에서 권하지 않는다 —
 
 이 페이지의 권고(Altinity로 통일 + ClickStack 외부 CH 연결)는 **ClickHouse 채택이 이미 결정된 뒤에만** 발동한다. 로깅 챕터의 결정과 모순되지 않는다 — 로그는 VictoriaLogs로 가고([로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}})), 통합 저장소는 **earn-it-last**로 보류하는 D4는 여전히 유효하다. 전제가 다를 뿐이다: 로깅 챕터는 **로그 내재화** 관점(로그만의 규모·형태로 저장소 선택)이고, 이 페이지는 **RUM을 Datadog에서 빼내고 범용 분석까지 CH로 흡수하며 인프라 운영 인력이 이미 있는** 시나리오 관점이다. 그 결정이 서지 않으면 이 operator 논의 자체가 무의미하고 로깅 챕터의 판단이 우선한다.
 
-채택이 결정된 경우, operator는 **Altinity로 통일**한다 — replica≥2가 되는 순간 손익분기점을 넘고, 7년+ 트랙레코드가 알파 공식 operator·폐기 경로 Bitnami·수동 STS를 모두 앞선다. ClickStack은 `clickhouse.enabled: false`로 내장 CH를 끄고 Altinity가 관리하는 CH(또는 HyperDX only)를 참조하게 해, 관측성용과 범용 분석용 CH를 하나의 성숙한 operator로 수렴시킨다. 공식 operator는 스테이징에서 베타/GA 승격을 추적하다 재평가한다. operator 결정을 실제 매니페스트로 옮기는 배포 절차(CHK/CHI 필드, local PV 연동, 스케일·업그레이드·재수화 런북)는 [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})에서, 로컬 NVMe·티어링 등 스토리지 how는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})에서, 실운영 사례는 [프로덕션 운영 사례]({{< relref "06-production-usecases.md" >}})에서 이어진다. 시점 기준 2026-07.
+채택이 결정된 경우, operator는 **Altinity로 통일**한다 — replica≥2가 되는 순간 손익분기점을 넘고, 7년+ 트랙레코드가 알파 공식 operator·폐기 경로 Bitnami·수동 STS를 모두 앞선다. ClickStack은 `clickhouse.enabled: false`로 내장 CH를 끄고 Altinity가 관리하는 CH(또는 HyperDX only)를 참조하게 해, 관측성용과 범용 분석용 CH를 하나의 성숙한 operator로 수렴시킨다. 공식 operator는 스테이징에서 베타/GA 승격을 추적하다 재평가한다. operator 결정을 실제 매니페스트로 옮기는 배포 절차(CHK/CHI 필드, local PV 연동, 티어링 주입)는 [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})에서, 서고 난 뒤의 GitOps·업그레이드·복구 함정(ArgoCD `ignoreDifferences`, PVC `reclaimPolicy` 보호, operator 업그레이드 회귀 이력, Keeper 재시작 쿼럼 손실)은 [변경관리·복구]({{< relref "05-altinity-operations.md" >}})에서, 로컬 NVMe·티어링 등 스토리지 how는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})에서, 실운영 사례는 [프로덕션 운영 사례]({{< relref "06-production-usecases.md" >}})에서 이어진다. 시점 기준 2026-07.

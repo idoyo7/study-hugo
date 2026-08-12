@@ -32,18 +32,31 @@ ClickStack 공식 Helm 경로(v2.x)는 **순서가 있는 2개 차트**로 나�
 
 여기서 이 카테고리 전체에 공통되는 분기를 못박는다. **표준 ClickStack 차트가 쓰는 ClickHouse operator는 Altinity operator(`ClickHouseInstallation`/CHI)가 아니라 ClickHouse Inc.의 신규 공식 operator(`ClickHouseCluster`/`KeeperCluster` CRD)다** `✓`. 우리 카테고리는 EBS-first + 범용분석 CH 일원화 + 7년+ 트랙레코드의 Altinity operator를 전제하므로([operator 선택 근거]({{< relref "../../clickhouse/03-operator.md" >}}) 참조), 실제 배치는 표준 차트를 그대로 쓰지 않는다.
 
+HyperDX Only 조립을 실제 values로 옮기면 세 축으로 정리된다 — **CH/Keeper 끄기**, **Collector 게이트웨이 사이징**, **HyperDX가 외부 CH/Mongo를 참조하는 시크릿 배선**이다.
+
 ```yaml
 # clickstack 차트 values — 우리 케이스: CH/Keeper를 차트 밖으로 분리(HyperDX Only)
 clickhouse:
-  enabled: false      # ★ 표준 공식 operator를 쓰지 않음. Altinity CHI로 외부 운영
+  enabled: false          # ★ 차트 기본값은 true. 표준 공식 operator를 쓰지 않고 Altinity CHI로 외부 운영
 otel-collector:
-  enabled: true       # 게이트웨이는 차트로 유지(또는 별도 관리)
-# hyperdx api는 MONGO_URI / CLICKHOUSE_* 시크릿으로 외부 CH·Mongo를 참조
+  enabled: true           # 게이트웨이는 차트로 유지(또는 별도 관리)
+  replicaCount: 2         # 게이트웨이 HA (§5.1)
+  # exporter 연결문자열에 async_insert=1(+wait_for_async_insert=1) 권장 (저볼륨)
+  # file_storage extension으로 퍼시스턴트 큐 구성 — 상세 §5.3
+hyperdx:
+  api:                    # MONGO_URI / CLICKHOUSE_* 시크릿으로 외부 CH·Mongo를 참조
+    envFrom:
+      - secretRef: { name: clickhouse-creds }   # CLICKHOUSE_HOST/USER/PASSWORD 등
+      - secretRef: { name: mongo-creds }        # MONGO_URI
 ```
 
 `clickhouse.enabled: false`로 두면 HyperDX는 `CLICKHOUSE_*`·`MONGO_URI` 시크릿으로 **외부 CH/Mongo를 참조**만 하고, ClickHouse/Keeper는 Altinity CHI/CHK로 별도 운영한다. 이 분기를 흐리면 독자가 "표준 install = Altinity"로 오해해 뒤 페이지의 CHI 매니페스트와 어긋난다. CHI/CHK 매니페스트·다운타임 시나리오는 {{< relref "04-operator-topology-downtime.md" >}}, hot 스토리지는 {{< relref "02-hot-storage-ebs.md" >}}, S3 cold는 {{< relref "03-s3-cold-tiering.md" >}}, Keeper 상세는 {{< relref "05-keeper.md" >}}에서 이어진다.
 
+CH/Keeper 자체(CHI/CHK CR)는 이 차트 values가 아니라 **별도 매니페스트**로 관리한다 — 필드·다운타임 시나리오는 위 04가, 변경·스케일·롤링 업그레이드·복구 운영은 {{< relref "../../clickhouse/05-altinity-operations.md" >}}가 기준 문서다. MongoDB `MongoDBCommunity` CR 전문(`members:3`·SCRAM·WiredTiger 캐시 고정)은 §6.3이 소유한다. 정확한 values 키 경로(예: `otel-collector.replicaCount` vs 중첩된 `deployment.replicas`)는 차트 버전마다 달라질 수 있어 배포 시 `helm show values clickstack/clickstack`로 재확인한다 `?`.
+
 > 왜 표준 차트를 안 쓰나: 공식 operator를 쓰면 우리 클러스터에 CH operator 2종(공식 + Altinity)이 공존하게 되고, 범용분석용으로 이미 운영 중인 Altinity CH와 관측성용 CH의 운영 표면이 갈라진다. `enabled:false`로 CH를 하나의 Altinity 운영 체계로 일원화하는 편이 운영 부담이 낮다 `≈`.
+>
+> 배포 모드를 부르는 이름 — 'HyperDX Only'와 공식·업계 표현의 대응 — 은 [챕터 대문의 배포 모드 각주]({{< relref "_index.md" >}})가 정본이므로 여기서 되풀이하지 않는다.
 
 ## 2. 컴포넌트 역할·포트·의존
 
@@ -61,12 +74,19 @@ otel-collector:
 ³ **2181**=client, 9444=raft — Altinity CHK 기본값(독립형 Keeper 기본값 9181/9234와 다름).
 
 - HyperDX는 **app(UI) + api(백엔드) 2 프로세스**다. local/all-in-one은 단일 컨테이너에 함께 패키징되지만, Helm에서는 app/api 포트가 분리 노출된다 `✓`.
-- **OpAMP(4320)**: HyperDX api가 OpAMP 서버로 동작해 Collector 파이프라인 설정을 원격 관리한다. Collector는 `OPAMP_SERVER_URL`로 api의 `/v1/opamp`에 붙는다 `✓`. 커스텀 Collector config는 `CUSTOM_OTELCOL_CONFIG_FILE`로 **베이스에 병합**되며 신규 receiver/processor 추가만 되고 기존 오버라이드는 안 된다(상세는 rum/01 위임).
+- **OpAMP(4320)**: HyperDX api가 OpAMP 서버로 동작해 Collector 파이프라인 설정을 원격 관리한다. Collector는 `OPAMP_SERVER_URL`로 api의 `/v1/opamp`에 붙는다 `✓`. TCP 접속은 Collector가 걸지만 그 위로 흐르는 것은 api가 내려보내는 설정이다 — 데이터가 흐르는 방향(Collector→CH)과 **제어가 흐르는 방향(api→Collector)이 반대**라는 점이 이 아키텍처의 특징이다.
+- 커스텀 Collector config는 `CUSTOM_OTELCOL_CONFIG_FILE`로 **베이스에 병합**되며 신규 receiver/processor 추가만 되고 기존 오버라이드는 안 된다(상세는 rum/01 위임). 실무 함의는 하나다: 베이스 파이프라인 자체(기본 `batch`/`memory_limiter` 파라미터 등)를 바꾸려면 OpAMP 병합 경로가 아니라 §1의 Helm values 레벨에서 손을 대야 한다.
 
 아래는 위 표의 역할·의존 관계를 공식 아키텍처 그림으로 정리한 것이다.
 
 ![HyperDX ClickStack 공식 아키텍처 다이어그램 — App/Infra → OTel Collector → ClickHouse ← HyperDX API ← HyperDX UI·MongoDB, OpAMP 폴링 구조](/images/hyperdx/hyperdx-architecture.png)
 *HyperDX ClickStack 공식 아키텍처 다이어그램 — Your App/Infra(OTel Collector·SDK·FluentBit)가 otel-collector(OpenTelemetry Collector + OpAMP Supervisor)로 텔레메트리를 보내면 otel-collector가 ch-server(ClickHouse)에 적재하고, api(HyperDX API)는 ch-server를 조회·db(MongoDB)에서 메타데이터를 읽으며 Poll OpAMP Configuration으로 otel-collector 설정을 원격 관리한다. app(HyperDX UI)은 api를 거쳐 조회한다. 이 그림은 4컴포넌트 관계의 전체 그림이고, 위 표(역할·포트·의존)와 아래 §3 mermaid(포트·의존을 데이터 흐름으로 구체화)가 그 상세를 잇는다. 출처: [hyperdxio/hyperdx](https://github.com/hyperdxio/hyperdx) — © DeploySentinel, Inc., MIT License*
+
+### HyperDX api가 붙는 ClickHouse 계정 — readonly + 네 설정 변경 권한
+
+위 표의 **HyperDX api**는 ClickHouse에 쿼리로만 붙으므로 계정 권한은 **readonly로 충분하다** `✓`. 단 readonly 계정이라도 `max_rows_to_read`(**최소 100만 이상**)·`read_overflow_mode`·`cancel_http_readonly_queries_on_client_close`·`wait_end_of_query` 네 설정에 대한 **변경 권한**은 필요하다 `✓`.
+
+공식 권고는 기본 계정을 그대로 쓰지 않고 **HyperDX 전용 사용자를 따로 만드는 것**이다 `✓`. 이 절은 표준이 요구하는 권한만 소유하고, 우리 클러스터가 실제로 어떤 유저(쓰기·읽기 분리)를 쓰는지는 운영 트랙 소관이다.
 
 ## 3. 데이터 흐름 — RUM은 MongoDB를 거치지 않는다
 
@@ -109,7 +129,7 @@ exporters:
 ```
 
 - Collector의 `sending_queue`는 **기본 인메모리**다. 파드가 죽으면 **in-flight 배치는 소실**된다. 디스크 큐잉을 하려면 `file_storage` extension을 붙여 퍼시스턴트 큐로 만들어야 한다 `✓/≈`. ClickStack 배포판 베이스 config에 `file_storage`가 기본 탑재인지 커스텀 병합으로만 붙는지는 배포 시 실물 config로 확인한다 `?`.
-- 이 유실 지점은 {{< relref "05-keeper.md" >}}의 "CH가 죽어도 Keeper가 큐잉하지 않는다"와 **같은 층위**다: **인제스트 파이프라인 어디에도 durable queue가 기본 존재하지 않는다.** CH가 잠깐 죽으면 exporter retry → 큐 적체 → `memory_limiter`가 유입 refuse(백프레셔) → 브라우저 SDK 재시도/드롭 순으로 이어지고, 장시간 CH 다운은 RUM 이벤트 유실이다.
+- 이 유실 지점의 **단일 정본은 {{< relref "05-keeper.md" >}}**다("CH가 죽어도 Keeper가 큐잉하지 않는다"와 **같은 층위** — **인제스트 파이프라인 어디에도 durable queue가 기본 존재하지 않는다**). 이 페이지 몫은 Collector 쪽 연쇄뿐이다: CH가 잠깐 죽으면 exporter retry → 큐 적체 → `memory_limiter`가 유입 refuse(백프레셔) → 브라우저 SDK 재시도/드롭 순으로 이어지고, 장시간 CH 다운은 RUM 이벤트 유실이다.
 - **멱등 재시도 안전장치** `✓`: 재시도 INSERT가 동일 데이터·동일 순서면 ClickHouse가 중복을 자동 무시한다 → at-least-once 재시도가 중복 폭증을 만들지 않는다.
 
 > 설계 권고(원료): 게이트웨이 **2 replica + `memory_limiter` + `file_storage` 퍼시스턴트 큐(gp3 소량) + async_insert**. RUM 버스트(세션 리플레이는 이벤트가 크고 몰림)를 흡수하는 건 처리량 여유가 아니라 큐 퍼시스턴스 + replica HA다.
@@ -218,92 +238,7 @@ HyperDX는 **`MONGO_URI` 하나만** 있으면 되므로 Atlas(SRV 연결문자�
 메타데이터는 **소용량 + 지연 무관(인제스트 hot path 아님)** 이라 Atlas 위임의 마찰이 작다. "HA·백업을 직접 짜기 싫다"면 Atlas M10이 self-host의 백업 공백을 가장 깔끔히 메운다 `≈`(정가는 리전·시점 의존, ap-northeast-2 기준 재확인).
 {{% /details %}}
 
-## 7. 컴포넌트별 가용성 — 역할·다운타임·HA·스케일·무손실 (종합)
-
-§2~6은 각 컴포넌트의 역할·포트·복제·다운타임·MongoDB 최소 배포를 신호별로 흩어 다뤘다. 이 절은 그 세부를 **가용성 한 장**으로 종합한다 `Σ` — 컴포넌트마다 (a)무슨 역할인지, (b)죽으면 무엇이 멈추는지, (c)HA·스케일이 가능한지, (d)데이터를 어떻게 무손실로 지키는지를 한 줄씩 맞춰 본다. 개별 메커니즘의 근거·매니페스트·시나리오는 아래 relref로 위임하고, 여기서는 **"어느 컴포넌트가 죽으면 관측이 어디까지 멈추나"** 라는 운영 판단만 세운다.
-
-한 가지 경계를 먼저 긋는다: 이 절은 **가용성 전제**만 종합하고, 각 컴포넌트를 실제로 **어떤 옵션으로 프로비저닝하나**(EBS hot/cold 스토리지·operator 노브·block-only 튜닝)는 뒤 페이지들이 상세히 잇는다. 즉 "무엇을 지켜야 하나"가 이 절, "어떻게 프로비저닝하나"가 다음 페이지들이다.
-
-### 종합 매트릭스
-
-8열로는 폭 제약을 넘어서므로 속성별로 나눠 본다. 컴포넌트 순서는 모든 표에서 동일하다.
-
-**역할·상태·HA 방식**
-
-| 컴포넌트 | 역할(가용성 관점) | 상태 | HA 방식 |
-|---|---|---|---|
-| **HyperDX app** | 조회 UI·쿼리 API·OpAMP 서버 | 무상태 | Service 뒤 replica 2+ |
-| **OTel Collector** | RUM ingest 수집·배치·CH export | 준무상태(+디스크 큐) | deployment ≥2 + `file_storage` 퍼시스턴트 큐 |
-| **ClickHouse** | 모든 텔레메트리 저장·쿼리 원천 | 스테이트풀(EBS) | RMT 멀티마스터 RF2/3, 2~3 AZ 분산 |
-| **ClickHouse Keeper** | 복제 조정 메타(로그·part 참조·dedup·DDL 큐) | 스테이트풀(메타·소량) | 3노드 정족수, 3 AZ 분산 |
-| **MongoDB** | 앱 메타데이터(대시보드·알럿·유저·소스) | 스테이트풀(소량) | ReplicaSet `members:3` 또는 Atlas |
-
-**다운타임 시 거동 — 무엇이 멈추나**
-
-| 컴포넌트 | 다운타임 시 거동 |
-|---|---|
-| **HyperDX app** | **UI·쿼리만 잠깐 blip** — 텔레메트리 적재·저장과 무관 `✓` |
-| **OTel Collector** | 신규 ingest 정지 → 퍼시스턴트 큐로 완충, **큐 없으면 in-flight 유실** `✓/≈` |
-| **ClickHouse** | replica 1대 죽어도 나머지가 read+write 계속(**승격 없음**), 전체 다운 시에만 조회+수집 정지 `✓` |
-| **ClickHouse Keeper** | **정족수 상실 → CH 쓰기(INSERT/DDL/머지) 정지, 읽기 OK = 쓰기 SPOF** `✓` |
-| **MongoDB** | **설정·알럿 평가·UI만 정지 — 관측(ingest) 데이터와 무관** `✓` |
-
-**무손실 방어**
-
-| 컴포넌트 | 무손실 방어 |
-|---|---|
-| **HyperDX app** | 상태 없음(메타=Mongo·텔레메트리=CH) → 자체 유실 개념 없음 `✓` |
-| **OTel Collector** | persistent queue(at-least-once) + 백프레셔(`memory_limiter`) + 클라 재시도 `✓/≈` |
-| **ClickHouse** | RF 복제 + `insert_quorum` + clickhouse-backup `✓` |
-| **ClickHouse Keeper** | 사용자 데이터 아님 · gp3 영속(Raft 메타 생존) · 3노드 정족수 `✓` |
-| **MongoDB** | 메타만 · ReplicaSet 복제 + `mongodump` 백업 `✓` |
-
-**스케일 축·상세 문서**
-
-| 컴포넌트 | 스케일 축 |
-|---|---|
-| **HyperDX app** | 수평 replica |
-| **OTel Collector** | 수평 replica |
-| **ClickHouse** | shard(용량, 0.7TB/월엔 불필요) / replica(가용성) |
-| **ClickHouse Keeper** | 3/5노드(내구성·정족수용, 처리량 아님) |
-| **MongoDB** | 불필요(부하∝설정 수, 적재량 무관) `✓` |
-
-| 컴포넌트 | 상세 |
-|---|---|
-| **HyperDX app** | §2·§4 |
-| **OTel Collector** | §5·{{< relref "05-keeper.md" >}} |
-| **ClickHouse** | {{< relref "04-operator-topology-downtime.md" >}}·{{< relref "06-replication-failover.md" >}} |
-| **ClickHouse Keeper** | {{< relref "05-keeper.md" >}}·{{< relref "06-replication-failover.md" >}} |
-| **MongoDB** | §6·{{< relref "../../rum/07-hyperdx-mongodb.md" >}} |
-
-### "무엇이 죽으면 무엇이 멈추나" — blast radius
-
-{{< callout type="info" >}}
-**컴포넌트별 blast radius** `Σ`
-
-- **HyperDX app 다운** → UI·쿼리만. 브라우저 → Collector → CH 적재 경로는 그대로 흐른다(app은 조회 대면일 뿐 ingest 경로 밖).
-- **OTel Collector 다운** → 신규 ingest 정지. `file_storage` 퍼시스턴트 큐가 있으면 in-flight를 디스크에 붙잡고 복귀 후 재개, 큐가 없으면 그 구간 이벤트 유실.
-- **ClickHouse 전체 다운** → 조회 + 수집 **둘 다** 정지(저장·쿼리 원천이라 가장 광범위). replica 1대만 죽으면 나머지가 계속 서빙한다.
-- **Keeper 정족수 상실** → 쓰기(INSERT/DDL/머지) 정지, **읽기는 계속**. 데이터 노드가 멀쩡해도 조정 계층 과반 상실만으로 쓰기가 멈추는 유일한 지점.
-- **MongoDB 다운** → 설정·알럿 평가·UI. 이미 적재 중인 관측 데이터는 무관.
-
-**핵심**: 어느 하나의 다운도 "전체 관측 정지"를 뜻하지 않는다 `Σ`. 광범위한 정지는 **CH 전체 다운**(저장 원천)과 **Keeper 정족수 상실**(쓰기 경로)뿐이고, app·Mongo 다운은 조회·설정에 국한된다.
-{{< /callout >}}
-
-### 무손실은 두 트랙으로 갈린다
-
-무손실 방어는 **한 메커니즘이 아니라 성격이 다른 두 트랙**으로 나뉜다. 이걸 뭉뚱그리면 "Keeper가 데이터를 지킨다" 같은 오해가 생긴다.
-
-- **트랙 1 — 텔레메트리(대량·스트리밍)**: 브라우저 SDK → **OTel Collector `file_storage` persistent queue**(at-least-once, `block_on_overflow`) → **ClickHouse**(RMT 복제 RF2/3 + `insert_quorum` + clickhouse-backup). in-flight 이벤트의 유실 방어는 **Keeper가 아니라 앞단 큐 + 클라이언트 재시도**가 만든다 — Keeper는 durable queue가 아니라 조정 메타 저장소일 뿐이다({{< relref "05-keeper.md" >}}).
-- **트랙 2 — 메타데이터(소량·문서)**: **MongoDB ReplicaSet(`members:3`)** + **`mongodump` 백업(S3)**. 적재량과 무관하게 사용자·대시보드·알럿 설정만 지키면 되므로, 복제 + 정기 덤프로 충분하다({{< relref "../../rum/07-hyperdx-mongodb.md" >}}).
-
-**두 트랙의 내구성 메커니즘은 완전히 다르다** `Σ`: 트랙 1은 스트리밍 파이프라인의 **큐 퍼시스턴스 + part 복제**로, 트랙 2는 소량 문서 스토어의 **ReplicaSet 복제 + 덤프**로 지킨다. Keeper 정족수는 트랙 1의 **쓰기 가용성**을 좌우할 뿐, 그 자체가 이벤트 데이터를 보관하지는 않는다.
-
-### 스케일 거동
-
-스케일 축도 컴포넌트마다 성격이 다르다 `Σ`. **app·Collector는 수평 replica로 처리량**을 늘리고(무상태라 단순 복제), **CH replica·Keeper·Mongo는 복제로 가용성**을 얻는다(처리량이 아니라 고장 도메인 방어). 용량·쓰기 병렬을 늘리는 축은 **CH shard 하나뿐인데, 0.7TB/월 규모에선 shard가 부채이므로 불필요**하다({{< relref "04-operator-topology-downtime.md" >}}). 즉 이 스케일에서 늘려야 할 것은 가용성용 replica이지 용량용 shard가 아니다.
-
-이 가용성 전제 위에서 각 컴포넌트를 **어떤 옵션으로 프로비저닝하나**는 {{< relref "02-hot-storage-ebs.md" >}}·{{< relref "03-s3-cold-tiering.md" >}}·{{< relref "04-operator-topology-downtime.md" >}}·{{< relref "08-block-only-tuning.md" >}}가 잇는다. 시점 기준 2026-07.
+컴포넌트별 가용성 종합 — 역할·다운타임·HA·스케일·무손실 매트릭스, blast radius, 무손실 2트랙, 스케일 거동 — 은 이 페이지가 아니라 [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}})이 소유한다. 이 페이지는 배치·흐름·MongoDB 최소 배포 한 질문에만 답한다.
 
 ## 우리 케이스에서는
 

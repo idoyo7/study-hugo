@@ -186,4 +186,14 @@ third-party 기술 블로그·실사례·RUM 리플레이 벤더 문서·EBS 실
 
 - ClickStack HyperDX-only 배포(외부 CH·`MONGO_URI`) — [clickhouse.com/docs/.../clickstack/deployment/hyperdx-only](https://clickhouse.com/docs/use-cases/observability/clickstack/deployment/hyperdx-only)
 
-시점 기준 2026-07.
+## 추가 조사 — S3 백엔드·티어링 비용 경로 (2026-08)
+
+self-host에서 S3를 어디까지 쓸 수 있는지를 다시 조사한 결과 중 이 챕터로 들어온 출처다. 티어링의 요청 단가·HyperDX가 붙는 CH 계정 권한·Express One Zone 경계가 여기에 속한다.
+
+- ClickStack Going to production(HyperDX용 CH 계정은 readonly + `max_rows_to_read`(최소 100만)·`read_overflow_mode`·`cancel_http_readonly_queries_on_client_close`·`wait_end_of_query` 변경 권한 필요, 기본 계정 대신 전용 사용자 권고) — [clickhouse.com/docs/.../clickstack/production](https://clickhouse.com/docs/use-cases/observability/clickstack/production)
+- AWS Price List Bulk API — ap-northeast-2 S3 오퍼 index.json(서울 S3 Standard GB 단가·PUT/GET/DELETE 요청 단가를 직접 조회한 경로. gp3 GB 단가는 같은 API의 EC2 오퍼를 같은 방식으로 조회한다) — [pricing.us-east-1.amazonaws.com/.../AmazonS3/current/ap-northeast-2/index.json](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/ap-northeast-2/index.json)
+- GitHub issue — S3 Express One Zone 디렉터리 버킷 엔드포인트 `IncompleteBody` #72078 — [github.com/ClickHouse/ClickHouse/issues/72078](https://github.com/ClickHouse/ClickHouse/issues/72078)
+
+아래 넷은 본문이 인용하지만 1차 URL이 원 조사 산출물에 남아 있지 않아 이 목록에 아직 싣지 못했다. URL을 확보하는 대로 이 절에 채운다 — S3 Gateway VPC Endpoint의 무료 정책과 NAT Gateway 데이터 처리요금(서울), S3 Express One Zone 제공 리전 목록, wide part 파일 수 증폭 실측 예시(컬럼 109개 → part당 227 파일, ClickHouse 공식 KB), Packed storage `min_level_for_full_part_storage`와 `system.parts.part_storage_type` 문서.
+
+시점 기준 2026-08.

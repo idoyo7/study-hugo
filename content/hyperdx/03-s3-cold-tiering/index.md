@@ -1,32 +1,50 @@
 ---
 title: "S3 콜드 티어링 — storage_configuration·TTL·IRSA worked example"
 weight: 3
+aliases: ["/hyperdx-operating/02-tiering/", "/hyperdx/operating/02-tiering/"]
 ---
 
 # S3 콜드 티어링 — storage_configuration·TTL·IRSA worked example
 
 {{< callout type="info" >}}
 **한눈에**
+- **이 장의 경계**: "cold를 켤 것인가"는 [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}) §6의 결정표와 운영 트랙 의사결정 가이드의 cold 축이 소유한다. 이 장은 **켠다고 결정한 뒤**의 조립을 소유한다(§0).
 - **hot = EBS `default` 디스크**(gp3/io2), **cold = S3 Standard + `cache` 디스크**(EBS 위 LRU, `max_size` 150Gi). [로컬 NVMe 예제]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})의 hot 자리를 EBS로 계승할 뿐, cold(S3) 조립은 동일하다.
 - **storage_configuration 기준 문서**: 내장 `default` + `s3`(신문법 `object_storage`) + `cache`. 정책 `rum_hot_cold`는 `move_factor=0.1`(안전판만), `prefer_not_to_merge` 미설정(기본 false 유지).
-- **이 페이지가 TTL 단일 기준 문서다**([06 용량 산정]({{< relref "07-capacity-planning.md" >}})이 이 표를 relref): `otel_logs`/`otel_traces` hot **14일**→S3→DELETE(지평 90/180/365), `otel_metrics_*` hot **30일**→S3→DELETE(180/365), **`hyperdx_sessions`는 S3에 안 내리고 hot만·DELETE 30일**.
-- **인증 = IRSA**(정적 키 금지) + `use_environment_credentials=1` + `region` 명시 + `{replica}` 경로 분리(shared-nothing 필수). **주입 = CHI `files`의 `config.d/storage_configuration.xml`**.
-- **함정**: part 메타데이터·cache가 EBS를 먹는다(사이징 반영) · S3 lifecycle→Glacier **금지** · zero-copy **금지** · cold=캐시 미스 지연.
+- **이 페이지가 TTL 단일 기준 문서다**([07 용량 산정]({{< relref "07-capacity-planning.md" >}})이 이 표를 relref): `otel_logs`/`otel_traces` hot **14일**→S3→DELETE(지평 90/180/365), `otel_metrics_*` hot **30일**→S3→DELETE(180/365), **`hyperdx_sessions`는 S3에 안 내리고 hot만·DELETE 30일**.
+- **인증 = IRSA**(정적 키 금지) + `use_environment_credentials=1` + `region` 명시 + `{replica}` 경로 분리(shared-nothing 필수). **주입 = CHI `files`의 `config.d/storage_configuration.xml`**. 그 다음이 **네트워크 경로 — S3 Gateway VPC Endpoint**(무료, 없으면 NAT 처리요금이 절감액을 먹는다, §3.4).
+- **함정**: part 메타데이터·cache가 EBS를 먹는다(사이징 반영) · S3 lifecycle→Glacier **금지** · zero-copy **금지** · cold=캐시 미스 지연 · 요청 비용은 "머지를 hot에서 끝내는" 설계 덕에 작다(§5.6).
 {{< /callout >}}
 
 [로컬 NVMe 스토리지]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})가 hot을 로컬 NVMe로 두는 전제였다면, 이 카테고리는 **hot = EBS(gp3/io2)** 전제다({{< relref "02-hot-storage-ebs.md" >}}). 티어링의 골격 — TTL로 오래된 part를 S3로 밀고 최근 데이터만 로컬에 둔다 — 은 같지만, ClickHouse `storage_configuration`에서 hot 볼륨의 disk가 로컬 SC PVC가 아니라 **내장 `default` 디스크(=`/var/lib/clickhouse` = gp3/io2 PVC)** 라는 점만 다르다. 이 페이지는 그 hot=EBS 전제로 **복붙 가능한 storage XML·CHI 매니페스트·TTL DDL**을 조립하고, HyperDX/ClickStack이 자동 생성하는 관리 테이블(`otel_*`/`hyperdx_sessions`)에 실제로 티어링을 얹는다. **티어링 ≠ 내구성**·zero-copy 금지·S3 lifecycle 함정의 *배경*은 이미 [클릭하우스 챕터]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})가 깊게 다뤘으므로 여기선 relref로 위임하고, EBS-first worked example의 새 각도만 판다.
 
 > 이 매니페스트들은 표준 ClickStack Helm 2차트가 쓰는 ClickHouse Inc. 공식 operator(ClickHouseCluster CRD)가 아니라, `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only')로 CH/Keeper를 **Altinity CHI/CHK로 분리 운영**하는 전제로 쓰였다. 이 분기의 배경은 [스택 토폴로지]({{< relref "01-stack-topology.md" >}})·[operator·다운타임]({{< relref "04-operator-topology-downtime.md" >}}) 참조. `✓`
 
-{{< flow src="_flow/s3-콜드-티어링-storage.json" />}}
+## 0. 결정 게이트 — 이 장은 "켠다고 결정한 뒤"부터다
+
+**"cold 티어를 켤 것인가"는 이 장이 판정하지 않는다.** 켜고 마는 손익표는 반대 방향 변형인 [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}) §6이 소유하고(결정 자산도 그쪽에 있다), 우리 클러스터의 현재 부하에서 언제 켜고 어떤 신호에 되돌리는지는 운영 트랙 [의사결정 가이드]({{< relref "../../hyperdx-operating/03-decision-guide.md" >}})의 cold 티어링 축이 소유한다. 이 장은 **켠다고 결정한 다음** 무엇을 어떤 순서로 조립하고 무엇이 비용을 새게 하는지만 다룬다.
+
+| 질문 | 소유 |
+|---|---|
+| cold 티어링 대신 gp3 단일 티어로 가면 무엇이 사라지고 무엇을 감당하나 | [08 §6]({{< relref "08-block-only-tuning.md" >}}) 결정표 |
+| 지금 우리 클러스터에서 켤 시점인가, 되돌릴 신호는 무엇인가 | 운영 트랙 [의사결정 가이드]({{< relref "../../hyperdx-operating/03-decision-guide.md" >}}) cold 축 |
+| hot 매체를 gp3로 둘 것인가(io2·스트라이핑, baseline IOPS·인스턴스 EBS 파이프 천장) | [02 hot 스토리지]({{< relref "02-hot-storage-ebs.md" >}}) |
+| 켠 뒤 storage XML·CHI 주입·IRSA·네트워크 경로·TTL을 어떻게 조립하나 | **이 장 §1~§5** |
+| 얼마나 쌓이고 월 얼마가 드나 | [07 용량 산정]({{< relref "07-capacity-planning.md" >}}) |
+
+우리 지평(3~12개월)에서 기본 권고는 **S3 티어링 유지**이고, block-only는 "짧은 보존(≤90일) + S3 미접근·규정 + 운영 단순성"이 겹치는 경로(대표적으로 staging)에서만 고른다. 두 경로는 배타가 아니라 선택이며, 티어링을 켜도 `hyperdx_sessions`는 S3로 내리지 않으므로(§4.4) 실제 기본형은 **부분 티어링**이다. 성장 레버도 갈린다 — 티어링은 TTL + S3 확장이고, block-only는 gp3 온라인 확장 하나뿐이다([08 §4]({{< relref "08-block-only-tuning.md" >}})).
 
 ## 1. `storage_configuration` 기준 문서 — hot=EBS `default` / cold=S3+cache
 
 정책은 hot 볼륨 하나(내장 `default`) + cold 볼륨 하나(`cache`로 감싼 S3)로 구성한다. disk를 세 개(`default`는 내장이라 선언 불필요 → 실제 선언은 `s3` + `cache` 둘) 정의하고, 볼륨 순서로 이동 우선순위를 잡는다.
 
+{{< flow src="_flow/s3-콜드-티어링-storage.json" />}}
+
 ### 1.1 disk 정의 — 신문법 `object_storage`(24.1+) `✓`
 
-ClickStack은 24.8 LTS+를 요구하므로 신문법을 쓴다. operator 공식 tiered-s3 예제·Altinity KB는 아직 구문법 `type: s3`를 쓰는데, 24.8에서는 둘 다 동작한다(신문법 `type: s3`는 `object_storage`+`s3`의 축약 alias) `≈`.
+**우리가 배포하는 ClickHouse가 24.8 LTS+이므로** 신문법을 쓸 수 있다 `Σ`. "ClickStack이 24.8 LTS+를 요구한다"고 읽으면 안 된다 — ClickStack의 공식 최소 지원 ClickHouse 버전 매트릭스는 찾지 못했고, 24.8 하한은 2차 출처에만 있다 `?`. operator 공식 tiered-s3 예제·Altinity KB는 아직 구문법 `type: s3`를 쓰는데, 24.8에서는 둘 다 동작한다.
+
+구문법 `type: s3`는 신문법 3키(`type: object_storage` + `object_storage_type: s3` + `metadata_type: local`)의 **축약과 정확히 등가**다 `✓` — 공식 storing-data 문서가 구문법 예제를 두고 *"is equal to the following configuration, from version 24.1"*이라고 명시하고, `metadata_type`을 생략하면 기본값이 `local`이다. 그리고 **공식 문서 어디에도 구문법을 legacy·deprecated로 표시하는 admonition은 없다** `✓`. 즉 구문법으로 쓰인 예제가 낡아서 못 쓰는 것이 아니라 같은 설정의 짧은 표기일 뿐이다. 아래 예제가 신문법을 펼쳐 쓰는 것은 `metadata_type`이 §5.1 사이징 논지의 입력이라 눈에 보이게 두려는 것이다.
 
 ```xml
 <clickhouse>
@@ -100,8 +118,9 @@ cache disk 필드 `✓`:
 ```
 
 - **볼륨 순서 = 이동 우선순위**(hot=index0 → cold=index1). TTL `TO VOLUME 'cold'`가 hot→cold로 민다. `✓`
-- **`prefer_not_to_merge`는 설정하지 않는다(기본 false).** true면 S3 위 작은 part가 폭증해 `TOO_MANY_PARTS`로 파국 — 병합은 hot(EBS)에서 끝내고 이동한다. `✓`
+- **`prefer_not_to_merge`는 설정하지 않는다(기본 false).** true면 S3 위 작은 part가 폭증해 `TOO_MANY_PARTS`로 파국 — 병합은 hot(EBS)에서 끝내고 이동한다. `✓` 이 선택은 안정성 방어이면서 동시에 **요청 비용 방어**이기도 하다(§5.6).
 - hot 볼륨의 `default` 디스크는 데이터 VCT(gp3/io2 PVC)에 매핑되는 내장 디스크라 **별도 선언·별도 로컬 provisioner 계층이 불필요**하다. 이것이 로컬 NVMe 예제(별도 로컬 SC·StatefulSet 고정)와의 실질 차이다. `✓`
+- hot 매체 자체의 산정(노드당 단일 gp3로 갈 것인가, baseline IOPS·인스턴스 EBS 파이프 천장·RAID0 기각·io2 각주)은 [hot 스토리지]({{< relref "02-hot-storage-ebs.md" >}})가 기준 문서다 — 이 장은 그 결론인 `default` 디스크를 hot 볼륨으로 받아 쓰기만 한다.
 
 ### 1.3 정정 — `move_factor`는 "여유 공간 임계"다 `✓`
 
@@ -275,6 +294,16 @@ metadata:
 - **clickhouse-backup의 IRSA self-assume 버그**(#798) `✓`: 백업 도구는 `AWS_ROLE_ARN`이 있으면 자기 자신을 다시 assume 시도하는 이슈가 있었다. 이는 **백업 사이드카** 얘기지 CH 서버 disk와는 별개이나, 같은 클러스터에서 백업도 IRSA로 붙일 때 `AssumeRoleARN` 미설정을 확인.
 - **CH 서버 disk에서 IRSA `use_environment_credentials` 실동작(최소 버전·필수 env·`AWS_EC2_METADATA_DISABLED` 영향)은 스테이징 실측이 필요하다** — 백업 도구 이슈는 확인됐으나 서버 disk 경로는 미실측이다. `?`
 
+### 3.4 S3 Gateway VPC Endpoint — 티어링 절감의 전제조건
+
+권한(IRSA)이 뚫렸으면 다음은 **경로**다. CH 파드는 프라이빗 서브넷에 있고 S3는 VPC 밖 서비스라, 라우팅을 따로 잡지 않으면 cold 트래픽이 NAT Gateway를 탄다. **S3 Gateway VPC Endpoint는 시간요금·데이터 처리요금이 모두 0원**이고, 없으면 그 트래픽에 **NAT Gateway 데이터 처리요금 $0.059/GB**(서울, 게이트웨이 시간요금 $0.059/h는 별도)가 붙는다 `✓`.
+
+금액이 작지 않다. 3개월 지평·RF2에서 cold로 내려가는 양이 월 300GB 규모이므로 NAT를 타면 쓰기만으로 **월 $18~24**(캐시 미스 읽기 포함)가 붙는다 `Σ⁽계산⁾`. 티어링으로 얻는 절감액이 같은 조건에서 **월 $50 규모**(같은 데이터를 gp3에 두는 것과의 차이 — [08 §3]({{< relref "08-block-only-tuning.md" >}})의 상주 배수 계산과 독립적으로 정합한다)이므로, 경로 하나 때문에 **절감액의 35~50%가 잠식된다** `Σ⁽계산⁾`. 스토리지 단가를 3.65배 낮추려고 켠 티어링의 이득 절반이 사라지는 구조다. Gateway Endpoint는 무료이므로 이 항목에는 트레이드오프가 없고, 그래서 배포 순서에서 IRSA 직후에 온다.
+
+{{< callout type="important" >}}
+**이 항목은 지금까지 이 문서군의 본문에 아예 없었다** — 권한(IRSA)은 조립돼 있는데 그 권한으로 나가는 **경로의 요금**이 비어 있었다. 워커 노드 서브넷의 라우팅 테이블에 S3 Gateway Endpoint가 실제로 걸려 있는지 확인하는 절차는 운영 트랙 [의사결정 가이드]({{< relref "../../hyperdx-operating/03-decision-guide.md" >}})의 배포 전 실측 체크리스트가 소유한다 — 요금·근거는 이 장이, 확인 명령은 실행 트랙이 갖는다.
+{{< /callout >}}
+
 ## 4. TTL 기준 문서 — RUM 테이블별 hot/cold/DELETE
 
 > **이 표가 카테고리의 TTL 단일 기준 문서다.** [용량 산정]({{< relref "07-capacity-planning.md" >}})은 이 표를 relref하고 보존 지평(3개월/6개월/1년)에 따른 DELETE 값만 변주한다. 두 페이지가 다른 TTL을 나란히 싣지 않게 하려는 규칙이다.
@@ -307,8 +336,8 @@ hot 창은 **디버깅 최근성**으로, cold 이동/DELETE는 **보존 지평*
 | `otel_metrics_*` | 30일 | 30일~ | **180 / 365일** | 장기 추세 — 3개월 지평에서도 최소 180 권장 |
 | `hyperdx_sessions` | **30일(전 수명)** | **미이동** | **30일 고정** | 리플레이 급감·volume 지배 → §4.4 |
 
-- "지평별" = [06]({{< relref "07-capacity-planning.md" >}})의 3개월/6개월/1년 시나리오에 맞춘 DELETE 값. 아래 DDL은 **3개월 지평(logs/traces 90, metrics 180)** 을 기준으로 쓰고, 6개월/1년은 주석으로 변주만 바꾼다.
-- **캐파 hot EBS 사이징은 이 hot 창으로 계산한다**: logs·traces 14일, metrics·sessions 30일치가 hot(EBS)에 상주한다(sessions는 전 수명이 hot). 상세 산정은 [06]({{< relref "07-capacity-planning.md" >}}).
+- "지평별" = [07]({{< relref "07-capacity-planning.md" >}})의 3개월/6개월/1년 시나리오에 맞춘 DELETE 값. 아래 DDL은 **3개월 지평(logs/traces 90, metrics 180)** 을 기준으로 쓰고, 6개월/1년은 주석으로 변주만 바꾼다.
+- **캐파 hot EBS 사이징은 이 hot 창으로 계산한다**: logs·traces 14일, metrics·sessions 30일치가 hot(EBS)에 상주한다(sessions는 전 수명이 hot). 상세 산정은 [07]({{< relref "07-capacity-planning.md" >}}).
 
 ### 4.3 정책 연결 + TTL MOVE DDL `✓/≈`
 
@@ -368,7 +397,7 @@ GROUP BY table, partition ORDER BY partition;
 
 ### 4.4 왜 `hyperdx_sessions`는 S3에 안 내리나 `≈`
 
-세션 리플레이(rrweb)는 **볼륨을 지배하면서도 유용 수명이 가장 짧다** — 인시던트 재현은 사고 직후 며칠 안에 끝나고, 오래된 리플레이의 조회 가치는 급감한다. 여기에 리플레이를 S3로 내리면 (a) cold 이동 자체의 쓰기·List/Delete 비용, (b) `{replica}` 경로에 **RF배수 사본**(RF2=2벌), (c) part metadata 로컬 잔존(§5.1)이 붙는데, 정작 그 데이터를 다시 읽을 일이 드물다 → **S3 이전이 순비용**이다. 따라서 sessions는 `rum_hot_cold` 정책을 붙이지 않고 **기본 `default` 정책(EBS only)에 두고 30일 DELETE**로 끝낸다. hot 볼륨에 sessions 30일치가 상주하므로 EBS 사이징에 그만큼 반영한다([06]({{< relref "07-capacity-planning.md" >}})). 리플레이 압축비(약 5x 가정)는 공개 실측이 없어 `≈`이며 스테이징 실측으로 확정한다.
+세션 리플레이(rrweb)는 **볼륨을 지배하면서도 유용 수명이 가장 짧다** — 인시던트 재현은 사고 직후 며칠 안에 끝나고, 오래된 리플레이의 조회 가치는 급감한다. 여기에 리플레이를 S3로 내리면 (a) cold 이동 자체의 쓰기·List/Delete 비용, (b) `{replica}` 경로에 **RF배수 사본**(RF2=2벌), (c) part metadata 로컬 잔존(§5.1)이 붙는데, 정작 그 데이터를 다시 읽을 일이 드물다 → **S3 이전이 순비용**이다. 따라서 sessions는 `rum_hot_cold` 정책을 붙이지 않고 **기본 `default` 정책(EBS only)에 두고 30일 DELETE**로 끝낸다. hot 볼륨에 sessions 30일치가 상주하므로 EBS 사이징에 그만큼 반영한다([07]({{< relref "07-capacity-planning.md" >}})). 리플레이 압축비(약 5x 가정)는 공개 실측이 없어 `≈`이며 스테이징 실측으로 확정한다.
 
 ## 5. 함정 (worked example에서 반드시 경고)
 
@@ -404,9 +433,34 @@ RF2에서 "S3에 사본 1벌로 줄이자"는 유혹이 생기지만 zero-copy�
 - cold(S3) part를 처음 조회하면 캐시 미스 → S3 왕복(수십~수백 ms). `cache_on_write_operations=1`로 **이동 시점에 프리페치**하면 첫 조회를 완화한다. 대시보드가 자주 긁는 기간은 hot 창에 포함시키는 것이 근본책.
 - hot·cold가 **같은 CH 서버**에 붙어 한 쿼리가 두 티어를 투명 횡단한다 → 컴퓨트 격리가 없다(OpenSearch UltraWarm 전용 노드와 다름). cold full-scan이 hot 쿼리 리소스를 잠식할 수 있다. `✓`
 
-### 5.5 사본 경제 — cold도 RF배수 (relref) `✓`
+### 5.5 사본 경제와 내구성 — cold도 RF배수, 티어링은 내구성이 아니다 `✓`
 
-"S3라서 싸다"는 GB 단가 얘기고, **사본 수는 RF 그대로**다(RF2면 S3에도 2벌 + 백업). UltraWarm식 단일 사본 절감은 self-host에서 성립하지 않는다 — 비용은 [06]({{< relref "07-capacity-planning.md" >}})에서 RF배수로 계상하고, 구조 배경은 [클릭하우스 티어링]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}}).
+"S3라서 싸다"는 GB 단가 얘기고, **사본 수는 RF 그대로**다(RF2면 S3에도 2벌 + 백업). UltraWarm식 단일 사본 절감은 self-host에서 성립하지 않는다 — 비용은 [07]({{< relref "07-capacity-planning.md" >}})에서 RF배수로 계상하고, 구조 배경은 [클릭하우스 티어링]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}}).
+
+{{< callout type="error" >}}
+- **볼륨 내구성 ≠ 데이터 내구성.** gp3 99.8~99.9%·S3 11 nines는 매체가 그 사본을 안 잃을 확률이지, 우리 데이터가 안전하다는 뜻이 아니다. 데이터 내구성·가용성은 **멀티 AZ RF2+ ReplicatedMergeTree + `clickhouse-backup → S3`**가 담당한다. `✓`
+- **cold(S3)도 RF배수 사본이다.** `metadata_type=local`은 shared-nothing이라 각 replica가 `{replica}` 경로에 자기 사본을 갖는다(RF2면 S3에도 2벌) — "S3라서 사본 1벌로 줄이자"는 zero-copy replication은 프로덕션 금지(#45346)다(§5.3). `✓`
+- 즉 티어링(hot→cold 이동)은 **비용·조회지연 축**이고 내구성은 **RF 복제 + 백업 축**이다. 둘을 같은 결정으로 섞지 않는다.
+{{< /callout >}}
+
+![hot·cold 2계층 티어링 구조 — hot 티어의 노드당 단일 gp3 EBS와 cold 티어의 S3 Standard·replica별 RF배수 사본을 TTL이 TO VOLUME과 DELETE로 잇는 그림, 그리고 티어링은 내구성이 아니라는 주석](/images/hyperdx/tiering-hot-cold.svg)
+*hot(노드당 단일 gp3 EBS)과 cold(S3 Standard, `{replica}` 경로마다 RF배수 사본을 두는 shared-nothing) 2계층을 시간 기반 TTL이 `TO VOLUME 'cold'`로 잇고 `DELETE`로 만료시킨다. 세션 리플레이만 cold로 안 내리고 hot 30일 후 삭제한다. 내구성은 티어링이 아니라 멀티 AZ RF 복제 + 백업이 담당하며, cold(S3)도 RF배수 사본을 두고 zero-copy는 금지다.*
+
+### 5.6 요청 비용의 구조 — 왜 우리 cold tier는 request가 싼가
+
+GB 단가만 보면 티어링 판단의 절반을 놓친다. S3는 저장량 외에 **요청 수**로도 과금하고, 서울 단가는 다음과 같다 `✓`:
+
+| 요청 종류 | 서울 단가 |
+|---|---|
+| PUT / COPY / POST / LIST | **$4.50** / 백만 요청 |
+| GET / SELECT 등 읽기 | **$0.35** / 백만 요청 |
+| DELETE | **무료** |
+
+**PUT이 GET의 약 13배**이므로 요청 비용의 향방은 "S3에 무엇을 몇 번 쓰는가"가 정한다. 그리고 ClickHouse의 쓰기 단위는 part인데, wide part는 컬럼당 최소 2파일(`.bin`+`.mrk2`)에 메타 파일이 붙어 **컬럼 109개 테이블이 part당 227파일**이 되는 실측 예시가 공식 KB에 있다 `✓`. 머지가 S3 위에서 일어나는 구성이면 이 파일 수가 쓰기 증폭 배수만큼 PUT으로 환산돼 스토리지 절감을 압도한다.
+
+**우리 설계는 그 경로를 구조적으로 피한다.** `prefer_not_to_merge`를 켜지 않으므로(§1.2) 머지는 hot(EBS)에서 끝나고, **S3가 보는 쓰기는 TTL MOVE 시점의 part 1회 업로드뿐**이다 `Σ`. 이동량에만 비례하는 소량의 PUT과 cold 조회 GET이 남고, DELETE는 무료라 TTL DELETE는 요청 비용에 잡히지 않는다. 지평별 절대 금액은 [07 §4.6]({{< relref "07-capacity-planning.md" >}})이 PUT 항목까지 포함해 계상하며, 같은 규모에서 §3.4의 NAT 처리요금이 훨씬 큰 항목이다 — **cold tier에서 실제로 위험한 비용은 요청이 아니라 네트워크 경로**다 `Σ`.
+
+즉 `prefer_not_to_merge`를 기본 false로 두는 이유는 `TOO_MANY_PARTS` 방어에서 끝나지 않는다 — **요청 비용 방어이기도 하다.** 반대로 머지를 S3 위에서 하는 구성(S3를 primary로 두는 경로)의 기각 근거는 [클릭하우스 스토리지 전략]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})이 소유한다.
 
 {{% details title="이동·배치 모니터링 쿼리 모음" closed="true" %}}
 ```sql
@@ -444,10 +498,12 @@ ORDER BY event_time DESC LIMIT 50;
 
 - **hot = EBS `default` 디스크**(gp3 기본, IOPS/throughput 부족 시 io2 — [02]({{< relref "02-hot-storage-ebs.md" >}})), **cold = S3 Standard + `cache` disk**(EBS LRU `max_size` 150Gi, `cache_on_write`). `storageManagement.provisioner: Operator`로 EBS 무중단 확장을 활용한다(로컬 NVMe와 근본 차이).
 - **인증 = IRSA**(정적 키 금지), `use_environment_credentials=1` + `region` 명시 + `{replica}` 경로 분리(shared-nothing 필수). CH 서버 disk의 IRSA 실동작은 스테이징 실측 대상 `?`.
-- **주입 = CHI `files`의 `config.d/storage_configuration.xml`**, pod `serviceAccountName`=IRSA SA. 외부 직접 마운트 금지.
-- **TTL 기준 문서(이 페이지가 단일 출처)**: logs·traces hot 14일→S3→DELETE 90/180/365, metrics hot 30일→S3→DELETE 180/365, **sessions는 S3 미이동·hot만·DELETE 30일**. 주 이동은 시간 TTL, `move_factor=0.1`(안전판만), `prefer_not_to_merge` 미설정. 06은 이 표를 relref해 지평별 DELETE만 변주한다.
-- **사이징 주의**: EBS는 hot + part metadata(로컬 상주) + `cache max_size` + 머지 여유를 모두 포함한다 — hot 데이터량만으로 PVC를 잡지 않는다([06]({{< relref "07-capacity-planning.md" >}})).
-- **금지 3종**: S3 lifecycle→Glacier, zero-copy replication, `prefer_not_to_merge=true`.
+- **주입 = CHI `files`의 `config.d/storage_configuration.xml`**, pod `serviceAccountName`=IRSA SA. 외부 직접 마운트 금지. 권한 다음이 경로다 — **S3 Gateway VPC Endpoint를 먼저 확인한다**(무료, 없으면 NAT 처리요금 $0.059/GB가 절감액의 35~50%를 먹는다, §3.4).
+- **TTL 기준 문서(이 페이지가 단일 출처)**: logs·traces hot 14일→S3→DELETE 90/180/365, metrics hot 30일→S3→DELETE 180/365, **sessions는 S3 미이동·hot만·DELETE 30일**. 주 이동은 시간 TTL, `move_factor=0.1`(안전판만), `prefer_not_to_merge` 미설정. 07은 이 표를 relref해 지평별 DELETE만 변주한다.
+- **사이징 주의**: EBS는 hot + part metadata(로컬 상주) + `cache max_size` + 머지 여유를 모두 포함한다 — hot 데이터량만으로 PVC를 잡지 않는다([07]({{< relref "07-capacity-planning.md" >}})).
+- **금지 3종**: S3 lifecycle→Glacier, zero-copy replication, `prefer_not_to_merge=true`. 마지막 항목은 `TOO_MANY_PARTS` 방어이면서 **요청 비용 방어**다 — 머지를 hot에서 끝내므로 S3가 보는 쓰기가 이동 1회뿐이다(§5.6).
+- **내구성은 티어링과 다른 축이다** — 멀티 AZ RF2 복제 + 백업이 담당하고 cold(S3)도 RF배수 사본이라는 원칙은 어떤 티어 선택에서도 흔들지 않는다(§5.5).
 - **기본 TTL 오해 차단**: ClickStack 기본은 `${TABLES_TTL}` 단일값(문서상 3일); 위 신호별 14/30/90/… 은 우리 권장 설정치다. 배포 후 `SHOW CREATE TABLE`·`system.parts`로 실측 보정.
+- **켤지 말지는 여기서 정하지 않는다**(§0) — 결정표는 [08 §6]({{< relref "08-block-only-tuning.md" >}}), 우리 클러스터의 승급·회귀 판단은 운영 트랙 의사결정 가이드가 소유한다. 이 장은 켠 뒤의 조립과 비용 누수를 소유한다.
 
-시점 기준 2026-07.
+시점 기준 2026-08.

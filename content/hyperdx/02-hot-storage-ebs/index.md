@@ -15,7 +15,14 @@ weight: 2
 - operator 연동은 **gp3 StorageClass(EBS CSI) + volumeClaimTemplate `reclaimPolicy: Retain` + `allowVolumeExpansion`(온라인 확장)** 세 축이다.
 {{< /callout >}}
 
-이 카테고리는 **EBS(gp3/io2) 1차** 전제다. 로컬 NVMe(i7i/i8g) 1차 전제와 스토리지 4전략·EBS 대역 한계·재수화 위험 창·티어링≠내구성은 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 기준 문서이므로 여기서 반복하지 않고, 이 페이지는 **왜 우리 스케일에선 EBS가 1차인지**와 **gp3/io2를 operator에 어떻게 얹는지**만 실전 관점으로 깊게 판다. cold 티어링(S3)은 {{< relref "03-s3-cold-tiering.md" >}}, hot 창별 캐파 산정은 {{< relref "07-capacity-planning.md" >}}가 전담한다.
+이 카테고리는 **EBS(gp3/io2) 1차** 전제다. 로컬 NVMe(i7i/i8g) 1차 전제와 스토리지 4전략·티어링≠내구성·**재수화 위험 창의 정의와 MTTR 산식**은 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 기준 문서이므로 여기서 반복하지 않고, 이 페이지는 **왜 우리 스케일에선 EBS가 1차인지**와 **gp3/io2를 operator에 어떻게 얹는지**만 실전 관점으로 깊게 판다. cold 티어링(S3)은 {{< relref "03-s3-cold-tiering.md" >}}, hot 창별 캐파 산정은 {{< relref "07-capacity-planning.md" >}}가 전담한다.
+
+**이 페이지가 단일 출처로 소유하는 것** — 다른 장은 결론만 인용하고 아래 네 축을 재서술하지 않는다:
+
+- **gp3 2025-09 상향 스펙**과 상향 이전 값과의 구분(80,000 IOPS / 2,000 MiB/s / 64 TiB) — §1.1·§1.2.
+- **인스턴스 EBS 파이프 천장** — 인스턴스별 baseline·burst 수치와 "볼륨을 더 붙여도 파이프 이상은 못 낸다"는 판정 — §1.4·§3.1.
+- **이벤트별 재수화 필요 여부**(재부팅·재스케줄·인스턴스 교체·AZ 장애·볼륨 장애를 로컬 NVMe와 대조)와 **EBS의 AZ 종속 경계** — §5.1.
+- **GB 단가 rate(서울)**와 블록↔오브젝트 배수 — §1.3. 절대 금액·워크드 모델은 {{< relref "07-capacity-planning.md" >}}가 이 rate를 인용해 계산한다.
 
 ## 1. gp3 상세 — 2025-09 상향으로 스트라이핑이 필요 없어졌다
 
@@ -53,16 +60,18 @@ gp3는 EBS SSD 중 최저가이며 **성능을 용량과 독립적으로** 프�
 - RAID0는 **볼륨 하나만 죽어도 배열 전체가 죽어** 실효 내구성이 떨어진다. AWS는 상향의 이점을 "복잡한 다중 볼륨 스트라이핑을 단일 볼륨으로 대체해 개별 볼륨의 99.9% 내구성을 온전히 유지"라고 명시한다 `Ⓥ`. → **단일 gp3가 스트라이핑보다 단순하고 내구성도 높다**(§3.3).
 - 요금은 상향 후에도 모든 차원(크기·IOPS·throughput)에서 동일 `✓`.
 
-### 1.3 gp3 요금 3분해 (us-east-1, 2026-07) `✓`
+### 1.3 gp3 요금 3분해 — GB 단가는 서울 실단가가 정본 `✓`
 
-| 차원 | 무료 포함분 | 초과분 요금 |
-|---|---|---|
-| 스토리지 | — | **$0.08 / GB-월** |
-| provisioned IOPS | 3,000 IOPS | **$0.005 / provisioned IOPS-월** (3,000 초과분) |
-| provisioned throughput | 125 MiB/s | **$0.04 / provisioned MiB/s-월** (125 초과분) |
+| 차원 | 무료 포함분 | 초과분 요금 (us-east-1, 2026-07) | 초과분 요금 (서울 `ap-northeast-2`, 2026-08) |
+|---|---|---|---|
+| 스토리지 | — | **$0.08 / GB-월** `✓` | **$0.0912 / GB-월** `✓` |
+| provisioned IOPS | 3,000 IOPS | **$0.005 / provisioned IOPS-월** (3,000 초과분) `✓` | 미확인 `?` |
+| provisioned throughput | 125 MiB/s | **$0.04 / provisioned MiB/s-월** (125 초과분) `✓` | 미확인 `?` |
 
 - 과금은 초 단위(60초 최소) `✓`. gp3의 provisioned IOPS/throughput 요금은 **단일 구간(tier 없음)** — io2와 달리 계단식이 아니다 `✓`.
-- **서울(`ap-northeast-2`)은 us-east-1 대비 대략 10~15% 비싸다** `≈` — 실 배포 리전 단가는 AWS Pricing Calculator로 확정한다. 달러 워크드 모델·3개월/1년 비용은 {{< relref "07-capacity-planning.md" >}}가 전담하고, 여기선 단가 rate만 제공한다.
+- **우리 배포 리전은 서울이고, GB 단가의 기준은 서울이다** `✓` — gp3 **$0.0912/GB-월**, S3 Standard(첫 50TB) **$0.025/GB-월** ⇒ **gp3가 S3의 3.65배**(AWS Price List Bulk API 직접 조회, 2026-08). 이 배수가 hot↔cold 크로스오버 판단({{< relref "03-s3-cold-tiering.md" >}}·{{< relref "08-block-only-tuning.md" >}})의 입력이고, 그 두 장은 배수를 재산출하지 않고 이 rate를 인용한다.
+- 서울 스토리지 단가는 us-east-1 $0.08 대비 **약 14% 상향**이라, 종전에 쓰던 "서울은 us-east-1 대비 대략 10~15% 비싸다" `≈`는 스토리지 차원에서 실단가로 확인됐다. 다만 **provisioned IOPS·throughput의 서울 단가는 아직 미확인** `?`이므로 그 두 차원은 여전히 어림값(us-east-1 rate + 10~15% `≈`)으로 다루고, 필요하면 Price List Bulk API로 같은 방식으로 확정한다.
+- 달러 워크드 모델·3개월/1년 비용은 {{< relref "07-capacity-planning.md" >}}가 전담하고, 여기선 단가 rate만 제공한다.
 
 ### 1.4 언제 baseline로 충분한가 — 인스턴스 EBS 파이프에 묶어 판정 (핵심)
 
@@ -140,7 +149,7 @@ io2 BE가 gp3를 이기는 축은 셋뿐이고, 셋 다 RUM 분석엔 무관하�
 | 온라인 확장 | `allowVolumeExpansion`로 단순 | RAID 재구성 필요 |
 | 우리 스케일 적합 | **✅ 정답** | ❌ 불필요 |
 
-**핵심**: 인스턴스 EBS 파이프가 어차피 총 throughput의 천장이므로, 볼륨을 여러 개 붙여도 인스턴스 대역 이상은 못 낸다(§1.4). 우리 스케일에선 **단일 gp3**가 성능·내구성·운영 모두에서 우위다. 인스턴스 EBS 대역 한계 자체의 상세는 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 기준 문서다.
+**핵심**: 인스턴스 EBS 파이프가 어차피 총 throughput의 천장이므로, 볼륨을 여러 개 붙여도 인스턴스 대역 이상은 못 낸다(§1.4). 우리 스케일에선 **단일 gp3**가 성능·내구성·운영 모두에서 우위다. 인스턴스 EBS 파이프 천장의 수치와 이 판정은 **이 페이지 §1.4가 정본**이고, 같은 천장이 20TB+ 전제에서 로컬 NVMe를 유리하게 만드는 논거는 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 이어받는다.
 
 ## 4. 로컬 NVMe — 옵셔널 업그레이드 경로 (relref)
 
@@ -155,6 +164,8 @@ io2 BE가 gp3를 이기는 축은 셋뿐이고, 셋 다 RUM 분석엔 무관하�
 ### 5.1 EBS-first의 진짜 이점은 성능이 아니라 **재수화 불필요** (핵심)
 
 로컬 NVMe 전략의 가장 큰 운영 리스크는 **노드 소실 = 데이터 소실 → 재수화 위험 창**이다({{< relref "../../clickhouse/02-storage-local-nvme.md" >}}). EBS는 볼륨이 노드와 독립적으로 살아남아 이 창을 대부분 없앤다:
+
+경계를 먼저 못박는다 — **창의 정의와 MTTR 산식은 clickhouse/02가, "어느 이벤트에서 재수화가 필요한가"는 아래 표가 정본**이다. 챕터 대문의 두 스토리지 전략 콜아웃과 {{< relref "04-operator-topology-downtime.md" >}}·{{< relref "08-block-only-tuning.md" >}}는 결론 한 줄만 인용하고 이 표를 복제하지 않는다.
 
 | 이벤트 | 로컬 NVMe | EBS gp3 |
 |---|---|---|
@@ -184,13 +195,17 @@ EBS-first에서도 "볼륨 내구성 ≠ 데이터 내구성"은 그대로다:
 | 실효 천장 | **인스턴스 EBS 파이프** | 인스턴스 EBS 파이프 | 인스턴스 물리 NVMe | 네트워크 |
 | 지연 | single-digit ms | **<500 µs** | µs 단위 | 수십~수백 ms |
 | 볼륨 내구성 | 99.8~99.9% | **99.999%** | 없음(휘발성) | 11 nines |
-| GB당 요금(us-east-1) | **$0.08** | $0.125 + 비싼 IOPS | 인스턴스가에 포함 | ~$0.023 |
+| GB당 요금(us-east-1 · **서울**) | **$0.08 · $0.0912** `✓` | $0.125 · 미확인 `?` | 인스턴스가에 포함 | ~$0.023 · **$0.025** `✓` |
 | 노드 재부팅 시 데이터 | **보존(재수화 0)** | 보존 | **소실→재수화** | 보존 |
 | AZ 장애 시 | 재수화(AZ 종속) | 재수화 | 재수화 | 보존 |
 | 운영 복잡도 | **낮음** | 낮음 | 높음(RAID·재수화·Karpenter) | 중간 |
 | 0.7TB/월 RUM 적합 | **✅ 정답** | ❌ 과잉 | ❌ 과한 복잡도 | (cold 티어로만) |
 
 {{< flow src="_flow/5-3-hot-매체-자-비교.json" />}}
+
+**표 각주 — S3 Express One Zone은 이 표의 후보가 아니다.** 2026-08 기준 Express One Zone은 **서울(`ap-northeast-2`)에 없다** `✓`(지원 8리전: us-east-1 · us-east-2 · us-west-2 · ap-south-1 · ap-northeast-1 · eu-central-1 · eu-west-1 · eu-north-1). ClickHouse는 `storage_class_name=EXPRESS_ONEZONE`을 문법상 허용하지만 디렉터리 버킷 엔드포인트에서 `IncompleteBody` 오류가 보고돼 있다(issue #72078, 24.10.2.80) `≈`. 즉 "cold를 Express One Zone으로 빨라지게 하면?"이라는 물음은 우리 리전에서 논외이고, 리전이 열려도 위 버그가 먼저 닫혀야 한다.
+
+한 겹 더 — ClickHouse가 Express One Zone 기반 구성으로 발표한 **콜드 쿼리 평균 36% 개선(최대 283%)·캐시 계층 TCO 최대 65% 개선**은 **Cloud SaaS 전용 측정**이다 `✓`. 그 수치를 만든 Distributed Cache 자체가 Cloud 부품이라 self-host로 그대로 오지 않고({{< relref "../../clickhouse/01-managed-vs-selfhosted.md" >}}), 설령 OSS로 풀려도 서울에 Express One Zone이 없어 같은 수치가 재현되지 않는다. **이 두 문단이 레포에서 Express One Zone·Cloud 캐시 수치의 단독 소유 지점**이므로 다른 장은 여기로 위임한다.
 
 ## 6. Altinity operator 연동 — gp3 StorageClass + volumeClaimTemplate
 
@@ -271,7 +286,7 @@ spec:
 **운영 함정 2건** `✓`:
 
 1. **reclaimPolicy: Retain 미준수 버그** — operator issue #1619에서 CHI/CHK에 Retain을 걸어도 클러스터 삭제 시 볼륨이 지워진 사례가 보고됐다. 기준 버전 0.27.1에서 수정됐는지는 릴리스 노트로 확인하고 `?`, 그 전까지는 **StorageClass `reclaimPolicy: Retain`도 이중으로** 걸어 방어한다. 생성 후 실제 PV 정책을 반드시 확인한다.
-2. **PVC 볼륨 템플릿 확장 시 데이터 손실** — issue #1385에서 volumeClaimTemplate의 storage를 키우는 방식이 데이터 손실을 유발한 사례가 있다. 확장은 **PVC를 직접 수정**하는 경로로 하고, **스테이징에서 리허설한 뒤** 프로덕션에 적용하며, 확장 전 백업은 필수다.
+2. **PVC 볼륨 템플릿 확장 시 데이터 손실** — issue #1385에서 volumeClaimTemplate의 storage를 키우는 방식이 데이터 손실을 유발한 사례가 있다. 확장은 **PVC를 직접 수정**하는 경로로 하고, **스테이징에서 리허설한 뒤** 프로덕션에 적용하며, 확장 전 백업은 필수다. 여기까지가 결론이고, **볼륨 성장 계열의 기준 문서는 {{< relref "08-block-only-tuning.md" >}}**다 — #1385의 재현 조건(`storageManagement` 미설정 시 무한 delete/recreate)·`provisioner: Operator` in-place 리사이즈·Elastic Volumes 수정 한도를 그 장이 단독으로 소유한다. 성장이 상시 운영 축이 되는 형상이 블록 온리이기 때문이다.
 {{< /callout >}}
 
 ## 우리 케이스에서는
@@ -280,4 +295,5 @@ spec:
 - **io2 / io2 BE는 각주.** 극한 IOPS·sub-ms·볼륨 단위 99.999% 내구성이 필요할 때만. RUM 분석엔 gp3 99.9% + 멀티 AZ RF 복제로 충분하고, io2는 GiB 1.56배 + 비싼 IOPS만 낸다. io1은 검토 대상 자체가 아니다(throughput 1,000 MiB/s).
 - **EBS-first의 값어치는 성능이 아니라 재수화 불필요.** 노드 재부팅·재스케줄·인스턴스 교체(같은 AZ)에서 볼륨 detach/attach로 데이터가 보존돼 재수화 위험 창이 근본적으로 짧다. 단 EBS는 AZ 종속이라 **멀티 AZ RF2+ 복제는 여전히 필수**이고(AZ 장애 방어), 다운타임 프로파일은 {{< relref "04-operator-topology-downtime.md" >}}에서 이어받는다.
 - **operator는 gp3 StorageClass(EBS CSI, `WaitForFirstConsumer`) + volumeClaimTemplate `reclaimPolicy: Retain` + `allowVolumeExpansion`.** 성장은 온라인 볼륨 확장으로 흡수하고, reclaimPolicy 미준수 버그(#1619)·PVC 확장 데이터 손실(#1385)은 StorageClass 이중 Retain + 스테이징 리허설 + 백업으로 방어한다.
-- **로컬 NVMe는 업그레이드 경로로만** 열어두고 상세는 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}에 위임한다. 시점 기준 2026-07.
+- **단가는 서울 기준으로 본다** — gp3 **$0.0912/GB-월** vs S3 Standard **$0.025/GB-월** = **3.65x** `✓`(§1.3). 이 배수가 03·08의 크로스오버 판단 입력이고 절대 금액은 {{< relref "07-capacity-planning.md" >}}가 계산한다. provisioned IOPS·throughput의 서울 단가는 미확인 `?`이라 그 두 차원만 어림값으로 쓴다. **S3 Express One Zone은 서울 미제공** `✓`이므로 cold를 빠르게 하는 선택지로 검토 대상이 아니다(§5.3 각주).
+- **로컬 NVMe는 업그레이드 경로로만** 열어두고 상세는 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}에 위임한다. 시점 기준 2026-08.

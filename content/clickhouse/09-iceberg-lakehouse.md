@@ -219,7 +219,7 @@ ClickHouse 공식 블로그 "Are open-table-formats + lakehouses the future of o
 | 갈래 | 무엇인가 | self-host 가능성 | 우리 판단 |
 |---|---|---|---|
 | **① cold tier** | 로컬 NVMe hot + `TTL ... TO VOLUME 'cold'` 로 S3 이동 | 코어 내장, 검증된 표준 `✓` | **이미 고른 것.** 상세는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}) |
-| **② S3 primary** | storage policy 로 S3 단독 볼륨 구성 | 문법적으로 가능. 단 3중 제약 | 비권장 — 아래 |
+| **② S3 primary** | storage policy 로 S3 단독 볼륨 구성 | 문법적으로 가능. 단 3중 제약 | 비권장 — 아래. OSS 경로(`plain_rewritable`)의 기각 판정은 [스토리지 · S3 primary 의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}}) |
 | **③ 데이터레이크** | Iceberg 테이블을 만들고 여러 엔진이 공유 | 기능은 있음(§3), 성숙도 편차 | **다른 축.** 지금은 도입 안 함 |
 
 **② 는 문법적으로 가능하지만 이름부터 정정해야 한다.** ClickHouse 공식 가이드가 산문에서 쓰는 "S3BackedMergeTree"는 **등록된 테이블 엔진 이름이 아니다**. 같은 가이드의 DDL 예제가 그 증거다 `✓`.
@@ -239,7 +239,7 @@ SETTINGS storage_policy = 's3_main';
 
 같은 가이드가 명시하는 제약은 셋이다 `✓` — (1) "Don't configure any AWS/GCS life cycle policy. This isn't supported and could lead to broken tables.", (2) "implementing and managing a separation of storage and compute architecture is more complicated compared to standard ClickHouse deployments", (3) 적합 사용 사례를 "use cases where query performance on 'cold' data is less critical"로 한정. 그리고 self-host 로 이 구성을 하는 독자에게 "we recommend using ClickHouse Cloud, which allows you to use ClickHouse in this architecture without configuration using the SharedMergeTree table engine"라고 권한다 `✓` — self-host 를 금지하는 문장은 아니고 "설정 없이 하려면 Cloud"라는 뜻이다.
 
-여기에 우리 도메인이 이미 확정한 3중 제약이 겹친다 — **사본 배수**(shared-nothing 이라 RF2 면 S3 에도 2벌), **메타데이터 지역성**(part metadata 가 로컬에 남아 filesystem cache 가 사실상 필수), **지연**(콜드 쿼리가 느리다). 상세는 반복하지 않고 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})와 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})에 위임한다.
+여기에 우리 도메인이 이미 확정한 3중 제약이 겹친다 — **사본 배수**(shared-nothing 이라 RF2 면 S3 에도 2벌), **메타데이터 지역성**(part metadata 가 로컬에 남아 filesystem cache 가 사실상 필수), **지연**(콜드 쿼리가 느리다). 상세는 반복하지 않고 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})와 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})에 위임한다. 그리고 "S3 를 1벌만 두고 컴퓨트가 캐시로 읽는" OSS 경로(`plain_rewritable` + readonly part refresh)를 왜 기각하는지 — mutation·테이블 복제 미지원으로 RMT 와 배타라는 결정적 사유를 포함한 기각 사유 6개 — 는 [스토리지 · S3 primary 의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}})가 소유한다.
 
 **③ 은 아예 다른 축이다.** ①② 가 "S3 를 싸게 쓴다"는 비용 문제라면, ③ 은 "여러 엔진이 공유하는 개방 테이블을 만든다"는 **거버넌스·lock-in 문제**를 푼다. 목적이 다르므로 ③ 을 ② 의 우회로로 쓰려는 발상 자체가 층위 혼동이다 `Σ`. 그리고 관측성 메인 스토리지로서의 ③ 은 §6 대로 공식적으로도 비권장이다.
 
@@ -264,7 +264,7 @@ SETTINGS storage_policy = 's3_main';
 - **워크로드가 §6 의 다섯 한계를 정면으로 때린다.** RUM/트레이스 조사는 `trace_id`·`session_id` 포인트 조회가 주 동작이고, 속성은 계속 새로 생기는 준정형 JSON 이고, 인제스트는 상시다 — Parquet 이 가장 약한 세 지점과 정확히 겹친다.
 - **월 0.7TB 규모에서 얻을 것이 없다.** Iceberg 가 주는 것은 저장 단가와 엔진 자유인데, 우리는 이미 S3 cold tier 로 단가를 잡았고 엔진을 바꿀 계획이 없다. 반대로 지불할 것은 확실하다 — 외부 compaction 운영, 매니페스트 관리, experimental 플래그 추적, 그리고 이중 쓰기 파이프라인이다 `Σ`.
 - **HyperDX 가 스키마를 소유한다는 제약도 있다.** ClickStack OTel collector 가 `otel_logs`·`otel_traces`·`hyperdx_sessions` 등을 MergeTree 로 생성하고 HyperDX 는 그 테이블을 전제로 쿼리한다 — 관측성 메인을 Iceberg 테이블로 바꾸면 UI 쪽 계약을 우리가 직접 떠안는다 `✓`([HyperDX 내재화]({{< relref "../hyperdx/_index.md" >}})). 제품 선택의 맥락은 [로깅 · HyperDX/ClickStack]({{< relref "../logging/05-hyperdx-clickstack.md" >}})에 있다.
-- **S3 primary(② 갈래)도 여전히 아니다.** 이 장이 확인한 것은 "문법적으로 가능하다"와 "이름이 엔진명이 아니다"까지이고, 사본 배수·메타데이터 지역성·지연 3중 제약은 그대로다.
+- **S3 primary(② 갈래)도 여전히 아니다.** 이 장이 확인한 것은 "문법적으로 가능하다"와 "이름이 엔진명이 아니다"까지이고, 사본 배수·메타데이터 지역성·지연 3중 제약은 그대로다. OSS 경로의 기각 근거는 [스토리지 · S3 primary 의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}}) 에 있다.
 
 **언제 재검토할 가치가 생기는가** — 조건을 미리 못박아 둔다 `Σ`. (1) 보존이 1년+ 로 늘어 콜드 데이터가 hot 대비 수 배로 커지고, (2) 그 콜드 데이터를 관측성 UI 가 아니라 **배치 분석·ML 이 다른 엔진(Spark/Trino/DuckDB 등)으로** 읽어야 하는 요구가 실제로 생기고, (3) 그 요구를 ClickHouse 에서 뽑아 쓰는 것(SELECT → 외부 전달)보다 개방 포맷으로 두는 것이 명백히 싸질 때. 세 조건이 함께 서야 하고, 하나만 서면 재검토 트리거가 아니다.
 

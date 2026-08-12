@@ -187,7 +187,7 @@ failover가 "승격 없음"이어도, 클라이언트가 죽은 replica를 안 �
 - **INSERT/DDL/머지/뮤테이션 정지** — `TABLE_IS_READ_ONLY`(에러 코드 242, *"Table is in readonly mode (zookeeper path: …)"*). part 등록·블록번호 배정·복제 로그 기록이 전부 Keeper 쓰기를 요구하므로 쓰기 경로가 통째로 멈춘다. `system.replicas.is_readonly=1`로 드러난다.
 - 이는 **보호 장치**다 — 정족수 없이 쓰기를 허용하면 일관성을 보장할 수 없으므로 일부러 막는다.
 
-정족수 산술·gp3 영속으로 Raft 메타 생존·복구 런북은 [Keeper]({{< relref "05-keeper.md" >}})·[operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}})(S9)·[배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})으로 위임한다.
+정족수 산술은 [Keeper]({{< relref "05-keeper.md" >}})·[operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}})(S9)과 [배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})이, **복구 런북은 [Altinity operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})** 이 소유한다(정족수 상실 복구 절차가 배포 장에서 이 장으로 옮겨졌다).
 
 ### split-brain 방지 — Raft 정족수가 단일 진실원
 

@@ -13,7 +13,7 @@ weight: 8
 - **블록 온리 = `storage_policy`를 내장 `default` 하나로만.** cold(S3) 볼륨이 없으니 03이 통째로 주입하던 `config.d/storage_configuration.xml`을 **아예 넣지 않는다**. 테이블은 기본 `default` 정책·`default` 디스크(=`/var/lib/clickhouse`=gp3 PVC)에 쓴다.
 - **S3와의 관계는 배타가 아니라 "선택"이다.** 우리 기본 권고는 03(S3 티어링) 유지. 블록 온리는 **짧은 보존(≤90일)·staging·운영 단순성·S3 미접근/규정** 경로에서 고르는 선택지다.
 - **TTL은 DELETE-only** — `TO VOLUME 'cold'` MOVE가 사라지고 `... DELETE` 하나만. `ttl_only_drop_parts=1`로 만료 part 통째 드롭(머지 유발 없는 값싼 연산)이라 gp3 대역을 아낀다.
-- **사이징 델타**: 03에서 S3로 내리던 logs/traces/metrics가 전부 gp3에 상주 → gp3 상주가 [07]({{< relref "07-capacity-planning.md" >}}) hot 대비 **1.6x(3개월)~3.7x(12개월)**. 짧은 보존이면 S3 티어링과 비용 근접, 길어지면 발산(gp3 $0.08 vs S3 $0.023, ~3.5x/GB).
+- **사이징 델타**: 03에서 S3로 내리던 logs/traces/metrics가 전부 gp3에 상주 → gp3 상주가 [07]({{< relref "07-capacity-planning.md" >}}) hot 대비 **1.6x(3개월)~3.7x(12개월)**. 짧은 보존이면 S3 티어링과 비용 근접, 길어지면 발산(서울 gp3 **$0.0912** vs S3 Standard **$0.025** = **3.65x/GB** `✓`, 단가 정본은 [02 §1.3]({{< relref "02-hot-storage-ebs.md" >}})).
 - **성장 레버는 gp3 온라인 확장 하나** → `storageManagement.provisioner: Operator` + SC `allowVolumeExpansion`으로 무중단 확장. EBS 6h 쿨다운은 **2026-01-15 폐지**(24h당 4회). **#1385 데이터 손실 회귀** 주의.
 - **커지는 상주 데이터**는 머지가 gp3 대역을 지속 점유 → provisioned throughput 상향·`background_pool_size`/ratio·머지 크기 노브·**헤드룸 30~40%**(머지가 여유를 2배 booking). `move_factor`는 이동 볼륨이 없어 죽는 노브.
 {{< /callout >}}
@@ -124,13 +124,16 @@ ALTER TABLE default.hyperdx_sessions       MODIFY TTL TimestampTime + INTERVAL 3
 
 ### 3.3 물리 gp3(×RF2, +40% 머지 헤드룸) — 07은 고정, 블록 온리는 증가 `≈⁽계산 예시⁾`
 
-| 지평 | 07 hot gp3 물리(고정) | **블록 온리 gp3 물리(×RF2,+40%)** | gp3 요금($0.08/GB, RF2) | (참고) 07 hot gp3+S3 요금 |
-|---|---|---|---|---|
-| 3개월 | ~2.0 TB | 1.0×2×1.4 ≈ **2.8 TB** | ~$224/mo | hot ~$160 + S3 ~$17 ≈ **$177** |
-| 6개월 | ~2.0 TB | 1.45×2×1.4 ≈ **4.06 TB** | ~$325/mo | hot ~$160 + S3 ~$38 ≈ **$198** |
-| 12개월 | ~2.0 TB | 2.35×2×1.4 ≈ **6.58 TB** | ~$526/mo | hot ~$160 + S3 ~$79 ≈ **$239** |
+**산정 기준선은 [07 §4.6]({{< relref "07-capacity-planning.md" >}})다** — 아래 금액은 07의 월 비용 산정에 블록 온리 델타를 얹은 파생이므로, 07과 어긋나면 07을 따른다. GB 단가 rate 자체의 정본은 [02 §1.3]({{< relref "02-hot-storage-ebs.md" >}})이고 **서울 기준**이다.
 
-- **비용 개형**: gp3 $0.08/GB vs S3 Standard $0.023/GB = **~3.5배/GB**. 블록 온리는 짧은 보존(3개월)에선 S3 티어링과 **근접**(스토리지 델타 +~$47/mo)하지만, 보존이 길어질수록 **발산**(12개월 스토리지 델타 +~$290/mo). 컴퓨트·Keeper·Mongo 고정분은 양쪽 동일. `≈⁽계산 예시⁾`
+| 지평 | 07 hot gp3 물리(고정) | **블록 온리 gp3 물리(×RF2,+40%)** | gp3 요금(서울 $0.0912/GB, RF2) | (참고) 07 hot gp3+S3 요금(서울) |
+|---|---|---|---|---|
+| 3개월 | ~2.0 TB | 1.0×2×1.4 ≈ **2.8 TB** | ~$255/mo | hot ~$182 + S3 ~$19 ≈ **$201** |
+| 6개월 | ~2.0 TB | 1.45×2×1.4 ≈ **4.06 TB** | ~$370/mo | hot ~$182 + S3 ~$41 ≈ **$223** |
+| 12개월 | ~2.0 TB | 2.35×2×1.4 ≈ **6.58 TB** | ~$600/mo | hot ~$182 + S3 ~$86 ≈ **$268** |
+
+- **비용 개형**: 서울 gp3 **$0.0912/GB** vs S3 Standard(첫 50TB) **$0.025/GB** = **3.65배/GB** `✓`. 블록 온리는 짧은 보존(3개월)에선 S3 티어링과 **근접**(스토리지 델타 +~$54/mo)하지만, 보존이 길어질수록 **발산**(12개월 스토리지 델타 +~$332/mo). 컴퓨트·Keeper·Mongo 고정분은 양쪽 동일. `≈⁽계산 예시⁾`
+- **리전을 바꿔 볼 때**: 위 표는 GB 단가만 갈아끼우면 그대로 재계산된다(us-east-1이면 gp3 $0.08 · S3 $0.023, 배수 ~3.5배로 서울과 거의 같다). **비율이 유사해 크로스오버 결론(~3개월 / ~6개월+)은 리전을 바꿔도 유지된다** — 서울로 재계산하는 이유는 결론이 아니라 prod 견적에 바로 쓰기 위해서다. `≈`
 - **단일 gp3 상한 64 TiB에 한참 여유**: 6.58TB(노드당 ~3.3TB, RF2 2노드)는 gp3 단일 볼륨 상한 아래라 스트라이핑 불필요 — 판정은 [02 §3]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서. `✓`
 - **머지 헤드룸이 더 중요해진다**: 블록 온리는 데이터가 계속 쌓여 볼륨이 차기 쉽다. 머지는 여유 공간을 예약(§5)하므로 **30~40% 여유**를 항상 남긴다([07 §8.1]({{< relref "07-capacity-planning.md" >}})의 헤드룸/경보 기준 계승). S3 탈출구가 없어 **여유 소진 시 대응이 온라인 확장뿐**(§4). `✓/≈`
 - **백업 개형**: cold가 없으니 백업 대상이 gp3 전량. `clickhouse-backup → S3`(별도 버킷)은 여전(리플레이 제외 정책은 07 그대로). `≈`
@@ -138,6 +141,12 @@ ALTER TABLE default.hyperdx_sessions       MODIFY TTL TimestampTime + INTERVAL 3
 ## 4. operator 볼륨 튜닝 — 온라인 확장이 "유일한 성장 레버"
 
 S3 cold라는 탈출구가 없으니, 블록 온리에서 데이터가 늘 때 **대응은 gp3 온라인 확장 하나**다(그 외엔 TTL 단축·샤드 추가). 그래서 03에선 부수적이던 온라인 확장이 블록 온리에선 **1순위 운영 축**이 된다.
+
+{{< callout type="info" >}}
+**소유권** — **볼륨 성장 계열은 이 장이 단독으로 소유한다**: `storageManagement.provisioner`(StatefulSet vs Operator, §4.1) · EBS Elastic Volumes 수정 한도와 6시간 쿨다운 폐지(§4.2) · issue #1385 PVC 재생성 데이터 손실의 재현 조건과 안전 경로(§4.3) · `allowVolumeExpansion`을 성장 레버로 운용하는 절차(§4.3). 성장이 상시 운영 축이 되는 형상이 여기이기 때문이다.
+
+경계 둘: **SC·volumeClaimTemplate 필드 예제와 #1619(Retain 미준수)는 [02 §6]({{< relref "02-hot-storage-ebs.md" >}})**가, **업그레이드·롤백(EBS 스냅샷 롤백, 확장↔업그레이드 상호작용)은 [09]({{< relref "09-version-upgrade-compat.md" >}})**가 소유한다. 이 장은 그 둘을 재서술하지 않고 인용한다.
+{{< /callout >}}
 
 ### 4.1 storageManagement.provisioner — StatefulSet vs Operator (핵심)
 
@@ -254,7 +263,7 @@ GROUP BY table, partition, disk_name ORDER BY parts DESC;
 | 운영 단순성 | **최상**(storage XML·IRSA·S3·lifecycle·cache·이동감시 전부 없음) | 복잡(§1 전부 관리) |
 | S3 접근성 | **S3 미접근/규정상 오브젝트 금지** 환경 | S3 사용 가능 |
 | 규모 | 소규모(누적 gp3가 부담 없는 수준)·staging | 누적↑로 gp3 비용이 커질 때 |
-| 스토리지 비용 | 짧은 보존에서 근접, 긴 보존에서 발산(gp3 3.5x/GB, §3) | 긴 보존에서 우위(cold $0.023/GB) |
+| 스토리지 비용 | 짧은 보존에서 근접, 긴 보존에서 발산(서울 gp3 **3.65x**/GB, §3) | 긴 보존에서 우위(서울 cold **$0.025**/GB) |
 | 크로스오버 | ~3개월까지 블록 온리가 단순하고 비용 근접 | ~6개월+부터 S3 티어링이 명확히 저렴 |
 
 {{< flow src="_flow/6-언제-블록-온리-vs.json" />}}
@@ -266,7 +275,7 @@ GROUP BY table, partition, disk_name ORDER BY parts DESC;
 
 - **기본 권고는 [S3 티어링(03)]({{< relref "03-s3-cold-tiering.md" >}}) 유지** — 우리 지평이 3~12개월로 열려 있고 보존이 길수록 블록 온리가 발산하기 때문. 단 **"짧은 보존(≤90일) + S3 미접근/규정 + 운영 단순성"** 조건이 겹치면(대표적으로 **staging**) 블록 온리가 정답이다(§6).
 - 블록 온리로 가면 **`storage_configuration`·IRSA·S3 버킷·cache가 통째로 사라져** 운영 표면적이 03보다 훨씬 작다. CHI에는 gp3 volumeClaimTemplate만 남고 테이블은 `default` 정책. TTL은 DELETE-only(`ttl_only_drop_parts=1`로 값싼 whole-part drop), `move_factor`·`prefer_not_to_merge`는 죽는 노브.
-- **비용 트레이드는 명확하다**: 리플레이는 어차피 S3 안 가므로 델타 대상은 logs/traces/metrics뿐. 이들이 gp3에 상주하면 gp3 상주가 [07]({{< relref "07-capacity-planning.md" >}}) hot 대비 **1.6x(3개월)~3.7x(12개월)**, 스토리지 비용 델타 +$47~$290/mo. 3개월이면 S3 티어링과 근접, 1년이면 명백히 비싸다.
-- **성장 레버는 gp3 온라인 확장 하나** → `provisioner: Operator` + `allowVolumeExpansion` SC로 무중단 확장. EBS 6h 쿨다운은 2026-01-15 폐지(24h당 4회, OPTIMIZING 중 불가)라 **여유 있게/드물게 크게** 확장한다. **#1385 데이터 손실 회귀**(템플릿 확장 시 PVC 재생성)는 Operator in-place 리사이즈 또는 PVC 직접 편집으로 우회 + 백업/스테이징 리허설 필수.
+- **비용 트레이드는 명확하다**: 리플레이는 어차피 S3 안 가므로 델타 대상은 logs/traces/metrics뿐. 이들이 gp3에 상주하면 gp3 상주가 [07]({{< relref "07-capacity-planning.md" >}}) hot 대비 **1.6x(3개월)~3.7x(12개월)**, 서울 단가로 스토리지 비용 델타 **+$54~$332/mo**. 3개월이면 S3 티어링과 근접, 1년이면 명백히 비싸다. 절대 금액의 기준선은 [07 §4.6]({{< relref "07-capacity-planning.md" >}}), GB 단가 rate는 [02 §1.3]({{< relref "02-hot-storage-ebs.md" >}})이 정본이다.
+- **성장 레버는 gp3 온라인 확장 하나** → `provisioner: Operator` + `allowVolumeExpansion` SC로 무중단 확장. EBS 6h 쿨다운은 2026-01-15 폐지(24h당 4회, OPTIMIZING 중 불가)라 **여유 있게/드물게 크게** 확장한다. **#1385 데이터 손실 회귀**(템플릿 확장 시 PVC 재생성)는 Operator in-place 리사이즈 또는 PVC 직접 편집으로 우회 + 백업/스테이징 리허설 필수. **이 볼륨 성장 계열 전체가 이 장의 단독 소유**이고(§4), 02는 SC·volumeClaimTemplate 예제와 #1619를, 09는 업그레이드·롤백을 소유한다.
 - **커지는 상주 데이터**는 머지가 gp3 대역을 지속 점유하니 (a) throughput 먼저 provision(baseline 125 초과 시), (b) `background_pool_size`/ratio·`max_bytes_to_merge_at_max_space_in_pool`·`number_of_free_entries...`로 머지 동시성·크기 조율, (c) 머지가 여유를 2배 booking하므로 **헤드룸 30~40%를 안정성 요건으로** 지킨다. `system.disks`/`system.parts`/`system.merges`로 모니터링.
-- **업그레이드 관점** — 블록 온리는 S3 티어 정합 걱정이 없어 업그레이드가 단순하다(EBS 스냅샷 롤백·`allowVolumeExpansion`↔업그레이드 상호작용). 상세는 [버전·업그레이드 호환성]({{< relref "09-version-upgrade-compat.md" >}})으로 이어진다. 시점 기준 2026-07.
+- **업그레이드 관점** — 블록 온리는 S3 티어 정합 걱정이 없어 업그레이드가 단순하다. 다만 **업그레이드·롤백 자체(EBS 스냅샷 롤백·`allowVolumeExpansion`↔업그레이드 상호작용)는 [버전·업그레이드 호환성]({{< relref "09-version-upgrade-compat.md" >}})이 소유**하므로 여기서는 "블록 온리라 티어 정합 변수가 하나 줄어든다"는 결론만 남기고 넘긴다. 시점 기준 2026-08.
