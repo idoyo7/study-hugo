@@ -37,7 +37,7 @@ CRD 쪽 변화가 가장 구조적이다. 로컬 `crds` 서브차트가 아예 �
 ### 적용 절차
 
 1. **ECR 미러 완전성 확보** — 태그 미핀 컴포넌트(operator v0.73.1, vmagent/vmalert/vmcluster 3종 v1.148.0, node-exporter 서브차트 기본 태그)를 사전에 전량 미러한다. 이것이 이 업그레이드의 최대 리스크다.
-2. **values 정정** — `createCRD: false` 제거/재매핑, `defaultRules.create`→`enabled`, `syncJob.enabled: false` + `defaultDashboards.enabled: false` 명시, KSM 태그를 ≥2.17로 bump, grafana 태그 유지/상승 결정, externalLabels·root_url 오설정 정정.
+2. **values 정정** — `createCRD: false` 제거/재매핑, `defaultRules.create`→`enabled`, `syncJob.enabled: false` + `defaultDashboards.enabled: false` 명시, KSM 태그를 ≥2.19로 bump, grafana 태그 유지/상승 결정, externalLabels·root_url 오설정 정정.
 3. **CRD 선적용 권장** — 신규/버전업 CRD를 컴포넌트보다 먼저 적용되도록 순서를 맞춘다(ArgoCD Server-Side Apply에 맡기는 경우 CRD가 먼저 뜨는지 확인).
 4. staging 먼저, prod는 안정 확인 후 승격. 검증은 아래 실행 체크리스트를 따른다.
 

@@ -34,9 +34,10 @@ ClickHouse를 **어떻게 운영할지**를 다루는 도메인이다. "채택�
 
 - **배포** · EKS 자체 운영(self-host) — 인력 보유 + 20TB+ 24/7 + 스토리지 성능 요구 세 조건이 겹칠 때만. Cloud의 유일한 구조적 우위(people TCO 흡수)가 이미 상쇄된 경우다 `≈`. 그 밖이면 managed(Cloud/BYOC·Altinity.Cloud).
 - **인스턴스** · i8g 우선 / i7i 차선 — i8g는 Graviton4·최신 Nitro SSD, i7i와 IOPS 동일·~9% 저렴, ClickHouse ARM64 궁합 `✓`. x86 의존(사이드카 바이너리) 있으면 i7i, 초고밀도면 i7ie/i3en `✓`.
-- **스토리지** · 로컬 NVMe(hot) + S3(cold, TTL MOVE) — 로컬 NVMe는 network block 대비 5~10x 빠르나 휘발성 → **내구성은 디스크가 아니라 복제로** `✓`. **zero-copy replication 금지**(22.8+ 기본 비활성, 데이터 손실 이슈 다수·issue #45346) `✓`.
-- **엔진** · ReplicatedMergeTree — SharedMergeTree(compute-storage 완전 분리)는 **ClickHouse Cloud 전용** → self-host는 RMT 강제 `✓`.
+- **스토리지** · 로컬 NVMe(hot) + S3(cold, TTL MOVE) — 로컬 NVMe는 network block 대비 5~10x 빠르나 휘발성 → **내구성은 디스크가 아니라 복제로** `✓`. **zero-copy replication 금지**(22.8+ 기본 비활성, 데이터 손실 이슈 다수·issue #45346) `✓`. S3를 cold로만 두는 것은 문법의 제약이 아니라 **비용·지연 판단**이다 — S3 단독 볼륨도 `storage_policy`로 구성되지만 사본 배수·part metadata 지역성·콜드 지연 3중 제약에 라이프사이클 정책 금지가 겹친다 `✓`([Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}})의 "세 갈래" 표).
+- **엔진** · ReplicatedMergeTree — SharedMergeTree(compute-storage 완전 분리)는 **ClickHouse Cloud 전용** → self-host는 RMT 강제 `✓`. 단 이 문장은 "self-host는 S3를 메인으로 못 쓴다"가 아니라 **무설정 공유 스토리지가 없다**는 뜻이다 — S3 단독 볼륨은 `ENGINE = MergeTree` + `storage_policy`로 서고, `S3BackedMergeTree`는 등록된 엔진명이 아니라 공식 문서 산문의 설명어다 `✓`([Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}})).
 - **operator** · Altinity clickhouse-operator — 7년+ 프로덕션 트랙레코드로 사실상 표준 `✓`. ClickHouse Inc. 공식 operator(v0.0.6, 2026-06-19)는 아직 알파. ClickStack은 `clickhouse.enabled: false`로 Altinity가 관리하는 **외부 CH를 참조** `✓`.
+- **데이터레이크** · Iceberg는 지금 도입하지 않는다 — 개방 테이블 포맷이 파는 것은 저장 단가가 아니라 **엔진 교체 자유**이고, 관측성 워크로드(포인트 조회·준정형 JSON·상시 인제스트)에는 ClickHouse 저자들조차 "핫=MergeTree, 콜드=오픈 포맷" 이중 쓰기만 권한다 `✓`. 재검토는 보존 1년+ · 콜드를 다른 엔진이 읽어야 할 요구 · 개방 포맷이 명백히 싸짐 세 조건이 함께 설 때 `Σ`([Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}})).
 
 ## 운영에서 놓치기 쉬운 것
 
@@ -47,6 +48,7 @@ ClickHouse를 **어떻게 운영할지**를 다루는 도메인이다. "채택�
 - **S3 cold tier에 part metadata는 로컬에 남는다.** desync 시 orphan S3 파일이 생기고, **S3 lifecycle policy로 Glacier 전환은 체인/테이블을 깨뜨릴 수 있어 금지** `✓`.
 - **Karpenter consolidation이 스토리지 지역성을 무시하고 노드를 없앤다.** `do-not-disrupt`는 voluntary disruption만 막으므로 On-Demand/SP(Spot 금지) + PDB + 노드 expiration 억제로 보강 `✓`.
 - **ClickStack의 MongoDB는 무인증 노출 사례가 있다.** 인증 + NetworkPolicy 격리가 필수 `✓`.
+- **한 클러스터에 여러 워크로드를 몰면 서로 간섭한다.** 국내 CDP 사례가 self-host 국면에서 실제로 부딪힌 지점이고, 배포 플레이북이 CHI 분리를 권고한 근거와 같은 통증이다 `≈`([무신사 CDP]({{< relref "08-musinsa-cdp.md" >}})).
 
 ## 이 챕터 구성 (문서 지도)
 
@@ -57,7 +59,9 @@ ClickHouse를 **어떻게 운영할지**를 다루는 도메인이다. "채택�
 - **[Altinity operator 운영]({{< relref "05-altinity-operations.md" >}})** — 배포 후 운영 실무 — 규모별 구성 관점, 스케일 in/out의 함정(자동 리밸런싱 없음·신규 shard 스키마 수동), ClickHouse 버전·operator 자체 롤링 업그레이드 런북, Keeper 업그레이드.
 - **[프로덕션 운영 사례]({{< relref "06-production-usecases.md" >}})** — K8s + operator + 로컬 NVMe 실증(PostHog 등), Karpenter/재수화 운영 함정과 소규모 팀 운영 가능성.
 - **[로컬 NVMe 데이터스토어 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}})** — ScyllaDB·Kafka·Redpanda·ES/OpenSearch·Aerospike·TiKV·CockroachDB 등 9개 시스템 횡단 비교 — "로컬 NVMe 1차 + 복제 내구성 + S3 티어링"이 업계 표준인지, ClickHouse 결정에 주는 강화 근거·신규 리스크.
-- **[출처]({{< relref "08-sources.md" >}})** — 이 섹션 근거 URL 모음.
+- **[무신사 CDP — self-hosted ClickHouse에서 Cloud로]({{< relref "08-musinsa-cdp.md" >}})** — 노드 결합 스토리지로 스케일 국면까지 밀고 간 국내 CDP 사례 한 건의 상세 기록 — 걸린 것(스토리지 결합·고정 스펙·워크로드 간섭·운영 부담), Cloud 이전 사유, 절감 수치의 이식 한계.
+- **[Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}})** — 파일/테이블/카탈로그/엔진 4층 모델, ClickHouse 의 Iceberg 읽기·쓰기 버전 게이트(25.7~26.7), MergeTree 와의 성능·워크로드 격차, "S3 메인"의 세 갈래 분리와 Antalya 의 위치.
+- **[출처]({{< relref "10-sources.md" >}})** — 이 섹션 근거 URL 모음.
 
 ## 자매 챕터
 

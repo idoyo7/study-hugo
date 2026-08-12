@@ -14,7 +14,7 @@ weight: 4
 - **함정**: `insert_quorum` 계열은 `settings`가 아닌 `profiles`(users.xml)에, 모든 config는 `settings`/`files`/`users`로만 주입, Keeper 데이터는 절대 로컬 NVMe 금지(gp3).
 {{< /callout >}}
 
-앞의 두 페이지는 각각 "**어느** operator냐"([Altinity operator]({{< relref "03-operator.md" >}}))와 "**어떤** 스토리지 매체냐"([스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}))를 결정했다. 이 페이지는 그 둘을 **하나의 실행 가능한 배포 절차**로 묶는 종합 문서다 — "AWS EKS 위에서 Altinity clickhouse-operator로 i7i/i8g 로컬 NVMe를 데이터 디스크 삼아 ReplicatedMergeTree 클러스터를 CHK/CHI 매니페스트 필드 수준까지 배포·운영하는 법". 앞 페이지가 **확정한 전제**(Altinity operator, self-host RMT, 로컬 NVMe hot + S3 cold, Keeper는 gp3 영속, i7i/i8g.4xlarge 단일 디스크 단위, `instanceStorePolicy`는 ephemeral이라 PV가 아님)는 재론하지 않고 그 위에 **필드·순서·값**을 얹는다. 개별 필드 근거는 [출처]({{< relref "08-sources.md" >}})의 operator·CRD·local PV 분류로 인용한다. 시점 기준 2026-07, operator **0.27.1**, CRD `clickhouse.altinity.com/v1` / `clickhouse-keeper.altinity.com/v1`.
+앞의 두 페이지는 각각 "**어느** operator냐"([Altinity operator]({{< relref "03-operator.md" >}}))와 "**어떤** 스토리지 매체냐"([스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}))를 결정했다. 이 페이지는 그 둘을 **하나의 실행 가능한 배포 절차**로 묶는 종합 문서다 — "AWS EKS 위에서 Altinity clickhouse-operator로 i7i/i8g 로컬 NVMe를 데이터 디스크 삼아 ReplicatedMergeTree 클러스터를 CHK/CHI 매니페스트 필드 수준까지 배포·운영하는 법". 앞 페이지가 **확정한 전제**(Altinity operator, self-host RMT, 로컬 NVMe hot + S3 cold, Keeper는 gp3 영속, i7i/i8g.4xlarge 단일 디스크 단위, `instanceStorePolicy`는 ephemeral이라 PV가 아님)는 재론하지 않고 그 위에 **필드·순서·값**을 얹는다. 개별 필드 근거는 [출처]({{< relref "10-sources.md" >}})의 operator·CRD·local PV 분류로 인용한다. 시점 기준 2026-07, operator **0.27.1**, CRD `clickhouse.altinity.com/v1` / `clickhouse-keeper.altinity.com/v1`.
 
 > **표기**: `✓` = CRD 원문·공식 예제 YAML·릴리즈노트로 직접 검증. `≈` = 확정 사실에 기반한 설계 판단. `?` = 배포 후 실측·재확인 필요. 검증 못 한 YAML 필드는 `# [미확인]` 주석을 단다.
 

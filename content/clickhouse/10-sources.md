@@ -1,13 +1,14 @@
 ---
 title: "출처"
-weight: 8
+weight: 10
+aliases: ["/clickhouse/08-sources/"]
 ---
 
 # 출처 — ClickHouse 배포·오퍼레이터·운영사례 조사 자료
 
-이 페이지는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), [Altinity operator 운영]({{< relref "05-altinity-operations.md" >}}), [프로덕션 운영사례]({{< relref "06-production-usecases.md" >}}), [데이터스토어 횡단 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}}) 일곱 페이지가 인용한 1차 조사 문서의 `## 출처` 섹션을 모아 중복을 제거하고 주제별로 분류했다.
+이 페이지는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), [Altinity operator 운영]({{< relref "05-altinity-operations.md" >}}), [프로덕션 운영사례]({{< relref "06-production-usecases.md" >}}), [데이터스토어 횡단 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}}), [무신사 CDP]({{< relref "08-musinsa-cdp.md" >}}), [Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}}) 아홉 페이지가 인용한 1차 조사 문서의 `## 출처` 섹션을 모아 중복을 제거하고 주제별로 분류했다.
 
-그 1차 조사 문서가 다룬 범위는 배포 전략·스토리지 아키텍처, clickhouse-operator 채택, operator로 로컬 NVMe에 CH를 배포하는 실전 플레이북·CHI/CHK CRD 심층·local PV 연동·토폴로지 운영 런북, 규모별 스케일링·롤링 업그레이드 운영 실무, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강, 로컬 NVMe 데이터스토어 횡단 조사다. 조사 기준일은 **2026-07-13~15**이다(각 조사 문서 frontmatter `updated` 값 — 데이터스토어 횡단 조사·티어링 검증은 07-14, operator 배포 플레이북 시리즈와 Altinity operator 운영 적대검증은 07-15).
+그 1차 조사 문서가 다룬 범위는 배포 전략·스토리지 아키텍처, clickhouse-operator 채택, operator로 로컬 NVMe에 CH를 배포하는 실전 플레이북·CHI/CHK CRD 심층·local PV 연동·토폴로지 운영 런북, 규모별 스케일링·롤링 업그레이드 운영 실무, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강, 로컬 NVMe 데이터스토어 횡단 조사다. 조사 기준일은 **2026-07-13~15**이다(각 조사 문서 frontmatter `updated` 값 — 데이터스토어 횡단 조사·티어링 검증은 07-14, operator 배포 플레이북 시리즈와 Altinity operator 운영 적대검증은 07-15). 뒤에 붙은 두 페이지는 별도 조사(**기준일 2026-08-12**)이고, 그 URL은 무신사 CDP 사례가 「운영 사례 블로그·발표」, Iceberg 지원 현황이 「Iceberg·레이크하우스」에 들어가 있다.
 
 개별 URL의 등급(확인됨/추정/미확인)은 원 조사 문서 본문의 인라인 태그를 따른다 — 이 표 자체는 출처 목록이며 등급을 재판정하지 않는다.
 
@@ -44,6 +45,7 @@ ClickHouse Inc.의 아키텍처·가격·운영 문서와 공식 블로그(다�
 - **No more disks: stateless compute** — [clickhouse.com/blog/clickhouse-cloud-stateless-compute](https://clickhouse.com/blog/clickhouse-cloud-stateless-compute)
 - **SharedMergeTree & Lightweight Updates** — [clickhouse.com/blog/.../sharedmergetree-and-lightweight-updates](https://clickhouse.com/blog/clickhouse-cloud-boosts-performance-with-sharedmergetree-and-lightweight-updates)
 - **docs — SharedMergeTree** — [github.com/ClickHouse/clickhouse-docs/.../shared-merge-tree.md](https://github.com/ClickHouse/clickhouse-docs/blob/main/docs/cloud/features/05_infrastructure/shared-merge-tree.md)
+- **docs — SharedMergeTree(Cloud reference — 버전이 아니라 배포 형태로 게이트되는 근거)** — [clickhouse.com/docs/cloud/reference/shared-merge-tree](https://clickhouse.com/docs/cloud/reference/shared-merge-tree)
 - **Warehouses(compute-compute 분리)** — [clickhouse.com/blog/introducing-warehouses-compute-compute-separation](https://clickhouse.com/blog/introducing-warehouses-compute-compute-separation-in-clickhouse-cloud)
 - **docs — Separation of storage and compute** — [clickhouse.com/docs/guides/separation-storage-compute](https://clickhouse.com/docs/guides/separation-storage-compute)
 - **ClickHouse Pricing** — [clickhouse.com/pricing](https://clickhouse.com/pricing)
@@ -75,6 +77,7 @@ ClickHouse Inc.의 아키텍처·가격·운영 문서와 공식 블로그(다�
 - **Observability cost optimization playbook** — [clickhouse.com/resources/.../cost-optimization-playbook](https://clickhouse.com/resources/engineering/observability-cost-optimization-playbook)
 - **13 mistakes(common getting started issues)** — [clickhouse.com/blog/common-getting-started-issues-with-clickhouse](https://clickhouse.com/blog/common-getting-started-issues-with-clickhouse)
 - **docs — Too many parts** — [clickhouse.com/docs/tips-and-tricks/too-many-parts](https://clickhouse.com/docs/tips-and-tricks/too-many-parts)
+- **ClickStack 제품 페이지(MergeTree 직접 인제스트가 기본 패턴이라는 근거)** — [clickhouse.com/clickstack](https://clickhouse.com/clickstack)
 - **ClickStack OSS 소개** — [clickhouse.com/blog/clickstack-a-high-performance-oss-observability-stack](https://clickhouse.com/blog/clickstack-a-high-performance-oss-observability-stack-on-clickhouse)
 - **ClickStack half-year review** — [clickhouse.com/blog/clickstack-a-year-in-review-2025](https://clickhouse.com/blog/clickstack-a-year-in-review-2025)
 - **Announcing ClickStack in ClickHouse Cloud(Private Preview, 2025-08-06)** — [clickhouse.com/blog/announcing-clickstack-in-clickhouse-cloud](https://clickhouse.com/blog/announcing-clickstack-in-clickhouse-cloud)
@@ -161,6 +164,7 @@ Altinity 자체 문서/저장소, ClickHouse Inc. 공식 operator, 대안 operat
 
 각 회사의 공식 엔지니어링 블로그/발표. 이 중 다수(Zomato·Netflix·Didi·Trip.com·GitLab·Tesla·Character.AI·Anthropic·Clarity·LogHouse)는 `clickhouse.com/blog`에 ClickHouse Inc.가 게재한 고객 케이스스터디로, 자사 제품 홍보 맥락의 편향 가능성을 감안해 읽어야 한다.
 
+- **무신사 CDP — self-hosted → ClickHouse Cloud(ClickHouse blog, 2026-08-09, AWS Summit Seoul 2026 발표 정리)** — [clickhouse.com/blog/musinsa-customer-data-platform](https://clickhouse.com/blog/musinsa-customer-data-platform)
 - **Cloudflare(ClickHouse blog, 2026-02-18)** — [clickhouse.com/blog/cloudflare](https://clickhouse.com/blog/cloudflare)
 - **Cloudflare — capacity estimation framework** — [blog.cloudflare.com/clickhouse-capacity-estimation-framework](https://blog.cloudflare.com/clickhouse-capacity-estimation-framework/)
 - **Cloudflare — 6M requests/sec analytics** — [blog.cloudflare.com/http-analytics-for-6m-requests-per-second](https://blog.cloudflare.com/http-analytics-for-6m-requests-per-second-using-clickhouse/)
@@ -282,3 +286,31 @@ third-party 기술 블로그, 벤치마크/가격 계산기, 리뷰 사이트, G
 - **Pinterest — TiDB adoption(i4i NVMe·MTTR로 EBS 검토)** — [medium.com/pinterest-engineering/tidb-adoption-at-pinterest](https://medium.com/pinterest-engineering/tidb-adoption-at-pinterest-1130ab787a10)
 - **MongoDB — Atlas customize storage(NVMe·Cloud Backup 강제)** — [mongodb.com/docs/atlas/customize-storage](https://www.mongodb.com/docs/atlas/customize-storage/)
 - **kubernetes-sigs — local-static-provisioner(local PV 공통 패턴)** — [github.com/kubernetes-sigs/sig-storage-local-static-provisioner](https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner)
+
+## Iceberg·레이크하우스
+
+[Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}}) 페이지의 근거. 조사 기준일 2026-08-12.
+
+- **Are open-table-formats + lakehouses the future of observability?(Melvyn Peignon·Dale McDiarmid, 2025-10-16)** — [clickhouse.com/blog/lakehouses-path-to-low-cost-scalable-no-lockin-observability](https://clickhouse.com/blog/lakehouses-path-to-low-cost-scalable-no-lockin-observability)
+- **ClickHouse and Parquet: A foundation for fast Lakehouse analytics(ClickBench 28s/56s·Q41)** — [clickhouse.com/blog/clickhouse-and-parquet-a-foundation-for-fast-lakehouse-analytics](https://clickhouse.com/blog/clickhouse-and-parquet-a-foundation-for-fast-lakehouse-analytics)
+- **Iceberg 테이블 엔진 문서(delete·스키마 진화·time travel·OPTIMIZE MANIFEST)** — [clickhouse.com/docs/engines/table-engines/integrations/iceberg](https://clickhouse.com/docs/engines/table-engines/integrations/iceberg)
+- **DataLakeCatalog 데이터베이스 엔진** — [clickhouse.com/docs/engines/database-engines/datalakecatalog](https://clickhouse.com/docs/engines/database-engines/datalakecatalog)
+- **Query your catalog(카탈로그 통합이 Cloud 맥락으로 문서화된 근거)** — [clickhouse.com/blog/query-your-catalog-clickhouse-cloud](https://clickhouse.com/blog/query-your-catalog-clickhouse-cloud)
+- **Writing data to open table formats(`allow_experimental_insert_into_iceberg`)** — [clickhouse.com/docs/use-cases/data-lake/getting-started/writing-data](https://clickhouse.com/docs/use-cases/data-lake/getting-started/writing-data)
+- **Querying data lakes directly(deltaLake·hudi)** — [clickhouse.com/docs/use-cases/data-lake/getting-started/querying-directly](https://clickhouse.com/docs/use-cases/data-lake/getting-started/querying-directly)
+- **s3/s3Cluster 테이블 함수 문서(`use_hive_partitioning`·glob 패턴)** — [clickhouse.com/docs/sql-reference/table-functions/s3](https://clickhouse.com/docs/sql-reference/table-functions/s3)
+- **25.8 릴리스 블로그(Parquet reader v3 1.81배)** — [clickhouse.com/blog/clickhouse-release-25-08](https://clickhouse.com/blog/clickhouse-release-25-08)
+- **25.9 릴리스 블로그(ALTER UPDATE·DROP TABLE·데이터레이크 distributed INSERT SELECT)** — [clickhouse.com/blog/clickhouse-release-25-09](https://clickhouse.com/blog/clickhouse-release-25-09)
+- **BigDataBoutique — ClickHouse and Apache Iceberg 실무 가이드(버전별 기능 정리 교차 확인)** — [bigdataboutique.com/blog/clickhouse-and-apache-iceberg-practical-guide](https://bigdataboutique.com/blog/clickhouse-and-apache-iceberg-practical-guide-to-data-lakehouse-integration)
+- **S3Queue 문서(exactly-once 미보장·중복 시나리오)** — [clickhouse.com/docs/engines/table-engines/integrations/s3queue](https://clickhouse.com/docs/engines/table-engines/integrations/s3queue)
+- **23.11 릴리스 블로그(S3Queue production ready)** — [clickhouse.com/blog/clickhouse-release-23-11](https://clickhouse.com/blog/clickhouse-release-23-11)
+- **Issue #64710(S3Queue exactly-once 미보장 관련 이슈)** — [github.com/ClickHouse/ClickHouse/issues/64710](https://github.com/ClickHouse/ClickHouse/issues/64710)
+- **S3 ClickPipes(exactly-once 광고, Cloud 전용)** — [clickhouse.com/docs/integrations/clickpipes/object-storage/amazon-s3/overview](https://clickhouse.com/docs/integrations/clickpipes/object-storage/amazon-s3/overview)
+- **Separation of storage and compute 가이드(storage_policy·life cycle 금지)** — [clickhouse.com/docs/guides/separation-storage-compute](https://clickhouse.com/docs/guides/separation-storage-compute)
+- **PR #82692(25.7 Iceberg INSERT) / #83983(25.8 CREATE) / #85549(25.8 ALTER DELETE) / #85843(25.8 equality delete) / #85395(25.8 DROP TABLE) / #85848(25.8 카탈로그 beta) / #86059(25.9 ALTER UPDATE) / #86783(25.9 distributed INSERT SELECT) / #97483(26.2 insert 설정 별칭) / #97904(26.3 expire_snapshots) / #99127(26.4 remove_orphan_files) / #98178(26.7 OPTIMIZE MANIFEST)** — github.com/ClickHouse/ClickHouse/pull/&lt;번호&gt;
+- **Issue #85093(deltaLakeCluster 뷰·CTE 경유 시 파티션 프루닝 미동작, 미해결)** — [github.com/ClickHouse/ClickHouse/issues/85093](https://github.com/ClickHouse/ClickHouse/issues/85093)
+- **Altinity Antalya 문서** — [docs.altinity.com/altinityantalya](https://docs.altinity.com/altinityantalya/)
+- **Announcing Project Antalya(10x cheaper Iceberg storage)** — [dev.to/altinity/announcing-project-antalya-infinitely-scalable-clickhouser-query-on-10x-cheaper-iceberg-storage-2i6e](https://dev.to/altinity/announcing-project-antalya-infinitely-scalable-clickhouser-query-on-10x-cheaper-iceberg-storage-2i6e)
+- **Announcing Project Antalya(Altinity 자체 게시본 — 프로덕션 비권장 서술)** — [altinity.com/blog/announcing-project-antalya-...](https://altinity.com/blog/announcing-project-antalya-infinitely-scalable-clickhouse-query-on-10x-cheaper-iceberg-storage)
+- **Altinity/antalya-examples(GitHub)** — [github.com/Altinity/antalya-examples](https://github.com/Altinity/antalya-examples)
+- **Altinity — Parquet on Iceberg finally outperforms MergeTree(NYC Taxi 13억 행)** — [altinity.com/blog/the-future-has-arrived-parquet-on-iceberg-finally-outperforms-mergetree](https://altinity.com/blog/the-future-has-arrived-parquet-on-iceberg-finally-outperforms-mergetree)
