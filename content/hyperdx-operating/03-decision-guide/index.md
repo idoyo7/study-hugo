@@ -132,7 +132,7 @@ WHERE active AND database = 'default'
 GROUP BY table ORDER BY sum(bytes_on_disk) DESC;
 ```
 
-`ratio`가 시그널별 실제 압축비, `on_disk`의 월 증가분이 해석 확정값이다. 항목 4의 리허설은 **두 갈래**로 한다 — graceful(cordon→drain: PDB 준수·자동 reattach)과 ungraceful(강제 종료: StatefulSet+RWO는 자동 복구가 안 되고 `out-of-service` taint 개입이 정석 `✓`). 실소요는 hot 데이터량·파트 수에 좌우되며 아직 실측 전이다 `?`([운영 런북]({{< relref "02-runbook.md" >}}) §5 · [토폴로지·다운타임]({{< relref "../../hyperdx/04-operator-topology-downtime.md" >}}) §5.1). 여기에 버전 매트릭스 함정 하나를 staging 검증에 얹는다: operator 0.27.0+는 `async_replication`/`use_xid_64`를 기본 활성화해 **Keeper 25.3+를 요구**하는데 `✓`, 우리는 CH/Keeper를 24.8 LTS로 핀하므로 이 조합의 실동작 확인이 필요하다 `?`([버전·업그레이드]({{< relref "../../hyperdx/09-version-upgrade-compat.md" >}})).
+`ratio`가 시그널별 실제 압축비, `on_disk`의 월 증가분이 해석 확정값이다. 항목 4의 리허설은 **두 갈래**로 한다 — graceful(cordon→drain: PDB 준수·자동 reattach)과 ungraceful(강제 종료: StatefulSet+RWO는 자동 복구가 안 되고 `out-of-service` taint 개입이 정석 `✓`). 실소요는 hot 데이터량·파트 수에 좌우되며 아직 실측 전이다 `?`([운영 런북]({{< relref "02-runbook.md" >}}) §5 · [토폴로지·다운타임]({{< relref "../../hyperdx/04-operator-topology-downtime.md" >}}) §5.1). 여기에 버전 매트릭스 함정 하나를 staging 검증에 얹는다: 최신 operator가 기본 활성화하는 복제 설정이 Keeper 하한을 밀어올리는데 우리는 CH/Keeper를 LTS로 핀하므로, 그 조합의 실동작 확인이 필요하다 `?`. **어느 operator 버전이 어느 Keeper 하한을 요구하는지는 [버전·업그레이드]({{< relref "../../hyperdx/09-version-upgrade-compat.md" >}}) §1이 정본이다** — 이 트랙은 숫자를 재기재하지 않는다.
 
 **왜 staging인가 — 캐파상 이유.** 위 캐파 계열 4항목과 산정 모델의 `≈`(압축비·구성비 65/20/13/2)는 트래픽이 실제로 흘러야만 확정된다. staging은 샘플링 5~10% · RF1 · 짧은 TTL(cold 없음)로 극소화해도(~$150~250/mo `≈`) 이 실측이 전부 가능하다 — 즉 staging의 진짜 역할은 "동작 검증"이 아니라 **실측 캘리브레이션**이고, 이것이 staging을 두는 캐파상 이유다([용량 산정]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) §7).
 

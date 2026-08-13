@@ -246,4 +246,4 @@ HyperDX는 **`MONGO_URI` 하나만** 있으면 되므로 Atlas(SRV 연결문자�
 
 **Collector**: RUM-only라 daemonset은 불필요하고 **게이트웨이 deployment 2 replica + `file_storage` 퍼시스턴트 큐(gp3 소량) + async_insert**로 간다. 0.7TB/월은 1~2 core로 충분해 처리량은 병목이 아니다 — 유실 방어의 핵심은 큐 퍼시스턴스와 replica HA다.
 
-**MongoDB**: 물리적으로는 단일 멤버 ~0.4 vCPU/0.75~1.25Gi/gp3 10Gi로 돌아간다. 그러나 prod는 **`members:3`(≈1.2 vCPU/3Gi, 값싼 보험) + SCRAM + WiredTiger 캐시 0.25~0.5 고정 + mongodump CronJob(S3) + AZ anti-affinity**, 또는 Atlas M10 위임으로 간다. staging은 `members:1` 또는 Atlas M0. **MongoDB 장애는 관측(인제스트)을 멈추는 게 아니라 설정·알럿·UI를 멈춘다** — CH HA와 다른 축의 "가용성·백업" 문제로 우선순위를 잡는다. 시점 기준 2026-07.
+**MongoDB**: 물리적으로는 단일 멤버 ~0.4 vCPU/0.75~1.25Gi/gp3 10Gi로 돌아간다. 그러나 prod는 **`members:3`(≈1.2 vCPU/3Gi, 값싼 보험) + SCRAM + WiredTiger 캐시 0.25~0.5 고정 + mongodump CronJob(S3) + AZ anti-affinity**, 또는 Atlas M10 위임으로 간다. staging은 `members:1` 또는 Atlas M0. **MongoDB 장애는 관측(인제스트)을 멈추는 게 아니라 설정·알럿·UI를 멈춘다** — CH HA와 다른 축의 "가용성·백업" 문제로 우선순위를 잡는다. 시점 기준 2026-08(본문 다수는 2026-07 조사, §2의 ClickHouse 계정 권한 4설정은 2026-08 확인).

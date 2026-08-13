@@ -486,9 +486,22 @@ SELECT event_time, table, part_name, disk_name, event_type
 FROM system.part_log
 WHERE event_type = 'MovePart' AND event_date >= today() - 1
 ORDER BY event_time DESC LIMIT 50;
+
+-- ★ 요청 수 계측 — 위 §5.6의 "요청 비용은 구조적으로 작다"를 실제로 검증하는 인터페이스.
+--   이벤트 이름은 버전에 따라 S3*/DiskS3* 접두사가 갈리므로 먼저 목록을 확인한다 `≈`
+SELECT event, value FROM system.events WHERE event ILIKE '%S3%' ORDER BY value DESC;
+
+-- 캐시 효율(히트율) — cold 조회가 S3까지 내려가는 비율. §1.2 max_size 사이징의 판단 근거
+SELECT event, value FROM system.events
+WHERE event IN ('CachedReadBufferReadFromCacheBytes', 'CachedReadBufferReadFromSourceBytes');
+
+SELECT cache_name, formatReadableSize(sum(size)) AS cached
+FROM system.filesystem_cache GROUP BY cache_name;
 ```
 
-위 쿼리들은 `system.storage_policies`/`system.disks`/`system.parts`/`system.part_log` 조회로 확인 가능한 표준 인터페이스다 `✓`.
+위 쿼리들은 `system.storage_policies`/`system.disks`/`system.parts`/`system.part_log`/`system.events`/`system.filesystem_cache` 조회로 확인 가능한 표준 인터페이스다 `✓`.
+
+**계측을 배포 순서에 넣는다.** 스토리지 GB만 보고 티어링을 판단하면 안 된다는 것이 이 장 §5.4~§5.6의 결론이므로, 티어링을 켜기 전에 `system.events`의 `%S3%` 카운터를 **베이스라인으로 한 번 찍고** 이동 후 델타를 본다 `Σ`. 캐시 히트율은 1주 관측 후 `s3_cache`의 `max_size`를 보정하는 입력이다.
 
 - cold 이동이 **예상보다 이르면**(최근 데이터가 S3로 감) → `move_factor`가 높거나 hot 부족 신호다(§1.3). `≈`
 - 배포 초기엔 `system.parts`에서 `disk_name='default'`(hot)의 테이블별 크기가 §4.2 hot 창(14/30일)과 맞는지 1회 실측해 사이징을 보정한다.
