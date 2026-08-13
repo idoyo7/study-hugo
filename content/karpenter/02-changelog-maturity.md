@@ -25,7 +25,7 @@ weight: 2
 
 ## 1. 타임라인 — 무엇이 언제 들어왔나
 
-각 버전을 "무엇이 머지됐나"가 아니라 **"어떤 상황에서 켤 것을 주는가"**로 읽어야 필요 없는 버전을 건너뛸 수 있다.
+각 버전은 "무엇이 머지됐나"가 아니라 **"어떤 상황에서 켤 것을 주는가"**로 읽는다. 그래야 필요 없는 버전을 건너뛸 수 있다.
 
 | 버전 | 언제 쓰나 (조건) | 무엇이 가능해졌나 | 대가 |
 |---|---|---|---|
@@ -39,7 +39,7 @@ weight: 2
 | **1.14** | churn이 과해 불만이다 | `Balanced` 한 줄 (§7.2) | 통합 거동이 바뀐다 |
 | **1.14** | headroom을 자동화한다 | Capacity Buffers (§7.1) | alpha · 신규 CRD · 문서 낡음 |
 
-**"선택 아님" 두 줄이 이 표의 핵심이다.** 1.9와 1.12는 켤 기능이 아니라 **지나가면 맞는 것**이고, 그중 1.12는 대가가 전 노드 교체다. 나머지는 필요 없으면 그냥 통과해도 된다.
+**"선택 아님" 두 줄이 이 표의 핵심이다.** 1.9와 1.12는 켤 기능이 아니라 **지나가면 맞는 것**이다. 그중 1.12는 대가가 전 노드 교체다. 나머지는 필요 없으면 그냥 통과해도 된다.
 
 릴리스일(core/aws순): 1.7 2025-09-12/15, 1.8 2025-10-02/08, 1.9 2026-02-04/06, 1.10 2026-03-17/20, 1.11 2026-04-04/06, 1.12 2026-04-25/24, 1.13 2026-06-10, 1.14 2026-07-10. 표에 없는 동반 기능은 각 절에서 다룬다. **1.8.4·1.11.0에는 회귀 경고**가 있다(§4.3).
 
@@ -63,7 +63,7 @@ if strings.Contains(instanceTypeParts[0], "-flex") {
 
 `instanceTypeParts[0]`(패밀리)에 **`-flex`가 들어 있는지만** 본다 — EC2 필드가 아닌 문자열 패턴이다. flex 패밀리는 `c7i-flex`·`m7i-flex` 등 1.14 시점 다섯이다.
 
-`types.go:204`의 `NewRequirement(..., NodeSelectorOpDoesNotExist)`는 빈 placeholder일 뿐, 위 분기가 무조건 값을 하나 넣으므로 **모든 인스턴스 타입에 예외 없이 `In ["true"]` 또는 `In ["false"]`가 붙는다**(`requirement.go:290-301`). 이 사실이 다음 절의 전부다.
+`types.go:204`의 `NewRequirement(..., NodeSelectorOpDoesNotExist)`는 빈 placeholder일 뿐이고, 위 분기가 무조건 값을 하나 넣으므로 **모든 인스턴스 타입에 예외 없이 `In ["true"]` 또는 `In ["false"]`가 붙는다**(`requirement.go:290-301`).
 
 라벨은 노드에도 붙는다 — AWS 프로바이더가 **값이 하나뿐인 requirement를 NodeClaim 라벨로 승격**시키므로(`cloudprovider.go:420-437`, `req.Len() == 1`), `kubectl get nodes -L karpenter.k8s.aws/instance-capability-flex`로 지금 클러스터의 flex 노드를 바로 센다.
 
@@ -93,7 +93,7 @@ spec:
 | `NotIn` / `["true"]` | 위와 **완전히 동치** | **좋음** — 의미가 한 겹 꼬인다 |
 | `DoesNotExist` | **모든 타입이 배제된다** | **부적합** — 절대 금지 |
 
-`NotIn`이 동치인 이유는 라벨 값 공간이 `{true, false}` 둘뿐이라 제3의 값이 나올 수 없어서다. `DoesNotExist`가 전멸인 이유는 교집합 판정에 있다. `Requirement.HasIntersection`(`requirement.go:220-253`)은 양쪽이 non-complement면 값 셋을 순회해 겹침을 찾는데, `DoesNotExist`는 **빈 집합**인 non-complement라 루프가 한 번도 돌지 않고 `false`가 나온다. 인스턴스 타입 쪽은 값이 하나 있으니 **flex 여부와 무관하게 교집합 없음**이다. `NotIn`은 complement라 다른 분기를 타고 정상 동작한다.
+`NotIn`이 동치인 이유는 라벨 값 공간이 `{true, false}` 둘뿐이라 제3의 값이 나올 수 없어서다. `DoesNotExist`가 전멸인 이유는 교집합 판정에 있다. `Requirement.HasIntersection`(`requirement.go:220-253`)은 양쪽이 non-complement면 값 셋을 순회해 겹침을 찾는다. `DoesNotExist`는 **빈 집합**인 non-complement라 루프가 한 번도 돌지 않고 `false`가 나온다. 인스턴스 타입 쪽은 값이 하나 있으니 **flex 여부와 무관하게 교집합 없음**이다. `NotIn`은 complement라 다른 분기를 타고 정상 동작한다.
 
 `In`도 함정이 남는다 — **값 오타는 admission에서 안 걸린다.** well-known 라벨 값 검증(`nodeclaim_validation.go:167-178`)은 `WellKnownValuesForRequirements`에 등록된 키(`capacity-type`·`instance-tenancy`뿐)만 동작한다. `["False"]`나 `["no"]`를 써도 NodePool은 `Ready`가 되고 증상은 **파드가 안 뜨는 것**뿐이다. NodePool 상태가 아니라 **pending 파드 이벤트**를 먼저 본다([core#2341](https://github.com/kubernetes-sigs/karpenter/pull/2341)이 메시지를 개선했다).
 
@@ -171,15 +171,15 @@ func areRequirementsDrifted(nodePool *v1.NodePool, nodeClaim *v1.NodeClaim) clou
 
 비교 대상은 **NodeClaim의 현재 라벨**과 **NodePool의 현재 requirements**다. flex 노드는 이미 `flex=true`가 박혀 있어, requirement가 `In ["false"]`로 바뀌는 순간 호환 실패 → `RequirementsDrifted`다. v1은 drift 비활성화가 불가능해 끌 수도 없다.
 
-결과는 **떠 있던 flex 노드 전량의 순차 교체**다 — `kubectl get nodeclaims`에서 flex였던 노드에만 `Drifted=True`가 몰려 붙고, `RequirementsDrifted` 이벤트가 그 시각에 집중된다. 순서는 ① `kubectl get nodes -L ...instance-capability-flex`로 규모 파악 → ② 크면 `reasons: ["Drifted"]` 예산을 먼저 좁게(§6.1) → ③ 한 NodePool씩, 큰 풀은 업무시간 외에. blue-green으로 신규 클러스터를 세우면 기존 flex 노드가 없으므로 무해하다.
+결과는 **떠 있던 flex 노드 전량의 순차 교체**다 — `kubectl get nodeclaims`에서 flex였던 노드에만 `Drifted=True`가 몰려 붙고 `RequirementsDrifted` 이벤트가 그 시각에 집중된다. 순서는 ① `kubectl get nodes -L ...instance-capability-flex`로 규모 파악 → ② 크면 `reasons: ["Drifted"]` 예산을 먼저 좁게(§6.1) → ③ 한 NodePool씩, 큰 풀은 업무시간 외에. blue-green으로 신규 클러스터를 세우면 기존 flex 노드가 없으므로 무해하다.
 
 ## 3. 1.7의 나머지 — 알람이 조용히 깨진다
 
-1.7의 잔여 변경 중 **실제 조치가 필요한 것은 둘**이고, 둘 다 core 릴리스노트에만 BREAKING으로 적혀 있다.
+1.7의 잔여 변경 중 **실제 조치가 필요한 것은 둘**이다. 둘 다 core 릴리스노트에만 BREAKING으로 적혀 있다.
 
 **메트릭 리네임 2건.** `karpenter_pods_pods_drained_total`→`karpenter_pods_drained_total`([core#2421](https://github.com/kubernetes-sigs/karpenter/pull/2421)), `disrupted_total`의 reason `liveness`→`registration_timeout`([core#2349](https://github.com/kubernetes-sigs/karpenter/pull/2349)). 옛 이름 쿼리는 **에러 아닌 빈 결과**를 낸다 — 대시보드는 0, 알람은 영원히 안 온다. 업그레이드 **전에** Grafana·Prometheus 룰을 치환한다.
 
-**NodeClaim launch timeout 5분 신설.** `registrationTimeout = 15m`뿐이던 자리에 `LaunchTimeout = 5m`이 추가됐다(core#2349, `pkg/controllers/nodeclaim/lifecycle/liveness.go:51-59`) — 5분 안에 launch가 안 끝나면 재생성해, 재시도 주기가 15분→5분으로 짧아지고 이벤트 볼륨이 늘 수 있다. AWS upgrade-guide 1.7 절엔 이 항목이 없다.
+**NodeClaim launch timeout 5분 신설.** `registrationTimeout = 15m`뿐이던 자리에 `LaunchTimeout = 5m`이 추가됐다(core#2349, `pkg/controllers/nodeclaim/lifecycle/liveness.go:51-59`) — 5분 안에 launch가 안 끝나면 재생성한다. 재시도 주기가 15분→5분으로 짧아지고 이벤트 볼륨이 늘 수 있다. AWS upgrade-guide 1.7 절엔 이 항목이 없다.
 
 나머지 여섯은 알고만 있으면 된다.
 
@@ -259,11 +259,11 @@ spec:
 
 ## 5. 1.9 ~ 1.11 — 권한과 배치
 
-**IAM 정책 5분할(1.9).** cloudformation 관리형 정책이 하나에서 다섯으로 쪼개졌다(aws#7874) — **권한 값은 1.8과 동일**, 이름·경계만 바뀌었다(1.12에서 Zonal Shift용이 여섯 번째로 붙는다). IRSA 인라인 정책이면 무해하고, 템플릿 ARN attach 방식이면 5개를 모두 붙여야 한다 — 하나 빠지면 그 경계 기능이 조용히 실패한다.
+**IAM 정책 5분할(1.9).** cloudformation 관리형 정책이 하나에서 다섯으로 쪼개졌다(aws#7874) — **권한 값은 1.8과 동일**, 이름·경계만 바뀌었다(1.12에서 Zonal Shift용이 여섯 번째로 붙는다). IRSA 인라인 정책이면 무해하다. 템플릿 ARN attach 방식이면 5개를 모두 붙여야 한다 — 하나 빠지면 그 경계 기능이 조용히 실패한다.
 
-**Capacity Reservation 인터럽션(1.10).** interruptible ODCR에서 노드를 띄울 수 있다([aws#9019](https://github.com/aws/karpenter-provider-aws/pull/9019)) — 짝으로 **EventBridge 규칙에 capacity reservation instance interruption `detail-type` 추가**가 필요하다(규칙 변경, IAM 아님). 누락하면 경고를 못 받아 **강제 종료 전 drain 기회를 놓친다**, spot 인터럽션과 같은 실패 모드다.
+**Capacity Reservation 인터럽션(1.10).** interruptible ODCR에서 노드를 띄울 수 있다([aws#9019](https://github.com/aws/karpenter-provider-aws/pull/9019)) — 짝으로 **EventBridge 규칙에 capacity reservation instance interruption `detail-type` 추가**가 필요하다(규칙 변경, IAM 아님). 누락하면 경고를 못 받아 **강제 종료 전 drain 기회를 놓친다**. spot 인터럽션과 같은 실패 모드다.
 
-**Placement Group(1.11).** EC2 Placement Group을 EC2NodeClass에서 선택할 수 있다([aws#9030](https://github.com/aws/karpenter-provider-aws/pull/9030)). 노드에 `.../placement-group-id`(partition이면 `.../placement-group-partition`)가 붙는다(`cloudprovider.go:471-488`). 전략은 EC2 그대로 cluster(저지연·고대역, HPC·MPI)·spread(하드웨어 분산)·partition(랙 격리, Kafka류) 셋. IAM 두 곳 추가: `AllowRegionalReadActions`의 `ec2:DescribePlacementGroups`, `AllowScopedEC2InstanceAccessActions`의 `...:placement-group/*`. **쓰는 클러스터만** 갱신하면 되고, 안 주면 해당 EC2NodeClass 검증·기동이 실패한다.
+**Placement Group(1.11).** EC2 Placement Group을 EC2NodeClass에서 선택할 수 있다([aws#9030](https://github.com/aws/karpenter-provider-aws/pull/9030)). 노드에 `.../placement-group-id`(partition이면 `.../placement-group-partition`)가 붙는다(`cloudprovider.go:471-488`). 전략은 EC2 그대로 cluster(저지연·고대역, HPC·MPI)·spread(하드웨어 분산)·partition(랙 격리, Kafka류) 셋. IAM 두 곳 추가: `AllowRegionalReadActions`의 `ec2:DescribePlacementGroups`, `AllowScopedEC2InstanceAccessActions`의 `...:placement-group/*`. **쓰는 클러스터만** 갱신하면 된다. 안 주면 해당 EC2NodeClass 검증·기동이 실패한다.
 
 같은 버전의 나머지: NodeClass 설정값 필터링(aws#9017), 네트워크 인터페이스 구성(aws#9027).
 
@@ -303,7 +303,7 @@ spec:
 
 **네 가지를 알아야 한다.** `budgets` 지정 시 기본값 `nodes: 10%`가 사라지므로 ①이 필요하다. 여럿이 겹치면 **가장 제한적인 값이 이긴다** — 업무시간엔 ②③ 합산으로 0대. `reasons`는 `Underutilized`·`Empty`·`Drifted` 셋, `duration`은 시간·분만 받는다.
 
-가장 자주 물리는 게 네 번째다 — **`reasons` 생략 예산은 모든 이유에 적용된다.** 피크 차단용 `nodes: "0"` + `schedule`에 `reasons`를 빼면 교체형 통합뿐 아니라 **빈 노드 정리까지 멈춘다**, 증상은 이벤트에 찍힌다.
+가장 자주 물리는 게 네 번째다 — **`reasons` 생략 예산은 모든 이유에 적용된다.** 피크 차단용 `nodes: "0"` + `schedule`에 `reasons`를 빼면 교체형 통합뿐 아니라 **빈 노드 정리까지 멈춘다**. 증상은 이벤트에 찍힌다.
 
 ```
 DisruptionBlocked  No allowed disruptions for disruption reason Empty due to blocking budget
@@ -322,19 +322,19 @@ DisruptionBlocked  No allowed disruptions for disruption reason Empty due to blo
 
 ### 6.2 ARC Zonal Shift (옵트인)
 
-AWS Application Recovery Controller의 Zonal Shift를 Karpenter가 인지한다([aws#9042](https://github.com/aws/karpenter-provider-aws/pull/9042)). Zonal Shift는 AZ 장애 시 그 AZ를 cordon하고 엔드포인트를 빼는 EKS 기능이며, **Karpenter는 활성 동안 그 AZ에 신규 노드를 안 띄우는 것 하나만** 한다 — cordon·엔드포인트 제거는 EKS/ARC 몫이다.
+AWS Application Recovery Controller의 Zonal Shift를 Karpenter가 인지한다([aws#9042](https://github.com/aws/karpenter-provider-aws/pull/9042)). Zonal Shift는 AZ 장애 시 그 AZ를 cordon하고 엔드포인트를 빼는 EKS 기능이다. **Karpenter는 활성 동안 그 AZ에 신규 노드를 안 띄우는 것 하나만** 한다 — cordon·엔드포인트 제거는 EKS/ARC 몫이다.
 
 전제 둘: EKS Zonal Shift 활성화, 컨트롤러의 `arc-zonal-shift:GetManagedResource`(`AllowZonalShiftActions`, 클러스터 ARN 스코핑). 권한 없으면 **에러 없이 그냥 미동작**이라 켠 줄 알고 안 켜진 상태가 된다.
 
 ### 6.3 헬스체크와 do-not-disrupt grace period
 
-**인터럽션 컨트롤러가 `ec2:DescribeInstanceStatus`를 본다**([aws#9064](https://github.com/aws/karpenter-provider-aws/pull/9064)) — 지금까지 인터럽션 소스는 SQS EventBridge 이벤트뿐이라 EC2 상태 검사 실패는 감지 밖이었는데, 이제 상태 검사 실패 인스턴스도 인터럽션으로 처리한다. **이 권한은 필수**다 — 안 주면 하드웨어 문제로 unhealthy가 된 인스턴스가 drain 없이 방치된다.
+**인터럽션 컨트롤러가 `ec2:DescribeInstanceStatus`를 본다**([aws#9064](https://github.com/aws/karpenter-provider-aws/pull/9064)) — 지금까지 인터럽션 소스는 SQS EventBridge 이벤트뿐이라 EC2 상태 검사 실패는 감지 밖이었다. 이제 상태 검사 실패 인스턴스도 인터럽션으로 처리한다. **이 권한은 필수**다 — 안 주면 하드웨어 문제로 unhealthy가 된 인스턴스가 drain 없이 방치된다.
 
 `karpenter.sh/do-not-disrupt`가 **기간제**를 받는다([core#2874](https://github.com/kubernetes-sigs/karpenter/pull/2874)) — `"true"`는 영구 보호(기존 동작), `"30m"` 같은 Go duration은 파드가 Running이 된 뒤 그 기간만 보호한다. 용도는 "웜업 전엔 건드리지 마라"다 — 캐시 프리로드, 인덱스 로딩, 배치 잡 초기 구간. 지금까지는 `"true"`를 걸고 **떼는 걸 잊어** 통합에서 영구 제외되는 패턴이 흔했다.
 
 ## 7. 1.13 ~ 1.14 — headroom·consolidation·DRA
 
-1.13은 breaking 없는 운영 개선 묶음이다. **ICE 캐시가 AZ 단위→subnet 단위로** 내려가([aws#9054](https://github.com/aws/karpenter-provider-aws/pull/9054)) IP 부족 때 AZ 전체를 배제하던 문제를 고쳤고, **AMI·subnet refresh interval이 설정 가능**해졌다(aws#9149/#9150, 기본·최소 1분 — API 호출량 감소 대가로 발견 지연 감수). 그 외 검증 실패 사유 구체화(aws#9114)·instance profile path(aws#9120)·conntrack(aws#9152)·nested virtualization(aws#9043)도 왔다.
+1.13은 breaking 없는 운영 개선 묶음이다. **ICE 캐시가 AZ 단위→subnet 단위로** 내려가([aws#9054](https://github.com/aws/karpenter-provider-aws/pull/9054)) IP 부족 때 AZ 전체를 배제하던 문제를 고쳤다. **AMI·subnet refresh interval이 설정 가능**해졌다(aws#9149/#9150, 기본·최소 1분 — API 호출량 감소 대가로 발견 지연 감수). 그 외 검증 실패 사유 구체화(aws#9114)·instance profile path(aws#9120)·conntrack(aws#9152)·nested virtualization(aws#9043)도 왔다.
 
 1.14가 실제 판단이 필요한 버전이다.
 
@@ -368,9 +368,9 @@ spec:
 | 실 파드 유입 | **선점** 후 재배치 | 다음 사이클에 부족분만 |
 | consolidation | "빈 노드"로 보여 진동 | empty 통합이 차단된다 |
 
-마지막 줄이 가장 크다 — 버퍼 노드는 `Unconsolidatable`(`"Node has buffer pods"`)로 empty만 빠지고 underutilized·drift·expiry는 허용되며, 대체 노드에 버퍼가 다시 들어간다.
+마지막 줄이 가장 크다 — 버퍼 노드는 `Unconsolidatable`(`"Node has buffer pods"`)로 empty만 빠지고 underutilized·drift·expiry는 허용된다. 대체 노드에 버퍼가 다시 들어간다.
 
-개수는 `min(max(replicas, percentage), limits)`다. 상태는 컨디션 둘로 본다: `ReadyForProvisioning`(개수 계산 성공)과 `Provisioning`(가상 파드가 기존 용량에 들어가는지).
+개수는 `min(max(replicas, percentage), limits)`다. 상태는 `ReadyForProvisioning`(개수 계산 성공)과 `Provisioning`(가상 파드가 기존 용량에 들어가는지) 두 컨디션으로 본다.
 
 **지금 켜기 어려운 이유 셋.** ① feature gate `CapacityBuffer=false`(alpha). ② **신규 CRD** — `karpenter-crd` 차트와 `capacitybuffers`·`podtemplates` RBAC이 필요하다. ③ **업스트림 문서가 낡았다** — 코드·CRD는 `v1beta1`인데 `concepts/capacitybuffers.md` 예시·게이트 표는 `v1alpha1`다. **그대로 복붙하면 없는 API 버전을 적게 된다.**
 
@@ -393,7 +393,7 @@ spec:
 
 `consolidationPolicy`는 kubebuilder enum이라 잘못된 값은 admission에서 거부된다. 설계 RFC는 `BalancedConsolidation` 게이트를 명시하지만 **실제 구현엔 없다**(RFC-구현 불일치). 기존 NodePool은 값을 안 바꾸면 무영향이다.
 
-승인 액션은 `ConsolidationApproved` 이벤트에 스코어·절감/파괴 백분율을 남기고, 메트릭 `karpenter_consolidation_score`·`karpenter_consolidation_moves_total`은 **둘 다 ALPHA**라 이름·라벨이 바뀔 수 있다.
+승인 액션은 `ConsolidationApproved` 이벤트에 스코어·절감/파괴 백분율을 남긴다. 메트릭 `karpenter_consolidation_score`·`karpenter_consolidation_moves_total`은 **둘 다 ALPHA**라 이름·라벨이 바뀔 수 있다.
 
 | 상황 | 판정 |
 |---|---|
@@ -402,7 +402,7 @@ spec:
 | 비용 최우선, churn 감수 중 | **반쪽** — 한계 절감이 거부된다 |
 | 정책 전환 + 대규모 업그레이드 동시 | **부적합** — 원인이 섞인다 |
 
-`pod-deletion-cost`로 파드 중요도를 스코어에 반영할 수 있다 — 단 **`Balanced` 풀에서만** 보호로 작동하고, 같은 풀 다른 노드로 압력이 옮겨가기도 한다 — [13 §8.2]({{< relref "13-consolidation-models.md" >}}).
+`pod-deletion-cost`로 파드 중요도를 스코어에 반영할 수 있다 — 단 **`Balanced` 풀에서만** 보호로 작동한다. 같은 풀 다른 노드로 압력이 옮겨가기도 한다 — [13 §8.2]({{< relref "13-consolidation-models.md" >}}).
 
 ### 7.3 DRA와 preview instance types
 
