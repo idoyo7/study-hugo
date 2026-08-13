@@ -20,7 +20,7 @@ weight: 7
 ## 색인
 
 - **[karpenter]({{< relref "01-karpenter.md" >}})** · 0.36.2 → **1.14.0** — v1beta1→v1 CRD 마이그레이션 + `amiSelectorTerms` 필수화·drift 강제 ON
-- **[istio]({{< relref "02-istio.md" >}})** · (라이브 미확인) → **1.30.3** — 라이브 버전 미확인이 최우선 리스크, sidecar 유지(ambient 금지) 전제로 native sidecar·차트 통합 대응
+- **[istio]({{< relref "02-istio.md" >}})** · (라이브 미확인) → **1.30.3** — sidecar 유지(ambient 금지) 전제로 native sidecar·차트 통합 대응. 경로는 1.35 신규 클러스터 직행으로 확정됐고(green 은 k8s 1.31 이라 istio 1.30 하한 1.32 에 막힌다), 라이브 버전 미확인은 홉 산정 blocking 이 아니라 green↔blue values parity 대조용으로 남는다
 - **[argocd (spoke)]({{< relref "03-gitops-argocd-rollouts.md" >}})** · 7.5.2(v2.12) → **10.1.4(v3.4.5)** — 2.14→3.0 breaking 밀집(logs RBAC·SSA 필수) + 허브 버전 미확인
 - **[argo-rollouts]({{< relref "03-gitops-argocd-rollouts.md" >}})** · 2.37.2(v1.7.1) → **2.41.1(v1.9.1)** — CVE-2026-35469(HIGH DoS) 수정 + istio canary weight 순서 변화, umbrella 커플링
 - **[external-secrets]({{< relref "04-secrets-autoscaling.md" >}})** · 0.9.20 → **2.8.x**(이전 조사 0.19.2) — CRD v1beta1→v1 전량 재작성 + umbrella 리워크(fresh 설치로 마이그레이션 우회)
@@ -31,7 +31,7 @@ weight: 7
 - **[fluentbit(aws-for-fluent-bit)]({{< relref "06-observability.md" >}})** · chart 0.1.34 → **chart 0.2.0** — 이미지 태그 미핀 → FB 1.9.10→4.2.2·AL2→AL2023 major 점프
 - **[descheduler]({{< relref "06-observability.md" >}})** · 0.28.0 → **0.35.x**(이전 조사 0.33.x) — `strategies` 블록이 v1alpha1 잔재로 무시 중일 가능성 — 보존/복원 팀 결정 필요
 
-카드마다 원 조사 노트의 5절 구조(버전 diff·경로상 breaking·finance 적용 절차·리스크 체크리스트·근거)를 승계하되, 페이지 안에서 자연스러운 서술로 재구성했다. 공식 문서 URL·CVE 번호·공개 GitHub 이슈 번호는 검증 가능하도록 그대로 보존했고, 계정 ID·내부 endpoint·VPC/subnet ID·사람 이름·Slack/Jira/Confluence 링크는 마스킹하거나 제거했다.
+여섯 페이지가 같은 골격을 쓴다 — **왜 이 버전인가 → 무엇이 깨지나 → 적용 절차 → 검증과 롤백 → 근거**. 컴포넌트가 하나인 페이지(karpenter·istio·aws-load-balancer-controller)는 이 넷을 번호 절로 펴고, 여럿인 페이지(argocd+argo-rollouts / external-secrets+keda / 관측성 4종)는 **컴포넌트를 번호 절로 두고 그 안에 같은 순서의 소절**을 넣는다. 위험 서술은 본문이 소유하고, `검증과 롤백`의 체크박스는 **배포 전 결정·확인 / 배포 후 검증 / 롤백** 세 그룹의 행동 게이트만 담는다 — 본문 서술을 체크리스트에서 되풀이하지 않는다. 공식 문서 URL·CVE 번호·공개 GitHub 이슈 번호는 검증 가능하도록 그대로 보존했고, 계정 ID·내부 endpoint·VPC/subnet ID·사람 이름·Slack/Jira/Confluence 링크는 마스킹하거나 제거했다.
 
 ## 우리 케이스에서는
 

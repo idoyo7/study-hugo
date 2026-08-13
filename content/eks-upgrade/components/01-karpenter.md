@@ -38,24 +38,26 @@ weight: 1
 
 IAM은 정책을 v1 전용으로 다시 만들어야 한다. v1에서 인스턴스와 인스턴스프로파일에 `eks:eks-cluster-name` 태그 스코핑이 붙는다. 그 뒤 마이너에서도 권한이 계속 늘어난다 — 1.7의 `iam:ListInstanceProfiles`, 1.11의 `ec2:DescribePlacementGroups`, 1.12의 `ec2:DescribeInstanceStatus`. v1 정책을 적용하지 않으면 프로비저닝이 실패하므로 태그 스코핑과 이 셋이 정책에 들어 있는지 확인한다.
 
-## 3. Fargate 배치가 강제하는 values 재작성
+## 3. 적용 절차
+
+### Fargate 배치가 강제하는 values 재작성
 
 신규 blue 클러스터에는 managed nodegroup이 없고 karpenter 컨트롤러도 CoreDNS와 함께 Fargate profile(`{ns: karpenter}`)로 뜬다. Fargate 배치 제약 자체(amd64 전용·DaemonSet 미부착 등)는 [클러스터 설정]({{< relref "../02-cluster-config.md" >}})이 단일 소유로 다루므로 여기서는 그 배치가 컨트롤러 values에 강제하는 두 가지만 못박는다.
 
 - **`affinity.nodeAffinity`(arm64 + system-primary)와 `tolerations`(arch/nodegroup/spot 등)를 전량 제거한다.** 남겨두면 컨트롤러 파드가 영구 `Pending`에 걸린다. karpenter 자신이 뜨지 못하니 노드가 하나도 프로비저닝되지 않는다.
 - **`controller.resources`를 `cpu: 1` / `memory ≥ 1Gi`(requests=limits)로 명시한다.** 기존 기본값 수준(0.25 vCPU/256Mi)으로 두면 CPU 기아 때문에 리더 election이 반복 유실된다 — 사내에서 실제로 겪은 사고다.
 
-둘 다 v1beta1→v1 CRD 마이그레이션과는 무관한 배치 제약이지만 손대는 파일이 같은 values다. 아래 절차 2번에서 스키마 재작성과 한 번에 반영하면 효율적이다.
+둘 다 v1beta1→v1 CRD 마이그레이션과는 무관한 배치 제약이지만 손대는 파일이 같은 values다. 아래 세 레포 작업 2번에서 스키마 재작성과 한 번에 반영하면 효율적이다.
 
-## 4. 세 레포에 걸친 적용 절차
+### 세 레포에 걸친 작업
 
 1. **차트 소스(org 차트)** — 이미 v1 스키마인 신 차트를 채택하고 `appVersion`과 의존성 버전을 1.14.0으로 bump한 뒤 차트 버전 자체도 올려 재퍼블리시한다. v1 CRD가 upstream 관례대로 별도 `karpenter-crd` 차트나 `crds/` 경로로 적용되는지는 배포 전에 확인해야 한다. ArgoCD가 Server-Side Apply를 쓰는 중이라 이쪽 조건은 우호적이다.
-2. **values(overlay)** — `provisioner:`(spot/ondemand/systemOndemand 등 per-pool 키) 구조를 신 차트의 `nodePool:`/`nodeClass:` map 구조로 재작성한다. 같은 패스에서 `settings.aws.*` 죽은 키를 제거하고 `featureGates.drift: false`를 삭제한다(v1에서 무효한 키이며 남겨두면 오류 소지가 있다). `amiSelectorTerms`는 신 차트 기본값(`alias: al2023@latest`)을 그대로 신뢰하되 override로 비우지 않는다. §3의 Fargate 재작성 두 건도 여기서 함께 넣는다.
+2. **values(overlay)** — `provisioner:`(spot/ondemand/systemOndemand 등 per-pool 키) 구조를 신 차트의 `nodePool:`/`nodeClass:` map 구조로 재작성한다. 같은 패스에서 `settings.aws.*` 죽은 키를 제거하고 `featureGates.drift: false`를 삭제한다(v1에서 무효한 키이며 남겨두면 오류 소지가 있다). `amiSelectorTerms`는 신 차트 기본값(`alias: al2023@latest`)을 그대로 신뢰하되 override로 비우지 않는다. 위 Fargate 재작성 두 건도 여기서 함께 넣는다.
 3. **ArgoCD app-of-apps(targetRevision 핀)** — 차트 경로를 구 차트에서 신 차트로 바꾸고 targetRevision을 리워크된 버전으로 갱신한다. `clusterName`·`karpenter.settings.clusterEndpoint` 같은 flat Helm 파라미터는 v1에서도 유효하지만 신 차트의 값 키명과 정합이 맞는지는 다시 확인한다.
 
 배포는 신규 blue 클러스터 기준으로 **(1) v1 컨트롤러 IAM 정책 + IRSA 롤 + 노드 롤 선행 → (2) v1 CRD 설치 → (3) karpenter 1.14.0 컨트롤러 설치 → (4) 워크로드를 스케줄해 노드 프로비저닝 확인** 순서다. 이 순서가 전체 클러스터 부트스트랩에서 어디에 놓이는지는 [클러스터 부트스트랩]({{< relref "../04-cluster-bootstrap.md" >}})을 참고한다.
 
-## 5. 검증과 롤백
+## 4. 검증과 롤백
 
 배포 전에 결정하거나 확인해야 하는 것부터 본다.
 
@@ -63,7 +65,7 @@ IAM은 정책을 v1 전용으로 다시 만들어야 한다. v1에서 인스턴�
 - [ ] **CRD 적용 경로 확정** — v1 CRD가 ArgoCD로 확실히 적용되는지 배포 전에 확인한다.
 - [ ] **IAM v1 정책 반영** — `eks:eks-cluster-name` 태그 스코핑과 1.7/1.11/1.12에서 추가된 권한이 정책에 들어 있는지 확인한다.
 - [ ] **disruption budget 사전 검토** — drift가 강제로 켜지므로 AMI·설정 변경 시 대량 노드 교체가 유발될 수 있다. `defaultBudgets`를 사전 검토한다.
-- [ ] **Fargate values 2건 반영** — arm64 required affinity·tolerations 제거와 `cpu=1`/`memory≥1Gi` 명시(§3).
+- [ ] **Fargate values 2건 반영** — arm64 required affinity·tolerations 제거와 `cpu=1`/`memory≥1Gi` 명시(§3 Fargate).
 - [ ] **org 차트 appVersion bump** — tip(1.1.0)은 k8s 1.35를 지원하지 않는다. 1.14.0으로 올린다(1.35 하한은 1.9).
 
 배포 후에는 네 가지를 본다.
