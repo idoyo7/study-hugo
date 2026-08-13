@@ -7,21 +7,19 @@ weight: 15
 {{< callout type="info" >}}
 **이 문서의 범위**
 
-- AZ grouping 전에 NodePool별 disruption budget이 독립된 MultiNode 후보 탐색으로 이어지게 만드는 최소 변경계획입니다.
-- 기존 `Cluster` 동작은 기본값으로 보존하고 `NodePool` coverage를 opt-in으로 추가합니다.
-- source 후보만 같은 NodePool로 제한합니다. replacement NodePool과 기존 destination node는 기존 scheduler 동작을 유지합니다.
-- Pool별 command를 모두 병렬 실행하지 않고, 유효 결과 중 하나만 선택합니다.
+- AZ grouping에 앞서 NodePool별 disruption budget이 독립된 MultiNode 후보 탐색으로 이어지게 만드는 최소 변경계획입니다.
+- 기존 `Cluster` 동작은 기본값으로 그대로 두고 그 위에 `NodePool` coverage를 opt-in으로 추가합니다.
+- source 후보만 같은 NodePool로 제한하고 replacement NodePool과 기존 destination node는 기존 scheduler 동작을 유지합니다.
+- Pool별 command를 전부 병렬 실행하지는 않습니다. 유효한 결과 중 하나만 선택합니다.
 {{< /callout >}}
 
 ## 1. 목표
 
-MultiNode consolidation이 각 NodePool의 잔여 disruption budget 안에서 **독립된 후보 묶음 하나를 실제로 simulation할 기회**를 갖게 합니다.
+각 NodePool의 잔여 disruption budget 안에서 MultiNode consolidation이 **독립된 후보 묶음 하나를 실제로 simulation할 기회**를 갖게 하는 것이 목표입니다.
 
-> 한 NodePool의 후보가 다른 NodePool 후보와 같은 전역 prefix에 섞였다는 이유로, 해당 Pool 안에서 가능한 MultiNode consolidation이 평가조차 되지 않는 상황을 제거합니다.
+> 한 NodePool의 후보가 다른 NodePool 후보와 같은 전역 prefix에 섞였다는 이유로 해당 Pool 안에서 가능한 MultiNode consolidation이 평가조차 되지 않는 상황을 없앱니다.
 
 ## 2. 현재 탐색이 놓치는 것
-
-현재 흐름은 다음과 같습니다.
 
 ```text
 전체 Candidate
@@ -31,7 +29,7 @@ MultiNode consolidation이 각 NodePool의 잔여 disruption budget 안에서 **
   → candidates[0:n] prefix만 이진 탐색
 ```
 
-후보가 약 30개이고 큰 prefix가 계속 실패하면 대략 크기 16·8·4·2의 네 prefix만 평가합니다. 같은 크기의 다른 부분집합, Pool별 묶음, 뒤쪽 후보끼리의 묶음은 평가하지 않습니다.
+후보가 약 30개인데 큰 prefix가 계속 실패하면 실제로 평가되는 prefix는 대략 크기 16·8·4·2의 네 개뿐입니다. 같은 크기의 다른 부분집합, Pool별 묶음, 뒤쪽 후보끼리의 묶음은 평가하지 않습니다.
 
 | 구분 | 판정 |
 |---|---|
@@ -81,7 +79,7 @@ MultiNode consolidation이 각 NodePool의 잔여 disruption budget 안에서 **
 
 ## 4. 설정 계약
 
-기존 동작을 기본값으로 유지합니다.
+기본값은 기존 동작입니다.
 
 ```yaml
 settings:
@@ -93,7 +91,7 @@ settings:
 | `Cluster` | 기존 전역 후보·전역 prefix 탐색 |
 | `NodePool` | source 후보를 NodePool별로 나눠 독립 탐색 |
 
-`NodePool`은 source coverage입니다.
+여기서 `NodePool`은 source coverage를 뜻합니다.
 
 ```text
 source candidates       = 동일 NodePool
@@ -101,7 +99,7 @@ destination existing    = 클러스터 전체
 replacement NodePool    = 전체 managed NodePool에서 scheduler 선택
 ```
 
-핵심 알고리즘은 먼저 생성자 option으로 구현·검토하고, 승인 후 CLI/env/Helm 연결을 별도 커밋으로 추가합니다.
+핵심 알고리즘은 먼저 생성자 option으로 구현해 검토하고 승인 후에 CLI/env/Helm 연결을 별도 커밋으로 붙입니다.
 
 ## 5. Pool별 후보와 winner
 
@@ -118,11 +116,11 @@ Pool별 유효 command 비교:
 3. Pool disruption cost 오름차순
 4. NodePool 이름 오름차순
 
-NodePool 이름은 map iteration에 따른 비결정성을 제거하는 최종 tie-breaker입니다.
+마지막 항목인 NodePool 이름이 map iteration에 따른 비결정성을 제거하는 최종 tie-breaker입니다.
 
 ## 6. timeout과 consolidated 상태
 
-Pool마다 1분 timeout을 새로 만들면 Pool 수만큼 reconcile이 늘어날 수 있습니다. 전체 탐색에 기존 1분 deadline 하나만 생성하고 모든 Pool이 공유합니다.
+Pool마다 1분 timeout을 따로 만들면 Pool 수만큼 reconcile이 늘어날 수 있습니다. 그래서 전체 탐색에는 기존 1분 deadline 하나만 만들고 모든 Pool이 이를 공유합니다.
 
 ```text
 전체 1분
@@ -131,13 +129,13 @@ Pool마다 1분 timeout을 새로 만들면 Pool 수만큼 reconcile이 늘어�
   └ Pool C
 ```
 
-다음 경우 `markConsolidated()`를 호출하지 않습니다.
+다음 경우에는 `markConsolidated()`를 호출하지 않습니다.
 
 - 어떤 Pool이 budget 때문에 충분한 후보를 제공하지 못함
 - timeout으로 미방문 Pool이 있음
 - context cancellation
 
-모든 eligible Pool을 평가했고 budget 제약 없이 전부 NoOp일 때만 consolidated 상태로 표시합니다.
+모든 eligible Pool을 평가했고 budget 제약 없이 전부 NoOp이었을 때만 consolidated 상태로 표시합니다.
 
 ## 7. 구현 단위
 
@@ -245,7 +243,7 @@ karpenter_voluntary_disruption_failed_validations_total{consolidation_type="mult
 
 ### P1 — `NodePoolAZ` grouping
 
-가장 먼저 이어갈 기능입니다.
+이어서 가장 먼저 손댈 기능입니다.
 
 ```text
 전체 후보
@@ -256,7 +254,7 @@ karpenter_voluntary_disruption_failed_validations_total{consolidation_type="mult
 ```
 
 - same-AZ 후보 탐색 기회를 보장합니다.
-- NodePool 전체 lane은 유지합니다. 혼합 AZ도 delete-only로 성공할 수 있기 때문입니다.
+- NodePool 전체 lane도 그대로 둡니다. 혼합 AZ도 delete-only로 성공할 수 있기 때문입니다.
 - winner 하나만 실행하므로 budget을 AZ별로 미리 나누지 않습니다.
 - source가 같은 AZ여도 replacement AZ까지 같아지는 것은 아닙니다.
 
@@ -297,7 +295,7 @@ karpenter_voluntary_disruption_failed_validations_total{consolidation_type="mult
 - NodePool+AZ별 disrupting 집계
 - 모든 disruption method와 metrics 변경
 
-AZ별 budget은 후보 grouping과 분리된 API 기능이므로 별도 RFC로 다룹니다.
+AZ별 budget은 후보 grouping과 분리된 API 기능이라 별도 RFC로 다룹니다.
 
 ## 13. 코드·분석 근거
 

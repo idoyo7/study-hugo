@@ -8,8 +8,8 @@ weight: 14
 **먼저 결론**
 
 - MultiNode의 disruption budget은 **NodePool별로 계산하고 소비**합니다.
-- 하지만 후보 탐색은 NodePool이나 AZ별로 나누지 않습니다. 모든 후보를 전역 정렬한 뒤 각 Pool의 budget만큼 남기고, 그 혼합 목록의 prefix를 시뮬레이션합니다.
-- 최종 validation은 선택된 커맨드의 안전성을 다시 확인합니다. 전역 prefix 탐색에서 놓친 NodePool/AZ 조합을 찾아 주지는 않습니다.
+- 하지만 후보 탐색에는 NodePool·AZ 경계가 없습니다. 모든 후보를 전역 정렬한 뒤 각 Pool의 budget만큼 남깁니다. 그렇게 섞인 목록의 prefix를 시뮬레이션합니다.
+- 최종 validation은 선택된 커맨드의 안전성만 다시 확인합니다. 전역 prefix 탐색에서 놓친 NodePool/AZ 조합을 찾아 주지는 않습니다.
 - 따라서 주된 위험은 budget 위반보다 **탐색 누락, Pool 간 간섭, 후보 기회 편향**입니다.
 - 이 글은 코어 **v1.14.0** 체크아웃(`v1.14.0-6-gac7a021e`)을 기준으로 확인했습니다.
 {{< /callout >}}
@@ -27,7 +27,7 @@ disruptableCandidates = append(disruptableCandidates, candidate)
 disruptionBudgetMapping[candidate.NodePool.Name]--
 ```
 
-여기서 물어야 할 것은 둘입니다.
+이 코드에 물어야 할 것은 둘입니다.
 
 1. NodePool별 budget을 지키는가
 2. NodePool 또는 AZ별로 독립된 후보군을 만들어 탐색하는가
@@ -35,8 +35,6 @@ disruptionBudgetMapping[candidate.NodePool.Name]--
 현재 답은 각각 **예**, **아니오**입니다. 예산의 경계와 탐색의 경계가 다릅니다.
 
 ## 2. 현재 후보 탐색 흐름
-
-MultiNode는 다음 순서로 동작합니다.
 
 ```text
 모든 Pool의 Candidate
@@ -46,7 +44,7 @@ MultiNode는 다음 순서로 동작합니다.
   → 배열의 prefix [0:n]을 이진 탐색하며 SimulateScheduling
 ```
 
-예를 들어 정렬 결과와 예산이 아래와 같다고 가정합니다.
+정렬 결과와 예산이 아래와 같다고 가정합니다.
 
 ```text
 정렬: A/a1, B/b1, A/a2, C/c1, B/b2
@@ -54,13 +52,13 @@ MultiNode는 다음 순서로 동작합니다.
 결과: A/a1, B/b1, A/a2, C/c1
 ```
 
-네 후보는 Pool별 세 목록이 아니라 **하나의 multi-node command 후보군**이 됩니다. 이진 탐색은 `[a1,b1,a2]` 같은 prefix를 시뮬레이션할 수 있지만, `[a1,a2]`, `[b1,c1]`처럼 prefix가 아닌 조합은 직접 시도하지 않습니다.
+살아남은 네 후보는 Pool별 세 목록이 아니라 **하나의 multi-node command 후보군**이 됩니다. 이진 탐색은 `[a1,b1,a2]` 같은 prefix를 시뮬레이션할 수 있지만 `[a1,a2]`, `[b1,c1]`처럼 prefix가 아닌 조합은 직접 시도하지 않습니다.
 
 최대 100개 제한도 Pool마다 적용되는 것이 아니라 이 전역 목록에 한 번 적용됩니다. 높은 점수의 대형 Pool이 앞부분을 많이 차지하면 작은 Pool은 budget이 남아 있어도 탐색 기회를 얻지 못할 수 있습니다.
 
 ## 3. budget은 무엇을 보장하는가
 
-이 구조가 곧바로 budget 위반을 뜻하지는 않습니다.
+이 구조가 곧바로 budget 위반을 뜻하지는 않습니다. 허용량은 다음 세 지점에서 확인되고 차감됩니다.
 
 - 후보를 전역 목록에 담을 때 각 후보가 속한 NodePool의 허용량을 차감합니다.
 - 실행 직전 validation에서도 최신 budget map을 다시 만듭니다.
@@ -74,7 +72,7 @@ MultiNode는 다음 순서로 동작합니다.
 **validation은 NodePool/AZ 동질성 검사기가 아닙니다.** 선택된 후보가 모두 같은 NodePool 또는 같은 AZ인지 요구하는 코드는 없습니다.
 {{< /callout >}}
 
-실행 직전 validation은 다음을 확인합니다.
+실행 직전 validation은 다섯 가지를 확인합니다.
 
 1. 선택했던 NodeClaim들이 아직 유효한 consolidation 후보인가
 2. 후보가 nominated되거나 삭제 중인 상태로 바뀌지 않았는가
@@ -82,21 +80,17 @@ MultiNode는 다음 순서로 동작합니다.
 4. 후보들을 지금 다시 제거해도 모든 파드를 스케줄할 수 있는가
 5. 삭제/교체 대수와 교체 인스턴스 타입 집합이 처음 계산한 결과와 양립하는가
 
-Candidate에는 `NodePool`, zone, capacity type, instance type 정보가 들어 있습니다. 스케줄링 시뮬레이션은 이 정보와 파드의 affinity, topology spread, volume topology, taint/toleration 등을 사용합니다.
-
-하지만 이는 “후보들의 Pool/AZ가 서로 같아야 한다”는 검사가 아닙니다. 서로 다른 Pool과 AZ의 후보가 섞였어도 파드가 유효하게 재배치되고 budget을 지키면 커맨드는 통과할 수 있습니다.
+Candidate에는 `NodePool`, zone, capacity type, instance type 정보가 들어 있습니다. 스케줄링 시뮬레이션은 이 정보와 파드의 affinity, topology spread, volume topology, taint/toleration 등을 사용합니다. 그러나 이 검사들은 “후보들의 Pool/AZ가 서로 같아야 한다”를 요구하지 않습니다. 서로 다른 Pool과 AZ의 후보가 섞였어도 파드가 유효하게 재배치되고 budget을 지키면 커맨드는 통과할 수 있습니다.
 
 ## 5. validation이 해결하지 못하는 것
 
-validation은 **선택된 커맨드가 지금도 안전한지**를 판정합니다. **후보 탐색이 충분했는지**는 판정하지 않습니다.
-
-전역 prefix 탐색 때문에 가능한 조합을 놓쳤다면 validation은 다른 조합을 찾아 주지 않습니다. 선택된 조합이 현재 상태에서 실패하면 커맨드를 거부할 뿐입니다.
+validation은 **선택된 커맨드가 지금도 안전한지**를 판정합니다. **후보 탐색이 충분했는지**는 판정하지 않습니다. 전역 prefix 탐색 때문에 가능한 조합을 놓쳤다면 validation은 다른 조합을 찾아 주지 않습니다. 선택된 조합이 현재 상태에서 실패하면 커맨드를 거부할 뿐입니다.
 
 그래서 예상되는 문제는 안전 위반보다 탐색 누락과 편향에 가깝습니다.
 
 | 여지 | 어떻게 나타나는가 |
 |---|---|
-| prefix 오염 | 앞쪽의 한 후보가 topology·volume·리소스 제약 때문에 묶음을 실패시키면 뒤의 잘 맞는 조합을 시도하지 못할 수 있습니다 |
+| prefix 오염 | 앞쪽 후보 하나가 topology·volume·리소스 제약 때문에 묶음을 실패시키면 뒤에 있는 잘 맞는 조합을 시도하지 못할 수 있습니다 |
 | Pool 간 결합 | Pool A의 실패하기 쉬운 후보가 앞에 끼어 Pool B만으로 가능한 통합까지 같은 simulation 결과에 묶입니다 |
 | 100개 편향 | 높은 점수의 대형 Pool 후보가 앞 100개를 차지하면 작은 Pool의 탐색 기회가 줄어듭니다 |
 | budget 1의 교차 Pool 묶음 | 한 Pool 안에서는 MultiNode가 불가능하지만 다른 Pool의 후보와 섞여 `m→1` 커맨드가 만들어질 수 있습니다 |
@@ -118,11 +112,11 @@ NodePool이나 AZ로 무조건 쪼개는 것도 항상 더 좋은 결과를 보�
 - 여러 AZ를 함께 제거해야 topology spread를 유지하면서 더 작은 replacement를 만들 수 있습니다.
 - cross-pool 후보의 비용 합이 한 대의 더 싼 replacement를 만들 수 있습니다.
 
-따라서 혼합 후보군은 그 자체로 안전하지 않은 동작이 아닙니다. **계산량을 제한하면서 어떤 조합을 우선 탐색할 것인가에 대한 정책 선택**입니다. 현재 구현은 조합 탐색의 폭보다 전역 고득점 prefix와 제한된 simulation 횟수를 우선합니다.
+따라서 혼합 후보군은 그 자체로 안전하지 않은 동작이 아니라 **계산량을 제한하면서 어떤 조합을 우선 탐색할 것인가에 대한 정책 선택**입니다. 현재 구현은 조합 탐색의 폭보다 전역 고득점 prefix와 제한된 simulation 횟수를 우선합니다.
 
 ## 7. NodePool별 탐색으로 바꿀 때의 범위
 
-가장 작은 구조는 다음과 같습니다.
+가장 작은 구조는 이렇습니다.
 
 ```text
 Candidate를 NodePool별 group
@@ -150,7 +144,7 @@ Candidate를 NodePool별 group
 | 테스트 | 약 150–300줄 |
 | 변경 파일 | 2–4개 |
 
-Pool별 command를 여러 개 동시에 반환하면 동일 destination capacity를 가정하는 simulation 간 경쟁과 validation race까지 다뤄야 하므로 변경 범위가 더 커집니다.
+Pool별 command를 여러 개 동시에 반환하면 동일 destination capacity를 가정하는 simulation 간 경쟁과 validation race까지 다뤄야 합니다. 그만큼 변경 범위가 더 커집니다.
 
 ## 8. AZ까지 나눌 때의 범위
 
@@ -158,21 +152,17 @@ AZ는 두 문제로 나눠야 합니다.
 
 ### 8.1 `NodePool+AZ`를 탐색 경계로만 사용
 
-후보 grouping key만 `NodePool+AZ`로 만드는 변경입니다. budget은 여전히 NodePool 전체에서 공유합니다.
-
-이 경우에도 결정할 것이 남습니다.
+후보 grouping key만 `NodePool+AZ`로 만드는 변경입니다. budget은 여전히 NodePool 전체에서 공유합니다. 이 경우에도 결정할 것이 남습니다.
 
 - Pool budget을 AZ 사이에 균등 배분할 것인가
 - 모든 AZ가 같은 Pool budget을 공유하며 점수순으로 소비할 것인가
 - AZ별 command를 만든 뒤 가장 좋은 하나를 고를 것인가
 
-그리고 source 후보를 같은 AZ로 묶어도 replacement AZ까지 같아지는 것은 아닙니다. replacement의 zone은 스케줄링 requirements와 offerings에 따라 결정됩니다.
+source 후보를 같은 AZ로 묶어도 replacement AZ까지 같아지는 것은 아닙니다. replacement의 zone은 스케줄링 requirements와 offerings에 따라 결정됩니다.
 
 ### 8.2 AZ별 독립 budget 지원
 
-이는 후보 grouping과 다른 API 기능입니다. 현재 `Budget`에는 selector나 topology scope가 없습니다.
-
-AZ별 budget을 실제로 표현하려면 다음이 바뀝니다.
+이는 후보 grouping과 다른 API 기능입니다. 현재 `Budget`에는 selector나 topology scope가 없습니다. AZ별 budget을 실제로 표현하려면 다음이 바뀝니다.
 
 - `Budget` API와 CRD schema
 - validation/defaulting 및 generated artifacts
@@ -184,8 +174,6 @@ AZ별 budget을 실제로 표현하려면 다음이 바뀝니다.
 수작업 코드와 테스트만 약 400–800줄 이상, 영향 파일은 8–15개 이상으로 커질 가능성이 있습니다.
 
 ## 9. 판단
-
-현재 구현에서 잡히는 핵심은 다음입니다.
 
 1. **높은 확신:** NodePool별 budget 제한은 지킵니다.
 2. **높은 확신:** MultiNode 후보 생성과 simulation은 NodePool/AZ별로 격리되지 않습니다.

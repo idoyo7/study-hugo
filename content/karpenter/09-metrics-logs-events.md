@@ -17,7 +17,7 @@ weight: 9
 
 > **왜 이 문서인가.** 앞의 여덟 문서는 "왜 그렇게 판단하나"를 코드로 따라갔다. 이 문서는 그 판단을 **밖에서 어떻게 확인하나** — 대시보드·로그·이벤트 — 를 다룬다.
 >
-> 예산 판정 절차는 [08 §6]({{< relref "08-disruption-budgets.md" >}}), 폴백 여부는 [07]({{< relref "07-ice-fallback.md" >}})이 소유한다. 여기서는 **신호의 목록과 성질만** 정리하고, **무엇을 실제로 저장할 것인가**는 [10 메트릭 수집 비용]({{< relref "10-metric-cost.md" >}})이 받는다 — 60개 전부를 긁는 건 비용에서만 문제가 된다.
+> 예산 판정 절차는 [08 §6]({{< relref "08-disruption-budgets.md" >}}), 폴백 여부는 [07]({{< relref "07-ice-fallback.md" >}})이 소유한다. 여기서는 **신호의 목록과 성질만** 정리하고 **무엇을 실제로 저장할 것인가**는 [10 메트릭 수집 비용]({{< relref "10-metric-cost.md" >}})이 받는다 — 60개 전부를 긁는 건 비용에서만 문제가 된다.
 
 ## 1. 어디서 나오나 — 세 층이 섞여 있다
 
@@ -29,7 +29,7 @@ weight: 9
 | **프로바이더** (provider-aws) | 오퍼링 가격 등 + `karpenter_nodes_*`의 **추가 라벨** | 범위 밖 |
 | operatorpkg · controller-runtime | `operator_status_condition_*`, `controller_runtime_*`, `workqueue_*` | 범위 밖 |
 
-**두 번째 층이 특히 함정이다.** `karpenter_nodes_*`의 라벨 집합은 컴파일 타임이 아니라 **런타임에 결정된다** — 클라우드 프로바이더가 `v1.WellKnownLabels`에 자기 라벨을 `Insert`하기 때문이다(`metrics/node/controller.go:62-64`). 코어 라벨은 `nodepool`·`zone`·`region`·`instance_type`·`arch`·`os`·`capacity_type`·`windows_build`·`node_name`·`phase`·`managed`뿐이지만, EKS에서는 `instance_family`·`instance_size` 등이 더 붙는다.
+`karpenter_nodes_*`의 라벨 집합은 컴파일 타임이 아니라 **런타임에 결정된다** — 클라우드 프로바이더가 `v1.WellKnownLabels`에 자기 라벨을 `Insert`하기 때문이다(`metrics/node/controller.go:62-64`). **두 번째 층이 함정이다.** 코어 라벨은 `nodepool`·`zone`·`region`·`instance_type`·`arch`·`os`·`capacity_type`·`windows_build`·`node_name`·`phase`·`managed`뿐이지만 EKS에서는 `instance_family`·`instance_size` 등이 더 붙는다.
 
 이름 조립 규칙은 `karpenter` + Subsystem + Name이다(`pkg/metrics/constants.go:27`).
 
@@ -44,7 +44,7 @@ weight: 9
 | 통합이 왜 거부됐나 | `karpenter_consolidation_score{decision,policy}` |
 | 클러스터에 여유가 있나 | `karpenter_cluster_utilization_percent{resource_type}` |
 
-첫 두 개가 실무의 8할이다. 아래가 "노드가 안 줄어든다"를 한 화면에서 가르는 조합이다.
+첫 두 개가 실무의 8할이다. 아래 조합이 "노드가 안 줄어든다"를 한 화면에서 가른다.
 
 ```promql
 # 이유별 예산 허용량 — 0인 구간이 의도한 창과 일치하는가
@@ -58,7 +58,7 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 
 ## 3. 노드가 왜 갈렸나 — `reason` 10종
 
-`karpenter_nodeclaims_disrupted_total`의 `reason` 값은 소스에 흩어져 있고, 모아 놓으면 노드 교체 원인의 전체 분류가 된다.
+`karpenter_nodeclaims_disrupted_total`의 `reason` 값은 소스에 흩어져 있다. 모아 놓으면 노드 교체 원인의 전체 분류가 된다.
 
 | reason | 무슨 일이 있었나 | 예산 |
 |---|---|---|
@@ -75,9 +75,9 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 
 앞의 셋만 [08]({{< relref "08-disruption-budgets.md" >}})의 예산을 탄다. **`expired`·`unhealthy`가 올라가는데 예산을 조이고 있다면 헛수고 중이다.**
 
-뒤의 넷은 disruption이라기보다 **런치 실패**다 — `insufficient_capacity`가 계단식으로 오르면 [07]({{< relref "07-ice-fallback.md" >}})의 ICE 경로이고, `registration_timeout`이 오르면 노드는 떴는데 kubelet이 붙지 못한 것이라 폴백이 구제하지 못한다.
+뒤의 넷은 disruption이라기보다 **런치 실패**다 — `insufficient_capacity`가 계단식으로 오르면 [07]({{< relref "07-ice-fallback.md" >}})의 ICE 경로다. `registration_timeout`이 오르면 노드는 떴는데 kubelet이 붙지 못한 것이라 폴백이 구제하지 못한다.
 
-`karpenter_pods_drained_total`의 `reason`은 성격이 다르다 — NodeClaim의 `DisruptionReason` 컨디션을 그대로 쓰되, 없으면 리터럴 `"Forceful Termination"`이 들어간다(`eviction.go:223-238`).
+`karpenter_pods_drained_total`의 `reason`은 성격이 다르다 — NodeClaim의 `DisruptionReason` 컨디션을 그대로 쓰되 없으면 리터럴 `"Forceful Termination"`이 들어간다(`eviction.go:223-238`).
 
 ## 4. 전체 목록
 
@@ -154,7 +154,7 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 
 `_total_pod_requests`에서 `_total_daemon_requests`를 빼면 **워크로드 몫만** 남는다. 노드 크기를 줄일 수 있는지 판단할 때 이 차이가 실제 근거다 — DaemonSet은 노드를 줄여도 줄지 않는다.
 
-`cluster_state_synced`가 0으로 떨어진 구간의 판단은 전부 의심해야 한다. Karpenter가 낡은 상태로 시뮬레이션하고 있었다는 뜻이다.
+`cluster_state_synced`가 0인 구간은 Karpenter가 낡은 상태로 시뮬레이션하고 있었다는 뜻이다. 그 구간의 판단은 전부 의심해야 한다.
 
 {{% /details %}}
 
@@ -211,7 +211,7 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 | `relaxing soft constraints for pod since it previously failed to schedule` | debug |
 | `scheduling simulation timed out` | debug |
 
-가운데 둘은 **경고 성격인데 Info로 나온다** — "통합이 안 된다"의 원인인데 info 볼륨에 묻혀 놓치기 쉽다. 각각 최대 10개 파드를 샘플로 찍는다.
+가운데 둘은 **경고 성격이지만 Info로 나온다.** "통합이 안 된다"의 원인인데 info 볼륨에 묻혀 놓치기 쉽다. 각각 최대 10개 파드를 샘플로 찍는다.
 
 `node limits have been exhausted for nodepool`과 `all available instance types exceed limits for nodepool`은 **로그가 아니라 에러 문자열**이다. `could not schedule pod`의 err 필드와 `FailedScheduling` 이벤트 메시지로만 보인다.
 
@@ -256,7 +256,7 @@ kubectl get events -A --field-selector reason=Unconsolidatable
 
 ### 6.1 dedupe 창 때문에 카운트를 빈도로 읽으면 안 된다
 
-이벤트마다 중복 억제 창이 다르다. 기본은 2분이고 예외가 셋이다.
+이벤트마다 중복 억제 창이 다르다 — 기본 2분에 예외가 셋이다.
 
 | Reason | 창 |
 |---|---|
