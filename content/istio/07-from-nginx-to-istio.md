@@ -37,7 +37,7 @@ weight: 7
 
 ## 라우팅·rewrite·리다이렉트
 
-nginx의 `location`과 `rewrite`가 하던 일은 대부분 **VirtualService** 하나에 모인다.
+nginx의 `location`과 `rewrite`가 하던 일은 대부분 **VirtualService** 하나에 모입니다.
 
 ```yaml
 apiVersion: networking.istio.io/v1
@@ -63,7 +63,7 @@ spec:
 
 ## 헤더 조작
 
-nginx의 `proxy_set_header`(요청)와 `add_header`(응답)는 VirtualService의 `headers`로 온다.
+nginx의 `proxy_set_header`(요청)와 `add_header`(응답)는 VirtualService의 `headers`로 옵니다.
 
 ```yaml
   http:
@@ -77,15 +77,15 @@ nginx의 `proxy_set_header`(요청)와 `add_header`(응답)는 VirtualService의
         add:    { x-frame-options: DENY }  # add_header X-Frame-Options DENY;
 ```
 
-`set`은 덮어쓰기, `add`는 append, `remove`는 삭제다. 라우트 단위뿐 아니라 DestinationRule 등 다른 계층에서도 헤더를 만질 수 있다.
+`set`은 덮어쓰기, `add`는 append, `remove`는 삭제입니다. 라우트 단위뿐 아니라 DestinationRule 등 다른 계층에서도 헤더를 만질 수 있습니다.
 
 ## 인가 — nginx의 `allow`/`deny`/`auth_request`가 흩어지는 곳
 
-접근 제어는 Istio에서 **성격별로 리소스가 갈린다.** 이게 nginx에서 넘어올 때 가장 헷갈리는 지점이다.
+접근 제어는 Istio에서 **성격별로 리소스가 갈립니다.** 이게 nginx에서 넘어올 때 가장 헷갈리는 지점입니다.
 
 ### IP·워크로드 기반 (allow/deny)
 
-`AuthorizationPolicy`가 L7 ALLOW/DENY를 담당한다. nginx `allow`/`deny`의 대응이다.
+`AuthorizationPolicy`가 L7 ALLOW/DENY를 담당합니다. nginx `allow`/`deny`의 대응입니다.
 
 ```yaml
 apiVersion: security.istio.io/v1
@@ -106,7 +106,7 @@ spec:
 
 ### 인증 — JWT (auth_basic/JWT 검증)
 
-토큰 검증은 **RequestAuthentication**(검증)과 **AuthorizationPolicy**(강제)의 조합이다.
+토큰 검증은 **RequestAuthentication**(검증)과 **AuthorizationPolicy**(강제)의 조합입니다.
 
 ```yaml
 apiVersion: security.istio.io/v1
@@ -128,11 +128,11 @@ spec:
   - from: [ { source: { requestPrincipals: [ "*" ] } } ]   # 유효한 JWT 필수
 ```
 
-RequestAuthentication은 "토큰이 있으면 검증"만 하지 **강제하지 않는다**. "토큰 없으면 거부"는 AuthorizationPolicy가 `requestPrincipals`로 요구해야 완성된다. `when: request.auth.claims[...]`로 클레임 기반 인가도 가능하다.
+RequestAuthentication은 "토큰이 있으면 검증"만 하지 **강제하지 않습니다**. "토큰 없으면 거부"는 AuthorizationPolicy가 `requestPrincipals`로 요구해야 완성됩니다. `when: request.auth.claims[...]`로 클레임 기반 인가도 가능합니다.
 
 ### 외부 인가 — `auth_request`의 진짜 대응 (ext_authz)
 
-nginx `auth_request`처럼 **매 요청을 외부 인가 서비스에 물어보는** 패턴은 Istio의 **external authorization**이다. 메시 설정에 인가 제공자를 등록하고, AuthorizationPolicy의 `action: CUSTOM`으로 그 제공자를 호출한다.
+nginx `auth_request`처럼 **매 요청을 외부 인가 서비스에 물어보는** 패턴은 Istio의 **external authorization**입니다. 메시 설정에 인가 제공자를 등록하고, AuthorizationPolicy의 `action: CUSTOM`으로 그 제공자를 호출합니다.
 
 ```yaml
 # meshConfig.extensionProviders 에 envoyExtAuthzHttp/Grpc 제공자 등록 후
@@ -142,11 +142,11 @@ spec:
   rules: [ { to: [ { operation: { paths: [ "/secure/*" ] } } ] } ]
 ```
 
-Envoy의 ext_authz 필터가 요청을 인가 서비스로 보내 allow/deny를 받는다 — 커스텀 인증 로직을 메시 밖 서비스로 빼는, `auth_request`와 정확히 같은 발상이다.
+Envoy의 ext_authz 필터가 요청을 인가 서비스로 보내 allow/deny를 받습니다 — 커스텀 인증 로직을 메시 밖 서비스로 빼는, `auth_request`와 정확히 같은 발상입니다.
 
 ## CORS·타임아웃·재시도
 
-nginx에서 손으로 CORS 헤더를 붙이던 것도 선언적으로 바뀐다.
+nginx에서 손으로 CORS 헤더를 붙이던 것도 선언적으로 바뀝니다.
 
 ```yaml
   http:
@@ -161,7 +161,7 @@ nginx에서 손으로 CORS 헤더를 붙이던 것도 선언적으로 바뀐다.
       retryOn: "5xx,connect-failure"
 ```
 
-재시도는 **멱등 요청에만** 거는 게 원칙이다([05]({{< relref "05-incident-intermittent-5xx.md" >}})의 탄력성 항목과 이어진다).
+재시도는 **멱등 요청에만** 거는 게 원칙입니다([05]({{< relref "05-incident-intermittent-5xx.md" >}})의 탄력성 항목과 이어집니다).
 
 ## "어디로 갔나" 요약
 

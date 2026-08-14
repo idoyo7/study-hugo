@@ -14,7 +14,7 @@ aliases: ["/monitoring/longterm-retention/03-option-b-thanos/"]
 - 쿼리는 **PromQL 전용**이라 MetricsQL 전 기능을 상실한다 — VM 아카이브안에서 RW#4 대상만 교체하면 언제든 이 안으로 전환 가능하다.
 {{< /callout >}}
 
-VM hot을 단기로 유지하고 raw를 S3에 짧게 쌓은 뒤, Thanos compactor가 **사후에** 5m/1h 다운샘플 블록을 만들어 400d를 보관하는 안이다. **S3 내구성 + 사후 재계산 보험**을 얻는 대신 **stateful 컴포넌트 3~4종과 더 높은 저장비**를 치른다.
+VM hot을 단기로 유지하고 raw를 S3에 짧게 쌓은 뒤, Thanos compactor가 **사후에** 5m/1h 다운샘플 블록을 만들어 400d를 보관하는 안입니다. **S3 내구성 + 사후 재계산 보험**을 얻는 대신 **stateful 컴포넌트 3~4종과 더 높은 저장비**를 치웁니다.
 
 > 관련 문서: [02 VM 아카이브(권장)]({{< relref "02-vm-archive.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지 말 것]({{< relref "08-recommendation-and-pitfalls.md" >}})
 
@@ -54,7 +54,7 @@ Grafana(Prometheus 타입 DS) ◀─ Querier ◀─ Store Gateway (블록당 ~6M
 
 ## 비용 (시나리오 ②: raw 90d + 5m 집계 400d)
 
-시나리오 정의와 검증된 서울 단가는 [01 문제·2축]({{< relref "01-problem-and-axes.md" >}})·[06 단가]({{< relref "06-storage-pricing.md" >}})가 주인이다. 여기서는 Thanos안 대입만 옮긴다.
+시나리오 정의와 검증된 서울 단가는 [01 문제·2축]({{< relref "01-problem-and-axes.md" >}})·[06 단가]({{< relref "06-storage-pricing.md" >}})가 주인입니다. 여기서는 Thanos안 대입만 옮깁니다.
 
 ```
 S3 = S × (1.5~2 B/sample) × (raw일수 + 400d × 1.2~1.8) × $0.025

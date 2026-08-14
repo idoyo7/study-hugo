@@ -1,5 +1,5 @@
 {
-  "caption": "AddPodToMesh의 호출 순서 — netns 규칙까지는 성공해도 ztunnel ACK를 못 받으면 Pod은 pending으로 남는다. 두 단계 사이의 ACK 왕복이 partially enrolled를 가르는 지점이다.",
+  "caption": "AddPodToMesh의 호출 순서 — netns 규칙까지는 성공해도 ztunnel ACK를 못 받으면 Pod은 pending으로 남습니다. 두 단계 사이의 ACK 왕복이 partially enrolled를 가르는 지점입니다.",
   "participants": [
     {
       "id": "N",

@@ -36,7 +36,7 @@ cascade:
 
 ## 미결 분기 — 이 도메인 전체의 뼈대
 
-**POS가 중앙에 거는가, 중앙이 POS에 거는가.** 이 하나가 나머지를 전부 결정한다.
+**POS가 중앙에 거는가, 중앙이 POS에 거는가.** 이 하나가 나머지를 전부 결정합니다.
 
 | | **분기 A** — POS가 건다 | **분기 B** — pod가 건다 |
 |---|---|---|
@@ -48,7 +48,7 @@ cascade:
 | k8s 형태 | Deployment | StatefulSet 검토 대상 |
 | 전송 | SSE 그대로 | SSE는 방향이 안 맞음 — 재검토 |
 
-판정법은 [02]({{< relref "02-connect-direction.md" >}})에 있고, **현행 API Gateway 접속 로그의 소스 IP 한 번이면 끝난다.**
+판정법은 [02]({{< relref "02-connect-direction.md" >}})에 있고, **현행 API Gateway 접속 로그의 소스 IP 한 번이면 끝납니다.**
 
 ## 문서 지도
 

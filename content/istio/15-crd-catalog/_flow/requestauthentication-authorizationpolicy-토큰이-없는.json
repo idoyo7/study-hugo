@@ -1,5 +1,5 @@
 {
-  "caption": "JWT 2단 관문 — 토큰이 없는 요청은 RequestAuthentication을 그냥 통과한다",
+  "caption": "JWT 2단 관문 — 토큰이 없는 요청은 RequestAuthentication을 그냥 통과합니다",
   "nodes": [
     {
       "id": "R",

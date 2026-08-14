@@ -6,7 +6,7 @@ weight: 7
 # 로컬 NVMe 하드 유저들 — 데이터스토어 횡단 벤치마킹
 
 {{< callout type="info" >}}
-**한눈에** — "휘발성 로컬 NVMe 1차 + 복제 내구성 + 오래된 데이터 S3 티어링"이 업계에서 어디까지 표준인지 9개 데이터스토어로 검증한 페이지다.
+**한눈에** — "휘발성 로컬 NVMe 1차 + 복제 내구성 + 오래된 데이터 S3 티어링"이 업계에서 어디까지 표준인지 9개 데이터스토어로 검증한 페이지입니다.
 
 - **로컬 NVMe 1차는 이단이 아니라 정설**이고, ClickHouse + EKS + i7i/i8g 결정은 이 정설과 정확히 부합한다.
 - 단 **"복제만으로 충분"은 거짓** — 성숙한 시스템은 예외 없이 복제 위에 지속(durable) 티어를 하나 더 얹는다.
@@ -14,17 +14,17 @@ weight: 7
 - 새로 벼릴 것은 재수화 MTTR 실측 · cross-AZ 비용 반영 · 사본 오해 교정 · local PV 노드 교체 런북뿐이다.
 {{< /callout >}}
 
-**이 장의 위상부터 못박는다 — 독립된 결정 장이 아니라 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})가 내린 결정의 외부 강화 근거(cross-industry benchmark)다.** 스토리지 매체를 무엇으로 할지는 02가 결정하고, 이 페이지는 그 결정이 업계 정설과 어긋나지 않는지를 검증하고 02에 없던 리스크만 얹는다. 그래서 이 페이지를 먼저 읽어도 무엇을 할지는 나오지 않는다 — 02에서 결정한 뒤 근거를 확인하러 오는 자리다.
+**이 장의 위상부터 못박습니다 — 독립된 결정 장이 아니라 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})가 내린 결정의 외부 강화 근거(cross-industry benchmark)입니다.** 스토리지 매체를 무엇으로 할지는 02가 결정하고, 이 페이지는 그 결정이 업계 정설과 어긋나지 않는지를 검증하고 02에 없던 리스크만 얹습니다. 그래서 이 페이지를 먼저 읽어도 무엇을 할지는 나오지 않습니다 — 02에서 결정한 뒤 근거를 확인하러 오는 자리입니다.
 
-답하는 질문은 하나다 — **"휘발성 로컬 NVMe를 1차 스토리지로 쓰고, 내구성은 복제로 확보하고, 오래된 데이터는 S3로 티어링한다"는 패턴이 업계에서 어디까지 표준인가.** 02가 이 결정을 **ClickHouse에서 어떻게 구현하나(how)**를 다룬다면, 이 페이지는 ScyllaDB·Cassandra·Kafka·Redpanda·WarpStream류·ES/OpenSearch·Aerospike·TiKV/TiDB·CockroachDB **9개 시스템을 같은 잣대로 놓고** "업계가 어디까지 하나"를 보여준다.
+답하는 질문은 하나입니다 — **"휘발성 로컬 NVMe를 1차 스토리지로 쓰고, 내구성은 복제로 확보하고, 오래된 데이터는 S3로 티어링한다"는 패턴이 업계에서 어디까지 표준인가.** 02가 이 결정을 **ClickHouse에서 어떻게 구현하나(how)**를 다룬다면, 이 페이지는 ScyllaDB·Cassandra·Kafka·Redpanda·WarpStream류·ES/OpenSearch·Aerospike·TiKV/TiDB·CockroachDB **9개 시스템을 같은 잣대로 놓고** "업계가 어디까지 하나"를 보여줍니다.
 
 {{% details title="근거 등급 태그 · 출처 규칙" closed="true" %}}
-근거 등급 태그는 입력 조사(11-1~11-4 및 종합)의 판정을 이어받는다(`✓`·`Ⓥ`·`≈`·`?`, 본 페이지의 신규 종합 판단은 `Σ`). URL 출처는 이 페이지가 아니라 [출처]({{< relref "10-sources.md" >}})가 담당한다.
+근거 등급 태그는 입력 조사(11-1~11-4 및 종합)의 판정을 이어받습니다(`✓`·`Ⓥ`·`≈`·`?`, 본 페이지의 신규 종합 판단은 `Σ`). URL 출처는 이 페이지가 아니라 [출처]({{< relref "10-sources.md" >}})가 담당합니다.
 {{% /details %}}
 
 ## 결론 먼저 — 세 층위로 나눈 표준
 
-한 문장으로: **"휘발성 로컬 NVMe 1차 + 복제 내구성"은 이제 고성능 데이터스토어의 주류 표준이다. 그러나 "복제만으로 충분"은 표준이 아니고, "S3 티어링"은 사본 경제가 정반대인 두 모델로 갈린다.**
+한 문장으로: **"휘발성 로컬 NVMe 1차 + 복제 내구성"은 이제 고성능 데이터스토어의 주류 표준입니다. 그러나 "복제만으로 충분"은 표준이 아니고, "S3 티어링"은 사본 경제가 정반대인 두 모델로 갈립니다.**
 
 ### 확실히 표준인 것 (거의 만장일치)
 
@@ -35,7 +35,7 @@ weight: 7
 
 ### 표준이지만 오해되는 것 — "복제만으로 충분"은 거짓에 가깝다
 
-성숙한 시스템은 복제 위에 **별도의 지속 티어를 반드시 하나 더 얹는다.** 형태는 다르지만 "복제 외 별도 durable 사본"이 **업계 최소 요구선(minimum bar)**이라는 것이 횡단 조사의 핵심 발견이다 `Σ`.
+성숙한 시스템은 복제 위에 **별도의 지속 티어를 반드시 하나 더 얹습니다.** 형태는 다르지만 "복제 외 별도 durable 사본"이 **업계 최소 요구선(minimum bar)**이라는 것이 횡단 조사의 핵심 발견입니다 `Σ`.
 
 | 시스템 | 복제 위에 얹는 지속 티어 |
 |---|---|
@@ -46,19 +46,19 @@ weight: 7
 | ClickHouse | **clickhouse-backup → S3**(주간 full + 일간 incremental) `✓` |
 
 {{< callout type="warning" >}}
-즉 [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})의 "로컬 NVMe replica + S3 백업" 3종 세트는 사치가 아니라 **업계 최소선을 정확히 충족**하는 표준이다. **"replica만 믿고 백업 생략"은 어떤 성숙한 시스템도 하지 않는다** `Σ`.
+즉 [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})의 "로컬 NVMe replica + S3 백업" 3종 세트는 사치가 아니라 **업계 최소선을 정확히 충족**하는 표준입니다. **"replica만 믿고 백업 생략"은 어떤 성숙한 시스템도 하지 않습니다** `Σ`.
 {{< /callout >}}
 
 ### 표준이 갈라지는 것 — "S3 티어링"의 두 얼굴
 
-"hot 로컬 + cold S3"는 표준이 됐지만 **사본 경제(copy economics)가 근본적으로 다른 두 모델로 갈린다** `✓`.
+"hot 로컬 + cold S3"는 표준이 됐지만 **사본 경제(copy economics)가 근본적으로 다른 두 모델로 갈립니다** `✓`.
 
 - **모델 A — shared-nothing 티어링(사본 배수 유지)**: 각 replica가 S3에도 자기 사본을 둔다. RF2면 S3에 2벌. **self-host OSS의 유일한 선택지**. Kafka KIP-405·Redpanda Tiered Storage·ClickHouse self-host S3 cold가 여기. 절감 원천은 오직 **NVMe→S3 GB단가 차이**.
 - **모델 B — shared-storage(사본 1벌 + 컴퓨트 캐시)**: S3에 단일 사본, 로컬은 순수 캐시, replica 불필요. **거의 전부 관리형/유료/독점**. OpenSearch UltraWarm·OR1, ClickHouse Cloud SharedMergeTree, WarpStream류 diskless가 여기.
 
 > **각주 — "모델 A가 유일한 선택지"에는 반쪽 예외가 하나 있다.** ClickHouse OSS의 `plain_rewritable` 디스크 + readonly part refresh 조합은 **모델 B를 OSS로 반쪽 구현한 형태**다 — "S3에 단일 사본 + 컴퓨트가 캐시로 읽는다"는 절반은 성립하고, "다중 라이터 HA"는 성립하지 않는다(테이블 복제·mutation이 미지원이라 RMT와 배타). 즉 위 본문의 "self-host OSS의 유일한 선택지"는 **프로덕션 HA 구성으로 놓고 보면 여전히 참**이지만, 문법적 가능성만 놓고 보면 예외가 있다는 뜻이다. 기각 근거 6개는 [스토리지 · S3 primary의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}})에 있다.
 
-스트리밍 진영이 정리한 "로컬 hot ↔ S3 cold" 5단계 스펙트럼에 얹으면 ClickHouse self-host의 좌표가 분명해진다 `Σ`:
+스트리밍 진영이 정리한 "로컬 hot ↔ S3 cold" 5단계 스펙트럼에 얹으면 ClickHouse self-host의 좌표가 분명해집니다 `Σ`:
 
 ```
 ① 로컬 only       ② 로컬 hot + S3 cold      ③ WAL 로컬 + 데이터 S3   ④ S3 only(diskless)   ⑤ 서버리스
@@ -69,11 +69,11 @@ weight: 7
  ScyllaDB          ★ ClickHouse self-host ★                       (µs 지연과 충돌)       (*=관리형/독점)
 ```
 
-**ClickHouse self-host는 ②단계(모델 A)에 위치하며, 이는 Kafka Tiered Storage·Redpanda·ES hot+searchable snapshot과 정확히 같은 진영**이다. ③④(diskless)는 지연을 수백 ms~수 초로 희생하므로 µs 분석 쿼리를 요구하는 ClickHouse엔 이식 불가, ⑤(shared-storage 서버리스)는 self-host로 재현 불가 `✓`. **우리 도메인의 [OpenSearch]({{< relref "../logging/01-opensearch.md" >}}) UltraWarm 유추가 깨지는 지점이 바로 여기다** — 그건 모델 B라 self-host로 못 옮긴다.
+**ClickHouse self-host는 ②단계(모델 A)에 위치하며, 이는 Kafka Tiered Storage·Redpanda·ES hot+searchable snapshot과 정확히 같은 진영**입니다. ③④(diskless)는 지연을 수백 ms~수 초로 희생하므로 µs 분석 쿼리를 요구하는 ClickHouse엔 이식 불가, ⑤(shared-storage 서버리스)는 self-host로 재현 불가 `✓`. **우리 도메인의 [OpenSearch]({{< relref "../logging/01-opensearch.md" >}}) UltraWarm 유추가 깨지는 지점이 바로 여기입니다** — 그건 모델 B라 self-host로 못 옮깁니다.
 
 ## 9개 시스템 횡단 비교표
 
-같은 다섯 축(로컬 디스크 활용·내구성 모델·S3 티어링 대응물·k8s local PV 성숙도·노드 교체 런북)으로 9개 시스템을 나란히 놓고, ClickHouse를 그 벤치마킹 대상들과 같은 표에 편입한다.
+같은 다섯 축(로컬 디스크 활용·내구성 모델·S3 티어링 대응물·k8s local PV 성숙도·노드 교체 런북)으로 9개 시스템을 나란히 놓고, ClickHouse를 그 벤치마킹 대상들과 같은 표에 편입합니다.
 
 ### 로컬 디스크 활용 · 내구성 모델
 
@@ -89,7 +89,7 @@ weight: 7
 | **CockroachDB** | 로컬 SSD가 네트워크 부착보다 **우수**하다고 명시 |
 | **ClickHouse (self-host)** | 로컬 NVMe(i7i/i8g, RAID0) 1차. gp3는 Keeper 데이터용 |
 
-같은 시스템의 내구성 모델은 표를 나눠 본다:
+같은 시스템의 내구성 모델은 표를 나눠 봅니다:
 
 | 시스템 | 내구성 모델 |
 |---|---|
@@ -145,7 +145,7 @@ weight: 7
 | **CockroachDB** | 단기=Raft 무중단. 장기=자동 rebalance. **작은 노드·넓은 분산이 MTTR 최소화 원칙** |
 | **ClickHouse (self-host)** | replica에서 파트 재fetch. 재수화 TB당 시간 미측정 `?`. drain→종료→PV/PVC청소→모니터→RF검증 |
 
-ScyllaDB의 노드 교체는 **인프라(EC2 인스턴스 등)를 내리기 전에 클러스터에서 먼저 삭제**해야 하는 순서 함정이 있다. ClickHouse의 재수화 TB당 시간은 미측정이라 **스테이징 벤치마크가 필요**하며, drain 이후 청소 대상은 정확히는 **stuck 상태의 PV/PVC**이고 그다음 단계는 **재수화 진행 모니터링**이다.
+ScyllaDB의 노드 교체는 **인프라(EC2 인스턴스 등)를 내리기 전에 클러스터에서 먼저 삭제**해야 하는 순서 함정이 있습니다. ClickHouse의 재수화 TB당 시간은 미측정이라 **스테이징 벤치마크가 필요**하며, drain 이후 청소 대상은 정확히는 **stuck 상태의 PV/PVC**이고 그다음 단계는 **재수화 진행 모니터링**입니다.
 
 ## 수렴점 5개와 시스템별 예외
 
@@ -172,21 +172,21 @@ ScyllaDB의 노드 교체는 **인프라(EC2 인스턴스 등)를 내리기 전�
 
 ## 대가 — ClickHouse의 node lifecycle 운영
 
-위 수렴점 4가 업계 공통으로 지목한 통증을 ClickHouse 쪽에서 구체화한다. 로컬 NVMe는 인스턴스에 물리 부착돼 network block(EBS)의 예측 불가한 tail latency를 피하지만 **휘발성**이다 — 노드가 죽으면 그 디스크 데이터도 사라진다. 그래서 다음이 세트로 강제된다 `✓`.
+위 수렴점 4가 업계 공통으로 지목한 통증을 ClickHouse 쪽에서 구체화합니다. 로컬 NVMe는 인스턴스에 물리 부착돼 network block(EBS)의 예측 불가한 tail latency를 피하지만 **휘발성**입니다 — 노드가 죽으면 그 디스크 데이터도 사라집니다. 그래서 다음이 세트로 강제됩니다 `✓`.
 
 - **재복제(re-replication)**: 소실 노드의 데이터는 다른 노드의 replica에서 전량 재전송받아 복구한다. 재복제 동안 클러스터 용량·부하에 영향이 가고, **노드당 데이터가 크면(예: 40TB) 재수화가 길어져 그동안 redundancy가 준다** → 노드당 데이터량과 replica 수, shard 수의 균형 설계가 필요하다.
 - **drain / upgrade 절차**: 로컬 NVMe + node affinity 조합에서는 노드 drain이 곧 데이터 재복제를 유발할 수 있어 rolling 업그레이드 절차 설계가 까다롭다. Altinity operator issue #1859(로컬 NVMe 전환 질의)은 "노드 장애 시 CH 복제가 교체 노드로 자동 복구되는가"에 스레드가 명확한 답을 남기지 않은 채 종료됐다 — **로컬 스토리지 노드 교체 절차가 잘 문서화돼 있지 않다는 방증**이다. 이는 위 표에서 ScyllaDB Operator가 노드 교체를 자동화한 성숙도와 대비되는 지점이다.
 - **`reclaimPolicy: Retain`**: CH 클러스터/Helm 삭제 시 PVC가 함께 삭제돼 데이터가 날아가는 사고를 막는 필수 설정. 노드 장애 복구 베스트 프랙티스는 "0 replica로 스케일다운 → 노드 재부팅 → 스케일업"이며 사전에 모든 PVC가 retain인지 확인해야 한다.
 
 {{< callout type="warning" >}}
-pulse.support의 요약이 본질을 찌른다 — "ClickHouse는 IO-bound·merge-heavy이고 복제 조정을 위해 **안정적 노드 정체성**에 의존한다. Kubernetes는 **disposable pod + 네트워크 스토리지**를 전제로 설계됐다. 잘 동작하게 만들 수 있지만, **기본값은 당신과 싸운다.**"
+pulse.support의 요약이 본질을 찌릅니다 — "ClickHouse는 IO-bound·merge-heavy이고 복제 조정을 위해 **안정적 노드 정체성**에 의존합니다. Kubernetes는 **disposable pod + 네트워크 스토리지**를 전제로 설계됐습니다. 잘 동작하게 만들 수 있지만, **기본값은 당신과 싸웁니다.**"
 
-스토리지 내구성 3종 세트(멀티 AZ replica·clickhouse-backup·Keeper)와 Karpenter 주의는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}), operator 채택 근거는 [Altinity operator]({{< relref "03-operator.md" >}}), 실제 재수화·PVC 청소 절차는 [변경관리·복구 §복구 런북]({{< relref "05-altinity-operations.md" >}})에서 다룬다.
+스토리지 내구성 3종 세트(멀티 AZ replica·clickhouse-backup·Keeper)와 Karpenter 주의는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}), operator 채택 근거는 [Altinity operator]({{< relref "03-operator.md" >}}), 실제 재수화·PVC 청소 절차는 [변경관리·복구 §복구 런북]({{< relref "05-altinity-operations.md" >}})에서 다룹니다.
 {{< /callout >}}
 
 ## named 프로덕션 사례 (간결 인용)
 
-각 사례가 "무엇을 증명하는가"만 압축한다 — 상세 수치·출처는 [출처]({{< relref "10-sources.md" >}}).
+각 사례가 "무엇을 증명하는가"만 압축합니다 — 상세 수치·출처는 [출처]({{< relref "10-sources.md" >}}).
 
 | 사례 | 시스템 | 무엇을 증명하나 | 등급 |
 |---|---|---|---|
@@ -200,12 +200,12 @@ pulse.support의 요약이 본질을 찌른다 — "ClickHouse는 IO-bound·merg
 | **Criteo** | Aerospike | 1.2조 객체·50ms SLA를 로컬 SSD로 | `Ⓥ` |
 
 {{< callout type="important" >}}
-**핵심 독법** `Σ`: **순수 자체운영의 최대 규모는 로컬 디스크 베어메탈**(위 사례 다수)이고, **Pinterest의 EBS 검토는 "로컬 NVMe가 MTTR로 되돌려지는 실제 힘"의 현장 증거**다. 우리는 이 반례를 런북으로 방어해야지, 없는 셈 쳐선 안 된다.
+**핵심 독법** `Σ`: **순수 자체운영의 최대 규모는 로컬 디스크 베어메탈**(위 사례 다수)이고, **Pinterest의 EBS 검토는 "로컬 NVMe가 MTTR로 되돌려지는 실제 힘"의 현장 증거**입니다. 우리는 이 반례를 런북으로 방어해야지, 없는 셈 쳐선 안 됩니다.
 {{< /callout >}}
 
 ## 우리 케이스에서는
 
-이 페이지는 [ClickHouse 운영]({{< relref "_index.md" >}}) 챕터의 게이트(RUM 대체 + 범용 분석 + 인력 보유)를 통과했다고 가정한 뒤, 스토리지 결정을 **업계 횡단 관점에서** 검증한다. [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})의 ClickHouse 특화 설계(내구성 3종 세트·티어링·Karpenter·재수화)를 반복하지 않고, 그 결정에 대한 **외부 강화 근거와 신규 리스크만** 얹는다.
+이 페이지는 [ClickHouse 운영]({{< relref "_index.md" >}}) 챕터의 게이트(RUM 대체 + 범용 분석 + 인력 보유)를 통과했다고 가정한 뒤, 스토리지 결정을 **업계 횡단 관점에서** 검증합니다. [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})의 ClickHouse 특화 설계(내구성 3종 세트·티어링·Karpenter·재수화)를 반복하지 않고, 그 결정에 대한 **외부 강화 근거와 신규 리스크만** 얹습니다.
 
 **강화되는 근거** `Σ`:
 
@@ -229,4 +229,4 @@ pulse.support의 요약이 본질을 찌른다 — "ClickHouse는 IO-bound·merg
 - **stuck PVC 자동 청소** · 소스: Kafka Local PVC Releaser — 노드 종료 감시 → stuck PVC 자동 삭제 → operator claim 재생성.
 - **MTTR 완화 하이브리드** · 소스: Pinterest EBS 검토·Aerospike shadow — MTTR이 SLA 위협 시 cold replica를 EBS로 두는 하이브리드 검토(성능 vs MTTR 저울질).
 
-**한 줄 결론** `Σ`: **9개 데이터스토어의 대규모 프로덕션은 예외 없이 "로컬 NVMe 1차 + 복제 내구성 + 복제 위 지속 티어 + 노드 교체 자동화"로 수렴하며, ClickHouse + EKS + i7i/i8g self-host는 이 정설과 정확히 부합한다. 유일하게 새로 벼려야 할 것은 (a) 재수화 MTTR 실측·관리, (b) cross-AZ 비용의 TCO 반영, (c) UltraWarm식 "S3=사본 절감" 오해의 교정, (d) EKS local PV 노드 교체 런북의 사전 리허설이다.** 이 결정을 ClickHouse에서 구현하는 방법은 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})·[Altinity operator]({{< relref "03-operator.md" >}})가 이어받고, 노드 교체 런북의 실제 kubectl 절차는 [변경관리·복구]({{< relref "05-altinity-operations.md" >}})가 이어받는다. 시점 기준 2026-08.
+**한 줄 결론** `Σ`: **9개 데이터스토어의 대규모 프로덕션은 예외 없이 "로컬 NVMe 1차 + 복제 내구성 + 복제 위 지속 티어 + 노드 교체 자동화"로 수렴하며, ClickHouse + EKS + i7i/i8g self-host는 이 정설과 정확히 부합합니다. 유일하게 새로 벼려야 할 것은 (a) 재수화 MTTR 실측·관리, (b) cross-AZ 비용의 TCO 반영, (c) UltraWarm식 "S3=사본 절감" 오해의 교정, (d) EKS local PV 노드 교체 런북의 사전 리허설입니다.** 이 결정을 ClickHouse에서 구현하는 방법은 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})·[Altinity operator]({{< relref "03-operator.md" >}})가 이어받고, 노드 교체 런북의 실제 kubectl 절차는 [변경관리·복구]({{< relref "05-altinity-operations.md" >}})가 이어받습니다. 시점 기준 2026-08.

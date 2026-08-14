@@ -1,5 +1,5 @@
 {
-  "caption": "taint를 붙이는 쪽과 떼는 쪽이 다르다 — 부착은 인프라(Karpenter NodePool·노드 그룹 등)가 노드 생성 시점에, 제거는 istiod 안의 untaint-controller가 istio-cni Ready를 보고 한다. 인프라 쪽이 비어 있으면 컨트롤러는 뗄 taint가 없어 아무것도 하지 않는다.",
+  "caption": "taint를 붙이는 쪽과 떼는 쪽이 다릅니다 — 부착은 인프라(Karpenter NodePool·노드 그룹 등)가 노드 생성 시점에, 제거는 istiod 안의 untaint-controller가 istio-cni Ready를 보고 합니다. 인프라 쪽이 비어 있으면 컨트롤러는 뗄 taint가 없어 아무것도 하지 않습니다.",
   "participants": [
     {
       "id": "I",

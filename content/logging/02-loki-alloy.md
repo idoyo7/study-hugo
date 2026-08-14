@@ -14,7 +14,7 @@ weight: 2
 - 우리 케이스: istio access-log엔 잘 맞지만, **스택을 하나 더 얹는 것 자체가 방치(rot) 리스크**라 보류한다.
 {{< /callout >}}
 
-Grafana 진영의 로그 집계 스택(AGPLv3). 로그 **본문이 아니라 라벨 집합(스트림)만 인덱싱**하고, 압축 청크를 object storage에 얹어 값싸게 보존하는 설계다. 2018년 공개 후 3.7.x로 성숙했고(최신 패치 v3.7.3, 2026-06-24), promtail이 EOL되며 **Alloy**로 대체되어 PLG(Promtail-Loki-Grafana)가 ALG(Alloy-Loki-Grafana)로 재편됐다.
+Grafana 진영의 로그 집계 스택(AGPLv3). 로그 **본문이 아니라 라벨 집합(스트림)만 인덱싱**하고, 압축 청크를 object storage에 얹어 값싸게 보존하는 설계입니다. 2018년 공개 후 3.7.x로 성숙했고(최신 패치 v3.7.3, 2026-06-24), promtail이 EOL되며 **Alloy**로 대체되어 PLG(Promtail-Loki-Grafana)가 ALG(Alloy-Loki-Grafana)로 재편됐습니다.
 
 ## 강점
 
@@ -37,7 +37,7 @@ Grafana 진영의 로그 집계 스택(AGPLv3). 로그 **본문이 아니라 라
 - **Alloy DaemonSet 함정.** node-local discovery 누락 시 replica마다 cluster-wide로 pod를 중복 수집하고, custom taint에 tolerations가 없으면 그 노드의 로그를 조용히 잃는다. node churn + positions file까지 얽힌다 — **옛 PLG 스택이 썩은 원인일 가능성이 크다.**
 
 {{< callout type="warning" >}}
-**구조적 리스크:** promtail은 EOL 확정(2026-03-02, Loki 3.7.3부터 repo에서 제거)이고 Alloy가 유일한 first-party 경로다(`alloy convert`는 best-effort). 그리고 중간 규모용 **Simple Scalable Deployment(SSD, read/write/backend 3-target) 모드가 Loki 4.0에서 제거 예정**이다 — single-binary(monolithic)·distributed는 유지되지만, SSD가 사라지면 istio 규모는 HA-monolithic으로, 전체 앱 로그 규모는 distributed로 밀려 **2TB/day에는 편한 low-ops 중간 선택지가 사라진다.**
+**구조적 리스크:** promtail은 EOL 확정(2026-03-02, Loki 3.7.3부터 repo에서 제거)이고 Alloy가 유일한 first-party 경로다(`alloy convert`는 best-effort). 그리고 중간 규모용 **Simple Scalable Deployment(SSD, read/write/backend 3-target) 모드가 Loki 4.0에서 제거 예정**입니다 — single-binary(monolithic)·distributed는 유지되지만, SSD가 사라지면 istio 규모는 HA-monolithic으로, 전체 앱 로그 규모는 distributed로 밀려 **2TB/day에는 편한 low-ops 중간 선택지가 사라집니다.**
 {{< /callout >}}
 
 ## 적합 / 부적합
@@ -48,11 +48,11 @@ Grafana 진영의 로그 집계 스택(AGPLv3). 로그 **본문이 아니라 라
 | **Simple Scalable(SSD)** | middle | **~1TB/day** `≈` | **DEPRECATED — Loki 4.0에서 제거.** sunset feature 위에 짓는 셈이다. |
 | **Distributed** | large | **multi-TB/day** `≈` | 가장 복잡. blooms에 필요. 전담 owner 필수. |
 
-Monolithic 상한 ~20GB/day는 Grafana 공식 가이드 기준이며, HA+S3 구성에서는 실질적으로 low-hundreds GB/day까지 늘어난다.
+Monolithic 상한 ~20GB/day는 Grafana 공식 가이드 기준이며, HA+S3 구성에서는 실질적으로 low-hundreds GB/day까지 늘어납니다.
 
 - **적합**: 이미 Grafana를 쓰는 팀 · low-cardinality · high-volume · label-filterable 로그 · cost-sensitive · 짧은~중간 보존. istio ingress access log(~100–300GB/day, JSON, structured metadata로 고카디널리티 필드 격리)에 거의 완벽히 맞는다.
 - **부적합**: search-heavy · high-cardinality · 서비스 전반 ad-hoc 풀텍스트 · archive spelunking. 전체 app 로그(~2TB/day)는 distributed를 강제하고 풀텍스트가 downgrade되어 Loki가 가장 자주 실망시키는 워크로드다.
 
 ## 우리 케이스에서는
 
-istio access-log 경로(~100–300GB/day)에는 Grafana-native·저비용·저운영으로 정직하게 잘 맞는 후보지만, 전체 app 로그(~2TB/day)까지 흡수하려면 distributed로 밀리고 풀텍스트 검색력이 내려간다. 무엇보다 이미 한 스택을 방치한 전례가 있는 팀에게는 **운영할 스택이 하나 더 느는 것 자체가 rot 리스크**이므로 → **보류**. (search-heavy tail은 [HyperDX/ClickStack]({{< relref "05-hyperdx-clickstack.md" >}}), 저운영 단일 로그 저장소는 [VictoriaLogs]({{< relref "03-victorialogs.md" >}}) 비교 참고.)
+istio access-log 경로(~100–300GB/day)에는 Grafana-native·저비용·저운영으로 정직하게 잘 맞는 후보지만, 전체 app 로그(~2TB/day)까지 흡수하려면 distributed로 밀리고 풀텍스트 검색력이 내려갑니다. 무엇보다 이미 한 스택을 방치한 전례가 있는 팀에게는 **운영할 스택이 하나 더 느는 것 자체가 rot 리스크**이므로 → **보류**. (search-heavy tail은 [HyperDX/ClickStack]({{< relref "05-hyperdx-clickstack.md" >}}), 저운영 단일 로그 저장소는 [VictoriaLogs]({{< relref "03-victorialogs.md" >}}) 비교 참고.)

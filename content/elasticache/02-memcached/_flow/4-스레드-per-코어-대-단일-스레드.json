@@ -1,5 +1,5 @@
 {
-  "caption": "같은 코어 수를 쓰는 방법이 다르다 — memcached 는 커넥션을 워커에 배분한 뒤 read·parse·execute·write 를 그 워커에서 끝내고 경쟁은 해시값으로 샤딩된 아이템 락에서만 해소하는 반면, Redis 는 io-threads 로 소켓 읽기·쓰기와 프로토콜 파싱까지만 나누고 커맨드 실행을 메인 스레드 하나로 모은다.",
+  "caption": "같은 코어 수를 쓰는 방법이 다릅니다 — memcached 는 커넥션을 워커에 배분한 뒤 read·parse·execute·write 를 그 워커에서 끝내고 경쟁은 해시값으로 샤딩된 아이템 락에서만 해소하는 반면, Redis 는 io-threads 로 소켓 읽기·쓰기와 프로토콜 파싱까지만 나누고 커맨드 실행을 메인 스레드 하나로 모웁니다.",
   "groups": [
     {
       "id": "mc",

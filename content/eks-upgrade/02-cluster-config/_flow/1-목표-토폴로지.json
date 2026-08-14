@@ -1,5 +1,5 @@
 {
-  "caption": "Fargate profile({ns:karpenter}, {ns:kube-system·k8s-app:kube-dns})에 CoreDNS·karpenter(amd64, arm64 affinity 제거)를 두고, karpenter가 system(arm64)·service/airflow(amd64) NodePool을 프로비저닝한다. 플랫폼 컨트롤러·DaemonSet은 arch=arm64 required affinity.",
+  "caption": "Fargate profile({ns:karpenter}, {ns:kube-system·k8s-app:kube-dns})에 CoreDNS·karpenter(amd64, arm64 affinity 제거)를 두고, karpenter가 system(arm64)·service/airflow(amd64) NodePool을 프로비저닝합니다. 플랫폼 컨트롤러·DaemonSet은 arch=arm64 required affinity.",
   "groups": [
     {
       "id": "fg",

@@ -1,5 +1,5 @@
 {
-  "caption": "RUM 인제스트(쓰기) vs 운영자 조회(읽기) 경로 — MongoDB는 메타데이터 전용. Collector↔api는 OpAMP 4320 한 축의 양방향이다: Collector가 api의 /v1/opamp에 접속하고, api가 그 위로 파이프라인 설정을 배포한다.",
+  "caption": "RUM 인제스트(쓰기) vs 운영자 조회(읽기) 경로 — MongoDB는 메타데이터 전용. Collector↔api는 OpAMP 4320 한 축의 양방향입니다: Collector가 api의 /v1/opamp에 접속하고, api가 그 위로 파이프라인 설정을 배포합니다.",
   "nodes": [
     {
       "id": "sdk",

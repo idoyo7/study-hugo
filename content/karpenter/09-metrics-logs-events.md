@@ -21,7 +21,7 @@ weight: 9
 
 ## 1. 어디서 나오나 — 세 층이 섞여 있다
 
-`/metrics` 엔드포인트 하나에 출처가 다른 셋이 합쳐져 나온다. 이걸 모르면 "문서에 있는데 내 클러스터엔 없다"가 반복된다.
+`/metrics` 엔드포인트 하나에 출처가 다른 셋이 합쳐져 나옵니다. 이걸 모르면 "문서에 있는데 내 클러스터엔 없다"가 반복됩니다.
 
 | 층 | 무엇 | 이 문서의 범위 |
 |---|---|---|
@@ -29,9 +29,9 @@ weight: 9
 | **프로바이더** (provider-aws) | 오퍼링 가격 등 + `karpenter_nodes_*`의 **추가 라벨** | 범위 밖 |
 | operatorpkg · controller-runtime | `operator_status_condition_*`, `controller_runtime_*`, `workqueue_*` | 범위 밖 |
 
-`karpenter_nodes_*`의 라벨 집합은 컴파일 타임이 아니라 **런타임에 결정된다** — 클라우드 프로바이더가 `v1.WellKnownLabels`에 자기 라벨을 `Insert`하기 때문이다(`metrics/node/controller.go:62-64`). **두 번째 층이 함정이다.** 코어 라벨은 `nodepool`·`zone`·`region`·`instance_type`·`arch`·`os`·`capacity_type`·`windows_build`·`node_name`·`phase`·`managed`뿐이지만 EKS에서는 `instance_family`·`instance_size` 등이 더 붙는다.
+`karpenter_nodes_*`의 라벨 집합은 컴파일 타임이 아니라 **런타임에 결정됩니다** — 클라우드 프로바이더가 `v1.WellKnownLabels`에 자기 라벨을 `Insert`하기 때문입니다(`metrics/node/controller.go:62-64`). **두 번째 층이 함정입니다.** 코어 라벨은 `nodepool`·`zone`·`region`·`instance_type`·`arch`·`os`·`capacity_type`·`windows_build`·`node_name`·`phase`·`managed`뿐이지만 EKS에서는 `instance_family`·`instance_size` 등이 더 붙습니다.
 
-이름 조립 규칙은 `karpenter` + Subsystem + Name이다(`pkg/metrics/constants.go:27`).
+이름 조립 규칙은 `karpenter` + Subsystem + Name입니다(`pkg/metrics/constants.go:27`).
 
 ## 2. 먼저 볼 것 — 질문 여섯 개
 
@@ -44,7 +44,7 @@ weight: 9
 | 통합이 왜 거부됐나 | `karpenter_consolidation_score{decision,policy}` |
 | 클러스터에 여유가 있나 | `karpenter_cluster_utilization_percent{resource_type}` |
 
-첫 두 개가 실무의 8할이다. 아래 조합이 "노드가 안 줄어든다"를 한 화면에서 가른다.
+첫 두 개가 실무의 8할입니다. 아래 조합이 "노드가 안 줄어든다"를 한 화면에서 가릅니다.
 
 ```promql
 # 이유별 예산 허용량 — 0인 구간이 의도한 창과 일치하는가
@@ -54,11 +54,11 @@ karpenter_nodepools_allowed_disruptions
 rate(karpenter_nodeclaims_disrupted_total[30m])
 ```
 
-`pending_pods_by_effective_zone_count`의 `zone` 라벨은 실제 zone 이름 외에 `flexible`(zone 제약 없음)과 `none`(교집합이 빔)을 가진다. **`none`이 0이 아니면 그건 용량 문제가 아니라 오설정이다.**
+`pending_pods_by_effective_zone_count`의 `zone` 라벨은 실제 zone 이름 외에 `flexible`(zone 제약 없음)과 `none`(교집합이 빔)을 가집니다. **`none`이 0이 아니면 그건 용량 문제가 아니라 오설정입니다.**
 
 ## 3. 노드가 왜 갈렸나 — `reason` 10종
 
-`karpenter_nodeclaims_disrupted_total`의 `reason` 값은 소스에 흩어져 있다. 모아 놓으면 노드 교체 원인의 전체 분류가 된다.
+`karpenter_nodeclaims_disrupted_total`의 `reason` 값은 소스에 흩어져 있습니다. 모아 놓으면 노드 교체 원인의 전체 분류가 됩니다.
 
 | reason | 무슨 일이 있었나 | 예산 |
 |---|---|---|
@@ -73,11 +73,11 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 | `launch_timeout` | 5분 안에 런치 실패 | — |
 | `registration_timeout` | 15분 안에 등록 실패 | — |
 
-앞의 셋만 [08]({{< relref "08-disruption-budgets.md" >}})의 예산을 탄다. **`expired`·`unhealthy`가 올라가는데 예산을 조이고 있다면 헛수고 중이다.**
+앞의 셋만 [08]({{< relref "08-disruption-budgets.md" >}})의 예산을 탑니다. **`expired`·`unhealthy`가 올라가는데 예산을 조이고 있다면 헛수고 중입니다.**
 
-뒤의 넷은 disruption이라기보다 **런치 실패**다 — `insufficient_capacity`가 계단식으로 오르면 [07]({{< relref "07-ice-fallback.md" >}})의 ICE 경로다. `registration_timeout`이 오르면 노드는 떴는데 kubelet이 붙지 못한 것이라 폴백이 구제하지 못한다.
+뒤의 넷은 disruption이라기보다 **런치 실패**입니다 — `insufficient_capacity`가 계단식으로 오르면 [07]({{< relref "07-ice-fallback.md" >}})의 ICE 경로입니다. `registration_timeout`이 오르면 노드는 떴는데 kubelet이 붙지 못한 것이라 폴백이 구제하지 못합니다.
 
-`karpenter_pods_drained_total`의 `reason`은 성격이 다르다 — NodeClaim의 `DisruptionReason` 컨디션을 그대로 쓰되 없으면 리터럴 `"Forceful Termination"`이 들어간다(`eviction.go:223-238`).
+`karpenter_pods_drained_total`의 `reason`은 성격이 다릅니다 — NodeClaim의 `DisruptionReason` 컨디션을 그대로 쓰되 없으면 리터럴 `"Forceful Termination"`이 들어갑니다(`eviction.go:223-238`).
 
 ## 4. 전체 목록
 
@@ -152,9 +152,9 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 | `karpenter_cluster_state_unsynced_time_seconds` | Gauge | — | |
 | `karpenter_build_info` | Gauge(상수 1) | `version,goversion,goarch,commit` | |
 
-`_total_pod_requests`에서 `_total_daemon_requests`를 빼면 **워크로드 몫만** 남는다. 노드 크기를 줄일 수 있는지 판단할 때 이 차이가 실제 근거다 — DaemonSet은 노드를 줄여도 줄지 않는다.
+`_total_pod_requests`에서 `_total_daemon_requests`를 빼면 **워크로드 몫만** 남습니다. 노드 크기를 줄일 수 있는지 판단할 때 이 차이가 실제 근거입니다 — DaemonSet은 노드를 줄여도 줄지 않습니다.
 
-`cluster_state_synced`가 0인 구간은 Karpenter가 낡은 상태로 시뮬레이션하고 있었다는 뜻이다. 그 구간의 판단은 전부 의심해야 한다.
+`cluster_state_synced`가 0인 구간은 Karpenter가 낡은 상태로 시뮬레이션하고 있었다는 뜻입니다. 그 구간의 판단은 전부 의심해야 합니다.
 
 {{% /details %}}
 
@@ -163,7 +163,7 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 - `karpenter_cloudprovider_duration_seconds` · Histogram · `{controller,method,provider}`
 - `karpenter_cloudprovider_errors_total` · Counter · `{controller,method,provider,error}`
 
-`error` 라벨의 well-known 값은 `NodeClaimNotFoundError`·`NodeClassNotReadyError`·`InsufficientCapacityError`와 빈 문자열(미분류)이다. **ICE를 이 메트릭으로도 볼 수 있다** — `disrupted_total{reason="insufficient_capacity"}`와 교차 확인하면 "정말 용량 문제인지"가 갈린다.
+`error` 라벨의 well-known 값은 `NodeClaimNotFoundError`·`NodeClassNotReadyError`·`InsufficientCapacityError`와 빈 문자열(미분류)입니다. **ICE를 이 메트릭으로도 볼 수 있습니다** — `disrupted_total{reason="insufficient_capacity"}`와 교차 확인하면 "정말 용량 문제인지"가 갈립니다.
 
 ### 4.5 ALPHA — 이름이 바뀔 수 있다 (5)
 
@@ -173,15 +173,15 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 - `karpenter_pods_provisioning_unstarted_time_seconds` · Gauge · `{name,namespace}`
 - `karpenter_pods_provisioning_scheduling_undecided_time_seconds` · Gauge · `{name,namespace}`
 
-다섯 모두 Help에 같은 단서가 붙는다 — *"this calculated from a point in memory, not by the pod creation timestamp."* **파드 생성 시각이 아니라 Karpenter가 그 파드를 처음 본 시점 기준**이라 컨트롤러 재시작 시 기준점이 리셋된다. SLO에 쓰기 어려운 이유다.
+다섯 모두 Help에 같은 단서가 붙습니다 — *"this calculated from a point in memory, not by the pod creation timestamp."* **파드 생성 시각이 아니라 Karpenter가 그 파드를 처음 본 시점 기준**이라 컨트롤러 재시작 시 기준점이 리셋됩니다. SLO에 쓰기 어려운 이유입니다.
 
-`karpenter_nodepools_cost_*` 둘도 alpha 컴포넌트에서 나온다(`state/cost/cost.go:60`).
+`karpenter_nodepools_cost_*` 둘도 alpha 컴포넌트에서 나옵니다(`state/cost/cost.go:60`).
 
 ## 5. 로그
 
-레벨은 `--log-level` ∈ `debug`·`info`·`error`다. zapr가 logr `V(1)`을 zap `DebugLevel`로 매핑하므로 **`V(1)` 로그는 `debug`에서만 보인다.** `.V(2)`는 0건 — 더 깊은 티어는 없다.
+레벨은 `--log-level` ∈ `debug`·`info`·`error`입니다. zapr가 logr `V(1)`을 zap `DebugLevel`로 매핑하므로 **`V(1)` 로그는 `debug`에서만 보입니다.** `.V(2)`는 0건 — 더 깊은 티어는 없습니다.
 
-예외 하나. `IgnoreDebugEvents` sink가 **`events` 서브로거의 `V(1)`을 무조건 드롭한다**(`logging.go:96-119`) — 스케일아웃 때 event recorder가 로그를 덮는 걸 막는 장치다.
+예외 하나. `IgnoreDebugEvents` sink가 **`events` 서브로거의 `V(1)`을 무조건 드롭합니다**(`logging.go:96-119`) — 스케일아웃 때 event recorder가 로그를 덮는 걸 막는 장치입니다.
 
 ### 5.1 판정 로그 — debug에서만 나온다
 
@@ -195,9 +195,9 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 | `stopping multi-node consolidation after timeout` | 마지막 유효 커맨드 |
 | `abandoning empty node consolidation attempt due to pod churn` | 파드가 들어와 무효가 됨 |
 
-`consolidation score`의 필드가 특히 촘촘하다 — `score`·`savings_fraction`·`disruption_fraction`·`threshold`·`k`·`approved`·`candidates`가 전부 붙는다. [06 §1]({{< relref "06-consolidation-traps.md" >}})의 부등식을 실제 값으로 확인하려면 이 한 줄이면 된다.
+`consolidation score`의 필드가 특히 촘촘합니다 — `score`·`savings_fraction`·`disruption_fraction`·`threshold`·`k`·`approved`·`candidates`가 전부 붙습니다. [06 §1]({{< relref "06-consolidation-traps.md" >}})의 부등식을 실제 값으로 확인하려면 이 한 줄이면 됩니다.
 
-실제로 무언가를 지울 때는 info로 나온다 — `disrupting node(s)`가 `command` 필드와 함께 찍힌다.
+실제로 무언가를 지울 때는 info로 나옵니다 — `disrupting node(s)`가 `command` 필드와 함께 찍힙니다.
 
 ### 5.2 스케줄 실패
 
@@ -211,24 +211,24 @@ rate(karpenter_nodeclaims_disrupted_total[30m])
 | `relaxing soft constraints for pod since it previously failed to schedule` | debug |
 | `scheduling simulation timed out` | debug |
 
-가운데 둘은 **경고 성격이지만 Info로 나온다.** "통합이 안 된다"의 원인인데 info 볼륨에 묻혀 놓치기 쉽다. 각각 최대 10개 파드를 샘플로 찍는다.
+가운데 둘은 **경고 성격이지만 Info로 나옵니다.** "통합이 안 됩니다"의 원인인데 info 볼륨에 묻혀 놓치기 쉽습니다. 각각 최대 10개 파드를 샘플로 찍습니다.
 
-`node limits have been exhausted for nodepool`과 `all available instance types exceed limits for nodepool`은 **로그가 아니라 에러 문자열**이다. `could not schedule pod`의 err 필드와 `FailedScheduling` 이벤트 메시지로만 보인다.
+`node limits have been exhausted for nodepool`과 `all available instance types exceed limits for nodepool`은 **로그가 아니라 에러 문자열**입니다. `could not schedule pod`의 err 필드와 `FailedScheduling` 이벤트 메시지로만 보입니다.
 
 ### 5.3 런치 실패 — 같은 문자열, 다른 원인
 
-**ICE와 NodeClass 미준비가 똑같이 `failed launching nodeclaim`으로 찍힌다**(`launch.go:87`과 `:99`). 로그 문자열만으로는 구분되지 않는다. 가르려면 메트릭을 봐야 한다.
+**ICE와 NodeClass 미준비가 똑같이 `failed launching nodeclaim`으로 찍힙니다**(`launch.go:87`과 `:99`). 로그 문자열만으로는 구분되지 않습니다. 가르려면 메트릭을 봐야 합니다.
 
 ```promql
 karpenter_nodeclaims_disrupted_total{reason="insufficient_capacity"}   # ICE
 karpenter_nodeclaims_disrupted_total{reason="nodeclass_not_ready"}     # EC2NodeClass
 ```
 
-`CreateFleet`이나 `InsufficientInstanceCapacity` 같은 AWS 원문 문자열은 **코어에 없다.** 코어는 에러 타입만 정의하고(`cloudprovider/types.go:619-707`) 실제 매핑은 provider-aws가 한다.
+`CreateFleet`이나 `InsufficientInstanceCapacity` 같은 AWS 원문 문자열은 **코어에 없습니다.** 코어는 에러 타입만 정의하고(`cloudprovider/types.go:619-707`) 실제 매핑은 provider-aws가 합니다.
 
 ## 6. 이벤트
 
-`kubectl get events`로 보는 것들이다. Reason 기준으로 필터링한다.
+`kubectl get events`로 보는 것들입니다. Reason 기준으로 필터링합니다.
 
 ```bash
 kubectl get events -A --field-selector reason=DisruptionBlocked
@@ -256,7 +256,7 @@ kubectl get events -A --field-selector reason=Unconsolidatable
 
 ### 6.1 dedupe 창 때문에 카운트를 빈도로 읽으면 안 된다
 
-이벤트마다 중복 억제 창이 다르다 — 기본 2분에 예외가 셋이다.
+이벤트마다 중복 억제 창이 다릅니다 — 기본 2분에 예외가 셋입니다.
 
 | Reason | 창 |
 |---|---|
@@ -266,25 +266,25 @@ kubectl get events -A --field-selector reason=Unconsolidatable
 | `NoCompatibleInstanceTypes` · NodePool `DisruptionBlocked` | 1분 |
 | 그 외 | 2분 |
 
-[08 §4.2]({{< relref "08-disruption-budgets.md" >}})의 `x297 over 8h`가 "8시간에 297번"으로 읽히는 것은 그 이벤트의 창이 1분이기 때문이다. `Unconsolidatable`을 같은 방식으로 읽으면 실제 발생의 15분의 1만 보게 된다.
+[08 §4.2]({{< relref "08-disruption-budgets.md" >}})의 `x297 over 8h`가 "8시간에 297번"으로 읽히는 것은 그 이벤트의 창이 1분이기 때문입니다. `Unconsolidatable`을 같은 방식으로 읽으면 실제 발생의 15분의 1만 보게 됩니다.
 
-`Nominated`에는 dedupe 외에 **rate limiter**도 걸려 있다(5qps, burst 10). 대규모 스케일아웃에서는 일부가 아예 방출되지 않는다.
+`Nominated`에는 dedupe 외에 **rate limiter**도 걸려 있습니다(5qps, burst 10). 대규모 스케일아웃에서는 일부가 아예 방출되지 않습니다.
 
 ## 7. 소스에서 확인한 이상 징후 넷
 
-문서가 아니라 코드를 읽어야만 보이는 것들이다.
+문서가 아니라 코드를 읽어야만 보이는 것들입니다.
 
-**① 정의만 있고 방출되지 않는 이벤트가 셋이다.** `NodeClassNotReady`(`nodeclaim/lifecycle/events.go:38`), NodePool용 `DisruptionBlocked` 변형(`disruption/events/events.go:128`), `TerminationFailed` 상수 — 호출처가 0건이다. 알림 룰을 이 Reason으로 걸면 영원히 안 울린다.
+**① 정의만 있고 방출되지 않는 이벤트가 셋입니다.** `NodeClassNotReady`(`nodeclaim/lifecycle/events.go:38`), NodePool용 `DisruptionBlocked` 변형(`disruption/events/events.go:128`), `TerminationFailed` 상수 — 호출처가 0건입니다. 알림 룰을 이 Reason으로 걸면 영원히 안 울립니다.
 
-**② `NodeRepairBlocked`는 전부 Node에 달린다.** Node·NodeClaim·NodePool 각각에 남기려는 의도로 보이나 `InvolvedObject`가 셋 다 `node`다(`node/health/events.go:28-55`). **`--field-selector involvedObject.kind=NodePool`로는 안 잡힌다.**
+**② `NodeRepairBlocked`는 전부 Node에 달립니다.** Node·NodeClaim·NodePool 각각에 남기려는 의도로 보이나 `InvolvedObject`가 셋 다 `node`입니다(`node/health/events.go:28-55`). **`--field-selector involvedObject.kind=NodePool`로는 안 잡힙니다.**
 
-**③ Reason 레지스트리를 우회하는 이벤트가 넷 있다.** `AwaitingVolumeDetachment`·`InvalidDoNotDisruptAnnotation`·`DoNotDisruptUntil`·`DoNotDisruptGracePeriodElapsed`는 `pkg/events/reason.go`의 상수가 아니라 인라인 문자열이다. 상수 목록만 보고 알림을 짜면 이 넷이 빠진다.
+**③ Reason 레지스트리를 우회하는 이벤트가 넷 있습니다.** `AwaitingVolumeDetachment`·`InvalidDoNotDisruptAnnotation`·`DoNotDisruptUntil`·`DoNotDisruptGracePeriodElapsed`는 `pkg/events/reason.go`의 상수가 아니라 인라인 문자열입니다. 상수 목록만 보고 알림을 짜면 이 넷이 빠집니다.
 
-**④ `consolidation_timeouts_total`은 0으로 시딩된다.** `multi`·`single` 두 라벨이 `init()`에서 미리 0으로 등록되므로(`disruption/metrics.go:35-38`) **메트릭이 없는 것과 0인 것이 구분된다.** `absent()` 기반 알림을 쓸 필요가 없다.
+**④ `consolidation_timeouts_total`은 0으로 시딩됩니다.** `multi`·`single` 두 라벨이 `init()`에서 미리 0으로 등록되므로(`disruption/metrics.go:35-38`) **메트릭이 없는 것과 0인 것이 구분됩니다.** `absent()` 기반 알림을 쓸 필요가 없습니다.
 
 ## 8. 근거
 
-`kubernetes-sigs/karpenter` **v1.14.0-6-gac7a021e** 로컬 체크아웃 기준이다. 상대 경로는 레포 루트.
+`kubernetes-sigs/karpenter` **v1.14.0-6-gac7a021e** 로컬 체크아웃 기준입니다. 상대 경로는 레포 루트.
 
 - **전량임의 근거** — `opmetrics.NewPrometheus*` 선언 60건(테스트 제외), `promauto`·`MustRegister` 직접 호출 **0건**
 - **이름 조립** — `pkg/metrics/constants.go:27`(Namespace), `pkg/metrics/metrics.go:28`(Subsystem)
@@ -300,4 +300,4 @@ kubectl get events -A --field-selector reason=Unconsolidatable
 - **이벤트 구조·dedupe** — `pkg/events/recorder.go:30-38, 56, 72-87`, Reason 상수 `pkg/events/reason.go:22-52`
 - **에러 타입** — `pkg/cloudprovider/types.go:619-707`
 
-**확인하지 못한 것** — provider-aws와 operatorpkg 체크아웃이 없어 `karpenter_cloudprovider_instance_type_offering_*` 계열과 `operator_status_condition_*`의 정확한 이름·라벨은 열거하지 못했다. 실제 EKS의 `/metrics`에는 이 문서의 60개보다 많이 나온다.
+**확인하지 못한 것** — provider-aws와 operatorpkg 체크아웃이 없어 `karpenter_cloudprovider_instance_type_offering_*` 계열과 `operator_status_condition_*`의 정확한 이름·라벨은 열거하지 못했습니다. 실제 EKS의 `/metrics`에는 이 문서의 60개보다 많이 나옵니다.

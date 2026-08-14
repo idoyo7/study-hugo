@@ -1,5 +1,5 @@
 {
-  "caption": "같은 워크로드가 classic과 native에서 다르게 기동·종료한다. 핵심은 istio-init의 위치다 — classic은 initContainers 마지막이라 사용자 init이 메시를 우회하고, native는 맨 앞이라 메시 안으로 들어온다",
+  "caption": "같은 워크로드가 classic과 native에서 다르게 기동·종료합니다. 핵심은 istio-init의 위치입니다 — classic은 initContainers 마지막이라 사용자 init이 메시를 우회하고, native는 맨 앞이라 메시 안으로 들어옵니다",
   "participants": [
     {
       "id": "K",

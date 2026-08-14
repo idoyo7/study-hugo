@@ -1,5 +1,5 @@
 {
-  "caption": "장애 지점은 두 구간으로 갈린다 — ① Envoy↔pilot-agent는 Pod 내부 UDS라 거의 실패하지 않고, 이번에 깨진 곳은 Kubernetes DNS와 network를 거치는 ② 구간이다.",
+  "caption": "장애 지점은 두 구간으로 갈립니다 — ① Envoy↔pilot-agent는 Pod 내부 UDS라 거의 실패하지 않고, 이번에 깨진 곳은 Kubernetes DNS와 network를 거치는 ② 구간입니다.",
   "nodes": [
     {
       "id": "envoy",

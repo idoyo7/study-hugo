@@ -14,13 +14,13 @@ aliases: ["/monitoring/longterm-retention/02-option-a-vm-archive/"]
 - **가역적** — RW#4를 Thanos Receive로 교체하면 Thanos안으로 전환된다. 드라이런 2주로 집계 축소율(f)을 실측한 뒤 확정한다.
 {{< /callout >}}
 
-기존 chain 라우터 vmagent에 remoteWrite 하나(RW#4)를 더하고, 그 URL에만 5m 스트림 집계를 걸어 전 메트릭을 별도 vmsingle-archive(400d, VM OSS만)로 흘려보내는 권장안이다. 신규 기술 0, 월 저장비 $385~416, 단순 확장안 대비 약 70% 절감을 얻는다.
+기존 chain 라우터 vmagent에 remoteWrite 하나(RW#4)를 더하고, 그 URL에만 5m 스트림 집계를 걸어 전 메트릭을 별도 vmsingle-archive(400d, VM OSS만)로 흘려보내는 권장안입니다. 신규 기술 0, 월 저장비 $385~416, 단순 확장안 대비 약 70% 절감을 얻습니다.
 
 > 관련 문서: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [07 streamAggr vs downsampling]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
 
 ## 한 줄 요약
 
-per-URL 스트림 집계(streamAggr, OSS)로 **전 메트릭을 5m 해상도로 치환**해서 별도 vmsingle(`-retentionPeriod=400d`, RF1, 저가 EBS)에 적재한다. 라우터 vmagent 패턴에 RW#4 하나를 추가하는 것 외에 새로 배우거나 배포할 스택이 없다. streamAggr·vmagent 파이프라인의 개념은 VM 챕터의 [03 인제스트]({{< relref "../victoriametrics/concepts/03-ingestion.md" >}}), vmsingle의 저장·압축은 [04 저장·압축]({{< relref "../victoriametrics/concepts/04-storage-and-compression.md" >}})을 참조한다.
+per-URL 스트림 집계(streamAggr, OSS)로 **전 메트릭을 5m 해상도로 치환**해서 별도 vmsingle(`-retentionPeriod=400d`, RF1, 저가 EBS)에 적재합니다. 라우터 vmagent 패턴에 RW#4 하나를 추가하는 것 외에 새로 배우거나 배포할 스택이 없습니다. streamAggr·vmagent 파이프라인의 개념은 VM 챕터의 [03 인제스트]({{< relref "../victoriametrics/concepts/03-ingestion.md" >}}), vmsingle의 저장·압축은 [04 저장·압축]({{< relref "../victoriametrics/concepts/04-storage-and-compression.md" >}})을 참조합니다.
 
 ## 아키텍처
 
@@ -37,11 +37,11 @@ per-URL 스트림 집계(streamAggr, OSS)로 **전 메트릭을 5m 해상도로 
 Grafana: DS#1 vmselect(≤90d raw) / DS#2 vmsingle-archive(>90d, 5m)
 ```
 
-집계는 **RW#4에만** 걸리므로 hot(RW#1) raw는 그대로 90d 유지된다. hot이 최근 장애의 golden window를 담당하고, 아카이브는 >90d 추세·수준 비교를 담당하는 2계층 구조다.
+집계는 **RW#4에만** 걸리므로 hot(RW#1) raw는 그대로 90d 유지됩니다. hot이 최근 장애의 golden window를 담당하고, 아카이브는 >90d 추세·수준 비교를 담당하는 2계층 구조입니다.
 
 ## 핵심 설정 (검증된 필드만)
 
-전 메트릭을 접미사 regex 2규칙으로 배타 커버한다 — 카운터류는 `total`, 나머지 게이지는 `avg`. 두 규칙 모두 `keep_metric_names: true`라 원래 메트릭 이름이 보존된다.
+전 메트릭을 접미사 regex 2규칙으로 배타 커버합니다 — 카운터류는 `total`, 나머지 게이지는 `avg`. 두 규칙 모두 `keep_metric_names: true`라 원래 메트릭 이름이 보존됩니다.
 
 ```yaml
 # 라우터 VMAgent — RW#4
@@ -77,7 +77,7 @@ spec:
 
 ## 비용
 
-시나리오 ②(raw 90d + 전 메트릭 5m 집계 400d) 기준. 아카이브 저장량은 `δ × 400d × f`로 산출하며, f(집계 축소율)는 드라이런 실측 확정 대상이다.
+시나리오 ②(raw 90d + 전 메트릭 5m 집계 400d) 기준. 아카이브 저장량은 `δ × 400d × f`로 산출하며, f(집계 축소율)는 드라이런 실측 확정 대상입니다.
 
 ```
 아카이브 = δ × 400d × f × 단가
@@ -94,7 +94,7 @@ spec:
 
 + 선택: vmbackup S3-IA 콜드 사본 $12~37/mo.
 
-핵심은 **단순 확장안($1,642/mo) 대비 약 70% 절감**이라는 점이다. 확장안이 비싼 이유(gp3 단가 × RF2)는 [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}})에서, 4안 종합 비용표·판단 트리는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})에서, 서울 리전 단가 상세는 [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}})에서 다룬다.
+핵심은 **단순 확장안($1,642/mo) 대비 약 70% 절감**이라는 점입니다. 확장안이 비싼 이유(gp3 단가 × RF2)는 [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}})에서, 4안 종합 비용표·판단 트리는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})에서, 서울 리전 단가 상세는 [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}})에서 다룹니다.
 
 ## 강점과 리스크
 
@@ -113,11 +113,11 @@ spec:
 - **전 메트릭 집계 상태만큼 라우터 vmagent 메모리 증가** — 활성 시리즈 수에 비례한다. 사이징 실측 필요(검증 필요).
 - **RF1(아카이브 이중화 없음)** — vmbackup 주기 백업으로 보완한다. vmbackup/vmrestore·무중단 운영은 VM 챕터 [07 대규모 운영]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}}) 참조.
 
-streamAggr(사전 확정, 재계산 불가) vs Thanos downsampling(사후 재계산 가능, 공간 절감 없음)의 축별 비교와 "이 건에서 성립하는 대체"라는 판정 근거는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})에 있다.
+streamAggr(사전 확정, 재계산 불가) vs Thanos downsampling(사후 재계산 가능, 공간 절감 없음)의 축별 비교와 "이 건에서 성립하는 대체"라는 판정 근거는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})에 있습니다.
 
 ## 가역성 (탈출구)
 
-이 구조는 가역적이다. **RW#4는 언제든 Thanos Receive로 갈아끼울 수 있고**, 그렇게 하면 그대로 [03 Thanos안]({{< relref "03-thanos-s3.md" >}})으로 전환된다. 드라이런 실측에서 f가 예상을 크게 벗어나거나 "확정 집계가 재조사에 부족"이 드러나면 그 시점에 재평가하면 된다 — 즉 VM 아카이브안 채택이 Thanos안을 영구 배제하지 않는다.
+이 구조는 가역적입니다. **RW#4는 언제든 Thanos Receive로 갈아끼울 수 있고**, 그렇게 하면 그대로 [03 Thanos안]({{< relref "03-thanos-s3.md" >}})으로 전환됩니다. 드라이런 실측에서 f가 예상을 크게 벗어나거나 "확정 집계가 재조사에 부족"이 드러나면 그 시점에 재평가하면 됩니다 — 즉 VM 아카이브안 채택이 Thanos안을 영구 배제하지 않습니다.
 
 ## 롤아웃
 
@@ -128,7 +128,7 @@ streamAggr(사전 확정, 재계산 불가) vs Thanos downsampling(사후 재계
 5. (선택) vmctl로 기존 80d raw 시드 [검증 필요].
 6. hot retention 80d→90d 상향(+$41/mo) — 아카이브 검증 전까지 hot 축소 금지.
 
-**모니터링**: RW#4의 `vmagent_remotewrite_pending_data_bytes`, 라우터 vmagent 메모리, vmsingle 디스크 증가율. 진행 전 실측 항목 전체 목록은 [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})에 정리돼 있다.
+**모니터링**: RW#4의 `vmagent_remotewrite_pending_data_bytes`, 라우터 vmagent 메모리, vmsingle 디스크 증가율. 진행 전 실측 항목 전체 목록은 [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})에 정리돼 있습니다.
 
 ## 출처
 

@@ -1,5 +1,5 @@
 {
-  "caption": "Reason과 Decision은 다른 축이다. Empty만 판별 없이 삭제로 고정된다",
+  "caption": "Reason과 Decision은 다른 축입니다. Empty만 판별 없이 삭제로 고정됩니다",
   "nodes": [
     { "id": "E", "col": 0, "row": 0, "label": "Empty", "sub": "빈 노드", "kind": "src" },
     { "id": "DR", "col": 0, "row": 1, "label": "Drifted", "sub": "스펙과 어긋난 노드", "kind": "src" },

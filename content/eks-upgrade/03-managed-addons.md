@@ -13,7 +13,7 @@ weight: 4
 - vpc-cni는 노드 join **전에 반드시 먼저** 설치해야 하는 유일한 hard 선행 의존이다.
 {{< /callout >}}
 
-클러스터 껍데기를 [02 클러스터 설정]({{< relref "02-cluster-config.md" >}})이 다뤘다면, 이 페이지는 그 위에 올라가는 **EKS managed addon 5종**(SSOT는 CAPI 스펙의 `addons[]` 4종 + 콘솔 설치 이력이 있는 amazon-cloudwatch-observability)의 버전과 성격을 다룬다. green은 in-place로 1.31까지 올라와 있지만 blue는 목표값으로 **직행 create**하므로 green의 현재 addon 값은 이관에 직접 쓰이지 않는다. 아래는 목표 1.35 기준이다.
+클러스터 껍데기를 [02 클러스터 설정]({{< relref "02-cluster-config.md" >}})이 다뤘다면, 이 페이지는 그 위에 올라가는 **EKS managed addon 5종**(SSOT는 CAPI 스펙의 `addons[]` 4종 + 콘솔 설치 이력이 있는 amazon-cloudwatch-observability)의 버전과 성격을 다룹니다. green은 in-place로 1.31까지 올라와 있지만 blue는 목표값으로 **직행 create**하므로 green의 현재 addon 값은 이관에 직접 쓰이지 않습니다. 아래는 목표 1.35 기준입니다.
 
 ## 1. 버전 diff (1.35 기준)
 
@@ -25,13 +25,13 @@ weight: 4
 | **aws-ebs-csi-driver** | 당일 describe(`v1.62.0-eksbuild.1`) | 권장. ⚠️ **IRSA 필수·스펙에 없음**(§4) |
 | **amazon-cloudwatch-observability** | 당일 describe(1.35) | 신규 클러스터 **필수 설치**(하단 참고) |
 
-vpc-cni는 version-agnostic이라 성격상 권장이지만, 노드 join 전에 반드시 먼저 설치해야 하는 유일한 hard 선행 의존이다. ebs-csi도 version-agnostic이나 controller를 karpenter system 풀로 재타깃하고 `arch=arm64` toleration을 유지해야 하며(그 config 값은 [02]({{< relref "02-cluster-config.md" >}})가 갖고 있다), IRSA 롤이 스펙에 없다는 점이 최대 리스크다(§4). amazon-cloudwatch-observability는 신규 클러스터에 반드시 설치해야 하며(누락 시 관측 공백), CloudWatch agent IRSA가 필요하다.
+vpc-cni는 version-agnostic이라 성격상 권장이지만, 노드 join 전에 반드시 먼저 설치해야 하는 유일한 hard 선행 의존입니다. ebs-csi도 version-agnostic이나 controller를 karpenter system 풀로 재타깃하고 `arch=arm64` toleration을 유지해야 하며(그 config 값은 [02]({{< relref "02-cluster-config.md" >}})가 갖고 있습니다), IRSA 롤이 스펙에 없다는 점이 최대 리스크입니다(§4). amazon-cloudwatch-observability는 신규 클러스터에 반드시 설치해야 하며(누락 시 관측 공백), CloudWatch agent IRSA가 필요합니다.
 
-config 스키마는 신 버전에서도 제거·리네임된 키가 없어 그대로 유효하다. 단 Fargate 방향 때문에 **값 자체는 바뀐다**(coredns의 `computeType: Fargate`·affinity 제거, ebs-csi의 system 풀 재타깃) — 그 값 변경의 단일 소유는 [02 클러스터 설정]({{< relref "02-cluster-config.md" >}}) §5다.
+config 스키마는 신 버전에서도 제거·리네임된 키가 없어 그대로 유효합니다. 단 Fargate 방향 때문에 **값 자체는 바뀝니다**(coredns의 `computeType: Fargate`·affinity 제거, ebs-csi의 system 풀 재타깃) — 그 값 변경의 단일 소유는 [02 클러스터 설정]({{< relref "02-cluster-config.md" >}}) §5입니다.
 
 ## 2. 성격 구분 — coredns 하드blocking · kube-proxy 버전락 · vpc-cni/ebs-csi version-agnostic
 
-네 addon은 업그레이드 압박의 성격이 전혀 다르다. 이 구분을 놓치면 "전부 최신으로 올리면 된다"는 단순화로 위험도를 오판한다.
+네 addon은 업그레이드 압박의 성격이 전혀 다릅니다. 이 구분을 놓치면 "전부 최신으로 올리면 된다"는 단순화로 위험도를 오판합니다.
 
 - **coredns — 유일한 하드 blocking.** k8s 버전별 addon 카탈로그에서 coredns만 마이너 경계에서 서빙 라인이 완전히 바뀐다(1.30~1.32=v1.11.x / 1.33=v1.12.x / 1.34=v1.13.x / **1.35=1.36 공용=v1.14.3-eksbuild.3**). 즉 1.35 클러스터엔 v1.14.x가 최소이자 필수다. finance는 Corefile을 커스터마이즈하지 않고 replicaCount·affinity·tolerations·topologySpread만 설정하므로 업스트림 Corefile 파괴적 변경은 영향이 없다. 다만 finance는 `topologySpreadConstraints`를 `DoNotSchedule`로 override하고 있어 replicaCount 2 + maxSkew 1 조합에서 **대상 노드가 2 AZ에 각각** 있어야 두 번째 replica가 Pending되지 않는다. addon 업데이트가 PDB를 자동 배치하는데 기존 PDB가 있으면 실패할 수 있어 conflict resolution을 `overwrite`로 두는 편이 안전하다.
 - **kube-proxy — 컨트롤플레인 버전락.** 컨트롤플레인 버전을 초과할 수 없고 최대 3마이너 뒤까지만 허용된다. 1.35 CP엔 v1.35.x가 필수라 신규 클러스터는 v1.35.3-eksbuild.13으로 직접 create한다. config가 없어 기본값으로 동작하므로 파괴적 config 변경은 해당 없음.
@@ -40,7 +40,7 @@ config 스키마는 신 버전에서도 제거·리네임된 키가 없어 그�
 
 ## 3. kube-proxy nftables (정정)
 
-2026-07-21 라이브 재확인 결과를 정정본으로 못박는다.
+2026-07-21 라이브 재확인 결과를 정정본으로 못박습니다.
 
 - **기본값은 여전히 iptables다.** upstream 1.35/1.36 모두 기본 프록시 모드는 iptables이고, nftables는 1.33에서 GA됐을 뿐 default 전환 계획이 없다 — 쓰려면 명시 설정해야 한다.
 - **EKS kube-proxy managed addon도 기본값 iptables.** 다만 `configurationSchema`의 `mode` enum에 `nftables`가 addon **v1.31 계열부터** 포함됐다(1.30 계열엔 없다). 1.33~1.36 전 구간 최신 addon은 `mode` enum이 `["iptables","ipvs","nftables"]`로 확인된다(`aws eks describe-addon-configuration` 직접 확인).
@@ -54,21 +54,21 @@ config 스키마는 신 버전에서도 제거·리네임된 키가 없어 그�
     --resolve-conflicts OVERWRITE
   ```
 
-  신규 생성 시에는 `create-addon`에 동일한 `--configuration-values`를 넘긴다.
+  신규 생성 시에는 `create-addon`에 동일한 `--configuration-values`를 넘깁니다.
 - **커널 요구사항**: 5.13+. AL2023은 6.x 커널이라 조건을 충족한다.
 - **IPVS 서술 정정**: 1.35에서 deprecated된 것은 맞지만 **"1.36에서 제거"는 부정확**하다. 실제 코드 삭제는 KEP-5495 기준 **~v1.43** 예정이며(1.37 feature gate → 1.40 default off → 1.43 삭제), 1.35·1.36 어느 쪽에서도 IPVS는 deprecated 경고와 함께 여전히 동작한다. 즉 nftables 전환은 강제가 아니라 성능·권장 사유로 고르는 선택이다.
 - **주의 두 가지**: AWS `best-practices/ipvs.html` 본문은 stale하다 — 상단 경고 박스(1.33 GA·1.35 deprecated 명시)만 신뢰한다. 그리고 **VPC CNI × nftables 상호작용은 1차 소스로 확인되지 않은 unknown 영역**이라, 전체 적용 전에 **카나리 노드로 먼저 검증**하는 것을 권장한다.
 
 ## 4. ebs-csi IRSA — addon 연결·PVC 검증
 
-ebs-csi addon은 IAM 롤(`ebs-csi-controller-sa`)이 반드시 필요한데 finance 스펙에는 SA-Role이 없다. 미설정으로 두면 PVC 생성 시 `UnauthorizedOperation`이 떨어지며 동적 프로비저닝이 전면 실패한다. **롤 자체(IRSA 리소스 + `AmazonEBSCSIDriverPolicyV2`)를 만드는 것은 [02 클러스터 설정]({{< relref "02-cluster-config.md" >}}) §10의 소관**이고, 이 페이지는 그 롤을 addon에 **연결하고 검증**하는 두 가지를 다룬다.
+ebs-csi addon은 IAM 롤(`ebs-csi-controller-sa`)이 반드시 필요한데 finance 스펙에는 SA-Role이 없습니다. 미설정으로 두면 PVC 생성 시 `UnauthorizedOperation`이 떨어지며 동적 프로비저닝이 전면 실패합니다. **롤 자체(IRSA 리소스 + `AmazonEBSCSIDriverPolicyV2`)를 만드는 것은 [02 클러스터 설정]({{< relref "02-cluster-config.md" >}}) §10의 소관**이고, 이 페이지는 그 롤을 addon에 **연결하고 검증**하는 두 가지를 다룹니다.
 
 - **연결**: create/update-addon 시 `--service-account-role-arn`에 신규 OIDC로 wiring된 IRSA 롤 ARN을 주입한다. 롤이 addon 설치 시점에 이미 존재하고 신규 OIDC로 바인딩까지 끝나 있어야 이 플래그가 의미를 가진다. 롤 없이 addon만 먼저 설치하면 "설치는 성공했는데 PVC가 하나도 안 붙는" 상태로 조용히 넘어간다.
 - **검증**: gp3 테스트 PVC를 생성해 `Bound` 상태가 되는지 확인한다 — `UnauthorizedOperation`이 없다는 것이 IRSA 정상 wiring의 증거다. AL2023 노드의 IMDS hop limit이 2여야 하는 이유도 여기서 겹친다(IRSA 토큰 취득이 vpc-cni·ebs-csi 공통으로 이 홉 수에 의존).
 
 ## 5. config 재전달과 conflict resolution
 
-managed addon 갱신에서 자주 놓치는 함정은 "버전만 올리면 config는 유지된다"는 가정이다. 이번 이관은 CAPA를 신뢰할 수 없는 SSOT로 판정했으므로([배경]({{< relref "00-background.md" >}})) create/update-addon CLI를 authoritative로 삼고 **config를 매번 명시 재전달**하는 것을 원칙으로 한다.
+managed addon 갱신에서 자주 놓치는 함정은 "버전만 올리면 config는 유지됩니다"는 가정입니다. 이번 이관은 CAPA를 신뢰할 수 없는 SSOT로 판정했으므로([배경]({{< relref "00-background.md" >}})) create/update-addon CLI를 authoritative로 삼고 **config를 매번 명시 재전달**하는 것을 원칙으로 합니다.
 
 - **coredns**: `--configuration-values` 누락 시 affinity·tolerations·topologySpread가 미적용돼 대상 노드 밖으로 스케줄되거나 기본 PDB가 붙는다. 재전달은 옵션이 아니라 필수.
 - **ebs-csi**: 마찬가지로 `--configuration-values`를 재전달해야 controller 노드 타깃팅이 유지된다.
@@ -82,8 +82,8 @@ managed addon 갱신에서 자주 놓치는 함정은 "버전만 올리면 confi
 - **vpc-cni**: 노드 `Ready`, 신규 파드가 VPC IP 정상 수신.
 - **ebs-csi**: gp3 테스트 PVC `Bound`(§4).
 
-vpc-cni는 노드/Fargate join 전에 반드시 먼저 설치해야 하는 유일한 hard 선행 의존이다 — 없으면 노드가 Ready로 올라오지 않는다. 이 사실을 포함한 전체 설치 순서는 [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}})이 다룬다.
+vpc-cni는 노드/Fargate join 전에 반드시 먼저 설치해야 하는 유일한 hard 선행 의존입니다 — 없으면 노드가 Ready로 올라오지 않습니다. 이 사실을 포함한 전체 설치 순서는 [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}})이 다룹니다.
 
 ## 우리 케이스에서는
 
-다섯 addon 중 실제로 "판단이 필요한" 항목은 **ebs-csi 하나**다 — coredns는 라인이 이동하니 직행, kube-proxy는 버전락이라 선택의 여지가 없고, vpc-cni는 노드 join 전 최우선 순서만 지키면 된다. ebs-csi는 스펙에 IRSA 롤이 없다는 사실 자체가 눈에 잘 띄지 않아, [02]({{< relref "02-cluster-config.md" >}})의 롤 생성과 이 페이지의 연결·PVC 검증을 부트스트랩 체크리스트 최상단에 놓아야 한다.
+다섯 addon 중 실제로 "판단이 필요한" 항목은 **ebs-csi 하나**입니다 — coredns는 라인이 이동하니 직행, kube-proxy는 버전락이라 선택의 여지가 없고, vpc-cni는 노드 join 전 최우선 순서만 지키면 됩니다. ebs-csi는 스펙에 IRSA 롤이 없다는 사실 자체가 눈에 잘 띄지 않아, [02]({{< relref "02-cluster-config.md" >}})의 롤 생성과 이 페이지의 연결·PVC 검증을 부트스트랩 체크리스트 최상단에 놓아야 합니다.

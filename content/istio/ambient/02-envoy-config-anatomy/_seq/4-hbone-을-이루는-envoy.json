@@ -1,5 +1,5 @@
 {
-  "caption": "HBONE 터널이 서는 순서 — 목적지는 EDS가 아니라 다운스트림 커넥션 메타데이터에서 나오고, waypoint 유무가 그 목적지를 한 번 더 갈아끼운다.",
+  "caption": "HBONE 터널이 서는 순서 — 목적지는 EDS가 아니라 다운스트림 커넥션 메타데이터에서 나오고, waypoint 유무가 그 목적지를 한 번 더 갈아끼웁니다.",
   "participants": [
     {
       "id": "GW",

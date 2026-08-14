@@ -1,5 +1,5 @@
 {
-  "caption": "클러스터 이름은 하나인데 endpoint 메타데이터가 세 갈래로 가른다 — 갈림길을 고르는 건 transport_socket_match다.",
+  "caption": "클러스터 이름은 하나인데 endpoint 메타데이터가 세 갈래로 가릅니다 — 갈림길을 고르는 건 transport_socket_match입니다.",
   "nodes": [
     {
       "id": "ep",

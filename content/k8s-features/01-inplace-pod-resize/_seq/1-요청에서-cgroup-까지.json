@@ -1,5 +1,5 @@
 {
-  "caption": "resize 요청의 생애주기 — spec은 즉시 바뀌고, kubelet이 수락 여부를 판정한 뒤 cgroup을 '커지는 쪽 먼저' 순서로 반영한다",
+  "caption": "resize 요청의 생애주기 — spec은 즉시 바뀌고, kubelet이 수락 여부를 판정한 뒤 cgroup을 '커지는 쪽 먼저' 순서로 반영합니다",
   "participants": [
     {
       "id": "cli",

@@ -6,9 +6,9 @@ aliases: ["/hyperdx-operating/03-availability/", "/hyperdx/operating/03-availabi
 
 # operator 토폴로지·다운타임 — EBS 재부착이 바꾸는 복구 모델
 
-[operator 선택]({{< relref "../../clickhouse/03-operator.md" >}})이 "어느 operator를 쓸지"를, [배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})이 CHI/CHK 매니페스트 필드·RF 선택 확률·`insert_quorum` 주입 위치를, [operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이 스케일 in/out 함정·롤링 업그레이드 순서·CRD 삭제 금지를 이미 깊게 다뤘다. 이 페이지는 그것들을 반복하지 않고, **전제 스토리지를 EBS(gp3/io2)로 바꿨을 때 다운타임 프로파일이 어떻게 근본적으로 뒤집히는가** 한 축에만 집중한다. 필드 전수·스케일·업그레이드는 위 세 페이지로 위임하고, 여기서는 EBS 재부착 역학·시나리오별 다운타임·EBS 특유 함정만 본문으로 쓴다.
+[operator 선택]({{< relref "../../clickhouse/03-operator.md" >}})이 "어느 operator를 쓸지"를, [배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})이 CHI/CHK 매니페스트 필드·RF 선택 확률·`insert_quorum` 주입 위치를, [operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이 스케일 in/out 함정·롤링 업그레이드 순서·CRD 삭제 금지를 이미 깊게 다뤘습니다. 이 페이지는 그것들을 반복하지 않고, **전제 스토리지를 EBS(gp3/io2)로 바꿨을 때 다운타임 프로파일이 어떻게 근본적으로 뒤집히는가** 한 축에만 집중합니다. 필드 전수·스케일·업그레이드는 위 세 페이지로 위임하고, 여기서는 EBS 재부착 역학·시나리오별 다운타임·EBS 특유 함정만 본문으로 씁니다.
 
-**이 장은 "무엇이 죽었나"로 시작하는 사고 진입점이다.** 컴포넌트별 가용성 종합(역할·다운타임·HA·무손실·스케일 매트릭스, blast radius, 무손실 2트랙)은 전에 [스택 토폴로지]({{< relref "01-stack-topology.md" >}}) §7과 운영 트랙 가용성 페이지로 갈라져 있었는데, 원본과 파생이 동시에 존재하는 구조라 정정을 두 번 해야 했다. 지금은 그 축의 정본이 이 장 §1이고, 01은 배치·흐름·MongoDB 최소 배포 한 질문에만 답한다. 서사는 **무엇이 죽었나(§1 컴포넌트 축) → 어느 시나리오인가(§5 이벤트 축 S1~S9) → 무엇을 지켰나(§6 무손실 2트랙) → 어떻게 복구하나(§5.1 taint·reattach)** 순서로 읽는다. 두 축은 일부러 표를 따로 둔다 — 컴포넌트 축은 "무엇이 멈추나", 이벤트 축은 "어떤 사건에서 얼마나 걸리나"를 묻는 서로 다른 질문이고, 한 표로 융합하면 둘 다 못 읽는다.
+**이 장은 "무엇이 죽었나"로 시작하는 사고 진입점입니다.** 컴포넌트별 가용성 종합(역할·다운타임·HA·무손실·스케일 매트릭스, blast radius, 무손실 2트랙)은 전에 [스택 토폴로지]({{< relref "01-stack-topology.md" >}}) §7과 운영 트랙 가용성 페이지로 갈라져 있었는데, 원본과 파생이 동시에 존재하는 구조라 정정을 두 번 해야 했습니다. 지금은 그 축의 정본이 이 장 §1이고, 01은 배치·흐름·MongoDB 최소 배포 한 질문에만 답합니다. 서사는 **무엇이 죽었나(§1 컴포넌트 축) → 어느 시나리오인가(§5 이벤트 축 S1~S9) → 무엇을 지켰나(§6 무손실 2트랙) → 어떻게 복구하나(§5.1 taint·reattach)** 순서로 읽습니다. 두 축은 일부러 표를 따로 둡니다 — 컴포넌트 축은 "무엇이 멈추나", 이벤트 축은 "어떤 사건에서 얼마나 걸리나"를 묻는 서로 다른 질문이고, 한 표로 융합하면 둘 다 못 읽습니다.
 
 {{< callout type="info" >}}
 **한눈에**
@@ -25,15 +25,15 @@ aliases: ["/hyperdx-operating/03-availability/", "/hyperdx/operating/03-availabi
 
 ## 1. 무엇이 죽으면 무엇이 멈추나 — 컴포넌트 축
 
-이 절은 컴포넌트마다 (a)무슨 역할인지, (b)죽으면 무엇이 멈추는지, (c)HA·스케일이 가능한지, (d)데이터를 어떻게 무손실로 지키는지를 한 줄씩 맞춰 **가용성 한 장으로 종합**한다 `Σ`. 개별 메커니즘의 근거·매니페스트·시나리오는 아래 relref와 §5로 위임하고, 여기서는 **"어느 컴포넌트가 죽으면 관측이 어디까지 멈추나"** 라는 운영 판단만 세운다.
+이 절은 컴포넌트마다 (a)무슨 역할인지, (b)죽으면 무엇이 멈추는지, (c)HA·스케일이 가능한지, (d)데이터를 어떻게 무손실로 지키는지를 한 줄씩 맞춰 **가용성 한 장으로 종합**합니다 `Σ`. 개별 메커니즘의 근거·매니페스트·시나리오는 아래 relref와 §5로 위임하고, 여기서는 **"어느 컴포넌트가 죽으면 관측이 어디까지 멈추나"** 라는 운영 판단만 세웁니다.
 
-경계를 먼저 긋는다: 이 절은 **가용성 전제**만 종합하고, 각 컴포넌트를 실제로 **어떤 옵션으로 프로비저닝하나**(EBS hot/cold 스토리지·operator 노브·block-only 튜닝)는 [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}})·[S3 콜드 티어링]({{< relref "03-s3-cold-tiering.md" >}})·[블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}})과 이 장의 §2~§4가 잇는다. 즉 "무엇을 지켜야 하나"가 이 절, "어떻게 프로비저닝하나"가 그 뒤다.
+경계를 먼저 긋습니다: 이 절은 **가용성 전제**만 종합하고, 각 컴포넌트를 실제로 **어떤 옵션으로 프로비저닝하나**(EBS hot/cold 스토리지·operator 노브·block-only 튜닝)는 [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}})·[S3 콜드 티어링]({{< relref "03-s3-cold-tiering.md" >}})·[블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}})과 이 장의 §2~§4가 잇습니다. 즉 "무엇을 지켜야 하나"가 이 절, "어떻게 프로비저닝하나"가 그 뒤입니다.
 
 전제는 챕터 전체와 동일하다: RUM-only 월 0.7TB, EBS(gp3)-first, HyperDX Only(`clickhouse.enabled:false`) + Altinity CHI/CHK, 1 shard × RF2(2 AZ), Keeper 3노드(gp3·3 AZ), MongoDB 메타데이터 전용.
 
 ### 1.1 컴포넌트별 종합 매트릭스
 
-8열로는 폭 제약을 넘어서므로 속성별로 나눠 본다. 컴포넌트 순서는 모든 표에서 동일하다.
+8열로는 폭 제약을 넘어서므로 속성별로 나눠 봅니다. 컴포넌트 순서는 모든 표에서 동일합니다.
 
 **역할·상태·HA 방식**
 
@@ -77,7 +77,7 @@ aliases: ["/hyperdx-operating/03-availability/", "/hyperdx/operating/03-availabi
 
 ### 1.2 blast radius — 어디까지 번지나
 
-핵심 판단은 하나다: **관측 스택은 컴포넌트 하나가 죽어도 전체가 멎지 않도록 경계가 나뉘어 있다.**
+핵심 판단은 하나다: **관측 스택은 컴포넌트 하나가 죽어도 전체가 멎지 않도록 경계가 나뉘어 있습니다.**
 
 - **HyperDX app/api 다운** → UI·쿼리만. 브라우저 → Collector → CH 적재 경로는 그대로 흐른다(app은 조회 대면일 뿐 ingest 경로 밖).
 - **OTel Collector 다운** → 신규 ingest만 정지. `file_storage` 퍼시스턴트 큐가 있으면 in-flight를 디스크에 붙잡고 복귀 후 재개, 큐가 없으면 그 구간 이벤트만 유실.
@@ -86,20 +86,20 @@ aliases: ["/hyperdx-operating/03-availability/", "/hyperdx/operating/03-availabi
 - **Keeper 정족수 상실** → 쓰기(INSERT/DDL/머지) 정지, **읽기는 계속**. 데이터 노드가 멀쩡해도 조정 계층 과반 상실만으로 쓰기가 멈추는 유일한 지점이다.
 
 {{< callout type="warning" >}}
-광범위 정지는 이 둘뿐이다 `Σ`: **CH 전체 다운**(저장 원천)과 **Keeper 정족수 상실**(쓰기 경로). app/api·Collector·MongoDB 다운은 조회·수집 일부 또는 설정에 국한된다 — "하나가 죽으면 관측 전체가 멎는다"는 통념은 이 두 지점에만 해당한다.
+광범위 정지는 이 둘뿐입니다 `Σ`: **CH 전체 다운**(저장 원천)과 **Keeper 정족수 상실**(쓰기 경로). app/api·Collector·MongoDB 다운은 조회·수집 일부 또는 설정에 국한됩니다 — "하나가 죽으면 관측 전체가 멎는다"는 통념은 이 두 지점에만 해당합니다.
 {{< /callout >}}
 
-이벤트별로 얼마나 걸리고 무엇이 필요한지는 §5의 S1~S9가, 정족수 상실이 왜 read-only 전락으로 나타나는지는 [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}})가 이어받는다.
+이벤트별로 얼마나 걸리고 무엇이 필요한지는 §5의 S1~S9가, 정족수 상실이 왜 read-only 전락으로 나타나는지는 [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}})가 이어받습니다.
 
 ## 2. 전제 뒤집기 — EBS면 "노드=데이터" 결합이 끊긴다
 
-기존 corpus 전체([스토리지·로컬 NVMe]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}}), 배포·운영 페이지)는 로컬 NVMe(i7i/i8g) 전제 위에서 **"노드 유실 = 데이터 유실 = 재수화(전량 재전송) 이벤트"**를 반복한다. 재수화 시간 ≈ 노드당 데이터량 / 재복제 대역이고, RF2는 그 창 동안 실질 RF1로 떨어진다는 게 핵심 위험이었다(근거는 clickhouse/02·04) `✓`.
+기존 corpus 전체([스토리지·로컬 NVMe]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}}), 배포·운영 페이지)는 로컬 NVMe(i7i/i8g) 전제 위에서 **"노드 유실 = 데이터 유실 = 재수화(전량 재전송) 이벤트"**를 반복합니다. 재수화 시간 ≈ 노드당 데이터량 / 재복제 대역이고, RF2는 그 창 동안 실질 RF1로 떨어진다는 게 핵심 위험이었습니다(근거는 clickhouse/02·04) `✓`.
 
-**EBS-first는 이 인과 사슬의 첫 고리를 끊는다.** EBS 볼륨은 EC2 인스턴스와 독립된 네트워크 블록 스토리지라, 노드(인스턴스)가 사라져도 볼륨과 그 안의 데이터는 그대로 남는다 `✓`. Kubernetes/EBS CSI 관점에서 노드 유실은 "데이터 소실"이 아니라 **"볼륨을 죽은 노드에서 떼어(detach) 새 노드에 다시 붙이는(reattach) 작업"**이 된다 `✓`.
+**EBS-first는 이 인과 사슬의 첫 고리를 끊습니다.** EBS 볼륨은 EC2 인스턴스와 독립된 네트워크 블록 스토리지라, 노드(인스턴스)가 사라져도 볼륨과 그 안의 데이터는 그대로 남습니다 `✓`. Kubernetes/EBS CSI 관점에서 노드 유실은 "데이터 소실"이 아니라 **"볼륨을 죽은 노드에서 떼어(detach) 새 노드에 다시 붙이는(reattach) 작업"**이 됩니다 `✓`.
 
 {{< flow src="_flow/전제-뒤집기-ebs-면.json" />}}
 
-`*` 정확히는 reattach가 끝날 때까지 그 replica가 **일시 offline**이지 유실이 아니다. 데이터가 온전하므로 RF는 "감소"가 아니라 "일시 미가용"이고, catch-up은 Keeper 로그가 가리키는 밀린 파트(델타)만 fetch한다 — RMT가 로컬 파트 존재를 확인하고 누락분만 받는 표준 동작이라는 clickhouse/04 §무손실 지점의 EBS 귀결이다 `≈`. 다만 **reattach + CH startup(part-load) 실소요 시간은 hot 데이터량·파트 수에 좌우되며 아직 실측 전이다** `?`.
+`*` 정확히는 reattach가 끝날 때까지 그 replica가 **일시 offline**이지 유실이 아닙니다. 데이터가 온전하므로 RF는 "감소"가 아니라 "일시 미가용"이고, catch-up은 Keeper 로그가 가리키는 밀린 파트(델타)만 fetch합니다 — RMT가 로컬 파트 존재를 확인하고 누락분만 받는 표준 동작이라는 clickhouse/04 §무손실 지점의 EBS 귀결입니다 `≈`. 다만 **reattach + CH startup(part-load) 실소요 시간은 hot 데이터량·파트 수에 좌우되며 아직 실측 전입니다** `?`.
 
 | 축 | 로컬 NVMe | EBS gp3/io2 |
 |---|---|---|
@@ -110,23 +110,23 @@ aliases: ["/hyperdx-operating/03-availability/", "/hyperdx/operating/03-availabi
 | 2차 장애 노출 | 재수화 창 내내 (길다) | reattach 창만 (짧다) |
 | AZ 이동 | 데이터 없으니 어느 AZ든 새로 채움 | **같은 AZ만 reattach 가능(볼륨이 AZ-bound)** |
 
-**결론 `≈`**: 로컬 NVMe에서 "RF3·shard 수평 확장·On-Demand 강제"를 밀어붙인 이유의 상당 부분이 재수화 위험 창을 줄이려는 것이었다. EBS-first에서는 그 창이 애초에 짧으므로, 중소 규모(우리 RUM 0.7TB/월)에서는 **1 shard × RF2**가 훨씬 방어 가능한 기본값이 된다. 대신 EBS 고유의 새 위험 두 개 — **AZ-bound**와 **ungraceful death의 무한 Terminating** — 이 전면에 온다.
+**결론 `≈`**: 로컬 NVMe에서 "RF3·shard 수평 확장·On-Demand 강제"를 밀어붙인 이유의 상당 부분이 재수화 위험 창을 줄이려는 것이었습니다. EBS-first에서는 그 창이 애초에 짧으므로, 중소 규모(우리 RUM 0.7TB/월)에서는 **1 shard × RF2**가 훨씬 방어 가능한 기본값이 됩니다. 대신 EBS 고유의 새 위험 두 개 — **AZ-bound**와 **ungraceful death의 무한 Terminating** — 이 전면에 옵니다.
 
 ## 3. EBS는 AZ에 묶인다 — reattach의 숨은 전제
 
-EBS 볼륨은 **생성된 AZ에 물리적으로 고정**된다(zonal resource) `✓`. Kubernetes에서 이 볼륨을 감싼 PV는 `nodeAffinity`로 `topology.ebs.csi.aws.com/zone: <az>` 라벨을 달고, 이 제약은 **영구적**이다 `✓`.
+EBS 볼륨은 **생성된 AZ에 물리적으로 고정**됩니다(zonal resource) `✓`. Kubernetes에서 이 볼륨을 감싼 PV는 `nodeAffinity`로 `topology.ebs.csi.aws.com/zone: <az>` 라벨을 달고, 이 제약은 **영구적**입니다 `✓`.
 
 - **정상 바인딩은 `WaitForFirstConsumer`로** `✓`: 파드가 스케줄된 뒤 그 노드의 AZ에 볼륨을 프로비저닝해 topology mismatch를 피한다. `Immediate` 바인딩은 "compute는 az-b, storage는 az-a" 데드락(`1 node(s) had volume node affinity conflict`)을 유발한다. StorageClass 예제와 gp3/io2 스펙은 [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}})로 위임한다.
 - **reattach의 숨은 전제**: 죽은 노드의 파드를 재스케줄할 때, 그 PVC에 묶인 EBS 볼륨은 **같은 AZ의 노드로만** 붙을 수 있다 `✓`. 같은 AZ에 여유 노드가 없으면(또는 그 AZ가 통째로 죽었으면) 파드는 **Pending에 무한정 걸린다**. 즉 reattach는 "같은 AZ에 새 노드를 띄울 수 있다"는 전제 위에서만 자동 복구다.
 - **그래서 AZ 장애는 여전히 replica로만 방어된다**: EBS는 다른 AZ로 못 옮기므로, AZ 하나가 죽으면 그 AZ의 모든 replica·볼륨이 접근 불가가 되고, **다른 AZ에 걸친 replica(cross-AZ RF)**만이 클러스터를 살린다. 이 지점에서 EBS와 로컬 NVMe의 처방이 수렴한다 — "replica를 서로 다른 AZ에" 강제하는 anti-affinity + `topologySpreadConstraints`는 둘 다 필수다.
 
 {{< callout type="warning" >}}
-**정정 — "EBS면 replica 없이도 내구성 99.999%면 충분"은 기각** `✓`. io2 Block Express 99.999% durability는 **단일 볼륨의 데이터 소실 확률**일 뿐이다. replica가 방어하는 것은 그게 아니라 (a) **AZ 장애**(볼륨이 AZ에 묶여 못 옮김), (b) **노드/AZ 유지보수·급사 중 가용성**(볼륨은 살아도 그 replica는 수 분~무한 offline), (c) 볼륨 자체 장애(gp3 AFR ≤0.2% = 1,000볼륨당 연 2건 안팎) `✓`. RF는 EBS에서도 필수이되 **이유가 내구성에서 가용성·AZ 방어로 옮겨간다**.
+**정정 — "EBS면 replica 없이도 내구성 99.999%면 충분"은 기각** `✓`. io2 Block Express 99.999% durability는 **단일 볼륨의 데이터 소실 확률**일 뿐입니다. replica가 방어하는 것은 그게 아니라 (a) **AZ 장애**(볼륨이 AZ에 묶여 못 옮김), (b) **노드/AZ 유지보수·급사 중 가용성**(볼륨은 살아도 그 replica는 수 분~무한 offline), (c) 볼륨 자체 장애(gp3 AFR ≤0.2% = 1,000볼륨당 연 2건 안팎) `✓`. RF는 EBS에서도 필수이되 **이유가 내구성에서 가용성·AZ 방어로 옮겨갑니다**.
 {{< /callout >}}
 
 ### 3.1 EBS multi-attach로 replica를 대체할 수 없다
 
-**통념 기각 `✓`**: "io2 multi-attach로 한 볼륨을 여러 노드가 공유하면 replica가 필요 없다"는 CH에 성립하지 않는다.
+**통념 기각 `✓`**: "io2 multi-attach로 한 볼륨을 여러 노드가 공유하면 replica가 필요 없다"는 CH에 성립하지 않습니다.
 
 - multi-attach는 **io1/io2만**, **같은 AZ**, Nitro 최대 16 인스턴스.
 - **cluster-aware 파일시스템(GFS2/OCFS2)이나 자체 락킹(Oracle RAC류)**에서만 안전하다. CH가 쓰는 표준 XFS/ext4를 multi-attach로 동시 마운트하면 **데이터 손상**이 발생한다.
@@ -137,7 +137,7 @@ EBS 볼륨은 **생성된 AZ에 물리적으로 고정**된다(zonal resource) `
 
 ### 4.1 왜 1 shard × RF2 (또는 RF3)인가
 
-우리 워크로드는 RUM-only, prod 세션 샘플링 100% = **월 0.7TB**(사이징은 [용량 산정]({{< relref "07-capacity-planning.md" >}})으로 위임). 이 규모에서 shard는 용량·병렬성 문제가 아니라 **불필요한 복잡성**이다 `≈`.
+우리 워크로드는 RUM-only, prod 세션 샘플링 100% = **월 0.7TB**(사이징은 [용량 산정]({{< relref "07-capacity-planning.md" >}})으로 위임). 이 규모에서 shard는 용량·병렬성 문제가 아니라 **불필요한 복잡성**입니다 `≈`.
 
 - **shard는 데이터 수평 분할** → 용량·쓰기 처리량·스캔 병렬성. 0.7TB/월이면 hot 티어를 EBS 단일 볼륨(gp3·io2 BE 모두 최대 64 TiB `✓`)에 몇 년치를 담고도 남는다. shard를 늘리면 [자동 rebalance 없음·수동 리샤딩]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이라는 운영 부채만 생긴다.
 - **replica는 내구성·가용성** → 로컬 NVMe에선 "노드=데이터 유실 방어"였지만, EBS에선 위 §3대로 **AZ 방어 + 가용성**이 목적. RF2(2 AZ)면 AZ 1개 소실에도 다른 AZ replica가 서빙한다.
@@ -145,18 +145,18 @@ EBS 볼륨은 **생성된 AZ에 물리적으로 고정**된다(zonal resource) `
 **→ 기본 토폴로지: `shardsCount: 1`, `replicasCount: 2`, 2 AZ 분산. CHK 3노드는 3 AZ 분산.**
 
 ![멀티 AZ에 걸친 ClickHouse RF2 복제와 Keeper 3노드 쿼럼 배치, 그리고 AZ 한 개가 다운됐을 때의 동작을 정상·장애 두 패널로 정리한 그림](/images/hyperdx/availability-keeper-rf.svg)
-*멀티 AZ에 걸친 ClickHouse RF2 복제(ReplicatedMergeTree)와 Keeper 3노드 쿼럼의 배치, 그리고 AZ 하나가 다운돼도 남은 replica가 승격 없이 read+write를 잇고 Keeper 2/3 과반으로 쓰기가 지속되는 동작을 정상·장애 두 패널로 정리했다.*
+*멀티 AZ에 걸친 ClickHouse RF2 복제(ReplicatedMergeTree)와 Keeper 3노드 쿼럼의 배치, 그리고 AZ 하나가 다운돼도 남은 replica가 승격 없이 read+write를 잇고 Keeper 2/3 과반으로 쓰기가 지속되는 동작을 정상·장애 두 패널로 정리했습니다.*
 
 ### 4.2 replication 메커니즘 (EBS 관점 재해석)
 
-`layout`을 선언하면 operator가 `remote_servers`와 per-host `macros`(`{shard}`/`{replica}`/`{cluster}`)를 자동 렌더한다 — 수동 `config.d` 불필요하다(필드 상세는 clickhouse/04로 위임) `✓`. self-host는 `ReplicatedMergeTree`(SharedMergeTree는 Cloud 전용) 강제 `✓`.
+`layout`을 선언하면 operator가 `remote_servers`와 per-host `macros`(`{shard}`/`{replica}`/`{cluster}`)를 자동 렌더합니다 — 수동 `config.d` 불필요합니다(필드 상세는 clickhouse/04로 위임) `✓`. self-host는 `ReplicatedMergeTree`(SharedMergeTree는 Cloud 전용) 강제입니다 `✓`.
 
 - **RMT 쓰기 경로(기본 async)**: Keeper 로그에 파트 등록 ack만 나면 클라이언트에 성공 반환, 나머지 replica는 뒤따라 fetch `✓`. EBS에서도 동일. 차이는 **한 replica가 offline(노드 교체)됐다 돌아왔을 때** — 로컬 NVMe면 볼륨이 비어 전량 fetch, EBS면 볼륨에 이전 파트가 그대로라 **Keeper 로그가 가리키는 누락 파트(델타)만** fetch한다 `≈`.
 - **1 shard이므로 Distributed 테이블·sharding key가 사실상 불필요** `≈`: 단일 shard면 모든 데이터가 한 shard에 있고 replica는 그 사본이다. HyperDX/ClickStack이 만드는 테이블도 단일 클러스터/단일 shard에서 그대로 동작한다. Distributed 테이블·`remote_servers` weight·`INSERT INTO SELECT` 리샤딩은 shard가 2+일 때만 의미가 있고, 그 절차는 [operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})으로 위임한다.
 
 ### 4.3 RF2 vs RF3 — EBS에서 판단이 어떻게 달라지나
 
-[배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})의 조합 산술(RF2 × 다중 shard에서 임의 2대 유실 시 손실 노출)·`insert_quorum` 주입 함정은 **로컬 NVMe에서 "2대 유실 = 2 데이터 소실"**을 전제한다. EBS에선 노드 유실이 데이터 소실이 아니므로 그 산술이 그대로 적용되지 않는다 `≈`. 확률·비용의 정량은 위 페이지로 위임하고, 여기선 EBS 관점의 재해석만 정리한다.
+[배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})의 조합 산술(RF2 × 다중 shard에서 임의 2대 유실 시 손실 노출)·`insert_quorum` 주입 함정은 **로컬 NVMe에서 "2대 유실 = 2 데이터 소실"**을 전제합니다. EBS에선 노드 유실이 데이터 소실이 아니므로 그 산술이 그대로 적용되지 않습니다 `≈`. 확률·비용의 정량은 위 페이지로 위임하고, 여기선 EBS 관점의 재해석만 정리합니다.
 
 | | RF2 (2 AZ) — EBS 기본 | RF3 (3 AZ) — 승급 |
 |---|---|---|
@@ -172,11 +172,11 @@ EBS 볼륨은 **생성된 AZ에 물리적으로 고정**된다(zonal resource) `
 2. **`insert_quorum: 2`를 상시 켜고 싶을 때** — RF2에서 한 replica가 reattach 중이면 확정 가능 replica가 1이라 `insert_quorum: 2`가 쓰기를 차단한다. RF3면 reattach 중에도 2 사본이라 쓰기·내구성 양립(quorum 프로파일 주입 함정은 clickhouse/04로 위임).
 3. 규제/무손실 요구.
 
-**우리 RUM 기본값 `≈`: RF2 2AZ.** 0.7TB/월·관측성 append-only·재부착 창이 수 분이라 RF2의 노출이 실무상 수용 가능하다. AZ 무저하 생존이 명시 요구가 되면 RF3로 승급한다.
+**우리 RUM 기본값 `≈`: RF2 2AZ.** 0.7TB/월·관측성 append-only·재부착 창이 수 분이라 RF2의 노출이 실무상 수용 가능합니다. AZ 무저하 생존이 명시 요구가 되면 RF3로 승급합니다.
 
 ### 4.4 EBS 기반 CHI/CHK YAML 초안
 
-매니페스트 전문은 길어서 접어 둔다 — 필드 전수 설명은 [배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})이 소유하고, 여기서는 **EBS·다운타임 관련 필드만** 주석한 초안을 둔다.
+매니페스트 전문은 길어서 접어 둡니다 — 필드 전수 설명은 [배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})이 소유하고, 여기서는 **EBS·다운타임 관련 필드만** 주석한 초안을 둡니다.
 
 {{% details title="EBS 기반 CHI(1 shard × RF2, gp3, 2 AZ) · CHK(3노드, gp3, 3 AZ) YAML 초안 전문" closed="true" %}}
 > 필드 전수 설명은 [배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})으로 위임한다. 여기선 **EBS·다운타임 관련 필드만** 주석한다. 데이터 노드는 EBS 기반 Graviton **r7g**(메모리 최적화) 노드풀 기준이다(r8g/Graviton4는 상위 옵션 `≈`). 로컬 NVMe(i7i/i8g)는 이 카테고리 기본이 아니다 → [스토리지·로컬 NVMe]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}}). **인스턴스별 EBS-optimized 대역폭 상한이 gp3 볼륨 스펙(2,000 MiB/s)보다 낮아 실효 병목이 될 수 있다** — 상세는 [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}}).
@@ -318,11 +318,11 @@ spec:
 
 > 복제·멀티마스터 관점의 failover 의미론(왜 "승격" 절차가 없는지·split-brain 방지·정족수 상실 시 read-only)은 [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}})가 기준 문서다. 이 절은 그 위에서 **EBS 물리 역학·복구 절차**만 다룬다.
 
-§1이 "무엇이 죽으면 무엇이 멈추나"(컴포넌트 축)였다면 이 절은 **"어떤 사건에서 얼마나 걸리고 무엇이 필요한가"**(이벤트 축)다. 두 축을 한 표로 합치지 않는 이유가 여기 있다 — 같은 CH 한 컴포넌트가 사건에 따라 무중단부터 무한 Terminating까지 갈린다.
+§1이 "무엇이 죽으면 무엇이 멈추나"(컴포넌트 축)였다면 이 절은 **"어떤 사건에서 얼마나 걸리고 무엇이 필요한가"**(이벤트 축)입니다. 두 축을 한 표로 합치지 않는 이유가 여기 있습니다 — 같은 CH 한 컴포넌트가 사건에 따라 무중단부터 무한 Terminating까지 갈립니다.
 
 전제: 위 **1 shard × RF2(2 AZ)** + CHK 3노드(3 AZ), operator PDB 자동(`pdbMaxUnavailable: 1`), 쓰기는 기본 async(`insert_quorum` 미설정).
 
-7열 매트릭스는 폭 제약을 넘어서므로 시나리오별 불릿으로 푼다. 각 항목은 **무슨 일 → 읽기/쓰기 영향 → 대략 소요 → EBS 특유 포인트** 순서다.
+7열 매트릭스는 폭 제약을 넘어서므로 시나리오별 불릿으로 풉니다. 각 항목은 **무슨 일 → 읽기/쓰기 영향 → 대략 소요 → EBS 특유 포인트** 순서입니다.
 
 - **S1 — 설정 변경 reconcile**(config.d) — ConfigMap 갱신 → 각 host 파드 순차 in-place 재시작. 읽기 무중단(다른 replica 서빙) · 쓰기 무중단(async) · 소요는 전파 대기 + replica 수 × 파드 재시작. EBS 특유: **볼륨 detach 안 함** — 같은 노드에서 파드만 재생성, EBS 그대로 유지.
 - **S2 — CH 이미지 롤링 업그레이드** — replica 1개씩 restart, 분산쿼리에서 low-priority 제외. 읽기·쓰기 모두 무중단(async) · 소요는 replica 수 × (종료+startup+catch-up). EBS 특유: in-place restart, reattach 없음. 절차·혼합버전 창은 [clickhouse/05]({{< relref "../../clickhouse/05-altinity-operations.md" >}}).
@@ -334,16 +334,16 @@ spec:
 - **S8 — AZ 장애** — 그 AZ의 replica·EBS 접근 불가, **다른 AZ로 볼륨 못 옮김**. 읽기는 다른 AZ replica가 서빙(cross-AZ RF 전제) · 쓰기는 다른 AZ replica로 무중단 · 소요는 AZ 복구까지 그 replica 미가용. EBS 특유: **EBS AZ-bound** → reattach 불가. **RF(cross-AZ)만이 방어**. RF2 2AZ면 그 shard 실질 RF1.
 - **S9 — Keeper 정족수 상실**(3노드 중 2 소실) — 조정 계층 정지. 읽기는 로컬 파트 read OK · 쓰기는 **INSERT/DDL 정지** — read-only 전락의 의미론·에러 코드·판별 컬럼은 [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}})가 단일 정본이므로 여기서 재서술하지 않는다 · 소요는 정족수 복구까지. EBS 특유: CHK gp3라 노드 급사해도 Raft 메타 생존 → reattach로 복구. 정족수 산술·Keeper 자체는 [05-keeper]({{< relref "05-keeper.md" >}}).
 
-**핵심 대비**: S4~S6에서 로컬 NVMe였다면 "재수화 이벤트"(수 시간, RF2→실질 RF1)였을 것이 EBS에선 "reattach + 델타 catch-up"(수 분, RF 온전)이 된다. 반면 S8(AZ 장애)은 EBS·로컬 NVMe 모두 cross-AZ RF가 유일 방어라는 점에서 동일하다.
+**핵심 대비**: S4~S6에서 로컬 NVMe였다면 "재수화 이벤트"(수 시간, RF2→실질 RF1)였을 것이 EBS에선 "reattach + 델타 catch-up"(수 분, RF 온전)이 됩니다. 반면 S8(AZ 장애)은 EBS·로컬 NVMe 모두 cross-AZ RF가 유일 방어라는 점에서 동일합니다.
 
 ### 5.1 S7 상세 — ungraceful node death의 진짜 다운타임 (EBS 최대 함정)
 
 {{< callout type="error" >}}
-**"EBS면 노드가 죽어도 자동으로 새 노드에 붙어 복구된다"는 절반만 맞다** `✓`. **graceful**(drain, `kubectl delete pod`, Karpenter voluntary)이면 맞다. 하지만 **ungraceful**(하드웨어 급사, OS hang, 네트워크 단절)이면 StatefulSet + RWO(EBS) 조합은 **자동 복구되지 않고 파드가 Terminating에 무한정 걸린다**. 운영자 개입이 필요하다.
+**"EBS면 노드가 죽어도 자동으로 새 노드에 붙어 복구된다"는 절반만 맞습니다** `✓`. **graceful**(drain, `kubectl delete pod`, Karpenter voluntary)이면 맞습니다. 하지만 **ungraceful**(하드웨어 급사, OS hang, 네트워크 단절)이면 StatefulSet + RWO(EBS) 조합은 **자동 복구되지 않고 파드가 Terminating에 무한정 걸립니다**. 운영자 개입이 필요합니다.
 {{< /callout >}}
 
 {{% details title="S7 상세 — 무한 Terminating의 원인·시퀀스·복구 절차 전문" closed="true" %}}
-**왜 무한 Terminating인가** `✓`: Kubernetes는 죽은 노드의 파드가 정말 멈췄는지 확인할 수 없다(kubelet 응답 없음). RWO 볼륨을 새 노드에 붙였는데 옛 노드에서 파드가 아직 살아 쓰고 있으면 **더블 마운트=데이터 손상**이므로, 컨트롤 플레인은 안전하게 "확인 불가"를 택하고 파드를 Terminating으로 남긴다. StatefulSet은 at-most-one 보장 때문에 옛 파드가 완전히 사라지기 전엔 대체 파드를 만들지 않는다.
+**왜 무한 Terminating인가** `✓`: Kubernetes는 죽은 노드의 파드가 정말 멈췄는지 확인할 수 없습니다(kubelet 응답 없음). RWO 볼륨을 새 노드에 붙였는데 옛 노드에서 파드가 아직 살아 쓰고 있으면 **더블 마운트=데이터 손상**이므로, 컨트롤 플레인은 안전하게 "확인 불가"를 택하고 파드를 Terminating으로 남깁니다. StatefulSet은 at-most-one 보장 때문에 옛 파드가 완전히 사라지기 전엔 대체 파드를 만들지 않습니다.
 
 {{< seq src="_seq/s7-상세-ungraceful-node.json" />}}
 
@@ -366,18 +366,18 @@ kubectl taint nodes <dead-node> node.kubernetes.io/out-of-service=nodeshutdown:N
 - taint 없이 `kubectl delete pod --force`도 파드는 지우지만, force-detach 6분과 CSI 정합성 문제를 우회하지 못할 수 있어 **out-of-service taint가 정석** `✓`.
 - **자동화 고려 `≈`**: 프로덕션은 node-problem-detector + 자동 taint 부여(예: Medik8s NHC류)로 이 개입을 자동화한다. 단 "정말 죽었나" 오판 시 더블 마운트 위험이 있어 도구·타이밍은 별도 검증이 필요하다 `?`.
 
-**EBS vs 로컬 NVMe의 역설 `≈`**: 로컬 NVMe는 노드 급사 시 데이터가 어차피 사라지므로 "새 노드에서 빈 볼륨으로 재수화"가 자연스러워 무한 Terminating이 상대적으로 덜 아프다(어차피 재구축). EBS는 데이터가 살아있어 reattach만 하면 되는데, **바로 그 RWO 안전장치 때문에 자동 reattach가 막혀** 개입이 필요하다. EBS의 강점(데이터 생존)이 이 시나리오에선 운영 개입 요구로 되돌아온다.
+**EBS vs 로컬 NVMe의 역설 `≈`**: 로컬 NVMe는 노드 급사 시 데이터가 어차피 사라지므로 "새 노드에서 빈 볼륨으로 재수화"가 자연스러워 무한 Terminating이 상대적으로 덜 아픕니다(어차피 재구축). EBS는 데이터가 살아있어 reattach만 하면 되는데, **바로 그 RWO 안전장치 때문에 자동 reattach가 막혀** 개입이 필요합니다. EBS의 강점(데이터 생존)이 이 시나리오에선 운영 개입 요구로 되돌아옵니다.
 {{% /details %}}
 
 ## 6. 무엇을 지켰나 — 무손실은 두 트랙으로 갈린다
 
-무손실 방어는 **한 메커니즘이 아니라 성격이 다른 두 트랙**으로 나뉜다. 이걸 뭉뚱그리면 "Keeper가 데이터를 지킨다" 같은 오해가 생긴다.
+무손실 방어는 **한 메커니즘이 아니라 성격이 다른 두 트랙**으로 나뉩니다. 이걸 뭉뚱그리면 "Keeper가 데이터를 지킨다" 같은 오해가 생깁니다.
 
 {{< flow src="_flow/3-무손실은-두-트랙-텔레메트리.json" />}}
 
 ### 6.1 트랙 1 — 텔레메트리(대량·스트리밍)
 
-경로는 브라우저 SDK → OTel Collector → ClickHouse이고, 방어선은 이어붙인 두 겹이다.
+경로는 브라우저 SDK → OTel Collector → ClickHouse이고, 방어선은 이어붙인 두 겹입니다.
 
 1. **Collector 앞단**: `sending_queue`는 기본 인메모리라 파드가 죽으면 in-flight가 소실된다 `✓`. `file_storage` extension을 붙이면 디스크 WAL이 되어 재시작 후에도 큐를 이어 처리한다(배포 Collector 빌드에 기본 포함되는지는 도입 시 재확인) `✓/≈`. 큐가 가득 차면 `block_on_overflow`로 드롭 대신 블록시킨다.
 
@@ -392,22 +392,22 @@ kubectl taint nodes <dead-node> node.kubernetes.io/out-of-service=nodeshutdown:N
 
 2. **CH 내부**: RMT 복제(RF2/3)가 노드 손실을 흡수하고, 신뢰가 더 필요한 경로만 `insert_quorum`으로 확정 강도를 올린다. 재시도가 중복을 안 만드는 건 블록 dedup 덕분이다(at-least-once → 사실상 exactly-once) `✓`. 파트 자체의 백업은 clickhouse-backup이 맡는다.
 
-Keeper는 이 트랙 어디에도 이벤트 데이터를 들고 있지 않다 — **정족수를 잃으면 쓰기 자체가 막힐 뿐**, "Keeper가 데이터를 붙잡고 있다가 재개"하는 동작은 없다 `✓`. Kafka와의 구분·async_insert 세만틱·유실 지점 표는 [Keeper]({{< relref "05-keeper.md" >}})가, 멀티마스터·승격 없는 failover·split-brain 방지는 [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}})가 기준 문서다.
+Keeper는 이 트랙 어디에도 이벤트 데이터를 들고 있지 않습니다 — **정족수를 잃으면 쓰기 자체가 막힐 뿐**, "Keeper가 데이터를 붙잡고 있다가 재개"하는 동작은 없습니다 `✓`. Kafka와의 구분·async_insert 세만틱·유실 지점 표는 [Keeper]({{< relref "05-keeper.md" >}})가, 멀티마스터·승격 없는 failover·split-brain 방지는 [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}})가 기준 문서입니다.
 
 ### 6.2 트랙 2 — 메타데이터(소량·문서)
 
-경로는 HyperDX api ↔ MongoDB다. 적재량과 무관하게 사용자·대시보드·알럿 설정만 지키면 되므로, 스트리밍 큐 같은 장치가 필요 없다.
+경로는 HyperDX api ↔ MongoDB입니다. 적재량과 무관하게 사용자·대시보드·알럿 설정만 지키면 되므로, 스트리밍 큐 같은 장치가 필요 없습니다.
 
 - **ReplicaSet `members:3`**: Primary + Secondary×2, 자동 failover(선출 수 초). `members:1`은 파드 재시작엔 버티지만 노드/AZ 상실·PVC 손상엔 메타 유실이다 `✓`.
 - **`mongodump` CronJob → S3**: MCK(Community Operator)에는 내장 백업이 없다 — Ops Manager PITR은 Enterprise 전용이라 self-host면 덤프를 직접 짠다(메타 소용량이라 수 초·수 MB) `✓`.
 
-메타 데이터셋 자체가 작아 `members:3`의 절대 비용은 미미하다("값싼 보험") — 최소 형상 매니페스트·Atlas 위임 비교는 [MongoDB 최소 배포]({{< relref "../../rum/07-hyperdx-mongodb.md" >}})가 기준 문서다.
+메타 데이터셋 자체가 작아 `members:3`의 절대 비용은 미미합니다("값싼 보험") — 최소 형상 매니페스트·Atlas 위임 비교는 [MongoDB 최소 배포]({{< relref "../../rum/07-hyperdx-mongodb.md" >}})가 기준 문서입니다.
 
-**두 트랙의 내구성 메커니즘은 완전히 다르다** `Σ`: 트랙 1은 스트리밍 파이프라인의 **큐 퍼시스턴스 + part 복제**로, 트랙 2는 소량 문서 스토어의 **ReplicaSet 복제 + 덤프**로 지킨다. Keeper 정족수는 트랙 1의 **쓰기 가용성**을 좌우할 뿐, 그 자체가 이벤트 데이터를 보관하지는 않는다.
+**두 트랙의 내구성 메커니즘은 완전히 다릅니다** `Σ`: 트랙 1은 스트리밍 파이프라인의 **큐 퍼시스턴스 + part 복제**로, 트랙 2는 소량 문서 스토어의 **ReplicaSet 복제 + 덤프**로 지킵니다. Keeper 정족수는 트랙 1의 **쓰기 가용성**을 좌우할 뿐, 그 자체가 이벤트 데이터를 보관하지는 않습니다.
 
 ## 7. 스케일 축 — 처리량 vs 가용성 vs 용량
 
-컴포넌트마다 스케일이 사는 이유가 다르다 `Σ`.
+컴포넌트마다 스케일이 사는 이유가 다릅니다 `Σ`.
 
 | 축 | 대상 | 늘리면 얻는 것 |
 |---|---|---|
@@ -415,7 +415,7 @@ Keeper는 이 트랙 어디에도 이벤트 데이터를 들고 있지 않다 �
 | 복제(가용성) | CH replica, Keeper, MongoDB — 스테이트풀 | 고장 도메인 방어(승격·failover 절차 아님) |
 | shard(용량) | CH만, **이 규모에선 불필요** | 데이터·쓰기 병렬 — 0.7TB/월엔 오히려 부채 |
 
-컴포넌트별로 옮겨 적으면 이렇다.
+컴포넌트별로 옮겨 적으면 이렇습니다.
 
 | 컴포넌트 | 스케일 축 |
 |---|---|
@@ -425,13 +425,13 @@ Keeper는 이 트랙 어디에도 이벤트 데이터를 들고 있지 않다 �
 | **ClickHouse Keeper** | 3/5노드(내구성·정족수용, 처리량 아님) |
 | **MongoDB** | 불필요(부하∝설정 수, 적재량 무관) `✓` |
 
-**app·Collector는 수평 replica로 처리량**을 늘리고(무상태라 단순 복제), **CH replica·Keeper·Mongo는 복제로 가용성**을 얻는다(처리량이 아니라 고장 도메인 방어). 용량·쓰기 병렬을 늘리는 축은 **CH shard 하나뿐인데, 0.7TB/월 규모에선 shard가 부채이므로 불필요**하다 `Σ` — 즉 이 스케일에서 늘려야 할 것은 가용성용 replica이지 용량용 shard가 아니고, 그 판단의 산술은 위 §4.1이 소유한다.
+**app·Collector는 수평 replica로 처리량**을 늘리고(무상태라 단순 복제), **CH replica·Keeper·Mongo는 복제로 가용성**을 얻습니다(처리량이 아니라 고장 도메인 방어). 용량·쓰기 병렬을 늘리는 축은 **CH shard 하나뿐인데, 0.7TB/월 규모에선 shard가 부채이므로 불필요**합니다 `Σ` — 즉 이 스케일에서 늘려야 할 것은 가용성용 replica이지 용량용 shard가 아니고, 그 판단의 산술은 위 §4.1이 소유합니다.
 
-이 가용성 전제 위에서 각 컴포넌트를 **어떤 옵션으로 프로비저닝하나**(hot/cold 스토리지·operator 노브·block-only 튜닝)는 [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}})·[S3 콜드 티어링]({{< relref "03-s3-cold-tiering.md" >}})·[블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}})과 이 장의 §8~§9가 잇는다.
+이 가용성 전제 위에서 각 컴포넌트를 **어떤 옵션으로 프로비저닝하나**(hot/cold 스토리지·operator 노브·block-only 튜닝)는 [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}})·[S3 콜드 티어링]({{< relref "03-s3-cold-tiering.md" >}})·[블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}})과 이 장의 §8~§9가 잇습니다.
 
 ## 8. 배치 강제 — 노드/AZ 1개 소실이 shard 전멸이 되지 않게
 
-replica를 2벌 두는 것만으로는 부족하고, **서로 다른 고장 도메인**에 놓여야 한다. EBS-first에서 이 규칙은 로컬 NVMe와 같되 **"AZ 분산"의 무게가 더 크다** — EBS가 AZ-bound라 AZ 방어가 유일하게 reattach로 못 푸는 축이기 때문이다.
+replica를 2벌 두는 것만으로는 부족하고, **서로 다른 고장 도메인**에 놓여야 합니다. EBS-first에서 이 규칙은 로컬 NVMe와 같되 **"AZ 분산"의 무게가 더 큽니다** — EBS가 AZ-bound라 AZ 방어가 유일하게 reattach로 못 푸는 축이기 때문입니다.
 
 | 기제 | 필드 | 막는 것 | EBS 관점 |
 |---|---|---|---|
@@ -439,7 +439,7 @@ replica를 2벌 두는 것만으로는 부족하고, **서로 다른 고장 도�
 | AZ topology spread¹ | `topologySpreadConstraints` | shard replica AZ 몰림 | **EBS 핵심** — reattach 불가, cross-AZ만 방어 |
 | PDB | `pdbManaged: yes` + `pdbMaxUnavailable: 1` | 자발적 중단의 shard 2대 동시 down | drain/롤링/consolidation 직렬화 |
 
-¹ 필드는 `whenUnsatisfiable: DoNotSchedule`로 설정. 다중 shard면 `ShardAntiAffinity`(zone)도 병용한다.
+¹ 필드는 `whenUnsatisfiable: DoNotSchedule`로 설정합니다. 다중 shard면 `ShardAntiAffinity`(zone)도 병용합니다.
 
 - **RF2를 2 AZ에 펴면 AZ 1개 소실 시 그 shard가 단일 AZ 단일 사본으로 하락** `≈`. 데이터는 살아있는 AZ에 온전하나, 그 창 동안 그 AZ까지 흔들리면 가용성 상실. "AZ 무저하"가 요구면 RF3 3AZ.
 - **PDB는 자발적 중단만 막는다** `✓`. S7(급사) 같은 비자발적 시간차 장애는 PDB로 못 막고, 그 방어는 RF(+빠른 out-of-service 복구)다.
@@ -450,7 +450,7 @@ replica를 2벌 두는 것만으로는 부족하고, **서로 다른 고장 도�
 
 롤링·reconcile 중 "한 번에 얼마나 오래, 몇 개가 down되나"를 정하는 operator 노브들. CRD 원문(`clickhouse-operator-install-bundle.yaml`)으로 확인 `✓`.
 
-이 노브들이 실제로 걸리는 자리는 operator 내부 reconcile 루프다. 이벤트는 ListenQueue → Add/DeleteCHI 핸들러로 들어와 WalkTillError로 CHI→Cluster→Shard→Host 단위까지 순차 reconcile되는데, host 단계의 마지막이 `waitStatefulSetGeneration`이다 — 이름 그대로 **operator가 reconcile 전체 시간의 대부분을 이 대기 구간에서 소모한다**. 아래 `reconcile.host.wait.probes`(readiness 게이팅)·`reconcile.host.wait.replicas`(catch-up 게이팅)가 바로 이 대기를 얼마나 길게·엄격하게 만들지 조절하는 노브다.
+이 노브들이 실제로 걸리는 자리는 operator 내부 reconcile 루프입니다. 이벤트는 ListenQueue → Add/DeleteCHI 핸들러로 들어와 WalkTillError로 CHI→Cluster→Shard→Host 단위까지 순차 reconcile되는데, host 단계의 마지막이 `waitStatefulSetGeneration`입니다 — 이름 그대로 **operator가 reconcile 전체 시간의 대부분을 이 대기 구간에서 소모합니다**. 아래 `reconcile.host.wait.probes`(readiness 게이팅)·`reconcile.host.wait.replicas`(catch-up 게이팅)가 바로 이 대기를 얼마나 길게·엄격하게 만들지 조절하는 노브입니다.
 
 ![clickhouse-operator의 reconcile 내부 흐름 — ListenQueue부터 waitStatefulSetGeneration까지](/images/hyperdx/altinity-operator-reconciler.png)
 *clickhouse-operator의 reconcile 이벤트 처리 흐름: ListenQueue가 CHI Add/Update/Delete 이벤트를 받아 WalkTillError로 CHI → Cluster → Shard → Host 단위를 순차 reconcile하고, host 단계 마지막의 waitStatefulSetGeneration에서 새 StatefulSet generation이 준비될 때까지 대기한다("Waiting HERE most of the time"). 출처: [Altinity/clickhouse-operator](https://github.com/Altinity/clickhouse-operator) — © Altinity Ltd, Apache License 2.0*

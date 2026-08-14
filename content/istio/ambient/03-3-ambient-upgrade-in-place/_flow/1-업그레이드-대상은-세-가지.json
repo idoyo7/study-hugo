@@ -1,5 +1,5 @@
 {
-  "caption": "업그레이드는 istiod → istio-cni → ztunnel 순서다. v1.x istio-cni·ztunnel이 v1.x 및 v1.x+1 control plane과 호환되므로 control plane이 항상 먼저 올라간다.",
+  "caption": "업그레이드는 istiod → istio-cni → ztunnel 순서입니다. v1.x istio-cni·ztunnel이 v1.x 및 v1.x+1 control plane과 호환되므로 control plane이 항상 먼저 올라갑니다.",
   "nodes": [
     {
       "id": "cp",

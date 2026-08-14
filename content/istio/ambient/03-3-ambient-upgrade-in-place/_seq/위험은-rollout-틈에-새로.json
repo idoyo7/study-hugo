@@ -1,5 +1,5 @@
 {
-  "caption": "istio-cni rollout 중 Pod은 두 갈래로 갈린다 — 이미 Running인 Pod은 network namespace가 재생성되지 않아 무영향이고, 틈에 태어난 Pod만 sandbox 생성이 실패했다가 kubelet 재시도로 살아난다.",
+  "caption": "istio-cni rollout 중 Pod은 두 갈래로 갈립니다 — 이미 Running인 Pod은 network namespace가 재생성되지 않아 무영향이고, 틈에 태어난 Pod만 sandbox 생성이 실패했다가 kubelet 재시도로 살아납니다.",
   "participants": [
     {
       "id": "Old",

@@ -14,7 +14,7 @@ weight: 5
 - 우리 케이스: 로그는 더 가벼운 VictoriaLogs로 가고 **ClickStack은 채택하지 않는다** — CH+MongoDB 운영 표면이 이번 로그 규모에는 과하다.
 {{< /callout >}}
 
-ClickHouse Inc.가 HyperDX를 인수(2025-03)해 **ClickStack**으로 출시(2025-05)한, ClickHouse를 백엔드로 하는 **OpenTelemetry-native 관측성 스택**이다. HyperDX UI/API + 전용 OTel Collector + ClickHouse + 상태 저장용 MongoDB의 조합으로 로그·트레이스·세션 리플레이를 한 화면에서 다룬다. 메인 repo는 **MIT 라이선스**(Grafana AGPL·SigNoz보다 관대)이고, ClickHouse Inc.가 정식 스튜어드로 월간 릴리스를 낼 만큼 개발 속도가 빠르다(~9.7k stars, 활발한 릴리스 라인).
+ClickHouse Inc.가 HyperDX를 인수(2025-03)해 **ClickStack**으로 출시(2025-05)한, ClickHouse를 백엔드로 하는 **OpenTelemetry-native 관측성 스택**입니다. HyperDX UI/API + 전용 OTel Collector + ClickHouse + 상태 저장용 MongoDB의 조합으로 로그·트레이스·세션 리플레이를 한 화면에서 다룹니다. 메인 repo는 **MIT 라이선스**(Grafana AGPL·SigNoz보다 관대)이고, ClickHouse Inc.가 정식 스튜어드로 월간 릴리스를 낼 만큼 개발 속도가 빠릅니다(~9.7k stars, 활발한 릴리스 라인).
 
 ## 강점
 
@@ -39,4 +39,4 @@ ClickHouse Inc.가 HyperDX를 인수(2025-03)해 **ClickStack**으로 출시(202
 
 ## 우리 케이스에서는
 
-로그는 더 가벼운 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})로 가고 ClickStack은 채택하지 않는다 — CH+MongoDB라는 운영 표면을 새로 얹는 비용이 이번 로그 규모에는 과하다. 통합 프론트를 욕심내기 전에 Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 확인해야 하며, 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택만 늘린다. RUM 내재화 자체는 [RUM 내재화]({{< relref "../rum/_index.md" >}}) 도메인에서 다룬다. HyperDX 플랫폼 심층 분석(아키텍처·배포 모드·접근통제 갭)과 Datadog RUM 커버리지 매트릭스는 [HyperDX / ClickStack 심층 분석]({{< relref "../rum/01-hyperdx-deep-dive.md" >}}) · [Datadog RUM 커버리지]({{< relref "../rum/02-datadog-rum-coverage.md" >}}) 참조.
+로그는 더 가벼운 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})로 가고 ClickStack은 채택하지 않습니다 — CH+MongoDB라는 운영 표면을 새로 얹는 비용이 이번 로그 규모에는 과합니다. 통합 프론트를 욕심내기 전에 Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 확인해야 하며, 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택만 늘립니다. RUM 내재화 자체는 [RUM 내재화]({{< relref "../rum/_index.md" >}}) 도메인에서 다룹니다. HyperDX 플랫폼 심층 분석(아키텍처·배포 모드·접근통제 갭)과 Datadog RUM 커버리지 매트릭스는 [HyperDX / ClickStack 심층 분석]({{< relref "../rum/01-hyperdx-deep-dive.md" >}}) · [Datadog RUM 커버리지]({{< relref "../rum/02-datadog-rum-coverage.md" >}}) 참조합니다.

@@ -1,5 +1,5 @@
 {
-  "caption": "정상이라면 SYN·ClientHello·CONNECT가 오가며 터널을 세운 뒤에야 data frame이 흐른다. 비정상 케이스에는 그 왕복이 통째로 없고, 애플리케이션에는 아무것도 닿지 않은 채 커널이 RST로 답한다.",
+  "caption": "정상이라면 SYN·ClientHello·CONNECT가 오가며 터널을 세운 뒤에야 data frame이 흐릅니다. 비정상 케이스에는 그 왕복이 통째로 없고, 애플리케이션에는 아무것도 닿지 않은 채 커널이 RST로 답합니다.",
   "participants": [
     {
       "id": "W",

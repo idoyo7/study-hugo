@@ -1,5 +1,5 @@
 {
-  "caption": "설정 변경 하나가 전파되는 대상 — 사이드카 모드는 파드 수만큼, Ambient는 노드 수(ztunnel)와 waypoint 수만큼이다.",
+  "caption": "설정 변경 하나가 전파되는 대상 — 사이드카 모드는 파드 수만큼, Ambient는 노드 수(ztunnel)와 waypoint 수만큼입니다.",
   "nodes": [
     {
       "id": "d",

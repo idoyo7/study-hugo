@@ -13,7 +13,7 @@ weight: 5
 - 부트스트랩은 **Fargate 닭-달걀부터 service 배포까지** 하나의 마스터 순서로 흐른다.
 {{< /callout >}}
 
-[02 클러스터 설정]({{< relref "02-cluster-config.md" >}})이 클러스터가 무엇인지, [03 managed addon]({{< relref "03-managed-addons.md" >}})이 EKS addon을 다뤘다면, 이 페이지는 그것들을 **어떤 순서로 올리고 어떻게 배선하는가**를 모은다. 여러 곳에 흩어져 있던 순서·인벤토리·endpoint 재바인딩을 여기서 단일 소유한다.
+[02 클러스터 설정]({{< relref "02-cluster-config.md" >}})이 클러스터가 무엇인지, [03 managed addon]({{< relref "03-managed-addons.md" >}})이 EKS addon을 다뤘다면, 이 페이지는 그것들을 **어떤 순서로 올리고 어떻게 배선하는가**를 모웁니다. 여러 곳에 흩어져 있던 순서·인벤토리·endpoint 재바인딩을 여기서 단일 소유합니다.
 
 ## 1. 애드온 전수 분류
 
@@ -23,20 +23,20 @@ weight: 5
 - **직접설치 — ring0-blue**(11개) — clusterapi · cluster-bootstrap(v1) · argocd-external-secrets · actions-runner(-controller) · karpenter · keycloak · istio(git) · virtual-service · common-config · root-app
 - **관측성**(8개) — metrics-server · kube-state-metrics · prometheus-node-exporter · victoria-metrics-k8s-stack(grafana) · vm-scrape/extras · datadog · fluentbit · grafana
 
-EKS-managed 5종은 [03 managed addon]({{< relref "03-managed-addons.md" >}})이 다룬 4종에 amazon-cloudwatch-observability를 더한 구성이다. cloudwatch observability는 콘솔 수동 설치 이력이 있어 CAPI 스펙 밖에 있었고(신규 클러스터에서는 처음부터 스펙에 명시 등재), 직접설치 애드온의 실제 버전 마이그레이션은 [컴포넌트별 마이그레이션]({{< relref "components/_index.md" >}})이 잇는다.
+EKS-managed 5종은 [03 managed addon]({{< relref "03-managed-addons.md" >}})이 다룬 4종에 amazon-cloudwatch-observability를 더한 구성입니다. cloudwatch observability는 콘솔 수동 설치 이력이 있어 CAPI 스펙 밖에 있었고(신규 클러스터에서는 처음부터 스펙에 명시 등재), 직접설치 애드온의 실제 버전 마이그레이션은 [컴포넌트별 마이그레이션]({{< relref "components/_index.md" >}})이 잇습니다.
 
 ## 2. 오독 주의 — metrics-server·kube-state-metrics
 
-관측성 8종 중 둘은 "ArgoCD Application을 스캔했는데 안 보인다"는 이유로 누락으로 오판하기 쉽다.
+관측성 8종 중 둘은 "ArgoCD Application을 스캔했는데 안 보인다"는 이유로 누락으로 오판하기 쉽습니다.
 
 - **metrics-server**는 cluster-bootstrap(v1/v2) 차트 안에 **raw manifest**(Deployment+RBAC+Service+`v1beta1.metrics.k8s.io` APIService)로 박혀 있다. 서브차트도 EKS addon도 독립 ArgoCD 앱도 아니다. arm64-only nodeAffinity로 렌더되며 `kubectl top`·HPA의 필수 컴포넌트다. ⚠️ 이미지가 devops ECR 계정에서 pull되는데 차트는 finance ECR 계정에서 오므로 **신규 클러스터에서 cross-account ECR pull 권한이 유지되는지** 확인해야 한다(§7).
 - **kube-state-metrics**는 victoria-metrics-k8s-stack의 **서브차트**로 워크로드 양쪽에 이미 활성화돼 있다. ⚠️ datadog에도 자체 `kubeStateMetricsCore`가 켜져 있어 **KSM이 두 곳에서 동시 구동**된다(스크레이프·비용 중복, 신규 클러스터에도 자동 승계).
 
-두 항목 다 "누락이 아니라 다른 경로로 설치돼 있을 뿐"이다. 신규 클러스터 체크리스트에서 별도 ArgoCD 앱으로 찾으려 하면 항상 실패하고, 별도 배포 대상으로 다시 만들면 중복 설치가 된다.
+두 항목 다 "누락이 아니라 다른 경로로 설치돼 있을 뿐"입니다. 신규 클러스터 체크리스트에서 별도 ArgoCD 앱으로 찾으려 하면 항상 실패하고, 별도 배포 대상으로 다시 만들면 중복 설치가 됩니다.
 
 ## 3. ArgoCD 3-tier 토폴로지
 
-전 구성은 ring0-blue 허브의 `root-app`(app-of-apps)에서 시작해 3계층으로 퍼진다. **"어디서 reconcile되는가"** 기준으로 나뉜다.
+전 구성은 ring0-blue 허브의 `root-app`(app-of-apps)에서 시작해 3계층으로 퍼집니다. **"어디서 reconcile되는가"** 기준으로 나뉩니다.
 
 - **tier-1(허브 push)**: ring0의 ArgoCD가 워크로드 클러스터 API endpoint를 **하드코딩한 destination**으로 직접 push한다(cluster-bootstrap·karpenter·keda·node-local-dns·argocd(spoke)·argocd-external-secrets·istio-operator). 클러스터를 재생성하면 이 endpoint를 전부 갱신해야 한다(§6).
 - **tier-2**: `app-root` ApplicationSet이 워크로드 안에 `root-{env}` 앱을 심어 tier-3로 넘긴다.
@@ -45,11 +45,11 @@ EKS-managed 5종은 [03 managed addon]({{< relref "03-managed-addons.md" >}})이
 - **tier-1**(하드코딩 endpoint, 재지정 부담: 파일 수정 + cluster secret 재발급) — cluster-bootstrap, karpenter, keda, node-local-dns, argocd(spoke), argocd-external-secrets, istio-operator
 - **tier-3**(`kubernetes.default.svc`, **재지정 불필요** — spoke argocd 조인 후 자동 승계) — datadog, descheduler, victoria-metrics-k8s-stack, vm-scrape/extras, fluentbit, yotrics, app-project, virtual-service, service-app
 
-**3레포 SSOT 배경(축약)**: 구성 코드는 3레포로 나뉜다 — `sre-finance-terraform`(AWS 리소스·클러스터 registry), `finance-yoboard-charts`(ArgoCD 매니페스트, 워크로드 endpoint가 8파일 19곳에 하드코딩), `finance-yo-charts`(Helm values, `clusterapi.yaml`의 `k8sVersion`이 과거 클러스터 버전 SSOT였다 — 이제는 Terraform이 SSOT). 클러스터 버전(CAPI Cluster 리소스)만은 워크로드가 아니라 ring0 in-cluster에 갱신되고 실제 EKS 변경은 CAPA 크로스계정 호출에 위임됐던 구조이며, 그 함정 서사는 [배경]({{< relref "00-background.md" >}})이 다룬다.
+**3레포 SSOT 배경(축약)**: 구성 코드는 3레포로 나뉩니다 — `sre-finance-terraform`(AWS 리소스·클러스터 registry), `finance-yoboard-charts`(ArgoCD 매니페스트, 워크로드 endpoint가 8파일 19곳에 하드코딩), `finance-yo-charts`(Helm values, `clusterapi.yaml`의 `k8sVersion`이 과거 클러스터 버전 SSOT였습니다 — 이제는 Terraform이 SSOT). 클러스터 버전(CAPI Cluster 리소스)만은 워크로드가 아니라 ring0 in-cluster에 갱신되고 실제 EKS 변경은 CAPA 크로스계정 호출에 위임됐던 구조이며, 그 함정 서사는 [배경]({{< relref "00-background.md" >}})이 다룹니다.
 
 ## 4. 마스터 부트스트랩 순서
 
-managed nodegroup이 없어 "첫 EC2 노드가 어떻게 생기는가"라는 순환 의존을 먼저 풀어야 한다. 답은 **CoreDNS와 karpenter만 Fargate로 노드 없이 띄우고, 그 둘이 나머지의 착지장을 만들게 하는 것**이다. 아래는 Fargate 닭-달걀부터 service 배포까지의 단일 통합 타임라인이다.
+managed nodegroup이 없어 "첫 EC2 노드가 어떻게 생기는가"라는 순환 의존을 먼저 풀어야 합니다. 답은 **CoreDNS와 karpenter만 Fargate로 노드 없이 띄우고, 그 둘이 나머지의 착지장을 만들게 하는 것**입니다. 아래는 Fargate 닭-달걀부터 service 배포까지의 단일 통합 타임라인입니다.
 
 ### 4.1 Fargate 닭-달걀 풀기
 
@@ -67,7 +67,7 @@ managed nodegroup이 없어 "첫 EC2 노드가 어떻게 생기는가"라는 순
 | 9 | ALB/external-secrets/argo-rollouts/metrics-server | 예→system 풀(arm64) | `arch=arm64` required — system 풀 착지 |
 | 10 | 나머지 워크로드(amd64) | 예 → service/airflow 풀 | karpenter가 수요에 따라 amd64 노드 provision |
 
-1번 profile의 selector는 `{ns:karpenter}` + `{ns:kube-system,k8s-app:kube-dns}`이다. 4번에서 addon이 degraded 상태(`InsufficientNumberOfReplicas`)로 빠지면 설치 후 `rollout restart deployment coredns`로 복구한다. 번호 0의 `02 §4`, 번호 8의 `03`은 각각 [02 클러스터 설정]({{< relref "02-cluster-config.md" >}}) §4, [03 managed addon]({{< relref "03-managed-addons.md" >}})을 가리킨다.
+1번 profile의 selector는 `{ns:karpenter}` + `{ns:kube-system,k8s-app:kube-dns}`입니다. 4번에서 addon이 degraded 상태(`InsufficientNumberOfReplicas`)로 빠지면 설치 후 `rollout restart deployment coredns`로 복구합니다. 번호 0의 `02 §4`, 번호 8의 `03`은 각각 [02 클러스터 설정]({{< relref "02-cluster-config.md" >}}) §4, [03 managed addon]({{< relref "03-managed-addons.md" >}})을 가리킵니다.
 
 요약: **role → profile → vpc-cni/kube-proxy → CoreDNS(Fargate) → karpenter(Fargate) → NodePool CR → 첫 system 노드 → ebs-csi/플랫폼(system 풀) → 워크로드.**
 
@@ -83,11 +83,11 @@ managed nodegroup이 없어 "첫 EC2 노드가 어떻게 생기는가"라는 순
 6. **management**: airflow-operator → eks-rbac → descheduler → virtual-service
 7. **service**: [05 컷오버·롤백]({{< relref "05-cutover-rollback.md" >}})의 배포 순서(API→consumer→batch)를 따른다.
 
-karpenter NodeClass AMI 핀은 목표 마이너로 갱신하지 않으면 신규 노드가 구버전 kubelet으로 생성된다. karpenter 컨트롤러는 0.36.2→1.14.0 이관이며 상세는 [components/01]({{< relref "components/01-karpenter.md" >}})이 잇는다.
+karpenter NodeClass AMI 핀은 목표 마이너로 갱신하지 않으면 신규 노드가 구버전 kubelet으로 생성됩니다. karpenter 컨트롤러는 0.36.2→1.14.0 이관이며 상세는 [components/01]({{< relref "components/01-karpenter.md" >}})이 잇습니다.
 
 ## 5. 하드코딩 endpoint 재지정 (8파일 19곳)
 
-tier-1 허브 push 앱들은 워크로드 API endpoint를 하드코딩한다. 신규 클러스터마다 (a) 아래 8파일의 endpoint를 전량 교체하고 (b) 새 server URL 키로 ArgoCD cluster 등록 secret을 신규 발급해야 한다. **endpoint 실제 문자열은 마스킹**한다(축약 해시도 남기지 않는다 — "워크로드 API endpoint").
+tier-1 허브 push 앱들은 워크로드 API endpoint를 하드코딩합니다. 신규 클러스터마다 (a) 아래 8파일의 endpoint를 전량 교체하고 (b) 새 server URL 키로 ArgoCD cluster 등록 secret을 신규 발급해야 합니다. **endpoint 실제 문자열은 마스킹**합니다(축약 해시도 남기지 않습니다 — "워크로드 API endpoint").
 
 | 파일 | occurrence |
 |---|---|
@@ -100,7 +100,7 @@ tier-1 허브 push 앱들은 워크로드 API endpoint를 하드코딩한다. �
 | istio.yaml | 2 |
 | node-local-dns.yaml | 2 |
 
-tier-3 앱은 §3대로 재지정이 불필요하다 — 단 (a)(b)가 끝나 spoke argocd가 조인한 뒤라야 tier-3가 자동 승계된다.
+tier-3 앱은 §3대로 재지정이 불필요합니다 — 단 (a)(b)가 끝나 spoke argocd가 조인한 뒤라야 tier-3가 자동 승계됩니다.
 
 ## 6. preflight — 미설치·확인 항목
 
@@ -116,7 +116,7 @@ tier-3 앱은 §3대로 재지정이 불필요하다 — 단 (a)(b)가 끝나 sp
 | external-dns | ❌ 부재(추정 정상) | 레포 참조 없음. Route53 + istio external 라우팅 추정 |
 | cert-manager(워크로드) | ❌ 부재(추정 정상) | ring0 CI 러너 번들에만 존재. TLS는 ALB 오프로드 + istiod self-sign |
 
-metrics-server는 managed addon으로 추가 설치하지 않는다 — cluster-bootstrap raw manifest와 충돌한다.
+metrics-server는 managed addon으로 추가 설치하지 않습니다 — cluster-bootstrap raw manifest와 충돌합니다.
 
 **미해결·확인 포인트**
 
@@ -126,4 +126,4 @@ metrics-server는 managed addon으로 추가 설치하지 않는다 — cluster-
 
 ## 우리 케이스에서는
 
-신규 클러스터 부트스트랩에서 실제로 손이 가는 것은 **tier-1의 8파일 19곳**뿐이고, tier-3의 절반 이상은 spoke ArgoCD 조인만 끝나면 자동으로 따라온다. 작업량을 가늠할 때 "애드온이 몇 개인가"가 아니라 **"하드코딩 endpoint가 몇 곳인가"**로 물어야 정확한 그림이 나온다. metrics-server·kube-state-metrics를 별도 앱으로 다시 만들지 않도록 cluster-bootstrap·VM 스택이 이미 포함한다는 것부터 확인하는 절차가 앞서야 한다.
+신규 클러스터 부트스트랩에서 실제로 손이 가는 것은 **tier-1의 8파일 19곳**뿐이고, tier-3의 절반 이상은 spoke ArgoCD 조인만 끝나면 자동으로 따라옵니다. 작업량을 가늠할 때 "애드온이 몇 개인가"가 아니라 **"하드코딩 endpoint가 몇 곳인가"**로 물어야 정확한 그림이 나옵니다. metrics-server·kube-state-metrics를 별도 앱으로 다시 만들지 않도록 cluster-bootstrap·VM 스택이 이미 포함한다는 것부터 확인하는 절차가 앞서야 합니다.

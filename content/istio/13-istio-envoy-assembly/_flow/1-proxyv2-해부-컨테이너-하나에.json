@@ -1,5 +1,5 @@
 {
-  "caption": "proxyv2 이미지가 만들어지는 경로 — Envoy는 커밋 단위로 pin되어 확장과 함께 컴파일되고, pilot-agent는 별도로 실려 엔트리포인트가 된다.",
+  "caption": "proxyv2 이미지가 만들어지는 경로 — Envoy는 커밋 단위로 pin되어 확장과 함께 컴파일되고, pilot-agent는 별도로 실려 엔트리포인트가 됩니다.",
   "nodes": [
     {
       "id": "UE",

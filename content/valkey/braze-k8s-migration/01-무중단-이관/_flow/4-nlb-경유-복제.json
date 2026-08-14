@@ -1,5 +1,5 @@
 {
-  "caption": "EC2 primary·EC2 Sentinel이 각각 NLB 리스너(:6380 / :26380)로 보내면 타깃 그룹이 클러스터 전 노드의 nodePort(:31000 / :31001)로 fanout하고, 파드별 Service가 컨테이너까지 라우팅한다. 파드는 server.conf의 replica-announce-ip/port, sentinel.conf의 announce-ip/port에 이 NLB 주소를 적어 자신을 광고한다 — 그 덕에 nodePort로 어느 노드에 도착하든 EC2 쪽 원본이 정확히 그 파드를 찾아 양방향 replication을 맺을 수 있다.",
+  "caption": "EC2 primary·EC2 Sentinel이 각각 NLB 리스너(:6380 / :26380)로 보내면 타깃 그룹이 클러스터 전 노드의 nodePort(:31000 / :31001)로 fanout하고, 파드별 Service가 컨테이너까지 라우팅합니다. 파드는 server.conf의 replica-announce-ip/port, sentinel.conf의 announce-ip/port에 이 NLB 주소를 적어 자신을 광고합니다 — 그 덕에 nodePort로 어느 노드에 도착하든 EC2 쪽 원본이 정확히 그 파드를 찾아 양방향 replication을 맺을 수 있습니다.",
   "nodes": [
     { "id": "ec2_primary", "col": 0, "row": 0, "label": "EC2 primary", "kind": "src" },
     { "id": "nlb_server", "col": 1, "row": 0, "label": "NLB 리스너", "sub": ":6380", "kind": "proc" },

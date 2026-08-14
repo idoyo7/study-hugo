@@ -1,5 +1,5 @@
 {
-  "caption": "세 상태의 경로를 같은 축에 겹쳐 본 것 — out-mesh는 kube-proxy 경로 그대로고, 메시에 들면 양쪽 ztunnel이 HBONE 구간을 만들며, waypoint를 켜면 그 사이에 L7 홉이 하나 더 붙는다. 홉 수가 곧 디버깅 난이도다.",
+  "caption": "세 상태의 경로를 같은 축에 겹쳐 본 것 — out-mesh는 kube-proxy 경로 그대로고, 메시에 들면 양쪽 ztunnel이 HBONE 구간을 만들며, waypoint를 켜면 그 사이에 L7 홉이 하나 더 붙습니다. 홉 수가 곧 디버깅 난이도입니다.",
   "nodes": [
     {
       "id": "a0",

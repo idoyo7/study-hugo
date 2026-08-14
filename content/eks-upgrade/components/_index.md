@@ -5,7 +5,7 @@ weight: 7
 
 # 컴포넌트별 마이그레이션 — 10종 애드온을 1.35로
 
-[EKS 버전 업그레이드]({{< relref "../_index.md" >}}) 챕터의 상위 정본 문서들이 "왜 blue-green Terraform으로 1.35까지 가는가"를 다뤘다면, 이 하위 섹션은 그 위에서 실제로 **워크로드 위에 얹힌 애드온 10종을 어떻게 목표 버전까지 올리는가**를 다룬다. 대상은 karpenter·istio·argocd·argo-rollouts·external-secrets·keda·aws-load-balancer-controller·victoria-metrics-k8s-stack(+metrics-server·kube-state-metrics·node-exporter)·descheduler·fluentbit — [클러스터 설정]({{< relref "../02-cluster-config.md" >}})·[managed addon]({{< relref "../03-managed-addons.md" >}})이 다루는 EKS 자체 관리형 애드온(vpc-cni·kube-proxy·coredns·ebs-csi)은 이 섹션 밖이다.
+[EKS 버전 업그레이드]({{< relref "../_index.md" >}}) 챕터의 상위 정본 문서들이 "왜 blue-green Terraform으로 1.35까지 가는가"를 다뤘다면, 이 하위 섹션은 그 위에서 실제로 **워크로드 위에 얹힌 애드온 10종을 어떻게 목표 버전까지 올리는가**를 다룹니다. 대상은 karpenter·istio·argocd·argo-rollouts·external-secrets·keda·aws-load-balancer-controller·victoria-metrics-k8s-stack(+metrics-server·kube-state-metrics·node-exporter)·descheduler·fluentbit — [클러스터 설정]({{< relref "../02-cluster-config.md" >}})·[managed addon]({{< relref "../03-managed-addons.md" >}})이 다루는 EKS 자체 관리형 애드온(vpc-cni·kube-proxy·coredns·ebs-csi)은 이 섹션 밖입니다.
 
 {{< callout type="info" >}}
 **한눈에**
@@ -15,7 +15,7 @@ weight: 7
 - **ECR 미러 태그를 사전에 확보하지 않으면 배포 즉시 ImagePullBackOff**다 — 다수 컴포넌트가 이미지 태그를 명시 핀하지 않고 차트 기본값을 그대로 상속하므로, 차트 버전만 올려도 이미지가 자동으로 몇 년치 점프한다(victoria-metrics-k8s-stack·fluentbit가 대표적) `✓`
 {{< /callout >}}
 
-이 섹션의 소스는 3기(2026-07) 조사 당시 개별 컴포넌트별로 작성된 업그레이드 노트 10종이다. 대부분 **k8s 1.33을 목표로 조사**됐으나 상위 결정이 **1.35로 상향**됐으므로, 이 섹션의 모든 페이지는 1.35 기준으로 버전을 통일해 서술한다. 원 조사가 1.33 기준이었던 항목(특히 external-secrets·descheduler)은 "이전 조사(1.33 기준)"로 명기하고 1.35 값을 별도로 확정한다. 조사 시점은 2026-07이다.
+이 섹션의 소스는 3기(2026-07) 조사 당시 개별 컴포넌트별로 작성된 업그레이드 노트 10종입니다. 대부분 **k8s 1.33을 목표로 조사**됐으나 상위 결정이 **1.35로 상향**됐으므로, 이 섹션의 모든 페이지는 1.35 기준으로 버전을 통일해 서술합니다. 원 조사가 1.33 기준이었던 항목(특히 external-secrets·descheduler)은 "이전 조사(1.33 기준)"로 명기하고 1.35 값을 별도로 확정합니다. 조사 시점은 2026-07입니다.
 
 ## 색인
 
@@ -31,8 +31,8 @@ weight: 7
 - **[fluentbit(aws-for-fluent-bit)]({{< relref "06-observability.md" >}})** · chart 0.1.34 → **chart 0.2.0** — 이미지 태그 미핀 → FB 1.9.10→4.2.2·AL2→AL2023 major 점프
 - **[descheduler]({{< relref "06-observability.md" >}})** · 0.28.0 → **0.35.x**(이전 조사 0.33.x) — `strategies` 블록이 v1alpha1 잔재로 무시 중일 가능성 — 보존/복원 팀 결정 필요
 
-여섯 페이지가 같은 골격을 쓴다 — **왜 이 버전인가 → 무엇이 깨지나 → 적용 절차 → 검증과 롤백 → 근거**. 컴포넌트가 하나인 페이지(karpenter·istio·aws-load-balancer-controller)는 이 넷을 번호 절로 펴고, 여럿인 페이지(argocd+argo-rollouts / external-secrets+keda / 관측성 4종)는 **컴포넌트를 번호 절로 두고 그 안에 같은 순서의 소절**을 넣는다. 위험 서술은 본문이 소유하고, `검증과 롤백`의 체크박스는 **배포 전 결정·확인 / 배포 후 검증 / 롤백** 세 그룹의 행동 게이트만 담는다 — 본문 서술을 체크리스트에서 되풀이하지 않는다. 공식 문서 URL·CVE 번호·공개 GitHub 이슈 번호는 검증 가능하도록 그대로 보존했고, 계정 ID·내부 endpoint·VPC/subnet ID·사람 이름·Slack/Jira/Confluence 링크는 마스킹하거나 제거했다.
+여섯 페이지가 같은 골격을 씁니다 — **왜 이 버전인가 → 무엇이 깨지나 → 적용 절차 → 검증과 롤백 → 근거**. 컴포넌트가 하나인 페이지(karpenter·istio·aws-load-balancer-controller)는 이 넷을 번호 절로 펴고, 여럿인 페이지(argocd+argo-rollouts / external-secrets+keda / 관측성 4종)는 **컴포넌트를 번호 절로 두고 그 안에 같은 순서의 소절**을 넣습니다. 위험 서술은 본문이 소유하고, `검증과 롤백`의 체크박스는 **배포 전 결정·확인 / 배포 후 검증 / 롤백** 세 그룹의 행동 게이트만 담습니다 — 본문 서술을 체크리스트에서 되풀이하지 않습니다. 공식 문서 URL·CVE 번호·공개 GitHub 이슈 번호는 검증 가능하도록 그대로 보존했고, 계정 ID·내부 endpoint·VPC/subnet ID·사람 이름·Slack/Jira/Confluence 링크는 마스킹하거나 제거했습니다.
 
 ## 우리 케이스에서는
 
-10종 중 8종이 **umbrella 서브차트 아니면 태그 미핀**이라는 두 가지 함정 중 하나에 걸린다. external-secrets·aws-load-balancer-controller·argo-rollouts는 `cluster-bootstrap-v2` umbrella의 서브차트라 ArgoCD `targetRevision` 하나만 올려서는 아무 일도 안 일어나고, `yo-charts` 쪽 `Chart.yaml` dependency를 고쳐 새 차트를 퍼블리시해야 한다. victoria-metrics-k8s-stack·fluentbit·keda·karpenter는 컴포넌트 이미지 태그를 명시 핀하지 않아 **차트 버전을 올리는 순간 이미지가 차트 기본값(=대개 최신)으로 자동 점프**한다 — 편리하지만 사전에 ECR 미러가 그 태그를 갖고 있지 않으면 즉시 ImagePullBackOff다. 두 함정 다 blue-green 신규 클러스터라서 드러나는 게 아니라 원래도 있던 구조인데, 신규 설치 시점에 한꺼번에 터진다는 점이 이 섹션 전체를 관통하는 리스크다. 배포 순서는 [클러스터 설정]({{< relref "../02-cluster-config.md" >}})의 부트스트랩 순서를 따르고, ECR 미러 인벤토리는 [클러스터 부트스트랩]({{< relref "../04-cluster-bootstrap.md" >}})과 함께 확인한다. 시점 기준 2026-07.
+10종 중 8종이 **umbrella 서브차트 아니면 태그 미핀**이라는 두 가지 함정 중 하나에 걸립니다. external-secrets·aws-load-balancer-controller·argo-rollouts는 `cluster-bootstrap-v2` umbrella의 서브차트라 ArgoCD `targetRevision` 하나만 올려서는 아무 일도 안 일어나고, `yo-charts` 쪽 `Chart.yaml` dependency를 고쳐 새 차트를 퍼블리시해야 합니다. victoria-metrics-k8s-stack·fluentbit·keda·karpenter는 컴포넌트 이미지 태그를 명시 핀하지 않아 **차트 버전을 올리는 순간 이미지가 차트 기본값(=대개 최신)으로 자동 점프**합니다 — 편리하지만 사전에 ECR 미러가 그 태그를 갖고 있지 않으면 즉시 ImagePullBackOff입니다. 두 함정 다 blue-green 신규 클러스터라서 드러나는 게 아니라 원래도 있던 구조인데, 신규 설치 시점에 한꺼번에 터진다는 점이 이 섹션 전체를 관통하는 리스크입니다. 배포 순서는 [클러스터 설정]({{< relref "../02-cluster-config.md" >}})의 부트스트랩 순서를 따르고, ECR 미러 인벤토리는 [클러스터 부트스트랩]({{< relref "../04-cluster-bootstrap.md" >}})과 함께 확인합니다. 시점 기준 2026-07.

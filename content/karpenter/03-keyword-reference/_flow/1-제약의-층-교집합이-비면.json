@@ -1,5 +1,5 @@
 {
-  "caption": "세 레이어가 교집합으로 합쳐져 후보 인스턴스 타입이 되고, 그 결과가 NodeClaim의 requirements로 굳어져 CreateFleet에 들어간다. 교집합이 비면 launch가 시작되지 않고 파드는 Pending으로 남아 백오프 재시도된다",
+  "caption": "세 레이어가 교집합으로 합쳐져 후보 인스턴스 타입이 되고, 그 결과가 NodeClaim의 requirements로 굳어져 CreateFleet에 들어갑니다. 교집합이 비면 launch가 시작되지 않고 파드는 Pending으로 남아 백오프 재시도됩니다",
   "nodes": [
     {
       "id": "POD",

@@ -5,7 +5,7 @@ weight: 9
 
 # 버전 호환성·업그레이드 — 스택 전 구성요소 매트릭스와 EBS 롤백
 
-[operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이 CH 서버 롤링 업그레이드 런북(shard 내 1 replica씩·shard 간 병렬·혼합버전 창)·operator 자체 minor 단계별 업그레이드·CRD 삭제 절대금지·안전장치 3층·Keeper(CHK) 업그레이드를 이미 깊게 다뤘고, [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}})이 롤링 중 다운타임·EBS reattach 물리 역학을 다뤘다. 이 페이지는 그 일반 메커니즘을 반복하지 않고, **HyperDX 스택 전체를 한 매트릭스로 묶었을 때 무엇이 무엇과 붙는가**, 그리고 **EBS-first에서 업그레이드를 어떻게 되돌리는가** 한 축에만 집중한다. 새로 깊게 파는 것은 넷이다: (1) 6개 구성요소 상호 버전 호환 매트릭스, (2) CH `compatibility` 서버 설정, (3) 다운그레이드 비지원과 그 실질 롤백 경로, (4) EBS 스냅샷 기반 롤백. 일반 롤링 런북은 전부 위 두 페이지로 위임한다.
+[operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이 CH 서버 롤링 업그레이드 런북(shard 내 1 replica씩·shard 간 병렬·혼합버전 창)·operator 자체 minor 단계별 업그레이드·CRD 삭제 절대금지·안전장치 3층·Keeper(CHK) 업그레이드를 이미 깊게 다뤘고, [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}})이 롤링 중 다운타임·EBS reattach 물리 역학을 다뤘습니다. 이 페이지는 그 일반 메커니즘을 반복하지 않고, **HyperDX 스택 전체를 한 매트릭스로 묶었을 때 무엇이 무엇과 붙는가**, 그리고 **EBS-first에서 업그레이드를 어떻게 되돌리는가** 한 축에만 집중합니다. 새로 깊게 파는 것은 넷입니다: (1) 6개 구성요소 상호 버전 호환 매트릭스, (2) CH `compatibility` 서버 설정, (3) 다운그레이드 비지원과 그 실질 롤백 경로, (4) EBS 스냅샷 기반 롤백. 일반 롤링 런북은 전부 위 두 페이지로 위임합니다.
 
 {{< callout type="info" >}}
 **한눈에**
@@ -20,11 +20,11 @@ weight: 9
 
 ## 1. 버전 호환성 매트릭스 — 스택 전 구성요소
 
-우리는 ClickStack 표준 차트를 그대로 쓰지 않고 `clickhouse.enabled: false`(HyperDX Only)로 CH/Keeper를 [Altinity CHI/CHK로 분리]({{< relref "01-stack-topology.md" >}}) 운영한다. 그래서 "차트가 배포하는 기본 이미지"와 "우리가 실제로 핀하는 이미지"는 별개이며, 아래 매트릭스가 그 경계를 명확히 한다.
+우리는 ClickStack 표준 차트를 그대로 쓰지 않고 `clickhouse.enabled: false`(HyperDX Only)로 CH/Keeper를 [Altinity CHI/CHK로 분리]({{< relref "01-stack-topology.md" >}}) 운영합니다. 그래서 "차트가 배포하는 기본 이미지"와 "우리가 실제로 핀하는 이미지"는 별개이며, 아래 매트릭스가 그 경계를 명확히 합니다.
 
 ### 1.1 마스터 매트릭스 (2026-07 확인)
 
-4열로는 근거 주석까지 담기엔 폭 제약을 넘어서므로 항목별 불릿으로 푼다. 각 항목은 **A ↔ B — 요구/권장 (근거)** 순서다.
+4열로는 근거 주석까지 담기엔 폭 제약을 넘어서므로 항목별 불릿으로 푼습니다. 각 항목은 **A ↔ B — 요구/권장 (근거)** 순서입니다.
 
 - **① ClickStack/HyperDX ↔ ClickHouse** — **최소 24.8 LTS 이상**(24.8·25.x 지원). self-host에서 외부 CH 참조 시 24.8+ 필수 (`✓⁽ClickStack docs⁾`).
 - **② ClickStack 차트 기본 CH 이미지** — `clickhouse/clickhouse-server:25.7-alpine`(차트가 실제 배포하는 태그) (`✓⁽values.yaml⁾` — 최소요구(24.8)와 차트기본(25.7)은 **다른 숫자**).
@@ -45,30 +45,30 @@ weight: 9
 ### 1.3 정정 — "최소 24.8"과 "차트 기본 25.7"은 모순이 아니다 `✓`
 
 {{< callout type="warning" >}}
-ClickStack 문서의 "24.8+ 요구"는 **호환 하한(floor)**이고, 차트 `values.yaml`의 `25.7-alpine`은 **그 시점 차트가 실제 배포하는 기본 태그**다. self-host에서 외부 CH를 Altinity로 운영하면 이 두 숫자는 우리가 분리해서 통제한다 — 하한(24.8) 이상이기만 하면 어떤 버전을 핀하든 ClickStack이 붙는다. 04·05의 CHI 예제가 `24.8`을 쓰는 것과 차트 values의 `25.7`이 충돌하는 게 아니다.
+ClickStack 문서의 "24.8+ 요구"는 **호환 하한(floor)**이고, 차트 `values.yaml`의 `25.7-alpine`은 **그 시점 차트가 실제 배포하는 기본 태그**입니다. self-host에서 외부 CH를 Altinity로 운영하면 이 두 숫자는 우리가 분리해서 통제합니다 — 하한(24.8) 이상이기만 하면 어떤 버전을 핀하든 ClickStack이 붙습니다. 04·05의 CHI 예제가 `24.8`을 쓰는 것과 차트 values의 `25.7`이 충돌하는 게 아닙니다.
 {{< /callout >}}
 
 ### 1.4 매트릭스 함정 — operator 0.27+ 기본값 ↔ Keeper 25.3+ `?`
 
-⑨는 배포 전 반드시 실측해야 하는 지점이다. operator **0.27.0+**는 `async_replication`과 `use_xid_64`를 **기본 활성화**하는데, 이 기능들은 **Keeper 25.3+**를 요구한다 `✓⁽release notes⁾`. 우리가 CH/Keeper를 **24.8 LTS로 핀**하면(§1.2-2) operator가 이 기본값을 켠 상태에서 Keeper 24.8과 충돌할 수 있다.
+⑨는 배포 전 반드시 실측해야 하는 지점입니다. operator **0.27.0+**는 `async_replication`과 `use_xid_64`를 **기본 활성화**하는데, 이 기능들은 **Keeper 25.3+**를 요구합니다 `✓⁽release notes⁾`. 우리가 CH/Keeper를 **24.8 LTS로 핀**하면(§1.2-2) operator가 이 기본값을 켠 상태에서 Keeper 24.8과 충돌할 수 있습니다.
 
 - **검증 항목**: 24.8 CH + 24.8 Keeper + operator 0.27.x 조합에서 operator가 이 두 기본값을 (a) 그대로 켜서 오류를 내는지, (b) Keeper 버전을 감지해 자동 무효화하는지 `?`.
 - **핀 vs 기본값**: 필요하면 CHK/CHI 설정에서 `async_replication`을 명시적으로 끄거나, Keeper만 25.3+로 올리는 결정을 스테이징에서 확정한다. "operator 최신 = 무조건 안전"이 아니라 **operator 기본값이 우리 핀 버전보다 최신 Keeper를 전제할 수 있다**는 게 핵심 함정이다.
 
 ### 1.5 문서에 있지만 아직 못 쓰는 것 `?`
 
-버전 게이트에는 "우리 버전에 없는 기능"만 있는 게 아니다. **문서에는 실려 있는데 OSS 어느 출시본에서도 아직 집을 수 없는 것**이 따로 있고, 이쪽이 더 자주 사람을 헛돌게 한다. 지금 확인된 둘을 미확정으로 세워 둔다.
+버전 게이트에는 "우리 버전에 없는 기능"만 있는 게 아닙니다. **문서에는 실려 있는데 OSS 어느 출시본에서도 아직 집을 수 없는 것**이 따로 있고, 이쪽이 더 자주 사람을 헛돌게 합니다. 지금 확인된 둘을 미확정으로 세워 둡니다.
 
 - **Packed storage (`min_level_for_full_part_storage`, 25.10)** — 기본값이 **0 = Full storage**라 켜지 않으면 동작이 바뀌지 않는다. 문제는 가용성 진술이 갈린다는 것이다 — 공식 표는 Availability를 "Open source and Cloud"로 적는데 별도 조회에서는 "Cloud 전용"이라는 **상충 진술**이 나온다 → OSS 실제 동작 미확정 `?`. 문서가 드는 효과(insert당 PUT 31.3 → 2.22)가 사실이면 S3 요청 비용 구조가 바뀌므로, 켜는 결정이 아니라 **실측 대상**으로만 남긴다.
 - **`system.parts.part_storage_type`** — OSS **26.9부터 노출 예정**이고 2026-08 기준 최신 출시는 **26.7**이다. 즉 지금은 어떤 출시본에도 없어서 part가 어느 저장 형태로 쓰였는지를 이 컬럼으로 확인할 수 없다 `?`. 위 Packed storage 검증이 막히는 실질 이유가 이것이다.
 
-두 항목은 §1.4의 함정과 성격이 다르다. §1.4는 우리가 핀한 버전이 operator 기본값보다 낮아서 생기는 충돌이라 **스테이징 실측으로 닫히고**, 여기는 출시본에 코드가 아직 없어서 생기는 공백이라 **버전이 올라올 때까지 닫히지 않는다**. 후자를 배포 전 실측 항목에 넣으면 닫히지 않는 항목이 체크리스트에 남으므로, 재검토 트리거(26.9 출시)로만 걸어 둔다 `≈`.
+두 항목은 §1.4의 함정과 성격이 다릅니다. §1.4는 우리가 핀한 버전이 operator 기본값보다 낮아서 생기는 충돌이라 **스테이징 실측으로 닫히고**, 여기는 출시본에 코드가 아직 없어서 생기는 공백이라 **버전이 올라올 때까지 닫히지 않습니다**. 후자를 배포 전 실측 항목에 넣으면 닫히지 않는 항목이 체크리스트에 남으므로, 재검토 트리거(26.9 출시)로만 걸어 둡니다 `≈`.
 
 ## 2. `compatibility` 서버 설정 — 업그레이드 안전 노브
 
 ### 2.1 무엇인가 `✓`
 
-`compatibility` 설정은 **"지정한 이전 버전의 기본 설정값(default settings)을 그대로 쓰게"** 한다. 값은 버전 문자열(`'24.8'` 등), 빈 값이 기본(비활성).
+`compatibility` 설정은 **"지정한 이전 버전의 기본 설정값(default settings)을 그대로 쓰게"** 합니다. 값은 버전 문자열(`'24.8'` 등), 빈 값이 기본입니다(비활성).
 
 - **핵심 규칙**: **명시적으로 바꾸지 않은 설정만** 영향받는다 — 사용자가 이미 override한 설정은 존중된다. 즉 "바이너리는 신버전으로 올렸지만 동작 기본값은 옛 버전에 고정"하는 노브다.
 - **업그레이드와의 상호작용**: 업그레이드로 CH 바이너리가 올라가도 `compatibility='24.8'`이면 24.8 시절 기본값으로 동작 → 신규 기본값 변화로 인한 **조용한 회귀(silent regression)**(쿼리 결과·성능·리소스 사용 변화)를 막는다.
@@ -81,7 +81,7 @@ ClickStack 문서의 "24.8+ 요구"는 **호환 하한(floor)**이고, 차트 `v
 | 쿼리 | `SELECT ... SETTINGS compatibility = '24.8'` |
 | 프로파일(영속) | `users.xml` 프로파일에 지정 → Altinity에서는 **CHI `configuration.profiles`로 선언**(operator가 XML 렌더) |
 
-Altinity 운영이면 평문 XML 직접 주입을 피하고 **CHI의 `configuration.profiles`**로 넣는다 — operator가 이를 `users.xml` 프로파일로 렌더한다 `≈⁽profiles→users.xml 렌더는 corpus 사실의 귀결. 렌더된 users.xml은 도입 시 확인⁾`.
+Altinity 운영이면 평문 XML 직접 주입을 피하고 **CHI의 `configuration.profiles`**로 넣습니다 — operator가 이를 `users.xml` 프로파일로 렌더합니다 `≈⁽profiles→users.xml 렌더는 corpus 사실의 귀결. 렌더된 users.xml은 도입 시 확인⁾`.
 
 ```yaml
 apiVersion: "clickhouse.altinity.com/v1"
@@ -103,7 +103,7 @@ spec:
 2. **혼합버전 창 중**: 롤링 도중 노드마다 버전이 다를 때 동작 편차를 줄이는 보조 수단(혼합버전 창 자체의 규칙은 [operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})).
 
 {{< callout type="error" >}}
-**혼동 금지 `✓`**: `compatibility`는 **설정 기본값만** 되돌린다 — **온디스크 파트 포맷·기능 자체는 되돌리지 못한다**(§3). 즉 "동작 롤백"이지 "데이터/버전 롤백"이 아니다. `compatibility='24.8'`을 걸었다고 25.10 바이너리를 25.9로 내릴 수 있는 게 아니다.
+**혼동 금지 `✓`**: `compatibility`는 **설정 기본값만** 되돌립니다 — **온디스크 파트 포맷·기능 자체는 되돌리지 못합니다**(§3). 즉 "동작 롤백"이지 "데이터/버전 롤백"이 아닙니다. `compatibility='24.8'`을 걸었다고 25.10 바이너리를 25.9로 내릴 수 있는 게 아닙니다.
 {{< /callout >}}
 
 ## 3. 다운그레이드 정책 — CH는 함부로 못 내린다
@@ -112,11 +112,11 @@ spec:
 
 > **ClickHouse는 온디스크 데이터 포맷이 바뀌지 않은 경우에만 롤백(다운그레이드)할 수 있다.** "새 버전 포맷으로 파트를 다시 쓰는 작업을 하지 않은 상태"에서만 이전 버전으로 되돌릴 수 있다.
 
-바이너리를 내리는 것 자체는 쉽지만, **디스크의 파트를 옛 버전이 못 읽으면** 그 노드는 startup에서 죽거나 파트가 `detached/broken-on-start_*`로 떨어진다.
+바이너리를 내리는 것 자체는 쉽지만, **디스크의 파트를 옛 버전이 못 읽으면** 그 노드는 startup에서 죽거나 파트가 `detached/broken-on-start_*`로 떨어집니다.
 
 ### 3.2 다운그레이드가 불가능해지는 트리거 (2026 확인) — **차단 버전의 단일 정본**
 
-아래 표가 이 스택에서 **다운그레이드 차단 버전의 단일 정본**이다. 각 행은 *포맷을 바꾼 도입 버전*과 *그 뒤로 불가능해지는 롤백 하한*을 함께 적는다 — 이 둘은 같은 숫자가 아니고, 요약하려고 한 숫자로 누르면 "25.8이 도입 버전인지 하한인지"가 뒤섞인다. 다른 장과 운영 트랙은 이 숫자를 재기재하지 않고 이 표를 가리킨다.
+아래 표가 이 스택에서 **다운그레이드 차단 버전의 단일 정본**입니다. 각 행은 *포맷을 바꾼 도입 버전*과 *그 뒤로 불가능해지는 롤백 하한*을 함께 적습니다 — 이 둘은 같은 숫자가 아니고, 요약하려고 한 숫자로 누르면 "25.8이 도입 버전인지 하한인지"가 뒤섞입니다. 다른 장과 운영 트랙은 이 숫자를 재기재하지 않고 이 표를 가리킵니다.
 
 | 트리거 | 효과 | 근거 |
 |---|---|---|
@@ -130,7 +130,7 @@ spec:
 ¹ `getMarksTypeFromFilesystem` 함수에서 fatal 발생.
 
 {{< callout type="warning" >}}
-**정정 — "CH는 언제든 이전 버전으로 되돌릴 수 있다"는 기각** `✓`. 25.10/25.8 같은 포맷 도입 이후로는 그 이전으로 못 내린다. 다운그레이드는 **버전 쌍마다 성립 여부가 다르며**, 안전한 롤백의 유일한 일반해는 스냅샷/백업이다.
+**정정 — "CH는 언제든 이전 버전으로 되돌릴 수 있다"는 기각** `✓`. 25.10/25.8 같은 포맷 도입 이후로는 그 이전으로 못 내립니다. 다운그레이드는 **버전 쌍마다 성립 여부가 다르며**, 안전한 롤백의 유일한 일반해는 스냅샷/백업입니다.
 {{< /callout >}}
 
 ### 3.3 롤백 창을 여는 규칙 & 실질 롤백 경로 `✓`
@@ -158,7 +158,7 @@ clickhouse-backup restore_remote pre-upgrade-YYYYMMDD
 
 ## 4. EBS/블록 온리 특유 업그레이드 안전
 
-CH 다운그레이드가 포맷 때문에 막힐 수 있으므로(§3), EBS-first에서는 **업그레이드 직전 데이터 볼륨의 EBS 스냅샷**을 롤백 지점으로 삼는 게 가장 확실하다. 이것이 이 스택이 EBS-first이기에 추가로 얻는 롤백 축이다.
+CH 다운그레이드가 포맷 때문에 막힐 수 있으므로(§3), EBS-first에서는 **업그레이드 직전 데이터 볼륨의 EBS 스냅샷**을 롤백 지점으로 삼는 게 가장 확실합니다. 이것이 이 스택이 EBS-first이기에 추가로 얻는 롤백 축입니다.
 
 ### 4.1 EBS 스냅샷 → 롤백 경로 `✓⁽AWS⁾`
 
@@ -191,7 +191,7 @@ aws ec2 create-volume \
 
 ### 4.4 블록 온리(무 S3)의 업그레이드 단순성 `≈`
 
-S3 cold 티어가 없으면 업그레이드 중 **티어 간 정합(로컬 파트 메타 ↔ S3 오브젝트)** 우려가 원천적으로 없다. `storage_policy`가 내장 `default` 하나뿐이라 disk 설정·IRSA·endpoint 이슈가 업그레이드 표면에서 빠진다 — 즉 블록 온리는 업그레이드 롤백 추론이 **"EBS 스냅샷 하나"**로 단순해진다. 전량 EBS 사이징·operator 볼륨 튜닝은 [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}), S3 티어링 시의 정합 고려는 [S3 cold 티어링]({{< relref "03-s3-cold-tiering.md" >}}).
+S3 cold 티어가 없으면 업그레이드 중 **티어 간 정합(로컬 파트 메타 ↔ S3 오브젝트)** 우려가 원천적으로 없습니다. `storage_policy`가 내장 `default` 하나뿐이라 disk 설정·IRSA·endpoint 이슈가 업그레이드 표면에서 빠집니다 — 즉 블록 온리는 업그레이드 롤백 추론이 **"EBS 스냅샷 하나"**로 단순해집니다. 전량 EBS 사이징·operator 볼륨 튜닝은 [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}), S3 티어링 시의 정합 고려는 [S3 cold 티어링]({{< relref "03-s3-cold-tiering.md" >}}).
 
 ## 5. ClickStack/HyperDX 업그레이드 경로
 
@@ -210,7 +210,7 @@ S3 cold 티어가 없으면 업그레이드 중 **티어 간 정합(로컬 파�
 
 ### 5.2 우리 배포에 주는 함의 `≈`
 
-우리는 이미 **`clickhouse.enabled: false`(HyperDX Only)로 CH/Keeper를 Altinity CHI/CHK로 분리** 운영한다([스택 토폴로지]({{< relref "01-stack-topology.md" >}})). 그래서 v2의 "내장 CH를 공식 operator CR로 관리"라는 파괴적 변경의 상당 부분이 **우리에겐 적용되지 않는다** — 업그레이드 표면이 다음처럼 좁아진다:
+우리는 이미 **`clickhouse.enabled: false`(HyperDX Only)로 CH/Keeper를 Altinity CHI/CHK로 분리** 운영합니다([스택 토폴로지]({{< relref "01-stack-topology.md" >}})). 그래서 v2의 "내장 CH를 공식 operator CR로 관리"라는 파괴적 변경의 상당 부분이 **우리에겐 적용되지 않습니다** — 업그레이드 표면이 다음처럼 좁아집니다:
 
 | 표면 | 경로 |
 |---|---|
@@ -219,13 +219,13 @@ S3 cold 티어가 없으면 업그레이드 중 **티어 간 정합(로컬 파�
 | **OTel Collector** | 배포판 태그(2.29.0 기준) 상향. persistent queue 확장은 {{< relref "05-keeper.md" >}} 재확인 항목 |
 | **MongoDB** | 메타데이터 전용·소용량, 리스크 낮음. v2도 `MongoDBCommunity` CR/MCK 경로 동일. 부하 프로파일 [rum/07]({{< relref "../../rum/07-hyperdx-mongodb.md" >}}) |
 
-¹ MergeTree 표준 기능만 쓰므로 CH 24.8+ 유지 시 앱 업그레이드가 CH 하한을 새로 요구하는 경우는 드물다 `≈`.
+¹ MergeTree 표준 기능만 쓰므로 CH 24.8+ 유지 시 앱 업그레이드가 CH 하한을 새로 요구하는 경우는 드뭅니다 `≈`.
 
-즉 HyperDX Only 구조가 ClickStack v1→v2의 가장 파괴적인 부분(내장 CH 삭제·재설치)을 **회피**시켜 준다 — 우리의 ClickStack 차트 업그레이드는 사실상 HyperDX + OTel + 외부 CH 참조 설정 표면으로 국한된다.
+즉 HyperDX Only 구조가 ClickStack v1→v2의 가장 파괴적인 부분(내장 CH 삭제·재설치)을 **회피**시켜 줍니다 — 우리의 ClickStack 차트 업그레이드는 사실상 HyperDX + OTel + 외부 CH 참조 설정 표면으로 국한됩니다.
 
 ## 6. 일반 업그레이드 런북 (relref 위임)
 
-아래는 이미 corpus에 기준 문서가 있으므로 여기서 재서술하지 않는다. 요지 한 줄 + 링크로만 둔다.
+아래는 이미 corpus에 기준 문서가 있으므로 여기서 재서술하지 않습니다. 요지 한 줄 + 링크로만 둡니다.
 
 - **CH 서버 롤링**: shard 내 1 replica씩·shard 간 병렬·혼합버전 창 ~1년/2 LTS·중간 LTS 징검다리·`podTemplate` 이미지 태그 변경으로 트리거 → [operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}}).
 - **operator 자체**: minor 단계별(0.26→0.27)·CRD 삭제 절대금지·이미지+설정 분리 reconcile·안전장치 3층(STS recreate 정책·aborted reconcile 자동 재개·pre/post SQL 훅) → [operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}}).

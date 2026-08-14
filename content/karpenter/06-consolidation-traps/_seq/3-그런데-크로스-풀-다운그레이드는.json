@@ -1,5 +1,5 @@
 {
-  "caption": "consolidation 한 사이클. 평상시엔 대체안이 gen8에서 나와 strict 가격 필터에 걸려 no-op이 되고, gen8 풀이 CanAdd에 실패하는 순간에만 gen7 대체안이 만들어져 커밋된다",
+  "caption": "consolidation 한 사이클. 평상시엔 대체안이 gen8에서 나와 strict 가격 필터에 걸려 no-op이 되고, gen8 풀이 CanAdd에 실패하는 순간에만 gen7 대체안이 만들어져 커밋됩니다",
   "participants": [
     {
       "id": "n",

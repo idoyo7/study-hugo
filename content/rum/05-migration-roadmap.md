@@ -14,7 +14,7 @@ weight: 5
 - 실행은 2주 스프린트 6개로 쪼개고, 각 스프린트는 앞 게이트 통과를 조건으로 다음으로 넘어간다.
 {{< /callout >}}
 
-RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument → 병행 검증 → 단계적 컷오버**로 끌고 가는 실행 계획이다. 앞선 페이지들의 판정([HyperDX 심층]({{< relref "01-hyperdx-deep-dive.md" >}}), [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}}), [프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}}), [대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}))을 스프린트 단위 액션으로 접는다. ClickHouse 배포·스토리지·operator 상세는 [ClickHouse 자체 운영]({{< relref "../clickhouse/_index.md" >}}) 챕터로 위임하고, 이 페이지는 RUM/Datadog 이관 실행에 집중한다.
+RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument → 병행 검증 → 단계적 컷오버**로 끌고 가는 실행 계획입니다. 앞선 페이지들의 판정([HyperDX 심층]({{< relref "01-hyperdx-deep-dive.md" >}}), [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}}), [프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}}), [대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}))을 스프린트 단위 액션으로 접습니다. ClickHouse 배포·스토리지·operator 상세는 [ClickHouse 자체 운영]({{< relref "../clickhouse/_index.md" >}}) 챕터로 위임하고, 이 페이지는 RUM/Datadog 이관 실행에 집중합니다.
 
 ## Executive 판정 (6줄)
 
@@ -97,14 +97,14 @@ RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument 
 
 ## 우리 케이스에서는
 
-**전제부터 다르다.** 이 로드맵은 조사 문서의 세 전제 — ① Datadog **RUM 대체**가 드라이버, ② ClickHouse를 관측성 외 **범용 분석**에도 쓸 예정, ③ 이미 **EKS·인프라 운영 인력 보유** — 위에서 그려진다. 반면 [로깅 챕터]({{< relref "../logging/08-recommendation.md" >}})의 결정은 **로그 내재화** 관점에서 나왔고 전제가 좁다. 두 문서는 모순이 아니라 적용 범위가 다르다.
+**전제부터 다릅니다.** 이 로드맵은 조사 문서의 세 전제 — ① Datadog **RUM 대체**가 드라이버, ② ClickHouse를 관측성 외 **범용 분석**에도 쓸 예정, ③ 이미 **EKS·인프라 운영 인력 보유** — 위에서 그려집니다. 반면 [로깅 챕터]({{< relref "../logging/08-recommendation.md" >}})의 결정은 **로그 내재화** 관점에서 나왔고 전제가 좁습니다. 두 문서는 모순이 아니라 적용 범위가 다릅니다.
 
-따라서 로깅 챕터의 결정을 이 로드맵이 뒤집지 않는다:
+따라서 로깅 챕터의 결정을 이 로드맵이 뒤집지 않습니다:
 
 - **로그는 VictoriaLogs다(D 결정 유지).** 위 Sprint 3의 "로그 이관"은 *Datadog에서 빠져나오는 신호를 어디로 보낼지*의 문제이지, 로깅 챕터가 고른 [VictoriaLogs]({{< relref "../logging/03-victorialogs.md" >}})를 ClickHouse로 갈아치우라는 뜻이 아니다. volatile한 istio access log 경로에는 여전히 단일 바이너리 VictoriaLogs가 더 가볍다.
 - **통합 저장소(ClickHouse)는 earn-it-last다.** 이 로드맵이 CH self-host를 밀 수 있는 유일한 이유는 전제 ②·③ 때문이다 — CH가 **RUM/범용 분석 용도로 이미 정당화**되어 들어오는 경우에 한해, 관측성 데이터를 그 위에 얹는 것이 한계비용이 낮다. CH가 순수 로그 저장만을 위해 새로 도입되는 상황이라면 로깅 챕터의 "self-hosted CH를 1차 채택안으로 밀지 않는다"가 그대로 유효하다.
 - **오너십이 최종 관문이다.** 우리는 PLG 방치 이력이 있는 소규모 플랫폼 팀이다. 전제 ③(전담 오너)이 **명시적 오너 + 런북 + 정기 리뷰**로 못 박히지 않으면, R1(접근통제 공백)·R4(NVMe lifecycle)가 그대로 폭탄이 된다. 그 경우 self-host CH 대신 Managed(ClickHouse Cloud / Altinity.Cloud) 견적과 반드시 비교하고, RUM은 웹 코어만 HyperDX로 떼어내되 나머지는 Datadog 잔류가 현실적이다.
 
-**착수 전 필수 확인**(RUM 도메인 공통): Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 측정한다 — 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택(CH+MongoDB)만 늘린다. 도메인 큰 그림은 [RUM 내재화]({{< relref "_index.md" >}}) 참고.
+**착수 전 필수 확인**(RUM 도메인 공통): Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 측정합니다 — 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택(CH+MongoDB)만 늘립니다. 도메인 큰 그림은 [RUM 내재화]({{< relref "_index.md" >}}) 참고합니다.
 
 > 근거 등급은 조사 문서의 판정을 이어받는다. `≈`은 자릿수 추정, `?`은 공개 전례·검증 부재를 뜻한다. 조사 기준 2026-07.

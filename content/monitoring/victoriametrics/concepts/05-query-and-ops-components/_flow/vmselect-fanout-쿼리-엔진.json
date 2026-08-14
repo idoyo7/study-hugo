@@ -1,5 +1,5 @@
 {
-  "caption": "vmselect의 Fanout 쿼리 흐름 — Grafana 요청을 모든 vmstorage로 뿌리고 결과를 Merge·Sort해 같은 Grafana로 되돌린다(응답 경로를 오른쪽으로 폈다)",
+  "caption": "vmselect의 Fanout 쿼리 흐름 — Grafana 요청을 모든 vmstorage로 뿌리고 결과를 Merge·Sort해 같은 Grafana로 되돌립니다(응답 경로를 오른쪽으로 폈습니다)",
   "nodes": [
     {
       "id": "g",

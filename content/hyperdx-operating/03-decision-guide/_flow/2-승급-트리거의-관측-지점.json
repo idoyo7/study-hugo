@@ -1,5 +1,5 @@
 {
-  "caption": "충분 계열(부하 관측으로 발동): 단일 gp3(baseline)는 125 MiB/s 지속 초과(CloudWatch·asynchronous_metrics)면 provisioned throughput을 인스턴스 baseline까지 올리고, 그래도 2,000 MiB/s 지속·80,000 IOPS/vol 초과(또는 볼륨 99.999% 규제)면 io2로 간다. 1 shard는 노드당 hot 실용 상한 접근·머지/쿼리 CPU 지속 >70%면 먼저 사이즈업·replica 추가, 그래도 포화면 shard 추가(수동). 안전 계열(요구사항 변경으로 발동): RF2는 임의 2대 무손실 요구 또는 insert_quorum:2 상시 필요가 생기면 RF3로, Keeper 3은 2대 동시 손실 허용이 요구일 때만 5노드로 — 둘 다 지표가 아니라 요구사항이 바뀔 때만 발동.",
+  "caption": "충분 계열(부하 관측으로 발동): 단일 gp3(baseline)는 125 MiB/s 지속 초과(CloudWatch·asynchronous_metrics)면 provisioned throughput을 인스턴스 baseline까지 올리고, 그래도 2,000 MiB/s 지속·80,000 IOPS/vol 초과(또는 볼륨 99.999% 규제)면 io2로 갑니다. 1 shard는 노드당 hot 실용 상한 접근·머지/쿼리 CPU 지속 >70%면 먼저 사이즈업·replica 추가, 그래도 포화면 shard 추가(수동). 안전 계열(요구사항 변경으로 발동): RF2는 임의 2대 무손실 요구 또는 insert_quorum:2 상시 필요가 생기면 RF3로, Keeper 3은 2대 동시 손실 허용이 요구일 때만 5노드로 — 둘 다 지표가 아니라 요구사항이 바뀔 때만 발동합니다.",
   "groups": [
     {
       "id": "load",

@@ -1,5 +1,5 @@
 {
-  "caption": "full sync 가 두 커넥션으로 갈라진다 — main channel 은 fork 시점의 end offset 부터 증분을 흘리고, bgsave 자식 프로세스가 rdb-channel 소켓에 RDB 를 직접 쓴다. 증분이 쌓이는 곳이 primary 의 client output buffer 에서 replica 의 로컬 버퍼로 옮겨간 것이 이 설계의 전부이고, 그 버퍼의 상한은 replica 쪽 client-output-buffer-limit replica 하드 리밋이다.",
+  "caption": "full sync 가 두 커넥션으로 갈라집니다 — main channel 은 fork 시점의 end offset 부터 증분을 흘리고, bgsave 자식 프로세스가 rdb-channel 소켓에 RDB 를 직접 씁니다. 증분이 쌓이는 곳이 primary 의 client output buffer 에서 replica 의 로컬 버퍼로 옮겨간 것이 이 설계의 전부이고, 그 버퍼의 상한은 replica 쪽 client-output-buffer-limit replica 하드 리밋입니다.",
   "participants": [
     {
       "id": "rep",

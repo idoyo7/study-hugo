@@ -1,5 +1,5 @@
 {
-  "caption": "ICE 한 번의 전체 왕복 — 마킹은 provider-aws에, 재시도 트리거는 파드에 있다. 3분 뒤 TTL이 만료되면 8세대가 아무 조작 없이 후보로 돌아온다",
+  "caption": "ICE 한 번의 전체 왕복 — 마킹은 provider-aws에, 재시도 트리거는 파드에 있습니다. 3분 뒤 TTL이 만료되면 8세대가 아무 조작 없이 후보로 돌아옵니다",
   "participants": [
     {
       "id": "pod",

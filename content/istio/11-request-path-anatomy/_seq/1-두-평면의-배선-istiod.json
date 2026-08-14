@@ -1,5 +1,5 @@
 {
-  "caption": "파드가 뜰 때 istio-agent가 순서대로 배선하는 것들 — Envoy는 istiod와 직접 연결되지 않는다.",
+  "caption": "파드가 뜰 때 istio-agent가 순서대로 배선하는 것들 — Envoy는 istiod와 직접 연결되지 않습니다.",
   "participants": [
     {
       "id": "E",

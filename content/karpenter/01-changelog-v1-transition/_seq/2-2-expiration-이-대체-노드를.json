@@ -1,5 +1,5 @@
 {
-  "caption": "두 경로는 NodeClaim 삭제 전까지만 다르다 — graceful은 budget 평가와 대체 노드 Initialized 대기를 거치고 forceful(expiration·interruption)은 둘 다 건너뛴다. 드레인 단계는 동일하며 PDB·do-not-disrupt는 여기서만 개입하고 TGP가 그 개입을 끝낸다.",
+  "caption": "두 경로는 NodeClaim 삭제 전까지만 다릅니다 — graceful은 budget 평가와 대체 노드 Initialized 대기를 거치고 forceful(expiration·interruption)은 둘 다 건너뜁니다. 드레인 단계는 동일하며 PDB·do-not-disrupt는 여기서만 개입하고 TGP가 그 개입을 끝냅니다.",
   "participants": [
     {
       "id": "exp",

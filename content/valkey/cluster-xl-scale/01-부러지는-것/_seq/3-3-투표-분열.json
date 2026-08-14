@@ -1,5 +1,5 @@
 {
-  "caption": "shard1·shard3 replica가 같은 epoch에서 동시에 투표를 요청하면 생존 primary들의 표가 갈려 어느 쪽도 quorum을 못 채운다. #1018은 shard-id 사전순으로 랭크를 매겨 요청을 ~500ms씩 스태거해 shard1이 먼저, shard3가 뒤이어 당선되게 한다.",
+  "caption": "shard1·shard3 replica가 같은 epoch에서 동시에 투표를 요청하면 생존 primary들의 표가 갈려 어느 쪽도 quorum을 못 채웁니다. #1018은 shard-id 사전순으로 랭크를 매겨 요청을 ~500ms씩 스태거해 shard1이 먼저, shard3가 뒤이어 당선되게 합니다.",
   "participants": [
     {
       "id": "r1",

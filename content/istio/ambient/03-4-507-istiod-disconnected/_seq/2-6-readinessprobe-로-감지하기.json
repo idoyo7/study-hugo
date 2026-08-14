@@ -1,5 +1,5 @@
 {
-  "caption": "같은 probe 결과라도 successThreshold 값에 따라 결말이 갈린다 — 기본값 1이면 재연결 루프의 우연한 1회 성공만으로 endpoint에 다시 들어가 flapping이 난다.",
+  "caption": "같은 probe 결과라도 successThreshold 값에 따라 결말이 갈립니다 — 기본값 1이면 재연결 루프의 우연한 1회 성공만으로 endpoint에 다시 들어가 flapping이 납니다.",
   "participants": [
     {
       "id": "K",

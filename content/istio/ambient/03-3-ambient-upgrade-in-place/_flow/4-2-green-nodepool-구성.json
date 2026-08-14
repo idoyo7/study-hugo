@@ -1,5 +1,5 @@
 {
-  "caption": "green 쪽은 세 곳이 맞물려야 성립한다 — Karpenter가 새 노드에 찍는 istio-version label, 그 label을 nodeSelector로 잡는 ztunnel DaemonSet, 그리고 두 service account를 모두 신뢰하는 istiod. 하나만 빠져도 green ztunnel은 뜨지 않거나 인증서를 받지 못한다.",
+  "caption": "green 쪽은 세 곳이 맞물려야 성립합니다 — Karpenter가 새 노드에 찍는 istio-version label, 그 label을 nodeSelector로 잡는 ztunnel DaemonSet, 그리고 두 service account를 모두 신뢰하는 istiod. 하나만 빠져도 green ztunnel은 뜨지 않거나 인증서를 받지 못합니다.",
   "nodes": [
     {
       "id": "np",

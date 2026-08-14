@@ -14,7 +14,7 @@ weight: 4
 - 우리 케이스: PLG 방치 이력이 있는 소규모 플랫폼 팀이라 **self-host CH를 1차 채택안으로 밀지 않는다** — 지배적 위험은 기술이 아니라 오너십이다.
 {{< /callout >}}
 
-컬럼형(column-oriented) OLAP 데이터베이스. Yandex에서 출발해 오픈소스화된 Apache-2.0 프로젝트이고, 대규모 분석 쿼리에 최적화된 성숙한 엔진이다. 로그·트레이스·이벤트·웹 RUM을 **한 스키마 계열·SQL 인터페이스로 흡수**하는 "통합 관측성 저장소" 후보로 자주 거론된다.
+컬럼형(column-oriented) OLAP 데이터베이스. Yandex에서 출발해 오픈소스화된 Apache-2.0 프로젝트이고, 대규모 분석 쿼리에 최적화된 성숙한 엔진입니다. 로그·트레이스·이벤트·웹 RUM을 **한 스키마 계열·SQL 인터페이스로 흡수**하는 "통합 관측성 저장소" 후보로 자주 거론됩니다.
 
 ## 강점
 
@@ -65,6 +65,6 @@ StarRocks와의 정면 비교는 [ClickHouse vs StarRocks]({{< relref "07-clickh
 
 ## 우리 케이스에서는
 
-우리는 PLG 방치 이력이 있는 소규모 플랫폼 팀이고, self-hosted CH는 managed OpenSearch보다 운영 부담이 **더 크지 덜하지 않다** — 여기서 지배적 위험은 기술이 아니라 오너십이다. 명시적 오너 + 런북 + 정기 리뷰를 못 박을 수 없다면 관리형(ClickHouse Cloud / Altinity.Cloud) 견적과 반드시 비교해야 하고, volatile한 istio access log 경로에는 단일 바이너리로 임의 field를 처리하는 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})가 더 가벼운 후보다. 따라서 self-hosted CH를 1차 채택안으로 밀지 않는다.
+우리는 PLG 방치 이력이 있는 소규모 플랫폼 팀이고, self-hosted CH는 managed OpenSearch보다 운영 부담이 **더 크지 덜하지 않습니다** — 여기서 지배적 위험은 기술이 아니라 오너십입니다. 명시적 오너 + 런북 + 정기 리뷰를 못 박을 수 없다면 관리형(ClickHouse Cloud / Altinity.Cloud) 견적과 반드시 비교해야 하고, volatile한 istio access log 경로에는 단일 바이너리로 임의 field를 처리하는 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})가 더 가벼운 후보입니다. 따라서 self-hosted CH를 1차 채택안으로 밀지 않습니다.
 
-채택을 전제했을 때의 배포·스토리지·operator 운영 전략 심화(how)는 [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) 도메인 참조 — 여기(로그 내재화 관점의 채택 여부)와 전제가 다르다.
+채택을 전제했을 때의 배포·스토리지·operator 운영 전략 심화(how)는 [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) 도메인 참조 — 여기(로그 내재화 관점의 채택 여부)와 전제가 다릅니다.

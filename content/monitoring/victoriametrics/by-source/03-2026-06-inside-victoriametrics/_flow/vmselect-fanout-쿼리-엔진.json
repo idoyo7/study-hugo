@@ -1,5 +1,5 @@
 {
-  "caption": "vmselect 3-Prefix 검색 — 태그 필터에서 Metric ID·TSID를 거쳐 값·이름을 복원한다",
+  "caption": "vmselect 3-Prefix 검색 — 태그 필터에서 Metric ID·TSID를 거쳐 값·이름을 복원합니다",
   "nodes": [
     {
       "id": "t",

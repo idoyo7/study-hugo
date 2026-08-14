@@ -1,5 +1,5 @@
 {
-  "caption": "재접속 폭풍에서 CPU가 실제로 타는 지점 — serverCron의 100ms tick마다 clusterCron이 죽은 peer 전원에 connect syscall을 다시 건다. #2154는 이 재시도를 cluster-node-timeout 창 안에서 ~750ms 간격 · ~10회로 흩뿌린다.",
+  "caption": "재접속 폭풍에서 CPU가 실제로 타는 지점 — serverCron의 100ms tick마다 clusterCron이 죽은 peer 전원에 connect syscall을 다시 겁니다. #2154는 이 재시도를 cluster-node-timeout 창 안에서 ~750ms 간격 · ~10회로 흩뿌립니다.",
   "nodes": [
     {
       "id": "serverCron",

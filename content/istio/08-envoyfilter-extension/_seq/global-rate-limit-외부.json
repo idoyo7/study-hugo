@@ -1,5 +1,5 @@
 {
-  "caption": "global rate limit — 매 요청이 외부 RLS를 한 번 왕복해 allow/deny를 받고, 그 판정이 통과와 429를 가른다.",
+  "caption": "global rate limit — 매 요청이 외부 RLS를 한 번 왕복해 allow/deny를 받고, 그 판정이 통과와 429를 가릅니다.",
   "participants": [
     {
       "id": "C",

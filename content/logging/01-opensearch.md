@@ -14,7 +14,7 @@ weight: 1
 - 우리 케이스: 90일 보존이 정말 필요한지부터 되묻고, tail 이전 + in-place 최적화를 먼저 한다.
 {{< /callout >}}
 
-Apache Lucene 기반 분산 검색·분석 엔진. 2021년 Elastic의 SSPL 전환 이후 Elasticsearch 7.10.2 / Kibana를 포크해 만들어졌고, **Apache 2.0** 라이선스로 현재 OpenSearch Software Foundation(Linux Foundation)이 관리한다 — 성숙도·생태계가 넓고 프로덕션 채택이 두텁다. AWS에서는 관리형 **Amazon OpenSearch Service**로 제공되며, 고객사는 `fluent-bit → Firehose → OpenSearch(+ UltraWarm)`로 운영 중이다. 파이프라인 구성 자체는 정석이고, 쟁점은 **로그 저장 용도 대비 요금 구조**다.
+Apache Lucene 기반 분산 검색·분석 엔진. 2021년 Elastic의 SSPL 전환 이후 Elasticsearch 7.10.2 / Kibana를 포크해 만들어졌고, **Apache 2.0** 라이선스로 현재 OpenSearch Software Foundation(Linux Foundation)이 관리합니다 — 성숙도·생태계가 넓고 프로덕션 채택이 두텁습니다. AWS에서는 관리형 **Amazon OpenSearch Service**로 제공되며, 고객사는 `fluent-bit → Firehose → OpenSearch(+ UltraWarm)`로 운영 중입니다. 파이프라인 구성 자체는 정석이고, 쟁점은 **로그 저장 용도 대비 요금 구조**입니다.
 
 ## 강점
 
@@ -30,7 +30,7 @@ Apache Lucene 기반 분산 검색·분석 엔진. 2021년 Elastic의 SSPL 전�
 - **로그 저장 목적 대비 컴퓨트 헤비**: 역색인은 노드가 상시 가동돼야 서빙되므로 **비용의 ~90%가 인스턴스 시간, 스토리지는 ~10%** `≈`뿐이다. 스토리지가 지배하고 컴퓨트가 작은 컬럼나 로그 스토어와 정반대. 같은 로그의 on-disk footprint도 ClickHouse/VictoriaLogs/Loki 대비 **~10× 크다** `≈`.
 
 {{< callout type="important" >}}
-**UltraWarm은 RI 예약 불가**: 흔한 오해와 달리 **hot 데이터 노드와 dedicated master는 RI 적격**이다 — 예약 불가는 **UltraWarm과 Cold storage뿐**이다. 그래서 hot을 예약해도 warm compute가 온디맨드에 영구 고정돼 블렌디드 절감이 상한에 걸린다.
+**UltraWarm은 RI 예약 불가**: 흔한 오해와 달리 **hot 데이터 노드와 dedicated master는 RI 적격**입니다 — 예약 불가는 **UltraWarm과 Cold storage뿐**입니다. 그래서 hot을 예약해도 warm compute가 온디맨드에 영구 고정돼 블렌디드 절감이 상한에 걸립니다.
 
 청구서 구조 예시 (현행 도메인 10 hot + 8 warm, 리스트가·us-east-1 파생 추정 `≈`):
 
@@ -41,7 +41,7 @@ Apache Lucene 기반 분산 검색·분석 엔진. 2021년 Elastic의 SSPL 전�
 | **compute 합계** | **$33,288** | $27,820 | $24,820 |
 | **블렌디드 절감** | — | **~16%** | **~25%** |
 
-hot을 3yr로 예약해 hot tier만 −48%를 받아도, UltraWarm이 잔여 compute의 ~63%(연 ~$188K)를 온디맨드로 고정하므로 **전 클러스터 블렌디드 절감 상한은 ~25%**다. "전체 클러스터 40% RI 절감"은 성립하지 않는다.
+hot을 3yr로 예약해 hot tier만 −48%를 받아도, UltraWarm이 잔여 compute의 ~63%(연 ~$188K)를 온디맨드로 고정하므로 **전 클러스터 블렌디드 절감 상한은 ~25%**입니다. "전체 클러스터 40% RI 절감"은 성립하지 않습니다.
 {{< /callout >}}
 
 - **Cold tier 함정**: OpenSearch cold storage도 rehydrate에 (할인 불가) UltraWarm 노드가 필요하다. tail을 값싸게 빼는 경로로는 오히려 S3 Direct Query(zero-ETL)나 컬럼나+S3가 낫다.
@@ -54,4 +54,4 @@ hot을 3yr로 예약해 hot tier만 −48%를 받아도, UltraWarm이 잔여 com
 
 ## 우리 케이스에서는
 
-90일 보존이 정말 필요한지부터 되묻는다. 절감의 대부분은 **보존 tail을 컬럼나+S3로 이전하고 hot을 축소·OR로 이전**하는 데서 나온다 — UltraWarm 8대(연 ~$188K 고정)를 컬럼나+S3 tail로 대체하면 대체 비용(~$24–48K/yr) 차감 후 **순 ~$140K+/yr 절감**으로 hot RI 최대 절감(~$100K/yr)을 압도한다 `≈`. 현행을 유지하더라도 UltraWarm+RI보다 **hot을 OR1/OR2로 옮겨 관리형 단순성은 지키되 스토리지 경제를 바꾸는 것**이 낫다. 대안 프로필은 [VictoriaLogs]({{< relref "03-victorialogs.md" >}}) · [ClickHouse]({{< relref "04-clickhouse.md" >}}), 우리 환경에 얹은 최종 판단은 [우리 케이스 · 권장안]({{< relref "08-recommendation.md" >}}) 참고.
+90일 보존이 정말 필요한지부터 되묻습니다. 절감의 대부분은 **보존 tail을 컬럼나+S3로 이전하고 hot을 축소·OR로 이전**하는 데서 나옵니다 — UltraWarm 8대(연 ~$188K 고정)를 컬럼나+S3 tail로 대체하면 대체 비용(~$24–48K/yr) 차감 후 **순 ~$140K+/yr 절감**으로 hot RI 최대 절감(~$100K/yr)을 압도합니다 `≈`. 현행을 유지하더라도 UltraWarm+RI보다 **hot을 OR1/OR2로 옮겨 관리형 단순성은 지키되 스토리지 경제를 바꾸는 것**이 낫습니다. 대안 프로필은 [VictoriaLogs]({{< relref "03-victorialogs.md" >}}) · [ClickHouse]({{< relref "04-clickhouse.md" >}}), 우리 환경에 얹은 최종 판단은 [우리 케이스 · 권장안]({{< relref "08-recommendation.md" >}}) 참고합니다.

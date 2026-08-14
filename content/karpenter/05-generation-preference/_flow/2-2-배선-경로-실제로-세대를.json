@@ -1,5 +1,5 @@
 {
-  "caption": "priceAdjustment가 인스턴스 선택에 닿는 경로. 아래 갈래는 페널티가 과할 때의 실패 모드다 — 오버레이 적용 인스턴스가 절단선 밖으로 전부 밀리면 어노테이션이 붙지 않아 Fleet 전략이 lowest-price로 되돌아간다",
+  "caption": "priceAdjustment가 인스턴스 선택에 닿는 경로. 아래 갈래는 페널티가 과할 때의 실패 모드입니다 — 오버레이 적용 인스턴스가 절단선 밖으로 전부 밀리면 어노테이션이 붙지 않아 Fleet 전략이 lowest-price로 되돌아갑니다",
   "nodes": [
     {
       "id": "ov",

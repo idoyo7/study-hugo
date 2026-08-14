@@ -1,5 +1,5 @@
 {
-  "caption": "같은 요청이 두 갈래로 갈린다 — retry 시점에 buffer가 body를 들고 있으면 replay해서 재시도하고, 1MB를 넘겨 buffering을 포기한 뒤였다면 507 local reply가 나간다.",
+  "caption": "같은 요청이 두 갈래로 갈립니다 — retry 시점에 buffer가 body를 들고 있으면 replay해서 재시도하고, 1MB를 넘겨 buffering을 포기한 뒤였다면 507 local reply가 나갑니다.",
   "participants": [
     {
       "id": "C",

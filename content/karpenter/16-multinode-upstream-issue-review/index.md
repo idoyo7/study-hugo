@@ -26,7 +26,7 @@ weight: 16
 
 ### 0.1 NodePool별 필터링에 가장 가까운 것
 
-Issue만 비교하면 `#2814`가 가장 가깝습니다.
+Issue만 비교하면 `#2814`가 가장 가깁습니다.
 
 ```text
 전체 Candidate
@@ -306,7 +306,7 @@ working group 댓글에서는 `same nodepool`, `same architecture` 같은 compat
 | [#2218 disruption budget 문서 불명확](https://github.com/kubernetes-sigs/karpenter/issues/2218) | Open, Accepted/Backlog | budget 의미와 실제 동작 설명 부족 |
 | [#2344 allowed disruptions metric과 schedule 불일치](https://github.com/kubernetes-sigs/karpenter/issues/2344) | Open | budget 계산·관측 가능성 문제 |
 
-이 항목들은 후보 grouping 문제와 직접 중복되지는 않습니다. 다만 “NodePool별 budget이 실행 제한뿐 아니라 탐색 기회도 의미해야 하는가”를 설명할 때 배경 자료로 사용할 수 있습니다.
+이 항목들은 후보 grouping 문제와 직접 중복되지는 않습니다. 다만 "NodePool별 budget이 실행 제한뿐 아니라 탐색 기회도 의미해야 하는가"를 설명할 때 배경 자료로 사용할 수 있습니다.
 
 ## 7. 새 Issue를 만들 것인가
 

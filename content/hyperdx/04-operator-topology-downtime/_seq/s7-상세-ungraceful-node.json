@@ -1,5 +1,5 @@
 {
-  "caption": "죽은 노드에서 파드가 무한 Terminating에 빠지는 과정 — 개입 없으면 파드 교체가 사실상 무한 지연된다.",
+  "caption": "죽은 노드에서 파드가 무한 Terminating에 빠지는 과정 — 개입 없으면 파드 교체가 사실상 무한 지연됩니다.",
   "participants": [
     {
       "id": "N",

@@ -21,7 +21,7 @@ weight: 10
 
 ## 1. 비용을 만드는 축은 넷이다
 
-시리즈 수는 곧 라벨 조합 수다. Karpenter 메트릭의 라벨은 네 축 중 하나에 붙는다.
+시리즈 수는 곧 라벨 조합 수입니다. Karpenter 메트릭의 라벨은 네 축 중 하나에 붙습니다.
 
 | 축 | 메트릭 수 | 시리즈 수 | churn |
 |---|---|---|---|
@@ -30,7 +30,7 @@ weight: 10
 | NodePool 단위 | 다수 | NP × 조합 | 거의 없음 |
 | 전역 | 4 | 상수 | 없음 |
 
-`P` 파드, `N` 노드, `NP` NodePool, `R` **노드의 실제 리소스 종류 수**(고정 아님 — `ResourceList` 순회로 정해짐, `metrics/node/controller.go`의 `getNodeLabelsWithResourceType`). 보통 `cpu`·`memory`·`pods`·`ephemeral-storage`·`hugepages-1Gi`·`hugepages-2Mi` 여섯이다.
+`P` 파드, `N` 노드, `NP` NodePool, `R` **노드의 실제 리소스 종류 수**(고정 아님 — `ResourceList` 순회로 정해짐, `metrics/node/controller.go`의 `getNodeLabelsWithResourceType`). 보통 `cpu`·`memory`·`pods`·`ephemeral-storage`·`hugepages-1Gi`·`hugepages-2Mi` 여섯입니다.
 
 ### 1.1 파드 단위 6종 — 여기가 전부다
 
@@ -43,11 +43,11 @@ weight: 10
 | `karpenter_pods_provisioning_unbound_time_seconds` | `{name,namespace}` · ALPHA |
 | `karpenter_pods_provisioning_scheduling_undecided_time_seconds` | `{name,namespace}` · ALPHA |
 
-`karpenter_pods_state`에는 노드 라벨셋(`nodepool`·`zone`·`instance_type`·`capacity_type`…)이 통째로 붙어 재스케줄만으로도 새 시리즈가 생긴다. 여섯 모두 라벨에 **파드 이름**이 들어가므로 Deployment 롤링 한 번에 시리즈가 통째로 죽고 생긴다.
+`karpenter_pods_state`에는 노드 라벨셋(`nodepool`·`zone`·`instance_type`·`capacity_type`…)이 통째로 붙어 재스케줄만으로도 새 시리즈가 생깁니다. 여섯 모두 라벨에 **파드 이름**이 들어가므로 Deployment 롤링 한 번에 시리즈가 통째로 죽고 생깁니다.
 
 ### 1.2 규모 감각 — 예시 계산
 
-실측이 아닌 **예시**다(자기 클러스터 수치는 §5로 잰다). `P=3000`, `N=200`, `NP=35`, `R=6`일 때:
+실측이 아닌 **예시**입니다(자기 클러스터 수치는 §5로 잽니다). `P=3000`, `N=200`, `NP=35`, `R=6`일 때:
 
 | 축 | 시리즈 | 비중 |
 |---|---|---|
@@ -56,11 +56,11 @@ weight: 10
 | NodePool 단위 | ~1,600 | 6% |
 | 전역 | ~10 | 0% |
 
-롤링 배포 한 번이 **18,000개 시리즈를 새로 만든다** — 총량보다 이 숫자가 더 아프다.
+롤링 배포 한 번이 **18,000개 시리즈를 새로 만듭니다** — 총량보다 이 숫자가 더 아픕니다.
 
 ## 2. 백엔드는 이 비용을 어떻게 청구하나
 
-같은 시리즈가 백엔드마다 다른 이름의 비용이 된다.
+같은 시리즈가 백엔드마다 다른 이름의 비용이 됩니다.
 
 | | Datadog | VictoriaMetrics | Prometheus |
 |---|---|---|---|
@@ -73,15 +73,15 @@ weight: 10
 
 > "By default, all metrics retrieved by the generic Prometheus check are considered custom metrics."
 
-OpenMetrics 체크로 붙이면 **60개 전부와 그 태그 조합이 custom metric으로 과금된다** — §1.2 예시라면 27,000이 그대로 27,000 custom metric이다. Pro 무료 분량(호스트당 100×200대=20,000)을 넘긴다.
+OpenMetrics 체크로 붙이면 **60개 전부와 그 태그 조합이 custom metric으로 과금됩니다** — §1.2 예시라면 27,000이 그대로 27,000 custom metric입니다. Pro 무료 분량(호스트당 100×200대=20,000)을 넘깁니다.
 
-**MWL(Metrics without Limits™)** 은 ingested/indexed를 분리해 태그 allowlist 밖을 드롭하지만 **indexed만 줄고 ingested는 그대로다** — 유입을 줄이려면 Agent 단계(§3.3)에서 걸러야 한다.
+**MWL(Metrics without Limits™)** 은 ingested/indexed를 분리해 태그 allowlist 밖을 드롭하지만 **indexed만 줄고 ingested는 그대로입니다** — 유입을 줄이려면 Agent 단계(§3.3)에서 걸러야 합니다.
 
 ### 2.2 VictoriaMetrics — 청구가 아니라 인덱스가 문제다
 
-active time series는 **최근 1시간 안에 샘플을 받은 시계열**이라 죽은 파드는 한 시간 뒤 빠진다. 그러나 **`indexdb`에서는 안 빠진다** — 역인덱스가 모든 라벨 엔트리를 담기 때문이다. churn이 계속되면 인덱스는 계속 자란다(공식 FAQ: `indexdb`가 `data`의 **2배를 넘기도 함**).
+active time series는 **최근 1시간 안에 샘플을 받은 시계열**이라 죽은 파드는 한 시간 뒤 빠집니다. 그러나 **`indexdb`에서는 안 빠집니다** — 역인덱스가 모든 라벨 엔트리를 담기 때문입니다. churn이 계속되면 인덱스는 계속 자랍니다(공식 FAQ: `indexdb`가 `data`의 **2배를 넘기도 함**).
 
-**그래서 VM에서는 총 시리즈 수보다 churn이 먼저다** — 파드 6종은 총량도 크지만 churn으로는 압도적이다.
+**그래서 VM에서는 총 시리즈 수보다 churn이 먼저입니다** — 파드 6종은 총량도 크지만 churn으로는 압도적입니다.
 
 ### 2.3 Prometheus — 보호 장치가 전부 꺼져 있다
 
@@ -91,7 +91,7 @@ active time series는 **최근 1시간 안에 샘플을 받은 시계열**이라
 | `label_limit` | **0 (무제한)** | 샘플당 라벨 수 |
 | `target_limit` | **0 (무제한)** | 스크랩 설정당 타깃 수 |
 
-셋 다 켜면 초과 시 **스크랩 전체가 실패**한다. `sample_limit` 판정은 `metric_relabel_configs` **이후** 기준이라 drop 규칙과 함께 계산해야 한다.
+셋 다 켜면 초과 시 **스크랩 전체가 실패**합니다. `sample_limit` 판정은 `metric_relabel_configs` **이후** 기준이라 drop 규칙과 함께 계산해야 합니다.
 
 ## 3. 수집 설정
 
@@ -104,7 +104,7 @@ active time series는 **최근 1시간 안에 샘플을 받은 시계열**이라
 
 ### 3.2 VictoriaMetrics
 
-vm-operator는 `VMServiceScrape`를 먹는다(prometheus-converter가 켜져 있으면 `ServiceMonitor`도 자동 변환 — 차트에 `serviceMonitor.enabled`가 있으면 그쪽이 짧다).
+vm-operator는 `VMServiceScrape`를 먹습니다(prometheus-converter가 켜져 있으면 `ServiceMonitor`도 자동 변환 — 차트에 `serviceMonitor.enabled`가 있으면 그쪽이 짧습니다).
 
 ```yaml
 apiVersion: operator.victoriametrics.com/v1beta1
@@ -129,11 +129,11 @@ spec:
           regex: 'karpenter_pods_provisioning_.*'
 ```
 
-`relabel_configs`가 아니라 **`metricRelabelConfigs`** 다 — 전자는 스크랩 **전** 타깃 선정, 후자가 스크랩 **후** 저장 전 단계다. vmagent에서도 거를 수 있지만(`-remoteWrite.relabelConfig`) 스크랩 단계에서 미리 버리는 편이 낫다.
+`relabel_configs`가 아니라 **`metricRelabelConfigs`** 입니다 — 전자는 스크랩 **전** 타깃 선정, 후자가 스크랩 **후** 저장 전 단계입니다. vmagent에서도 거를 수 있지만(`-remoteWrite.relabelConfig`) 스크랩 단계에서 미리 버리는 편이 낫습니다.
 
 ### 3.3 Datadog
 
-파드 어노테이션으로 OpenMetrics 체크를 붙인다. **`metrics:`에 allowlist를 반드시 준다** — 안 주면 §2.1대로 전부 custom metric이 된다.
+파드 어노테이션으로 OpenMetrics 체크를 붙입니다. **`metrics:`에 allowlist를 반드시 줍니다** — 안 주면 §2.1대로 전부 custom metric이 됩니다.
 
 ```yaml
 ad.datadoghq.com/controller.checks: |
@@ -156,13 +156,13 @@ ad.datadoghq.com/controller.checks: |
   }
 ```
 
-유입을 줄이는 유일한 수단이 **`metrics:` allowlist**다. **`max_returned_metrics`**(기본 2000)는 allowlist 없이 붙였을 때 조용히 잘리는 선이다. **`exclude_labels`**는 파드 이름·네임스페이스를 Agent 단계에서 제거한다. MWL의 태그 allowlist는 indexed만 줄이는 그다음 층이라 위 셋을 먼저 적용한다.
+유입을 줄이는 유일한 수단이 **`metrics:` allowlist**입니다. **`max_returned_metrics`**(기본 2000)는 allowlist 없이 붙였을 때 조용히 잘리는 선입니다. **`exclude_labels`**는 파드 이름·네임스페이스를 Agent 단계에서 제거합니다. MWL의 태그 allowlist는 indexed만 줄이는 그다음 층이라 위 셋을 먼저 적용합니다.
 
 ## 4. 무엇을 버리고 무엇을 남기나
 
 ### 4.1 drop보다 keep이 낫다
 
-blocklist보다 **allowlist(keep-list)** 를 권한다 — 업스트림이 메트릭을 추가하면 blocklist는 그것을 자동으로 통과시킨다. 새 메트릭이 파드 단위면 비용이 조용히 올라간다.
+blocklist보다 **allowlist(keep-list)** 를 권합니다 — 업스트림이 메트릭을 추가하면 blocklist는 그것을 자동으로 통과시킵니다. 새 메트릭이 파드 단위면 비용이 조용히 올라갑니다.
 
 ```yaml
 metricRelabelConfigs:
@@ -171,7 +171,7 @@ metricRelabelConfigs:
     regex: 'karpenter_(nodeclaims_disrupted_total|nodepools_allowed_disruptions|nodepools_nodes_consuming_budgets|nodepools_(limit|usage)|consolidation_(score|moves_total)|voluntary_disruption_(eligible_nodes|decisions_total)|scheduler_(unschedulable_pods_count|pending_pods_by_effective_zone_count)|cluster_utilization_percent|cluster_state_(synced|node_count)|nodes_(created_total|terminated_total|total_pod_requests|total_daemon_requests|allocatable)|nodeclaims_(created_total|terminated_total)|cloudprovider_errors_total|build_info)'
 ```
 
-대가는 새 메트릭을 자동으로 못 받는 것 — 업그레이드 후 §5.1로 훑는다. blocklist로 가야 한다면 최소한 파드 축은 막는다.
+대가는 새 메트릭을 자동으로 못 받는 것 — 업그레이드 후 §5.1로 훑습니다. blocklist로 가야 한다면 최소한 파드 축은 막습니다.
 
 ### 4.2 버리는 것 — 파드 단위 6종
 
@@ -184,7 +184,7 @@ metricRelabelConfigs:
   regex: 'karpenter_pods_provisioning_.*'
 ```
 
-**버려도 잃는 게 거의 없다** — 근거 셋:
+**버려도 잃는 게 거의 없습니다** — 근거 셋:
 
 - 파드 단위 상태는 **kube-state-metrics가 이미 더 잘 낸다**(대체재는 §4.5).
 - `nodepool`·`capacity_type` 라벨은 **노드 단위로도 얻는다**(§4.5).
@@ -192,7 +192,7 @@ metricRelabelConfigs:
 
 ### 4.3 남기는 것
 
-[09 §2]({{< relref "09-metrics-logs-events.md" >}})의 여섯 개가 핵심 — 전부 NodePool·전역 축이라 시리즈가 묶인다.
+[09 §2]({{< relref "09-metrics-logs-events.md" >}})의 여섯 개가 핵심 — 전부 NodePool·전역 축이라 시리즈가 묶입니다.
 
 | 남길 것 | 시리즈 규모 |
 |---|---|
@@ -206,9 +206,9 @@ metricRelabelConfigs:
 
 ### 4.4 판단이 갈리는 것 — 노드 단위 7종
 
-`6NR + N`이라 200노드·R=6이면 7,400 — 무시할 양은 아니지만 **churn이 낮고** 대체재가 없다. `_total_pod_requests - _total_daemon_requests`는 **"노드를 줄일 수 있는가"의 유일한 직접 근거**다([08 §5]({{< relref "08-disruption-budgets.md" >}})).
+`6NR + N`이라 200노드·R=6이면 7,400 — 무시할 양은 아니지만 **churn이 낮고** 대체재가 없습니다. `_total_pod_requests - _total_daemon_requests`는 **"노드를 줄일 수 있는가"의 유일한 직접 근거**입니다([08 §5]({{< relref "08-disruption-budgets.md" >}})).
 
-줄이려면 메트릭 자체보다 `resource_type`을 자르는 쪽이 낫다 — `hugepages-*`를 안 쓰면 그 두 축이 통째로 낭비다.
+줄이려면 메트릭 자체보다 `resource_type`을 자르는 쪽이 낫습니다 — `hugepages-*`를 안 쓰면 그 두 축이 통째로 낭비입니다.
 
 ```yaml
 - action: drop
@@ -218,7 +218,7 @@ metricRelabelConfigs:
 
 ### 4.5 버린 뒤 무엇이 깨지나
 
-drop하면 **그 메트릭을 쓰던 대시보드·알림이 조용히 빈 결과를 낸다** — 에러가 아니라 침묵이다. 버리기 전에 대체재를 확인한다.
+drop하면 **그 메트릭을 쓰던 대시보드·알림이 조용히 빈 결과를 냅니다** — 에러가 아니라 침묵입니다. 버리기 전에 대체재를 확인합니다.
 
 | 잃는 것 | 대체 |
 |---|---|
@@ -227,19 +227,19 @@ drop하면 **그 메트릭을 쓰던 대시보드·알림이 조용히 빈 결�
 | NodePool별 파드 분포 | `karpenter_nodes_total_pod_requests` (노드 축) |
 | 파드 startup 지연 | kubelet `kubelet_pod_start_duration_seconds` |
 
-**대체 안 되는 것 하나** — `karpenter_pods_state`의 `capacity_type`은 KSM이 직접 주지 않는다. 필요하면 조인한다.
+**대체 안 되는 것 하나** — `karpenter_pods_state`의 `capacity_type`은 KSM이 직접 주지 않습니다. 필요하면 조입니다.
 
 ```promql
 kube_pod_info * on(node) group_left(label_karpenter_sh_capacity_type) kube_node_labels
 ```
 
-조인 비용이 있으므로 spot 비율을 파드 단위로 상시 감시해야 할 때만 `karpenter_pods_state`를 남긴다.
+조인 비용이 있으므로 spot 비율을 파드 단위로 상시 감시해야 할 때만 `karpenter_pods_state`를 남깁니다.
 
 ## 5. 실측 방법
 
 ### 5.1 먼저 소스에서 잰다 — 수집을 켜기 전에
 
-**순서가 중요하다** — 붙였다가 비싸면 줄이는 게 아니라 **붙이기 전에 얼마인지 재고 시작한다.** 엔드포인트를 직접 긁으면 백엔드에 아무것도 넣지 않고 시리즈 수를 셀 수 있다.
+**순서가 중요합니다** — 붙였다가 비싸면 줄이는 게 아니라 **붙이기 전에 얼마인지 재고 시작합니다.** 엔드포인트를 직접 긁으면 백엔드에 아무것도 넣지 않고 시리즈 수를 셀 수 있습니다.
 
 ```bash
 kubectl -n karpenter port-forward svc/karpenter 8080:8080 &
@@ -255,7 +255,7 @@ curl -s localhost:8080/metrics | grep -vc '^#'
 curl -s localhost:8080/metrics | grep -c '^karpenter_pods_'
 ```
 
-이 숫자가 **Datadog에서는 그대로 custom metric 개수**, VM·Prometheus에서는 시리즈 수다. drop 규칙도 이 출력이 근거 — 상위 5개 비중이 무엇부터 버릴지를 정한다.
+이 숫자가 **Datadog에서는 그대로 custom metric 개수**, VM·Prometheus에서는 시리즈 수입니다. drop 규칙도 이 출력이 근거 — 상위 5개 비중이 무엇부터 버릴지를 정합니다.
 
 ### 5.2 켠 뒤에는 백엔드에서 잰다
 
@@ -264,14 +264,14 @@ count({__name__=~"karpenter_.*"}) by (__name__)                            # 메
 count({__name__=~"karpenter_pods_.*"}) / count({__name__=~"karpenter_.*"}) # 파드 축 비중
 ```
 
-VM이면 지표도 본다.
+VM이면 지표도 봅니다.
 
 ```promql
 sum(max_over_time(vm_cache_entries{type="storage/hour_metric_ids"}[24h]))  # active series
 sum(increase(vm_new_timeseries_created_total[24h]))                        # churn
 ```
 
-**churn은 배포일/비배포일을 갈라 봐야** 의미가 있다 — 파드 축 제거 전후 이 값의 변화가 이 문서의 결론을 검증한다. 메트릭·라벨별 분해는 vmui의 Cardinality Explorer(`/vmui/#/cardinality`)가 보여준다. Prometheus는 `/api/v1/status/tsdb`의 `seriesCountByMetricName`이 같은 답을 준다(기본 상위 10개, `limit`으로 확대).
+**churn은 배포일/비배포일을 갈라 봐야** 의미가 있습니다 — 파드 축 제거 전후 이 값의 변화가 이 문서의 결론을 검증합니다. 메트릭·라벨별 분해는 vmui의 Cardinality Explorer(`/vmui/#/cardinality`)가 보여줍니다. Prometheus는 `/api/v1/status/tsdb`의 `seriesCountByMetricName`이 같은 답을 줍니다(기본 상위 10개, `limit`으로 확대).
 
 ### 5.3 적용 순서
 
@@ -281,17 +281,17 @@ sum(increase(vm_new_timeseries_created_total[24h]))                        # chu
 4. 알림·대시보드가 keep-list 안의 메트릭만 쓰는지 점검한다(§4.5)
 5. 배포가 있는 날 churn을 다시 잰다
 
-2번을 건너뛰고 켠 다음 줄이는 순서는 Datadog에서 특히 나쁘다 — **그 달 청구는 이미 발생한 뒤**다.
+2번을 건너뛰고 켠 다음 줄이는 순서는 Datadog에서 특히 나쁩니다 — **그 달 청구는 이미 발생한 뒤**입니다.
 
 ## 6. 함정 넷
 
-**① Datadog OpenMetrics는 2000개에서 조용히 자른다** — `max_returned_metrics` 기본값. 잘린 것과 원래 없는 것이 대시보드에서 구분되지 않으니 붙이자마자 §5로 상한에 닿는지 본다.
+**① Datadog OpenMetrics는 2000개에서 조용히 자릅니다** — `max_returned_metrics` 기본값. 잘린 것과 원래 없는 것이 대시보드에서 구분되지 않으니 붙이자마자 §5로 상한에 닿는지 봅니다.
 
-**② MWL은 유입을 줄이지 않는다.** allowlist는 indexed만 줄인다 — ingested 과금이 별도라는 전제로 계약을 본다.
+**② MWL은 유입을 줄이지 않습니다.** allowlist는 indexed만 줄입니다 — ingested 과금이 별도라는 전제로 계약을 봅니다.
 
-**③ Prometheus의 한도는 전부 기본 0이다.** 켜 두지 않으면 카디널리티 사고가 스크랩 실패가 아니라 **메모리 증가로만** 나타난다. 발견이 늦다. 켤 때는 초과 시 스크랩 전체가 실패한다는 점을 감수해야 한다.
+**③ Prometheus의 한도는 전부 기본 0입니다.** 켜 두지 않으면 카디널리티 사고가 스크랩 실패가 아니라 **메모리 증가로만** 나타납니다. 발견이 늦습니다. 켤 때는 초과 시 스크랩 전체가 실패한다는 점을 감수해야 합니다.
 
-**④ `karpenter_nodes_*`의 라벨 수는 코어보다 많다.** `WellKnownLabels`가 런타임에 확장되므로(`metrics/node/controller.go:62-64`) EKS는 `instance_family`·`instance_size` 등이 더 붙는다 — **코어 소스만으로 계산한 시리즈 수는 과소추정이다.**
+**④ `karpenter_nodes_*`의 라벨 수는 코어보다 많습니다.** `WellKnownLabels`가 런타임에 확장되므로(`metrics/node/controller.go:62-64`) EKS는 `instance_family`·`instance_size` 등이 더 붙습니다 — **코어 소스만으로 계산한 시리즈 수는 과소추정입니다.**
 
 ## 7. 근거
 
@@ -308,4 +308,4 @@ sum(increase(vm_new_timeseries_created_total[24h]))                        # chu
 - **Prometheus** `sample_limit`·`label_limit`·`target_limit` 기본값과 relabel 적용 시점 — [Configuration](https://prometheus.io/docs/prometheus/latest/configuration/configuration/)
 - **Prometheus** `/api/v1/status/tsdb` 반환 필드 — [HTTP API](https://prometheus.io/docs/prometheus/latest/querying/api/)
 
-**확인하지 못한 것** — §1.2 시리즈 수는 예시 계산이지 실측이 아니다. Datadog 초과 단가는 계약별로 다르다. VictoriaMetrics Cloud 상용 과금은 조사하지 않았다(자체 운영 전제).
+**확인하지 못한 것** — §1.2 시리즈 수는 예시 계산이지 실측이 아닙니다. Datadog 초과 단가는 계약별로 다릅니다. VictoriaMetrics Cloud 상용 과금은 조사하지 않았습니다(자체 운영 전제).

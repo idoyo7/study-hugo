@@ -1,5 +1,5 @@
 {
-  "caption": "downstream과 upstream은 internal listener 경계로 단절되어 있다 — 그 너머의 connect_originate(ORIGINAL_DST) cluster는 IP:Port만을 키로 HBONE 터널을 pool에 보관·재사용한다.",
+  "caption": "downstream과 upstream은 internal listener 경계로 단절되어 있습니다 — 그 너머의 connect_originate(ORIGINAL_DST) cluster는 IP:Port만을 키로 HBONE 터널을 pool에 보관·재사용합니다.",
   "nodes": [
     {
       "id": "ds",

@@ -15,9 +15,9 @@ weight: 2
 - operator 연동은 **gp3 StorageClass(EBS CSI) + volumeClaimTemplate `reclaimPolicy: Retain` + `allowVolumeExpansion`(온라인 확장)** 세 축이다.
 {{< /callout >}}
 
-이 카테고리는 **EBS(gp3/io2) 1차** 전제다. 로컬 NVMe(i7i/i8g) 1차 전제와 스토리지 4전략·티어링≠내구성·**재수화 위험 창의 정의와 MTTR 산식**은 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 기준 문서이므로 여기서 반복하지 않고, 이 페이지는 **왜 우리 스케일에선 EBS가 1차인지**와 **gp3/io2를 operator에 어떻게 얹는지**만 실전 관점으로 깊게 판다. cold 티어링(S3)은 {{< relref "03-s3-cold-tiering.md" >}}, hot 창별 캐파 산정은 {{< relref "07-capacity-planning.md" >}}가 전담한다.
+이 카테고리는 **EBS(gp3/io2) 1차** 전제입니다. 로컬 NVMe(i7i/i8g) 1차 전제와 스토리지 4전략·티어링≠내구성·**재수화 위험 창의 정의와 MTTR 산식**은 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 기준 문서이므로 여기서 반복하지 않고, 이 페이지는 **왜 우리 스케일에선 EBS가 1차인지**와 **gp3/io2를 operator에 어떻게 얹는지**만 실전 관점으로 깊게 판니다. cold 티어링(S3)은 {{< relref "03-s3-cold-tiering.md" >}}, hot 창별 캐파 산정은 {{< relref "07-capacity-planning.md" >}}가 전담합니다.
 
-**이 페이지가 단일 출처로 소유하는 것** — 다른 장은 결론만 인용하고 아래 네 축을 재서술하지 않는다:
+**이 페이지가 단일 출처로 소유하는 것** — 다른 장은 결론만 인용하고 아래 네 축을 재서술하지 않습니다:
 
 - **gp3 2025-09 상향 스펙**과 상향 이전 값과의 구분(80,000 IOPS / 2,000 MiB/s / 64 TiB) — §1.1·§1.2.
 - **인스턴스 EBS 파이프 천장** — 인스턴스별 baseline·burst 수치와 "볼륨을 더 붙여도 파이프 이상은 못 낸다"는 판정 — §1.4·§3.1.
@@ -28,7 +28,7 @@ weight: 2
 
 ### 1.1 현행 스펙 (2026-07, AWS EBS User Guide) `✓`
 
-gp3는 EBS SSD 중 최저가이며 **성능을 용량과 독립적으로** 프로비저닝한다. 이것이 로그·트레이스처럼 "용량은 큰데 성능 요구는 순차 throughput 위주"인 워크로드에 정확히 맞는다.
+gp3는 EBS SSD 중 최저가이며 **성능을 용량과 독립적으로** 프로비저닝합니다. 이것이 로그·트레이스처럼 "용량은 큰데 성능 요구는 순차 throughput 위주"인 워크로드에 정확히 맞습니다.
 
 | 항목 | 값 | 비고 |
 |---|---|---|
@@ -48,13 +48,13 @@ gp3는 EBS SSD 중 최저가이며 **성능을 용량과 독립적으로** 프�
 ### 1.2 통념 정정 — "gp3 최대 16,000 IOPS / 1,000 MiB/s / 16 TiB"는 상향 이전 값 `✓`
 
 {{< callout type="warning" >}}
-**정정**: 흔히 인용되는 "gp3 볼륨당 최대 16,000 IOPS · 1,000 MiB/s · 16 TiB"는 **2020-12 출시 시점 스펙**이다. AWS는 **2025-09-26** 리전 gp3의 상한을 **80,000 IOPS(5배) / 2,000 MiB/s(2배) / 64 TiB(4배)** 로 올렸고, 이 상향은 **전 상용 리전 + GovCloud**(서울 `ap-northeast-2` 포함)에 적용된다 `✓`.
+**정정**: 흔히 인용되는 "gp3 볼륨당 최대 16,000 IOPS · 1,000 MiB/s · 16 TiB"는 **2020-12 출시 시점 스펙**입니다. AWS는 **2025-09-26** 리전 gp3의 상한을 **80,000 IOPS(5배) / 2,000 MiB/s(2배) / 64 TiB(4배)** 로 올렸고, 이 상향은 **전 상용 리전 + GovCloud**(서울 `ap-northeast-2` 포함)에 적용됩니다 `✓`.
 
 - **80,000 IOPS는 Nitro 인스턴스 전제**다. 비-Nitro 인스턴스에 붙인 gp3는 여전히 **최대 64,000 IOPS까지만 프로비저닝**되고, 실제 달성 상한은 **32,000 IOPS**로 잘린다 `✓`. 우리 데이터 노드는 Graviton(전부 Nitro)이라 80,000까지 열리지만, 어차피 인스턴스 EBS 파이프에서 먼저 잘린다(§1.4·§3).
 - **AWS Outposts는 예외**로 종전 상한(16 TiB / 16,000 IOPS / 1,000 MiB/s)이 그대로 남아 있다 `✓`. "16,000/1,000"을 보면 출시 시점 문서이거나 Outposts를 참조한 것이다.
 {{< /callout >}}
 
-이 상향이 ClickHouse 운영에 주는 실전 함의는 **스트라이핑이 대부분 불필요해졌다**는 점이다 `≈`:
+이 상향이 ClickHouse 운영에 주는 실전 함의는 **스트라이핑이 대부분 불필요해졌다**는 점입니다 `≈`:
 
 - 과거엔 2,000 MiB/s 이상을 원하면 gp3 여러 개를 RAID0로 묶어야 했다. 이제 단일 gp3가 80,000 IOPS / 2,000 MiB/s / 64 TiB를 커버한다.
 - RAID0는 **볼륨 하나만 죽어도 배열 전체가 죽어** 실효 내구성이 떨어진다. AWS는 상향의 이점을 "복잡한 다중 볼륨 스트라이핑을 단일 볼륨으로 대체해 개별 볼륨의 99.9% 내구성을 온전히 유지"라고 명시한다 `Ⓥ`. → **단일 gp3가 스트라이핑보다 단순하고 내구성도 높다**(§3.3).
@@ -75,7 +75,7 @@ gp3는 EBS SSD 중 최저가이며 **성능을 용량과 독립적으로** 프�
 
 ### 1.4 언제 baseline로 충분한가 — 인스턴스 EBS 파이프에 묶어 판정 (핵심)
 
-gp3 볼륨 성능을 아무리 올려도 **인스턴스 EBS 대역폭이 먼저 천장**이다. 판정 기준은 "IOPS를 얼마나 사느냐"가 아니라 "인스턴스가 sustain하는 throughput이 얼마냐"다. 데이터 노드는 EBS 기반 Graviton **메모리 최적화 r7g**(ClickHouse의 8GB:1core 궁합)를 기준으로 본다 `✓` (AWS EBS-optimized 표):
+gp3 볼륨 성능을 아무리 올려도 **인스턴스 EBS 대역폭이 먼저 천장**입니다. 판정 기준은 "IOPS를 얼마나 사느냐"가 아니라 "인스턴스가 sustain하는 throughput이 얼마냐"입니다. 데이터 노드는 EBS 기반 Graviton **메모리 최적화 r7g**(ClickHouse의 8GB:1core 궁합)를 기준으로 봅니다 `✓` (AWS EBS-optimized 표):
 
 | 인스턴스 | baseline throughput | **burst 최대 throughput** | baseline / 최대 EBS IOPS |
 |---|---|---|---|
@@ -84,7 +84,7 @@ gp3 볼륨 성능을 아무리 올려도 **인스턴스 EBS 대역폭이 먼저 
 | r7g.4xlarge (16 vCPU/128 GiB) | **625 MB/s** | 1,250 MB/s | 20,000 / 40,000 |
 | r7g.8xlarge (32 vCPU/256 GiB) | **1,250 MB/s** | 2,500 MB/s | 40,000 / 80,000 |
 
-*(r7g는 ≤4xlarge에서 baseline이 크기 비례로 오르고 burst 최대는 10 Gbps/1,250 MB/s로 공통, 8xlarge에서 baseline이 10 Gbps로 점프한다. baseline은 무기한 지속, burst는 24h 중 일부만. r8g(Graviton4)는 같은 크기에서 대역이 대체로 상향이나 이 카테고리 기준은 r7g다.)* `✓`
+*(r7g는 ≤4xlarge에서 baseline이 크기 비례로 오르고 burst 최대는 10 Gbps/1,250 MB/s로 공통, 8xlarge에서 baseline이 10 Gbps로 점프합니다. baseline은 무기한 지속, burst는 24h 중 일부만. r8g(Graviton4)는 같은 크기에서 대역이 대체로 상향이나 이 카테고리 기준은 r7g입니다.)* `✓`
 
 **판정**(수치는 `✓`, 결론은 `≈`):
 
@@ -95,7 +95,7 @@ gp3 볼륨 성능을 아무리 올려도 **인스턴스 EBS 대역폭이 먼저 
 {{% details title="io2 / io2 Block Express 상세 — 우리 스케일엔 과잉, 그러나 정확히 알아둔다" closed="true" %}}
 ### 2.1 현행 스펙 (2026-07) `✓`
 
-기존 io2 볼륨은 io2 Block Express 아키텍처로 통합돼, 사실상 "io2 = io2 Block Express"로 봐도 된다. io1은 남아있지만 io2 BE 대비 이점이 없다.
+기존 io2 볼륨은 io2 Block Express 아키텍처로 통합돼, 사실상 "io2 = io2 Block Express"로 봐도 됩니다. io1은 남아있지만 io2 BE 대비 이점이 없습니다.
 
 | 항목 | io2 Block Express | io1 (구형) |
 |---|---|---|
@@ -108,7 +108,7 @@ gp3 볼륨 성능을 아무리 올려도 **인스턴스 EBS 대역폭이 먼저 
 | Multi-attach / NVMe reservation | **지원**(동일 AZ 다중 인스턴스 공유·예약) | 제한적 |
 | 지원 인스턴스 | **모든 Nitro 기반 EC2** | — |
 
-io1 대비 io2 BE는 throughput이 4배(1,000→4,000 MiB/s), IOPS:GiB가 20배(50→1,000), 내구성이 두 자릿수 나인 더 높다. **가끔 인용되는 "io2 max 500 MiB/s"는 Block Express 이전 구 io2 수치이며 현행은 4,000 MiB/s다** — 결론(ClickHouse엔 io2 불필요)은 옳지만 근거로 "throughput이 낮아서"를 대면 낡은 근거다(진짜 이유는 §2.3) `✓`.
+io1 대비 io2 BE는 throughput이 4배(1,000→4,000 MiB/s), IOPS:GiB가 20배(50→1,000), 내구성이 두 자릿수 나인 더 높습니다. **가끔 인용되는 "io2 max 500 MiB/s"는 Block Express 이전 구 io2 수치이며 현행은 4,000 MiB/s입니다** — 결론(ClickHouse엔 io2 불필요)은 옳지만 근거로 "throughput이 낮아서"를 대면 낡은 근거입니다(진짜 이유는 §2.3) `✓`.
 
 ### 2.2 io2 tiered IOPS 요금 (us-east-1) `✓`
 
@@ -124,13 +124,13 @@ io1 대비 io2 BE는 throughput이 4배(1,000→4,000 MiB/s), IOPS:GiB가 20배(
 
 ### 2.3 io2가 gp3 대비 정당화되는 조건 — 우리는 해당 없음 `≈`
 
-io2 BE가 gp3를 이기는 축은 셋뿐이고, 셋 다 RUM 분석엔 무관하다:
+io2 BE가 gp3를 이기는 축은 셋뿐이고, 셋 다 RUM 분석엔 무관합니다:
 
 1. **극한 IOPS**(단일 볼륨 80,000 초과, 최대 256,000) — OLTP·초고QPS 랜덤 액세스. ClickHouse는 throughput-bound라 무관.
 2. **볼륨 내구성 99.999%**(gp3의 100배) — 그러나 ClickHouse 데이터 내구성은 **복제(RF)+백업**이 담당하지 단일 볼륨 내구성이 아니다({{< relref "../../clickhouse/02-storage-local-nvme.md" >}} "티어링≠내구성"). RF2+ 위에서 gp3 99.9%와 io2 99.999%의 실차이는 미미하다.
 3. **sub-ms 저지연**(<500 µs) — 지연에 극도로 민감한 트랜잭션 DB. 관측성/RUM 분석 쿼리는 single-digit ms로 충분하다.
 
-→ **0.7TB/월 RUM에서 io2는 GiB당 1.56배 + 비싼 IOPS를 내면서 얻는 게 없다.** io2는 "미래에 초저지연 SLA가 걸린 트랜잭션성 워크로드를 얹을 때"의 옵션으로만 각주 처리하고, hot = gp3로 간다.
+→ **0.7TB/월 RUM에서 io2는 GiB당 1.56배 + 비싼 IOPS를 내면서 얻는 게 없습니다.** io2는 "미래에 초저지연 SLA가 걸린 트랜잭션성 워크로드를 얹을 때"의 옵션으로만 각주 처리하고, hot = gp3로 갑니다.
 {{% /details %}}
 
 ## 3. ClickHouse I/O 특성 — throughput-bound, 볼륨 개수보다 인스턴스 파이프
@@ -149,23 +149,23 @@ io2 BE가 gp3를 이기는 축은 셋뿐이고, 셋 다 RUM 분석엔 무관하�
 | 온라인 확장 | `allowVolumeExpansion`로 단순 | RAID 재구성 필요 |
 | 우리 스케일 적합 | **✅ 정답** | ❌ 불필요 |
 
-**핵심**: 인스턴스 EBS 파이프가 어차피 총 throughput의 천장이므로, 볼륨을 여러 개 붙여도 인스턴스 대역 이상은 못 낸다(§1.4). 우리 스케일에선 **단일 gp3**가 성능·내구성·운영 모두에서 우위다. 인스턴스 EBS 파이프 천장의 수치와 이 판정은 **이 페이지 §1.4가 정본**이고, 같은 천장이 20TB+ 전제에서 로컬 NVMe를 유리하게 만드는 논거는 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 이어받는다.
+**핵심**: 인스턴스 EBS 파이프가 어차피 총 throughput의 천장이므로, 볼륨을 여러 개 붙여도 인스턴스 대역 이상은 못 냅니다(§1.4). 우리 스케일에선 **단일 gp3**가 성능·내구성·운영 모두에서 우위입니다. 인스턴스 EBS 파이프 천장의 수치와 이 판정은 **이 페이지 §1.4가 정본**이고, 같은 천장이 20TB+ 전제에서 로컬 NVMe를 유리하게 만드는 논거는 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 이어받습니다.
 
 ## 4. 로컬 NVMe — 옵셔널 업그레이드 경로 (relref)
 
 > 반대 방향의 변형 — **S3 콜드 티어링을 아예 쓰지 않고** EBS 단일 티어로만 운영하기(단일 `default` 정책·TTL DELETE-only·gp3 온라인 확장·merge 풀 튜닝) — 는 [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}})이 기준 문서다.
 
-로컬 NVMe(i7i/i8g)는 **성능 극대화·대규모(20TB+)·상시 가동** 전제에서 EBS로는 물리적으로 불가능한 수 GB/s·수십만 IOPS를 스토리지 한계비용 $0에 준다. 그러나 그 대가는 **휘발성 → 재수화 위험 창 + Karpenter 길들이기 + local PV 특수 운영 + Spot 금지**이며, 이는 0.7TB/월 RUM에는 과한 복잡도다.
+로컬 NVMe(i7i/i8g)는 **성능 극대화·대규모(20TB+)·상시 가동** 전제에서 EBS로는 물리적으로 불가능한 수 GB/s·수십만 IOPS를 스토리지 한계비용 $0에 줍니다. 그러나 그 대가는 **휘발성 → 재수화 위험 창 + Karpenter 길들이기 + local PV 특수 운영 + Spot 금지**이며, 이는 0.7TB/월 RUM에는 과한 복잡도입니다.
 
-로컬 NVMe는 "우리 CH에 범용 대규모 분석이 얹혀 hot 데이터가 수 TB/노드로 커지고 저지연 대규모 스캔이 SLA가 될 때"의 **업그레이드 경로**로만 열어둔다. 인스턴스 선택(i8g 우선)·내구성 3종 세트·재수화·Karpenter·local PV provisioner 상세는 전부 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 기준 문서다 — 이 페이지는 그 문을 가리키기만 한다.
+로컬 NVMe는 "우리 CH에 범용 대규모 분석이 얹혀 hot 데이터가 수 TB/노드로 커지고 저지연 대규모 스캔이 SLA가 될 때"의 **업그레이드 경로**로만 열어둡니다. 인스턴스 선택(i8g 우선)·내구성 3종 세트·재수화·Karpenter·local PV provisioner 상세는 전부 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 기준 문서입니다 — 이 페이지는 그 문을 가리키기만 합니다.
 
 ## 5. 왜 우리 스케일(0.7TB/월 RUM)에선 EBS-first인가
 
 ### 5.1 EBS-first의 진짜 이점은 성능이 아니라 **재수화 불필요** (핵심)
 
-로컬 NVMe 전략의 가장 큰 운영 리스크는 **노드 소실 = 데이터 소실 → 재수화 위험 창**이다({{< relref "../../clickhouse/02-storage-local-nvme.md" >}}). EBS는 볼륨이 노드와 독립적으로 살아남아 이 창을 대부분 없앤다:
+로컬 NVMe 전략의 가장 큰 운영 리스크는 **노드 소실 = 데이터 소실 → 재수화 위험 창**입니다({{< relref "../../clickhouse/02-storage-local-nvme.md" >}}). EBS는 볼륨이 노드와 독립적으로 살아남아 이 창을 대부분 없앱니다:
 
-경계를 먼저 못박는다 — **창의 정의와 MTTR 산식은 clickhouse/02가, "어느 이벤트에서 재수화가 필요한가"는 아래 표가 정본**이다. 챕터 대문의 두 스토리지 전략 콜아웃과 {{< relref "04-operator-topology-downtime.md" >}}·{{< relref "08-block-only-tuning.md" >}}는 결론 한 줄만 인용하고 이 표를 복제하지 않는다.
+경계를 먼저 못박습니다 — **창의 정의와 MTTR 산식은 clickhouse/02가, "어느 이벤트에서 재수화가 필요한가"는 아래 표가 정본**입니다. 챕터 대문의 두 스토리지 전략 콜아웃과 {{< relref "04-operator-topology-downtime.md" >}}·{{< relref "08-block-only-tuning.md" >}}는 결론 한 줄만 인용하고 이 표를 복제하지 않습니다.
 
 | 이벤트 | 로컬 NVMe | EBS gp3 |
 |---|---|---|
@@ -180,7 +180,7 @@ io2 BE가 gp3를 이기는 축은 셋뿐이고, 셋 다 RUM 분석엔 무관하�
 
 ### 5.2 내구성 계층 정리 `✓`
 
-EBS-first에서도 "볼륨 내구성 ≠ 데이터 내구성"은 그대로다:
+EBS-first에서도 "볼륨 내구성 ≠ 데이터 내구성"은 그대로입니다:
 
 - **볼륨 단위**: gp3 99.8~99.9%(AFR ≤0.2%), io2 99.999%. 이건 EBS가 볼륨을 안 잃을 확률이지 우리 데이터 안전이 아니다.
 - **데이터 내구성/가용성**: **멀티 AZ RF2~3 ReplicatedMergeTree**(SharedMergeTree는 Cloud 전용이라 self-host는 RMT 강제) + **clickhouse-backup → S3**. RF 선택 확률·insert_quorum·쓰기 내구성 노브는 {{< relref "../../clickhouse/04-deployment-playbook.md" >}}가 기준 문서다.
@@ -203,9 +203,9 @@ EBS-first에서도 "볼륨 내구성 ≠ 데이터 내구성"은 그대로다:
 
 {{< flow src="_flow/5-3-hot-매체-자-비교.json" />}}
 
-**표 각주 — S3 Express One Zone은 이 표의 후보가 아니다.** 2026-08 기준 Express One Zone은 **서울(`ap-northeast-2`)에 없다** `✓`(지원 8리전: us-east-1 · us-east-2 · us-west-2 · ap-south-1 · ap-northeast-1 · eu-central-1 · eu-west-1 · eu-north-1). ClickHouse는 `storage_class_name=EXPRESS_ONEZONE`을 문법상 허용하지만 디렉터리 버킷 엔드포인트에서 `IncompleteBody` 오류가 보고돼 있다(issue #72078, 24.10.2.80) `≈`. 즉 "cold를 Express One Zone으로 빨라지게 하면?"이라는 물음은 우리 리전에서 논외이고, 리전이 열려도 위 버그가 먼저 닫혀야 한다.
+**표 각주 — S3 Express One Zone은 이 표의 후보가 아닙니다.** 2026-08 기준 Express One Zone은 **서울(`ap-northeast-2`)에 없습니다** `✓`(지원 8리전: us-east-1 · us-east-2 · us-west-2 · ap-south-1 · ap-northeast-1 · eu-central-1 · eu-west-1 · eu-north-1). ClickHouse는 `storage_class_name=EXPRESS_ONEZONE`을 문법상 허용하지만 디렉터리 버킷 엔드포인트에서 `IncompleteBody` 오류가 보고돼 있다(issue #72078, 24.10.2.80) `≈`. 즉 "cold를 Express One Zone으로 빨라지게 하면?"이라는 물음은 우리 리전에서 논외이고, 리전이 열려도 위 버그가 먼저 닫혀야 합니다.
 
-한 겹 더 — ClickHouse가 Express One Zone 기반 구성으로 발표한 **콜드 쿼리 평균 36% 개선(최대 283%)·캐시 계층 TCO 최대 65% 개선**은 **Cloud SaaS 전용 측정**이다 `✓`. 그 수치를 만든 Distributed Cache 자체가 Cloud 부품이라 self-host로 그대로 오지 않고({{< relref "../../clickhouse/01-managed-vs-selfhosted.md" >}}), 설령 OSS로 풀려도 서울에 Express One Zone이 없어 같은 수치가 재현되지 않는다. **이 두 문단이 레포에서 Express One Zone·Cloud 캐시 수치의 단독 소유 지점**이므로 다른 장은 여기로 위임한다.
+한 겹 더 — ClickHouse가 Express One Zone 기반 구성으로 발표한 **콜드 쿼리 평균 36% 개선(최대 283%)·캐시 계층 TCO 최대 65% 개선**은 **Cloud SaaS 전용 측정**입니다 `✓`. 그 수치를 만든 Distributed Cache 자체가 Cloud 부품이라 self-host로 그대로 오지 않고({{< relref "../../clickhouse/01-managed-vs-selfhosted.md" >}}), 설령 OSS로 풀려도 서울에 Express One Zone이 없어 같은 수치가 재현되지 않습니다. **이 두 문단이 레포에서 Express One Zone·Cloud 캐시 수치의 단독 소유 지점**이므로 다른 장은 여기로 위임합니다.
 
 ## 6. Altinity operator 연동 — gp3 StorageClass + volumeClaimTemplate
 
@@ -234,7 +234,7 @@ reclaimPolicy: Retain                   # StorageClass 레벨 (아래 operator �
 
 ### 6.2 ClickHouseInstallation volumeClaimTemplate + reclaimPolicy: Retain `✓`
 
-operator의 volumeClaimTemplate은 StorageClass의 reclaimPolicy와 별개로 **operator 레벨 `reclaimPolicy` 필드**를 갖는다. `Retain`이면 **CHI/클러스터를 지워도 PVC가 살아남는다** — EBS-first에서 실수로 데이터 볼륨이 증발하는 것을 막는 안전장치다.
+operator의 volumeClaimTemplate은 StorageClass의 reclaimPolicy와 별개로 **operator 레벨 `reclaimPolicy` 필드**를 가집니다. `Retain`이면 **CHI/클러스터를 지워도 PVC가 살아납니다** — EBS-first에서 실수로 데이터 볼륨이 증발하는 것을 막는 안전장치입니다.
 
 ```yaml
 apiVersion: "clickhouse.altinity.com/v1"

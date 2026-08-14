@@ -13,13 +13,13 @@ weight: 6
 - bytes/sample 기준치: **VM ~1B, Prometheus/Thanos ~1.5~2B, Mimir ~2B** — 벤더 베스트케이스는 예산 근거로 쓰지 않는다.
 {{< /callout >}}
 
-이 문서는 서울 리전(ap-northeast-2) 스토리지 단가와 gp3/st1/sc1/S3의 성능·내구성 특성을 정리하고, 아카이브 볼륨 타입을 어떻게 고를지(gp3로 시작 → 실측 → st1/sc1 최적화)를 판단 구조로 제시한다. 단가 상세의 주인 문서다.
+이 문서는 서울 리전(ap-northeast-2) 스토리지 단가와 gp3/st1/sc1/S3의 성능·내구성 특성을 정리하고, 아카이브 볼륨 타입을 어떻게 고를지(gp3로 시작 → 실측 → st1/sc1 최적화)를 판단 구조로 제시합니다. 단가 상세의 주인 문서입니다.
 
 > 관련 문서: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [02 VM 아카이브 상세]({{< relref "02-vm-archive.md" >}}), [07 핵심논점·비용종합표]({{< relref "07-streamaggr-vs-downsampling.md" >}}) · VM: [스토리지·압축·retention]({{< relref "../victoriametrics/concepts/04-storage-and-compression.md" >}}), [vmbackup/대규모 운영]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}})
 
 ## 1. 서울 단가표
 
-근거는 **AWS Price List Bulk API(publicationDate 2026-07-10, AmazonEC2/S3 ap-northeast-2)** — 적대적 검증을 통과한 값이다.
+근거는 **AWS Price List Bulk API(publicationDate 2026-07-10, AmazonEC2/S3 ap-northeast-2)** — 적대적 검증을 통과한 값입니다.
 
 | 스토리지 | $/GB·월 | 성능/제약 | 부대 비용 |
 |---|---|---|---|
@@ -30,21 +30,21 @@ weight: 6
 | **S3 Standard-IA** | **0.0138** | 최소 30일·128KB 과금 | **리트리벌 $0.01/GB** |
 | **S3 Glacier Instant** | **0.005** | 최소 90일·128KB 과금 | **리트리벌 $0.03/GB** |
 
-같은 리전 S3↔EC2 전송은 무료다. gp3의 1 GiB~64 TiB 용량 상한은 2025-09 상향분이고, IOPS 상한은 모두 1MiB I/O 기준이다. S3 Standard 단가는 50TB 초과 구간부터 0.024/0.023으로 더 낮아진다.
+같은 리전 S3↔EC2 전송은 무료입니다. gp3의 1 GiB~64 TiB 용량 상한은 2025-09 상향분이고, IOPS 상한은 모두 1MiB I/O 기준입니다. S3 Standard 단가는 50TB 초과 구간부터 0.024/0.023으로 더 낮아집니다.
 
 ### 핵심 반전: "S3라서 싸다"는 서울에서 성립하지 않는다
 
-$/GB·월 서열은 다음과 같다:
+$/GB·월 서열은 다음과 같습니다:
 
 ```
 sc1 $0.0174  <  S3 Standard $0.025  <  st1 $0.051  <  gp3 $0.0912
 ```
 
-즉 **sc1이 S3 Standard보다 싸다**. S3 도입의 실익은 단가가 아니라 **11-nines 내구성 모델과 사후 재계산 여지**이며, 대가는 운영 컴포넌트 수(Receive/StoreGW/Compactor/캐시)와 PromQL 제약이다. 이 트레이드오프의 비용 종합은 [07 비용 비교표]({{< relref "07-streamaggr-vs-downsampling.md" >}})가 주인이다.
+즉 **sc1이 S3 Standard보다 쌉니다**. S3 도입의 실익은 단가가 아니라 **11-nines 내구성 모델과 사후 재계산 여지**이며, 대가는 운영 컴포넌트 수(Receive/StoreGW/Compactor/캐시)와 PromQL 제약입니다. 이 트레이드오프의 비용 종합은 [07 비용 비교표]({{< relref "07-streamaggr-vs-downsampling.md" >}})가 주인입니다.
 
 ### IA/Glacier IR은 primary 저장소가 될 수 없다
 
-S3 Standard-IA($0.0138)와 Glacier Instant($0.005)는 GB당 저장 단가만 보면 매력적이지만, **GB당 리트리벌 수수료**(IA $0.01/GB, GIR $0.03/GB)가 붙는다. 따라서 자주 읽는 primary 아카이브에는 부적합하다:
+S3 Standard-IA($0.0138)와 Glacier Instant($0.005)는 GB당 저장 단가만 보면 매력적이지만, **GB당 리트리벌 수수료**(IA $0.01/GB, GIR $0.03/GB)가 붙습니다. 따라서 자주 읽는 primary 아카이브에는 부적합합니다:
 - Thanos Store Gateway가 읽는 버킷은 **S3 Standard 필수**.
 - IA/GIR는 vmbackup 콜드 사본 전용(복원해야 조회 가능). 상세는 [02 VM 아카이브]({{< relref "02-vm-archive.md" >}})과 [VM 운영 문서]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}}).
 
@@ -63,7 +63,7 @@ S3 Standard-IA($0.0138)와 Glacier Instant($0.005)는 GB당 저장 단가만 보
 
 ## 3. ★ 아카이브 볼륨 타입 선택 가이드 — "gp3 기본 아니야?"에 대한 답
 
-**맞다 — 시작은 gp3가 기본값이다.** sc1은 분석에서 "최저가 옵션"으로 제시된 것이고, 채택 전 검증이 필요한 공격적 최적화다.
+**맞습니다 — 시작은 gp3가 기본값입니다.** sc1은 분석에서 "최저가 옵션"으로 제시된 것이고, 채택 전 검증이 필요한 공격적 최적화입니다.
 
 ### 왜 sc1이 후보에 오르나 (아카이브 IO 프로파일)
 
@@ -83,7 +83,7 @@ S3 Standard-IA($0.0138)와 Glacier Instant($0.005)는 GB당 저장 단가만 보
 | st1 | $46~138 | $36~108 |
 | sc1 | $16~47 | $66~199 |
 
-   월 **$66~199** 아끼려고 검증 안 된 스토리지에 400일치 아카이브를 얹는 건 순서가 틀렸다. **gp3로 검증 → IO 실측 → 여유가 크면 st1/sc1로 최적화**가 맞는 순서다.
+   월 **$66~199** 아끼려고 검증 안 된 스토리지에 400일치 아카이브를 얹는 건 순서가 틀렸습니다. **gp3로 검증 → IO 실측 → 여유가 크면 st1/sc1로 최적화**가 맞는 순서입니다.
 3. 단, **시나리오 ①(raw 400d, 9~18 TiB)로 가는 경우엔 이야기가 다르다** — gp3 $820 vs sc1 $157/월로 차이가 커져 저가 볼륨 검증이 우선순위에 올라온다.
 
 ### 전환 방법 (나중에 최적화할 때)
@@ -93,7 +93,7 @@ S3 Standard-IA($0.0138)와 Glacier Instant($0.005)는 GB당 저장 단가만 보
 
 ## 4. bytes/sample 기준치 (비용 모델용, 검증됨)
 
-저장량 외삽의 근거값이다. **벤더 베스트케이스를 예산 근거로 쓰지 마라.**
+저장량 외삽의 근거값입니다. **벤더 베스트케이스를 예산 근거로 쓰지 마십시오.**
 
 | 엔진 | bytes/sample | 근거 |
 |---|---|---|
@@ -116,7 +116,7 @@ raw 400d RF1 sc1 (VM raw 아카이브) = 9,000 GiB × 0.0174 = $157/mo (+백업)
 Thanos S3 (②)                    = 14.9~30.7 TiB × 0.025 = $374~767/mo
 ```
 
-옵션별 월 저장비 종합(VM아카이브/Thanos/Mimir/확장/확장+Ent)은 이 문서의 몫이 아니라 [07 비용 비교표]({{< relref "07-streamaggr-vs-downsampling.md" >}})가 주인이다. 여기서는 볼륨 단가와 단일 볼륨 환산까지만 확정한다.
+옵션별 월 저장비 종합(VM아카이브/Thanos/Mimir/확장/확장+Ent)은 이 문서의 몫이 아니라 [07 비용 비교표]({{< relref "07-streamaggr-vs-downsampling.md" >}})가 주인입니다. 여기서는 볼륨 단가와 단일 볼륨 환산까지만 확정합니다.
 
 ## 출처
 

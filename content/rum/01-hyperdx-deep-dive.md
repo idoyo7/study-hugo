@@ -14,13 +14,13 @@ weight: 1
 - **RBAC는 Managed(ClickHouse Cloud) 전용으로만 GA**됐고 OSS는 SSO/RBAC/멀티테넌시/감사로그가 전무하다 — self-host를 고수하려면 oauth2-proxy·팀별 인스턴스·row policy를 조합해야 한다.
 {{< /callout >}}
 
-HyperDX/ClickStack을 **"Datadog RUM 대체 + 통합 관측성 플랫폼" 후보로 도입할 때**의 실사(due-diligence) 페이지다. "로그 스토어 선택지로서의 요약 판단"은 로깅 챕터의 [HyperDX / ClickStack]({{< relref "../logging/05-hyperdx-clickstack.md" >}})가 이미 다루므로 강점·약점 재나열은 하지 않고, 여기서는 **도입 결정에 필요한 팩트** — 연혁·아키텍처·배포 모드·기능 성숙도·라이선스·거버넌스 갭 — 을 플랫폼 실사 관점으로 심화한다.
+HyperDX/ClickStack을 **"Datadog RUM 대체 + 통합 관측성 플랫폼" 후보로 도입할 때**의 실사(due-diligence) 페이지입니다. "로그 스토어 선택지로서의 요약 판단"은 로깅 챕터의 [HyperDX / ClickStack]({{< relref "../logging/05-hyperdx-clickstack.md" >}})가 이미 다루므로 강점·약점 재나열은 하지 않고, 여기서는 **도입 결정에 필요한 팩트** — 연혁·아키텍처·배포 모드·기능 성숙도·라이선스·거버넌스 갭 — 을 플랫폼 실사 관점으로 심화합니다.
 
-한 줄 결론: **웹 RUM 대체 후보로는 현실적으로 유일하지만, OSS의 접근통제 공백(SSO/RBAC/멀티테넌시/감사로그 전무)이 다중 팀 도입의 결정적 게이트다.**
+한 줄 결론: **웹 RUM 대체 후보로는 현실적으로 유일하지만, OSS의 접근통제 공백(SSO/RBAC/멀티테넌시/감사로그 전무)이 다중 팀 도입의 결정적 게이트입니다.**
 
 ## 연혁 — DeploySentinel에서 ClickStack까지
 
-리브랜드가 아니라 **번들 재구성**이라는 점이 실사에서 중요하다. HN에서 "HyperDX가 어디서 끝나고 ClickStack이 어디서 시작되는지" 혼란이 반복됐는데, 팀의 공식 정의는 `ClickStack = { HyperDX(UI/API), ClickHouse, OTel Collector }`다. HyperDX는 폐기된 게 아니라 ClickStack의 프론트엔드 컴포넌트로 편입됐다.
+리브랜드가 아니라 **번들 재구성**이라는 점이 실사에서 중요합니다. HN에서 "HyperDX가 어디서 끝나고 ClickStack이 어디서 시작되는지" 혼란이 반복됐는데, 팀의 공식 정의는 `ClickStack = { HyperDX(UI/API), ClickHouse, OTel Collector }`입니다. HyperDX는 폐기된 게 아니라 ClickStack의 프론트엔드 컴포넌트로 편입됐습니다.
 
 | 시점 | 사건 |
 |---|---|
@@ -36,7 +36,7 @@ HyperDX/ClickStack을 **"Datadog RUM 대체 + 통합 관측성 플랫폼" 후보
 
 ## 아키텍처 — 3 코어 + 1 필수 메타스토어
 
-3개 코어 컴포넌트에 **메타데이터 저장용 MongoDB가 필수 의존성**으로 붙는 것이 이 스택의 운영 표면을 규정한다. 관측성 데이터는 전부 ClickHouse에 들어가지만, 대시보드·저장검색·사용자·알림 같은 **앱 상태는 MongoDB에** 남는다 — 이 이원화가 HyperDX Only 모드에서도 사라지지 않는다. MongoDB의 역할·부하 프로파일(관측 데이터 적재량이 아니라 사용자·설정 수에 비례)·배포 경로별 운영 형태는 [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}})에서 심화한다.
+3개 코어 컴포넌트에 **메타데이터 저장용 MongoDB가 필수 의존성**으로 붙는 것이 이 스택의 운영 표면을 규정합니다. 관측성 데이터는 전부 ClickHouse에 들어가지만, 대시보드·저장검색·사용자·알림 같은 **앱 상태는 MongoDB에** 남습니다 — 이 이원화가 HyperDX Only 모드에서도 사라지지 않습니다. MongoDB의 역할·부하 프로파일(관측 데이터 적재량이 아니라 사용자·설정 수에 비례)·배포 경로별 운영 형태는 [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}})에서 심화합니다.
 
 | 컴포넌트 | 역할 | 라이선스 |
 |---|---|---|
@@ -50,7 +50,7 @@ HyperDX/ClickStack을 **"Datadog RUM 대체 + 통합 관측성 플랫폼" 후보
 
 ### 신호별 테이블 스키마 — RUM 상관의 근거
 
-ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·secondary index 포함). 기본 속성 저장 타입은 `Map(LowCardinality(String), String)`이고 native JSON은 beta로 기본값 아님 `✓`. **RUM 실사에서 핵심은 세션↔트레이스 상관이 스키마에 하드코딩돼 있다는 점**이다.
+ClickStack은 신호별 최적화 스키마를 자동 생성합니다(codecs·TTL·secondary index 포함). 기본 속성 저장 타입은 `Map(LowCardinality(String), String)`이고 native JSON은 beta로 기본값 아닙니다 `✓`. **RUM 실사에서 핵심은 세션↔트레이스 상관이 스키마에 하드코딩돼 있다는 점**입니다.
 
 | 테이블 | 용도 | RUM 관점 포인트 |
 |---|---|---|
@@ -59,15 +59,15 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 | `otel_metrics_*` | 메트릭(타입별 분리 테이블) | Exemplar 배열 포함하나 쿼리 계층에 PromQL 없음(아래) |
 | `hyperdx_sessions` | 세션 리플레이(rrweb) | `otel_logs`를 미러링한 독립 DDL·TTL 전용 테이블 `✓` |
 
-`otel_traces`의 세션↔트레이스 조인에는 bloom filter가 붙는다(`TraceId` bloom FP율 0.001, `Duration` minmax). `otel_metrics_*`는 gauge/sum/histogram/exp-hist/summary 타입별로 테이블이 분리돼 있다. `hyperdx_sessions`는 `Body`=이벤트 페이로드, `LogAttributes`=메타데이터 맵으로 `otel_logs`와 동일한 컬럼 구조를 쓰고 bloom_filter 인덱스도 갖는다 `✓`.
+`otel_traces`의 세션↔트레이스 조인에는 bloom filter가 붙습니다(`TraceId` bloom FP율 0.001, `Duration` minmax). `otel_metrics_*`는 gauge/sum/histogram/exp-hist/summary 타입별로 테이블이 분리돼 있습니다. `hyperdx_sessions`는 `Body`=이벤트 페이로드, `LogAttributes`=메타데이터 맵으로 `otel_logs`와 동일한 컬럼 구조를 쓰고 bloom_filter 인덱스도 갖습니다 `✓`.
 
-`hyperdx_sessions`에는 "세션 7일/로그 14일"처럼 신호별로 다른 기본 TTL이 있다는 통념이 있으나 근거가 없다 — ClickStack 배포 기본은 전 테이블 균일 `TABLES_TTL`(3일, 아래 §프로덕션 노브)이며 신호별 차등은 직접 설정하는 값이다(상세: [HyperDX 배포 §티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}})) `✓`.
+`hyperdx_sessions`에는 "세션 7일/로그 14일"처럼 신호별로 다른 기본 TTL이 있다는 통념이 있으나 근거가 없습니다 — ClickStack 배포 기본은 전 테이블 균일 `TABLES_TTL`(3일, 아래 §프로덕션 노브)이며 신호별 차등은 직접 설정하는 값입니다(상세: [HyperDX 배포 §티어링]({{< relref "../hyperdx/03-s3-cold-tiering.md" >}})) `✓`.
 
-쿼리 계층은 **Lucene 스타일 검색**(`level:err`)과 **네이티브 ClickHouse SQL**을 함께 제공하고, `timestamp` 컬럼만 있으면 임의 스키마도 검색·상관·시각화된다(schema-agnostic) `✓`. 이 유연성이 HyperDX Only 모드를 가능케 하는 근거다.
+쿼리 계층은 **Lucene 스타일 검색**(`level:err`)과 **네이티브 ClickHouse SQL**을 함께 제공하고, `timestamp` 컬럼만 있으면 임의 스키마도 검색·상관·시각화됩니다(schema-agnostic) `✓`. 이 유연성이 HyperDX Only 모드를 가능케 하는 근거입니다.
 
 ## 배포 6모드 — 프로덕션 적합성 매트릭스
 
-공식 문서가 6가지 옵션과 프로덕션 적합성을 명시한다 `✓`. 실사 관점의 결론: **프로덕션은 Managed 또는 Helm 둘 중 하나**이고, 자체 인프라 전략을 지키려면 **HyperDX Only** 가 사실상의 정답 축이다.
+공식 문서가 6가지 옵션과 프로덕션 적합성을 명시합니다 `✓`. 실사 관점의 결론: **프로덕션은 Managed 또는 Helm 둘 중 하나**이고, 자체 인프라 전략을 지키려면 **HyperDX Only** 가 사실상의 정답 축입니다.
 
 | 모드 | 권장 용도 | 프로덕션 | 실사 비고 |
 |---|---|:---:|---|
@@ -78,13 +78,13 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 | **HyperDX Only** | 기존 CH 사용자·커스텀 파이프라인 | △ | CH 미포함, **MongoDB 필수·인제스천 자기 책임** |
 | **Local Mode Only** | 데모/디버깅 | ❌ | 인증·영속성·알림 없음, 단일 사용자 |
 
-**Helm 경로의 operator 함정**: 활성 개발이 `ClickHouse/ClickStack-helm-charts`로 이관됐고, K8s 설치는 **2개 차트**(`clickstack-operators` 먼저 → `clickstack` 순서)로 나뉜다 `✓⁽3-0⁾`. 첫 차트가 **ClickHouse Inc.의 신규 공식 operator**(`ClickHouseCluster`/`KeeperCluster` CRD)와 MongoDB Community Operator(`MongoDBCommunity` CRD)를 설치해 ClickHouse·MongoDB를 모두 CRD로 관리한다 — plain StatefulSet이 아니다 `✓`. 즉 Altinity operator(`ClickHouseInstallation`/CHI)가 아니다 `✓`.
+**Helm 경로의 operator 함정**: 활성 개발이 `ClickHouse/ClickStack-helm-charts`로 이관됐고, K8s 설치는 **2개 차트**(`clickstack-operators` 먼저 → `clickstack` 순서)로 나뉩니다 `✓⁽3-0⁾`. 첫 차트가 **ClickHouse Inc.의 신규 공식 operator**(`ClickHouseCluster`/`KeeperCluster` CRD)와 MongoDB Community Operator(`MongoDBCommunity` CRD)를 설치해 ClickHouse·MongoDB를 모두 CRD로 관리합니다 — plain StatefulSet이 아닙니다 `✓`. 즉 Altinity operator(`ClickHouseInstallation`/CHI)가 아닙니다 `✓`.
 
-범용 분석 CH를 Altinity로 운영한다면 한 클러스터에 **operator 2종이 공존**하게 되므로, 표준 Helm 경로를 그대로 따를지 vs 별도 operator 위에 CH를 세우고 HyperDX Only로 붙일지가 결정 사항이다. 상세는 [ClickHouse operator]({{< relref "../clickhouse/03-operator.md" >}}) 참조.
+범용 분석 CH를 Altinity로 운영한다면 한 클러스터에 **operator 2종이 공존**하게 되므로, 표준 Helm 경로를 그대로 따를지 vs 별도 operator 위에 CH를 세우고 HyperDX Only로 붙일지가 결정 사항입니다. 상세는 [ClickHouse operator]({{< relref "../clickhouse/03-operator.md" >}}) 참조.
 
 ### HyperDX Only — 조건 정리
 
-자체 인프라(EKS + 자체 ClickHouse)를 지키면서 HyperDX UI만 얹는 유일한 경로다. 다만 "가볍다"고 오해하면 안 된다.
+자체 인프라(EKS + 자체 ClickHouse)를 지키면서 HyperDX UI만 얹는 유일한 경로입니다. 다만 "가볍다"고 오해하면 안 됩니다.
 
 - **MongoDB는 여전히 필수** — 대시보드·저장검색·사용자·알림을 저장한다. CH만 자체 운영한다고 메타스토어가 사라지지 않는다 `✓`.
 - **인제스천은 전적으로 사용자 책임** — 자체 OTel Collector, 클라이언트 직접 인입, ClickHouse Kafka/S3 테이블 엔진, ETL, ClickPipes 중 선택 `✓`.
@@ -108,13 +108,13 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 | **Service Maps / Event Deltas** | 🟠 | Service Maps beta, Event Deltas 구성 가능 `✓` |
 | **AI 노트북 / 자연어 쿼리** | 🟠 | private preview·로드맵 `✓` |
 
-세션 리플레이는 replay→trace→log 조인까지 되는데, 이는 대부분의 OSS 경쟁자가 못 따라오는 시그니처 강점이다 `✓`. 알림 세부: Search/Chart 알림(단일 임계값)에 `GROUP BY`별 발화와 SQL 기반 이상탐지(2026-05)가 더해졌다. Alertmanager식 grouping/silencing·alert history·IaC는 여전히 미성숙하고, OSS는 Slack/Generic Webhook 위주다(Slack API·PagerDuty OAuth는 Cloud 전용) `✓`(2025-11 OSS 패리티·2026-05 SQL 이상탐지 반영 시점 기준 — [dd 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}) 알림 서술과 동일 스냅샷). 메트릭은 SQL/Lucene only이고 PromQL 개선은 2026 로드맵이다 `✓`. Service Maps는 2025-11 beta, Event Deltas는 2025-10부터 구성 가능하다 `✓`.
+세션 리플레이는 replay→trace→log 조인까지 되는데, 이는 대부분의 OSS 경쟁자가 못 따라오는 시그니처 강점입니다 `✓`. 알림 세부: Search/Chart 알림(단일 임계값)에 `GROUP BY`별 발화와 SQL 기반 이상탐지(2026-05)가 더해졌습니다. Alertmanager식 grouping/silencing·alert history·IaC는 여전히 미성숙하고, OSS는 Slack/Generic Webhook 위주입니다(Slack API·PagerDuty OAuth는 Cloud 전용) `✓`(2025-11 OSS 패리티·2026-05 SQL 이상탐지 반영 시점 기준 — [dd 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}) 알림 서술과 동일 스냅샷). 메트릭은 SQL/Lucene only이고 PromQL 개선은 2026 로드맵입니다 `✓`. Service Maps는 2025-11 beta, Event Deltas는 2025-10부터 구성 가능합니다 `✓`.
 
-**RUM 실사의 결론 두 가지**: (1) 웹 세션 리플레이·프론트↔백엔드 상관은 즉시 대체 가능한 🟢이지만, **모바일 리플레이는 존재하지 않는 🔴** 라 착수 전 Datadog RUM usage를 웹/모바일로 분해해야 한다. (2) 대체는 프록시 매핑이 아니라 **`@hyperdx/browser` SDK 교체**로 간다 — `datadogreceiver`는 브라우저 RUM intake를 아예 수신하지 않는다. 두 논점의 상세는 [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}})·[dd 프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}}) 참조.
+**RUM 실사의 결론 두 가지**: (1) 웹 세션 리플레이·프론트↔백엔드 상관은 즉시 대체 가능한 🟢이지만, **모바일 리플레이는 존재하지 않는 🔴** 라 착수 전 Datadog RUM usage를 웹/모바일로 분해해야 합니다. (2) 대체는 프록시 매핑이 아니라 **`@hyperdx/browser` SDK 교체**로 갑니다 — `datadogreceiver`는 브라우저 RUM intake를 아예 수신하지 않습니다. 두 논점의 상세는 [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}})·[dd 프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}}) 참조.
 
 ## 라이선스와 커뮤니티
 
-핵심 UI가 **MIT**라는 점이 SigNoz(요소 제약)·Grafana(AGPL)·BSL/SSPL 계열 대비 관대하다. 단 오픈코어 모델이라 **접근통제 기능(SSO/SAML/RBAC/멀티테넌시)은 OSS에서 제외**된다.
+핵심 UI가 **MIT**라는 점이 SigNoz(요소 제약)·Grafana(AGPL)·BSL/SSPL 계열 대비 관대합니다. 단 오픈코어 모델이라 **접근통제 기능(SSO/SAML/RBAC/멀티테넌시)은 OSS에서 제외**됩니다.
 
 | 레포/컴포넌트 | 라이선스 |
 |---|---|
@@ -123,13 +123,13 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 | OpenTelemetry Collector | Apache 2.0 `✓` |
 | `ClickHouse/ClickStack-helm-charts` | Apache 2.0 계열 `≈` |
 
-메인 `hyperdxio/hyperdx` 레포의 MIT는 LICENSE 파일로 확인되나 `✓`, `ClickHouse/ClickStack-helm-charts` 레포 자체의 라이선스 파일은 이번 조사에서도 명시 확인되지 않았다.
+메인 `hyperdxio/hyperdx` 레포의 MIT는 LICENSE 파일로 확인되나 `✓`, `ClickHouse/ClickStack-helm-charts` 레포 자체의 라이선스 파일은 이번 조사에서도 명시 확인되지 않았습니다.
 
-커뮤니티: `hyperdxio/hyperdx`는 **~9.7k stars·188 릴리스**(월 다수 릴리스의 빠른 케이던스), 활성 Discord `✓`. ClickHouse Inc.의 전담 Head of Observability 조직 백업으로 abandonware 리스크가 인수 전보다 낮아졌다 `≈`. 부모 레포 `ClickHouse/ClickStack`은 아티팩트 저장소 성격으로 릴리스 없음 `✓`.
+커뮤니티: `hyperdxio/hyperdx`는 **~9.7k stars·188 릴리스**(월 다수 릴리스의 빠른 케이던스), 활성 Discord `✓`. ClickHouse Inc.의 전담 Head of Observability 조직 백업으로 abandonware 리스크가 인수 전보다 낮아졌습니다 `≈`. 부모 레포 `ClickHouse/ClickStack`은 아티팩트 저장소 성격으로 릴리스 없습니다 `✓`.
 
 ## OSS의 결정적 갭 — 접근통제 공백
 
-**이 페이지에서 가장 무거운 실사 항목**이다. OSS 자체 호스팅 HyperDX는 **"인스턴스 = 하나의 평평한 팀, 전원 동일 권한"** 모델이다. 초대는 되지만 팀 A가 팀 B의 대시보드/데이터를 못 보게 하는 앱 내 장치가 전무하다 — Viewer/Editor/Admin + 폴더 권한을 기본 제공하는 Grafana OSS보다도 약하다 `✓`.
+**이 페이지에서 가장 무거운 실사 항목**입니다. OSS 자체 호스팅 HyperDX는 **"인스턴스 = 하나의 평평한 팀, 전원 동일 권한"** 모델입니다. 초대는 되지만 팀 A가 팀 B의 대시보드/데이터를 못 보게 하는 앱 내 장치가 전무합니다 — Viewer/Editor/Admin + 폴더 권한을 기본 제공하는 Grafana OSS보다도 약합니다 `✓`.
 
 | 통제 축 | OSS 자체 호스팅 현실 |
 |---|---|
@@ -143,16 +143,16 @@ ClickStack은 신호별 최적화 스키마를 자동 생성한다(codecs·TTL·
 - **감사로그**는 아직 미출시이나, RBAC 선례를 보면 **Cloud 전용 착지 가능성이 높다** `≈`.
 
 {{< callout type="warning" >}}
-**운영 리스크**: HyperDX가 요구하는 MongoDB가 **기본 무인증으로 기동**돼 포트(27017)가 노출되자 스캐너에 데이터가 삭제된 자체 호스팅 실사례가 있다. 접근통제 설계에 **MongoDB 인증·NetworkPolicy 격리를 반드시 포함**한다 `✓`. 부하 프로파일·배포 경로별 운영 상세는 [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}}) 참고.
+**운영 리스크**: HyperDX가 요구하는 MongoDB가 **기본 무인증으로 기동**돼 포트(27017)가 노출되자 스캐너에 데이터가 삭제된 자체 호스팅 실사례가 있습니다. 접근통제 설계에 **MongoDB 인증·NetworkPolicy 격리를 반드시 포함**합니다 `✓`. 부하 프로파일·배포 경로별 운영 상세는 [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}}) 참고.
 {{< /callout >}}
 
 {{< callout type="important" >}}
-**결정적 트레이드오프**: "앱 레벨 RBAC/SSO/감사로그"와 "self-hosted EKS + 자체 ClickHouse"는 ClickStack 생태계에서 동시에 가질 수 없다. RBAC/SSO는 Managed(Cloud)에만 있고 Managed는 self-host가 안 되기 때문이다. 무엇을 상위 제약으로 둘지가 나머지를 지배한다.
+**결정적 트레이드오프**: "앱 레벨 RBAC/SSO/감사로그"와 "self-hosted EKS + 자체 ClickHouse"는 ClickStack 생태계에서 동시에 가질 수 없습니다. RBAC/SSO는 Managed(Cloud)에만 있고 Managed는 self-host가 안 되기 때문입니다. 무엇을 상위 제약으로 둘지가 나머지를 지배합니다.
 {{< /callout >}}
 
 ### 완화 경로 — 앱 밖에서 접근통제 조립
 
-OSS를 고수하려면 세 기법을 **조합**해야 한다. 핵심은 AuthN(인증)은 상당 부분 흉내 낼 수 있으나 AuthZ(인가)는 앱 밖에서 매우 제한적이라는 비대칭이다.
+OSS를 고수하려면 세 기법을 **조합**해야 합니다. 핵심은 AuthN(인증)은 상당 부분 흉내 낼 수 있으나 AuthZ(인가)는 앱 밖에서 매우 제한적이라는 비대칭입니다.
 
 | 기법 | 해결 범위 | 한계 |
 |---|---|---|
@@ -161,17 +161,17 @@ OSS를 고수하려면 세 기법을 **조합**해야 한다. 핵심은 AuthN(�
 | **ClickHouse row policy** | 데이터 레벨 2차 방어선(SELECT 한정) | 앱 상태(MongoDB)엔 안 닿음 `✓` |
 | **규제 팀만 Managed ClickStack** | RBAC·SSO/SAML/SCIM·(향후)감사로그 turnkey | self-host 포기 `✓` |
 
-oauth2-proxy는 HyperDX 자체 로그인을 못 꺼 이중 로그인이 생기고 trusted-header 자동 로그인도 미지원이라, 인스턴스 내부 격리는 전혀 못 한다 `✓/≈`. 팀별 인스턴스는 관리 상한을 넘으면 인스턴스 스프롤로 Managed가 TCO상 유리해진다 `✓/≈`. row policy는 DB 레벨 격리일 뿐 대시보드·알림 같은 앱 상태(MongoDB)엔 닿지 않는다 `✓`. 규제 팀을 Managed ClickStack으로 옮기면 RBAC·SSO/SAML/SCIM·(향후) 감사로그가 turnkey로 따라오지만, Cloud 인프라 전용이라 self-host는 포기해야 한다 `✓`.
+oauth2-proxy는 HyperDX 자체 로그인을 못 꺼 이중 로그인이 생기고 trusted-header 자동 로그인도 미지원이라, 인스턴스 내부 격리는 전혀 못 합니다 `✓/≈`. 팀별 인스턴스는 관리 상한을 넘으면 인스턴스 스프롤로 Managed가 TCO상 유리해집니다 `✓/≈`. row policy는 DB 레벨 격리일 뿐 대시보드·알림 같은 앱 상태(MongoDB)엔 닿지 않습니다 `✓`. 규제 팀을 Managed ClickStack으로 옮기면 RBAC·SSO/SAML/SCIM·(향후) 감사로그가 turnkey로 따라오지만, Cloud 인프라 전용이라 self-host는 포기해야 합니다 `✓`.
 
-이 접근통제 갭 자체의 의사결정 프레임과 조직 규모별 매트릭스는 [Datadog 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}})·[마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}})에서 이어진다.
+이 접근통제 갭 자체의 의사결정 프레임과 조직 규모별 매트릭스는 [Datadog 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}})·[마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}})에서 이어집니다.
 
 ## 우리 케이스에서는
 
-**전제 차이를 먼저 못 박는다.** [로깅 챕터]({{< relref "../logging/_index.md" >}})는 **로그 내재화 단독** 관점이라 로그는 [VictoriaLogs]({{< relref "../logging/03-victorialogs.md" >}})로 가고 통합 저장소(D4)는 "earn it last", ClickStack은 채택하지 않는다고 결론냈다 — CH+MongoDB 운영 표면이 이번 **로그 규모**에는 과하기 때문이다.
+**전제 차이를 먼저 못 박습니다.** [로깅 챕터]({{< relref "../logging/_index.md" >}})는 **로그 내재화 단독** 관점이라 로그는 [VictoriaLogs]({{< relref "../logging/03-victorialogs.md" >}})로 가고 통합 저장소(D4)는 "earn it last", ClickStack은 채택하지 않는다고 결론냈습니다 — CH+MongoDB 운영 표면이 이번 **로그 규모**에는 과하기 때문입니다.
 
-이 조사는 거기에 **세 가지 전제를 추가**한다: (1) 목표가 **Datadog RUM 대체**이고 웹 RUM은 HyperDX가 사실상 유일한 현실 경로, (2) 관측성 밖 **범용 분석용 ClickHouse를 어차피 운영**, (3) **운영 인력을 보유**. 이 세 전제가 붙으면 self-hosted CH의 "earn it" 조건이 로그 단독으로 볼 때보다 앞당겨진다.
+이 조사는 거기에 **세 가지 전제를 추가**합니다: (1) 목표가 **Datadog RUM 대체**이고 웹 RUM은 HyperDX가 사실상 유일한 현실 경로, (2) 관측성 밖 **범용 분석용 ClickHouse를 어차피 운영**, (3) **운영 인력을 보유**. 이 세 전제가 붙으면 self-hosted CH의 "earn it" 조건이 로그 단독으로 볼 때보다 앞당겨집니다.
 
-두 챕터는 **양립한다**. 로그는 여전히 VictoriaLogs에 두고(CH로 옮기라는 게 아님), **모바일 RUM은 Datadog에 잔류**시킨다. 조사 [권고]는 이 전제 위에서:
+두 챕터는 **양립합니다**. 로그는 여전히 VictoriaLogs에 두고(CH로 옮기라는 게 아님), **모바일 RUM은 Datadog에 잔류**시킵니다. 조사 [권고]는 이 전제 위에서:
 
 - **RUM은 SDK 교체(`@hyperdx/browser`)로 간다.** 프록시 매핑이 아니다 — 웹 세션 리플레이·CWV·프론트↔백엔드 상관을 dual-instrument로 병행 검증한 뒤 컷오버. RUM 대체는 **대규모 프로덕션 레퍼런스가 아직 얇아 PoC 성공을 진입 게이트**로 삼는다 `≈`.
 - **ClickHouse는 HyperDX Only로 붙인다.** ClickStack 내장 CH를 켜지 말고 자체 운영 CH(범용 분석 겸용)에 연결해 operator를 일원화한다. CH 배포·operator 판단은 [ClickHouse 심층]({{< relref "../clickhouse/_index.md" >}})에서 다룬다.

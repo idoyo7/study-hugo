@@ -14,7 +14,7 @@ weight: 3
 - "dd 인테이크를 ClickHouse/HyperDX로 변환해 프로덕션 운영한다"는 **회사명이 붙은 1차 사례를 찾지 못했다**.
 {{< /callout >}}
 
-"dd agent/dd-trace 오픈소스 코드를 참조해 Datadog 인테이크 트래픽을 그대로 받아 HyperDX/ClickHouse로 변환하는 프록시 계층"을 직접 만들 수 있는지 검증한다. 결론부터: **프록시는 Agent intake(로그·인프라 메트릭·APM 트레이스)에서만 성립하고, 브라우저 RUM·세션 리플레이 intake에는 성립하지 않는다.** RUM은 프록시가 아니라 SDK 교체가 정답이다([Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}})). 그리고 로그/메트릭/APM에서 성립하는 프록시조차 **과도기 무중단 브릿지**로만 합당하고 영구 아키텍처로는 부적합하다 — 성숙도(alpha), 변환 CPU 세금, 프로덕션 전례 부재 때문이다.
+"dd agent/dd-trace 오픈소스 코드를 참조해 Datadog 인테이크 트래픽을 그대로 받아 HyperDX/ClickHouse로 변환하는 프록시 계층"을 직접 만들 수 있는지 검증합니다. 결론부터: **프록시는 Agent intake(로그·인프라 메트릭·APM 트레이스)에서만 성립하고, 브라우저 RUM·세션 리플레이 intake에는 성립하지 않습니다.** RUM은 프록시가 아니라 SDK 교체가 정답입니다([Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}})). 그리고 로그/메트릭/APM에서 성립하는 프록시조차 **과도기 무중단 브릿지**로만 합당하고 영구 아키텍처로는 부적합합니다 — 성숙도(alpha), 변환 CPU 세금, 프로덕션 전례 부재 때문입니다.
 
 ## 핵심 판정 — 성립 영역과 불성립 영역
 
@@ -26,19 +26,19 @@ weight: 3
 | **브라우저 RUM** (`/api/v2/rum`) | ❌ | **수신 대상 아님**, 공개 변환기 부재 `✓` | 없음 |
 | **세션 리플레이** (별도 세그먼트 경로) | ❌ | 별도 바이너리 포맷, 로딩 실패 사례 `✓` | 없음 |
 
-성숙도는 datadogreceiver(세 신호 모두 alpha)와 Vector `datadog_agent`(로그 GA·메트릭 beta·트레이스 alpha) 기준이며, 상세는 아래 §기성 수신부 비교에서 다룬다. 인프라/커스텀 메트릭은 `/api/v1,v2/series`, sketches, `/intake` 등 여러 엔드포인트를 아우르고, 검증 부담은 temporality(delta↔cumulative)·sketch 매핑에서 온다. 브라우저 RUM은 datadogreceiver·Vector 모두 수신 대상이 아니고 RUM→OTLP 공개 변환기가 없다. 세션 리플레이는 별도 바이너리 세그먼트 포맷이라 프록시 경유 시 대시보드 로딩 실패 사례가 있다.
+성숙도는 datadogreceiver(세 신호 모두 alpha)와 Vector `datadog_agent`(로그 GA·메트릭 beta·트레이스 alpha) 기준이며, 상세는 아래 §기성 수신부 비교에서 다룹니다. 인프라/커스텀 메트릭은 `/api/v1,v2/series`, sketches, `/intake` 등 여러 엔드포인트를 아우르고, 검증 부담은 temporality(delta↔cumulative)·sketch 매핑에서 옵니다. 브라우저 RUM은 datadogreceiver·Vector 모두 수신 대상이 아니고 RUM→OTLP 공개 변환기가 없습니다. 세션 리플레이는 별도 바이너리 세그먼트 포맷이라 프록시 경유 시 대시보드 로딩 실패 사례가 있습니다.
 
-핵심은 `datadogreceiver`가 구현하는 엔드포인트 목록이 곧 프록시 성립 범위라는 점이다. 이 목록은 전부 **Datadog Agent가 보내는 인테이크**(트레이스/메트릭/로그)이고, **브라우저 SDK가 보내는 `/api/v2/rum`은 아예 빠져 있다** `✓`. 브라우저 RUM을 재활용하려면 NDJSON 디코더와 RUM→OTel 트랜슬레이터를 직접 써야 하는데, 이를 대신해 줄 공개 오픈소스는 조사 범위 내에 없다 `✓`.
+핵심은 `datadogreceiver`가 구현하는 엔드포인트 목록이 곧 프록시 성립 범위라는 점입니다. 이 목록은 전부 **Datadog Agent가 보내는 인테이크**(트레이스/메트릭/로그)이고, **브라우저 SDK가 보내는 `/api/v2/rum`은 아예 빠져 있습니다** `✓`. 브라우저 RUM을 재활용하려면 NDJSON 디코더와 RUM→OTel 트랜슬레이터를 직접 써야 하는데, 이를 대신해 줄 공개 오픈소스는 조사 범위 내에 없습니다 `✓`.
 
-APM 트레이스에 프록시가 거론되는 이유도 짚어 둔다. dd-trace는 `DD_TRACE_OTEL_ENABLED`로 OTel API를 받아들여도 **트레이스는 Datadog MsgPack 포맷으로만 뱉고 OTLP를 내보내지 않는다**(Agent 전용). metrics/logs는 `DD_METRICS_OTEL_ENABLED`/`DD_LOGS_OTEL_ENABLED`로 OTLP 전송이 가능하지만 traces는 불가다 `✓`. 그래서 레거시 dd-trace 트레이스를 HyperDX로 보내려면 ① datadogreceiver로 dd 프로토콜을 수신·변환하거나 ② OTel SDK로 **재계측**하는 두 갈래뿐이고, 프록시는 재계측 전까지의 다리 역할에 국한된다.
+APM 트레이스에 프록시가 거론되는 이유도 짚어 둡니다. dd-trace는 `DD_TRACE_OTEL_ENABLED`로 OTel API를 받아들여도 **트레이스는 Datadog MsgPack 포맷으로만 뱉고 OTLP를 내보내지 않습니다**(Agent 전용). metrics/logs는 `DD_METRICS_OTEL_ENABLED`/`DD_LOGS_OTEL_ENABLED`로 OTLP 전송이 가능하지만 traces는 불가합니다 `✓`. 그래서 레거시 dd-trace 트레이스를 HyperDX로 보내려면 ① datadogreceiver로 dd 프로토콜을 수신·변환하거나 ② OTel SDK로 **재계측**하는 두 갈래뿐이고, 프록시는 재계측 전까지의 다리 역할에 국한됩니다.
 
-한 가지 더: "성립"은 프로토콜 수신이 가능하다는 뜻이지 운영이 공짜라는 뜻이 아니다. "dd 프로토콜을 안정적으로 받는" 수신 자체는 Vector·Cribl·Bindplane 같은 상용/OSS 파이프라인이 이미 대규모로 productize했으므로 수신 리스크는 낮다 `✓`. 남는 리스크는 (a) 그 뒤 **ClickHouse/HyperDX 스키마로의 변환**과 (b) 그 조합을 **누구도 프로덕션에서 검증하지 않았다**는 두 지점에 집중된다.
+한 가지 더: "성립"은 프로토콜 수신이 가능하다는 뜻이지 운영이 공짜라는 뜻이 아닙니다. "dd 프로토콜을 안정적으로 받는" 수신 자체는 Vector·Cribl·Bindplane 같은 상용/OSS 파이프라인이 이미 대규모로 productize했으므로 수신 리스크는 낮습니다 `✓`. 남는 리스크는 (a) 그 뒤 **ClickHouse/HyperDX 스키마로의 변환**과 (b) 그 조합을 **누구도 프로덕션에서 검증하지 않았다**는 두 지점에 집중됩니다.
 
 ## 기성 수신부 비교 — datadogreceiver vs Vector datadog_agent
 
 ### OTel Collector Contrib `datadogreceiver` (시그널별 성숙도)
 
-Datadog Agent intake API를 OTel 모델로 번역하는 리시버. 다만 **컴포넌트 스테이터스가 세 신호 모두 alpha**이고 contrib 배포판 한정이다 `✓`.
+Datadog Agent intake API를 OTel 모델로 번역하는 리시버. 다만 **컴포넌트 스테이터스가 세 신호 모두 alpha**이고 contrib 배포판 한정입니다 `✓`.
 
 | 시그널 | 컴포넌트 스테이터스 | 엔드포인트 성숙도 | 주의점 |
 |---|:---:|:---:|---|
@@ -54,7 +54,7 @@ Datadog Agent intake API를 OTel 모델로 번역하는 리시버. 다만 **컴�
 
 ### Vector `datadog_agent` source
 
-Datadog이 직접 유지보수하는 OSS. Agent가 보낸 트래픽을 HTTP로 수신한다.
+Datadog이 직접 유지보수하는 OSS. Agent가 보낸 트래픽을 HTTP로 수신합니다.
 
 | 시그널 | 지원 | ClickHouse로 전달 가능? |
 |---|:---:|---|
@@ -69,7 +69,7 @@ Datadog이 직접 유지보수하는 OSS. Agent가 보낸 트래픽을 HTTP로 �
 
 ## dd browser SDK의 `proxy` 옵션 — 변환용이 아니다
 
-Datadog browser-sdk에는 인테이크 트래픽을 자체 엔드포인트로 우회하는 공식 `proxy` 파라미터가 있다. 이 옵션의 존재가 "프록시 매핑이 쉽다"는 착시를 준다 — 실체는 다르다 `✓`.
+Datadog browser-sdk에는 인테이크 트래픽을 자체 엔드포인트로 우회하는 공식 `proxy` 파라미터가 있습니다. 이 옵션의 존재가 "프록시 매핑이 쉽다"는 착시를 줍니다 — 실체는 다릅니다 `✓`.
 
 - **원래 용도**는 광고차단기 회피·IP 마스킹·규정 준수를 위해 "Datadog으로 보내되 자체 서버를 경유"하는 것이다. 문자열 형태(SDK `>=4.34.0`, `ddforward` 쿼리 자동 부착)와 함수 형태(SDK `>=5.4.0`, `path`/`parameters`/`subdomain` 수신)가 있다 `✓⁽3-0⁾`. 모든 RUM 데이터가 이 경로로 사용자 URL에 POST되며, `ddforward` 쿼리 파라미터 값으로 `/api/v2/rum`·`/api/v2/replay` 등 이벤트 유형을 구분할 수 있다 — 즉 프록시가 원시 페이로드를 받으므로 RUM→OTel/ClickHouse 번역이 **기술적으로는** 가능하다 `✓⁽3-0⁾`.
 - **본문 불변이 설계 전제**다. 프록시 요구사항이 명시적으로 "POST로 포워딩, **본문 변경 금지**(바이너리 그대로), `X-Forwarded-For`로 클라이언트 IP 전달, 민감 헤더 제거"를 요구한다 `✓`. 즉 SDK는 프록시가 본문(RUM 이벤트)을 **해석·변환하지 않는다**고 가정하며, Datadog 공식 문서는 비-Datadog 백엔드로의 라우팅을 **미지원 대상으로 명시하고 보안 안티패턴으로 규정**한다 — 실제 공개 번역기 구현체도 조사(2회 검색)에서 확인되지 않았다 `✓⁽3-0⁾`.
@@ -80,7 +80,7 @@ Datadog browser-sdk에는 인테이크 트래픽을 자체 엔드포인트로 �
 
 ## 직접 구현 시 참조 코드 경로
 
-사용자 전제("dd agent/trace 오픈소스 참조")대로 자작한다면 참조할 파일 경로다. 라이선스는 우호적이다 — datadog-agent user-space·browser-sdk는 Apache-2.0, dd-trace-js/rb/go는 Apache-2.0/BSD-3 듀얼이라 **참조·부분 파생·상업 이용이 합법**이다(BPF/system-probe 코드만 GPL-2.0 주의) `✓`. datadogreceiver 자체가 이미 dd 인테이크를 리버스 구현한 Apache-2.0 코드라 "참조 파생"의 선례가 존재한다.
+사용자 전제("dd agent/trace 오픈소스 참조")대로 자작한다면 참조할 파일 경로입니다. 라이선스는 우호적입니다 — datadog-agent user-space·browser-sdk는 Apache-2.0, dd-trace-js/rb/go는 Apache-2.0/BSD-3 듀얼이라 **참조·부분 파생·상업 이용이 합법**입니다(BPF/system-probe 코드만 GPL-2.0 주의) `✓`. datadogreceiver 자체가 이미 dd 인테이크를 리버스 구현한 Apache-2.0 코드라 "참조 파생"의 선례가 존재합니다.
 
 {{% details title="자작 시 참조 레포·경로 전수" closed="true" %}}
 - **DataDog/browser-sdk** · `packages/js-core/src/transport/endpointBuilder.ts`(구현) — 인테이크 URL 빌더(`ddforward`·origin·path 조립). **구버전 단일 `packages/core/` 경로는 죽은 경로** — 레포가 `browser-core`/`js-core`로 분리됨.
@@ -92,16 +92,16 @@ Datadog browser-sdk에는 인테이크 트래픽을 자체 엔드포인트로 �
 - **otel-collector-contrib** · `receiver/datadogreceiver/receiver.go` + translator 서브패키지 — dd payload→pdata 변환 참조 구현. **RUM 변환 코드는 없음** — RUM 매핑은 신규 작성.
 - **hyperdxio/hyperdx-js** · `@hyperdx/browser`, `@hyperdx/otel-web`, `@hyperdx/otel-web-session-recorder` — 대체 SDK. 기본 인테이크 `https://in-otel.hyperdx.io`(OTLP HTTP), self-host는 `url` 옵션.
 
-RUM 프록시를 자작할 경우 설계는 **수신(proxy 함수로 `/api/v2/rum` 유도 → 압축 해제 → NDJSON 분해) → 파싱(rum-events-format 검증) → 매핑(View/Action/Resource→spans, Error→log record) → export(OTLP)**가 된다. 세션 리플레이는 rrweb 스키마 재직렬화가 필요해 난이도가 높고, 초기엔 제외하는 것이 현실적이다 `≈`. 정리하면 datadogreceiver의 traces/logs translator를 모범 사례로 참조하되, **RUM NDJSON→OTel 매핑과 리플레이 재직렬화는 전부 신규 개발**이다.
+RUM 프록시를 자작할 경우 설계는 **수신(proxy 함수로 `/api/v2/rum` 유도 → 압축 해제 → NDJSON 분해) → 파싱(rum-events-format 검증) → 매핑(View/Action/Resource→spans, Error→log record) → export(OTLP)**가 됩니다. 세션 리플레이는 rrweb 스키마 재직렬화가 필요해 난이도가 높고, 초기엔 제외하는 것이 현실적입니다 `≈`. 정리하면 datadogreceiver의 traces/logs translator를 모범 사례로 참조하되, **RUM NDJSON→OTel 매핑과 리플레이 재직렬화는 전부 신규 개발**입니다.
 {{% /details %}}
 
 ## 변환 비용의 현실
 
-프록시가 "원리적으로 가능"과 "실제로 채택할 만함" 사이에 있는 간극이 여기 있다.
+프록시가 "원리적으로 가능"과 "실제로 채택할 만함" 사이에 있는 간극이 여기 있습니다.
 
 ### 변환 CPU 세금
 
-dd 프록시 전용 처리량/CPU/손실률 벤치마크는 공개된 것이 없다 `✓`. 대리 지표로 변환 계층의 CPU 비용을 가늠하면:
+dd 프록시 전용 처리량/CPU/손실률 벤치마크는 공개된 것이 없습니다 `✓`. 대리 지표로 변환 계층의 CPU 비용을 가늠하면:
 
 | 경로 | 코어당 처리량 | 성격 |
 |---|---|---|
@@ -120,15 +120,15 @@ dd 프록시 전용 처리량/CPU/손실률 벤치마크는 공개된 것이 없
 
 ### 프로덕션 전례 부재
 
-"Datadog Agent/dd-trace 인테이크를 받아 ClickHouse/HyperDX로 변환해 프로덕션 관측성을 운영한다"는 **회사명이 붙은 1차 사례를 능동 검색에도 찾지 못했다** `✓`. ClickHouse 공식 마이그레이션 자료는 하나같이 "dual-write → OTel 재계측 → 단계적 컷오버"를 권하고, dd 프로토콜 프록시 재활용을 권하는 공식 문서는 없다. HN의 "Datadog 탈출" 담론에서도 사람들은 프록시가 아니라 스택 교체(OTel 재계측 + VictoriaMetrics/ClickHouse)를 택했고 프록시는 언급조차 없다 `✓`. 가장 근접한 공식 선례인 ClickHouse↔Datadog 파트너십(2026-06)조차 (a) 로그 전용, (b) Preview, (c) 유료 Datadog Observability Pipelines 경유라 "오픈소스 dd-agent를 직접 리버스하는 자체 프록시"와는 다른 경로다 `✓`.
+"Datadog Agent/dd-trace 인테이크를 받아 ClickHouse/HyperDX로 변환해 프로덕션 관측성을 운영한다"는 **회사명이 붙은 1차 사례를 능동 검색에도 찾지 못했습니다** `✓`. ClickHouse 공식 마이그레이션 자료는 하나같이 "dual-write → OTel 재계측 → 단계적 컷오버"를 권하고, dd 프로토콜 프록시 재활용을 권하는 공식 문서는 없습니다. HN의 "Datadog 탈출" 담론에서도 사람들은 프록시가 아니라 스택 교체(OTel 재계측 + VictoriaMetrics/ClickHouse)를 택했고 프록시는 언급조차 없습니다 `✓`. 가장 근접한 공식 선례인 ClickHouse↔Datadog 파트너십(2026-06)조차 (a) 로그 전용, (b) Preview, (c) 유료 Datadog Observability Pipelines 경유라 "오픈소스 dd-agent를 직접 리버스하는 자체 프록시"와는 다른 경로입니다 `✓`.
 
 ### 통합 현실 — ClickStack에 붙이는 비용
 
-프록시가 성립하는 영역이라도 ClickStack에 물리는 방식이 매끄럽지 않다. HyperDX/ClickStack은 자체 opinionated OTel Collector와 스키마를 쓰므로, datadogreceiver를 붙이려면 **(a) ClickStack collector에 커스텀 빌드로 datadogreceiver를 합치거나(빌드 복잡도↑), (b) 별도 collector에서 수신·변환 후 OTLP로 ClickStack collector에 재전송하는 2-hop 구성**이 된다. 추가 홉은 곧 추가 변환·지연·장애 지점이다 `≈`. 즉 "성립"과 "운영 부담 없음"은 별개다.
+프록시가 성립하는 영역이라도 ClickStack에 물리는 방식이 매끄럽지 않습니다. HyperDX/ClickStack은 자체 opinionated OTel Collector와 스키마를 쓰므로, datadogreceiver를 붙이려면 **(a) ClickStack collector에 커스텀 빌드로 datadogreceiver를 합치거나(빌드 복잡도↑), (b) 별도 collector에서 수신·변환 후 OTLP로 ClickStack collector에 재전송하는 2-hop 구성**이 됩니다. 추가 홉은 곧 추가 변환·지연·장애 지점입니다 `≈`. 즉 "성립"과 "운영 부담 없음"은 별개입니다.
 
 ### 더 안전한 대안
 
-같은 목적(로그를 ClickHouse로)을 자작 프록시 없이 달성하는 검증된 경로가 이미 있다. 로그는 Vector `datadog_agent`→`clickhouse` sink(로그 GA)나 Datadog Observability Pipelines의 native ClickHouse destination(공식·Preview)이 프록시 자작보다 검증돼 있고, 메트릭은 Prometheus/OTLP 재계측, 트레이스는 OTel SDK 재계측이 alpha 프록시보다 안정적이다 `✓`. 단계별 순서는 [마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}})을 따른다.
+같은 목적(로그를 ClickHouse로)을 자작 프록시 없이 달성하는 검증된 경로가 이미 있습니다. 로그는 Vector `datadog_agent`→`clickhouse` sink(로그 GA)나 Datadog Observability Pipelines의 native ClickHouse destination(공식·Preview)이 프록시 자작보다 검증돼 있고, 메트릭은 Prometheus/OTLP 재계측, 트레이스는 OTel SDK 재계측이 alpha 프록시보다 안정적입니다 `✓`. 단계별 순서는 [마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}})을 따릅니다.
 
 ## 결론
 
@@ -138,10 +138,10 @@ dd 프록시 전용 처리량/CPU/손실률 벤치마크는 공개된 것이 없
 
 ## 우리 케이스에서는
 
-전제부터 구분한다. 이 페이지의 조사는 **RUM 대체 + 범용 분석 + 운영 인력 보유**를 전제로 프록시의 성립 여부를 따진 것이다. 반면 우리 [로깅 챕터]({{< relref "../logging/08-recommendation.md" >}})의 결정은 **로그 내재화 관점**에서 나왔다 — 로그는 [VictoriaLogs]({{< relref "../logging/03-victorialogs.md" >}})로 가고(D1·D2), ClickHouse/ClickStack 통합 저장소는 "여러 신호를 한 팀에 수렴"할 명분이 섰을 때 얹는 **earn-it-last 과제(D4, 메트릭 제외)**다. 두 전제는 프록시에 관해 서로 모순되지 않는다.
+전제부터 구분합니다. 이 페이지의 조사는 **RUM 대체 + 범용 분석 + 운영 인력 보유**를 전제로 프록시의 성립 여부를 따진 것입니다. 반면 우리 [로깅 챕터]({{< relref "../logging/08-recommendation.md" >}})의 결정은 **로그 내재화 관점**에서 나왔습니다 — 로그는 [VictoriaLogs]({{< relref "../logging/03-victorialogs.md" >}})로 가고(D1·D2), ClickHouse/ClickStack 통합 저장소는 "여러 신호를 한 팀에 수렴"할 명분이 섰을 때 얹는 **earn-it-last 과제(D4, 메트릭 제외)**입니다. 두 전제는 프록시에 관해 서로 모순되지 않습니다.
 
 - **로그**: 프록시의 최대 실익 영역이지만, 우리 로그는 애초에 ClickHouse가 아니라 VictoriaLogs로 간다. 따라서 "dd→CH 로그 프록시"는 우리 로그 경로에 **필요 자체가 없다**. OpenSearch 은퇴(D2)도 Collector 재구성으로 처리하지 dd 프록시를 경유하지 않는다.
 - **RUM(D3)**: 웹은 ClickStack PoC, 모바일은 Datadog 잔류가 로깅 챕터의 결정이다. 이 페이지 판정과 정확히 일치한다 — **웹 RUM은 프록시 불가이므로 SDK 교체(PoC)로 가고**, 프록시는 검토 대상조차 아니다.
 - **선택적 통합(D4)**: traces+RUM 통합이 우선순위가 될 때만 ClickStack을 얹는다. 그 시점에도 RUM은 SDK 경로, traces는 OTel 재계측이 정석이라, 프록시가 붙을 자리는 **레거시 dd-trace 트레이스를 재계측 전까지 잇는 단기 브릿지**로 극히 좁다. 메트릭은 D4에서 제외되므로 metrics 프록시의 temporality 리스크도 우리 결정에는 무관하다.
 
-정리하면, 우리 케이스에서 dd 프록시는 로그(경로 다름)·RUM(SDK 교체)·메트릭(범위 밖) 어디에도 필요하지 않고, 유일하게 고려될 수 있는 곳은 D4 이후 레거시 트레이스의 과도기 다리뿐이다. 그마저도 alpha 성숙도와 CPU 세금을 고려하면 **재계측을 앞당기는 편이 낫다**. 프록시는 우리 로드맵의 주경로가 아니라 최후의 임시 수단으로만 남긴다.
+정리하면, 우리 케이스에서 dd 프록시는 로그(경로 다름)·RUM(SDK 교체)·메트릭(범위 밖) 어디에도 필요하지 않고, 유일하게 고려될 수 있는 곳은 D4 이후 레거시 트레이스의 과도기 다리뿐입니다. 그마저도 alpha 성숙도와 CPU 세금을 고려하면 **재계측을 앞당기는 편이 낫습니다**. 프록시는 우리 로드맵의 주경로가 아니라 최후의 임시 수단으로만 남깁니다.

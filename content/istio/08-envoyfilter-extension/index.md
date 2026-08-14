@@ -19,7 +19,7 @@ weight: 8
 
 ## EnvoyFilter가 하는 일 — Envoy 설정 직접 패치
 
-[02]({{< relref "02-istiod-control-plane.md" >}})에서 봤듯, istiod는 각 프록시에 완성된 Envoy 설정(listener·filter chain·cluster·route)을 xDS로 내려준다. EnvoyFilter는 그 **최종 설정에 패치를 얹는다.**
+[02]({{< relref "02-istiod-control-plane.md" >}})에서 봤듯, istiod는 각 프록시에 완성된 Envoy 설정(listener·filter chain·cluster·route)을 xDS로 내려줍니다. EnvoyFilter는 그 **최종 설정에 패치를 얹습니다.**
 
 ```yaml
 apiVersion: networking.istio.io/v1alpha3
@@ -39,17 +39,17 @@ spec:
       value: { ... }                    # 날것의 Envoy 설정
 ```
 
-세 축으로 읽는다: **applyTo**(무엇을 건드리나) × **match.context**(어느 경로의 프록시인가) × **patch.operation**(어떻게 바꾸나). `value`에는 Envoy가 이해하는 **날것의 설정**이 그대로 들어간다 — 여기가 위험의 근원이다.
+세 축으로 읽습니다: **applyTo**(무엇을 건드리나) × **match.context**(어느 경로의 프록시인가) × **patch.operation**(어떻게 바꾸나). `value`에는 Envoy가 이해하는 **날것의 설정**이 그대로 들어갑니다 — 여기가 위험의 근원입니다.
 
 ## 왜 최후의 수단인가 (먼저 못 박기)
 
-EnvoyFilter는 **Envoy 내부 구조에 직접 결합**한다. 그래서:
+EnvoyFilter는 **Envoy 내부 구조에 직접 결합**합니다. 그래서:
 
 - **업그레이드에 깨진다.** 필터 이름·설정 스키마가 Envoy/Istio 버전에 묶여 있어, 컨트롤 플레인을 올리면([04]({{< relref "04-config-as-code.md" >}})의 revision 업그레이드) 조용히 무효화되거나 프록시가 설정을 거부한다.
 - **폭발 반경이 크다.** 잘못된 patch 하나가 `workloadSelector`에 걸린 **모든 프록시의 데이터 플레인을 통째로 망가뜨릴** 수 있다. 검증 장치가 표준 CRD보다 약하다.
 - **관측·리뷰가 어렵다.** 날것의 Envoy 설정이라 무슨 뜻인지 리뷰어가 읽기 힘들다.
 
-그래서 원칙은 **선택 사다리**다:
+그래서 원칙은 **선택 사다리**입니다:
 
 ```
 1. 표준 CRD로 되나?        → VirtualService/AuthorizationPolicy/Gateway  (07)
@@ -59,11 +59,11 @@ EnvoyFilter는 **Envoy 내부 구조에 직접 결합**한다. 그래서:
 
 ## 플래그십 사례 — 레이트 리밋
 
-nginx `limit_req`의 대응이 여기다. Istio는 레이트 리밋을 표준 CRD로 노출하지 않으므로 EnvoyFilter(또는 그 위 도구)로 Envoy의 rate limit 필터를 붙인다. 두 방식이 있고 **성격이 다르다.**
+nginx `limit_req`의 대응이 여기입니다. Istio는 레이트 리밋을 표준 CRD로 노출하지 않으므로 EnvoyFilter(또는 그 위 도구)로 Envoy의 rate limit 필터를 붙입니다. 두 방식이 있고 **성격이 다릅니다.**
 
 ### Local rate limit — 프록시 로컬 토큰 버킷
 
-각 프록시가 **자기 안의 토큰 버킷**으로 제한한다. `envoy.filters.http.local_ratelimit` 필터를 HTTP 필터 체인에 삽입한다.
+각 프록시가 **자기 안의 토큰 버킷**으로 제한합니다. `envoy.filters.http.local_ratelimit` 필터를 HTTP 필터 체인에 삽입합니다.
 
 - **장점**: 외부 의존 없음, 지연 없음, 구성 단순.
 - **한계**: **인스턴스별**이다. 프록시 10개면 실제 허용량은 설정치 × 10. 파드 수가 변하면 전체 한도가 흔들린다.
@@ -71,7 +71,7 @@ nginx `limit_req`의 대응이 여기다. Istio는 레이트 리밋을 표준 CR
 
 ### Global rate limit — 외부 RLS로 클러스터 일관성
 
-클러스터 전역에서 **하나의 일관된 한도**가 필요하면, Envoy의 `envoy.filters.http.ratelimit` 필터가 매 요청을 **외부 Rate Limit Service(RLS)**(보통 Envoy ratelimit + Redis)에 물어본다.
+클러스터 전역에서 **하나의 일관된 한도**가 필요하면, Envoy의 `envoy.filters.http.ratelimit` 필터가 매 요청을 **외부 Rate Limit Service(RLS)**(보통 Envoy ratelimit + Redis)에 물어봅니다.
 
 {{< seq src="_seq/global-rate-limit-외부.json" />}}
 
@@ -94,7 +94,7 @@ nginx `limit_req`의 대응이 여기다. Istio는 레이트 리밋을 표준 CR
 
 ### Lua — 간단한 인라인 스크립트
 
-`envoy.filters.http.lua` 필터로 짧은 Lua를 인라인으로 박는다. 헤더 몇 개 가공, 조건부 분기 같은 **가벼운 로직**에 적합하다.
+`envoy.filters.http.lua` 필터로 짧은 Lua를 인라인으로 박습니다. 헤더 몇 개 가공, 조건부 분기 같은 **가벼운 로직**에 적합합니다.
 
 ```yaml
     patch:
@@ -109,17 +109,17 @@ nginx `limit_req`의 대응이 여기다. Istio는 레이트 리밋을 표준 CR
             end
 ```
 
-간단하지만 요청 경로에서 도는 코드이므로 무거운 연산·외부 호출은 피한다.
+간단하지만 요청 경로에서 도는 코드이므로 무거운 연산·외부 호출은 피합니다.
 
 ### WASM — 진짜 커스텀 필터, 단 상위 API로
 
-복잡하거나 성능이 중요한 커스텀 필터는 언어로 짜서 **WASM**으로 로드한다. 이때 EnvoyFilter로 날것을 붙이기보다 **`WasmPlugin` API**를 쓰는 게 권장이다 — 배포·버전·대상 선택을 다루는 **더 안전한 상위 추상화**라서, EnvoyFilter의 업그레이드 취약성을 상당히 덜어준다.
+복잡하거나 성능이 중요한 커스텀 필터는 언어로 짜서 **WASM**으로 로드합니다. 이때 EnvoyFilter로 날것을 붙이기보다 **`WasmPlugin` API**를 쓰는 게 권장입니다 — 배포·버전·대상 선택을 다루는 **더 안전한 상위 추상화**라서, EnvoyFilter의 업그레이드 취약성을 상당히 덜어줍니다.
 
-원칙은 같다: **Telemetry API·WasmPlugin 같은 상위 API로 되는 일을 굳이 EnvoyFilter 날것으로 하지 않는다.**
+원칙은 같습니다: **Telemetry API·WasmPlugin 같은 상위 API로 되는 일을 굳이 EnvoyFilter 날것으로 하지 않습니다.**
 
 ## 운영 수칙
 
-EnvoyFilter를 쓸 수밖에 없다면 최소한 이것들을 지킨다.
+EnvoyFilter를 쓸 수밖에 없다면 최소한 이것들을 지킵니다.
 
 - **좁게 건다.** `workloadSelector`를 반드시 지정해 폭발 반경을 한 워크로드로 가둔다. 전역 EnvoyFilter는 금물.
 - **버전에 핀·테스트.** Istio/Envoy 업그레이드 전 스테이징에서 patch가 여전히 붙는지 검증한다. revision 카나리([04]({{< relref "04-config-as-code.md" >}}))로 먼저 소수에만 태운다.

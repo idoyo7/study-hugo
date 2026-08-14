@@ -1,5 +1,5 @@
 {
-  "caption": "1.24.0 이후 남는 것은 로컬 렌더링 두 갈래다 — istioctl이 IstioOperator 파일을 직접 읽어 적용하거나, manifest translate로 Helm values로 바꿔 Helm이 적용한다. 점선(파티클 없음)이 1.24.0에서 끊긴 경로다: 클러스터 안에서 IstioOperator CR을 감시하던 컨트롤러가 사라졌다",
+  "caption": "1.24.0 이후 남는 것은 로컬 렌더링 두 갈래입니다 — istioctl이 IstioOperator 파일을 직접 읽어 적용하거나, manifest translate로 Helm values로 바꿔 Helm이 적용합니다. 점선(파티클 없음)이 1.24.0에서 끊긴 경로입니다: 클러스터 안에서 IstioOperator CR을 감시하던 컨트롤러가 사라졌습니다",
   "nodes": [
     {
       "id": "iop",

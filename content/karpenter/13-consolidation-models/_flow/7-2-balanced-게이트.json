@@ -1,5 +1,5 @@
 {
-  "caption": "Balanced는 앞 경로의 결과를 받아 채점한다 — 빈 노드 삭제는 Emptiness 출신이라 스코어를 우회한다",
+  "caption": "Balanced는 앞 경로의 결과를 받아 채점합니다 — 빈 노드 삭제는 Emptiness 출신이라 스코어를 우회합니다",
   "nodes": [
     {
       "id": "W",

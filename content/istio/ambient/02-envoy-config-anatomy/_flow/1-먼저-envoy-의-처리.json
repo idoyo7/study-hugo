@@ -1,5 +1,5 @@
 {
-  "caption": "Envoy의 요청 처리 5단계 — istiod가 xDS API로 각 단계의 설정을 동적으로 밀어넣는다.",
+  "caption": "Envoy의 요청 처리 5단계 — istiod가 xDS API로 각 단계의 설정을 동적으로 밀어넣습니다.",
   "nodes": [
     {
       "id": "l",

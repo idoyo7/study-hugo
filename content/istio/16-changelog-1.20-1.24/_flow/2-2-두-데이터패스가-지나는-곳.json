@@ -1,5 +1,5 @@
 {
-  "caption": "sidecar는 파드 안 프록시 두 개가 L4+L7을 다 하고, ambient는 노드 공용 ztunnel이 L4(mTLS·L4 인가)만 처리한다. L7 정책이 필요한 서비스에만 waypoint가 경로에 끼어든다 — 그래서 ambient에서 L7은 '기본'이 아니라 '옵트인'이다. istio-cni는 이 그림에 없다: 파드 생성·라벨 부여 시점에 파드 netns로 들어가 리다이렉션 규칙을 세우고 ztunnel에 netns 파일 디스크립터를 넘기는 셋업 담당이고, 요청 경로에는 앉지 않는다",
+  "caption": "sidecar는 파드 안 프록시 두 개가 L4+L7을 다 하고, ambient는 노드 공용 ztunnel이 L4(mTLS·L4 인가)만 처리합니다. L7 정책이 필요한 서비스에만 waypoint가 경로에 끼어듭니다 — 그래서 ambient에서 L7은 '기본'이 아니라 '옵트인'입니다. istio-cni는 이 그림에 없습니다: 파드 생성·라벨 부여 시점에 파드 netns로 들어가 리다이렉션 규칙을 세우고 ztunnel에 netns 파일 디스크립터를 넘기는 셋업 담당이고, 요청 경로에는 앉지 않습니다",
   "nodes": [
     {
       "id": "sa",

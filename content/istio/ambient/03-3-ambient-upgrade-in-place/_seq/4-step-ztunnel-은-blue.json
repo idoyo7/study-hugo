@@ -1,5 +1,5 @@
 {
-  "caption": "같은 노드에서 ztunnel을 교체하면 30초 안에 끝나지 않은 커넥션이 종료 순간 절단된다. blue-green은 그 종료 순간 자체를 없앤다.",
+  "caption": "같은 노드에서 ztunnel을 교체하면 30초 안에 끝나지 않은 커넥션이 종료 순간 절단됩니다. blue-green은 그 종료 순간 자체를 없앱니다.",
   "participants": [
     {
       "id": "Op",

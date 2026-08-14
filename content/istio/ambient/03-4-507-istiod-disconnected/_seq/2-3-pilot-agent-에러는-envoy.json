@@ -1,5 +1,5 @@
 {
-  "caption": "istiod 연결 실패는 pilot-agent를 거쳐 Envoy의 stream close로 전파되고, backoff 재연결 때 UDS가 잠깐 열리면서 connected_state가 0과 1 사이를 오간다.",
+  "caption": "istiod 연결 실패는 pilot-agent를 거쳐 Envoy의 stream close로 전파되고, backoff 재연결 때 UDS가 잠깐 열리면서 connected_state가 0과 1 사이를 오갑니다.",
   "participants": [
     {
       "id": "E",

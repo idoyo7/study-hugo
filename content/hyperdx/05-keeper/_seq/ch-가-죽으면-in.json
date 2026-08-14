@@ -1,5 +1,5 @@
 {
-  "caption": "INSERT ack 흐름과 유실 창 — ack 전에 서버가 죽으면 미커밋 데이터는 사라지고, Keeper는 그 데이터를 갖고 있지 않다.",
+  "caption": "INSERT ack 흐름과 유실 창 — ack 전에 서버가 죽으면 미커밋 데이터는 사라지고, Keeper는 그 데이터를 갖고 있지 않습니다.",
   "participants": [
     {
       "id": "Cl",

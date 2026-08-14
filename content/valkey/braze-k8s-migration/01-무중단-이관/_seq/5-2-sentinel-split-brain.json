@@ -1,5 +1,5 @@
 {
-  "caption": "이관 중에는 Sentinel이 6대(EC2 3 + k8s 3)로 늘어난다. 발표자는 플랫폼 사이가 끊기면 각 3대가 독립적으로 failover를 결의해 한 샤드에 primary가 둘 생기고 데이터 손실이 난다고 설명한다. 고치려면 EC2 쪽에 7번째 Sentinel을 띄우고 quorum을 5로 올린다 — EC2 4표·k8s 3표 어느 쪽도 단독으로 5표를 못 채운다. 이관 전 quorum 값은 발표에 나오지 않는다.",
+  "caption": "이관 중에는 Sentinel이 6대(EC2 3 + k8s 3)로 늘어납니다. 발표자는 플랫폼 사이가 끊기면 각 3대가 독립적으로 failover를 결의해 한 샤드에 primary가 둘 생기고 데이터 손실이 난다고 설명합니다. 고치려면 EC2 쪽에 7번째 Sentinel을 띄우고 quorum을 5로 올립니다 — EC2 4표·k8s 3표 어느 쪽도 단독으로 5표를 못 채웁니다. 이관 전 quorum 값은 발표에 나오지 않습니다.",
   "participants": [
     { "id": "es", "label": "EC2 Sentinel" },
     { "id": "ks", "label": "k8s Sentinel" },

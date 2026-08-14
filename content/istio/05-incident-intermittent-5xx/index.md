@@ -19,11 +19,11 @@ weight: 5
 
 ## 먼저: 5xx는 누가 낸 것인가
 
-메시에서 요청 하나는 프록시를 여러 번 지난다. 그래서 같은 "503"도 **어느 홉에서 났느냐**에 따라 원인이 완전히 다르다.
+메시에서 요청 하나는 프록시를 여러 번 지납니다. 그래서 같은 "503"도 **어느 홉에서 났느냐**에 따라 원인이 완전히 달랍니다.
 
 {{< flow src="_flow/먼저-5xx-는-누가.json" />}}
 
-앱(④)이 낸 503과, dest 사이드카(③)가 "붙을 상대가 없어서" 낸 503은 전혀 다른 문제다. **이걸 가르는 게 Envoy의 response flag**다. Envoy 액세스 로그의 `%RESPONSE_FLAGS%` 필드에 두세 글자로 찍힌다.
+앱(④)이 낸 503과, dest 사이드카(③)가 "붙을 상대가 없어서" 낸 503은 전혀 다른 문제입니다. **이걸 가르는 게 Envoy의 response flag**입니다. Envoy 액세스 로그의 `%RESPONSE_FLAGS%` 필드에 두세 글자로 찍힙니다.
 
 | flag | 의미 | 흔한 원인 |
 |---|---|---|
@@ -35,17 +35,17 @@ weight: 5
 | **NR** | **N**o **R**oute | 매칭되는 라우트 없음 (VirtualService·Gateway 설정 문제) |
 | **DC** | **D**ownstream **C**onnection termination | 클라이언트가 먼저 끊음 |
 
-**간헐적** 5xx라면 UH·UC·UF·UO가 단골이다 — 전부 "가끔" 발생하는 성격을 갖는다.
+**간헐적** 5xx라면 UH·UC·UF·UO가 단골입니다 — 전부 "가끔" 발생하는 성격을 갖습니다.
 
 ## 추적 순서
 
 ### 1) 범위를 좁힌다
 
-무작정 파기 전에 패턴부터 본다. **특정 서비스만? 특정 경로만? 특정 AZ·노드만? 배포 직후에만?** 메트릭 `istio_requests_total`을 `destination_service`, `response_code`, `response_flags`, `source_workload`로 쪼개 본다. 배포 타이밍과 겹치면 라이프사이클 문제(아래 5번)를 먼저 의심한다.
+무작정 파기 전에 패턴부터 봅니다. **특정 서비스만? 특정 경로만? 특정 AZ·노드만? 배포 직후에만?** 메트릭 `istio_requests_total`을 `destination_service`, `response_code`, `response_flags`, `source_workload`로 쪼개 봅니다. 배포 타이밍과 겹치면 라이프사이클 문제(아래 5번)를 먼저 의심합니다.
 
 ### 2) 어느 홉인지 — 액세스 로그의 response flag
 
-의심 구간의 Envoy 액세스 로그에서 `response_flags`를 확인한다. 이게 **범인이 앱인지 프록시인지, 어느 방향인지**를 즉시 갈라준다.
+의심 구간의 Envoy 액세스 로그에서 `response_flags`를 확인합니다. 이게 **범인이 앱인지 프록시인지, 어느 방향인지**를 즉시 갈라줍니다.
 
 ```bash
 # 대상 워크로드 사이드카의 액세스 로그
@@ -53,11 +53,11 @@ kubectl logs deploy/<svc> -c istio-proxy | grep ' 503 '
 # → RESPONSE_FLAGS 컬럼(UH/UC/UF/UO…)을 본다
 ```
 
-flag가 없고 앱이 직접 503을 냈다면 그건 앱 문제다. flag가 있으면 아래로 간다.
+flag가 없고 앱이 직접 503을 냈다면 그건 앱 문제입니다. flag가 있으면 아래로 갑니다.
 
 ### 3) 프록시가 든 설정이 최신인가 — proxy-status / proxy-config
 
-간헐적 UH·NR의 흔한 뿌리는 **설정이 stale**인 것이다. 컨트롤 플레인이 밀려([02]({{< relref "02-istiod-control-plane.md" >}})의 수렴 지연) 프록시가 **옛 엔드포인트·라우트**를 들고 있으면, 이미 사라진 파드로 보내다 실패한다.
+간헐적 UH·NR의 흔한 뿌리는 **설정이 stale**인 것입니다. 컨트롤 플레인이 밀려([02]({{< relref "02-istiod-control-plane.md" >}})의 수렴 지연) 프록시가 **옛 엔드포인트·라우트**를 들고 있으면, 이미 사라진 파드로 보내다 실패합니다.
 
 ```bash
 istioctl proxy-status                 # 각 프록시가 SYNCED인지 STALE인지
@@ -65,11 +65,11 @@ istioctl proxy-config endpoints <pod> # 이 프록시가 아는 실제 엔드포
 istioctl proxy-config routes <pod>    # 라우팅 규칙이 기대대로인지
 ```
 
-`STALE`이 보이거나 endpoints가 실제 파드와 다르면 **02의 컨트롤 플레인 문제**로 넘어간다 — `pilot_proxy_convergence_time`을 확인한다.
+`STALE`이 보이거나 endpoints가 실제 파드와 다르면 **02의 컨트롤 플레인 문제**로 넘어갑니다 — `pilot_proxy_convergence_time`을 확인합니다.
 
 ### 4) mTLS·정책 불일치 — UF의 단골
 
-간헐적 UF는 **mTLS 미스매치**가 잦다. `PeerAuthentication`이 STRICT인데 일부 호출자가 평문이거나, 마이그레이션 중 한쪽만 mTLS면 그쪽 연결이 실패한다. `AuthorizationPolicy`가 특정 조건에서만 막고 있을 수도 있다.
+간헐적 UF는 **mTLS 미스매치**가 잦습니다. `PeerAuthentication`이 STRICT인데 일부 호출자가 평문이거나, 마이그레이션 중 한쪽만 mTLS면 그쪽 연결이 실패합니다. `AuthorizationPolicy`가 특정 조건에서만 막고 있을 수도 있습니다.
 
 ```bash
 istioctl proxy-config secret <pod>    # 인증서가 제대로 발급됐는지
@@ -78,7 +78,7 @@ istioctl proxy-config secret <pod>    # 인증서가 제대로 발급됐는지
 
 ### 5) 파드 라이프사이클 레이스 — 배포 직후 간헐 장애의 진짜 원인
 
-간헐적 5xx가 **롤링 배포 시점에 몰린다면** 십중팔구 사이드카-앱 시작·종료 순서 문제다.
+간헐적 5xx가 **롤링 배포 시점에 몰린다면** 십중팔구 사이드카-앱 시작·종료 순서 문제입니다.
 
 - **시작 레이스** — 앱 컨테이너가 사이드카 Envoy보다 먼저 떠서 트래픽을 받으면, 아직 준비 안 된 프록시 때문에 실패한다. → `holdApplicationUntilProxyStarts: true`로 **프록시가 준비될 때까지 앱을 붙잡는다.**
 - **종료 레이스** — 파드 종료 시 사이드카가 앱보다 먼저 죽으면, 아직 처리 중이던 요청이 UC로 끊긴다. → preStop 훅에 짧은 `sleep`을 두거나 연결이 빠질 때까지 프록시 종료를 늦추고, **`terminationDrainDuration`**·엔드포인트 제거(readiness)를 맞춘다.
@@ -86,11 +86,11 @@ istioctl proxy-config secret <pod>    # 인증서가 제대로 발급됐는지
 
 ### 6) 커넥션풀·서킷브레이커 — UO
 
-간헐적 UO는 `DestinationRule`의 커넥션풀·서킷브레이커 상한에 트래픽이 순간적으로 부딪힌 것이다. 상한이 너무 빡빡한지, 트래픽 특성(버스트)에 맞는지 재검토한다.
+간헐적 UO는 `DestinationRule`의 커넥션풀·서킷브레이커 상한에 트래픽이 순간적으로 부딪힌 것입니다. 상한이 너무 빡빡한지, 트래픽 특성(버스트)에 맞는지 재검토합니다.
 
 ## 층으로 가르는 지도
 
-정리하면, 메시 장애는 **네 개 층**으로 갈라 나침반(response flag)을 따라간다.
+정리하면, 메시 장애는 **네 개 층**으로 갈라 나침반(response flag)을 따라갑니다.
 
 | 층 | 무엇을 보나 | 도구·지표 |
 |---|---|---|

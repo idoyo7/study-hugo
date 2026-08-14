@@ -18,17 +18,17 @@ weight: 6
 
 ### 왜 이 버전인가
 
-chart를 0.19.4에서 0.87.0으로 올린다. 68마이너 점프다. VM 코어(appVersion)는 v1.99.0에서 **v1.148.0**으로, operator 서브차트는 0.28.*에서 **0.66.*(app v0.73.1)**로 함께 대점프한다.
+chart를 0.19.4에서 0.87.0으로 올립니다. 68마이너 점프입니다. VM 코어(appVersion)는 v1.99.0에서 **v1.148.0**으로, operator 서브차트는 0.28.*에서 **0.66.*(app v0.73.1)**로 함께 대점프합니다.
 
-조사 시점에 업스트림 master는 0.87.0이었지만 ArtifactHub 게시본은 0.86.0으로 하루 지연돼 있었다. 어느 쪽이든 이 절에서 다루는 breaking은 모두 포함되므로 작업 당일 실제 게시된 최신 정식 버전을 재확인해 핀하면 된다.
+조사 시점에 업스트림 master는 0.87.0이었지만 ArtifactHub 게시본은 0.86.0으로 하루 지연돼 있었습니다. 어느 쪽이든 이 절에서 다루는 breaking은 모두 포함되므로 작업 당일 실제 게시된 최신 정식 버전을 재확인해 핀하면 됩니다.
 
 ### 무엇이 깨지나
 
-**태그 미핀이 핵심 함정이다.** finance values는 operator·vmagent·vmcluster(vmselect/vminsert/vmstorage)·vmalert·alertmanager 이미지의 **repository만 ECR로 오버라이드하고 tag는 핀하지 않는다** — 그래서 차트를 0.87.0으로 올리면 이 컴포넌트들은 자동으로 v1.148.0(operator는 v0.73.1)까지 점프한다. 반대로 grafana(11.3.0)·kube-state-metrics(v2.12.0)·curl(7.85.0)처럼 **명시 태그로 핀된 컴포넌트는 차트를 올려도 이미지가 그대로 고정**된다 — 목표 버전에 맞추려면 이 태그들을 별도로 조정해야 한다.
+**태그 미핀이 핵심 함정입니다.** finance values는 operator·vmagent·vmcluster(vmselect/vminsert/vmstorage)·vmalert·alertmanager 이미지의 **repository만 ECR로 오버라이드하고 tag는 핀하지 않습니다** — 그래서 차트를 0.87.0으로 올리면 이 컴포넌트들은 자동으로 v1.148.0(operator는 v0.73.1)까지 점프합니다. 반대로 grafana(11.3.0)·kube-state-metrics(v2.12.0)·curl(7.85.0)처럼 **명시 태그로 핀된 컴포넌트는 차트를 올려도 이미지가 그대로 고정됩니다** — 목표 버전에 맞추려면 이 태그들을 별도로 조정해야 합니다.
 
-**CRD 쪽 변화가 가장 구조적이다.** 로컬 `crds` 서브차트가 아예 제거되고 operator 서브차트가 `crds.plain`(specless 템플릿 렌더)으로 CRD를 관리하는 방식으로 바뀐다. finance가 명시한 `victoria-metrics-operator.createCRD: false`는 대상 차트에서 **데드키**가 된다 — CRD가 실제로 설치되도록 새 스키마 경로로 보장해야 한다. 방치하면 CR은 있는데 CRD가 없어 sync가 실패한다. 이 개편 과정에서 VLSingle/VLCluster/VLAgent(logs), VTSingle/VTCluster(traces), VMAnomaly 같은 신규 CRD가 대량으로 추가된다.
+**CRD 쪽 변화가 가장 구조적입니다.** 로컬 `crds` 서브차트가 아예 제거되고 operator 서브차트가 `crds.plain`(specless 템플릿 렌더)으로 CRD를 관리하는 방식으로 바뀝니다. finance가 명시한 `victoria-metrics-operator.createCRD: false`는 대상 차트에서 **데드키**가 됩니다 — CRD가 실제로 설치되도록 새 스키마 경로로 보장해야 합니다. 방치하면 CR은 있는데 CRD가 없어 sync가 실패합니다. 이 개편 과정에서 VLSingle/VLCluster/VLAgent(logs), VTSingle/VTCluster(traces), VMAnomaly 같은 신규 CRD가 대량으로 추가됩니다.
 
-**finance 영향이 가장 큰 변화는 0.85.0의 대시보드/룰 sync-job 전환이다.** Helm이 렌더하던 대시보드 ConfigMap과 VMRule이 제거되고 배포 시점에 sync-job이 이를 외부에서 fetch해 적용하는 방식(`syncJob.enabled: true`가 기본)으로 바뀐다. finance는 대시보드/룰을 이미 별도의 raw Grafana dashboard + VMRule CR 관리 체계로 운영 중이므로 이 기본 동작이 클러스터 egress 제한과 부딪히거나 기존 관리 체계와 중복될 위험이 있다 — `syncJob.enabled: false` + `defaultDashboards.enabled: false`로 명시 비활성해 기존 방식을 유지하는 편이 안전하다.
+**finance 영향이 가장 큰 변화는 0.85.0의 대시보드/룰 sync-job 전환입니다.** Helm이 렌더하던 대시보드 ConfigMap과 VMRule이 제거되고 배포 시점에 sync-job이 이를 외부에서 fetch해 적용하는 방식(`syncJob.enabled: true`가 기본)으로 바뀝니다. finance는 대시보드/룰을 이미 별도의 raw Grafana dashboard + VMRule CR 관리 체계로 운영 중이므로 이 기본 동작이 클러스터 egress 제한과 부딪히거나 기존 관리 체계와 중복될 위험이 있습니다 — `syncJob.enabled: false` + `defaultDashboards.enabled: false`로 명시 비활성해 기존 방식을 유지하는 편이 안전합니다.
 
 그 밖에 확인할 항목들:
 
@@ -38,7 +38,7 @@ chart를 0.19.4에서 0.87.0으로 올린다. 68마이너 점프다. VM 코어(a
 - **grafana 서브차트 12.x vs 핀 이미지 11.3.0 괴리** — 서브차트는 12.7.x로 올라가지만 이미지 태그를 11.3.0에 고정할지 12.x로 함께 올릴지는 별도 결정이 필요하다(11→12는 그 자체로 breaking이 있다).
 - **operator env/CLI 매핑 변경** — `disable_prometheus_converter: true`는 v0.73.1에서도 하위호환되지만 finance가 커스텀으로 넣은 operator env 4종(config-reloader·alertmanager 기본 이미지 지정용)의 키가 여전히 유효한지는 배포 전 검증이 필요하다.
 
-**오설정 두 건도 이 업그레이드와 함께 정정한다.** prod values의 vmagent `externalLabels.cluster`가 `ring0`으로 남아 있는 것은 ArgoCD 파라미터가 이미 `prod-finance-green`으로 오버라이드하고 있어 실제 쿼리에는 영향이 없는 "그림자 오설정"이다. 그래도 스키마 개편 이후에도 이 파라미터 경로가 유효한지 확인하고 values 자체도 정정해 혼선을 없애야 한다. prod grafana의 `root_url`도 staging 도메인 패턴이 그대로 남아 있어 prod 도메인으로 정정이 필요하다.
+**오설정 두 건도 이 업그레이드와 함께 정정합니다.** prod values의 vmagent `externalLabels.cluster`가 `ring0`으로 남아 있는 것은 ArgoCD 파라미터가 이미 `prod-finance-green`으로 오버라이드하고 있어 실제 쿼리에는 영향이 없는 "그림자 오설정"입니다. 그래도 스키마 개편 이후에도 이 파라미터 경로가 유효한지 확인하고 values 자체도 정정해 혼선을 없애야 합니다. prod grafana의 `root_url`도 staging 도메인 패턴이 그대로 남아 있어 prod 도메인으로 정정이 필요합니다.
 
 ### 적용 절차
 
@@ -73,27 +73,27 @@ chart를 0.19.4에서 0.87.0으로 올린다. 68마이너 점프다. VM 코어(a
 
 ### 왜 이 버전인가
 
-target 버전은 v0.9.0이다. 다만 v0.9.0으로 가는 세부 breaking 변경 조사는 이 페이지의 소스 범위 밖이라 별도 확인이 필요하다(`?`).
+target 버전은 v0.9.0입니다. 다만 v0.9.0으로 가는 세부 breaking 변경 조사는 이 페이지의 소스 범위 밖이라 별도 확인이 필요합니다(`?`).
 
 ### 무엇이 깨지나
 
-metrics-server는 클러스터 부트스트랩 단계에서 **raw manifest로 배포**되며 ArgoCD Helm 앱 목록이나 차트 인벤토리 어디에서도 잡히지 않는다. 이는 관리 소홀로 인한 누락이 아니라 애초에 이 컴포넌트가 다른 배포 경로를 쓰기 때문이다. 이번 업그레이드 인벤토리를 작성할 때 metrics-server를 빠뜨리기 쉽다는 점 자체가 리스크다.
+metrics-server는 클러스터 부트스트랩 단계에서 **raw manifest로 배포**되며 ArgoCD Helm 앱 목록이나 차트 인벤토리 어디에서도 잡히지 않습니다. 이는 관리 소홀로 인한 누락이 아니라 애초에 이 컴포넌트가 다른 배포 경로를 쓰기 때문입니다. 이번 업그레이드 인벤토리를 작성할 때 metrics-server를 빠뜨리기 쉽다는 점 자체가 리스크입니다.
 
-소비 측에서는 HPA(`autoscaling/v2`)가 metrics-server의 API를 쓴다. keda가 등록하는 `external.metrics.k8s.io`와 metrics-server의 `metrics.k8s.io`는 서로 다른 API 그룹이라 충돌하지 않으므로 그 점만 확인하면 된다.
+소비 측에서는 HPA(`autoscaling/v2`)가 metrics-server의 API를 씁니다. keda가 등록하는 `external.metrics.k8s.io`와 metrics-server의 `metrics.k8s.io`는 서로 다른 API 그룹이라 충돌하지 않으므로 그 점만 확인하면 됩니다.
 
 ## 3. fluentbit(aws-for-fluent-bit) — 0.1.34 → 0.2.0
 
 ### 왜 이 버전인가
 
-차트 자체의 diff는 사소하다 — image.tag를 제외하면 values 스키마와 input/filter/firehose 렌더 로직이 두 차트 버전 사이에 byte-identical하다. **진짜 변화는 차트가 기본으로 지정하는 이미지 태그**에 있다. finance는 `image.tag`를 핀하지 않으므로 차트 기본 태그를 그대로 상속한다. 0.1.34의 기본은 `2.32.2.20240516`(Fluent Bit 1.9.10, **AL2**)이고 0.2.0의 기본은 `3.2.1`(Fluent Bit **4.2.2**, **AL2023**)이다. targetRevision 한 줄을 bump하는 것이 곧 3.5년치 엔진 교체이자 base OS 전환이다.
+차트 자체의 diff는 사소합니다 — image.tag를 제외하면 values 스키마와 input/filter/firehose 렌더 로직이 두 차트 버전 사이에 byte-identical합니다. **진짜 변화는 차트가 기본으로 지정하는 이미지 태그**에 있습니다. finance는 `image.tag`를 핀하지 않으므로 차트 기본 태그를 그대로 상속합니다. 0.1.34의 기본은 `2.32.2.20240516`(Fluent Bit 1.9.10, **AL2**)이고 0.2.0의 기본은 `3.2.1`(Fluent Bit **4.2.2**, **AL2023**)입니다. targetRevision 한 줄을 bump하는 것이 곧 3.5년치 엔진 교체이자 base OS 전환입니다.
 
-이 전환의 배경에는 **AL2가 2026-06-30로 EOL**을 지났다는 사실이 있다 — v2 이미지는 더 이상 보안 패치를 받지 못하므로 v3(AL2023, LTS ~2028+) 이관이 임박한 필요다.
+이 전환의 배경에는 **AL2가 2026-06-30로 EOL**을 지났다는 사실이 있습니다 — v2 이미지는 더 이상 보안 패치를 받지 못하므로 v3(AL2023, LTS ~2028+) 이관이 임박한 필요입니다.
 
 ### 무엇이 깨지나
 
-공식 upgrade-notes를 finance가 실제로 쓰는 요소(`tail` 입력 + `Parser cri`/`Docker_Mode On`, `kubernetes` 필터, `parser` 필터, `rewrite_tag` re-emitter, Go `firehose` 출력) 기준으로 항목별 판정하면, v2.0(mbedTLS 제거)·v3.0(HTTP 입력 HTTP/2 기본)·v4.0(구형 배포판 패키지 중단, AL2 ARM64 Kafka 비활성)·v4.2(Vivo exporter 경로 변경) 어느 것도 finance 설정에 직접 영향을 주지 않는다. finance가 쓰는 AWS Go 출력 플러그인 `firehose`도 v2·v3 최신 이미지 양쪽에 계속 번들되므로 제거로 인한 breaking은 없다.
+공식 upgrade-notes를 finance가 실제로 쓰는 요소(`tail` 입력 + `Parser cri`/`Docker_Mode On`, `kubernetes` 필터, `parser` 필터, `rewrite_tag` re-emitter, Go `firehose` 출력) 기준으로 항목별 판정하면, v2.0(mbedTLS 제거)·v3.0(HTTP 입력 HTTP/2 기본)·v4.0(구형 배포판 패키지 중단, AL2 ARM64 Kafka 비활성)·v4.2(Vivo exporter 경로 변경) 어느 것도 finance 설정에 직접 영향을 주지 않습니다. finance가 쓰는 AWS Go 출력 플러그인 `firehose`도 v2·v3 최신 이미지 양쪽에 계속 번들되므로 제거로 인한 breaking은 없습니다.
 
-문서화된 breaking이 없다는 것과 "실제로 아무 일도 없다"는 것은 다르다 — 1.9.10에서 4.2.2로 가면 문서화되지 않은 미세 거동(k8s 필터 메타데이터 처리, 메모리 사용량, CRI 라인 결합, firehose 플러그인과 신규 코어의 상호작용) 차이를 배제할 수 없으므로 스테이징 엔드투엔드 검증으로만 확정할 수 있다.
+문서화된 breaking이 없다는 것과 "실제로 아무 일도 없다"는 것은 다릅니다 — 1.9.10에서 4.2.2로 가면 문서화되지 않은 미세 거동(k8s 필터 메타데이터 처리, 메모리 사용량, CRI 라인 결합, firehose 플러그인과 신규 코어의 상호작용) 차이를 배제할 수 없으므로 스테이징 엔드투엔드 검증으로만 확정할 수 있습니다.
 
 ### 적용 절차
 
@@ -124,26 +124,26 @@ metrics-server는 클러스터 부트스트랩 단계에서 **raw manifest로 �
 
 ### 왜 이 버전인가
 
-descheduler는 마이너 릴리스마다 k8s client-go 라이브러리를 해당 k8s 마이너로 1:1 bump한다(0.29→k8s 1.29 … 0.33→k8s 1.33). 원 조사는 k8s 1.33을 목표로 진행돼 0.33.x를 채택안으로 제시했다. 상위 목표가 1.35로 상향됐으므로 이 페이지의 목표는 같은 1:1 규칙을 따라 **0.35.x**로 잡는다 — 정확한 패치 버전은 작업 당일 upstream 인덱스로 재확인한다(`?`).
+descheduler는 마이너 릴리스마다 k8s client-go 라이브러리를 해당 k8s 마이너로 1:1 bump합니다(0.29→k8s 1.29 … 0.33→k8s 1.33). 원 조사는 k8s 1.33을 목표로 진행돼 0.33.x를 채택안으로 제시했습니다. 상위 목표가 1.35로 상향됐으므로 이 페이지의 목표는 같은 1:1 규칙을 따라 **0.35.x**로 잡습니다 — 정확한 패치 버전은 작업 당일 upstream 인덱스로 재확인합니다(`?`).
 
-client-go skew를 이유로 이 bump는 blocking으로 분류한다 — 0.28(client-go 1.28)을 k8s 1.35 API server와 그대로 맞물리면 마이너 격차가 커서 위험하다.
+client-go skew를 이유로 이 bump는 blocking으로 분류합니다 — 0.28(client-go 1.28)을 k8s 1.35 API server와 그대로 맞물리면 마이너 격차가 커서 위험합니다.
 
 ### 무엇이 깨지나
 
-**이 업그레이드의 핵심은 버전 bump가 아니라 policy 스키마 정리다.** finance values는 이미 `apiVersion: descheduler/v1alpha2`로 선언돼 있어 0.31.0에서 완전히 제거된 v1alpha1 apiVersion 문제 자체는 겪지 않는다. 그런데 values 안의 `deschedulerPolicy`에는 `profiles`(v1alpha2 정식 문법)와 `strategies`(v1alpha1 문법) 블록이 **혼재**돼 있다. v1alpha2 타입에는 `strategies` 필드가 아예 존재하지 않는다. k8s 표준 디코더는 unknown 필드를 non-strict로 조용히 버린다 — 즉 **`strategies` 블록은 현재도 무시되고 있을 가능성이 매우 높다.**
+**이 업그레이드의 핵심은 버전 bump가 아니라 policy 스키마 정리입니다.** finance values는 이미 `apiVersion: descheduler/v1alpha2`로 선언돼 있어 0.31.0에서 완전히 제거된 v1alpha1 apiVersion 문제 자체는 겪지 않습니다. 그런데 values 안의 `deschedulerPolicy`에는 `profiles`(v1alpha2 정식 문법)와 `strategies`(v1alpha1 문법) 블록이 **혼재**돼 있습니다. v1alpha2 타입에는 `strategies` 필드가 아예 존재하지 않습니다. k8s 표준 디코더는 unknown 필드를 non-strict로 조용히 버립니다 — 즉 **`strategies` 블록은 현재도 무시되고 있을 가능성이 매우 높습니다.**
 
-이게 사실이라면 실제로 도는 플러그인은 `profiles.balance`의 `RemovePodsViolatingTopologySpreadConstraint` 하나뿐이고 `strategies`에서 `enabled:true`로 표시된 InterPodAntiAffinity·NodeAffinity·NodeTaints 셋은 겉보기와 달리 동작하지 않는 죽은 설정일 공산이 크다. "무시 vs 디코드 에러" 여부는 클러스터 없이는 단정할 수 없으므로 작업 전에 현재 descheduler 파드 로그에서 실제 enabled plugins 목록을 캡처해 확정해야 한다.
+이게 사실이라면 실제로 도는 플러그인은 `profiles.balance`의 `RemovePodsViolatingTopologySpreadConstraint` 하나뿐이고 `strategies`에서 `enabled:true`로 표시된 InterPodAntiAffinity·NodeAffinity·NodeTaints 셋은 겉보기와 달리 동작하지 않는 죽은 설정일 공산이 큽니다. "무시 vs 디코드 에러" 여부는 클러스터 없이는 단정할 수 없으므로 작업 전에 현재 descheduler 파드 로그에서 실제 enabled plugins 목록을 캡처해 확정해야 합니다.
 
-이 확정 결과에 따라 두 옵션이 갈린다.
+이 확정 결과에 따라 두 옵션이 갈립니다.
 
 - **옵션 A(현재 유효 동작 보존, 저위험)** — profiles에 topology-spread 하나만 남기고 `strategies` 블록을 삭제한다. 실제 축출 동작 변화가 최소화된다. 단 원래 의도했던 3개 플러그인은 계속 미동작 상태로 남는다.
 - **옵션 B(원 의도 복원, 동작 변화 있음)** — InterPodAntiAffinity·NodeAffinity·NodeTaints 셋을 `profiles.deschedule`로 이관해 실제로 켠다. 그동안 안 돌던 축출이 갑자기 시작되므로 파드 재스케줄이 늘어날 수 있어 staging에서 축출량을 관찰해야 한다.
 
-어느 옵션을 택하든 `strategies` 블록 자체는 제거한다(0.35에서도 non-strict 디코더가 무시할 가능성이 높지만 모호성과 향후 strict 디코드 리스크를 없애기 위해서다). finance가 쓰는 7개 플러그인명은 이름 변경이나 제거 없이 v0.35의 v1alpha2에서도 유효하다.
+어느 옵션을 택하든 `strategies` 블록 자체는 제거합니다(0.35에서도 non-strict 디코더가 무시할 가능성이 높지만 모호성과 향후 strict 디코드 리스크를 없애기 위해서입니다). finance가 쓰는 7개 플러그인명은 이름 변경이나 제거 없이 v0.35의 v1alpha2에서도 유효합니다.
 
 ### 적용 절차
 
-descheduler는 upstream `kubernetes-sigs.github.io/descheduler` 차트를 tier-3(`kubernetes.default.svc`)로 직접 소비하므로 신규 blue 클러스터에서 endpoint 재지정이 필요 없고 yo-charts 리워크도 필요 없다.
+descheduler는 upstream `kubernetes-sigs.github.io/descheduler` 차트를 tier-3(`kubernetes.default.svc`)로 직접 소비하므로 신규 blue 클러스터에서 endpoint 재지정이 필요 없고 yo-charts 리워크도 필요 없습니다.
 
 1. **targetRevision bump** — chart를 0.35.x로 올린다. ECR 미러에 해당 태그가 있는지 먼저 확인한다.
 2. **policy 리워크** — `strategies` 블록을 제거하고 팀이 결정한 옵션(A 또는 B)에 맞춰 `profiles`/`plugins`/`pluginConfig`를 정리한다. `DefaultEvictor`의 `nodeFit`·`evictLocalStoragePods` 같은 기본값이 finance 의도와 맞는지 명시적으로 검토한다(특히 topology-spread 축출 시 `nodeFit`을 켜지 않으면 재스케줄 불가능한 노드로도 축출될 수 있다).
@@ -162,7 +162,7 @@ descheduler는 upstream `kubernetes-sigs.github.io/descheduler` 차트를 tier-3
 
 **배포 후 검증**
 
-staging에 올린 뒤 파드 로그 시작부의 enabled plugins 목록이 의도한 옵션과 일치하는지, policy 디코드 에러/경고가 없는지 확인한다. 옵션 B라면 축출량 급증 여부를 반드시 관찰한다.
+staging에 올린 뒤 파드 로그 시작부의 enabled plugins 목록이 의도한 옵션과 일치하는지, policy 디코드 에러/경고가 없는지 확인합니다. 옵션 B라면 축출량 급증 여부를 반드시 관찰합니다.
 
 ## 근거
 

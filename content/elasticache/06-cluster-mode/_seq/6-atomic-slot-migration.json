@@ -1,5 +1,5 @@
 {
-  "caption": "Valkey 9.0 의 atomic slot migration 은 새 프로토콜을 발명하지 않고 replication + manual failover 를 슬롯 범위로 좁혀 재사용한다 — 스냅샷·증분·pause·takeover·정리의 다섯 국면이 CLUSTER SYNCSLOTS 서브커맨드 하나로 조율되고, 슬롯 소유권은 마지막 takeover 순간에만 넘어간다. 쓰기가 실제로 멈추는 구간은 PAUSED 부터 토폴로지 갱신 수신까지다.",
+  "caption": "Valkey 9.0 의 atomic slot migration 은 새 프로토콜을 발명하지 않고 replication + manual failover 를 슬롯 범위로 좁혀 재사용합니다 — 스냅샷·증분·pause·takeover·정리의 다섯 국면이 CLUSTER SYNCSLOTS 서브커맨드 하나로 조율되고, 슬롯 소유권은 마지막 takeover 순간에만 넘어갑니다. 쓰기가 실제로 멈추는 구간은 PAUSED 부터 토폴로지 갱신 수신까지입니다.",
   "participants": [
     {
       "id": "op",

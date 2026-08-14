@@ -1,5 +1,5 @@
 {
-  "caption": "LB는 L4로만 넘기고, TLS 종료·HTTP 파싱·라우팅은 전부 게이트웨이 Envoy에서 일어난다.",
+  "caption": "LB는 L4로만 넘기고, TLS 종료·HTTP 파싱·라우팅은 전부 게이트웨이 Envoy에서 일어납니다.",
   "participants": [
     {
       "id": "L",

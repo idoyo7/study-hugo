@@ -15,13 +15,13 @@ weight: 4
 - **시간축 경계**: 이 페이지는 **배포 시점**의 선언 필드만 소유한다. 서고 난 뒤의 스케일·롤링 업그레이드·노드 소실 재수화·Keeper 정족수 복구·백업/모니터링 연계는 [변경관리·복구]({{< relref "05-altinity-operations.md" >}})가 소유한다.
 {{< /callout >}}
 
-앞의 두 페이지는 각각 "**어느** operator냐"([Altinity operator]({{< relref "03-operator.md" >}}))와 "**어떤** 스토리지 매체냐"([스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}))를 결정했다. 이 페이지는 그 둘을 **하나의 실행 가능한 배포 절차**로 묶는 종합 문서다 — "AWS EKS 위에서 Altinity clickhouse-operator로 i7i/i8g 로컬 NVMe를 데이터 디스크 삼아 ReplicatedMergeTree 클러스터를 CHK/CHI 매니페스트 필드 수준까지 **처음** 배포하는 법". 앞 페이지가 **확정한 전제**(Altinity operator, self-host RMT, 로컬 NVMe hot + S3 cold, Keeper는 gp3 영속, i7i/i8g.4xlarge 단일 디스크 단위, `instanceStorePolicy`는 ephemeral이라 PV가 아님)는 재론하지 않고 그 위에 **필드·순서·값**을 얹는다. 배포가 끝난 뒤의 변경관리·복구는 [Altinity operator 운영]({{< relref "05-altinity-operations.md" >}})으로 넘긴다 — 같은 규칙을 두 곳에서 서술하지 않기 위한 경계다. 개별 필드 근거는 [출처]({{< relref "10-sources.md" >}})의 operator·CRD·local PV 분류로 인용한다. 시점 기준 2026-07, operator **0.27.1**, CRD `clickhouse.altinity.com/v1` / `clickhouse-keeper.altinity.com/v1`.
+앞의 두 페이지는 각각 "**어느** operator냐"([Altinity operator]({{< relref "03-operator.md" >}}))와 "**어떤** 스토리지 매체냐"([스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}))를 결정했습니다. 이 페이지는 그 둘을 **하나의 실행 가능한 배포 절차**로 묶는 종합 문서입니다 — "AWS EKS 위에서 Altinity clickhouse-operator로 i7i/i8g 로컬 NVMe를 데이터 디스크 삼아 ReplicatedMergeTree 클러스터를 CHK/CHI 매니페스트 필드 수준까지 **처음** 배포하는 법". 앞 페이지가 **확정한 전제**(Altinity operator, self-host RMT, 로컬 NVMe hot + S3 cold, Keeper는 gp3 영속, i7i/i8g.4xlarge 단일 디스크 단위, `instanceStorePolicy`는 ephemeral이라 PV가 아님)는 재론하지 않고 그 위에 **필드·순서·값**을 얹습니다. 배포가 끝난 뒤의 변경관리·복구는 [Altinity operator 운영]({{< relref "05-altinity-operations.md" >}})으로 넘깁니다 — 같은 규칙을 두 곳에서 서술하지 않기 위한 경계입니다. 개별 필드 근거는 [출처]({{< relref "10-sources.md" >}})의 operator·CRD·local PV 분류로 인용합니다. 시점 기준 2026-07, operator **0.27.1**, CRD `clickhouse.altinity.com/v1` / `clickhouse-keeper.altinity.com/v1`.
 
 > **표기**: `✓` = CRD 원문·공식 예제 YAML·릴리즈노트로 직접 검증. `≈` = 확정 사실에 기반한 설계 판단. `?` = 배포 후 실측·재확인 필요. 검증 못 한 YAML 필드는 `# [미확인]` 주석을 단다.
 
 ## 배포 청사진 — 5계층과 순서
 
-로컬 디스크가 ClickHouse 데이터 PV가 되기까지 **5계층**을 지난다 `✓`. operator는 이 중 [4]~[5]만 담당하고 [1]~[3]은 노드/인프라 책임이다 — 이 경계가 로컬 NVMe 배포의 핵심 오해 지점이다.
+로컬 디스크가 ClickHouse 데이터 PV가 되기까지 **5계층**을 지나갑니다 `✓`. operator는 이 중 [4]~[5]만 담당하고 [1]~[3]은 노드/인프라 책임입니다 — 이 경계가 로컬 NVMe 배포의 핵심 오해 지점입니다.
 
 ```
 [1] 노드 부트스트랩(userData)   mkfs.xfs → /mnt/fast-disks/<uuid> 마운트     책임: Karpenter EC2NodeClass
@@ -38,11 +38,11 @@ weight: 4
            → CHI apply(zookeeper.keeper 이름 참조) → 스키마·anti-affinity·PDB 확인 → 백업 사이드카·모니터링
 ```
 
-참조 아키텍처는 [스토리지 페이지의 참조 배치]({{< relref "02-storage-local-nvme.md" >}})를 operator 관점으로 구체화한 것이다 — `clickhouse-data` NodePool(i8g/i7i.4xlarge, On-Demand, taint `dedicated=clickhouse`) + `clickhouse-keeper` NodePool(소형, gp3, 멀티 AZ) + clickhouse-backup 사이드카 → S3.
+참조 아키텍처는 [스토리지 페이지의 참조 배치]({{< relref "02-storage-local-nvme.md" >}})를 operator 관점으로 구체화한 것입니다 — `clickhouse-data` NodePool(i8g/i7i.4xlarge, On-Demand, taint `dedicated=clickhouse`) + `clickhouse-keeper` NodePool(소형, gp3, 멀티 AZ) + clickhouse-backup 사이드카 → S3.
 
 ## 1. 사전 준비 — 노드·프로비저너·StorageClass
 
-CHI/CHK를 apply하기 **전에** 이 계층이 서 있어야 바인딩이 된다.
+CHI/CHK를 apply하기 **전에** 이 계층이 서 있어야 바인딩이 됩니다.
 
 ### 스토리지 노드풀 — taint / label / userData
 
@@ -56,13 +56,13 @@ Karpenter EC2NodeClass/NodePool에서 `✓`: 인스턴스는 **i8g/i7i.4xlarge**
 | **TopoLVM** | 한 노드 NVMe를 **여러 PVC로 분할**·용량 격리·온라인 확장 필요 | LVM 기반, capacity-aware `✓` |
 | **OpenEBS LocalPV-LVM/Device** | 이미 OpenEBS 생태계이거나 thin·변종 필요 | TopoLVM과 기능 동급 `✓` |
 
-세부: **local-static-provisioner**는 `no-provisioner` 방식으로 **1 PV = 1 디스크/배열**, 사전 마운트가 필수이며 DB 정석 레시피다 `✓`. **TopoLVM**은 `topolvm.io` CRD로 LVM VG에서 LV를 동적 절단하고 capacity-aware 스케줄링·`allowVolumeExpansion`을 지원하며 cert-manager에 의존한다 `✓`. **OpenEBS**는 LVM(`local.csi.openebs.io`) 또는 Device(`openebs.io/local`, `cas-type: local`) 방식이다 `✓`.
+세부: **local-static-provisioner**는 `no-provisioner` 방식으로 **1 PV = 1 디스크/배열**, 사전 마운트가 필수이며 DB 정석 레시피입니다 `✓`. **TopoLVM**은 `topolvm.io` CRD로 LVM VG에서 LV를 동적 절단하고 capacity-aware 스케줄링·`allowVolumeExpansion`을 지원하며 cert-manager에 의존합니다 `✓`. **OpenEBS**는 LVM(`local.csi.openebs.io`) 또는 Device(`openebs.io/local`, `cas-type: local`) 방식입니다 `✓`.
 
-**기본은 local-static-provisioner** — 4xlarge 단일 디스크·노드=단일 CH 전용이면 계층이 가장 얕고 격리가 명확하다 `✓`. "한 로컬 디스크를 data/log로 쪼개거나" "온라인 확장"이 필요해지는 시점에만 LVM 계열로 승급한다(단 **로컬 볼륨은 확장 불가**이므로 확장이 목적이면 LVM + `provisioner: Operator` 조합이라야 의미가 있다, §2.3).
+**기본은 local-static-provisioner** — 4xlarge 단일 디스크·노드=단일 CH 전용이면 계층이 가장 얕고 격리가 명확합니다 `✓`. "한 로컬 디스크를 data/log로 쪼개거나" "온라인 확장"이 필요해지는 시점에만 LVM 계열로 승급합니다(단 **로컬 볼륨은 확장 불가**이므로 확장이 목적이면 LVM + `provisioner: Operator` 조합이라야 의미가 있습니다, §2.3).
 
 ### StorageClass 2종 — 로컬 CH용 + gp3 Keeper/로그용
 
-두 개를 만든다. 로컬 SC는 **반드시 `WaitForFirstConsumer`** — 로컬 PV는 `nodeAffinity`로 특정 노드에 못박혀 있어, 파드 스케줄 전에 바인딩하면 스케줄러가 노드 제약을 반영 못 해 엉뚱한 노드로 가거나 Pending에 빠진다(k8s 공식은 이 모드를 "recommended"로 서술하나 로컬에선 사실상 필수) `✓`.
+두 개를 만듭니다. 로컬 SC는 **반드시 `WaitForFirstConsumer`** — 로컬 PV는 `nodeAffinity`로 특정 노드에 못박혀 있어, 파드 스케줄 전에 바인딩하면 스케줄러가 노드 제약을 반영 못 해 엉뚱한 노드로 가거나 Pending에 빠집니다(k8s 공식은 이 모드를 "recommended"로 서술하나 로컬에선 사실상 필수) `✓`.
 
 ```yaml
 # (1) ClickHouse 데이터용 — 로컬 NVMe
@@ -85,16 +85,16 @@ parameters: { type: gp3 }
 ```
 
 {{% details title="곁가지 — provisioner 없이 직접 마운트 (hostPath / emptyDir)" closed="true" %}}
-**provisioner 없이 직접 마운트 — hostPath / emptyDir(로컬 강조)** `✓`. Altinity 공식 예제는 provisioner를 거치지 않는 로컬 경로도 시연한다: `11-local-storage-01/02-*-host-path`(hostPath 데이터 디렉토리 직접 마운트), `03-persistent-volume-09-with-template-emptydir`(노드 로컬 임시 볼륨). **hostPath**는 PV/provisioner 없이 노드 디렉토리를 그대로 붙여 PoC·단일 노드엔 최단 경로지만 node affinity·용량 회계·권한을 손으로 져야 한다. **emptyDir**은 파드 수명과 함께 사라져 stateful CH 데이터엔 부적합(rolling update 예제 전용). 프로덕션 로컬 NVMe는 provisioner 경로(local-static-provisioner)가 정석이고, hostPath/emptyDir은 "provisioner 세우기 전 빠른 검증"이나 재생성 가능 데이터에 한정한다 `≈`.
+**provisioner 없이 직접 마운트 — hostPath / emptyDir(로컬 강조)** `✓`. Altinity 공식 예제는 provisioner를 거치지 않는 로컬 경로도 시연합니다: `11-local-storage-01/02-*-host-path`(hostPath 데이터 디렉토리 직접 마운트), `03-persistent-volume-09-with-template-emptydir`(노드 로컬 임시 볼륨). **hostPath**는 PV/provisioner 없이 노드 디렉토리를 그대로 붙여 PoC·단일 노드엔 최단 경로지만 node affinity·용량 회계·권한을 손으로 져야 합니다. **emptyDir**은 파드 수명과 함께 사라져 stateful CH 데이터엔 부적합(rolling update 예제 전용). 프로덕션 로컬 NVMe는 provisioner 경로(local-static-provisioner)가 정석이고, hostPath/emptyDir은 "provisioner 세우기 전 빠른 검증"이나 재생성 가능 데이터에 한정합니다 `≈`.
 {{% /details %}}
 
 ## 2. 핵심 배포 — CHK + CHI
 
-배포 순서상 **Keeper(CHK)를 먼저 Ready로** 만든 뒤 CHI가 `zookeeper.keeper` 이름으로 붙는다.
+배포 순서상 **Keeper(CHK)를 먼저 Ready로** 만든 뒤 CHI가 `zookeeper.keeper` 이름으로 붙습니다.
 
 ### CHK — Keeper 3노드 (gp3 영속)
 
-`layout.replicasCount: 3`(1 장애 허용, 프로덕션 최소). 데이터는 **gp3** — 로컬 NVMe에 두면 노드 소실 시 Raft 로그/스냅샷이 날아가 quorum 복구가 번거롭다. 소량(20Gi급)이면 충분하고 저지연 `fdatasync`가 관건이다 `✓`.
+`layout.replicasCount: 3`(1 장애 허용, 프로덕션 최소). 데이터는 **gp3** — 로컬 NVMe에 두면 노드 소실 시 Raft 로그/스냅샷이 날아가 quorum 복구가 번거롭습니다. 소량(20Gi급)이면 충분하고 저지연 `fdatasync`가 관건입니다 `✓`.
 
 ```yaml
 apiVersion: "clickhouse-keeper.altinity.com/v1"
@@ -142,10 +142,10 @@ spec:
 ```
 
 {{% details title="곁가지 — CHK 자동 관리 · 포트 기본값 · suspend" closed="true" %}}
-CHK가 pod ordinal별 `server_id`(Raft peer), quorum/startup, 4LW 라이브니스를 자동 관리한다(수동 STS 대비 Raft 실수 제거). `hostTemplates`로 포트를 바꾸지 않으면 operator CHK 관례 기본은 **zkPort 2181 / raftPort 9444**다(9181/9234는 독립형 Keeper의 네이티브 기본값) `✓`. CHK 전용 수명주기 필드로 `spec.suspend`(리컨사일 일시중지, CHI의 `stop`에 대응)가 있다 `✓`.
+CHK가 pod ordinal별 `server_id`(Raft peer), quorum/startup, 4LW 라이브니스를 자동 관리합니다(수동 STS 대비 Raft 실수 제거). `hostTemplates`로 포트를 바꾸지 않으면 operator CHK 관례 기본은 **zkPort 2181 / raftPort 9444**입니다(9181/9234는 독립형 Keeper의 네이티브 기본값) `✓`. CHK 전용 수명주기 필드로 `spec.suspend`(리컨사일 일시중지, CHI의 `stop`에 대응)가 있습니다 `✓`.
 {{% /details %}}
 
-**정족수 산술 — 왜 3, 언제 5** `✓`. Keeper는 데이터 경로가 아니라 소규모 조정 계층이지만, 정족수를 잃으면 replication 조정·DDL·INSERT가 전부 멈춰 **클러스터 전체의 쓰기 가용성이 정지하는 숨은 SPOF**다(정족수를 실제로 잃었을 때의 증상·복구 런북은 [변경관리·복구 §Keeper 정족수 상실]({{< relref "05-altinity-operations.md" >}})). 3/5노드·gp3·멀티 AZ 결정은 전부 이 SPOF를 방어하려는 것이다. Raft 과반은 `floor(N/2)+1`, 견디는 동시 유실은 `floor((N-1)/2)`다.
+**정족수 산술 — 왜 3, 언제 5** `✓`. Keeper는 데이터 경로가 아니라 소규모 조정 계층이지만, 정족수를 잃으면 replication 조정·DDL·INSERT가 전부 멈춰 **클러스터 전체의 쓰기 가용성이 정지하는 숨은 SPOF**입니다(정족수를 실제로 잃었을 때의 증상·복구 런북은 [변경관리·복구 §Keeper 정족수 상실]({{< relref "05-altinity-operations.md" >}})). 3/5노드·gp3·멀티 AZ 결정은 전부 이 SPOF를 방어하려는 것입니다. Raft 과반은 `floor(N/2)+1`, 견디는 동시 유실은 `floor((N-1)/2)`입니다.
 
 | 노드 수 N | 과반(쓰기 가능 최소) | 견디는 동시 유실 | 비고 |
 |---|---|---|---|
@@ -154,7 +154,7 @@ CHK가 pod ordinal별 `server_id`(Raft peer), quorum/startup, 4LW 라이브니�
 | 4 | 3 | 1 | 3노드 대비 견딤 이득 없이 비용·복제 지연만↑ → 무의미 |
 | **5** | 3 | **2** | 높은 가용성. 재수화 위험 창 중 2차 장애 방어 |
 
-**홀수만 의미가 있다** — 짝수는 과반 임계가 한 칸 오르면서 견디는 개수는 그대로라 비용만 는다. **5노드는** 로컬 NVMe [재수화 위험 창]({{< relref "02-storage-local-nvme.md" >}}) 동안 Keeper까지 2차 장애로 흔들릴 여지를 없애거나, AZ를 3개 이상으로 넓게 펴 한 AZ 소실(2대까지 손실)에도 과반이 남게 할 때 택한다. Keeper 데이터가 gp3(영속)라 노드가 교체돼도 Raft 메타데이터가 보존돼, 데이터 경로(로컬 NVMe) 재수화와 Keeper 정족수 복구는 서로 독립적으로 다뤄진다.
+**홀수만 의미가 있습니다** — 짝수는 과반 임계가 한 칸 오르면서 견디는 개수는 그대로라 비용만 는습니다. **5노드는** 로컬 NVMe [재수화 위험 창]({{< relref "02-storage-local-nvme.md" >}}) 동안 Keeper까지 2차 장애로 흔들릴 여지를 없애거나, AZ를 3개 이상으로 넓게 펴 한 AZ 소실(2대까지 손실)에도 과반이 남게 할 때 택합니다. Keeper 데이터가 gp3(영속)라 노드가 교체돼도 Raft 메타데이터가 보존돼, 데이터 경로(로컬 NVMe) 재수화와 Keeper 정족수 복구는 서로 독립적으로 다뤄집니다.
 
 ### CHI — 범용 분석 클러스터 (로컬 NVMe, 데이터/로그 분리)
 
@@ -240,11 +240,11 @@ spec:
             - { name: tcp,  port: 9000 }
 ```
 
-`layout`을 선언하면 operator가 **`remote_servers`와 per-host `macros`(`{shard}`/`{replica}`/`{cluster}`)를 자동 렌더**하므로 config.d에 손으로 remote_servers를 쓸 필요가 없다 `✓`. 데이터 mountPath `/var/lib/clickhouse`는 확정, 로그 자동 mountPath는 슬롯명 기반 기본값이라 위처럼 `volumeMounts`에 명시하면 확실하다 `≈`.
+`layout`을 선언하면 operator가 **`remote_servers`와 per-host `macros`(`{shard}`/`{replica}`/`{cluster}`)를 자동 렌더**하므로 config.d에 손으로 remote_servers를 쓸 필요가 없습니다 `✓`. 데이터 mountPath `/var/lib/clickhouse`는 확정, 로그 자동 mountPath는 슬롯명 기반 기본값이라 위처럼 `volumeMounts`에 명시하면 확실합니다 `≈`.
 
 ### RF 선택 — RF2 vs RF3 (임의 2대 유실을 견디나)
 
-위 예제의 `replicasCount: 2`(RF2)는 **shard당 replica 2벌**을 뜻하고, 이 값이 곧 "몇 대까지 죽어도 데이터가 사는가"를 정하는 가용성 결정이다. RMT는 shard 단위로 데이터를 나눠 갖고 replica끼리만 사본을 공유하므로, fault tolerance는 **shard 안에서** 센다 `✓`.
+위 예제의 `replicasCount: 2`(RF2)는 **shard당 replica 2벌**을 뜻하고, 이 값이 곧 "몇 대까지 죽어도 데이터가 사는가"를 정하는 가용성 결정입니다. RMT는 shard 단위로 데이터를 나눠 갖고 replica끼리만 사본을 공유하므로, fault tolerance는 **shard 안에서** 셉니다 `✓`.
 
 | | RF2 | RF3 |
 |---|---|---|
@@ -253,13 +253,13 @@ spec:
 | 재수화 창 중 잔여 사본 | 1(실질 RF1) | 2 |
 | 비용 배수(노드·NVMe·cross-AZ 복제) | ×2 | ×3 |
 
-**"아무 2대나 죽어도 안전"은 RF2로는 보장되지 않는다.** RF2 × shard 3 = 6대 구성에서 임의로 2대가 동시에 죽는 경우의 수는 `6C2 = 15`, 그중 하필 **같은 shard의 두 replica**인 조합은 shard마다 1쌍씩 3쌍 → `3/15 ≈ 20%`. 이 20%를 뽑으면 그 shard는 사본이 0이 되어 **데이터를 잃고**, 나머지 80%는 서로 다른 shard라 무사하다. RF3에서는 같은 shard 2대가 죽어도 1벌이 남아 이 손실 시나리오 자체가 사라진다 `✓⁽조합 산술⁾`.
+**"아무 2대나 죽어도 안전"은 RF2로는 보장되지 않습니다.** RF2 × shard 3 = 6대 구성에서 임의로 2대가 동시에 죽는 경우의 수는 `6C2 = 15`, 그중 하필 **같은 shard의 두 replica**인 조합은 shard마다 1쌍씩 3쌍 → `3/15 ≈ 20%`. 이 20%를 뽑으면 그 shard는 사본이 0이 되어 **데이터를 잃고**, 나머지 80%는 서로 다른 shard라 무사합니다. RF3에서는 같은 shard 2대가 죽어도 1벌이 남아 이 손실 시나리오 자체가 사라집니다 `✓⁽조합 산술⁾`.
 
-즉 RF 선택은 **확률적 안전 vs 비용**의 의사결정이다 `≈`. 플레이북 기본값을 RF2로 두는 근거는 비용 배수가 곧바로 ×1.5(RF2 대비)로 뛰고(노드·NVMe·AZ 간 복제 트래픽까지), 간헐·배치성 워크로드나 재수화 대상 데이터가 작아 위험 창이 짧으면 RF2의 20% 노출이 실무상 수용 가능하기 때문이다. 반대로 **RF3로 승급하는 트리거**는 ① "임의 2대 유실에도 무손실"이 요구사항일 때, ② 24/7 대규모 hot 데이터로 노드당 데이터가 커 [재수화 위험 창]({{< relref "02-storage-local-nvme.md" >}})이 길 때, ③ AZ 1개 소실 생존까지 원할 때(아래 '배치·분산 강제' 절)다. 이는 로컬 디스크를 쓰는 분산 시스템의 공통 처방과 같은 논리다 — 업계 횡단 근거(CockroachDB "로컬이면 RF 3→5", ClickHouse "로컬이면 2→3")는 [로컬 NVMe 데이터스토어 패턴]({{< relref "07-local-nvme-datastore-patterns.md" >}})에 정리돼 있다.
+즉 RF 선택은 **확률적 안전 vs 비용**의 의사결정입니다 `≈`. 플레이북 기본값을 RF2로 두는 근거는 비용 배수가 곧바로 ×1.5(RF2 대비)로 뛰고(노드·NVMe·AZ 간 복제 트래픽까지), 간헐·배치성 워크로드나 재수화 대상 데이터가 작아 위험 창이 짧으면 RF2의 20% 노출이 실무상 수용 가능하기 때문입니다. 반대로 **RF3로 승급하는 트리거**는 ① "임의 2대 유실에도 무손실"이 요구사항일 때, ② 24/7 대규모 hot 데이터로 노드당 데이터가 커 [재수화 위험 창]({{< relref "02-storage-local-nvme.md" >}})이 길 때, ③ AZ 1개 소실 생존까지 원할 때(아래 '배치·분산 강제' 절)입니다. 이는 로컬 디스크를 쓰는 분산 시스템의 공통 처방과 같은 논리입니다 — 업계 횡단 근거(CockroachDB "로컬이면 RF 3→5", ClickHouse "로컬이면 2→3")는 [로컬 NVMe 데이터스토어 패턴]({{< relref "07-local-nvme-datastore-patterns.md" >}})에 정리돼 있습니다.
 
 ### 쓰기 내구성 노브 — insert_quorum
 
-RF는 "몇 벌 두나"를 정하고, `insert_quorum`은 "쓰기를 **몇 벌 확정된 뒤** ack하나"를 정한다 — 다른 축이다. 기본 RMT 쓰기는 **비동기**로, Keeper 로그에 파트 등록 ack만 나면 클라이언트에 성공을 돌려주고 나머지 replica는 뒤따라 fetch한다([operator 페이지]({{< relref "03-operator.md" >}})의 "데이터 무손실 보장 지점") `✓`. 최고 가용성이지만, ack 직후 그 replica 노드가 소실되면 **아직 복제되지 않은 파트는 유실**될 수 있고 뒤처진 replica를 읽으면 stale 결과가 나온다.
+RF는 "몇 벌 두나"를 정하고, `insert_quorum`은 "쓰기를 **몇 벌 확정된 뒤** ack하나"를 정합니다 — 다른 축입니다. 기본 RMT 쓰기는 **비동기**로, Keeper 로그에 파트 등록 ack만 나면 클라이언트에 성공을 돌려주고 나머지 replica는 뒤따라 fetch합니다([operator 페이지]({{< relref "03-operator.md" >}})의 "데이터 무손실 보장 지점") `✓`. 최고 가용성이지만, ack 직후 그 replica 노드가 소실되면 **아직 복제되지 않은 파트는 유실**될 수 있고 뒤처진 replica를 읽으면 stale 결과가 나옵니다.
 
 | 설정 | 효과 | 트레이드오프 |
 |---|---|---|
@@ -269,7 +269,7 @@ RF는 "몇 벌 두나"를 정하고, `insert_quorum`은 "쓰기를 **몇 벌 확
 | `select_sequential_consistency: 1` | quorum 반영 전 데이터를 읽지 않음 | 읽기 지연·가용성 일부 희생 |
 
 {{< callout type="warning" >}}
-**함정 — insert_quorum 계열은 `profiles`(users.xml)에** `✓`. 이 셋은 서버 레벨(config.xml)이 아니라 **세션/유저 레벨** setting이라 `settings`(config.d)가 아니라 `configuration.profiles`(users.xml)에 넣어야 실제 적용된다 — `settings`에 두면 서버가 프로파일 기본값으로 인식하지 못해 무효가 된다(대비: §3 티어링의 `storage_configuration`은 진짜 서버 레벨이라 `settings`가 맞다).
+**함정 — insert_quorum 계열은 `profiles`(users.xml)에** `✓`. 이 셋은 서버 레벨(config.xml)이 아니라 **세션/유저 레벨** setting이라 `settings`(config.d)가 아니라 `configuration.profiles`(users.xml)에 넣어야 실제 적용됩니다 — `settings`에 두면 서버가 프로파일 기본값으로 인식하지 못해 무효가 됩니다(대비: §3 티어링의 `storage_configuration`은 진짜 서버 레벨이라 `settings`가 맞습니다).
 {{< /callout >}}
 
 ```yaml
@@ -281,11 +281,11 @@ spec:
       default/select_sequential_consistency: "1"     # quorum 읽기 일관성(선택)
 ```
 
-핵심은 **내구성 vs 가용성**의 의사결정이다 `≈`. [재수화 위험 창]({{< relref "02-storage-local-nvme.md" >}})과 겹칠 때가 결정적이다 — RF2에서 한 replica가 재수화 중이면 그 shard의 확정 가능 replica는 1벌뿐이라, `insert_quorum: 2`를 걸어 뒀다면 창이 닫힐 때까지 그 shard로의 **쓰기가 막힌다**(내구성을 위해 가용성을 포기). 반대로 기본 async면 쓰기는 계속되지만 창 동안 들어온 파트는 단일 사본이라 창 중 2차 장애 시 함께 사라진다. RF3는 재수화 중에도 2벌이 남아 `insert_quorum: 2`를 유지한 채 쓰기와 내구성을 모두 지킬 여지가 있다 — insert_quorum을 실제로 켜려면 RF3가 짝이 되기 쉬운 이유다.
+핵심은 **내구성 vs 가용성**의 의사결정입니다 `≈`. [재수화 위험 창]({{< relref "02-storage-local-nvme.md" >}})과 겹칠 때가 결정적입니다 — RF2에서 한 replica가 재수화 중이면 그 shard의 확정 가능 replica는 1벌뿐이라, `insert_quorum: 2`를 걸어 뒀다면 창이 닫힐 때까지 그 shard로의 **쓰기가 막힙니다**(내구성을 위해 가용성을 포기). 반대로 기본 async면 쓰기는 계속되지만 창 동안 들어온 파트는 단일 사본이라 창 중 2차 장애 시 함께 사라집니다. RF3는 재수화 중에도 2벌이 남아 `insert_quorum: 2`를 유지한 채 쓰기와 내구성을 모두 지킬 여지가 있습니다 — insert_quorum을 실제로 켜려면 RF3가 짝이 되기 쉬운 이유입니다.
 
 ### 배치·분산 강제 — 노드/AZ 1개 소실이 shard 전멸이 되지 않게
 
-replica를 2~3벌 두는 것만으로는 부족하다 — 그 사본들이 **서로 다른 고장 도메인**에 놓여야 한다. 기본 스케줄러·팩킹은 같은 shard의 replica들을 한 노드나 한 AZ에 몰 수 있고, 그러면 노드 1대(또는 AZ 1개) 사망이 그 shard 전멸로 번진다. 이를 우연이 아니라 **설계로 강제**하는 것이 위 CHI의 세 필드다 `✓`:
+replica를 2~3벌 두는 것만으로는 부족합니다 — 그 사본들이 **서로 다른 고장 도메인**에 놓여야 합니다. 기본 스케줄러·팩킹은 같은 shard의 replica들을 한 노드나 한 AZ에 몰 수 있고, 그러면 노드 1대(또는 AZ 1개) 사망이 그 shard 전멸로 번집니다. 이를 우연이 아니라 **설계로 강제**하는 것이 위 CHI의 세 필드입니다 `✓`:
 
 | 기제 | 필드 | 막는 것 |
 |---|---|---|
@@ -299,7 +299,7 @@ replica를 2~3벌 두는 것만으로는 부족하다 — 그 사본들이 **서
 
 ### 데이터/로그 볼륨 분리와 storageManagement
 
-**볼륨 분리** `✓`: VCT를 두 개 만들고 `dataVolumeClaimTemplate`(→ `/var/lib/clickhouse`)·`logVolumeClaimTemplate`(→ `/var/log/clickhouse-server`)에 각각 지정하면 operator가 자동 매핑한다. 로컬 볼륨은 **1 디스크=1 PV**라 같은 로컬 디스크를 data/log로 쪼갤 수 없으므로 **로그는 gp3로 빼서** 로컬 NVMe를 데이터 전용으로 지키는 것이 자연스럽다(같은 로컬 디스크 분할이 필요하면 TopoLVM 계열).
+**볼륨 분리** `✓`: VCT를 두 개 만들고 `dataVolumeClaimTemplate`(→ `/var/lib/clickhouse`)·`logVolumeClaimTemplate`(→ `/var/log/clickhouse-server`)에 각각 지정하면 operator가 자동 매핑합니다. 로컬 볼륨은 **1 디스크=1 PV**라 같은 로컬 디스크를 data/log로 쪼갤 수 없으므로 **로그는 gp3로 빼서** 로컬 NVMe를 데이터 전용으로 지키는 것이 자연스럽습니다(같은 로컬 디스크 분할이 필요하면 TopoLVM 계열).
 
 **storageManagement** `✓`:
 
@@ -307,12 +307,12 @@ replica를 2~3벌 두는 것만으로는 부족하다 — 그 사본들이 **서
 - **`reclaimPolicy`**(값: `Retain` | `Delete`(기본)) — 로컬 NVMe 권고는 **`Retain`**. STS/CHI 삭제·`helm uninstall`에도 PVC가 잔존해 실수 삭제를 방어한다. `stop: 1`은 Replicas=0으로 만들되 PVC는 intact.
 
 {{< callout type="warning" >}}
-**주의**: `Operator` provisioner + VCT 크기 변경 시 과거 데이터 손실 회귀(#1385/#457)가 있었다. 확장은 스테이징 검증 후에만 `✓`.
+**주의**: `Operator` provisioner + VCT 크기 변경 시 과거 데이터 손실 회귀(#1385/#457)가 있었습니다. 확장은 스테이징 검증 후에만 `✓`.
 {{< /callout >}}
 
 ## 3. 필드 레벨 티어링 — hot NVMe → S3 cold
 
-티어링의 **원칙**(≠내구성, 사본 경제, gp3의 자리)은 [스토리지 · 티어링 설계]({{< relref "02-storage-local-nvme.md" >}})가 담당한다. 여기서는 그 설계를 **CHI가 실제로 주입하는 필드 형태**만 다룬다 — `storage_configuration`은 CHI `settings`(점표기) 또는 `files`(원본 XML)로 넣고, TTL은 테이블 DDL에 둔다 `✓`(공식 예제 `03-persistent-volume-08-tiered-s3`).
+티어링의 **원칙**(≠내구성, 사본 경제, gp3의 자리)은 [스토리지 · 티어링 설계]({{< relref "02-storage-local-nvme.md" >}})가 담당합니다. 여기서는 그 설계를 **CHI가 실제로 주입하는 필드 형태**만 다룹니다 — `storage_configuration`은 CHI `settings`(점표기) 또는 `files`(원본 XML)로 넣고, TTL은 테이블 DDL에 둡니다 `✓`(공식 예제 `03-persistent-volume-08-tiered-s3`).
 
 ```yaml
 spec:
@@ -338,7 +338,7 @@ SETTINGS storage_policy = 'hot_to_cold'
 TTL toDateTime(timestamp) + INTERVAL 7 DAY TO VOLUME 'cold';
 ```
 
-`use_environment_credentials`로 IRSA 자격증명을 태우고, `s3_cache`가 없으면 cold 쿼리가 S3 지연에 직접 노출된다. 주 이동은 시간 기반 TTL MOVE로 하고 `move_factor`는 hot 포화 안전판으로만 쓴다(원칙은 [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})). **self-host는 shared-nothing이라 cold도 replica 수(RF)만큼 S3에 중복 저장**되며 zero-copy replication은 프로덕션 금지다.
+`use_environment_credentials`로 IRSA 자격증명을 태우고, `s3_cache`가 없으면 cold 쿼리가 S3 지연에 직접 노출됩니다. 주 이동은 시간 기반 TTL MOVE로 하고 `move_factor`는 hot 포화 안전판으로만 씁니다(원칙은 [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})). **self-host는 shared-nothing이라 cold도 replica 수(RF)만큼 S3에 중복 저장**되며 zero-copy replication은 프로덕션 금지입니다.
 
 ## 4. 자주 조정하는 CHI 옵션
 
@@ -357,7 +357,7 @@ TTL toDateTime(timestamp) + INTERVAL 7 DAY TO VOLUME 'cold';
 
 ### reconcile hooks — pre/post SQL 자동화
 
-재조정 전후에 임의 SQL을 자동 실행하는 공식 훅이 있다(`reconcile.host.hooks` / `reconcile.cluster.hooks`, 0.27.0 experimental) `✓`. 롤링·drain 전 `SYSTEM STOP MERGES`·`SYSTEM FLUSH LOGS`, 완료 후 `SYSTEM START MERGES` 같은 무중단 운영 자동화를 매니페스트에 **선언적으로 박아 둘 수 있다** — 이 절이 여기 남는 이유는 훅이 운영 절차가 아니라 CHI 선언 필드이기 때문이다. 이 훅을 실제 롤링·drain 순서에 어떻게 끼우는지는 [변경관리·복구]({{< relref "05-altinity-operations.md" >}})가 다룬다.
+재조정 전후에 임의 SQL을 자동 실행하는 공식 훅이 있습니다(`reconcile.host.hooks` / `reconcile.cluster.hooks`, 0.27.0 experimental) `✓`. 롤링·drain 전 `SYSTEM STOP MERGES`·`SYSTEM FLUSH LOGS`, 완료 후 `SYSTEM START MERGES` 같은 무중단 운영 자동화를 매니페스트에 **선언적으로 박아 둘 수 있습니다** — 이 절이 여기 남는 이유는 훅이 운영 절차가 아니라 CHI 선언 필드이기 때문입니다. 이 훅을 실제 롤링·drain 순서에 어떻게 끼우는지는 [변경관리·복구]({{< relref "05-altinity-operations.md" >}})가 다룹니다.
 
 ```yaml
 spec:
@@ -375,7 +375,7 @@ spec:
 
 ### operator self-config (멀티테넌시·성능)
 
-CHI/CHK가 아니라 **operator 자체**를 튜닝하는 설정이 별도로 있다 `✓`. `ClickHouseOperatorConfiguration` **CRD**(또는 `etc-clickhouse-operator-files` ConfigMap)로 `watchNamespaces`(감시 네임스페이스 한정 → 멀티 operator 격리·멀티테넌시), `reconcileThreadsNumber`(기본 10, 동시 reconcile 상한 → 대규모 다중 CHI 성능)를 조정한다. **주의**: operator는 자기 설정을 self-reconcile하지 않아 변경은 **시작 시에만 반영**되므로 operator 재시작이 필요하다.
+CHI/CHK가 아니라 **operator 자체**를 튜닝하는 설정이 별도로 있습니다 `✓`. `ClickHouseOperatorConfiguration` **CRD**(또는 `etc-clickhouse-operator-files` ConfigMap)로 `watchNamespaces`(감시 네임스페이스 한정 → 멀티 operator 격리·멀티테넌시), `reconcileThreadsNumber`(기본 10, 동시 reconcile 상한 → 대규모 다중 CHI 성능)를 조정합니다. **주의**: operator는 자기 설정을 self-reconcile하지 않아 변경은 **시작 시에만 반영**되므로 operator 재시작이 필요합니다.
 
 ### useTemplates / CHIT — 공유 설정 재사용
 
@@ -399,7 +399,7 @@ spec:
 
 ### 관측성 CH vs 범용 분석 CH — 분리
 
-두 워크로드는 **별도 CHI(가능하면 별도 노드풀)로 분리** 권장 `≈` — 관측성은 고volume append-only ingest·짧은 hot+S3 cold·shard 넉넉히, 범용 분석은 배치/간헐 적재·장기 보존·쿼리 패턴 기준. 하나의 operator가 CHI 2개를 관리하고, Keeper는 공유 CHK를 두 CHI가 참조하되 **ZK root path를 다르게**(`zookeeper.root`) 격리하거나 강한 격리가 필요하면 CHK도 분리한다. ClickStack v2는 공식 operator를 끌고 들어오므로, 범용 CH를 Altinity로 통일하려면 ClickStack의 `clickhouse.enabled: false`로 내장 CH를 끄고 Altinity 관리 CH를 바라보게 한다(배경은 [operator 페이지]({{< relref "03-operator.md" >}})의 2종 공존 문제, 관측성 프론트 상세는 [HyperDX 심층]({{< relref "../rum/01-hyperdx-deep-dive.md" >}})).
+두 워크로드는 **별도 CHI(가능하면 별도 노드풀)로 분리** 권장 `≈` — 관측성은 고volume append-only ingest·짧은 hot+S3 cold·shard 넉넉히, 범용 분석은 배치/간헐 적재·장기 보존·쿼리 패턴 기준. 하나의 operator가 CHI 2개를 관리하고, Keeper는 공유 CHK를 두 CHI가 참조하되 **ZK root path를 다르게**(`zookeeper.root`) 격리하거나 강한 격리가 필요하면 CHK도 분리합니다. ClickStack v2는 공식 operator를 끌고 들어오므로, 범용 CH를 Altinity로 통일하려면 ClickStack의 `clickhouse.enabled: false`로 내장 CH를 끄고 Altinity 관리 CH를 바라보게 합니다(배경은 [operator 페이지]({{< relref "03-operator.md" >}})의 2종 공존 문제, 관측성 프론트 상세는 [HyperDX 심층]({{< relref "../rum/01-hyperdx-deep-dive.md" >}})).
 
 ## 6. 안티패턴 · 배포 전 체크리스트
 
@@ -434,4 +434,4 @@ spec:
 - [ ] **분리·재사용**: 관측성/범용을 별도 CHI(+노드풀), 공통은 CHIT `useTemplates`. ClickStack은 `clickhouse.enabled: false`로 외부 CH 연결.
 - [ ] **검증**: apply 후 파드 Running, `remote_servers`/macros 자동 생성, 스키마 전파, anti-affinity 배치, **노드 소실 리허설(스테이징)**.
 
-이 배포도가 managed와 어떻게 갈리는지는 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), 서고 난 뒤의 스케일·롤링 업그레이드·노드 소실 재수화·Keeper 정족수 복구는 [Altinity operator 운영]({{< relref "05-altinity-operations.md" >}}), 실제 프로덕션 운영 사례는 [프로덕션 운영 사례]({{< relref "06-production-usecases.md" >}})에서 이어진다. 시점 기준 2026-07.
+이 배포도가 managed와 어떻게 갈리는지는 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), 서고 난 뒤의 스케일·롤링 업그레이드·노드 소실 재수화·Keeper 정족수 복구는 [Altinity operator 운영]({{< relref "05-altinity-operations.md" >}}), 실제 프로덕션 운영 사례는 [프로덕션 운영 사례]({{< relref "06-production-usecases.md" >}})에서 이어집니다. 시점 기준 2026-07.

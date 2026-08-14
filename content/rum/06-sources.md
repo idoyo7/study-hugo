@@ -5,7 +5,7 @@ weight: 7
 
 # 출처 — RUM 섹션 조사 문서 원본 링크
 
-RUM 섹션(01~05)은 `research/hyperdx-clickhouse/` 아래 8개 조사 문서(01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 07-recommendation, 08-supplement-1~2·4~5)를 근거로 큐레이션했다. 이 페이지는 그 조사 문서들의 "## 출처" 섹션에 나열된 URL을 전부 수집·중복 제거해 주제별로 재정리한 것이다. 개별 URL이 본문 어느 주장을 뒷받침하는지는 각 조사 문서를 직접 대조해야 하며, 이 페이지는 색인 목적으로만 쓴다. [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}})(07)는 별도 딥리서치(3-vote 적대검증, 2026-07-15) 기반이며 해당 근거 URL도 아래 표에 포함했다. 조사 기준 2026-07.
+RUM 섹션(01~05)은 `research/hyperdx-clickhouse/` 아래 8개 조사 문서(01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 07-recommendation, 08-supplement-1~2·4~5)를 근거로 큐레이션했습니다. 이 페이지는 그 조사 문서들의 "## 출처" 섹션에 나열된 URL을 전부 수집·중복 제거해 주제별로 재정리한 것입니다. 개별 URL이 본문 어느 주장을 뒷받침하는지는 각 조사 문서를 직접 대조해야 하며, 이 페이지는 색인 목적으로만 씁니다. [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}})(07)는 별도 딥리서치(3-vote 적대검증, 2026-07-15) 기반이며 해당 근거 URL도 아래 표에 포함했습니다. 조사 기준 2026-07.
 
 ## HyperDX·ClickStack 공식
 
@@ -293,4 +293,4 @@ HN·벤더 비교 블로그·이관 사례·서드파티 도구·이슈 트래�
 
 ---
 
-이 목록은 조사 문서 8종(01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 08-supplement-1, 08-supplement-2, 08-supplement-4, 08-supplement-5, 그리고 맥락 참조한 07-recommendation)의 "## 출처" 섹션을 합친 것이며, 07-recommendation 자체는 근거 문서 색인만 갖고 있어 별도 URL 목록이 없다. 근거 등급([확인됨]/[추정]/[미확인])은 각 URL이 인용된 원 조사 문서를 따라야 하며, 이 페이지는 등급을 이어받지 않는다(단순 링크 색인).
+이 목록은 조사 문서 8종(01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 08-supplement-1, 08-supplement-2, 08-supplement-4, 08-supplement-5, 그리고 맥락 참조한 07-recommendation)의 "## 출처" 섹션을 합친 것이며, 07-recommendation 자체는 근거 문서 색인만 갖고 있어 별도 URL 목록이 없습니다. 근거 등급([확인됨]/[추정]/[미확인])은 각 URL이 인용된 원 조사 문서를 따라야 하며, 이 페이지는 등급을 이어받지 않습니다(단순 링크 색인).

@@ -1,5 +1,5 @@
 {
-  "caption": "파드 하나가 메시에 등록되는 순서 — istio-cni가 파드 netns 안에 socket을 만들고 규칙을 넣은 뒤 ztunnel에 알리고, ztunnel이 그 socket에 붙어야 비로소 경로가 완성된다. 이 순서가 어긋난 채 파드가 뜨면 규칙 없는 파드가 메시 안에 표시된다.",
+  "caption": "파드 하나가 메시에 등록되는 순서 — istio-cni가 파드 netns 안에 socket을 만들고 규칙을 넣은 뒤 ztunnel에 알리고, ztunnel이 그 socket에 붙어야 비로소 경로가 완성됩니다. 이 순서가 어긋난 채 파드가 뜨면 규칙 없는 파드가 메시 안에 표시됩니다.",
   "participants": [
     {
       "id": "K",

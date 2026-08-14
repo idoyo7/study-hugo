@@ -14,7 +14,7 @@ weight: 6
 - 우리 케이스: 로그 스토어로는 아직 얼리어답터 영역이라, S3 탄력성이 하드 요구인 별도 mandate가 없으면 숏리스트에서 제외한다.
 {{< /callout >}}
 
-Linux Foundation MPP OLAP·실시간 분석 엔진(Apache-2.0). Apache Doris 포크(Doris 자체는 Baidu Palo 포크)를 vectorized execution + Cascades 코스트기반 옵티마이저로 재설계했고, 창업사 CelerData가 2023-02 프로젝트를 Linux Foundation에 기증했다(상용 백커 유지). 최신 라인은 v4.0/4.1(2026)이며, 무게중심은 **서브초 BI·다중테이블 JOIN·레이크하우스 질의**이고 로그는 근래 inverted index로 열린 인접 용도다.
+Linux Foundation MPP OLAP·실시간 분석 엔진(Apache-2.0). Apache Doris 포크(Doris 자체는 Baidu Palo 포크)를 vectorized execution + Cascades 코스트기반 옵티마이저로 재설계했고, 창업사 CelerData가 2023-02 프로젝트를 Linux Foundation에 기증했습니다(상용 백커 유지). 최신 라인은 v4.0/4.1(2026)이며, 무게중심은 **서브초 BI·다중테이블 JOIN·레이크하우스 질의**이고 로그는 근래 inverted index로 열린 인접 용도입니다.
 
 ## 강점
 
@@ -54,4 +54,4 @@ Linux Foundation MPP OLAP·실시간 분석 엔진(Apache-2.0). Apache Doris 포
 
 ## 우리 케이스에서는
 
-**로그 스토어로는 아직 얼리어답터 영역이다.** 우리가 가장 필요로 하는 shared-data 위 풀텍스트 검색이 정확히 Beta이고, 턴키 관측성 UI가 없으며, 3 후보 중 운영 부담이 최고인데 VM 스킬 재사용은 0이다. StarRocks의 헤드라인 강점(JOIN·고동시성·upsert·레이크하우스)은 append-only 단일 wide 테이블·needle-search라는 로그 트러블슈팅 shape와 거의 교집합이 없다. "고동시성·JOIN-heavy·S3-elastic 분석/레이크하우스 플랫폼(로그는 그중 한 테넌트)"라는 별도 mandate가 생길 때만 back-pocket에 둔다. ClickHouse와의 정면 비교는 [ClickHouse vs StarRocks]({{< relref "07-clickhouse-vs-starrocks.md" >}}), 최종 권고는 [권장안]({{< relref "08-recommendation.md" >}}) 참고.
+**로그 스토어로는 아직 얼리어답터 영역입니다.** 우리가 가장 필요로 하는 shared-data 위 풀텍스트 검색이 정확히 Beta이고, 턴키 관측성 UI가 없으며, 3 후보 중 운영 부담이 최고인데 VM 스킬 재사용은 0입니다. StarRocks의 헤드라인 강점(JOIN·고동시성·upsert·레이크하우스)은 append-only 단일 wide 테이블·needle-search라는 로그 트러블슈팅 shape와 거의 교집합이 없습니다. "고동시성·JOIN-heavy·S3-elastic 분석/레이크하우스 플랫폼(로그는 그중 한 테넌트)"라는 별도 mandate가 생길 때만 back-pocket에 둡니다. ClickHouse와의 정면 비교는 [ClickHouse vs StarRocks]({{< relref "07-clickhouse-vs-starrocks.md" >}}), 최종 권고는 [권장안]({{< relref "08-recommendation.md" >}}) 참고합니다.

@@ -14,15 +14,15 @@ weight: 10
 - **L7 정책이 걸린 워크로드에는 무중단 마이그레이션 경로가 없다**고 공식 가이드가 명시한다. 이 문장 하나가 전환 대상 선정 기준을 거의 다 정한다.
 {{< /callout >}}
 
-이 문서는 우리 01~09(Sidecar mode 운영기)와 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})(채널코퍼레이션의 그린필드 도입 기록)를 이미 읽었다고 전제하고, 그 둘 사이에 빠진 칸 하나 — **이미 사이드카를 운영 중인 팀이 Ambient로 넘어갈 때 다시 심사해야 할 것** — 만 다룬다. 결론을 내리는 문서가 아니라 질문을 세는 문서다. 각 절은 `무엇이 바뀌나` → `우리가 심사할 것` → `열린 질문` 순으로 간다.
+이 문서는 우리 01~09(Sidecar mode 운영기)와 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})(채널코퍼레이션의 그린필드 도입 기록)를 이미 읽었다고 전제하고, 그 둘 사이에 빠진 칸 하나 — **이미 사이드카를 운영 중인 팀이 Ambient로 넘어갈 때 다시 심사해야 할 것** — 만 다룹니다. 결론을 내리는 문서가 아니라 질문을 세는 문서입니다. 각 절은 `무엇이 바뀌나` → `우리가 심사할 것` → `열린 질문` 순으로 갑니다.
 
-근거 등급은 구분해서 적었다. 표와 본문에서 **(추론)**이라 표시한 것은 공식 문서가 그 문장으로 직접 진술하지 않았고 확인된 사실에서 우리가 끌어낸 것이다. 열린 질문은 결함이 아니라 이 문서의 내용이다 — 답이 없다는 사실 자체가 이행 계획의 입력이다.
+근거 등급은 구분해서 적었습니다. 표와 본문에서 **(추론)**이라 표시한 것은 공식 문서가 그 문장으로 직접 진술하지 않았고 확인된 사실에서 우리가 끌어낸 것입니다. 열린 질문은 결함이 아니라 이 문서의 내용입니다 — 답이 없다는 사실 자체가 이행 계획의 입력입니다.
 
 > 관련 문서: [02 컨트롤 플레인]({{< relref "02-istiod-control-plane.md" >}}) · [03 게이트웨이 격리]({{< relref "03-gateway-node-isolation.md" >}}) · [06 관측성]({{< relref "06-observability-points.md" >}}) · [07 nginx에서 Istio로]({{< relref "07-from-nginx-to-istio.md" >}}) · [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}}) · [09 istiod 스케일링]({{< relref "09-istiod-scaling-connections.md" >}})
 
 ## 08 · 확장 자산 — EnvoyFilter는 어디까지 무효인가
 
-**무엇이 바뀌나.** [08]({{< relref "08-envoyfilter-extension.md" >}})은 EnvoyFilter를 "최후의 수단이지만 열려 있는 문"으로 다뤘다. Ambient에서는 그 문이 두 프록시 모두에서 닫힌다.
+**무엇이 바뀌나.** [08]({{< relref "08-envoyfilter-extension.md" >}})은 EnvoyFilter를 "최후의 수단이지만 열려 있는 문"으로 다뤘습니다. Ambient에서는 그 문이 두 프록시 모두에서 닫힙니다.
 
 **EnvoyFilter**
 - 사이드카 모드(08): 최후의 수단으로 사용 가능
@@ -44,7 +44,7 @@ weight: 10
 - ztunnel: 해당 없음
 - waypoint: **공식 지원 경로를 확인하지 못함**
 
-ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조다. 공식 블로그가 ztunnel을 Rust로 새로 쓴 배경을 설명하면서 Envoy의 리치 L7 기능과 확장성이 ztunnel에서는 쓸모없이 남는다("went to waste in ztunnel")고 밝혔고, ambient L7 기능 문서는 EnvoyFilter가 "데이터 플레인이 Envoy가 아닌 곳으로는 이식될 수 없다"는 취지를 그대로 적는다.
+ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조입니다. 공식 블로그가 ztunnel을 Rust로 새로 쓴 배경을 설명하면서 Envoy의 리치 L7 기능과 확장성이 ztunnel에서는 쓸모없이 남는다("went to waste in ztunnel")고 밝혔고, ambient L7 기능 문서는 EnvoyFilter가 "데이터 플레인이 Envoy가 아닌 곳으로는 이식될 수 없다"는 취지를 그대로 적습니다.
 
 **우리가 심사할 것.**
 
@@ -62,14 +62,14 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 ## 02 · 스코핑 레버 — `Sidecar` 리소스가 사라진 자리
 
-**무엇이 바뀌나.** [02]({{< relref "02-istiod-control-plane.md" >}})의 결론은 "CPU 증설은 응급 처치이고, 진짜 해법은 `Sidecar` 리소스로 설정 범위를 좁히는 것"이었다. Ambient는 그 레버를 없애는 대신 기본 스코프 자체를 좁힌다.
+**무엇이 바뀌나.** [02]({{< relref "02-istiod-control-plane.md" >}})의 결론은 "CPU 증설은 응급 처치이고, 진짜 해법은 `Sidecar` 리소스로 설정 범위를 좁히는 것"이었습니다. Ambient는 그 레버를 없애는 대신 기본 스코프 자체를 좁힙니다.
 
 - 기본값에서 프록시는 메시 전체 설정을 받는다 → ztunnel은 Envoy의 Cluster/Listener 타입을 쓰지 않고 `Address`·`Authorization` 두 커스텀 xDS 리소스만 받는다. (확인됨)
 - 프록시당 설정 크기가 push 비용의 한 항 → 커스텀 타입이 Envoy 타입 대비 크기·할당·CPU에서 "10x edge"라고 설계 문서가 명시. (확인됨)
 - `Sidecar` 리소스로 범위를 좁힌다 → waypoint는 namespace 또는 service·pod 단위로 공유되어 스코프가 자연히 좁다. (확인됨)
 - `Sidecar` 리소스가 데이터 플레인 전체에 적용된다 → ztunnel에는 구조적으로 적용될 수 없다 **(추론)** — 공식 `Sidecar` CRD 레퍼런스는 ambient·ztunnel·waypoint를 한 번도 언급하지 않는다. (부분 확인)
 
-공식 블로그가 가장 근접하게 한 진술은 "오늘날 사용자가 `exportTo`나 `Sidecar` API를 조심스럽게 써서 얻는 개선을 ambient 모드에서는 더 이상 필요로 하지 않는다"는 것이다. 이건 "적용되지 않는다"는 금지 규정이 아니라 "필요 없어진다"는 취지다. 우리에게는 이 구분이 실무적으로 중요하다 — 남겨둔 `Sidecar` 리소스가 무해한지 유해한지가 여기서 갈리는데, 그 답이 공식 문서에 없다.
+공식 블로그가 가장 근접하게 한 진술은 "오늘날 사용자가 `exportTo`나 `Sidecar` API를 조심스럽게 써서 얻는 개선을 ambient 모드에서는 더 이상 필요로 하지 않는다"는 것입니다. 이건 "적용되지 않는다"는 금지 규정이 아니라 "필요 없어진다"는 취지입니다. 우리에게는 이 구분이 실무적으로 중요합니다 — 남겨둔 `Sidecar` 리소스가 무해한지 유해한지가 여기서 갈리는데, 그 답이 공식 문서에 없습니다.
 
 **우리가 심사할 것.**
 
@@ -86,7 +86,7 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 ## 09 · 커넥션 산수 — 분모가 바뀌면 우리 계산은 어디까지 살아남나
 
-**무엇이 바뀌나.** [09]({{< relref "09-istiod-scaling-connections.md" >}})의 핵심은 "커넥션 하나의 무게는 고정이 아니다"와 "재분배는 없다" 두 가지였다. Ambient는 앞쪽을 흔들고 뒤쪽은 그대로 둔다.
+**무엇이 바뀌나.** [09]({{< relref "09-istiod-scaling-connections.md" >}})의 핵심은 "커넥션 하나의 무게는 고정이 아니다"와 "재분배는 없다" 두 가지였습니다. Ambient는 앞쪽을 흔들고 뒤쪽은 그대로 둡니다.
 
 - 프록시 수 = 파드 수 → ztunnel은 노드당 1개("한 노드를 공유하는 어떤 파드든 대신해 L4 데이터 플레인을 구현한다"), waypoint는 namespace·service 단위 공유. (확인됨)
 - xDS 커넥션 수도 파드 수 비례 → 노드 수 + waypoint 수 비례 **(추론)** — 토폴로지는 확인되나 "커넥션 수"라는 표현으로 비교한 공식 문장은 없다. (부분 확인)
@@ -109,7 +109,7 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 ## 06 · 관측성 — 대시보드가 어디까지 살아남나
 
-**무엇이 바뀌나.** [06]({{< relref "06-observability-points.md" >}})은 "관측 지점이 이미 트래픽 경로에 있어서 공짜"라고 정리했다. Ambient에서는 그 지점이 두 개로 갈리고, 둘이 보는 계층이 다르다.
+**무엇이 바뀝니다.** [06]({{< relref "06-observability-points.md" >}})은 "관측 지점이 이미 트래픽 경로에 있어서 공짜"라고 정리했습니다. Ambient에서는 그 지점이 두 개로 갈리고, 둘이 보는 계층이 다릅니다.
 
 **HTTP 골든 시그널** (`istio_requests_total` 등)
 - 사이드카 모드(06): 모든 파드에서
@@ -136,7 +136,7 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 - ztunnel만 있을 때: —
 - waypoint가 있을 때: **`waypoint`** — 공식 메트릭 레퍼런스에 아직 문서화되지 않았고 istio/istio#51313으로 추적 중
 
-공식 waypoint 문서는 "HTTP metrics, access logging, tracing"을 **waypoint가 있어야 되는 L7 기능**으로 못 박는다. 즉 Ambient에서 관측성은 공짜가 아니라 waypoint를 세울지 말지의 결정 대상이 된다.
+공식 waypoint 문서는 "HTTP metrics, access logging, tracing"을 **waypoint가 있어야 되는 L7 기능**으로 못 박습니다. 즉 Ambient에서 관측성은 공짜가 아니라 waypoint를 세울지 말지의 결정 대상이 됩니다.
 
 **우리가 심사할 것.**
 
@@ -154,9 +154,9 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 ## 07 · API 대응표 — 표에 세 번째 열이 붙는다
 
-**무엇이 바뀌나.** [07]({{< relref "07-from-nginx-to-istio.md" >}})은 nginx 지시어를 Istio CRD로 옮기는 2열 표였다. Ambient는 여기에 Gateway API라는 세 번째 열을 붙인다.
+**무엇이 바뀝니다.** [07]({{< relref "07-from-nginx-to-istio.md" >}})은 nginx 지시어를 Istio CRD로 옮기는 2열 표였습니다. Ambient는 여기에 Gateway API라는 세 번째 열을 붙입니다.
 
-ambient 공식 문서·예제의 주 트랙은 Gateway API다. HTTPRoute·TLSRoute·TCPRoute가 `parentRefs`로, AuthorizationPolicy·RequestAuthentication이 `targetRefs`로 붙는다. Istio API 쪽은 DestinationRule만 1.23에서 waypoint 지원이 정식으로 도입됐고, **VirtualService는 latest 문서 기준으로도 여전히 Alpha**이며 "Gateway API 설정과 섞으면 undefined behavior"라는 경고가 붙어 있다.
+ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·TLSRoute·TCPRoute가 `parentRefs`로, AuthorizationPolicy·RequestAuthentication이 `targetRefs`로 붙습니다. Istio API 쪽은 DestinationRule만 1.23에서 waypoint 지원이 정식으로 도입됐고, **VirtualService는 latest 문서 기준으로도 여전히 Alpha**이며 "Gateway API 설정과 섞으면 undefined behavior"라는 경고가 붙어 있습니다.
 
 - **rewrite·리다이렉트** (07: VirtualService) → HTTPRoute로 옮길지 VirtualService(Alpha)로 버틸지. **같은 서비스에 둘을 섞지 말 것**.
 - **헤더 조작** (07: VirtualService) → 위와 동일.
@@ -167,7 +167,7 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API다. HTTPRoute·TLSRou
 - **JWT 인증** (07: RequestAuthentication + AuthorizationPolicy) → L7이므로 waypoint 필요, `targetRef`로 부착.
 - **레이트 리밋** (07: EnvoyFilter(08)) → 08 절 참조 — 공식 경로 미확인.
 
-여기서 07·08 어디에도 없던 축이 하나 생긴다. **같은 AuthorizationPolicy 리소스라도 붙이는 방법이 집행 계층을 정한다.** selector로 붙으면 수신측 ztunnel이 L4로 집행하고, `targetRef`로 붙으면 waypoint가 L7으로 집행한다. 그리고 L7 속성을 매치하는 규칙을 가진 정책이 selector로 타겟팅되어 ztunnel에 걸리면, 안전을 위해 **자동으로 DENY 정책이 된다.**
+여기서 07·08 어디에도 없던 축이 하나 생깁니다. **같은 AuthorizationPolicy 리소스라도 붙이는 방법이 집행 계층을 정합니다.** selector로 붙으면 수신측 ztunnel이 L4로 집행하고, `targetRef`로 붙으면 waypoint가 L7으로 집행합니다. 그리고 L7 속성을 매치하는 규칙을 가진 정책이 selector로 타겟팅되어 ztunnel에 걸리면, 안전을 위해 **자동으로 DENY 정책이 됩니다.**
 
 **우리가 심사할 것.**
 
@@ -183,7 +183,7 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API다. HTTPRoute·TLSRou
 
 ## 03 · 격리 원칙 — 폭발 반경 단위가 다시 정의된다
 
-**무엇이 바뀌나.** [03]({{< relref "03-gateway-node-isolation.md" >}})의 격리는 공간의 격리였다 — taint/toleration과 nodeSelector로 전용 노드를 만들고 워크로드를 못 오게 한다. Ambient는 여기에 **반드시 와야 하는 DaemonSet**과 **시간의 격리**를 추가한다.
+**무엇이 바뀝니다.** [03]({{< relref "03-gateway-node-isolation.md" >}})의 격리는 공간의 격리였습니다 — taint/toleration과 nodeSelector로 전용 노드를 만들고 워크로드를 못 오게 합니다. Ambient는 여기에 **반드시 와야 하는 DaemonSet**과 **시간의 격리**를 추가합니다.
 
 - ztunnel Helm 차트의 기본 tolerations는 `{effect: NoSchedule, operator: Exists}`, `{key: CriticalAddonsOnly, operator: Exists}`, `{effect: NoExecute, operator: Exists}`다. key 없는 `Exists`는 해당 effect의 모든 taint에 매치되므로, **우리가 03에서 게이트웨이 전용 노드에 건 taint에도 ztunnel은 기본 설정만으로 이미 스케줄된다.** 이건 격리 정책과의 충돌이 아니라 전제의 변화다 — 막는 게 아니라 빠진 노드가 없는지 확인하는 일이 된다.
 - waypoint는 Gateway 리소스(`gatewayClassName: istio-waypoint`)로 배포된다. Gateway API 공통 메커니즘인 `spec.infrastructure.parametersRef`로 ConfigMap을 참조하면 생성되는 Deployment·Service·ServiceAccount·HPA·PDB를 커스터마이즈할 수 있고, GatewayClass 레벨에서 클래스 전체 기본값도 줄 수 있다. 우선순위는 builtin < GatewayClass < Gateway. 다만 **이 메커니즘이 waypoint에도 그대로 적용된다는 명시적 문장은 공식 문서에서 찾지 못했다** — waypoint 전용 문서는 "독립적으로 설치·업그레이드·스케일되며 istiod가 자동 관리한다"고만 적는다.
@@ -203,7 +203,7 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API다. HTTPRoute·TLSRou
 
 ## 이행 역학 — 01~09 어디에도 없는 절
 
-앞의 여섯 절은 우리 문서를 다시 심사한 것이고, 이 절은 우리 문서에 아예 없던 축이다. 사이드카를 건너뛴 채널팀 기록에도 없다.
+앞의 여섯 절은 우리 문서를 다시 심사한 것이고, 이 절은 우리 문서에 아예 없던 축입니다. 사이드카를 건너뛴 채널팀 기록에도 없습니다.
 
 **무엇이 바뀌나.**
 

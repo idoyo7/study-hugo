@@ -1,5 +1,5 @@
 {
-  "caption": "두 인제스트 경로가 ClickHouse에서 합류한다. RUM(브라우저 SDK·Mobile RUM)은 자체 컨버터(Datadog Agent의 RUM 전송 방식 참조)를 통해 ClickHouse에 직접 적재하고, 표준 텔레메트리는 OTel Collector가 적재한다 — 컨버터·Collector는 서로 직접 호출하지 않는다. hdx는 app·api·OpAMP를 한 Deployment에서 함께 기동하며 ClickHouse(쿼리)·MongoDB(메타)를 읽는다. Keeper 3노드(client 2181)는 데이터가 지나가는 길이 아니라 복제 정족수를 잡는 조정 계층이다(점선). ClickHouse·Keeper는 Altinity operator가 StatefulSet으로 관리.",
+  "caption": "두 인제스트 경로가 ClickHouse에서 합류합니다. RUM(브라우저 SDK·Mobile RUM)은 자체 컨버터(Datadog Agent의 RUM 전송 방식 참조)를 통해 ClickHouse에 직접 적재하고, 표준 텔레메트리는 OTel Collector가 적재합니다 — 컨버터·Collector는 서로 직접 호출하지 않습니다. hdx는 app·api·OpAMP를 한 Deployment에서 함께 기동하며 ClickHouse(쿼리)·MongoDB(메타)를 읽습니다. Keeper 3노드(client 2181)는 데이터가 지나가는 길이 아니라 복제 정족수를 잡는 조정 계층입니다(점선). ClickHouse·Keeper는 Altinity operator가 StatefulSet으로 관리합니다.",
   "groups": [
     {
       "id": "op",

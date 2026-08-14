@@ -1,5 +1,5 @@
 {
-  "caption": "sdk=@hyperdx/browser SDK(rrweb 리플레이·에러·Web Vitals). otel=OTel Collector 게이트웨이(deployment ×2 + file_storage 큐). chi=CHI ClickHouse(otel_logs/traces/metrics + hyperdx_sessions). mongo=MCK members:3 또는 Atlas. api↔otel은 OpAMP(:4320) 한 축의 양방향 제어다 — Collector가 api에 접속하고 api가 파이프라인 설정을 배포한다. chi↔chk도 한 축의 양방향 코디네이션(CH가 복제 메타 등록 ↔ Keeper가 복제·머지·DDL 지시, 데이터 흐름 아님).",
+  "caption": "sdk=@hyperdx/browser SDK(rrweb 리플레이·에러·Web Vitals). otel=OTel Collector 게이트웨이(deployment ×2 + file_storage 큐). chi=CHI ClickHouse(otel_logs/traces/metrics + hyperdx_sessions). mongo=MCK members:3 또는 Atlas. api↔otel은 OpAMP(:4320) 한 축의 양방향 제어입니다 — Collector가 api에 접속하고 api가 파이프라인 설정을 배포합니다. chi↔chk도 한 축의 양방향 코디네이션(CH가 복제 메타 등록 ↔ Keeper가 복제·머지·DDL 지시, 데이터 흐름 아님).",
   "groups": [
     {
       "id": "browser",
