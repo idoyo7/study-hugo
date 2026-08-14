@@ -23,7 +23,7 @@ weight: 3
 
 ## 1. 전사 — 압박의 누적(2018~2021), 그리고 core 는 BSD 였다
 
-2024 사건을 "여러 번 바꾼 것 중 하나"로 읽으면 성격을 놓칩니다. **2018·2019·2022 의 변경은 전부 모듈에 대한 것이고, core 는 그때마다 BSD-3 로 남았습니다.** 이 구분이 이 절의 전부입니다.
+2024 사건을 "여러 번 바꾼 것 중 하나"로 읽으면 성격을 놓칩니다. **2018·2019·2022 의 변경은 전부 모듈에 붙은 것이고, core 는 그때마다 BSD-3 로 남았습니다.** 이 구분이 이 절의 전부입니다.
 
 | 날짜 | 사건 | 적용 범위 | 무엇이 바뀌었나 |
 |---|---|---|---|
@@ -38,9 +38,9 @@ weight: 3
 
 **약속은 세 번 문서화됐다.** (a) 2018-08-22 회사 블로그 — "the license for open source Redis was never changed. It is BSD and will always remain BSD". (b) 2019-02-21 — "This change has zero effect on the Redis core license, which is and will always be licensed under the 3-Clause-BSD." (c) 2021-08-11 리브랜딩 프레스릴리스 — "The company renaming will not affect the licensing of open source Redis, which has always been and will continue to be BSD licensed, **nor the governance model**." `✓`
 
-그래서 **2018·2019 에 Redis core 를 걷어낸 배포판은 없습니다.** 2024 사건이 처음으로 배포판·클라우드·자체 호스팅을 동시에 때렸고, 충격의 크기는 조항의 강도보다 **이 세 문장의 파기**에서 나왔습니다 `Σ`. 이 점이 §5 의 AGPL 복귀가 왜 신뢰를 회복하지 못했는지를 미리 설명합니다 — 옵션 추가는 "약속 하나 더"로 읽혔습니다.
+그래서 **2018·2019 에 Redis core 를 걷어낸 배포판은 없습니다.** 2024 사건이 처음으로 배포판·클라우드·자체 호스팅을 동시에 때렸고, 충격의 크기는 조항의 강도보다 **이 세 문장의 파기**에서 나왔습니다 `Σ`. 이 점이 §5 의 AGPL 복귀가 신뢰를 회복하지 못한 이유를 미리 설명합니다 — 옵션 추가는 "약속 하나 더"로 읽혔습니다.
 
-한편 압박의 방향은 처음부터 명확했습니다. Commons Clause 도, RSAL 도, SSPL 도 겨냥한 것은 개별 사용자가 아니라 **소스를 가져가 관리형 서비스로 파는 클라우드 사업자**였습니다. 이 인센티브 구조는 §2 의 조항 원문에 그대로 드러나고, §3 에서 그 클라우드 사업자들이 포크의 후원자가 되는 이유이기도 합니다.
+압박의 방향은 처음부터 한 곳이었습니다. Commons Clause 도, RSAL 도, SSPL 도 겨냥한 것은 개별 사용자가 아니라 **소스를 가져가 관리형 서비스로 파는 클라우드 사업자**였습니다. 이 인센티브 구조는 §2 의 조항 원문에 그대로 드러나고, §3 에서 그 클라우드 사업자들이 포크의 후원자가 되는 이유이기도 합니다.
 
 ## 2. 2024-03-20 — core 가 넘어간 날
 
@@ -55,7 +55,7 @@ Change license from BSD-3 to dual RSALv2+SSPLv1 (#13157)
 
 이 커밋이 `COPYING`(BSD-3, 10줄)을 삭제하고 `LICENSE.txt`(733줄)와 `REDISCONTRIBUTIONS.txt`(30줄)를 만들고 `src/` 전체의 파일 헤더를 교체했습니다. `redis 7.4.0:LICENSE.txt` 의 첫 5줄이 선언입니다 — "Starting on March 20th, 2024, Redis follows a dual-licensing model with all Redis project code contributions under version 7.4 and subsequent releases governed by the **Redis Software Grant and Contributor License Agreement**. After this date, contributions are subject to **the user's choice of** the Redis Source Available License v2 (RSALv2) or the Server Side Public License v1 (SSPLv1)". `✓`
 
-공식 발표문의 논지는 두 겹이었습니다. 하나는 "여러 배포판을 동시에 유지하는 것이 Redis 를 미래로 끌고 가는 능력과 상충한다"는 것 — 발표문이 커뮤니티 주도 거버넌스 모델의 한계를 스스로 인정한 문장입니다("Despite efforts to support a community-led governance model … delivering multiple software distributions simultaneously … is at odds with our ability to drive Redis successfully into the future"). 다른 하나는 **자기 판정**이었습니다. 발표문 FAQ 가 "Redis is no longer open source under the OSI definition" 이라고 직접 썼습니다 `✓`
+공식 발표문의 논지는 두 겹이었습니다. 하나는 "여러 배포판을 동시에 유지하는 것이 Redis 를 미래로 끌고 가는 능력과 상충한다"는 것 — 커뮤니티 주도 거버넌스 모델의 한계를 회사가 스스로 인정한 문장입니다("Despite efforts to support a community-led governance model … delivering multiple software distributions simultaneously … is at odds with our ability to drive Redis successfully into the future"). 다른 하나는 **자기 판정**이었습니다. 발표문 FAQ 가 "Redis is no longer open source under the OSI definition" 이라고 직접 썼습니다 `✓`
 
 {{< callout type="warning" >}}
 **OSI 측 성명은 인용하지 않습니다.** SSPL 이 OSI 승인 라이선스가 아니라는 사실의 근거는 Redis 자신의 FAQ 와 2025 년 AGPL 발표문("the Open Source Initiative clarified it lacks the requisites to be an OSI-approved license")입니다. opensource.org 도메인의 2024년 Redis 관련 게시물은 **직접 확인하지 못했습니다** `?` — 그래서 이 문서는 "Redis 스스로 OSI 정의상 오픈소스가 아니라고 인정했다"는 형태로만 씁니다.
@@ -155,7 +155,7 @@ LF 를 고른 이유는 발표 구조에 드러납니다. 새 재단을 세우�
 
 두 가지가 읽힙니다. 첫째, **포크가 여러 개 생겨 생태계가 갈렸다는 진단은 사실과 어긋납니다** — 살아남은 것은 하나입니다. 둘째, 승부를 가른 것은 라이선스 선택이 아니라 **유지 인력**입니다. Redict 는 세 포크 중 가장 강한 copyleft(LGPL-3.0-only)를 골랐지만 10개월간 커밋이 없고 보안 패치를 Valkey 에서 받아 씁니다 `Σ`
 
-라이선스 리스크 회피만이 목적이라면 후보는 **Valkey(BSD-3)와 Garnet(MIT)** 뿐입니다. Dragonfly 를 대안으로 세우는 것은 판정 기준을 스스로 무너뜨리는 선택입니다.
+라이선스 리스크 회피만이 목적이라면 후보는 **Valkey(BSD-3)와 Garnet(MIT)** 뿐입니다. Dragonfly 를 대안으로 세우면 판정 기준을 스스로 무너뜨리는 셈입니다.
 
 ### 4.2 채택 증거
 
@@ -206,10 +206,10 @@ Redis 8 GA 블로그는 실무 이유를 하나 더 줍니다 — "We heard from
 `redis 8.10.0:LICENSE.txt` 첫 문단이 현재 상태입니다 — "moving to a **tri-licensing** model … contributions are subject to **your choice of**: (a) RSALv2; or (b) SSPLv1; or (c) AGPLv3." `✓`
 
 {{< callout type="warning" >}}
-**"Redis 8 은 AGPL 이 됐다"는 서술은 틀립니다.** AGPLv3 는 **추가**됐을 뿐 RSALv2/SSPLv1 은 그대로입니다. 트라이 라이선스는 **사용자 선택**이므로, 회사는 어느 쪽 고객도 잃지 않습니다. 조직 중에는 AGPL 의 §13 때문에 AGPL 을 사내 정책상 못 쓰는 곳이 있습니다 — 2018-08 글이 이미 "the use of AGPL was against their company's policy"라고 언급했던 그 조직들입니다. 이런 조직은 RSALv2 를 고르고, 배포판·OSI 요구가 있는 쪽은 AGPLv3 를 고릅니다 `Σ`
+**"Redis 8 은 AGPL 이 됐다"는 서술은 틀립니다.** AGPLv3 는 **추가**됐을 뿐 RSALv2/SSPLv1 은 그대로입니다. 트라이 라이선스는 **사용자 선택**이므로 회사는 어느 쪽 고객도 잃지 않습니다. 조직 중에는 AGPL 의 §13 때문에 AGPL 을 사내 정책상 못 쓰는 곳이 있습니다 — 2018-08 글이 이미 "the use of AGPL was against their company's policy"라고 언급했던 그 조직들입니다. 이런 조직은 RSALv2 를 고르고, 배포판·OSI 요구가 있는 쪽은 AGPLv3 를 고릅니다 `Σ`
 {{< /callout >}}
 
-그리고 **CLA 는 그대로입니다.** FAQ #24 가 "acceptance of the contributor license agreement (CLA) by the contributor is necessary" 라고 명시하고, `redis 8.10.0:CONTRIBUTING.md` 는 여전히 CLA 전문을 싣습니다 `✓`. 이것의 함의는 단순합니다 — **8.10 의 코드도 회사가 원하면 옵션을 다시 뺄 수 있는 구조에 있습니다.** 2025-05 에 바뀐 것은 라이선스 옵션의 개수이고, 바뀌지 않은 것은 그 개수를 정하는 주체입니다.
+그리고 **CLA 는 그대로입니다.** FAQ #24 가 "acceptance of the contributor license agreement (CLA) by the contributor is necessary" 라고 명시하고, `redis 8.10.0:CONTRIBUTING.md` 는 여전히 CLA 전문을 싣습니다 `✓`. 함의는 단순합니다 — **8.10 의 코드도 회사가 원하면 옵션을 다시 뺄 수 있는 구조에 있습니다.** 2025-05 에 바뀐 것은 라이선스 옵션의 개수이고, 바뀌지 않은 것은 그 개수를 정하는 주체입니다.
 
 부수 사실 하나. **Redis 8.0.0 이 실제로 실은 라이선스 본문은 AGPLv3 가 아니라 GPLv3 였습니다.** `8.0.0:LICENSE.txt` 의 13조가 "Use with the GNU Affero General Public License"(= GPLv3 의 13조)이고, AGPLv3 의 13조인 "Remote Network Interaction" 은 `8.2.0:LICENSE.txt` 에서야 나타납니다. 수정 커밋은 `266835659`(2025-05-06, #14010) `✓`
 
@@ -246,9 +246,9 @@ Redis 8 GA 블로그는 실무 이유를 하나 더 줍니다 — "We heard from
 
 여전히 같은 것은 **RESP 프로토콜**입니다. Harbor 는 교체 후 "same RESP protocol as Redis; **no application-level RESP changes were required**"라고 보고했고, Valkey 8.0 릴리스노트는 "fully compatible with Redis OSS 7.2.4"를 명시하며 `extended-redis-compatibility` 설정도 9.1.1 까지 살아 있습니다(`valkey 9.1.1:src/config.c:3320` — `MODIFIABLE_CONFIG`) `✓`. 즉 **드롭인 교체는 7.2 기능 집합 안에서만 참**입니다 — 7.4 이후 어느 한쪽의 신규 커맨드에 애플리케이션이 의존하는 순간 락인이 시작됩니다. 버전별 신기능은 [Redis 7.0 → 8.10]({{< relref "04-redis-7-to-8.md" >}})과 [Valkey 8.0 → 9.1]({{< relref "05-valkey-8-to-9/index.md" >}})이 소유합니다.
 
-**넷째, 보안 패치 흐름이 역전된 구간이 있습니다.** Debian bug **#1136392**(2026-05-13, 신고자는 Debian redis 메인테이너 Aron Xu)가 사례입니다. Debian 의 redis 패키지가 CVE-2026-21863 패치를 **Valkey 커밋에서 그대로 복사해** 붙였는데, Valkey 는 그 검사를 전용 함수 `clusterIsValidPacket()`(0=invalid, 1=valid)에 두었고 Redis 는 `clusterProcessPacket()` 인라인(0=link freed, 1=link alive)에 두었습니다. **반환값 의미가 반대라서** 원 CVE 는 막았지만 새 remote DoS 를 만들었고 `5:8.0.6-2` 에서 수정됐습니다 `✓`. Redict 가 Valkey 에서 CVE 를 백포트하는 것(§4.1)과 합치면 이 계보의 보안 유지 중심이 어디인지가 보이고, 동시에 **두 코드베이스가 패치를 기계적으로 이식할 수 없을 만큼 갈라졌다**는 것도 보입니다 `Σ`
+**넷째, 보안 패치 흐름이 역전된 구간이 있습니다.** Debian bug **#1136392**(2026-05-13, 신고자는 Debian redis 메인테이너 Aron Xu)가 사례입니다. Debian 의 redis 패키지가 CVE-2026-21863 패치를 **Valkey 커밋에서 그대로 복사해** 붙였습니다. 그런데 Valkey 는 그 검사를 전용 함수 `clusterIsValidPacket()`(0=invalid, 1=valid)에 두었고 Redis 는 `clusterProcessPacket()` 인라인(0=link freed, 1=link alive)에 두었습니다. **반환값 의미가 반대라서** 원 CVE 는 막았지만 새 remote DoS 를 만들었고 `5:8.0.6-2` 에서 수정됐습니다 `✓`. Redict 가 Valkey 에서 CVE 를 백포트하는 것(§4.1)과 합치면 이 계보의 보안 유지 중심이 어디인지가 보이고, 동시에 **두 코드베이스가 패치를 기계적으로 이식할 수 없을 만큼 갈라졌다**는 것도 보입니다 `Σ`
 
-다만 **법적 적대 상태는 아닙니다.** 2024-08-14 에 Valkey 에 들어간 커밋 `4d284daef` "Copyright update to reflect IP transfer from salvatore to Redis (#740)" 의 저자는 **Pieter Cailliau** — 5개월 전 relicense 커밋을 넣은 그 사람입니다 `✓`. 소송이 제기됐다는 근거는 찾지 못했습니다(적극적으로 부재를 확인한 것은 아닙니다 `?`). Valkey 가 `redisServer` → `valkeyServer` 등 전면 개칭을 초기에 서둘러 한 것은 트레이드마크 때문입니다. 2024-03-20 FAQ #22 가 "You can no longer use 'Redis' or 'for Redis' in your product name" 라고 명시했습니다 `✓`
+다만 **법적 적대 상태는 아닙니다.** 2024-08-14 에 Valkey 에 들어간 커밋 `4d284daef` "Copyright update to reflect IP transfer from salvatore to Redis (#740)" 의 저자는 **Pieter Cailliau** — 5개월 전 relicense 커밋을 넣은 그 사람입니다 `✓`. 소송이 제기됐다는 근거는 찾지 못했습니다(적극적으로 부재를 확인한 것은 아닙니다 `?`). Valkey 가 초기에 `redisServer` → `valkeyServer` 등으로 전면 개칭을 서두른 것은 트레이드마크 때문입니다. 2024-03-20 FAQ #22 가 "You can no longer use 'Redis' or 'for Redis' in your product name" 라고 명시했습니다 `✓`
 
 ## 7. 운영자에게 무엇이 남았나
 
@@ -281,9 +281,9 @@ Redis 8 GA 블로그는 실무 이유를 하나 더 줍니다 — "We heard from
 
 `Σ`
 
-버전 선택으로 이 문제를 피하려는 경우 두 함정이 있습니다. 하나는 **7.2.x 가 형식상 살아 있어도 2023-08-15 이후 기능이 동결된 상태**라는 것이고(패치의 실제 상류가 어디인지는 §6 넷째 항목), 다른 하나는 **RDB 포맷이 마이그레이션을 단방향으로 막는다**는 것입니다 — Redis 7.4+ (RDB 12)는 Valkey 8.x 로 넘어가지 못합니다. 차단선 전체는 [무엇을 고를 것인가]({{< relref "08-choosing.md" >}})와 [Valkey 8.0 → 9.1]({{< relref "05-valkey-8-to-9/index.md" >}})이 소유합니다.
+버전 선택으로 이 문제를 피하려 하면 함정이 둘입니다. 하나는 **7.2.x 가 형식상 살아 있어도 2023-08-15 이후 기능이 동결된 상태**라는 것이고(패치의 실제 상류가 어디인지는 §6 넷째 항목), 다른 하나는 **RDB 포맷이 마이그레이션을 단방향으로 막는다**는 것입니다 — Redis 7.4+ (RDB 12)는 Valkey 8.x 로 넘어가지 못합니다. 차단선 전체는 [무엇을 고를 것인가]({{< relref "08-choosing.md" >}})와 [Valkey 8.0 → 9.1]({{< relref "05-valkey-8-to-9/index.md" >}})이 소유합니다.
 
-마지막으로 이 문서의 논지를 운영 언어로 옮기면 이렇게 됩니다. **라이선스는 스냅샷이고 거버넌스는 그 스냅샷이 얼마나 오래 유효한지에 대한 확률입니다.** 2026-08 시점에 Redis 8.x 는 AGPLv3 옵션으로 OSI 승인 라이선스이고 사내 캐시 용도로는 아무 문제가 없습니다. 다만 그 옵션을 유지하거나 회수하는 결정은 단일 회사에 있습니다. 그 회사가 CLA 로 권리를 모아 두었기 때문입니다. Valkey 쪽은 같은 결정을 2/3 super-majority 와 1/3 조직 상한을 통과해야 내릴 수 있습니다. 재배포·외부 제공이 로드맵에 있는 조직이라면 판단 근거를 현재 라이선스 문자열이 아니라 이 구조 차이에 두는 편이 안전합니다 `Σ`
+마지막으로 이 문서의 논지를 운영 언어로 옮기면 이렇게 됩니다. **라이선스는 스냅샷이고 거버넌스는 그 스냅샷이 얼마나 오래 유효할지의 확률입니다.** 2026-08 시점에 Redis 8.x 는 AGPLv3 옵션으로 OSI 승인 라이선스이고 사내 캐시 용도로는 아무 문제가 없습니다. 다만 그 옵션을 유지하거나 회수하는 결정은 단일 회사에 있습니다. 그 회사가 CLA 로 권리를 모아 두었기 때문입니다. Valkey 쪽은 같은 결정을 2/3 super-majority 와 1/3 조직 상한을 통과해야 내릴 수 있습니다. 재배포·외부 제공이 로드맵에 있는 조직이라면 판단 근거를 현재 라이선스 문자열이 아니라 이 구조 차이에 두는 편이 안전합니다 `Σ`
 
 ## 8. 근거
 

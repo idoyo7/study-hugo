@@ -16,7 +16,7 @@ weight: 1
 - 2,000노드에서 먼저 부러지는 건 처리량이 아니라 장애 복구다. 정상 상태 gossip 비용은 노드 수에 선형이었고, 터진 곳은 전부 primary를 수백 개씩 한 번에 죽였을 때의 재접속(415~455 kill)·failure report(499 kill)·투표 경로였다.
 {{< /callout >}}
 
-왜 이 문서인가. 발표 제목은 *Kubernetes at XL Scale*인데 간판 수치인 2,000노드 / 1B RPS는 EC2에서 나왔습니다. 이 문서는 발표가 증명한 것(엔진 한계와 그 수정)과 조언에 그친 것(Kubernetes 배치·리소스)을 갈라, 그중 무엇이 Kubernetes로 전이되는지만 남깁니다. 검증 기준: 발표 전사(942줄)·발표자 노트가 붙은 슬라이드 원본 54장·valkey.io 블로그·업스트림 PR 4건·`valkey.conf` unstable 브랜치.
+왜 이 문서인가. 발표 제목은 *Kubernetes at XL Scale*인데 간판 수치인 2,000노드 / 1B RPS는 EC2에서 나왔습니다. 그래서 이 문서는 발표가 증명한 것(엔진 한계와 그 수정)과 조언에 그친 것(Kubernetes 배치·리소스)을 갈라 놓고, 그중 무엇이 Kubernetes로 전이되는지만 남깁니다. 검증 기준은 발표 전사(942줄), 발표자 노트가 붙은 슬라이드 원본 54장, valkey.io 블로그, 업스트림 PR 4건, `valkey.conf` unstable 브랜치입니다.
 
 출처: KubeCon + CloudNativeCon Europe 2026 — *[Scaling Valkey the Right Way: Kubernetes at XL Scale](https://kccnceu2026.sched.com/event/2CW5d)* (Sarthak Aggarwal · Madelyn Olson, AWS ElastiCache). 2026-03-26(목) 11:00–11:30 CET, Hall 8 | Room E. 슬라이드 원본은 [PPTX 54장](https://hosted-files.sched.co/kccnceu2026/06/Scaling%20Large%20Clusters%20with%20Valkey%20FINAL.pptx)입니다. 이 글은 발표 내용에 업스트림 PR 대조·슬라이드 그래프 재해석·근거 등급 판정을 덧붙였고, 발표가 말한 것과 1차 문서가 말하는 것이 어긋나는 지점을 그대로 적었습니다.
 
@@ -24,9 +24,9 @@ weight: 1
 
 ## 1. 이 발표가 증명한 것과 증명하지 않은 것
 
-발표 제목에 Kubernetes가 들어가 있고 실제로 Kubernetes 조언이 절반을 차지합니다. 그런데 간판 수치를 만든 실험은 Kubernetes 위에서 돌지 않았습니다.
+제목에 Kubernetes가 들어가 있고 그 조언이 실제로 발표의 절반을 차지합니다. 그런데 간판 수치를 만든 실험은 Kubernetes 위에서 돌지 않았습니다.
 
-근거는 추측이 아니라 서면판에 있습니다. 같은 실험을 글로 옮긴 [Scaling a Valkey Cluster to 1 Billion Request per Second](https://valkey.io/blog/1-billion-rps/) 원문에 Kubernetes·EKS·pod·StatefulSet·container 언급이 0회입니다. 대신 이렇게 적혀 있습니다 — "Valkey cluster was deployed on AWS `r7g.2xlarge` instance type... we used 750 instances of AWS `c7g.16xlarge`." 튜닝도 코어 피닝(`taskset`, `cset`)과 NIC 인터럽트 어피니티(`ethtool`)를 손으로 잡았습니다. 셋 다 Kubernetes 위에서는 하기 까다롭거나 아예 안 합니다.
+이건 추측이 아니라 서면판에 적혀 있습니다. 같은 실험을 글로 옮긴 [Scaling a Valkey Cluster to 1 Billion Request per Second](https://valkey.io/blog/1-billion-rps/) 원문에 Kubernetes·EKS·pod·StatefulSet·container 언급이 0회입니다. 대신 이렇게 적혀 있습니다 — "Valkey cluster was deployed on AWS `r7g.2xlarge` instance type... we used 750 instances of AWS `c7g.16xlarge`." 튜닝도 코어 피닝(`taskset`, `cset`)과 NIC 인터럽트 어피니티(`ethtool`)를 손으로 잡았습니다. 셋 다 Kubernetes 위에서는 하기 까다롭거나 아예 안 합니다.
 
 슬라이드 그래프의 계열 이름이 `engine_cpu_percent_p99`인 것도 같은 방향을 가리킵니다 — Prometheus 메트릭이 아니라 ElastiCache/AWS 내부 대시보드입니다. 발표자 본인 진술이 가장 명확합니다.
 
@@ -41,7 +41,7 @@ weight: 1
 | Kubernetes 리소스 조언 | 캐시는 메모리로 스케일하니 CPU 집약 워크로드와 co-locate, **CPU limit 걸지 마라** | 실측 없음 — 경험칙 |
 | 미래 | valkey-operator 개발 중, shard를 first-class 구성 요소로 | 아직 없음 |
 
-이 문서의 기여는 이 표의 1행과 2·3행을 섞어 읽지 않는 것입니다. 1행은 엔진 안에 들어간 코드라 인프라를 가리지 않고 따라옵니다. 2·3행은 두 AWS 엔지니어의 운영 감각이고, 좋은 감각이지만 이 발표의 숫자가 뒷받침하지는 않습니다.
+이 표를 읽을 때 1행과 2·3행을 섞지 않는 게 이 문서의 기여입니다. 1행은 엔진 안에 들어간 코드라 인프라를 가리지 않고 따라옵니다. 2·3행은 두 AWS 엔지니어의 운영 감각이고, 좋은 감각이지만 이 발표의 숫자가 뒷받침하지는 않습니다.
 
 발표 주체의 편향도 밝혀 둘 값어치가 있습니다. Valkey 자체는 [Linux Foundation 산하 벤더 중립 BSD-3 프로젝트](https://www.linuxfoundation.org/press/linux-foundation-launches-open-source-valkey-community)지만, 이 발표의 수치는 AWS가 AWS 하드웨어에서 잰 것입니다. 발표자 둘 다 AWS ElastiCache 팀이고, valkey.io 블로그도 공저자 4명 중 셋이 AWS 소속으로 적혀 있습니다. 아래에서 볼 수정 PR 작성자 중 Sarthak Aggarwal과 Seungmin Lee도 AWS입니다(블로그 저자 표기·GitHub 프로필로 확인). 투표 분열을 고친 Binbin Zhu만 Tencent Cloud 소속입니다. Roshan Khatri의 소속은 공개 프로필에 없어 이 문서가 확인하지 못했습니다.
 
@@ -61,7 +61,7 @@ Valkey cluster는 토폴로지를 외부 저장소에 두지 않습니다. 발�
 
 etcd가 없다는 건 컨트롤 플레인 의존이 없다는 뜻이고, 동시에 모든 노드가 나머지 전부와 TCP 연결을 유지한다는 뜻입니다. N노드면 링크가 `N(N-1)/2`입니다. 2,000노드에서 노드 하나가 1,999개 연결을 들고 있고 클러스터 전체로는 약 200만 개입니다. 이 상수가 나중에 §3.1의 재접속 폭풍을 만듭니다.
 
-발표는 "1,000노드 부근에서 CPU 1~2%"라는 수치로 이 비용을 요약합니다(05:38). 이 수치는 슬라이드 밖 1차 출처를 찾지 못했습니다 — cluster-spec에도, 1-billion-rps 블로그에도 없습니다. 슬라이드-only 주장으로 표시하고 인용할 때 그렇게 밝히는 편이 안전합니다.
+발표는 이 비용을 "1,000노드 부근에서 CPU 1~2%"라는 수치로 요약합니다(05:38). 그런데 이 수치는 슬라이드 밖 1차 출처를 찾지 못했습니다 — cluster-spec에도, 1-billion-rps 블로그에도 없습니다. 슬라이드-only 주장으로 표시하고 인용할 때 그렇게 밝히는 편이 안전합니다.
 
 반대로 확인된 쪽은 정상 상태에서 gossip 비용이 선형으로 늘었다는 관찰입니다(19:10~19:22). 평시 오버헤드는 예측 가능했고, 문제는 전부 장애 시점에 몰렸습니다.
 
@@ -209,7 +209,9 @@ Valkey의 pub/sub은 cluster bus를 그대로 탑니다. 아무 노드에나 pub
 | replica를 primary와 다른 AZ에 | 경험칙 | 08:04. Valkey에 내장 수단이 없고 operator가 풀 문제라고 본인이 인정한다 |
 | 클라이언트 AZ-local read | **EC2 실측**(단, 별건) | 이 발표가 아니라 [AZ affinity 블로그](https://valkey.io/blog/az-affinity-strategy/)의 AWS 워크로드 예시다 |
 
-토폴로지를 클라이언트에 넘기는 명령을 발표는 [`CLUSTER SLOTS`](https://valkey.io/commands/cluster-slots/)로 시연합니다(슬라이드 12~16). 슬라이드에 찍힌 응답에는 슬롯 범위, ip/port, 노드 id에 더해 `hostname`과 `availability-zone`이 들어 있습니다. **그런데 공식 문서와 어긋납니다** — [`CLUSTER SHARDS` 문서](https://valkey.io/commands/cluster-shards/)는 노드 수준 `availability-zone`을 돌려주는 건 `CLUSTER SHARDS`이고 레거시 `CLUSTER SLOTS`는 hostname·AZ를 같은 방식으로 싣지 않는다고 적습니다. 슬라이드가 설명용으로 손본 응답인지 문서가 뒤처진 것인지 이 문서는 확정하지 못했습니다. 실제로 토폴로지를 파싱할 거면 `CLUSTER SHARDS`를 쓰는 쪽이 문서와 일치합니다. AZ-local read의 값어치는 이 발표가 아니라 [AZ affinity 블로그](https://valkey.io/blog/az-affinity-strategy/)에 숫자로 있습니다.
+토폴로지를 클라이언트에 넘기는 명령을 발표는 [`CLUSTER SLOTS`](https://valkey.io/commands/cluster-slots/)로 시연합니다(슬라이드 12~16). 슬라이드에 찍힌 응답에는 슬롯 범위, ip/port, 노드 id에 더해 `hostname`과 `availability-zone`이 들어 있습니다. **그런데 공식 문서와 어긋납니다** — [`CLUSTER SHARDS` 문서](https://valkey.io/commands/cluster-shards/)는 노드 수준 `availability-zone`을 돌려주는 건 `CLUSTER SHARDS`이고 레거시 `CLUSTER SLOTS`는 hostname·AZ를 같은 방식으로 싣지 않는다고 적습니다. 슬라이드가 설명용으로 손본 응답인지 문서가 뒤처진 것인지 이 문서는 확정하지 못했습니다. 실제로 토폴로지를 파싱할 거면 `CLUSTER SHARDS`를 쓰는 쪽이 문서와 일치합니다.
+
+AZ-local read의 값어치는 이 발표가 아니라 [AZ affinity 블로그](https://valkey.io/blog/az-affinity-strategy/)에 숫자로 있습니다.
 
 | 항목 | AZ affinity 없음 | 있음 |
 |---|---|---|
