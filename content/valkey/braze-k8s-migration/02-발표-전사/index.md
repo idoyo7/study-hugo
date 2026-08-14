@@ -7,7 +7,7 @@ weight: 2
 # 02 · 발표 전사 — Redis on EC2 to Valkey on Kubernetes: A Zero-Downtime Case Study
 
 {{< callout type="info" >}}
-이 문서는 KubeCon + CloudNativeCon Europe 2026 발표 *Redis on EC2 to Valkey on Kubernetes: A Zero-Downtime Case Study*(Joe Heyburn, Braze)의 **전사 정리본**입니다. YouTube 자동 자막(타임스탐프 714줄)을 원본으로 삼되, 발표자 본인의 슬라이드 덱과 대조해 오인식을 교정했습니다 — Joe Hayburn/Joe Haben→**Joe Heyburn**(핸들 `@jdheyburn`), "psychic shard"→**Sidekiq** shard, "a free phase approach"→**three-phase** approach, "no network load balancer"→**an NLB**, "at Redis, we use AZ affinity"→**at Braze**, "31,000"→nodePort **31000**, "custom resharding"→**Cluster resharding**.
+이 문서는 KubeCon + CloudNativeCon Europe 2026 발표 *Redis on EC2 to Valkey on Kubernetes: A Zero-Downtime Case Study*(Joe Heyburn, Braze)의 **전사 정리본**입니다. YouTube 자동 자막(타임스탬프 714줄)을 원본으로 삼되, 발표자 본인의 슬라이드 덱과 대조해 오인식을 교정했습니다 — Joe Hayburn/Joe Haben→**Joe Heyburn**(핸들 `@jdheyburn`), "psychic shard"→**Sidekiq** shard, "a free phase approach"→**three-phase** approach, "no network load balancer"→**an NLB**, "at Redis, we use AZ affinity"→**at Braze**, "31,000"→nodePort **31000**, "custom resharding"→**Cluster resharding**.
 
 이 문서는 **기록**입니다. 무엇을 말했고 무엇이 슬라이드에 있었는지만 정리했습니다. 그 수치가 무엇을 증명하는지·소스 1(AWS Valkey Cluster 발표)과 어떻게 다른지는 판단하지 않습니다. 그 판단은 자매 문서 [01 무중단 이관]({{< relref "../01-무중단-이관.md" >}})에 있습니다.
 

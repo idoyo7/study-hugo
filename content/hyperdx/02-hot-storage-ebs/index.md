@@ -203,7 +203,7 @@ EBS-first에서도 "볼륨 내구성 ≠ 데이터 내구성"은 그대로입니
 
 {{< flow src="_flow/5-3-hot-매체-자-비교.json" />}}
 
-**표 각주 — S3 Express One Zone은 이 표의 후보가 아닙니다.** 2026-08 기준 Express One Zone은 **서울(`ap-northeast-2`)에 없습니다** `✓`(지원 8리전: us-east-1 · us-east-2 · us-west-2 · ap-south-1 · ap-northeast-1 · eu-central-1 · eu-west-1 · eu-north-1). ClickHouse는 `storage_class_name=EXPRESS_ONEZONE`을 문법상 허용하지만 디렉터리 버킷 엔드포인트에서 `IncompleteBody` 오류가 보고돼 있다(issue #72078, 24.10.2.80) `≈`. 즉 "cold를 Express One Zone으로 빨라지게 하면?"이라는 물음은 우리 리전에서 논외이고, 리전이 열려도 위 버그가 먼저 닫혀야 합니다.
+**표 각주 — S3 Express One Zone은 이 표의 후보가 아닙니다.** 2026-08 기준 Express One Zone은 **서울(`ap-northeast-2`)에 없습니다** `✓`(지원 8리전: us-east-1 · us-east-2 · us-west-2 · ap-south-1 · ap-northeast-1 · eu-central-1 · eu-west-1 · eu-north-1). ClickHouse는 `storage_class_name=EXPRESS_ONEZONE`을 문법상 허용하지만 디렉터리 버킷 엔드포인트에서 `IncompleteBody` 오류가 보고돼 있습니다(issue #72078, 24.10.2.80) `≈`. 즉 "cold를 Express One Zone으로 빨라지게 하면?"이라는 물음은 우리 리전에서 논외이고, 리전이 열려도 위 버그가 먼저 닫혀야 합니다.
 
 한 겹 더 — ClickHouse가 Express One Zone 기반 구성으로 발표한 **콜드 쿼리 평균 36% 개선(최대 283%)·캐시 계층 TCO 최대 65% 개선**은 **Cloud SaaS 전용 측정**입니다 `✓`. 그 수치를 만든 Distributed Cache 자체가 Cloud 부품이라 self-host로 그대로 오지 않고({{< relref "../../clickhouse/01-managed-vs-selfhosted.md" >}}), 설령 OSS로 풀려도 서울에 Express One Zone이 없어 같은 수치가 재현되지 않습니다. **이 두 문단이 레포에서 Express One Zone·Cloud 캐시 수치의 단독 소유 지점**이므로 다른 장은 여기로 위임합니다.
 

@@ -23,7 +23,7 @@ weight: 6
 
 이 글은 채널코퍼레이션의 Istio Ambient mode 도입기 시리즈 3-4편입니다. [3-1편]({{< relref "03-1-503-half-open-connection.md" >}})·[3-2편]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}})·[3-3편]({{< relref "03-3-ambient-upgrade-in-place.md" >}})이 각각 하나의 원인을 끝까지 파고드는 글이었다면, 3-4편은 운영 중 만난 Istio/Envoy 이슈 중 기억에 남는 두 사례를 부록처럼 묶은 글입니다.
 
-채널팀은 두 사례 모두 Ambient mode에 한정된 문제가 아니라고 못 박습니다. waypoint에서 관찰했을 뿐, 소재는 Envoy가 요청을 buffering하고 retry하는 방식과 Envoy·istiod 사이 xDS 연결을 readiness로 어떻게 볼 것일까요? sidecar mode나 ingress gateway를 쓰는 환경에도 적용되므로, 전부 사이드카 모드 기준인 이 레포의 [상위 Istio 챕터]({{< relref "../../_index.md" >}})와 이 섹션이 만나는 지점이기도 합니다.
+채널팀은 두 사례 모두 Ambient mode에 한정된 문제가 아니라고 못 박습니다. waypoint에서 관찰했을 뿐, 소재는 Envoy가 요청을 buffering하고 retry하는 방식과 Envoy·istiod 사이 xDS 연결을 readiness로 어떻게 볼 것인가입니다. sidecar mode나 ingress gateway를 쓰는 환경에도 적용되므로, 전부 사이드카 모드 기준인 이 레포의 [상위 Istio 챕터]({{< relref "../../_index.md" >}})와 이 섹션이 만나는 지점이기도 합니다.
 
 ## 1. 처음 본 507 status code
 

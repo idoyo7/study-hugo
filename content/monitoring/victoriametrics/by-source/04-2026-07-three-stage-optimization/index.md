@@ -71,7 +71,7 @@ VictoriaMetrics는 이런 상황을 방어할 수 있도록 여러 [리소스 �
 
 [IndexDB](https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#indexdb)는 수많은 레이블 사이에서 원하는 데이터를 빠르게 찾기 위해 역색인(Inverted Index) 구조를 유지합니다. 예를 들어 `{container="search-api", status="200"}` 필터로 쿼리를 요청하면 `vmstorage`는 각 레이블에 매핑된 TSID 목록의 교집합을 계산합니다. 교집합에 TSID 5와 TSID 9가 있다면 이 두 시계열이 최종 조회 대상입니다.
 
-TSID가 확정되면 해당 TSID의 타임스탬프-값 쌍은 인메모리 버퍼인 Raw-Row Shards에 모입니다. 이후 데이터는 TSID와 타임스탬프 기준으로 정렬되고, 같은 TSID끼리 블록으로 묶입니다. 여러 블록은 하나의 Part로 디스크에 저장됩니다. Part는 월별 파티션 아래에 저장되는 디스크 저장 단위이며, 포함된 데이터의 최소·최대 타임스탬프를 메타데이터로 가지고 있어 쿼리 시간 범위에 해당하지 않는 Part는 디스크 I/O 없이 건너뜁니다. Part 내부의 블록은 TSID 단위로 구성되며, 같은 TSID의 타임스탬프-값 샘플이 시간순으로 저장되고 샘플 수가 많으면 여러 블록으로 나뉠 수 있습니다.
+TSID가 확정되면 해당 TSID의 타임스탬프-값 쌍은 인메모리 버퍼인 Raw-Row Shards에 모입니다. 이후 데이터는 TSID와 타임스탬프 기준으로 정렬되고, 같은 TSID끼리 블록으로 묶입니다. 여러 블록은 하나의 Part로 디스크에 저장됩니다. Part는 월별 파티션 아래에 저장되는 디스크 저장 단위이며, 포함된 데이터의 최소·최대 타임스탬프를 메타데이터로 가지고 있어 쿼리 시간 범위에 해당하지 않는 Part는 디스크 I/O 없이 건너뛸 수 있습니다. Part 내부의 블록은 TSID 단위로 구성되며, 같은 TSID의 타임스탬프-값 샘플이 시간순으로 저장되고 샘플 수가 많으면 여러 블록으로 나뉠 수 있습니다.
 
 ### 배경: vmselect의 4단계 쿼리 처리 과정
 

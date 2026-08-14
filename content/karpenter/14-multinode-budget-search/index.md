@@ -64,7 +64,7 @@ disruptionBudgetMapping[candidate.NodePool.Name]--
 - 실행 직전 validation에서도 최신 budget map을 다시 만듭니다.
 - 선택된 후보마다 자기 `NodePool.Name`의 budget을 다시 차감합니다.
 
-따라서 여러 Pool이 섞인 커맨드도 각 Pool의 허용량 안이면 정상적으로 통과할 수 있습니다. 현재 budget의 의미는 "한 커맨드는 반드시 한 Pool이어야 한다"가 아니라 "그 커맨드가 각 Pool에서 제거하는 노드 수가 해당 Pool의 허용량 이하여야 한다"에 가깝습니다.
+따라서 여러 Pool이 섞인 커맨드도 각 Pool의 허용량 안이면 정상적으로 통과할 수 있습니다. 현재 budget의 의미는 “한 커맨드는 반드시 한 Pool이어야 한다”가 아니라 “그 커맨드가 각 Pool에서 제거하는 노드 수가 해당 Pool의 허용량 이하여야 한다”에 가깝습니다.
 
 ## 4. validation은 무엇을 확인하는가
 
@@ -80,7 +80,7 @@ disruptionBudgetMapping[candidate.NodePool.Name]--
 4. 후보들을 지금 다시 제거해도 모든 파드를 스케줄할 수 있는가
 5. 삭제/교체 대수와 교체 인스턴스 타입 집합이 처음 계산한 결과와 양립하는가
 
-Candidate에는 `NodePool`, zone, capacity type, instance type 정보가 들어 있습니다. 스케줄링 시뮬레이션은 이 정보와 파드의 affinity, topology spread, volume topology, taint/toleration 등을 사용합니다. 그러나 이 검사들은 "후보들의 Pool/AZ가 서로 같아야 한다"를 요구하지 않습니다. 서로 다른 Pool과 AZ의 후보가 섞였어도 파드가 유효하게 재배치되고 budget을 지키면 커맨드는 통과할 수 있습니다.
+Candidate에는 `NodePool`, zone, capacity type, instance type 정보가 들어 있습니다. 스케줄링 시뮬레이션은 이 정보와 파드의 affinity, topology spread, volume topology, taint/toleration 등을 사용합니다. 그러나 이 검사들은 “후보들의 Pool/AZ가 서로 같아야 한다”를 요구하지 않습니다. 서로 다른 Pool과 AZ의 후보가 섞였어도 파드가 유효하게 재배치되고 budget을 지키면 커맨드는 통과할 수 있습니다.
 
 ## 5. validation이 해결하지 못하는 것
 

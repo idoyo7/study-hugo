@@ -13,7 +13,7 @@ weight: 7
 - 판정: **VM 아카이브안** 채택, 단 아카이브 검증 전까지 hot 90d raw retention 축소 금지 — **가역적**(RW#4를 Thanos Receive로 교체하면 언제든 전환).
 {{< /callout >}}
 
-이 문서는 400d 아카이브의 5m 해상도를 "누가 만드느냐"를 갑니다. VM OSS의 **streamAggr**(인제스트 시점 사전 집계, VM 아카이브안)와 **Thanos compactor downsampling**(사후 집계, Thanos안)을 4축으로 대조하고, 판단 기준 트리와 시나리오 ② 비용 종합표(VM아카이브/Thanos/Mimir/확장/확장+Ent)를 확정합니다. 비교표·판단 트리·비용 종합표의 주인 문서입니다 — 다른 문서는 이리로 링크합니다.
+이 문서는 400d 아카이브의 5m 해상도를 "누가 만드느냐"를 가릅니다. VM OSS의 **streamAggr**(인제스트 시점 사전 집계, VM 아카이브안)와 **Thanos compactor downsampling**(사후 집계, Thanos안)을 4축으로 대조하고, 판단 기준 트리와 시나리오 ② 비용 종합표(VM아카이브/Thanos/Mimir/확장/확장+Ent)를 확정합니다. 비교표·판단 트리·비용 종합표의 주인 문서입니다 — 다른 문서는 이리로 링크합니다.
 
 > 관련 문서: [00 인덱스]({{< relref "_index.md" >}}), [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [02 VM 아카이브]({{< relref "02-vm-archive.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [04 Mimir]({{< relref "04-mimir.md" >}}), [05 VMCluster 확장]({{< relref "05-vmcluster-expansion.md" >}}), [06 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
 

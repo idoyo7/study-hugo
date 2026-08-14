@@ -215,7 +215,7 @@ NodePool도 `requirements`에 `capacity-type In ["reserved", "on-demand"]`로 �
 | 전역 기본 terminationGracePeriod([core#2088](https://github.com/kubernetes-sigs/karpenter/pull/2088)) | 1.4, 전역 | **좋음** — 안전한 하한을 일괄 적용(§2.4) |
 | `karpenter_pods_drained_total`([core#2044](https://github.com/kubernetes-sigs/karpenter/pull/2044)), 인스턴스 동적 선택([aws#7939](https://github.com/aws/karpenter-provider-aws/pull/7939)) | 1.5 | **좋음** — 드레인 관측·API 감소(§6.3) |
 
-보안그룹 아웃바운드 누락 같은 등록 실패가 컨디션으로 드러나므로 `NodeRegistrationHealthy`는 "노드가 안 뜨는데 이유를 모르겠다"의 1차 진단점이 됩니다 — 다만 스케줄링 판정에는 반영되지 않습니다. `PreferencePolicy`는 Karpenter가 preferred affinity를 처음엔 required처럼 취급해 노드가 예상보다 많이 뜨는 문제가 있습니다. `Ignore`는 bin-packing을 개선하는 대신 배치 품질을 떨어뜨리며 전역이라 일부 워크로드에만 못 깁니다.
+보안그룹 아웃바운드 누락 같은 등록 실패가 컨디션으로 드러나므로 `NodeRegistrationHealthy`는 "노드가 안 뜨는데 이유를 모르겠다"의 1차 진단점이 됩니다 — 다만 스케줄링 판정에는 반영되지 않습니다. `PreferencePolicy`는 Karpenter가 preferred affinity를 처음엔 required처럼 취급해 노드가 예상보다 많이 뜨는 문제가 있습니다. `Ignore`는 bin-packing을 개선하는 대신 배치 품질을 떨어뜨리며 전역이라 일부 워크로드에만 못 겁니다.
 
 잘못 짚기 쉬운 셋을 못박아둡니다. **`minValues`는 신기능이 아닙니다** — v0.35.0([core#963](https://github.com/kubernetes-sigs/karpenter/pull/963))부터 있는 API입니다. 1.6의 신설분은 이걸 어떻게 취급할지 정하는 `MinValuesPolicy`입니다(§6.2). **`Gte`/`Lte`는 v1.9.0**([core#2674](https://github.com/kubernetes-sigs/karpenter/pull/2674))입니다(`Gt`/`Lt`는 업스트림 Kubernetes 연산자로 그 전부터 있었고 Karpenter 확장분이 `Gte`/`Lte`입니다). **NodeOverlay는 v1.7.0**이고 지금도 alpha·기본 false입니다 — 1.3~1.6 어느 릴리스노트에도 없습니다. 뒤의 둘은 [02]({{< relref "02-changelog-maturity.md" >}}).
 
@@ -267,7 +267,7 @@ Capacity Blocks 지원([aws#8011](https://github.com/aws/karpenter-provider-aws/
 
 `DISABLE_DRY_RUN` / `--disable-dry-run`은 EC2NodeClass 검증 과정의 dry-run EC2 API 호출을 끕니다. **1.6.0이 아니라 1.6.2에서 들어왔습니다**(`upgrade-guide.md:233`, 마이너 릴리스노트에는 없습니다).
 
-필요한 상황은 하나입니다 — EC2NodeClass가 많거나 리전의 EC2 API 쿼터를 다른 워크로드가 이미 많이 써서 **검증용 dry-run 자체가 `RequestLimitExceeded`를 유발**하는 경우입니다. 끄면 잘못된 IAM 역할·서브넷·보안그룹을 **검증 단계에서 못 잡고** 실제 `CreateFleet` 시점에야 실패가 드러납니다 — **EC2NodeClass 스펙이 안정화되어 거의 안 바뀌는 계정에서만** 킵니다.
+필요한 상황은 하나입니다 — EC2NodeClass가 많거나 리전의 EC2 API 쿼터를 다른 워크로드가 이미 많이 써서 **검증용 dry-run 자체가 `RequestLimitExceeded`를 유발**하는 경우입니다. 끄면 잘못된 IAM 역할·서브넷·보안그룹을 **검증 단계에서 못 잡고** 실제 `CreateFleet` 시점에야 실패가 드러납니다 — **EC2NodeClass 스펙이 안정화되어 거의 안 바뀌는 계정에서만** 켭니다.
 
 1.6은 kube-reserved 메모리 계산 방식도 바꿔 allocatable 값이 달라집니다 — allocatable 변화가 메모리 오버커밋 튜닝값에 주는 영향을 업그레이드 후 재확인해야 합니다.
 

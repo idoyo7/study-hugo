@@ -77,7 +77,7 @@ aliases: ["/hyperdx-operating/03-availability/", "/hyperdx/operating/03-availabi
 
 ### 1.2 blast radius — 어디까지 번지나
 
-핵심 판단은 하나다: **관측 스택은 컴포넌트 하나가 죽어도 전체가 멎지 않도록 경계가 나뉘어 있습니다.**
+핵심 판단은 하나입니다: **관측 스택은 컴포넌트 하나가 죽어도 전체가 멎지 않도록 경계가 나뉘어 있습니다.**
 
 - **HyperDX app/api 다운** → UI·쿼리만. 브라우저 → Collector → CH 적재 경로는 그대로 흐른다(app은 조회 대면일 뿐 ingest 경로 밖).
 - **OTel Collector 다운** → 신규 ingest만 정지. `file_storage` 퍼시스턴트 큐가 있으면 in-flight를 디스크에 붙잡고 복귀 후 재개, 큐가 없으면 그 구간 이벤트만 유실.

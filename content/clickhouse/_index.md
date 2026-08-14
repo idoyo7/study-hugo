@@ -13,7 +13,7 @@ cascade:
 핵심 결정: **배포** EKS self-host(인력·20TB+·스토리지 성능 세 조건 충족 시) · **스토리지** 로컬 NVMe(hot) + S3(cold) · **엔진** ReplicatedMergeTree(self-host 강제) · **operator** Altinity. 근거·조건은 아래 「핵심 결정 요약」 표와 각 페이지.
 {{< /callout >}}
 
-ClickHouse를 **어떻게 운영할지**를 다루는 도메인입니다. "채택할 것인가"의 답은 이미 다른 곳에 있습니다 — 로깅 챕터의 **D4 결정은 "통합 저장소는 earn-it-last"**, 즉 로그만 놓고 보면 self-hosted ClickHouse를 1차 채택안으로 밀지 않습니다([로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}}), [ClickHouse (self-hosted)]({{< relref "../logging/04-clickhouse.md" >}})). 이 챕터는 그 결정을 뒤집지 않습니다. 대신 **전제가 다른 시나리오**를 가정합니다: [RUM 내재화]({{< relref "../rum/_index.md" >}})와 범용 분석 니즈가 ClickHouse를 요구하고, 인프라 운영 인력이 이미 있는 경우의 **운영 전략(how)**. 그 RUM 대체 니즈 자체가 **"RUM에서 아래로 자라는 스택"**의 산물입니다 — Datadog RUM 내재화를 시발점으로 FE(`@hyperdx/browser`)·BE(Java/Python OTel 재계측) trace를 병행 확장하고 컨테이너 로그 수집까지 검토하는 흐름이 성숙해 로그·트레이스·RUM을 한 저장소로 합칠 때 self-hosted CH가 무대에 올라갑니다.
+ClickHouse를 **어떻게 운영할지**를 다루는 도메인입니다. "채택할 것인가"의 답은 이미 다른 곳에 있습니다 — 로깅 챕터의 **D4 결정은 "통합 저장소는 earn-it-last"**, 즉 로그만 놓고 보면 self-hosted ClickHouse를 1차 채택안으로 밀지 않습니다([로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}}), [ClickHouse (self-hosted)]({{< relref "../logging/04-clickhouse.md" >}})). 이 챕터는 그 결정을 뒤집지 않습니다. 대신 **전제가 다른 시나리오**를 가정합니다: [RUM 내재화]({{< relref "../rum/_index.md" >}})와 범용 분석 니즈가 ClickHouse를 요구하고, 인프라 운영 인력이 이미 있는 경우의 **운영 전략(how)**. 그 RUM 대체 니즈 자체가 **"RUM에서 아래로 자라는 스택"**의 산물입니다 — Datadog RUM 내재화를 시발점으로 FE(`@hyperdx/browser`)·BE(Java/Python OTel 재계측) trace를 병행 확장하고 컨테이너 로그 수집까지 검토하는 흐름이 성숙해 로그·트레이스·RUM을 한 저장소로 합칠 때 self-hosted CH가 무대에 오릅니다.
 
 ## 이 챕터의 위치 — 전제 차이
 

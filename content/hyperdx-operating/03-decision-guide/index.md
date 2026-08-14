@@ -92,7 +92,7 @@ aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decisi
 
 두 가지를 덧붙입니다. 첫째, **cold 축은 "이동이 실제로 도는가"도 관측 대상**입니다 — TTL MOVE의 동작은 `system.storage_policies`(정책 로드)·`system.disks`(티어 등록)·`system.parts`의 `disk_name`(파트가 어느 티어에 있나)·`system.part_log`(이동 이력) 조회로 확인 가능한 표준 인터페이스입니다 `✓`([S3 티어링]({{< relref "../../hyperdx/03-s3-cold-tiering.md" >}}) 기준 문서). 이동이 멎으면 hot이 차오르며 아래 경보로 이어지므로, cold 축의 일상 헬스는 이 네 뷰가 담당합니다.
 
-둘째, hot gp3의 일상 경보(승급 아닌 운영 대응)는 [용량 산정]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) §8의 기준을 쓴다: 사용률 **70% 경고 / 80% 조치 / 85% 하드실링**, 조치는 gp3 온라인 확장 또는 TTL 단축·cold 이동 가속 `≈` — 디스크가 차면 머지 중단→TOO_MANY_PARTS→인서트 차단으로 이어지므로 hot 볼륨은 항상 30~40% 여유를 남깁니다 `✓/≈`.
+둘째, hot gp3의 일상 경보(승급 아닌 운영 대응)는 [용량 산정]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) §8의 기준을 씁니다: 사용률 **70% 경고 / 80% 조치 / 85% 하드실링**, 조치는 gp3 온라인 확장 또는 TTL 단축·cold 이동 가속 `≈` — 디스크가 차면 머지 중단→TOO_MANY_PARTS→인서트 차단으로 이어지므로 hot 볼륨은 항상 30~40% 여유를 남깁니다 `✓/≈`.
 
 {{< flow src="_flow/2-승급-트리거의-관측-지점.json" />}}
 

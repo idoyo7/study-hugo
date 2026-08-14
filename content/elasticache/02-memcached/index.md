@@ -207,7 +207,7 @@ memcached 에는 복제도 클러스터 버스도 없으므로(§7) 샤딩은 �
 
 ### 이기는 자리
 
-**① 순수 캐시 워크로드에서 CPU 가 아니라 NIC 가 병목입니다.** ScyllaDB 의 3자 벤치마크(2024-10-08, i4i.4xlarge 16 vCPU, memcached 1.6.25, 14 스레드 pin)는 RAM-only read 에서 **3M GET/s** 로 "fully maximizing AWS NIC bandwidth (25 Gbps)", p99.999 < 1ms 를 보고합니다 `Ⓑ`(발행 주체가 경쟁 제품 벤더라는 점, 측정 조건이 위와 같다는 점을 함께 읽어야 합니다). dormando 자체 측정은 Xeon 32코어에서 순수 RAM multiget **18M keys/s** 입니다 `Ⓥ`(2018-06-12, 자체 블로그). **memcached 와 Redis 를 같은 하드웨어에서 1:1 로 측정한 1차 출처는 없습니다** — 그래서 배수 주장은 하지 않고, 구조적 근거(§4)만 씁니다 `?`
+**① 순수 캐시 워크로드에서 CPU 가 아니라 NIC 가 병목이 됩니다.** ScyllaDB 의 3자 벤치마크(2024-10-08, i4i.4xlarge 16 vCPU, memcached 1.6.25, 14 스레드 pin)는 RAM-only read 에서 **3M GET/s** 로 "fully maximizing AWS NIC bandwidth (25 Gbps)", p99.999 < 1ms 를 보고합니다 `Ⓑ`(발행 주체가 경쟁 제품 벤더라는 점, 측정 조건이 위와 같다는 점을 함께 읽어야 합니다). dormando 자체 측정은 Xeon 32코어에서 순수 RAM multiget **18M keys/s** 입니다 `Ⓥ`(2018-06-12, 자체 블로그). **memcached 와 Redis 를 같은 하드웨어에서 1:1 로 측정한 1차 출처는 없습니다** — 그래서 배수 주장은 하지 않고, 구조적 근거(§4)만 씁니다 `?`
 
 **② extstore 는 캐시 용량을 DRAM 가격이 아니라 NVMe 가격으로 삽니다.** dormando 의 측정(2018-06-12, Xeon 32코어 / 192GB RAM / Optane 750GB, **IO 스레드 4개·클라이언트 4개**)은 Optane **230k ops/s**(레이턴시 10μs 대), SSD **40k ops/s**(100μs\~1ms)이고, 비용 근거는 "DRAM costs are 3-4x Optane, and 4-8x SSD" → RAM 지출 1/3, 워크로드에 따라 총비용 최대 80% 절감입니다 `Ⓥ` 3자 측정(ScyllaDB, 2024-10-08, i4i.4xlarge, memcached 1.6.25, **extstore IO 스레드 32개**)은 1KB 값 **182k GET/s**(개별 요청, P99 < 1ms), 8KB 값 **105k GET/s** 입니다 `Ⓑ` 조건이 좁습니다 — 값이 키보다 훨씬 커야 하고(`ext_item_size` 기본 512B 미만은 안 내려간다), 저장 효율 기대치가 80\~90% 이고, 파이프라인 구성에서는 P99 가 3\~5ms 로 올라갑니다. **sub-ms SLO 경로에는 못 씁니다** `Σ` 오픈소스 Redis 에는 동등 기능이 없습니다 — 릴리스노트 7.x/8.x 전체와 `redis 8.10.0:redis.conf` 에 `flash`/`tiering` 계열 문자열이 0건이고, Redis on Flash 는 Redis Software 문서 경로에만 있는 상용 기능입니다 `✓`
 

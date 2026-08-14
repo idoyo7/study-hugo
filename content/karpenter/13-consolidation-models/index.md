@@ -468,7 +468,7 @@ sum(rate(karpenter_consolidation_moves_total{decision="rejected"}[30m]))
 메트릭 전량과 라벨 구성은 [무엇을 봐야 하나]({{< relref "09-metrics-logs-events.md" >}})가 소유합니다.
 
 {{< callout type="warning" >}}
-**가격 조회가 실패하면 `Balanced` 풀의 통합이 조용히 멈플 수 있습니다.** 풀 총비용이 0으로 계산되면 사전 컷은 통과시키지만 최종 심사는 전부 거부합니다. 이벤트가 남지 않으므로 `karpenter_consolidation_score`가 0에 몰려 있는지로 확인해야 합니다.
+**가격 조회가 실패하면 `Balanced` 풀의 통합이 조용히 멈출 수 있습니다.** 풀 총비용이 0으로 계산되면 사전 컷은 통과시키지만 최종 심사는 전부 거부합니다. 이벤트가 남지 않으므로 `karpenter_consolidation_score`가 0에 몰려 있는지로 확인해야 합니다.
 {{< /callout >}}
 
 ## 10. 정리

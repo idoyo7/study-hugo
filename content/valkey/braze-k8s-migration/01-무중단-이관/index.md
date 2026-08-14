@@ -26,7 +26,7 @@ weight: 1
 
 이 문서에서 가장 먼저 박아야 할 사실입니다. 같은 방에서 15분 전에 끝난 AWS 발표는 cluster bus와 16384 슬롯을 말했습니다. Braze는 그 기능을 하나도 쓰지 않습니다.
 
-Braze의 한 샤드는 primary 하나와 replica들로 이뤄진 HA 단위이고, 이걸 Sentinel이 감시합니다. 샤드끼리는 서로를 모릅니다 — 슬롯도, gossip도, cluster bus도 없습니다. 그러면 어느 키가 어느 샤드로 가는지는 누가 정하는가요? 발표자가 정확히 답합니다.
+Braze의 한 샤드는 primary 하나와 replica들로 이뤄진 HA 단위이고, 이걸 Sentinel이 감시합니다. 샤드끼리는 서로를 모릅니다 — 슬롯도, gossip도, cluster bus도 없습니다. 그러면 어느 키가 어느 샤드로 가는지는 누가 정할까요? 발표자가 정확히 답합니다.
 
 > the clients connect to Sentinel, and the clients decide what shard they need to write to based on their own hashing logic, which is baked into the client side. — 05:10~05:19
 

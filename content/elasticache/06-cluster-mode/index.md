@@ -27,7 +27,7 @@ AWS 에서 이 구조가 어떤 엔드포인트로 노출되는지, CMD → CME 
 
 Redis Cluster 는 3.0.0(2015-04-01)에 "a distributed implementation of a subset of Redis" 로 나왔습니다(`redis:RELEASENOTES-3.0.0.txt:19`) `✓`. 2.6 릴리스노트가 이미 "2.6 에서 cluster 코드를 전부 제거했고 3.0 에서 낸다"고 예고했으므로, 이 설계는 4년 가까이 벼려진 결정입니다(`redis 2.6.0:00-RELEASENOTES:180-183`) `✓`.
 
-핵심 결정은 하나입니다. **서버는 자기 슬롯이 아닌 키 요청을 대신 처리하지 않습니다.** `getNodeByQuery()` 가 노드를 판정하고, 내 것이 아니면 `clusterRedirectClient()` 가 에러 문자열을 되돌립니다 — 두 에러가 완전히 같은 포맷으로 같은 줄에서 만들어집니다.
+핵심 결정은 하나입니다. **서버는 자기 슬롯이 아닌 키 요청을 대신 처리하지 않습니다.** `getNodeByQuery()` 가 노드를 판정하고, 내 것이 아니면 `clusterRedirectClient()` 가 에러 문자열을 되돕니다 — 두 에러가 완전히 같은 포맷으로 같은 줄에서 만들어집니다.
 
 ```c
 addReplyErrorSds(c, sdscatprintf(sdsempty(), "-%s %d %s:%d",
@@ -347,7 +347,7 @@ cluster bus 부하 자체는 Valkey 9.1.0 이 바이트 단위 지표를 추가�
 
 `redis:RELEASENOTES-3.0.0.txt:19,27,273` · `redis 2.6.0:00-RELEASENOTES:180-183` · `redis:RELEASENOTES-4.0.0.txt:51-57`(cluster bus 비호환) · `redis:RELEASENOTES-7.0.0.txt:48,115,316,326,343,363,364,495,500,502,514` · `redis:RELEASENOTES-8.4.0.txt:33,71,104,148` · `redis:RELEASENOTES-8.6.0.txt:72,126,127,132,134` · `redis:RELEASENOTES-8.8.0.txt:291,315,316` · `redis:RELEASENOTES-8.10.0.txt:173,180,245` · `valkey:RELEASENOTES-8.0.0.txt:124,141,204,220,223,224,307,361` · `valkey:RELEASENOTES-8.1.0.txt:41,156,159,160` · `valkey:RELEASENOTES-9.0.0.txt:48,112,118,130,151,152,153` · `valkey:RELEASENOTES-9.1.0.txt:26,46,55,83,87,89,115,129` · `valkey:RELEASENOTES-9.1.1.txt:28,32,35,45`
 
-**웹 1차 출처** (URL 은 [99 · 출처]({{< relref "../99-sources.md" >}}) 가 모습니다)
+**웹 1차 출처** (URL 은 [99 · 출처]({{< relref "../99-sources.md" >}}) 가 모읍니다)
 
 - antirez 의 16384 설명 — `redis/redis` issue #2576 코멘트, 2015-05-12T12:23:35Z (`gh api repos/redis/redis/issues/2576/comments` 로 취득)
 - Redis ASM 블로그(2026-04-02) — 레거시 6개 문제 목록, 7단계 절차, 성능 수치. **벤더 자체 측정** `Ⓥ`

@@ -222,7 +222,7 @@ ClickHouse 공식 블로그 "Are open-table-formats + lakehouses the future of o
 | **② S3 primary** | storage policy 로 S3 단독 볼륨 구성 | 문법적으로 가능. 단 3중 제약 | 비권장 — 아래. OSS 경로(`plain_rewritable`)의 기각 판정은 [스토리지 · S3 primary 의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}}) |
 | **③ 데이터레이크** | Iceberg 테이블을 만들고 여러 엔진이 공유 | 기능은 있음(§3), 성숙도 편차 | **다른 축.** 지금은 도입 안 함 |
 
-**② 는 문법적으로 가능하지만 이름부터 정정해야 합니다.** ClickHouse 공식 가이드가 산문에서 쓰는"S3BackedMergeTree"는 **등록된 테이블 엔진 이름이 아닙니다**. 같은 가이드의 DDL 예제가 그 증거입니다 `✓`.
+**② 는 문법적으로 가능하지만 이름부터 정정해야 합니다.** ClickHouse 공식 가이드가 산문에서 쓰는 "S3BackedMergeTree"는 **등록된 테이블 엔진 이름이 아닙니다**. 같은 가이드의 DDL 예제가 그 증거입니다 `✓`.
 
 ```sql
 CREATE TABLE my_s3_table

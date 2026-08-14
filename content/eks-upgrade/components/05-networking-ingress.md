@@ -46,7 +46,7 @@ finance의 LBC는 독립 ArgoCD 앱이 아니라 `cluster-bootstrap-v2` umbrella
 4. **IRSA 정책 갱신** — 8개 신규 액션을 IAM 정책에 반영한다. 이 role을 어느 레포가 관리하는지, 즉 정책의 실제 관리 경로가 확인되지 않은 상태라면 먼저 관리 주체를 특정한 뒤 v3.4.2 공식 `iam_policy.json` 기준으로 액션을 추가한다.
 5. **CRD 선적용** — in-place 갱신이라면 CRD를 수동으로 먼저 적용한다. blue 클러스터 fresh 설치라면 ArgoCD가 crds/를 렌더·적용하므로 생략 가능하다.
 
-배포 순서는 (1) IRSA role + v3.4.2 IAM 정책 준비 → (2) 이미지 미러 퍼블리시 → (3) umbrella 리워크·재퍼블리시 → app-of-apps targetRevision 핀 → (4) fresh 설치라면 CRD 자동 적용, in-place라면 수동 선적용입니다. `cluster-bootstrap-v2`가 전체 클러스터 부트스트랍 순서에서 어느 위치에 배포되는지는 [클러스터 부트스트랍]({{< relref "../04-cluster-bootstrap.md" >}}) 참고합니다.
+배포 순서는 (1) IRSA role + v3.4.2 IAM 정책 준비 → (2) 이미지 미러 퍼블리시 → (3) umbrella 리워크·재퍼블리시 → app-of-apps targetRevision 핀 → (4) fresh 설치라면 CRD 자동 적용, in-place라면 수동 선적용입니다. `cluster-bootstrap-v2`가 전체 클러스터 부트스트랩 순서에서 어느 위치에 배포되는지는 [클러스터 부트스트랩]({{< relref "../04-cluster-bootstrap.md" >}}) 참고합니다.
 
 ## 4. 검증과 롤백
 

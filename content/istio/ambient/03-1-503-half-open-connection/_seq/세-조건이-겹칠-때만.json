@@ -1,5 +1,5 @@
 {
-  "caption": "half-open은 아무도 신호를 보내지 않아서 생깁니다 — Pod이 사라져도 waypoint의 pool에는 살아 있는 터널로 남고, 같은 IP를 받은 다음 Pod에게 handshake 없는 data frame이 날아갑니다. 터널이 이미 걷힌 뒤라면 같은 요청이 정상 처리됩니다.",
+  "caption": "half-open은 아무도 신호를 보내지 않아서 생깁니다 — Pod가 사라져도 waypoint의 pool에는 살아 있는 터널로 남고, 같은 IP를 받은 다음 Pod에게 handshake 없는 data frame이 날아갑니다. 터널이 이미 걷힌 뒤라면 같은 요청이 정상 처리됩니다.",
   "participants": [
     {
       "id": "C",

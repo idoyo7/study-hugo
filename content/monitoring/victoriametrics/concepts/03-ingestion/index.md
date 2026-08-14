@@ -74,7 +74,7 @@ vminsert는 인제스천(ingestion) 파이프라인이자, 데이터를 여러 *
 
 ### vmstorage 연결 시퀀스 — 압축 협의
 
-vminsert가 vmstorage에 붙을 때 다음 순서를 밉니다.
+vminsert가 vmstorage에 붙을 때 다음 순서를 밟습니다.
 
 ```
 1. TCP 커넥션 수립

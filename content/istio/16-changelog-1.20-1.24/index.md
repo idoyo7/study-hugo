@@ -80,13 +80,13 @@ HBONE 터널이 "ztunnel 사이"에 그려지는 것은 논리적 표현이고, 
 - **ingress gateway → waypoint 있는 ambient 파드**: 기본적으로 waypoint 우회. `istio.io/ingress-use-waypoint` 라벨로 옵트인 — **반쪽**(라벨을 붙여야 정책이 산다).
 - **메시 밖 파드 → ambient 파드**: ztunnel이 평문도 받는다. peer 신원이 없는 상태로 인가 평가 — 신원을 요구하는 정책을 걸어야 평문이 차단된다 — **주의**.
 
-즉 공존은 "둘이 같이 떠 있을 수 있다"까지고, **L7 정책의 적용 범위는 출발지가 어느 모드인지에 달린다.** 금융 워크로드에서 L7 인가가 요건이면 이 성질이 이행 중간 상태를 그대로 위험 구간으로 만듭니다.
+즉 공존은 "둘이 같이 떠 있을 수 있다"까지고, **L7 정책의 적용 범위는 출발지가 어느 모드인지에 달립니다.** 금융 워크로드에서 L7 인가가 요건이면 이 성질이 이행 중간 상태를 그대로 위험 구간으로 만듭니다.
 
 ambient가 아예 안 되는 것도 명시돼 있습니다(`docs/ambient/migrate/_index.md`. 그 문서 스스로 **"the limitations listed below reflect the current stable Istio release"**라고 밝히므로 1.24 시점이 아니라 최신 스냅샷 기준입니다).
 
 **하드 블로커 — 이행 자체가 불가능**: VM 워크로드, SPIRE 인증서 프로바이더, `PeerAuthentication mode: DISABLE`(ambient는 mTLS를 항상 강제하므로 무시된다), primary-remote 멀티클러스터(multi-primary만 지원).
 
-**알려진 제약 — 동작하지만 제한적**: `EnvoyFilter`는 waypoint에 지원되지 않는다(향후 지원 가능성만 언급). `VirtualService`의 ambient 지원은 아직 **Alpha**여서 L7 라우팅은 `HTTPRoute`로 옮기는 게 전제고, 같은 워크로드에 둘을 섞으면 동작이 정의되지 않습니다.
+**알려진 제약 — 동작하지만 제한적**: `EnvoyFilter`는 waypoint에 지원되지 않습니다(향후 지원 가능성만 언급). `VirtualService`의 ambient 지원은 아직 **Alpha**여서 L7 라우팅은 `HTTPRoute`로 옮기는 게 전제고, 같은 워크로드에 둘을 섞으면 동작이 정의되지 않습니다.
 
 ### 2.4 판정 — 우리 방침(ambient 금지)은 이 구간 사실로 볼 때 타당한가
 
@@ -152,7 +152,7 @@ kubectl delete customresourcedefinition istiooperators.install.istio.io
 | **업그레이드** | `kubectl apply -f manifests/charts/base/files/crd-all.gen.yaml` | `helm upgrade istio-base` |
 | 삭제 | `kubectl get crd -oname \| grep istio.io \| xargs kubectl delete` | 동일 |
 
-1.23까지 업그레이드는 차트 밖에서 별도로 처리했고, 1.24부터는 차트가 관리합니다. 새 옵션 `base.enableCRDTemplates`가 기본 `true`고, `false`로 레거시 방식을 유지할 수 있지만 **향후 릴리스에서 제거 예정**으로 deprecated 표시됐다([#43204](https://github.com/istio/istio/issues/43204)). 이전에 `helm install istio-base`나 `kubectl apply`로 CRD를 넣었다면 **1.24 업그레이드 전에 1회** 소유권 라벨·어노테이션을 붙여야 합니다.
+1.23까지 업그레이드는 차트 밖에서 별도로 처리했고, 1.24부터는 차트가 관리합니다. 새 옵션 `base.enableCRDTemplates`가 기본 `true`고, `false`로 레거시 방식을 유지할 수 있지만 **향후 릴리스에서 제거 예정**으로 deprecated 표시됐습니다([#43204](https://github.com/istio/istio/issues/43204)). 이전에 `helm install istio-base`나 `kubectl apply`로 CRD를 넣었다면 **1.24 업그레이드 전에 1회** 소유권 라벨·어노테이션을 붙여야 합니다.
 
 ```bash
 CRDS="$(kubectl get crds -l chart=istio -o name; kubectl get crds -l app.kubernetes.io/part-of=istio -o name)"

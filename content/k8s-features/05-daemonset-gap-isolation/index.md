@@ -63,7 +63,7 @@ rollingUpdate 기본값은 `maxUnavailable: 1`, `maxSurge: 0`, `minReadySeconds:
 | **커스텀 NoExecute** | `kubectl taint node <NODE> k=v:NoExecute` | 즉시 축출 | 차단 | 톨러레이션 없으면 축출 |
 | **drain** | cordon 후 Eviction API를 파드마다 제출 | PDB를 지키며 축출 | 차단 | `--ignore-daemonsets` 여부로 결정 |
 
-NoExecute의 의미론은 세 갈래입니다. 첫째, "Pods that do not tolerate the taint are evicted immediately" · 둘째, "Pods that tolerate the taint without specifying `tolerationSeconds` … remain bound forever" · 셋째, `tolerationSeconds` 를 지정한 파드는 그 시간이 지나면 node lifecycle controller가 축출합니다. 여기에 기본값이 하나 얹혔습니다 — 쿠버네티스는 모든 파드에 `not-ready`·`unreachable` 에 대한 `tolerationSeconds: 300` 기본 톨러레이션을 자동 부여합니다. 노드가 죽어도 5분은 버티습니다는 뜻입니다. 격리를 서두르고 싶다면 이 5분이 그대로 지연으로 잡혔습니다.
+NoExecute의 의미론은 세 갈래입니다. 첫째, "Pods that do not tolerate the taint are evicted immediately" · 둘째, "Pods that tolerate the taint without specifying `tolerationSeconds` … remain bound forever" · 셋째, `tolerationSeconds` 를 지정한 파드는 그 시간이 지나면 node lifecycle controller가 축출합니다. 여기에 기본값이 하나 얹힙니다 — 쿠버네티스는 모든 파드에 `not-ready`·`unreachable` 에 대한 `tolerationSeconds: 300` 기본 톨러레이션을 자동 부여합니다. 노드가 죽어도 5분은 버틴다는 뜻입니다. 격리를 서두르고 싶다면 이 5분이 그대로 지연으로 잡힙니다.
 
 drain은 "safely evicts all pods from a node before you perform maintenance"이며 "Safe evictions allow the pod's containers to gracefully terminate and will respect the PodDisruptionBudgets you have specified." 거부된 eviction은 타임아웃까지 재시도됩니다. 즉 drain은 즉시성이 없습니다. 급한 격리에는 taint가 먼저고 drain은 그다음입니다.
 
@@ -89,7 +89,7 @@ DS 컨트롤러가 자동으로 붙이는 톨러레이션은 다음 7개뿐입�
 
 `not-ready`·`unreachable` 에 `tolerationSeconds` 가 없는 이유도 문서가 밝힙니다 — "This ensures that DaemonSet pods are never evicted due to these problems."
 
-**이 목록 밖의 임의 키는 자동으로 커버되지 않습니다.** 커스텀 NoSchedule taint를 붙이면 DS 파드도 함께 막혔습니다("if there is at least one un-ignored taint with effect NoSchedule then Kubernetes will not schedule the pod onto that node"). 그래서 두 가지가 갈립니다.
+**이 목록 밖의 임의 키는 자동으로 커버되지 않습니다.** 커스텀 NoSchedule taint를 붙이면 DS 파드도 함께 막힙니다("if there is at least one un-ignored taint with effect NoSchedule then Kubernetes will not schedule the pod onto that node"). 그래서 두 가지가 갈립니다.
 
 - 워크로드만 막고 DS는 통과시키고 싶다 → **cordon**(built-in `unschedulable` 키)을 쓴다.
 - 커스텀 taint를 쓰겠다 → 통과시켜야 할 인프라 DS의 Pod template에 **그 taint의 톨러레이션을 직접 넣어야** 한다. 4.1절의 startup taint 패턴이 정확히 이 구조다.

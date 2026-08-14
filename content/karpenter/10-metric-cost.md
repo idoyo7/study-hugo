@@ -227,7 +227,7 @@ drop하면 **그 메트릭을 쓰던 대시보드·알림이 조용히 빈 결�
 | NodePool별 파드 분포 | `karpenter_nodes_total_pod_requests` (노드 축) |
 | 파드 startup 지연 | kubelet `kubelet_pod_start_duration_seconds` |
 
-**대체 안 되는 것 하나** — `karpenter_pods_state`의 `capacity_type`은 KSM이 직접 주지 않습니다. 필요하면 조입니다.
+**대체 안 되는 것 하나** — `karpenter_pods_state`의 `capacity_type`은 KSM이 직접 주지 않습니다. 필요하면 조인합니다.
 
 ```promql
 kube_pod_info * on(node) group_left(label_karpenter_sh_capacity_type) kube_node_labels

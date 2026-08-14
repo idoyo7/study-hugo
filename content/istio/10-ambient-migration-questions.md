@@ -109,7 +109,7 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 ## 06 · 관측성 — 대시보드가 어디까지 살아남나
 
-**무엇이 바뀝니다.** [06]({{< relref "06-observability-points.md" >}})은 "관측 지점이 이미 트래픽 경로에 있어서 공짜"라고 정리했습니다. Ambient에서는 그 지점이 두 개로 갈리고, 둘이 보는 계층이 다릅니다.
+**무엇이 바뀌나.** [06]({{< relref "06-observability-points.md" >}})은 "관측 지점이 이미 트래픽 경로에 있어서 공짜"라고 정리했습니다. Ambient에서는 그 지점이 두 개로 갈리고, 둘이 보는 계층이 다릅니다.
 
 **HTTP 골든 시그널** (`istio_requests_total` 등)
 - 사이드카 모드(06): 모든 파드에서
@@ -154,7 +154,7 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 ## 07 · API 대응표 — 표에 세 번째 열이 붙는다
 
-**무엇이 바뀝니다.** [07]({{< relref "07-from-nginx-to-istio.md" >}})은 nginx 지시어를 Istio CRD로 옮기는 2열 표였습니다. Ambient는 여기에 Gateway API라는 세 번째 열을 붙입니다.
+**무엇이 바뀌나.** [07]({{< relref "07-from-nginx-to-istio.md" >}})은 nginx 지시어를 Istio CRD로 옮기는 2열 표였습니다. Ambient는 여기에 Gateway API라는 세 번째 열을 붙입니다.
 
 ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·TLSRoute·TCPRoute가 `parentRefs`로, AuthorizationPolicy·RequestAuthentication이 `targetRefs`로 붙습니다. Istio API 쪽은 DestinationRule만 1.23에서 waypoint 지원이 정식으로 도입됐고, **VirtualService는 latest 문서 기준으로도 여전히 Alpha**이며 "Gateway API 설정과 섞으면 undefined behavior"라는 경고가 붙어 있습니다.
 
