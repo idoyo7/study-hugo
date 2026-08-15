@@ -17,9 +17,10 @@ finance(금융) 도메인 EKS 클러스터를 신규 blue 클러스터로 갈아
 - **목표 1.35**: 전 컴포넌트 세트가 공식 지원하는 최고 버전. **1.36은 서드파티 6종이 차단** → [목표버전]({{< relref "01-target-version.md" >}}).
 - **토폴로지**: managed nodegroup 0 + Fargate(coredns·karpenter) + karpenter system nodepool → [클러스터 설정]({{< relref "02-cluster-config.md" >}}).
 - **런웨이**: green 확장지원 종료가 **2026-11-26**이라 약 4개월 여유가 있다(임박한 절벽 아님).
+- **⚠️ 확장지원은 기본값이다**: `upgradePolicy.supportType`의 기본값이 `STANDARD`가 아니라 **`EXTENDED`**라, blue 생성 시 명시하지 않으면 표준지원 종료일부터 시간당 $0.60이 자동으로 붙는다 → [컨트롤 플레인 파라미터]({{< relref "controlplane/01-cluster-parameters.md" >}}).
 {{< /callout >}}
 
-## 4레이어 지도
+## 문서 지도
 
 | 레이어 | 페이지 | 다루는 것 |
 |---|---|---|
@@ -30,6 +31,7 @@ finance(금융) 도메인 EKS 클러스터를 신규 blue 클러스터로 갈아
 | 부트스트랩 | [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}}) | 설치 순서·ArgoCD 3-tier·endpoint 재바인딩 |
 | 컷오버·롤백 | [05 컷오버·롤백]({{< relref "05-cutover-rollback.md" >}}) | ALB 가중치 트래픽 전환·롤백 계약 |
 | 컴포넌트별 | [components]({{< relref "components/_index.md" >}}) | 직접배포 애드온의 버전 마이그레이션 |
+| 컨트롤 플레인 파라미터 | [controlplane]({{< relref "controlplane/_index.md" >}}) | 컨트롤 플레인에 설정할 수 있는 것 전수 — 2026-08 열린 4종·Provisioned CP·닫힌 영역 |
 
 ## 자매 챕터
 
