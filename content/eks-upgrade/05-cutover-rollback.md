@@ -7,10 +7,10 @@ weight: 6
 
 {{< callout type="info" >}}
 **한눈에**
-- 트래픽 전환은 Route53 가중치가 아니라 **ALB target group 가중치**로 green→blue 이전한다.
-- blue·green이 **동일 RDS/큐를 공유**하므로 트래픽 비율과 무관하게 데이터는 단일 소스다(스키마는 backward-compatible 전제).
+- 트래픽 전환은 Route53 가중치가 아니라 **ALB target group 가중치**로 green→blue 이전합니다.
+- blue·green이 **동일 RDS/큐를 공유**하므로 트래픽 비율과 무관하게 데이터는 단일 소스입니다(스키마는 backward-compatible 전제).
 - **롤백 = ALB 가중치를 green 100%로 즉시 복귀**(클러스터 삭제·재배포 아님).
-- blue 100% + 안정화 관찰을 통과하기 전까지 **green은 보존**한다(즉시 롤백 여지).
+- blue 100% + 안정화 관찰을 통과하기 전까지 **green은 보존**합니다(즉시 롤백 여지).
 {{< /callout >}}
 
 blue 클러스터가 부트스트랩까지 완료된 뒤([04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}})), 실제 트래픽을 어떻게 옮기고 문제가 생기면 어떻게 되돌리는지의 계약을 정의합니다. 아래 단계·관찰시간·롤백 기준은 사내 blue-green 방법론의 구조 위에서 구성한 **권장 기본값·예시**이며, 실제 값은 팀 상황에 맞춰 조정합니다.

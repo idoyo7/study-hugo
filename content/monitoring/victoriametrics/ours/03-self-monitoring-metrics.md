@@ -7,10 +7,10 @@ weight: 3
 
 {{< callout type="info" >}}
 **한눈에**
-- 전송 상태는 네 지표로 본다 — **retries**(재시도), **packets_dropped**(드랍), **bytes_sent**(전송량), **pending_data_bytes**(대기 큐).
-- **bytes_sent**는 `forceVMProto` 효과 판정에 쓴다 — 적용 후 뚝 떨어지면 여태 snappy였던 것, 그대로면 이미 zstd였던 것. **둘 다 정상**이다.
-- **pending_data_bytes**가 평시 0 근처를 벗어나 **지속 증가하면 목적지 병목** 신호다.
-- 카디널리티 감시(**churn rate · slow insert**)는 D2 개념을 계승한다 → [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}). 인벤토리는 vmui + `metric_names_stats`로 뽑는다.
+- 전송 상태는 네 지표로 봅니다 — **retries**(재시도), **packets_dropped**(드랍), **bytes_sent**(전송량), **pending_data_bytes**(대기 큐).
+- **bytes_sent**는 `forceVMProto` 효과 판정에 씁니다 — 적용 후 뚝 떨어지면 여태 snappy였던 것, 그대로면 이미 zstd였던 것. **둘 다 정상**입니다.
+- **pending_data_bytes**가 평시 0 근처를 벗어나 **지속 증가하면 목적지 병목** 신호입니다.
+- 카디널리티 감시(**churn rate · slow insert**)는 D2 개념을 계승합니다 → [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}). 인벤토리는 vmui + `metric_names_stats`로 뽑습니다.
 {{< /callout >}}
 
 Phase 1 적용이 잘 됐는지, 전송이 건강한지를 판정하는 자기감시(self-monitoring) 메트릭을 정리합니다. [02]({{< relref "02-vmagent-transport-tuning.md" >}})의 적용 후 확인이 여기로 이어집니다.
@@ -19,7 +19,7 @@ Phase 1 적용이 잘 됐는지, 전송이 건강한지를 판정하는 자기�
 
 ## 전송 상태 4지표
 
-- **`vmagent_remotewrite_retries_count_total`** — 전송 재시도 횟수. 정상 기준: `rate(...[5m])` ≈ 0 유지. 값이 오르면 목적지가 불안정하거나 write가 반복 실패 중이다.
+- **`vmagent_remotewrite_retries_count_total`** — 전송 재시도 횟수. 정상 기준: `rate(...[5m])` ≈ 0 유지. 값이 오르면 목적지가 불안정하거나 write가 반복 실패 중입니다.
 - **`vmagent_remotewrite_packets_dropped_total`** — 버려진 패킷 수. 정상 기준: `increase(...[1h])` = 0 유지. 0이 아니면 데이터가 실제로 유실됨(큐 상한 초과·포맷 거부 등).
 - **`vmagent_remotewrite_bytes_sent_total`** — URL별 전송 바이트. 정상 기준: 안정적 추세. `forceVMProto` 효과 판정용(아래 참고).
 - **`vmagent_remotewrite_pending_data_bytes`** — 아직 못 보낸 대기 큐 크기. 정상 기준: 평시 0 근처. **지속 증가 = 목적지 병목**(큐가 계속 쌓임).
@@ -44,8 +44,8 @@ vmagent_remotewrite_pending_data_bytes
 
 `forceVMProto` 적용 전후로 URL별 전송량을 비교합니다.
 
-- **뚝 떨어짐** → 여태 snappy로 나가고 있었다는 뜻. zstd 고정으로 절감이 확정됐다.
-- **그대로** → 이미 zstd였다는 뜻. 이번 변경은 다운그레이드 방지 보장만 추가한 것이다.
+- **뚝 떨어짐** → 여태 snappy로 나가고 있었다는 뜻. zstd 고정으로 절감이 확정됐습니다.
+- **그대로** → 이미 zstd였다는 뜻. 이번 변경은 다운그레이드 방지 보장만 추가한 것입니다.
 
 **둘 다 정상**입니다. 떨어지면 절감 효과를 얻은 것이고, 그대로면 원래 최적이었던 것을 고정한 것입니다. 나빠질 시나리오는 없습니다.
 

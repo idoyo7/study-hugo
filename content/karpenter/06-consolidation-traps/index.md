@@ -8,12 +8,12 @@ aliases: ["/k8s-features/karpenter/03-consolidation-traps/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- **consolidation의 교체 조건은 가격 부등식 하나뿐이다.** `launchPrice < candidatePrice` — **strict라 동가격 교체조차 없다.** 세대·성능·선호도라는 개념은 disruption 패키지 어디에도 인코딩돼 있지 않다.
-- **disruption 패키지는 NodePool weight를 전혀 보지 않는다.** `grep -rnE 'Spec\.Weight|OrderByWeight' pkg/controllers/disruption/` → **0건**. 크로스 풀 교체는 막히는 게 아니라 코어가 정상 경로로 인지하는 동작이다.
-- **다만 크로스 풀 다운그레이드는 좁다.** 대체안 시뮬레이션도 프로비저닝과 **같은 weight 정렬 스케줄러**를 쓴다. 평상시엔 gen8 풀에서 대체안이 나오고 strict 부등호에 걸려 탈락한다. **gen8 풀이 스케줄에 실패할 때만** gen7이 이긴다. 그건 정확히 gen7을 원하는 상황이다.
-- **한 번 내려가면 consolidation으로는 안 돌아온다.** "더 비싼 교체" 분기가 코드에 없다. 업스트림 요청도 반려됐다(#1829 closed as not planned). **복귀 경로는 `expireAfter`와 drift** — 둘 다 가격 필터 없이 교체하므로 재스케줄 시 weight 100인 gen8이 다시 먼저 평가된다.
-- **weight는 "보장"이 아니다 — 공식 문서가 명시한다.** 원인은 "이미 떠 있는 노드"가 아니라 **단일 프로비저닝 루프 내부의 빈패킹**이다. in-flight NodeClaim을 weight가 아니라 **파드 수 오름차순**으로 정렬한다. 거기에 얹는 시도가 새 NodeClaim 생성보다 **먼저** 온다.
-- **drift는 값 추가엔 침묵하고 값 제거엔 폭발한다.** requirements 판정이 호환성 기반이라 세대 **추가**는 무해하다. 풀을 쪼개려고 기존 풀에서 세대를 **제거**하면 RequirementsDrifted 대량 교체가 시작된다. **속도 제어 수단은 `disruption.budgets` 하나뿐**이다.
+- **consolidation의 교체 조건은 가격 부등식 하나뿐입니다.** `launchPrice < candidatePrice` — **strict라 동가격 교체조차 없습니다.** 세대·성능·선호도라는 개념은 disruption 패키지 어디에도 인코딩돼 있지 않습니다.
+- **disruption 패키지는 NodePool weight를 전혀 보지 않습니다.** `grep -rnE 'Spec\.Weight|OrderByWeight' pkg/controllers/disruption/` → **0건**. 크로스 풀 교체는 막히는 게 아니라 코어가 정상 경로로 인지하는 동작입니다.
+- **다만 크로스 풀 다운그레이드는 좁습니다.** 대체안 시뮬레이션도 프로비저닝과 **같은 weight 정렬 스케줄러**를 씁니다. 평상시엔 gen8 풀에서 대체안이 나오고 strict 부등호에 걸려 탈락합니다. **gen8 풀이 스케줄에 실패할 때만** gen7이 이깁니다. 그건 정확히 gen7을 원하는 상황입니다.
+- **한 번 내려가면 consolidation으로는 안 돌아옵니다.** "더 비싼 교체" 분기가 코드에 없습니다. 업스트림 요청도 반려됐습니다(#1829 closed as not planned). **복귀 경로는 `expireAfter`와 drift** — 둘 다 가격 필터 없이 교체하므로 재스케줄 시 weight 100인 gen8이 다시 먼저 평가됩니다.
+- **weight는 "보장"이 아닙니다 — 공식 문서가 명시합니다.** 원인은 "이미 떠 있는 노드"가 아니라 **단일 프로비저닝 루프 내부의 빈패킹**입니다. in-flight NodeClaim을 weight가 아니라 **파드 수 오름차순**으로 정렬합니다. 거기에 얹는 시도가 새 NodeClaim 생성보다 **먼저** 옵니다.
+- **drift는 값 추가엔 침묵하고 값 제거엔 폭발합니다.** requirements 판정이 호환성 기반이라 세대 **추가**는 무해합니다. 풀을 쪼개려고 기존 풀에서 세대를 **제거**하면 RequirementsDrifted 대량 교체가 시작됩니다. **속도 제어 수단은 `disruption.budgets` 하나뿐입니다.**
 {{< /callout >}}
 
 > **왜 이 문서인가.** [05]({{< relref "05-generation-preference.md" >}})의 매니페스트는 적용 순간엔 의도대로 동작한다. 문제는 그 다음이다 — Karpenter의 재계산 루프는 "세대"라는 단어를 모른다. 이 문서는 **며칠~몇 주에 걸쳐 조용히 무너지는 경로**를 코어 소스에서 짚는다. 검증 기준: kubernetes-sigs/karpenter `v1.14.0-6-gac7a021e`(로컬 체크아웃).

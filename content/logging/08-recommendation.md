@@ -7,11 +7,11 @@ weight: 8
 
 {{< callout type="info" >}}
 **한눈에**
-- 결론은 **수집 1개(OTel Collector) + 저장 패밀리 1개(Victoria) + Grafana**로 수렴한다 — RUM/APM은 별도 트랙으로 분리 판단.
-- **진짜 게이트는 기술이 아니라 인건비**다 — 신호 하나만 내재화하면 platform SRE 인건비가 절감을 상쇄하거나 초과한다.
+- 결론은 **수집 1개(OTel Collector) + 저장 패밀리 1개(Victoria) + Grafana**로 수렴합니다 — RUM/APM은 별도 트랙으로 분리 판단.
+- **진짜 게이트는 기술이 아니라 인건비**입니다 — 신호 하나만 내재화하면 platform SRE 인건비가 절감을 상쇄하거나 초과합니다.
 - 저후회 시퀀싱: Week 0 공짜 이득 → 키스톤(OTel Collector) → istio 부활(D1) → dual-write(D2) → OpenSearch 은퇴 → RUM 트랙(D3) → 선택적 통합(D4, earn-it-last).
-- 로그·메트릭·웹 RUM 세 신호가 **같은 팀·같은 컬럼나 스토어를 나눠 물어야** 통합 저장소(D4)가 성립한다.
-- "OpenSearch 40% RI 절감 기대", "메트릭을 CH/StarRocks에 억지로", "Loki SSD 신규 구축" 등 **7가지는 검증에서 기각**됐다.
+- 로그·메트릭·웹 RUM 세 신호가 **같은 팀·같은 컬럼나 스토어를 나눠 물어야** 통합 저장소(D4)가 성립합니다.
+- "OpenSearch 40% RI 절감 기대", "메트릭을 CH/StarRocks에 억지로", "Loki SSD 신규 구축" 등 **7가지는 검증에서 기각**됐습니다.
 {{< /callout >}}
 
 각 솔루션의 성격은 앞의 솔루션별 페이지(OpenSearch·Loki·VictoriaLogs·ClickHouse·HyperDX·StarRocks)에서 다뤘습니다 — 목록은 [챕터 개요]({{< relref "_index.md" >}}) 참고. 여기서는 그걸 우리 환경에 얹어 최소 조합·게이트·마이그레이션 순서로 정리합니다.
@@ -41,8 +41,8 @@ weight: 8
 
 이 구조가 사실상 "2개"로 수렴하는 이유:
 
-1. **수집기 하나**가 모든 소스를 커버하면서, 백엔드 전환기에는 dual-write 스위치 역할을 한다. 나중에 저장소를 바꿔도(exporter 한 줄) 앱은 건드리지 않는다.
-2. **Victoria 패밀리**는 팀이 이미 검증한 운영 모델이라 학습·rot 비용이 0에 가깝다. 메트릭(VM)에서 쌓은 근육이 로그(VictoriaLogs)에 그대로 전이된다.
+1. **수집기 하나**가 모든 소스를 커버하면서, 백엔드 전환기에는 dual-write 스위치 역할을 합니다. 나중에 저장소를 바꿔도(exporter 한 줄) 앱은 건드리지 않습니다.
+2. **Victoria 패밀리**는 팀이 이미 검증한 운영 모델이라 학습·rot 비용이 0에 가깝습니다. 메트릭(VM)에서 쌓은 근육이 로그(VictoriaLogs)에 그대로 전이됩니다.
 
 ## 진짜 게이트는 기술이 아니라 인건비
 

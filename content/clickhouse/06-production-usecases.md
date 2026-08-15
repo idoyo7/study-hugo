@@ -7,10 +7,10 @@ weight: 6
 
 {{< callout type="info" >}}
 **한눈에** — ClickHouse를 PB~경 스케일 관측성 백엔드로 운영하는 사례는 넘치지만, **'K8s + operator + 로컬 NVMe'의 순수 1차 실증은 얇습니다**.
-- **K8s + operator**는 eBay·Anthropic·Trip.com·LogHouse가 검증한 안전한 패턴이다.
-- **로컬 NVMe primary**는 최고 성능을 사는 대신 노드 소실 시 재복제·drain 운영을 대가로 요구한다 — 대규모 K8s 사례는 대부분 **오브젝트 스토리지 백킹**으로 수렴한다.
-- **소규모 팀**에는 로컬 NVMe(hot 캐시) + S3(primary) **하이브리드**가 재수화·drain 리스크를 줄여 더 안전하다.
-- 대규모 사례의 수치 상당수가 **ClickHouse Inc. 벤더 출처**이므로 편향을 감안해 읽는다.
+- **K8s + operator**는 eBay·Anthropic·Trip.com·LogHouse가 검증한 안전한 패턴입니다.
+- **로컬 NVMe primary**는 최고 성능을 사는 대신 노드 소실 시 재복제·drain 운영을 대가로 요구합니다 — 대규모 K8s 사례는 대부분 **오브젝트 스토리지 백킹**으로 수렴합니다.
+- **소규모 팀**에는 로컬 NVMe(hot 캐시) + S3(primary) **하이브리드**가 재수화·drain 리스크를 줄여 더 안전합니다.
+- 대규모 사례의 수치 상당수가 **ClickHouse Inc. 벤더 출처**이므로 편향을 감안해 읽습니다.
 {{< /callout >}}
 
 ClickHouse를 관측성 백엔드로 **PB~경(quadrillion) 스케일에서 운영하는 사례는 차고 넘칩니다** — 이 방향성 자체는 의심할 필요가 없습니다. 다만 사용자가 검토 중인 특정 조합 **'K8s + operator + 로컬 NVMe'**의 순수 실증은 생각보다 얇습니다. 대규모 named 사례의 스토리지는 대부분 (a) 베어메탈 로컬 디스크(Cloudflare·Didi)이거나 (b) 오브젝트 스토리지 백킹(Anthropic·Character.AI·ClickHouse LogHouse)이고, "K8s 위 로컬 NVMe만으로 대규모"를 공개 1차 출처로 확인해주는 곳은 드뭅니다. 결론부터: **K8s+operator는 검증된 프로덕션 패턴이지만, 로컬 NVMe는 성능 상한을 사는 대신 node lifecycle 운영을 대가로 요구하며, 소규모 팀에는 로컬 NVMe(hot 캐시) + S3(primary) 하이브리드가 더 안전합니다.**

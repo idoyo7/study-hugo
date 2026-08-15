@@ -289,8 +289,8 @@ zero-copy replication 현행 상태:
 Cloud 부품·요금 원본:
 
 - **AWS Price List Bulk API — offer index 진입점(서울 단가 직접 조회)** — [pricing.us-east-1.amazonaws.com/offers/v1.0/aws/index.json](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/index.json)
-- **ClickHouse Private(자체 인프라에서 SharedMergeTree, AWS GA·GCP preview)** — 제품 페이지 URL 미확보 `?`. 공개된 접점은 영업 문의뿐이고, 요금·최소 커밋은 확인하지 못했다.
-- **ClickHouse 블로그 — stateless compute · Shared Catalog 계열 포스트** — 개별 포스트 URL 미확보 `?`. 본문은 부품 존재 사실만 인용하고 수치를 쓰지 않는다.
+- **ClickHouse Private(자체 인프라에서 SharedMergeTree, AWS GA·GCP preview)** — 제품 페이지 URL 미확보 `?`. 공개된 접점은 영업 문의뿐이고, 요금·최소 커밋은 확인하지 못했습니다.
+- **ClickHouse 블로그 — stateless compute · Shared Catalog 계열 포스트** — 개별 포스트 URL 미확보 `?`. 본문은 부품 존재 사실만 인용하고 수치를 쓰지 않습니다.
 
 ## 데이터스토어 횡단 벤치마킹
 

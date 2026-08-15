@@ -8,11 +8,11 @@ weight: 5
 {{< callout type="info" >}}
 **한눈에** — 이미 서 있는 Altinity operator 클러스터를 규모 변화·업그레이드·장애 앞에서 어떻게 바꾸고 되돌리나. 기준 버전은 **Altinity Kubernetes Operator 0.27.1**(2026-06-04).
 
-- **스케일 out**은 자동 리밸런싱·스키마 전파가 없다 — 새 shard는 신규 insert만 받고, 스키마는 수동 생성해야 한다(기존 shard의 replica 추가와는 다름).
-- **스케일 in**은 활성 replica가 자동 drop되지는 않지만, 미검증 DROP REPLICA 버그 리드가 있어 제거 전 체크리스트로 수동 확인이 필요하다.
-- **operator 자체 업그레이드는 minor 단계별로만**, CRD는 절대 삭제 금지 — 삭제 시 관리 중인 모든 CHI/CHK가 연쇄 삭제된다.
-- ClickHouse 버전 롤링은 **shard 내부는 순차, shard 간은 병렬** 가능하나 혼합 버전 호환 창은 약 1년(2 LTS 미만)이다.
-- **복구는 두 축이 독립**이다 — 로컬 NVMe 데이터 경로 재수화와 Keeper 정족수 복구는 서로를 기다리지 않는다.
+- **스케일 out**은 자동 리밸런싱·스키마 전파가 없습니다 — 새 shard는 신규 insert만 받고, 스키마는 수동 생성해야 합니다(기존 shard의 replica 추가와는 다름).
+- **스케일 in**은 활성 replica가 자동 drop되지는 않지만, 미검증 DROP REPLICA 버그 리드가 있어 제거 전 체크리스트로 수동 확인이 필요합니다.
+- **operator 자체 업그레이드는 minor 단계별로만**, CRD는 절대 삭제 금지 — 삭제 시 관리 중인 모든 CHI/CHK가 연쇄 삭제됩니다.
+- ClickHouse 버전 롤링은 **shard 내부는 순차, shard 간은 병렬** 가능하나 혼합 버전 호환 창은 약 1년(2 LTS 미만)입니다.
+- **복구는 두 축이 독립**입니다 — 로컬 NVMe 데이터 경로 재수화와 Keeper 정족수 복구는 서로를 기다리지 않습니다.
 {{< /callout >}}
 
 [Altinity operator 선택]({{< relref "03-operator.md" >}})이 "어느 operator를 쓸지"를, [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})이 "로컬 NVMe 위에 **처음** 어떻게 배포하는지"(StorageClass·CHK/CHI 매니페스트 전문·필드 레벨 티어링)를 다뤘다면, 이 페이지는 **배포 이후의 변경 관리와 복구**를 다룹니다 — 규모가 달라질 때의 구성 관점, 스케일 in/out, ClickHouse 버전·operator 자체·Keeper의 롤링 업그레이드, 노드 소실 재수화와 Keeper 정족수 상실, 그리고 백업·모니터링·GitOps 연계입니다. 두 페이지의 경계는 **시간축**입니다: 배포 시점의 선언 필드는 04가, 서고 난 뒤 그 필드를 움직이는 절차는 이 페이지가 소유합니다. 선택 근거·operator 2종 공존·Keeper 배치 근거·배포 매니페스트 상세는 반복하지 않고 relref로 위임합니다. 기준 버전은 **Altinity Kubernetes Operator 0.27.1**(2026-06-04 릴리스)이며, 2026-07-15 확인 시점에도 최신 릴리스입니다 `✓`.

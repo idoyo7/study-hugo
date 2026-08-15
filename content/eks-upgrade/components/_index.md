@@ -9,10 +9,10 @@ weight: 7
 
 {{< callout type="info" >}}
 **한눈에**
-- 전부 **blue-green 신규 클러스터라 목표 버전 직행 설치**다 — 기존 클러스터 in-place처럼 마이너를 한 단계씩 밟는 conversion 체인이 필요 없다 `✓`
-- umbrella 서브차트로 배포되는 컴포넌트(external-secrets·aws-load-balancer-controller·argo-rollouts)는 **독립 bump가 불가능** — `yo-charts` 쪽 umbrella `Chart.yaml`의 dependency 핀을 리워크하고 ECR에 재퍼블리시해야 targetRevision 변경이 의미를 가진다 `✓`
+- 전부 **blue-green 신규 클러스터라 목표 버전 직행 설치**입니다 — 기존 클러스터 in-place처럼 마이너를 한 단계씩 밟는 conversion 체인이 필요 없습니다 `✓`
+- umbrella 서브차트로 배포되는 컴포넌트(external-secrets·aws-load-balancer-controller·argo-rollouts)는 **독립 bump가 불가능** — `yo-charts` 쪽 umbrella `Chart.yaml`의 dependency 핀을 리워크하고 ECR에 재퍼블리시해야 targetRevision 변경이 의미를 가집니다 `✓`
 - 이번 이관의 최대 CRD 경계는 두 곳 — **karpenter `v1beta1→v1`**(NodePool/EC2NodeClass), **external-secrets `v1beta1→v1`**(ExternalSecret/SecretStore, 매니페스트 전량 재작성) `✓`
-- **ECR 미러 태그를 사전에 확보하지 않으면 배포 즉시 ImagePullBackOff**다 — 다수 컴포넌트가 이미지 태그를 명시 핀하지 않고 차트 기본값을 그대로 상속하므로, 차트 버전만 올려도 이미지가 자동으로 몇 년치 점프한다(victoria-metrics-k8s-stack·fluentbit가 대표적) `✓`
+- **ECR 미러 태그를 사전에 확보하지 않으면 배포 즉시 ImagePullBackOff**입니다 — 다수 컴포넌트가 이미지 태그를 명시 핀하지 않고 차트 기본값을 그대로 상속하므로, 차트 버전만 올려도 이미지가 자동으로 몇 년치 점프합니다(victoria-metrics-k8s-stack·fluentbit가 대표적) `✓`
 {{< /callout >}}
 
 이 섹션의 소스는 3기(2026-07) 조사 당시 개별 컴포넌트별로 작성된 업그레이드 노트 10종입니다. 대부분 **k8s 1.33을 목표로 조사**됐으나 상위 결정이 **1.35로 상향**됐으므로, 이 섹션의 모든 페이지는 1.35 기준으로 버전을 통일해 서술합니다. 원 조사가 1.33 기준이었던 항목(특히 external-secrets·descheduler)은 "이전 조사(1.33 기준)"로 명기하고 1.35 값을 별도로 확정합니다. 조사 시점은 2026-07입니다.
@@ -20,7 +20,7 @@ weight: 7
 ## 색인
 
 - **[karpenter]({{< relref "01-karpenter.md" >}})** · 0.36.2 → **1.14.0** — v1beta1→v1 CRD 마이그레이션 + `amiSelectorTerms` 필수화·drift 강제 ON
-- **[istio]({{< relref "02-istio.md" >}})** · (라이브 미확인) → **1.30.3** — sidecar 유지(ambient 금지) 전제로 native sidecar·차트 통합 대응. 경로는 1.35 신규 클러스터 직행으로 확정됐고(green 은 k8s 1.31 이라 istio 1.30 하한 1.32 에 막힌다), 라이브 버전 미확인은 홉 산정 blocking 이 아니라 green↔blue values parity 대조용으로 남는다
+- **[istio]({{< relref "02-istio.md" >}})** · (라이브 미확인) → **1.30.3** — sidecar 유지(ambient 금지) 전제로 native sidecar·차트 통합 대응. 경로는 1.35 신규 클러스터 직행으로 확정됐고(green 은 k8s 1.31 이라 istio 1.30 하한 1.32 에 막힌다), 라이브 버전 미확인은 홉 산정 blocking 이 아니라 green↔blue values parity 대조용으로 남습니다
 - **[argocd (spoke)]({{< relref "03-gitops-argocd-rollouts.md" >}})** · 7.5.2(v2.12) → **10.1.4(v3.4.5)** — 2.14→3.0 breaking 밀집(logs RBAC·SSA 필수) + 허브 버전 미확인
 - **[argo-rollouts]({{< relref "03-gitops-argocd-rollouts.md" >}})** · 2.37.2(v1.7.1) → **2.41.1(v1.9.1)** — CVE-2026-35469(HIGH DoS) 수정 + istio canary weight 순서 변화, umbrella 커플링
 - **[external-secrets]({{< relref "04-secrets-autoscaling.md" >}})** · 0.9.20 → **2.8.x**(이전 조사 0.19.2) — CRD v1beta1→v1 전량 재작성 + umbrella 리워크(fresh 설치로 마이그레이션 우회)

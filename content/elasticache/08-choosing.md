@@ -55,10 +55,10 @@ weight: 8
 
 ### 3.2 신규로 자료구조·영속성이 필요하다
 
-- **조건** — sorted set·stream·hash 필드 TTL 같은 서버측 자료구조 연산이 필요하고, RDB/AOF 로 복구할 수 있어야 한다.
+- **조건** — sorted set·stream·hash 필드 TTL 같은 서버측 자료구조 연산이 필요하고, RDB/AOF 로 복구할 수 있어야 합니다.
 - **선택** — **Valkey 9.1.x** `Σ`.
-- **왜** — 세 축이 같은 방향을 가리킨다. (a) 라이선스가 BSD-3 이고 재변경 장벽이 조문으로 있다([03]({{< relref "03-license-and-fork.md" >}})) `✓`. (b) 8.1 의 새 hashtable 이 키당 20~30B 를 설정 변경 없이 회수하고 9.0 부터 `io-threads` 를 런타임에 켤 수 있다([05]({{< relref "05-valkey-8-to-9/index.md" >}})) `✓`. (c) ElastiCache 에서 7.1 위로 갈 수 있는 유일한 엔진이라 self-host → 관리형 경로가 열려 있다([07]({{< relref "07-aws-endpoints/index.md" >}})) `✓`.
-- **되돌릴 수 있나** — **Valkey 9.x 를 고르는 순간 파일 레벨 복귀는 끝난다.** RDB 80 은 Valkey 8.x 도 거부하고, 12~79 예약 때문에 Redis 쪽으로 돌아가는 경로도 없다 `✓`. 그래서 롤백 계획을 **"RDB 되돌리기" 가 아니라 "전환 직전 스냅샷 보관 + 논리적 재적재"** 로 세워야 한다 `Σ`. 이 제약을 감당할 수 없다면 8.1.x 에 머무는 선택도 있다(RDB 11 이라 Redis 와 파일 호환) — 대가로 HFE·cluster multi-DB·DB 단위 ACL 을 포기한다 `✓`.
+- **왜** — 세 축이 같은 방향을 가리킵니다. (a) 라이선스가 BSD-3 이고 재변경 장벽이 조문으로 있습니다([03]({{< relref "03-license-and-fork.md" >}})) `✓`. (b) 8.1 의 새 hashtable 이 키당 20~30B 를 설정 변경 없이 회수하고 9.0 부터 `io-threads` 를 런타임에 켤 수 있습니다([05]({{< relref "05-valkey-8-to-9/index.md" >}})) `✓`. (c) ElastiCache 에서 7.1 위로 갈 수 있는 유일한 엔진이라 self-host → 관리형 경로가 열려 있습니다([07]({{< relref "07-aws-endpoints/index.md" >}})) `✓`.
+- **되돌릴 수 있나** — **Valkey 9.x 를 고르는 순간 파일 레벨 복귀는 끝납니다.** RDB 80 은 Valkey 8.x 도 거부하고, 12~79 예약 때문에 Redis 쪽으로 돌아가는 경로도 없습니다 `✓`. 그래서 롤백 계획을 **"RDB 되돌리기" 가 아니라 "전환 직전 스냅샷 보관 + 논리적 재적재"** 로 세워야 합니다 `Σ`. 이 제약을 감당할 수 없다면 8.1.x 에 머무는 선택도 있습니다(RDB 11 이라 Redis 와 파일 호환) — 대가로 HFE·cluster multi-DB·DB 단위 ACL 을 포기합니다 `✓`.
 
 ### 3.3 이미 Redis 7.2 이하를 쓰고 있다
 
@@ -73,32 +73,32 @@ weight: 8
 | 그룹사·계열사에 유상으로 공용 캐시를 제공 | **원문으로 판정 불가** | affiliates 는 organization 에 포함되지만 별개 법인 유상 제공이 "third parties" 인지 원문에 없다 `?` |
 | 사내 정책이 AGPL 을 금지한다 | **8.x 로 올릴 때만 걸린다** | AGPLv3 옵션을 못 고르므로 8.x 는 RSALv2/SSPLv1 로만 쓸 수 있고 위 두 제약이 살아난다. 7.2 라인은 `COPYING`(BSD-3) 단독이라 이 정책과 무관하다 `✓` |
 
-- **선택 A — 위 표에서 하나도 걸리지 않는다** → **7.2 라인에 머무르거나 Redis 8.2 로 올린다** `Σ`. 7.2 는 Extended 로 **EOL 2029-12-01** 이고 6.2 도 2027-04-01 까지 살아 있다([04]({{< relref "04-redis-7-to-8.md" >}})) `✓`. 다만 7.2 는 2023-08-15 이후 **기능이 동결**돼 있고, 보안 유지의 실질 상류가 어디인지도 봐야 한다 — Debian 의 redis 패키지는 CVE-2026-21863 패치를 **Valkey 커밋에서 복사해** 붙였는데 반환값 의미가 반대여서 새 DoS 가 생겼다. 이 사례(#1136392)가 이 계보의 현실을 보여준다([03]({{< relref "03-license-and-fork.md" >}})) `✓`.
-- **선택 B — 걸린다** → **Valkey 로 간다. 그리고 지금이 그 이주가 싼 마지막 구간이다** `Σ`. 7.2 이하는 양쪽 RDB 11 이라 **복제로 컷오버**할 수 있다 — Redis 의 host/port 를 확인해 Valkey 에서 `REPLICAOF` → `INFO REPLICATION` 동기 확인 → 애플리케이션 전환 → `REPLICAOF NO ONE` 승격, 사실상 무중단이다([05]({{< relref "05-valkey-8-to-9/index.md" >}})) `✓`. **Redis 를 7.4 로 한 번 올리면 이 경로가 영구히 닫힌다** `✓`.
-- **되돌릴 수 있나** — 선택 B 는 **되돌릴 수 있다, 단 Valkey 8.x 에 머무는 동안만.** 8.x 는 RDB 11 이라 Redis 가 읽는다 `✓`. 9.x 로 올리면 그 창이 닫힌다(§3.2) `✓`.
+- **선택 A — 위 표에서 하나도 걸리지 않습니다** → **7.2 라인에 머무르거나 Redis 8.2 로 올립니다** `Σ`. 7.2 는 Extended 로 **EOL 2029-12-01** 이고 6.2 도 2027-04-01 까지 살아 있다([04]({{< relref "04-redis-7-to-8.md" >}})) `✓`. 다만 7.2 는 2023-08-15 이후 **기능이 동결**돼 있고, 보안 유지의 실질 상류가 어디인지도 봐야 한다 — Debian 의 redis 패키지는 CVE-2026-21863 패치를 **Valkey 커밋에서 복사해** 붙였는데 반환값 의미가 반대여서 새 DoS 가 생겼다. 이 사례(#1136392)가 이 계보의 현실을 보여준다([03]({{< relref "03-license-and-fork.md" >}})) `✓`.
+- **선택 B — 걸립니다** → **Valkey 로 갑니다. 그리고 지금이 그 이주가 싼 마지막 구간입니다** `Σ`. 7.2 이하는 양쪽 RDB 11 이라 **복제로 컷오버**할 수 있다 — Redis 의 host/port 를 확인해 Valkey 에서 `REPLICAOF` → `INFO REPLICATION` 동기 확인 → 애플리케이션 전환 → `REPLICAOF NO ONE` 승격, 사실상 무중단이다([05]({{< relref "05-valkey-8-to-9/index.md" >}})) `✓`. **Redis 를 7.4 로 한 번 올리면 이 경로가 영구히 닫힌다** `✓`.
+- **되돌릴 수 있나** — 선택 B 는 **되돌릴 수 있습니다, 단 Valkey 8.x 에 머무는 동안만.** 8.x 는 RDB 11 이라 Redis 가 읽습니다 `✓`. 9.x 로 올리면 그 창이 닫힙니다(§3.2) `✓`.
 
 ### 3.4 이미 Redis 8.x 를 쓰고 있다
 
 - **조건** — 7.4 이상, 즉 RDB 12 이상.
-- **선택** — **Redis 에 머문다. 그리고 버전을 정리한다** `Σ`.
-- **왜** — 이주 경로가 사실상 없다. RDB·복제·`DUMP`/`RESTORE` 세 경로가 모두 막혀 있고([05]({{< relref "05-valkey-8-to-9/index.md" >}})) 남는 것은 애플리케이션 이중 쓰기 또는 논리적 재적재 + `import-mode yes` + `CLIENT IMPORT-SOURCE ON` 뿐이다 `✓`. 이 비용을 지불할 이유는 §3.3 표의 라이선스 경계에 실제로 걸릴 때뿐이고, 사내 캐시 용도라면 걸리지 않는다 `Σ`.
-- **정리해야 하는 것** — (a) **8.0 은 2026-12-01 에 지원이 끝난다** `✓`. (b) 5년 지평이 필요하면 **8.x 안에서 Extended 는 8.2 하나**(EOL 2030-09-01)다 `✓`. (c) **ACL 을 다중 테넌시 경계로 쓰고 있다면** 8.6 의 `MSETEX` key-pattern 우회와 8.10 의 `SORT`/`GEORADIUS`/`XREAD` 계열 우회(#15478)를 실제로 받았는지 확인해야 한다 — [04]({{< relref "04-redis-7-to-8.md" >}})는 이 근거로 "8.10 이 사실상 최소 버전" 이라고 판정한다 `✓`. 8.2 유지보수 라인에 #15478 이 백포트됐는지는 앞 문서들에 근거가 없다 `?` — **"5년 지원(8.2)" 과 "ACL 경계(8.10)" 가 충돌하면 백포트 확인 없이 8.2 를 고르지 말 것** `Σ`.
-- **되돌릴 수 있나** — **8.6 이후로는 없다.** RDB 가 13·14·15 로 매 릴리스 오르므로 다운그레이드는 replication 대신 논리적 재적재로 계획해야 하고, 그 `RESTORE` 경로 자체가 8.8 CVE 목록이 지목한 공격면이다 `Σ`.
+- **선택** — **Redis 에 머뭅니다. 그리고 버전을 정리합니다** `Σ`.
+- **왜** — 이주 경로가 사실상 없습니다. RDB·복제·`DUMP`/`RESTORE` 세 경로가 모두 막혀 있고([05]({{< relref "05-valkey-8-to-9/index.md" >}})) 남는 것은 애플리케이션 이중 쓰기 또는 논리적 재적재 + `import-mode yes` + `CLIENT IMPORT-SOURCE ON` 뿐입니다 `✓`. 이 비용을 지불할 이유는 §3.3 표의 라이선스 경계에 실제로 걸릴 때뿐이고, 사내 캐시 용도라면 걸리지 않습니다 `Σ`.
+- **정리해야 하는 것** — (a) **8.0 은 2026-12-01 에 지원이 끝납니다** `✓`. (b) 5년 지평이 필요하면 **8.x 안에서 Extended 는 8.2 하나**(EOL 2030-09-01)입니다 `✓`. (c) **ACL 을 다중 테넌시 경계로 쓰고 있다면** 8.6 의 `MSETEX` key-pattern 우회와 8.10 의 `SORT`/`GEORADIUS`/`XREAD` 계열 우회(#15478)를 실제로 받았는지 확인해야 합니다 — [04]({{< relref "04-redis-7-to-8.md" >}})는 이 근거로 "8.10 이 사실상 최소 버전" 이라고 판정합니다 `✓`. 8.2 유지보수 라인에 #15478 이 백포트됐는지는 앞 문서들에 근거가 없습니다 `?` — **"5년 지원(8.2)" 과 "ACL 경계(8.10)" 가 충돌하면 백포트 확인 없이 8.2 를 고르지 말 것** `Σ`.
+- **되돌릴 수 있나** — **8.6 이후로는 없습니다.** RDB 가 13·14·15 로 매 릴리스 오르므로 다운그레이드는 replication 대신 논리적 재적재로 계획해야 하고, 그 `RESTORE` 경로 자체가 8.8 CVE 목록이 지목한 공격면입니다 `Σ`.
 
 ### 3.5 벡터 검색·JSON·전문검색이 필요하다
 
 - **조건** — Search/Vector/JSON/TimeSeries/확률형 자료구조 중 하나 이상이 애플리케이션 요구사항이다.
-- **선택** — **Redis 8.x**. 단 세 개의 조건을 받아들일 때만 `Σ`.
-- **왜** — 이 축에서만 Valkey 가 명확히 진다. Valkey 코어에 검색·JSON·시계열·확률형이 없고, 공식 모듈 4개에 **TimeSeries·Cuckoo·Count-min·Top-K·t-digest 대응물이 아예 없으며**, `valkey-json` 최신이 2025-09-08 로 1년 가까이 멈춰 있다([05]({{< relref "05-valkey-8-to-9/index.md" >}})) `✓`.
-- **받아들여야 하는 조건** — (1) **"core 통합" 은 번들이다.** 소스에서 `make` 만 하면 코어뿐이고, 모듈을 원하면 8.0 계열은 빌드 중 네트워크와 Rust 1.80.1 을 요구한다(에어갭은 8.10 의 tarball 경로) `✓`. 설정은 `redis.conf` 가 아니라 `redis-full.conf` 를 가리켜야 하고 그 파일은 **`make modules-update` 마다 재생성**된다 — 직접 넣은 설정이 사라진다([04]({{< relref "04-redis-7-to-8.md" >}})가 빌드 구조를 소유한다) `✓`. (2) **Vector Set 은 8.0 에서 beta 로 나온 뒤 GA 선언 문장이 없다** — 8.6~8.8 에 SIMD 최적화와 크래시 수정이 집중됐고 문서에서 beta 문구가 사라진 것까지가 확인 가능한 성숙도다 `✓`. big-endian 에서 8.2 이전에 벡터셋을 썼다면 그 RDB 는 신뢰할 수 없다 `✓`. (3) **관리형이 아니다** — ElastiCache 에 Redis 8.x 가 없으므로 self-host 를 전제한다([07]({{< relref "07-aws-endpoints/index.md" >}})) `✓`.
-- **Valkey 로 이 요구를 받으려면** — `valkey-search` 를 얹는 선택은 있지만 **모듈을 하나라도 로드하면 `CLUSTER MIGRATESLOTS` 가 거부된다** — 공식 4개 모듈 전부가 ASM opt-in 플래그를 선언하지 않고, `valkey-bundle` 이미지는 4개를 다 로드한다([06]({{< relref "06-cluster-mode/index.md" >}})) `✓`. 즉 **Valkey + 모듈 + atomic slot migration 은 동시에 성립하지 않는다** — 리샤딩을 일상 작업으로 쓸 계획이면 이 조합을 배제해야 한다 `Σ`.
-- **되돌릴 수 있나** — **모듈 데이터는 RDB 롤백 논의 밖에 있다.** 7.4~8.4 구간은 RDB 12 로 같아 코어 데이터의 롤백 여지가 있었지만 그것도 "모듈 데이터 제외" 조건이 붙는다 `✓`. 검색 인덱스·벡터를 재구축하는 시간을 롤백 계획의 실제 소요로 잡아야 한다 `Σ`.
+- **선택** — **Redis 8.x**. 단 세 개의 조건을 받아들일 때만입니다 `Σ`.
+- **왜** — 이 축에서만 Valkey 가 명확히 집니다. Valkey 코어에 검색·JSON·시계열·확률형이 없고, 공식 모듈 4개에 **TimeSeries·Cuckoo·Count-min·Top-K·t-digest 대응물이 아예 없으며**, `valkey-json` 최신이 2025-09-08 로 1년 가까이 멈춰 있습니다([05]({{< relref "05-valkey-8-to-9/index.md" >}})) `✓`.
+- **받아들여야 하는 조건** — (1) **"core 통합" 은 번들입니다.** 소스에서 `make` 만 하면 코어뿐이고, 모듈을 원하면 8.0 계열은 빌드 중 네트워크와 Rust 1.80.1 을 요구합니다(에어갭은 8.10 의 tarball 경로) `✓`. 설정은 `redis.conf` 가 아니라 `redis-full.conf` 를 가리켜야 하고 그 파일은 **`make modules-update` 마다 재생성**됩니다 — 직접 넣은 설정이 사라집니다([04]({{< relref "04-redis-7-to-8.md" >}})가 빌드 구조를 소유합니다) `✓`. (2) **Vector Set 은 8.0 에서 beta 로 나온 뒤 GA 선언 문장이 없습니다** — 8.6~8.8 에 SIMD 최적화와 크래시 수정이 집중됐고 문서에서 beta 문구가 사라진 것까지가 확인 가능한 성숙도입니다 `✓`. big-endian 에서 8.2 이전에 벡터셋을 썼다면 그 RDB 는 신뢰할 수 없습니다 `✓`. (3) **관리형이 아닙니다** — ElastiCache 에 Redis 8.x 가 없으므로 self-host 를 전제합니다([07]({{< relref "07-aws-endpoints/index.md" >}})) `✓`.
+- **Valkey 로 이 요구를 받으려면** — `valkey-search` 를 얹는 선택은 있지만 **모듈을 하나라도 로드하면 `CLUSTER MIGRATESLOTS` 가 거부됩니다** — 공식 4개 모듈 전부가 ASM opt-in 플래그를 선언하지 않고, `valkey-bundle` 이미지는 4개를 다 로드합니다([06]({{< relref "06-cluster-mode/index.md" >}})) `✓`. 즉 **Valkey + 모듈 + atomic slot migration 은 동시에 성립하지 않습니다** — 리샤딩을 일상 작업으로 쓸 계획이면 이 조합을 배제해야 합니다 `Σ`.
+- **되돌릴 수 있나** — **모듈 데이터는 RDB 롤백 논의 밖에 있습니다.** 7.4~8.4 구간은 RDB 12 로 같아 코어 데이터의 롤백 여지가 있었지만 그것도 "모듈 데이터 제외" 조건이 붙습니다 `✓`. 검색 인덱스·벡터를 재구축하는 시간을 롤백 계획의 실제 소요로 잡아야 합니다 `Σ`.
 
 ### 3.6 AWS 관리형에 얹혀 있다
 
-- **조건** — ElastiCache 또는 MemoryDB 를 쓰고 있고, 엔진 선택을 다시 검토한다.
-- **선택** — **ElastiCache Valkey. 사실상 선택지가 없다** `✓`.
-- **왜** — Redis OSS 는 7.1 에서 멈췄고 그 위는 전부 Valkey 다. **ElastiCache 에 Redis 8 은 없다**([07]({{< relref "07-aws-endpoints/index.md" >}})) `✓`. 엔진 전환의 리스크는 모드 전환과 정반대로 낮다 — in-place 이고 *"including the endpoint DNS name, will remain unchanged"* 이며 바뀌는 것은 노드 IP 뿐이다 `✓`. 다운타임은 Redis OSS **5.0.6 이상**이면 failover 몇 초, 그 미만이면 DNS 전파 동안 30~60초다 `✓`.
+- **조건** — ElastiCache 또는 MemoryDB 를 쓰고 있고, 엔진 선택을 다시 검토합니다.
+- **선택** — **ElastiCache Valkey. 사실상 선택지가 없습니다** `✓`.
+- **왜** — Redis OSS 는 7.1 에서 멈췄고 그 위는 전부 Valkey 입니다. **ElastiCache 에 Redis 8 은 없습니다**([07]({{< relref "07-aws-endpoints/index.md" >}})) `✓`. 엔진 전환의 리스크는 모드 전환과 정반대로 낮습니다 — in-place 이고 *"including the endpoint DNS name, will remain unchanged"* 이며 바뀌는 것은 노드 IP 뿐입니다 `✓`. 다운타임은 Redis OSS **5.0.6 이상**이면 failover 몇 초, 그 미만이면 DNS 전파 동안 30~60초입니다 `✓`.
 - **섞으면 안 되는 두 작업** — **엔진 전환(Redis OSS → Valkey)과 모드 전환(CMD → CME)은 리스크 등급이 다르다** `Σ`. 전자는 엔드포인트가 유지되고 롤백 경로가 하나 있다(Valkey 7.2 → Redis OSS 7.1) `✓`. 후자는 **엔드포인트 문자열 + 클라이언트 클래스 + 애플리케이션의 다중 키 연산 + 파라미터 그룹** 네 층이 함께 바뀌고, AWS 문서가 *"Reverting this configuration is not possible"* 로 못박은 **단방향**이다 `✓`. 두 작업을 한 변경 창에 넣으면 실패 원인을 분리할 수 없다 `Σ`.
 - **DNS TTL 을 먼저 손댄다** — 엔진 전환에서 노드 IP 가 바뀌므로 [07]({{< relref "07-aws-endpoints/index.md" >}})의 `networkaddress.cache.ttl` 5~10초 지시가 그대로 걸린다. 기본값이면 *"never refresh DNS entries until the JVM is restarted"* 이고 security property 라서 `-D` 로는 안 들어간다 `✓`. **failover 자체는 몇 초이고 장애 시간을 만드는 것은 클라이언트 캐시**라는 사실이 여기서 그대로 반복된다 `✓`.
 - **MemoryDB 는 판단 근거가 2026-06 에 바뀌었다** — AWS 자신의 권고가 *"multi-Region active-active replication with conflict-free data types (CRDTs)"* 로 좁아졌고, 단일 리전 durable 워크로드는 **durability 를 켠 ElastiCache** 를 권한다 `✓`. 즉 **"내구성이 필요하면 MemoryDB" 는 더 이상 AWS 의 권고가 아니다** `✓`. 엔진 버전 격차도 실무 요소다(MemoryDB 문서 목록은 7.3 / Valkey 7.2.6 까지) `✓`.

@@ -10,14 +10,14 @@ cascade:
 {{< callout type="info" >}}
 **한눈에** — 이 챕터에서 하나만 가져간다면 이것.
 
-- **Redis 에 9 는 없다.** 태그·숫자 브랜치·마일스톤이 모두 없고 8.10 GA 이후에도 `unstable` 은 `8.9.241` 에 머물러 있다. 9.x 를 가진 쪽은 **Valkey**(9.0.0 = 2025-10-21)이고 홀짝 케이던스는 두 진영이 정반대다 `✓` → [04]({{< relref "04-redis-7-to-8.md" >}})
+- **Redis 에 9 는 없습니다.** 태그·숫자 브랜치·마일스톤이 모두 없고 8.10 GA 이후에도 `unstable` 은 `8.9.241` 에 머물러 있습니다. 9.x 를 가진 쪽은 **Valkey**(9.0.0 = 2025-10-21)이고 홀짝 케이던스는 두 진영이 정반대입니다 `✓` → [04]({{< relref "04-redis-7-to-8.md" >}})
 - **2026-08-06 기준 최신** — Redis **8.10.0**(2026-07-29) · Valkey **9.1.1**(2026-07-21) · memcached **1.6.45**(2026-07-09) `✓`
-- **포크는 봉합되지 않았다.** Redis 는 2025-05 에 AGPLv3 를 추가해 OSI 승인 라이선스로 복귀했는데도 Valkey 는 따라 돌아가지 않았다 — 바뀐 것은 라이선스 옵션의 개수이고 바뀌지 않은 것은 그 개수를 정하는 주체(CLA)다 `✓` → [03]({{< relref "03-license-and-fork.md" >}})
-- **마이그레이션은 RDB 숫자가 정한다.** Valkey 8.x 는 Redis 7.4+ (RDB 12)를 거부하고, Valkey 9.x(RDB 80 / `VALKEY080`)는 8.x 로 되돌아가지 못하고, Redis 는 8.6·8.8·8.10 에서 릴리스마다 숫자가 올라가 롤백 창이 닫혔다 `✓`
-- **양 진영 모두 `io-threads` 기본값은 1(비활성)** 이고 Redis 는 8.10.0 까지 이 값이 `IMMUTABLE_CONFIG` 다. 벤더가 내세우는 "2배"·"1.19M rps" 는 전부 8 스레드 조건이다 `Ⓥ`
-- **atomic slot migration 은 양쪽에 다 있고 방향이 반대다** — Valkey 는 source push(`CLUSTER MIGRATESLOTS`), Redis 는 destination pull(`CLUSTER MIGRATION IMPORT`). 리샤딩 자동화가 진영 간 호환되지 않는 첫 사례다 `✓` → [06]({{< relref "06-cluster-mode/index.md" >}})
-- **ElastiCache 의 Redis OSS 는 7.1 에서 멈췄다** — 그 위는 전부 Valkey 다. ElastiCache 에 Redis 8 은 없다 `✓` → [07]({{< relref "07-aws-endpoints/index.md" >}})
-- **memcached 는 멈춘 소프트웨어가 아니다.** segmented LRU·extstore·meta 프로토콜·내장 proxy·slab mover 재작성이 전부 Redis 등장 이후에 들어왔다 `✓` → [02]({{< relref "02-memcached/index.md" >}})
+- **포크는 봉합되지 않았습니다.** Redis 는 2025-05 에 AGPLv3 를 추가해 OSI 승인 라이선스로 복귀했는데도 Valkey 는 따라 돌아가지 않았습니다 — 바뀐 것은 라이선스 옵션의 개수이고 바뀌지 않은 것은 그 개수를 정하는 주체(CLA)입니다 `✓` → [03]({{< relref "03-license-and-fork.md" >}})
+- **마이그레이션은 RDB 숫자가 정합니다.** Valkey 8.x 는 Redis 7.4+ (RDB 12)를 거부하고, Valkey 9.x(RDB 80 / `VALKEY080`)는 8.x 로 되돌아가지 못하고, Redis 는 8.6·8.8·8.10 에서 릴리스마다 숫자가 올라가 롤백 창이 닫혔습니다 `✓`
+- **양 진영 모두 `io-threads` 기본값은 1(비활성)** 이고 Redis 는 8.10.0 까지 이 값이 `IMMUTABLE_CONFIG` 입니다. 벤더가 내세우는 "2배"·"1.19M rps" 는 전부 8 스레드 조건입니다 `Ⓥ`
+- **atomic slot migration 은 양쪽에 다 있고 방향이 반대입니다** — Valkey 는 source push(`CLUSTER MIGRATESLOTS`), Redis 는 destination pull(`CLUSTER MIGRATION IMPORT`). 리샤딩 자동화가 진영 간 호환되지 않는 첫 사례입니다 `✓` → [06]({{< relref "06-cluster-mode/index.md" >}})
+- **ElastiCache 의 Redis OSS 는 7.1 에서 멈췄습니다** — 그 위는 전부 Valkey 입니다. ElastiCache 에 Redis 8 은 없습니다 `✓` → [07]({{< relref "07-aws-endpoints/index.md" >}})
+- **memcached 는 멈춘 소프트웨어가 아닙니다.** segmented LRU·extstore·meta 프로토콜·내장 proxy·slab mover 재작성이 전부 Redis 등장 이후에 들어왔습니다 `✓` → [02]({{< relref "02-memcached/index.md" >}})
 {{< /callout >}}
 
 > 릴리스노트는 "무엇이 추가됐다"까지만 말한다. **"왜 이렇게 생겼고 · 지금 무엇을 골라야 하나"** 는 말해주지 않는다. 인메모리 데이터스토어에서는 그 간격이 특히 크다 — 2009년에 "값은 blob 이 아니라 자료구조다"라고 정한 결정이 단일 스레드를 불렀고, 단일 스레드가 원자성을 공짜로 줬고, 그 대가를 17년째 갚고 있다. 그 사이 라이선스가 한 번 바뀌면서 엔진이 둘로 갈라졌고, 두 진영은 같은 기능을 다른 이름·반대 방향으로 구현하기 시작했다. 이 챕터는 세 축으로 정리한다 — **왜 이렇게 생겼나(설계 연쇄) · 왜 갈라졌나(거버넌스) · 지금 무엇을 고르나(판단)**.

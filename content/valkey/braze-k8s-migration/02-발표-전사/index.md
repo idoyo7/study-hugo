@@ -102,13 +102,13 @@ Joe는 목록이 너무 많아 다 못 다룬다며 두 가지만 짚습니다.
 
 둘째는 **Sentinel split brain**입니다. 이관 중에는 EC2 클러스터 레벨의 Sentinel 3대와 파드 레벨의 Sentinel 3대가 동시에 떠 있습니다 — 서로 다른 플랫폼 위에서입니다. 이 둘 사이 연결이 끊기면 양쪽 각각의 3대가 "primary에 접근할 수 없습니다"고 판단해 각자 failover를 결의합니다 — 그러면 한 shard 안에 primary가 둘 생기는 전형적인 split brain이고 이 시나리오는 항상 데이터 손실로 이어집니다. 해법으로 **일곱 번째 Sentinel**을 EC2 쪽에 추가했습니다 — 이관 기간 동안만 떠 있는 임시 Sentinel입니다. 그리고 quorum Sentinel 수를 **5**로 올려 항상 절대 과반의 Sentinel이 동의해야만 primary가 죽었다고 판단하도록 했습니다.
 
-> **슬라이드**: 슬라이드 20의 표가 문제·설명·해법 3열로 이 둘을 정리한다 — NLB 트래픽 비용은 "Estimated $100,000+ monthly cost on data transfer" → "Wait for all clients to migrate to K8s first". Sentinel split brain 위험은 "6 Sentinels during migration: 3 legacy + 3 K8s" → "Add a fourth EC2 Sentinel during migration (7 total)", "Set quorum: 5 on Sentinel".
+> **슬라이드**: 슬라이드 20의 표가 문제·설명·해법 3열로 이 둘을 정리합니다 — NLB 트래픽 비용은 "Estimated $100,000+ monthly cost on data transfer" → "Wait for all clients to migrate to K8s first". Sentinel split brain 위험은 "6 Sentinels during migration: 3 legacy + 3 K8s" → "Add a fourth EC2 Sentinel during migration (7 total)", "Set quorum: 5 on Sentinel".
 
 ## 19:13 Kubernetes 이관 성과
 
 마이그레이션은 2023년 2월부터 2024년 5월까지 진행됐습니다. Joe는 "거의 300개 shard를 7개 클러스터 전체에 걸쳐 한 번에 처리했고, 그 전체를 데이터 손실 없이 해냈다"고 말합니다 — 완전한 re-platforming을 고객이 전혀 눈치채지 못하게 끝낸 것이 놀라웠다고 덧붙입니다.
 
-> **슬라이드**: "Migration by numbers"는 **슬라이드 21**이고 정확한 숫자는 **274 shards · 7 clusters · 0 data loss**다. 발표의 "nearly 300"은 어림수다.
+> **슬라이드**: "Migration by numbers"는 **슬라이드 21**이고 정확한 숫자는 **274 shards · 7 clusters · 0 data loss**입니다. 발표의 "nearly 300"은 어림수입니다.
 
 ## 19:39 라이선스 변경과 Valkey로 가는 이유
 

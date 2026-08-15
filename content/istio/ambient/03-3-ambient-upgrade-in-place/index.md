@@ -14,11 +14,11 @@ weight: 5
 
 {{< callout type="info" >}}
 **한눈에**
-- Ambient mode는 사이드카가 없어 애플리케이션 Pod을 재시작하지 않아도 된다. 대신 업그레이드의 위험이 `istio-cni`·`ztunnel`이라는 node-local 컴포넌트로 옮겨 온다.
-- 채널팀이 세운 순서는 **`istiod` → `istio-cni` → `ztunnel`**. `v1.x` istio-cni와 ztunnel이 `v1.x` 및 `v1.x+1` control plane과 호환되므로 control plane이 먼저 올라간다.
-- `istiod`와 `istio-cni`는 in-place로 간다. istio-cni가 in-place로 성립하는 이유는 이미 Running인 Pod의 network namespace가 재생성되지 않기 때문이고, 위험은 rollout 틈에 새로 생성되는 Pod의 `FailedCreatePodSandBox` 정도인데 이건 kubelet이 재시도한다.
-- `ztunnel`만은 rolling update를 쓰지 않는다. graceful shutdown 기본값이 30초 수준이라 그 안에 끝나지 않은 long-lived connection은 종료 순간 끊긴다. 그래서 **node pool 단위 blue-green**으로 옮긴다.
-- 구현은 ztunnel DaemonSet을 `ztunnel-a`(1.25.0) / `ztunnel-b`(1.26.2)로 나눠 `node.channel.io/istio-version` label에 매핑하고, istiod의 `CA_TRUSTED_NODE_ACCOUNTS`에 두 service account를 모두 등록한 뒤 blue node를 점진적으로 cordon/drain하는 것이다.
+- Ambient mode는 사이드카가 없어 애플리케이션 Pod을 재시작하지 않아도 됩니다. 대신 업그레이드의 위험이 `istio-cni`·`ztunnel`이라는 node-local 컴포넌트로 옮겨 옵니다.
+- 채널팀이 세운 순서는 **`istiod` → `istio-cni` → `ztunnel`**. `v1.x` istio-cni와 ztunnel이 `v1.x` 및 `v1.x+1` control plane과 호환되므로 control plane이 먼저 올라갑니다.
+- `istiod`와 `istio-cni`는 in-place로 갑니다. istio-cni가 in-place로 성립하는 이유는 이미 Running인 Pod의 network namespace가 재생성되지 않기 때문이고, 위험은 rollout 틈에 새로 생성되는 Pod의 `FailedCreatePodSandBox` 정도인데 이건 kubelet이 재시도합니다.
+- `ztunnel`만은 rolling update를 쓰지 않습니다. graceful shutdown 기본값이 30초 수준이라 그 안에 끝나지 않은 long-lived connection은 종료 순간 끊깁니다. 그래서 **node pool 단위 blue-green**으로 옮깁니다.
+- 구현은 ztunnel DaemonSet을 `ztunnel-a`(1.25.0) / `ztunnel-b`(1.26.2)로 나눠 `node.channel.io/istio-version` label에 매핑하고, istiod의 `CA_TRUSTED_NODE_ACCOUNTS`에 두 service account를 모두 등록한 뒤 blue node를 점진적으로 cordon/drain하는 것입니다.
 {{< /callout >}}
 
 Ambient mode 도입기 시리즈의 3-3편입니다. [3-1편]({{< relref "03-1-503-half-open-connection.md" >}})은 waypoint와 ztunnel 사이의 stale connection이 만든 503을, [3-2편]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}})은 istio-cni와 ztunnel이 준비되기 전에 Pod이 스케줄되어 생기는 partially enrolled 문제를 다뤘습니다. 이번 편은 장애 추적이 아니라 버전 업그레이드 런북입니다.

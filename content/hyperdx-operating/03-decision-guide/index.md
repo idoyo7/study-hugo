@@ -9,9 +9,9 @@ aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decisi
 {{< callout type="info" >}}
 **한눈에**
 
-- 7축(배포·hot 스토리지·cold 티어링·토폴로지·조정 계층·MongoDB·업그레이드) 각각을 **기본값 + 왜 안전/충분 + 승급 트리거** 한 표로 못박는다. 뼈대는 HyperDX Only(`clickhouse.enabled:false`)+Altinity CHI/CHK · 단일 gp3 · S3 TTL MOVE · 1 shard × RF2(2 AZ) · Keeper 3노드 · MongoDB 최소 · LTS 핀.
-- 승급은 감이 아니라 **관측된 신호**로만 한다 — 각 트리거를 "어떤 신호를 어디서 보면 발동인가"(`system.parts`·`system.asynchronous_metrics`·CloudWatch EBS 지표·K8s 메트릭)까지 §2에서 한 단계 내렸다.
-- 단 **업그레이드 축엔 승급 방향이 없다** — 온디스크 포맷이 바뀐 뒤의 다운그레이드는 "없다고 가정"하고, 유일한 되돌림은 업그레이드 직전 EBS 스냅샷이다.
+- 7축(배포·hot 스토리지·cold 티어링·토폴로지·조정 계층·MongoDB·업그레이드) 각각을 **기본값 + 왜 안전/충분 + 승급 트리거** 한 표로 못박습니다. 뼈대는 HyperDX Only(`clickhouse.enabled:false`)+Altinity CHI/CHK · 단일 gp3 · S3 TTL MOVE · 1 shard × RF2(2 AZ) · Keeper 3노드 · MongoDB 최소 · LTS 핀.
+- 승급은 감이 아니라 **관측된 신호**로만 합니다 — 각 트리거를 "어떤 신호를 어디서 보면 발동인가"(`system.parts`·`system.asynchronous_metrics`·CloudWatch EBS 지표·K8s 메트릭)까지 §2에서 한 단계 내렸습니다.
+- 단 **업그레이드 축엔 승급 방향이 없습니다** — 온디스크 포맷이 바뀐 뒤의 다운그레이드는 "없다고 가정"하고, 유일한 되돌림은 업그레이드 직전 EBS 스냅샷입니다.
 - 배포 전 실측 항목은 전부 `?`다 — 원래 4항목(0.7TB 해석·리플레이 압축비·기본 TTL·reattach 실소요)에 IRSA·경로·볼륨 회수 계열 5항목이 합쳐져 **9항목**이 됐고, **staging에서 측정해 `✓`로 승격**하는 것이 staging을 두는 캐파상 이유다(§3).
 {{< /callout >}}
 

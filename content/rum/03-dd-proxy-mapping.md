@@ -46,7 +46,7 @@ Datadog Agent intake API를 OTel 모델로 번역하는 리시버. 다만 **컴�
 | metrics | alpha | Development | delta↔cumulative 변환 processor 필요, sketches/distribution 매핑 미성숙 |
 | logs | alpha | Development | `logs.decode_json_message` 기본 true |
 
-- 배포판은 `contrib` 한정 — Datadog 공식(DDOT)·core 배포판에 미포함이라 커스텀 빌드/contrib 이미지를 별도 운영해야 한다 `✓`.
+- 배포판은 `contrib` 한정 — Datadog 공식(DDOT)·core 배포판에 미포함이라 커스텀 빌드/contrib 이미지를 별도 운영해야 합니다 `✓`.
 - 활성 메인테이너가 2명(boostchicken, MovieStoreGuy)이고 contrib는 대략 격주 릴리스라 alpha 시그니처가 자주 움직인다 — 버스 팩터·회귀 리스크를 감안해야 한다 `✓`.
 - 하류 `clickhouseexporter`도 traces/logs=beta, metrics=alpha라 **수신→변환→export 파이프라인 전 구간이 alpha~beta**다 `✓`.
 - **엔드포인트 상세**: 트레이스는 `/v0.3`~`/v0.7/traces` + `/api/v0.2/traces`를 수신하고, dd-trace 클라이언트의 startup probe를 통과시키기 위한 `/info` 엔드포인트도 구현한다. 128-bit trace ID 재구성은 `Enable128BitTraceID` 게이트로 제어된다 `✓⁽3-0⁾`. 애플리케이션 쪽은 `DD_AGENT_HOST` + `DD_TRACE_AGENT_PORT=8126`만 Collector로 지정하면 **코드 변경 없이** 전환된다 `✓`.
@@ -132,16 +132,16 @@ dd 프록시 전용 처리량/CPU/손실률 벤치마크는 공개된 것이 없
 
 ## 결론
 
-- **프록시가 성립하는 유일한 쓸모는 로그/인프라 메트릭/(레거시) APM 트레이스의 과도기 무중단 브릿지**다. dd-agent를 즉시 못 걷어내는 상황에서 백엔드만 ClickHouse로 우회해 단기 비용을 줄이는 용도에 한정된다.
-- **RUM은 프록시로 성립하지 않는다.** browser intake 미수신 + 공개 변환기 부재 + 본문 불변 전제 + 리플레이 세그먼트 난이도가 겹쳐, 정답은 `@hyperdx/browser`로의 **SDK 교체**다([Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}})). dd browser-sdk의 `proxy` 옵션은 변환용이 아니라 듀얼 라이트/차단 같은 과도기 트래픽 통제용으로만 쓴다.
-- **영구 아키텍처로는 비권장**이다. 파이프라인 전 구간 alpha~beta, native 대비 최대 ~200배 CPU 세금, delta metric fidelity 결함, 그리고 프로덕션 전례 부재 — 규모 결정 전 반드시 자체 PoC 벤치마크로 events/s/core·p99 지연·신호별 손실률을 측정하라.
+- **프록시가 성립하는 유일한 쓸모는 로그/인프라 메트릭/(레거시) APM 트레이스의 과도기 무중단 브릿지**입니다. dd-agent를 즉시 못 걷어내는 상황에서 백엔드만 ClickHouse로 우회해 단기 비용을 줄이는 용도에 한정됩니다.
+- **RUM은 프록시로 성립하지 않습니다.** browser intake 미수신 + 공개 변환기 부재 + 본문 불변 전제 + 리플레이 세그먼트 난이도가 겹쳐, 정답은 `@hyperdx/browser`로의 **SDK 교체**입니다([Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}})). dd browser-sdk의 `proxy` 옵션은 변환용이 아니라 듀얼 라이트/차단 같은 과도기 트래픽 통제용으로만 씁니다.
+- **영구 아키텍처로는 비권장**입니다. 파이프라인 전 구간 alpha~beta, native 대비 최대 ~200배 CPU 세금, delta metric fidelity 결함, 그리고 프로덕션 전례 부재 — 규모 결정 전 반드시 자체 PoC 벤치마크로 events/s/core·p99 지연·신호별 손실률을 측정하십시오.
 
 ## 우리 케이스에서는
 
 전제부터 구분합니다. 이 페이지의 조사는 **RUM 대체 + 범용 분석 + 운영 인력 보유**를 전제로 프록시의 성립 여부를 따진 것입니다. 반면 우리 [로깅 챕터]({{< relref "../logging/08-recommendation.md" >}})의 결정은 **로그 내재화 관점**에서 나왔습니다 — 로그는 [VictoriaLogs]({{< relref "../logging/03-victorialogs.md" >}})로 가고(D1·D2), ClickHouse/ClickStack 통합 저장소는 "여러 신호를 한 팀에 수렴"할 명분이 섰을 때 얹는 **earn-it-last 과제(D4, 메트릭 제외)**입니다. 두 전제는 프록시에 관해 서로 모순되지 않습니다.
 
-- **로그**: 프록시의 최대 실익 영역이지만, 우리 로그는 애초에 ClickHouse가 아니라 VictoriaLogs로 간다. 따라서 "dd→CH 로그 프록시"는 우리 로그 경로에 **필요 자체가 없다**. OpenSearch 은퇴(D2)도 Collector 재구성으로 처리하지 dd 프록시를 경유하지 않는다.
-- **RUM(D3)**: 웹은 ClickStack PoC, 모바일은 Datadog 잔류가 로깅 챕터의 결정이다. 이 페이지 판정과 정확히 일치한다 — **웹 RUM은 프록시 불가이므로 SDK 교체(PoC)로 가고**, 프록시는 검토 대상조차 아니다.
-- **선택적 통합(D4)**: traces+RUM 통합이 우선순위가 될 때만 ClickStack을 얹는다. 그 시점에도 RUM은 SDK 경로, traces는 OTel 재계측이 정석이라, 프록시가 붙을 자리는 **레거시 dd-trace 트레이스를 재계측 전까지 잇는 단기 브릿지**로 극히 좁다. 메트릭은 D4에서 제외되므로 metrics 프록시의 temporality 리스크도 우리 결정에는 무관하다.
+- **로그**: 프록시의 최대 실익 영역이지만, 우리 로그는 애초에 ClickHouse가 아니라 VictoriaLogs로 갑니다. 따라서 "dd→CH 로그 프록시"는 우리 로그 경로에 **필요 자체가 없습니다**. OpenSearch 은퇴(D2)도 Collector 재구성으로 처리하지 dd 프록시를 경유하지 않습니다.
+- **RUM(D3)**: 웹은 ClickStack PoC, 모바일은 Datadog 잔류가 로깅 챕터의 결정입니다. 이 페이지 판정과 정확히 일치합니다 — **웹 RUM은 프록시 불가이므로 SDK 교체(PoC)로 가고**, 프록시는 검토 대상조차 아닙니다.
+- **선택적 통합(D4)**: traces+RUM 통합이 우선순위가 될 때만 ClickStack을 얹습니다. 그 시점에도 RUM은 SDK 경로, traces는 OTel 재계측이 정석이라, 프록시가 붙을 자리는 **레거시 dd-trace 트레이스를 재계측 전까지 잇는 단기 브릿지**로 극히 좁습니다. 메트릭은 D4에서 제외되므로 metrics 프록시의 temporality 리스크도 우리 결정에는 무관합니다.
 
 정리하면, 우리 케이스에서 dd 프록시는 로그(경로 다름)·RUM(SDK 교체)·메트릭(범위 밖) 어디에도 필요하지 않고, 유일하게 고려될 수 있는 곳은 D4 이후 레거시 트레이스의 과도기 다리뿐입니다. 그마저도 alpha 성숙도와 CPU 세금을 고려하면 **재계측을 앞당기는 편이 낫습니다**. 프록시는 우리 로드맵의 주경로가 아니라 최후의 임시 수단으로만 남깁니다.

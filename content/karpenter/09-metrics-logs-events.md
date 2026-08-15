@@ -7,12 +7,12 @@ weight: 9
 
 {{< callout type="info" >}}
 **한눈에**
-- 코어가 export하는 메트릭은 **60개**다. `promauto`·`MustRegister` 직접 호출이 0건이라 이 목록이 전량이다.
-- **`karpenter_nodeclaims_disrupted_total{reason}` 하나가 "노드가 왜 갈렸나"를 전부 가른다.** reason 값은 10종이고 §3에 전부 있다.
-- **`karpenter_nodes_*`의 라벨 수는 프로바이더에 따라 달라진다.** EKS에서는 `instance_family`·`instance_size` 등이 더 붙는다 — 대시보드를 코어 기준으로 짜면 어긋난다.
-- **판정 로그는 `--log-level debug`에서만 나온다.** `consolidation score`, `marking drifted`, `abandoning ... due to timeout` 전부 `V(1)`이다.
-- **ICE(Insufficient Capacity Error)와 NodeClass 미준비가 같은 로그 문자열을 쓴다**(`failed launching nodeclaim`). 로그만으로는 구분이 안 되고 메트릭 `reason`을 봐야 한다.
-- 이벤트에는 **dedupe 창**이 있다. `Unconsolidatable`은 15분, `FailedScheduling`은 5분 — 카운트를 빈도로 읽으면 안 된다.
+- 코어가 export하는 메트릭은 **60개**입니다. `promauto`·`MustRegister` 직접 호출이 0건이라 이 목록이 전량입니다.
+- **`karpenter_nodeclaims_disrupted_total{reason}` 하나가 "노드가 왜 갈렸나"를 전부 가릅니다.** reason 값은 10종이고 §3에 전부 있습니다.
+- **`karpenter_nodes_*`의 라벨 수는 프로바이더에 따라 달라집니다.** EKS에서는 `instance_family`·`instance_size` 등이 더 붙습니다 — 대시보드를 코어 기준으로 짜면 어긋납니다.
+- **판정 로그는 `--log-level debug`에서만 나옵니다.** `consolidation score`, `marking drifted`, `abandoning ... due to timeout` 전부 `V(1)`입니다.
+- **ICE(Insufficient Capacity Error)와 NodeClass 미준비가 같은 로그 문자열을 씁니다**(`failed launching nodeclaim`). 로그만으로는 구분이 안 되고 메트릭 `reason`을 봐야 합니다.
+- 이벤트에는 **dedupe 창**이 있습니다. `Unconsolidatable`은 15분, `FailedScheduling`은 5분 — 카운트를 빈도로 읽으면 안 됩니다.
 {{< /callout >}}
 
 > **왜 이 문서인가.** 앞의 여덟 문서는 "왜 그렇게 판단하나"를 코드로 따라갔다. 이 문서는 그 판단을 **밖에서 어떻게 확인하나** — 대시보드·로그·이벤트 — 를 다룬다.

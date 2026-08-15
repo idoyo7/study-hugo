@@ -543,11 +543,11 @@ spot의 **삭제(deletion) consolidation은 기본으로 켜져 있습니다** �
 
 각 키에서 알아둘 것:
 
-- `expireAfter`는 **최대** 수명이지 최소가 아니다. drift·consolidation이 더 먼저 지울 수 있다. NodePool에서 바꿔도 기존 NodeClaim에는 반영되지 않고 drift로 교체된다.
-- `terminationGracePeriod`는 파드의 `terminationGracePeriodSeconds`를 온전히 주려고 `노드 TGP − 파드 TGPS` 시점에 선제 삭제한다. 파드 TGPS가 노드 TGP보다 크면 드레인 시작 즉시 삭제된다.
-- `budgets`의 퍼센트는 `roundup(total × pct) − deleting − notready`다. 여러 budget이 겹치면 **최솟값**이 적용되고 `[{nodes: "0"}]`으로 NodePool 전체를 차단할 수 있다.
-- `budgets[].reasons`에서 특정 reason 허용량은 "그 reason을 포함하거나 reasons를 안 지정한 모든 budget의 최솟값"이다.
-- `budgets[].schedule` + `.duration`은 둘을 항상 같이 쓴다. **타임존 미지원 — 항상 UTC**.
+- `expireAfter`는 **최대** 수명이지 최소가 아닙니다. drift·consolidation이 더 먼저 지울 수 있습니다. NodePool에서 바꿔도 기존 NodeClaim에는 반영되지 않고 drift로 교체됩니다.
+- `terminationGracePeriod`는 파드의 `terminationGracePeriodSeconds`를 온전히 주려고 `노드 TGP − 파드 TGPS` 시점에 선제 삭제합니다. 파드 TGPS가 노드 TGP보다 크면 드레인 시작 즉시 삭제됩니다.
+- `budgets`의 퍼센트는 `roundup(total × pct) − deleting − notready`입니다. 여러 budget이 겹치면 **최솟값**이 적용되고 `[{nodes: "0"}]`으로 NodePool 전체를 차단할 수 있습니다.
+- `budgets[].reasons`에서 특정 reason 허용량은 "그 reason을 포함하거나 reasons를 안 지정한 모든 budget의 최솟값"입니다.
+- `budgets[].schedule` + `.duration`은 둘을 항상 같이 씁니다. **타임존 미지원 — 항상 UTC**.
 
 budget이 막지 못하는 것: Expiration·Interruption·Node Repair. 이들은 forceful 경로라 rate-limit 대상이 아닙니다. 그리고 `expireAfter`를 설정하면서 `terminationGracePeriod`를 빼면 만료된 노드가 PDB나 `do-not-disrupt` 파드에 막혀 **부분 드레인 상태로 무기한 남고 비용만 누적됩니다** — 문서가 직접 경고하는 위험한 조합입니다.
 

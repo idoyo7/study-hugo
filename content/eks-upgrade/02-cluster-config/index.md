@@ -7,10 +7,10 @@ weight: 3
 
 {{< callout type="info" >}}
 **한눈에**
-- **managed nodegroup은 0개.** Fargate가 **CoreDNS + karpenter 컨트롤러만** 호스팅하고, 나머지는 전부 **karpenter NodePool**(system 풀 포함)이 프로비저닝한다.
-- Fargate 3제약이 토폴로지를 지배한다 — **amd64 전용 · DaemonSet 미부착 · 동적 EBS 불가.**
-- Terraform 최대 리스크 둘: **OIDC 이중등록**(빠뜨리면 external-secrets 포함 cross-account IRSA 전체가 조용히 깨진다)과 **ebs-csi IRSA 롤**(스펙에 필드 자체가 없어 놓치기 쉽다).
-- **karpenter 인프라 전체(IRSA·노드 롤·interruption·discovery 태그)는 이 레포에 전무**해 처음부터 짜야 한다.
+- **managed nodegroup은 0개.** Fargate가 **CoreDNS + karpenter 컨트롤러만** 호스팅하고, 나머지는 전부 **karpenter NodePool**(system 풀 포함)이 프로비저닝합니다.
+- Fargate 3제약이 토폴로지를 지배합니다 — **amd64 전용 · DaemonSet 미부착 · 동적 EBS 불가.**
+- Terraform 최대 리스크 둘: **OIDC 이중등록**(빠뜨리면 external-secrets 포함 cross-account IRSA 전체가 조용히 깨집니다)과 **ebs-csi IRSA 롤**(스펙에 필드 자체가 없어 놓치기 쉽습니다).
+- **karpenter 인프라 전체(IRSA·노드 롤·interruption·discovery 태그)는 이 레포에 전무**해 처음부터 짜야 합니다.
 {{< /callout >}}
 
 이 페이지는 [배경]({{< relref "00-background.md" >}})의 결정과 [목표버전]({{< relref "01-target-version.md" >}}) 1.35 위에서, 클러스터가 **무엇인가**(토폴로지 + Terraform 리소스)를 다룹니다. "어떤 순서로 올리나"는 [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}})이, EKS managed addon 버전·설정은 [03 managed addon]({{< relref "03-managed-addons.md" >}})이 이어받습니다.
@@ -27,9 +27,9 @@ managed nodegroup이 없으므로 **첫 EC2 노드는 karpenter 자신이 만듭
 
 EKS 공식 문서 기준 아래 세 가지가 설계 전체를 지배합니다.
 
-1. **amd64 전용(Arm 미지원).** CoreDNS·karpenter가 원래 갖고 있던 arm64 required nodeAffinity·toleration을 반드시 제거해야 한다. 지우지 않으면 Fargate 스케줄러가 배치를 시도조차 하지 않아 **영구 Pending**이 된다.
-2. **DaemonSet 미지원.** Fargate는 파드 하나에 전용 micro-VM 하나를 붙이는 구조라 "노드" 개념이 없고, 노드 기반 DaemonSet이 존재할 자리가 없다. csi-node·datadog·fluentbit·node-exporter·node-local-dns·kube-proxy·aws-node 어느 것도 Fargate 파드에는 안 붙는다(§4).
-3. **동적 EBS 마운트 불가.** EBS CSI 컨트롤러 자체는 Fargate에서 돌 수 있지만, 실제 볼륨을 붙이는 csi-node DaemonSet은 EC2 전용이다. 그래서 Fargate 파드는 동적 프로비저닝 EBS PV를 쓸 수 없다(EFS 정적 프로비저닝은 예외적으로 가능하나 finance는 EFS를 쓰지 않아 무관).
+1. **amd64 전용(Arm 미지원).** CoreDNS·karpenter가 원래 갖고 있던 arm64 required nodeAffinity·toleration을 반드시 제거해야 합니다. 지우지 않으면 Fargate 스케줄러가 배치를 시도조차 하지 않아 **영구 Pending**이 됩니다.
+2. **DaemonSet 미지원.** Fargate는 파드 하나에 전용 micro-VM 하나를 붙이는 구조라 "노드" 개념이 없고, 노드 기반 DaemonSet이 존재할 자리가 없습니다. csi-node·datadog·fluentbit·node-exporter·node-local-dns·kube-proxy·aws-node 어느 것도 Fargate 파드에는 안 붙습니다(§4).
+3. **동적 EBS 마운트 불가.** EBS CSI 컨트롤러 자체는 Fargate에서 돌 수 있지만, 실제 볼륨을 붙이는 csi-node DaemonSet은 EC2 전용입니다. 그래서 Fargate 파드는 동적 프로비저닝 EBS PV를 쓸 수 없습니다(EFS 정적 프로비저닝은 예외적으로 가능하나 finance는 EFS를 쓰지 않아 무관).
 
 세 제약 모두 CoreDNS·karpenter에는 문제가 되지 않습니다 — 둘 다 EBS가 불필요하고 arm64 고정만 풀면 amd64로 문제없이 뜹니다. 제약이 실질적으로 부딪히는 지점은 **DaemonSet 공백**(§4)입니다.
 
@@ -58,11 +58,11 @@ EKS 공식 문서 기준 아래 세 가지가 설계 전체를 지배합니다.
 
 Fargate 파드(CoreDNS, karpenter)에는 노드 DaemonSet이 붙지 않으므로, 노드 기반 로그·메트릭 수집기가 이 두 파드를 놓칩니다.
 
-- **fluentbit**(컨테이너 로그) · 공백: CoreDNS/karpenter stdout 미수집 — **Fargate 내장 로그 라우터**로 대체한다. ns `aws-observability`(label `aws-observability: enabled`) + ConfigMap `aws-logging`으로 output을 지정하면 AWS가 대신 Fluent Bit를 구동한다. 단 pod-execution-role에 로깅 IAM 정책(`logs:CreateLogStream`/`CreateLogGroup`/`PutLogEvents`)을 별도 부착해야 동작한다 — 기본 정책엔 없다.
-- **datadog agent**(노드 메트릭·APM) · 공백: CoreDNS/karpenter 메트릭 미수집 — Fargate에서는 **파드별 사이드카**로만 수집 가능하다. CoreDNS/karpenter에 사이드카는 과하므로 karpenter `/metrics`는 Prometheus 계열 스크레이퍼로 직접 긁는다.
-- **node-exporter**(호스트 메트릭) · 공백: Fargate micro-VM 호스트 메트릭 없음 — 설계상 호스트 접근 불가. kubelet 파드 지표(cAdvisor)로 대체하고 대시보드는 Fargate 노드 제외 필터를 쓴다.
-- **node-local-dns**(노드별 DNS 캐시) · 공백: Fargate 파드는 로컬 캐시 미사용 — EC2 노드 DaemonSet(iptables 인터셉트) 기반이라 Fargate엔 셋업 자체가 없다. 클러스터 CoreDNS 서비스로 직접 질의(로컬 캐시만 스킵)한다. CoreDNS는 캐시 불요, karpenter는 조회량이 적어 영향 미미하다.
-- **csi-node** · 공백: Fargate 파드는 동적 EBS PV 불가 — EBS가 필요한 워크로드는 반드시 EC2 풀로 보낸다.
+- **fluentbit**(컨테이너 로그) · 공백: CoreDNS/karpenter stdout 미수집 — **Fargate 내장 로그 라우터**로 대체합니다. ns `aws-observability`(label `aws-observability: enabled`) + ConfigMap `aws-logging`으로 output을 지정하면 AWS가 대신 Fluent Bit를 구동합니다. 단 pod-execution-role에 로깅 IAM 정책(`logs:CreateLogStream`/`CreateLogGroup`/`PutLogEvents`)을 별도 부착해야 동작합니다 — 기본 정책엔 없습니다.
+- **datadog agent**(노드 메트릭·APM) · 공백: CoreDNS/karpenter 메트릭 미수집 — Fargate에서는 **파드별 사이드카**로만 수집 가능합니다. CoreDNS/karpenter에 사이드카는 과하므로 karpenter `/metrics`는 Prometheus 계열 스크레이퍼로 직접 긁습니다.
+- **node-exporter**(호스트 메트릭) · 공백: Fargate micro-VM 호스트 메트릭 없음 — 설계상 호스트 접근 불가. kubelet 파드 지표(cAdvisor)로 대체하고 대시보드는 Fargate 노드 제외 필터를 씁니다.
+- **node-local-dns**(노드별 DNS 캐시) · 공백: Fargate 파드는 로컬 캐시 미사용 — EC2 노드 DaemonSet(iptables 인터셉트) 기반이라 Fargate엔 셋업 자체가 없습니다. 클러스터 CoreDNS 서비스로 직접 질의(로컬 캐시만 스킵)합니다. CoreDNS는 캐시 불요, karpenter는 조회량이 적어 영향 미미합니다.
+- **csi-node** · 공백: Fargate 파드는 동적 EBS PV 불가 — EBS가 필요한 워크로드는 반드시 EC2 풀로 보냅니다.
 - **kube-proxy / aws-node** · 공백 없음 — Fargate 노드는 자체 VPC CNI 내장, kube-proxy 불요(정상).
 
 ## 5. CoreDNS·ebs-csi·karpenter config 변경
@@ -239,8 +239,8 @@ Fargate pod-exec role은 별도 조치가 필요 없습니다 — Fargate profil
 재바인딩 대상:
 
 - **Terraform 관리(동적, `apply`만으로)**: 워크로드·management 양쪽의 시크릿 관리용 IRSA 롤 — registry에 신규 클러스터명만 추가하면 자동.
-- **Terraform 레포 밖(외부 관리, 별도 재발급 경로 확인)**: karpenter 컨트롤러 IRSA, ALB controller IRSA, argo-rollouts IRSA, fluentbit·datadog·cloudwatch-agent IRSA, 그리고 **ebs-csi IRSA**(스펙에 SA-Role이 없어 신규 OIDC로 wiring됐는지부터 확인). **ebs-csi IRSA는 이 프로젝트의 최대 리스크** — 롤 자체를 이 페이지에서 신규 생성하되, addon 연결·PVC 검증은 [03 managed addon]({{< relref "03-managed-addons.md" >}})에서 확인한다.
-- **ArgoCD**: 신규 blue API endpoint로 클러스터 등록 secret을 새로 발급한다(정적 SA bearerToken). tier-1 허브 push 앱은 하드코딩 endpoint 교체가 선행돼야 한다 → [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}}).
+- **Terraform 레포 밖(외부 관리, 별도 재발급 경로 확인)**: karpenter 컨트롤러 IRSA, ALB controller IRSA, argo-rollouts IRSA, fluentbit·datadog·cloudwatch-agent IRSA, 그리고 **ebs-csi IRSA**(스펙에 SA-Role이 없어 신규 OIDC로 wiring됐는지부터 확인). **ebs-csi IRSA는 이 프로젝트의 최대 리스크** — 롤 자체를 이 페이지에서 신규 생성하되, addon 연결·PVC 검증은 [03 managed addon]({{< relref "03-managed-addons.md" >}})에서 확인합니다.
+- **ArgoCD**: 신규 blue API endpoint로 클러스터 등록 secret을 새로 발급합니다(정적 SA bearerToken). tier-1 허브 push 앱은 하드코딩 endpoint 교체가 선행돼야 합니다 → [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}}).
 
 ## 11. amiType·IMDS
 

@@ -10,12 +10,12 @@ weight: 9
 {{< callout type="info" >}}
 **한눈에**
 
-- 이 스택은 **독립적으로 버전이 도는 6개 구성요소**(ClickHouse·Keeper·Altinity operator·HyperDX·OTel Collector·MongoDB)다. 각자 별도 케이던스로 올린다 — "한 번에 다 올리기"는 원인 추적을 불가능하게 하므로 금지 `≈`.
-- **버전 핀 정책**: CH/Keeper는 **24.8 LTS(또는 검증된 안정판) 명시 핀**, 최신 추종 금지. operator는 **0.27.1**(2026-06-04, 최신). ClickStack의 "최소 24.8"과 차트 기본 이미지 "25.7-alpine"은 **다른 숫자다** — self-host HyperDX Only라 우리가 이 두 숫자를 분리해서 통제한다(하한만 넘기면 됨).
-- **CH는 함부로 못 내린다**: 온디스크 파트 포맷이 바뀐 뒤로는 이전 버전이 새 파트를 못 읽어 startup에서 죽는다. 이때 **포맷을 바꾼 도입 버전과 그 뒤로 되돌릴 수 없는 롤백 하한은 다른 숫자다** — JSON advanced shared data는 도입 v25.12에 하한 25.8, String `with_size_stream` 직렬화는 도입 v25.11에 하한 25.10, marks는 25.8에서 포맷이 바뀌어 25.3으로 못 내린다. 두 축을 한 숫자로 압축하지 않고 **§3.2 표를 단일 정본으로 삼는다**. `compatibility` 서버 설정은 **"동작 기본값 회귀 방지"**용이지 **롤백이 아니다**.
-- **실질 롤백은 스냅샷/백업뿐**. EBS-first에선 **업그레이드 직전 데이터 볼륨 EBS 스냅샷**이 가장 확실한 롤백 지점이고, `clickhouse-backup`을 이중 안전으로 건다.
-- **operator 0.27.0+가 `async_replication`/`use_xid_64`를 기본 활성화 → Keeper 25.3+ 요구**. 기본값 활성화와 Keeper 하한 자체는 릴리즈노트로 확인됐고 `✓`, 우리가 CH/Keeper를 24.8로 핀했을 때 실제로 충돌하는지가 미검증이라 **배포 스테이징에서 실동작 검증이 필요한 매트릭스 함정**이다 `✓/?`.
-- 일반 롤링 런북·혼합버전 창·CRD 금지·안전장치 3층은 [operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이 기준 문서다. 블록 온리의 업그레이드 단순성은 [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}).
+- 이 스택은 **독립적으로 버전이 도는 6개 구성요소**(ClickHouse·Keeper·Altinity operator·HyperDX·OTel Collector·MongoDB)입니다. 각자 별도 케이던스로 올립니다 — "한 번에 다 올리기"는 원인 추적을 불가능하게 하므로 금지 `≈`.
+- **버전 핀 정책**: CH/Keeper는 **24.8 LTS(또는 검증된 안정판) 명시 핀**, 최신 추종 금지. operator는 **0.27.1**(2026-06-04, 최신). ClickStack의 "최소 24.8"과 차트 기본 이미지 "25.7-alpine"은 **다른 숫자입니다** — self-host HyperDX Only라 우리가 이 두 숫자를 분리해서 통제합니다(하한만 넘기면 됨).
+- **CH는 함부로 못 내립니다**: 온디스크 파트 포맷이 바뀐 뒤로는 이전 버전이 새 파트를 못 읽어 startup에서 죽습니다. 이때 **포맷을 바꾼 도입 버전과 그 뒤로 되돌릴 수 없는 롤백 하한은 다른 숫자입니다** — JSON advanced shared data는 도입 v25.12에 하한 25.8, String `with_size_stream` 직렬화는 도입 v25.11에 하한 25.10, marks는 25.8에서 포맷이 바뀌어 25.3으로 못 내립니다. 두 축을 한 숫자로 압축하지 않고 **§3.2 표를 단일 정본으로 삼습니다**. `compatibility` 서버 설정은 **"동작 기본값 회귀 방지"**용이지 **롤백이 아닙니다**.
+- **실질 롤백은 스냅샷/백업뿐**. EBS-first에선 **업그레이드 직전 데이터 볼륨 EBS 스냅샷**이 가장 확실한 롤백 지점이고, `clickhouse-backup`을 이중 안전으로 겁니다.
+- **operator 0.27.0+가 `async_replication`/`use_xid_64`를 기본 활성화 → Keeper 25.3+ 요구**. 기본값 활성화와 Keeper 하한 자체는 릴리즈노트로 확인됐고 `✓`, 우리가 CH/Keeper를 24.8로 핀했을 때 실제로 충돌하는지가 미검증이라 **배포 스테이징에서 실동작 검증이 필요한 매트릭스 함정**입니다 `✓/?`.
+- 일반 롤링 런북·혼합버전 창·CRD 금지·안전장치 3층은 [operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이 기준 문서입니다. 블록 온리의 업그레이드 단순성은 [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}).
 {{< /callout >}}
 
 ## 1. 버전 호환성 매트릭스 — 스택 전 구성요소
@@ -187,7 +187,7 @@ aws ec2 create-volume \
 
 ### 4.3 PVC Retain으로 실수 삭제 방어 `✓/≈`
 
-- `reclaimPolicy: Retain`(operator·StorageClass 이중)이면 CHI/STS 재생성이나 `helm uninstall`에도 EBS PVC가 잔존 → 업그레이드 중 실수로 리소스를 지워도 데이터 볼륨은 살아남는다. operator/Helm이 만든 PVC는 애초에 `helm uninstall`로 안 지워진다. reclaimPolicy 미준수 버그(#1619)와 이중 방어는 [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}}).
+- `reclaimPolicy: Retain`(operator·StorageClass 이중)이면 CHI/STS 재생성이나 `helm uninstall`에도 EBS PVC가 잔존 → 업그레이드 중 실수로 리소스를 지워도 데이터 볼륨은 살아납니다. operator/Helm이 만든 PVC는 애초에 `helm uninstall`로 안 지워집니다. reclaimPolicy 미준수 버그(#1619)와 이중 방어는 [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}}).
 
 ### 4.4 블록 온리(무 S3)의 업그레이드 단순성 `≈`
 

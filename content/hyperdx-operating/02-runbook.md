@@ -9,10 +9,10 @@ aliases: ["/hyperdx-operating/04-operator-pattern/", "/hyperdx/operating/04-oper
 {{< callout type="info" >}}
 **한눈에** — 이 페이지는 메커니즘을 설명하지 않고 **순서와 판별 신호만** 담습니다.
 
-- **진입은 증상이다** — "UI가 안 뜬다"·"신규 데이터가 안 들어온다"·"INSERT가 거부된다"는 각각 다른 절차로 갈린다. §1 표가 증상 → 판별 → 절차 → 확인의 라우팅이다.
-- **판별을 건너뛰지 않는다.** 특히 노드 급사는 "정말 죽었나"를 확인하기 전에 taint를 걸면 RWO 볼륨 더블 마운트로 데이터가 깨진다 `✓`.
-- **명령 정본은 기준 문서가 갖는다.** 이 페이지는 우리 형상의 파라미터·순서·판별 신호만 자기 문장으로 쓰고, 명령 블록은 relref로 보낸다.
-- **버전·용량·요금 숫자는 이 페이지에 없다.** 다운그레이드 차단 버전은 [버전 호환·업그레이드]({{< relref "../hyperdx/09-version-upgrade-compat.md" >}}) §3.2, 경보 임계·물리량은 [용량 산정]({{< relref "../hyperdx/07-capacity-planning.md" >}})이 단일 정본이다.
+- **진입은 증상입니다** — "UI가 안 뜬다"·"신규 데이터가 안 들어온다"·"INSERT가 거부된다"는 각각 다른 절차로 갈립니다. §1 표가 증상 → 판별 → 절차 → 확인의 라우팅입니다.
+- **판별을 건너뛰지 않습니다.** 특히 노드 급사는 "정말 죽었나"를 확인하기 전에 taint를 걸면 RWO 볼륨 더블 마운트로 데이터가 깨집니다 `✓`.
+- **명령 정본은 기준 문서가 갖습니다.** 이 페이지는 우리 형상의 파라미터·순서·판별 신호만 자기 문장으로 쓰고, 명령 블록은 relref로 보냅니다.
+- **버전·용량·요금 숫자는 이 페이지에 없습니다.** 다운그레이드 차단 버전은 [버전 호환·업그레이드]({{< relref "../hyperdx/09-version-upgrade-compat.md" >}}) §3.2, 경보 임계·물리량은 [용량 산정]({{< relref "../hyperdx/07-capacity-planning.md" >}})이 단일 정본입니다.
 {{< /callout >}}
 
 전제는 [우리 배포 형상]({{< relref "01-our-deployment.md" >}})이 기록한 그대로입니다 — HyperDX Only(`clickhouse.enabled:false`) + Altinity CHI/CHK, 1 shard × RF2(2 AZ) + CHK 3노드(3 AZ), 쓰기는 기본 async. **현재 stage는 그 축소판**(replica 1·인메모리 큐·gp3 단일 티어)이므로, 아래 절차 중 "다른 replica가 계속 서빙한다"에 기대는 항목은 prod 목표 형상에서만 성립합니다.
@@ -64,8 +64,8 @@ EBS-first라 노드 급사는 데이터 소실이 아닙니다(볼륨이 남습�
 
 위 절차 중 두 개는 문서로 읽는 것과 실제로 하는 것이 다릅니다. staging에서 미리 돌립니다.
 
-- **graceful 리허설** — cordon → drain. PDB가 실제로 직렬화하는지, reattach가 자동으로 도는지를 본다.
-- **ungraceful 리허설** — 강제 종료. StatefulSet + RWO가 자동 복구되지 않는 것을 눈으로 확인하고, `out-of-service` taint 개입 시점을 잰다 `✓`.
+- **graceful 리허설** — cordon → drain. PDB가 실제로 직렬화하는지, reattach가 자동으로 도는지를 봅니다.
+- **ungraceful 리허설** — 강제 종료. StatefulSet + RWO가 자동 복구되지 않는 것을 눈으로 확인하고, `out-of-service` taint 개입 시점을 잽니다 `✓`.
 
 두 리허설의 실소요는 아직 실측 전이므로 `?`이고, 이것이 배포 전 실측 체크리스트의 한 항목입니다 — 측정 방법과 승격 기준은 [의사결정 가이드]({{< relref "03-decision-guide.md" >}}) §3이 소유합니다.
 

@@ -49,11 +49,11 @@ ClickHouse를 **어떻게 운영할지**를 다루는 도메인입니다. "채�
 
 채택을 결정했다면 아래는 "나중에 아프다"의 단골입니다. **여기서는 무엇을 조심하라는 것만 적고, 수치·설정·절차는 전부 각 장이 소유합니다.**
 
-- **노드 소실 재수화 시간이 replica 여유도를 갉아먹는다** — 노드당 데이터량과 replica 수의 균형이 설계 변수다. "재수화 위험 창"의 정의와 두 레버는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}), 실제 복구 절차는 [변경관리·복구]({{< relref "05-altinity-operations.md" >}}).
-- **백업·티어링은 각자 다른 것을 지킨다** — incremental 체인의 취약성, S3 lifecycle로 Glacier 전환 금지, "티어링 ≠ 내구성"은 모두 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})의 내구성 3종 세트가 소유한다.
-- **Karpenter consolidation이 스토리지 지역성을 무시하고 노드를 없앤다** — `do-not-disrupt`가 무엇을 막고 무엇을 못 막는지, 방어 5조합은 [스토리지 · Karpenter]({{< relref "02-storage-local-nvme.md" >}}).
-- **ClickStack의 MongoDB는 무인증 노출 사례가 있다.** 인증 + NetworkPolicy 격리가 필수 `✓`.
-- **한 클러스터에 여러 워크로드를 몰면 서로 간섭한다** — 국내 CDP 사례가 self-host 국면에서 실제로 부딪힌 지점이고, 그 기록은 [무신사 CDP]({{< relref "08-musinsa-cdp.md" >}})가 소유한다. 처방(CHI 분리)은 [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}).
+- **노드 소실 재수화 시간이 replica 여유도를 갉아먹습니다** — 노드당 데이터량과 replica 수의 균형이 설계 변수입니다. "재수화 위험 창"의 정의와 두 레버는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}), 실제 복구 절차는 [변경관리·복구]({{< relref "05-altinity-operations.md" >}}).
+- **백업·티어링은 각자 다른 것을 지킵니다** — incremental 체인의 취약성, S3 lifecycle로 Glacier 전환 금지, "티어링 ≠ 내구성"은 모두 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})의 내구성 3종 세트가 소유합니다.
+- **Karpenter consolidation이 스토리지 지역성을 무시하고 노드를 없앱니다** — `do-not-disrupt`가 무엇을 막고 무엇을 못 막는지, 방어 5조합은 [스토리지 · Karpenter]({{< relref "02-storage-local-nvme.md" >}}).
+- **ClickStack의 MongoDB는 무인증 노출 사례가 있습니다.** 인증 + NetworkPolicy 격리가 필수 `✓`.
+- **한 클러스터에 여러 워크로드를 몰면 서로 간섭합니다** — 국내 CDP 사례가 self-host 국면에서 실제로 부딪힌 지점이고, 그 기록은 [무신사 CDP]({{< relref "08-musinsa-cdp.md" >}})가 소유합니다. 처방(CHI 분리)은 [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}).
 
 ## 이 챕터 구성 (문서 지도)
 

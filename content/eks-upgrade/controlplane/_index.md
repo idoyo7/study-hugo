@@ -9,11 +9,11 @@ weight: 8
 
 {{< callout type="info" >}}
 **한눈에**
-- **finance 판정: create 시점에는 컴포넌트 파라미터 4개를 전부 기본값으로 둔다.** 실제 후보는 `MostAllocated` 하나이고 blue 안정화 이후 별건이다. Provisioned Control Plane은 해당 없다 `✓`
-- ⚠️ **`upgradePolicy.supportType` 기본값이 `EXTENDED`다** — 명시하지 않으면 표준지원 종료일부터 시간당 $0.60(표준 $0.10 + $0.50)이 자동으로 붙고 확장지원에 실제로 진입한 뒤에는 STANDARD로 되돌릴 수 없다. blue를 만드는 Terraform에서 반드시 못 박아야 하는 한 줄 `✓`
-- **2026-08-12에 열린 것은 4개뿐이다.** `kubeApiServerConfig`의 하위 필드는 `eventTtl`·`serviceNodePortRange` **둘**이다 — "이제 apiserver 플래그를 만질 수 있다"는 서술은 이 숫자 하나로 반박된다 `✓`
-- **Provisioned Control Plane은 신규 기능이 아니다** — 2025-11-21 GA된 9개월 된 기능이고 8월 발표에서 전제조건으로 언급됐을 뿐이다. Standard 복귀를 막는 조건이 **둘인데 서로 다른 문서에 하나씩만** 있어 한 문서만 읽으면 절반을 놓친다 `✓`
-- **AWS 문서와 실제 도구 지원이 어긋난다.** User Guide는 Terraform을 "coming soon"이라 쓰지만 provider v6.59.0(발표 당일)에 이미 들어왔고 eksctl·CDK는 반대로 과대 서술이다 `✓`
+- **finance 판정: create 시점에는 컴포넌트 파라미터 4개를 전부 기본값으로 둡니다.** 실제 후보는 `MostAllocated` 하나이고 blue 안정화 이후 별건입니다. Provisioned Control Plane은 해당 없습니다 `✓`
+- ⚠️ **`upgradePolicy.supportType` 기본값이 `EXTENDED`입니다** — 명시하지 않으면 표준지원 종료일부터 시간당 $0.60(표준 $0.10 + $0.50)이 자동으로 붙고 확장지원에 실제로 진입한 뒤에는 STANDARD로 되돌릴 수 없습니다. blue를 만드는 Terraform에서 반드시 못 박아야 하는 한 줄 `✓`
+- **2026-08-12에 열린 것은 4개뿐입니다.** `kubeApiServerConfig`의 하위 필드는 `eventTtl`·`serviceNodePortRange` **둘**입니다 — "이제 apiserver 플래그를 만질 수 있다"는 서술은 이 숫자 하나로 반박됩니다 `✓`
+- **Provisioned Control Plane은 신규 기능이 아닙니다** — 2025-11-21 GA된 9개월 된 기능이고 8월 발표에서 전제조건으로 언급됐을 뿐입니다. Standard 복귀를 막는 조건이 **둘인데 서로 다른 문서에 하나씩만** 있어 한 문서만 읽으면 절반을 놓칩니다 `✓`
+- **AWS 문서와 실제 도구 지원이 어긋납니다.** User Guide는 Terraform을 "coming soon"이라 쓰지만 provider v6.59.0(발표 당일)에 이미 들어왔고 eksctl·CDK는 반대로 과대 서술입니다 `✓`
 {{< /callout >}}
 
 ## 3레이어 지도
@@ -41,6 +41,6 @@ weight: 8
 ## 자매 문서
 
 - [클러스터 설정]({{< relref "../02-cluster-config.md" >}}) — 클러스터 껍데기·Fargate 토폴로지·Terraform 리소스. 레이어 1의 파라미터가 실제로 앉는 자리다.
-- [managed addon]({{< relref "../03-managed-addons.md" >}}) — vpc-cni·kube-proxy·coredns·ebs-csi의 설정. **애드온 config는 컨트롤 플레인 파라미터가 아니다** — 혼동하기 쉬운 경계라 소유를 나눠 뒀다.
+- [managed addon]({{< relref "../03-managed-addons.md" >}}) — vpc-cni·kube-proxy·coredns·ebs-csi의 설정. **애드온 config는 컨트롤 플레인 파라미터가 아닙니다** — 혼동하기 쉬운 경계라 소유를 나눠 뒀습니다.
 - [목표 버전]({{< relref "../01-target-version.md" >}}) — 1.35 판정과 EOL 캘린더. 레이어 2의 하한이 1.31이라 blue가 4종을 전부 쓸 수 있다는 판정의 근거이고 `supportType` 함정이 걸리는 확장지원 종료일도 여기 있다.
 - [컷오버·롤백]({{< relref "../05-cutover-rollback.md" >}}) — ALB 가중치 전환 기반 롤백 계약. 레이어 1의 버전 롤백(2026-07 신규)이 이 계약과 어떻게 겹치는지 함께 읽어야 한다.

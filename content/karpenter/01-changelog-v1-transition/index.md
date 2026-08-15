@@ -18,7 +18,7 @@ weight: 1
 - `MinValuesPolicy`(1.6, [core#2299](https://github.com/kubernetes-sigs/karpenter/pull/2299)·[aws#8250](https://github.com/aws/karpenter-provider-aws/pull/8250))는 전역 옵션, 기본 `Strict`다. `minValues` 자체는 v0.35.0([core#963](https://github.com/kubernetes-sigs/karpenter/pull/963))부터 있던 API로 0.36 운영자에게 새 기능이 아니다.
 {{< /callout >}}
 
-> **왜 이 문서인가.** v1 마이그레이션 가이드 763줄의 절반은 "필드가 어디로 갔다"는 표라 `kubectl apply` 실패로 바로 드러난다. 진짜 위험한 건 **매니페스트가 그대로 통과하는데 클러스터가 다르게 행동하는** 항목이다 — 만료된 노드가 대체 없이 드레인을 시작하고, 끄고 있던 drift가 켜지고, 쓴 적 없는 `consolidateAfter`가 필수가 된다.
+> **왜 이 문서인가.** v1 마이그레이션 가이드 763줄의 절반은 "필드가 어디로 갔다"는 표라 `kubectl apply` 실패로 바로 드러난다. 진짜 위험한 건 **매니페스트가 그대로 통과하는데 클러스터가 다르게 행동하는** 항목이다 — 만료된 노드가 대체 없이 드레인을 시작하고, 끄고 있던 drift가 켜지고, 쓴 적 없는 `consolidateAfter`가 필수가 됩니다.
 
 > 근거 기준: 릴리스노트는 `aws/karpenter-provider-aws` v0.36.0~v1.14.0 및 `kubernetes-sigs/karpenter` v1.0.0~v1.14.0, 문서·코드·릴리스일은 2026-07-30 기준 두 레포 main 체크아웃과 git 태그다. 줄 번호는 그 시점 스냅샷이다.
 

@@ -7,7 +7,7 @@ weight: 5
 
 {{< callout type="info" >}}
 **한눈에**
-- **ArgoCD 토폴로지는 3-tier**다 — 허브가 워크로드 endpoint를 **하드코딩해 push**하는 tier-1과, 워크로드 자체 ArgoCD가 `kubernetes.default.svc`로 도는 tier-3이 완전히 다른 재지정 부담을 진다.
+- **ArgoCD 토폴로지는 3-tier**입니다 — 허브가 워크로드 endpoint를 **하드코딩해 push**하는 tier-1과, 워크로드 자체 ArgoCD가 `kubernetes.default.svc`로 도는 tier-3이 완전히 다른 재지정 부담을 집니다.
 - **metrics-server=cluster-bootstrap의 raw manifest, kube-state-metrics=VM 스택 서브차트** — 어떤 ArgoCD 앱 스캔에도 독립 앱으로 안 잡힌다. "누락"으로 오독하기 쉽다.
 - 워크로드 API endpoint가 **8개 매니페스트, 총 19곳**에 하드코딩돼 있어 클러스터를 세울 때마다 전량 교체 + cluster secret 재발급이 필요하다.
 - 부트스트랩은 **Fargate 닭-달걀부터 service 배포까지** 하나의 마스터 순서로 흐른다.
@@ -29,8 +29,8 @@ EKS-managed 5종은 [03 managed addon]({{< relref "03-managed-addons.md" >}})이
 
 관측성 8종 중 둘은 "ArgoCD Application을 스캔했는데 안 보인다"는 이유로 누락으로 오판하기 쉽습니다.
 
-- **metrics-server**는 cluster-bootstrap(v1/v2) 차트 안에 **raw manifest**(Deployment+RBAC+Service+`v1beta1.metrics.k8s.io` APIService)로 박혀 있다. 서브차트도 EKS addon도 독립 ArgoCD 앱도 아니다. arm64-only nodeAffinity로 렌더되며 `kubectl top`·HPA의 필수 컴포넌트다. ⚠️ 이미지가 devops ECR 계정에서 pull되는데 차트는 finance ECR 계정에서 오므로 **신규 클러스터에서 cross-account ECR pull 권한이 유지되는지** 확인해야 한다(§7).
-- **kube-state-metrics**는 victoria-metrics-k8s-stack의 **서브차트**로 워크로드 양쪽에 이미 활성화돼 있다. ⚠️ datadog에도 자체 `kubeStateMetricsCore`가 켜져 있어 **KSM이 두 곳에서 동시 구동**된다(스크레이프·비용 중복, 신규 클러스터에도 자동 승계).
+- **metrics-server**는 cluster-bootstrap(v1/v2) 차트 안에 **raw manifest**(Deployment+RBAC+Service+`v1beta1.metrics.k8s.io` APIService)로 박혀 있습니다. 서브차트도 EKS addon도 독립 ArgoCD 앱도 아닙니다. arm64-only nodeAffinity로 렌더되며 `kubectl top`·HPA의 필수 컴포넌트입니다. ⚠️ 이미지가 devops ECR 계정에서 pull되는데 차트는 finance ECR 계정에서 오므로 **신규 클러스터에서 cross-account ECR pull 권한이 유지되는지** 확인해야 합니다(§7).
+- **kube-state-metrics**는 victoria-metrics-k8s-stack의 **서브차트**로 워크로드 양쪽에 이미 활성화돼 있습니다. ⚠️ datadog에도 자체 `kubeStateMetricsCore`가 켜져 있어 **KSM이 두 곳에서 동시 구동**됩니다(스크레이프·비용 중복, 신규 클러스터에도 자동 승계).
 
 두 항목 다 "누락이 아니라 다른 경로로 설치돼 있을 뿐"입니다. 신규 클러스터 체크리스트에서 별도 ArgoCD 앱으로 찾으려 하면 항상 실패하고, 별도 배포 대상으로 다시 만들면 중복 설치가 됩니다.
 
@@ -38,9 +38,9 @@ EKS-managed 5종은 [03 managed addon]({{< relref "03-managed-addons.md" >}})이
 
 전 구성은 ring0-blue 허브의 `root-app`(app-of-apps)에서 시작해 3계층으로 퍼집니다. **"어디서 reconcile되는가"** 기준으로 나뉩니다.
 
-- **tier-1(허브 push)**: ring0의 ArgoCD가 워크로드 클러스터 API endpoint를 **하드코딩한 destination**으로 직접 push한다(cluster-bootstrap·karpenter·keda·node-local-dns·argocd(spoke)·argocd-external-secrets·istio-operator). 클러스터를 재생성하면 이 endpoint를 전부 갱신해야 한다(§6).
-- **tier-2**: `app-root` ApplicationSet이 워크로드 안에 `root-{env}` 앱을 심어 tier-3로 넘긴다.
-- **tier-3(워크로드 로컬)**: 워크로드 자체 ArgoCD가 `kubernetes.default.svc`(in-cluster)로 reconcile한다(datadog·VM 스택·descheduler·fluentbit·yotrics·app-project·virtual-service·service-app).
+- **tier-1(허브 push)**: ring0의 ArgoCD가 워크로드 클러스터 API endpoint를 **하드코딩한 destination**으로 직접 push합니다(cluster-bootstrap·karpenter·keda·node-local-dns·argocd(spoke)·argocd-external-secrets·istio-operator). 클러스터를 재생성하면 이 endpoint를 전부 갱신해야 합니다(§6).
+- **tier-2**: `app-root` ApplicationSet이 워크로드 안에 `root-{env}` 앱을 심어 tier-3로 넘깁니다.
+- **tier-3(워크로드 로컬)**: 워크로드 자체 ArgoCD가 `kubernetes.default.svc`(in-cluster)로 reconcile합니다(datadog·VM 스택·descheduler·fluentbit·yotrics·app-project·virtual-service·service-app).
 
 - **tier-1**(하드코딩 endpoint, 재지정 부담: 파일 수정 + cluster secret 재발급) — cluster-bootstrap, karpenter, keda, node-local-dns, argocd(spoke), argocd-external-secrets, istio-operator
 - **tier-3**(`kubernetes.default.svc`, **재지정 불필요** — spoke argocd 조인 후 자동 승계) — datadog, descheduler, victoria-metrics-k8s-stack, vm-scrape/extras, fluentbit, yotrics, app-project, virtual-service, service-app

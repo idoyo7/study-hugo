@@ -7,11 +7,11 @@ weight: 6
 
 {{< callout type="info" >}}
 **한눈에**
-- **victoria-metrics-k8s-stack**: chart 0.19.4 → **0.87.0**, 68마이너 점프. **CRD 관리 스키마가 통째로 개편**된다. 0.85.0부터는 대시보드/룰이 **sync-job으로 외부 fetch**하는 방식으로 바뀌고 VM 컴포넌트 이미지는 **태그를 핀하지 않아 차트만 올려도 자동으로 몇 년치 점프**한다 `✓`
-- **metrics-server**: v0.7.2 → **v0.9.0**. **raw manifest로 배포**돼 있어 ArgoCD 앱 스캔·Helm 인벤토리 어디에도 잡히지 않는다(누락이 아니라 배포 방식이 다른 것) `✓`
-- **fluentbit(aws-for-fluent-bit)**: chart 0.1.34 → **0.2.0**. 차트 diff는 사소하지만 **이미지 태그를 핀하지 않아** 차트 버전 하나 올리는 것이 곧 Fluent Bit **1.9.10→4.2.2**·**AL2→AL2023** major 점프다 `✓`
-- **descheduler**: 0.28.0 → **0.35.x**(원 조사는 1.33 기준 0.33.x). values의 `strategies` 블록이 v1alpha1 잔재로 **현재 무시되고 있을 가능성이 매우 높다** — 그대로 둘지(옵션 A) 원 의도를 복원할지(옵션 B)는 팀 결정 사항이다 `?`
-- 네 컴포넌트 모두 **tier-3(`kubernetes.default.svc`) 배포**라 blue-green 신규 클러스터에서 endpoint 재지정이 불필요하다 `✓`
+- **victoria-metrics-k8s-stack**: chart 0.19.4 → **0.87.0**, 68마이너 점프. **CRD 관리 스키마가 통째로 개편**됩니다. 0.85.0부터는 대시보드/룰이 **sync-job으로 외부 fetch**하는 방식으로 바뀌고 VM 컴포넌트 이미지는 **태그를 핀하지 않아 차트만 올려도 자동으로 몇 년치 점프**합니다 `✓`
+- **metrics-server**: v0.7.2 → **v0.9.0**. **raw manifest로 배포**돼 있어 ArgoCD 앱 스캔·Helm 인벤토리 어디에도 잡히지 않습니다(누락이 아니라 배포 방식이 다른 것) `✓`
+- **fluentbit(aws-for-fluent-bit)**: chart 0.1.34 → **0.2.0**. 차트 diff는 사소하지만 **이미지 태그를 핀하지 않아** 차트 버전 하나 올리는 것이 곧 Fluent Bit **1.9.10→4.2.2**·**AL2→AL2023** major 점프입니다 `✓`
+- **descheduler**: 0.28.0 → **0.35.x**(원 조사는 1.33 기준 0.33.x). values의 `strategies` 블록이 v1alpha1 잔재로 **현재 무시되고 있을 가능성이 매우 높습니다** — 그대로 둘지(옵션 A) 원 의도를 복원할지(옵션 B)는 팀 결정 사항입니다 `?`
+- 네 컴포넌트 모두 **tier-3(`kubernetes.default.svc`) 배포**라 blue-green 신규 클러스터에서 endpoint 재지정이 불필요합니다 `✓`
 {{< /callout >}}
 
 ## 1. victoria-metrics-k8s-stack — 0.19.4 → 0.87.0
@@ -32,20 +32,20 @@ chart를 0.19.4에서 0.87.0으로 올립니다. 68마이너 점프입니다. VM
 
 그 밖에 확인할 항목들:
 
-- **0.74.0 라벨 표준화** — 커스텀 `app` 라벨이 `app.kubernetes.io/component`로 대체된다. vmagent의 `topologySpreadConstraints`가 라벨 셀렉터를 쓰고 있다면 렌더 후 실제로 매칭되는지 재확인해야 한다(불일치 시 spread 제약이 무력화될 수 있다).
-- **0.81.0 `defaultRules.create`→`enabled` 리네임** — 구키는 fallback으로 당장 동작하지만 개명이 권장된다.
-- **kube-state-metrics 태그 bump 별도 필요** — 서브차트를 올려도 이미지 태그가 핀돼 있으면 KSM 앱 자체는 그대로다. 목표(k8s 1.35를 지원하는 최신 정식 릴리스 라인 **≥2.19**. 원 조사의 ≥2.17은 1.33 기준값이었다)를 달성하려면 태그를 명시적으로 올려야 한다. v2.14.0의 `kube_endpoint_address_*` 메트릭 제거·v2.18.0의 endpoints→endpointslices 기본 전환에 걸리는 알림룰/대시보드가 있는지도 감사해야 한다.
-- **grafana 서브차트 12.x vs 핀 이미지 11.3.0 괴리** — 서브차트는 12.7.x로 올라가지만 이미지 태그를 11.3.0에 고정할지 12.x로 함께 올릴지는 별도 결정이 필요하다(11→12는 그 자체로 breaking이 있다).
-- **operator env/CLI 매핑 변경** — `disable_prometheus_converter: true`는 v0.73.1에서도 하위호환되지만 finance가 커스텀으로 넣은 operator env 4종(config-reloader·alertmanager 기본 이미지 지정용)의 키가 여전히 유효한지는 배포 전 검증이 필요하다.
+- **0.74.0 라벨 표준화** — 커스텀 `app` 라벨이 `app.kubernetes.io/component`로 대체됩니다. vmagent의 `topologySpreadConstraints`가 라벨 셀렉터를 쓰고 있다면 렌더 후 실제로 매칭되는지 재확인해야 합니다(불일치 시 spread 제약이 무력화될 수 있습니다).
+- **0.81.0 `defaultRules.create`→`enabled` 리네임** — 구키는 fallback으로 당장 동작하지만 개명이 권장됩니다.
+- **kube-state-metrics 태그 bump 별도 필요** — 서브차트를 올려도 이미지 태그가 핀돼 있으면 KSM 앱 자체는 그대로입니다. 목표(k8s 1.35를 지원하는 최신 정식 릴리스 라인 **≥2.19**. 원 조사의 ≥2.17은 1.33 기준값이었습니다)를 달성하려면 태그를 명시적으로 올려야 합니다. v2.14.0의 `kube_endpoint_address_*` 메트릭 제거·v2.18.0의 endpoints→endpointslices 기본 전환에 걸리는 알림룰/대시보드가 있는지도 감사해야 합니다.
+- **grafana 서브차트 12.x vs 핀 이미지 11.3.0 괴리** — 서브차트는 12.7.x로 올라가지만 이미지 태그를 11.3.0에 고정할지 12.x로 함께 올릴지는 별도 결정이 필요합니다(11→12는 그 자체로 breaking이 있습니다).
+- **operator env/CLI 매핑 변경** — `disable_prometheus_converter: true`는 v0.73.1에서도 하위호환되지만 finance가 커스텀으로 넣은 operator env 4종(config-reloader·alertmanager 기본 이미지 지정용)의 키가 여전히 유효한지는 배포 전 검증이 필요합니다.
 
 **오설정 두 건도 이 업그레이드와 함께 정정합니다.** prod values의 vmagent `externalLabels.cluster`가 `ring0`으로 남아 있는 것은 ArgoCD 파라미터가 이미 `prod-finance-green`으로 오버라이드하고 있어 실제 쿼리에는 영향이 없는 "그림자 오설정"입니다. 그래도 스키마 개편 이후에도 이 파라미터 경로가 유효한지 확인하고 values 자체도 정정해 혼선을 없애야 합니다. prod grafana의 `root_url`도 staging 도메인 패턴이 그대로 남아 있어 prod 도메인으로 정정이 필요합니다.
 
 ### 적용 절차
 
-1. **ECR 미러 완전성 확보** — 태그 미핀 컴포넌트(operator v0.73.1, vmagent/vmalert/vmcluster 3종 v1.148.0, node-exporter 서브차트 기본 태그)를 사전에 전량 미러한다. 이것이 이 업그레이드의 최대 리스크다.
+1. **ECR 미러 완전성 확보** — 태그 미핀 컴포넌트(operator v0.73.1, vmagent/vmalert/vmcluster 3종 v1.148.0, node-exporter 서브차트 기본 태그)를 사전에 전량 미러합니다. 이것이 이 업그레이드의 최대 리스크입니다.
 2. **values 정정** — `createCRD: false` 제거/재매핑, `defaultRules.create`→`enabled`, `syncJob.enabled: false` + `defaultDashboards.enabled: false` 명시, KSM 태그를 ≥2.19로 bump, grafana 태그 유지/상승 결정, externalLabels·root_url 오설정 정정.
-3. **CRD 선적용 권장** — 신규/버전업 CRD를 컴포넌트보다 먼저 적용되도록 순서를 맞춘다(ArgoCD Server-Side Apply에 맡기는 경우 CRD가 먼저 뜨는지 확인).
-4. **staging 우선, prod 승격** — staging에 먼저 적용하고 prod는 안정 확인 후 승격한다.
+3. **CRD 선적용 권장** — 신규/버전업 CRD를 컴포넌트보다 먼저 적용되도록 순서를 맞춥니다(ArgoCD Server-Side Apply에 맡기는 경우 CRD가 먼저 뜨는지 확인).
+4. **staging 우선, prod 승격** — staging에 먼저 적용하고 prod는 안정 확인 후 승격합니다.
 
 ### 검증·롤백
 
@@ -54,7 +54,7 @@ chart를 0.19.4에서 0.87.0으로 올립니다. 68마이너 점프입니다. VM
 - [ ] ECR 이미지 미러 완전성(최대 리스크) — 전량 사전 미러 없이는 대량 ImagePullBackOff.
 - [ ] sync-job의 외부 egress — 비활성화로 기존 extras 관리 체계 유지.
 - [ ] CRD 관리 스키마 개편 — `crds.plain`으로 실제 설치되는지 확인.
-- [ ] KSM 태그 미bump 함정 — 차트만 올려서는 목표 버전에 도달하지 않는다.
+- [ ] KSM 태그 미bump 함정 — 차트만 올려서는 목표 버전에 도달하지 않습니다.
 - [ ] KSM 메트릭 rename 감사(v2.14.0/v2.18.0).
 - [ ] grafana 12.x 서브차트 vs 11.3.0 이미지 괴리 결정.
 - [ ] 라벨 표준화(0.74.0) vs topologySpreadConstraints 셀렉터 매칭 재확인.
@@ -63,11 +63,11 @@ chart를 0.19.4에서 0.87.0으로 올립니다. 68마이너 점프입니다. VM
 
 **배포 후 검증**
 
-- [ ] 모든 파드가 Ready이고 ImagePullBackOff가 0건인지, VictoriaMetrics 계열 CRD가 전부 존재하는지, vmagent 스크레이프와 VMRule 로드가 정상인지, `cluster="prod-finance-green"`(ring0 아님)으로 라벨이 실제로 찍히는지, KSM 메트릭 rename이 알림룰/대시보드에 영향을 주지 않는지 확인한다.
+- [ ] 모든 파드가 Ready이고 ImagePullBackOff가 0건인지, VictoriaMetrics 계열 CRD가 전부 존재하는지, vmagent 스크레이프와 VMRule 로드가 정상인지, `cluster="prod-finance-green"`(ring0 아님)으로 라벨이 실제로 찍히는지, KSM 메트릭 rename이 알림룰/대시보드에 영향을 주지 않는지 확인합니다.
 
 **롤백**
 
-- [ ] chart targetRevision을 0.19.4로 되돌린다. CRD 관리 스키마가 개편되므로(구 `crds` 서브차트 vs `crds.plain`) 다운그레이드 시 CRD 잔존 여부를 확인한다.
+- [ ] chart targetRevision을 0.19.4로 되돌립니다. CRD 관리 스키마가 개편되므로(구 `crds` 서브차트 vs `crds.plain`) 다운그레이드 시 CRD 잔존 여부를 확인합니다.
 
 ## 2. metrics-server — v0.7.2 → v0.9.0
 
@@ -97,10 +97,10 @@ metrics-server는 클러스터 부트스트랩 단계에서 **raw manifest로 �
 
 ### 적용 절차
 
-1. **핵심 선행 확인** — ECR 미러에 `3.2.1` 태그가 존재하는지 확인한다. 없으면 전 노드 로깅 DaemonSet이 ImagePullBackOff로 로그 파이프라인 전체가 멈춘다.
-2. **targetRevision bump** — chart를 0.2.0으로 올린다. values는 스키마가 호환되므로 변경이 필요 없다(태그를 명시 핀하고 싶다면 `image.tag: "3.2.1"`을 추가하는 선택지도 있다).
-3. **IRSA 재바인딩** — role ARN·account는 불변이지만 신규 blue 클러스터라면 role의 trust policy에 신규 OIDC provider를 추가해야 한다. v3도 표준 IRSA(web identity token)를 쓰므로 자격증명 해석 방식 자체는 바뀌지 않는다.
-4. **stage → prod** — stage에 먼저 적용해 검증한 뒤 prod로 간다. 롤백은 targetRevision을 되돌리는 것만으로 충분하다(값·스키마가 불변이라 무손실).
+1. **핵심 선행 확인** — ECR 미러에 `3.2.1` 태그가 존재하는지 확인합니다. 없으면 전 노드 로깅 DaemonSet이 ImagePullBackOff로 로그 파이프라인 전체가 멈춥니다.
+2. **targetRevision bump** — chart를 0.2.0으로 올립니다. values는 스키마가 호환되므로 변경이 필요 없습니다(태그를 명시 핀하고 싶다면 `image.tag: "3.2.1"`을 추가하는 선택지도 있습니다).
+3. **IRSA 재바인딩** — role ARN·account는 불변이지만 신규 blue 클러스터라면 role의 trust policy에 신규 OIDC provider를 추가해야 합니다. v3도 표준 IRSA(web identity token)를 쓰므로 자격증명 해석 방식 자체는 바뀌지 않습니다.
+4. **stage → prod** — stage에 먼저 적용해 검증한 뒤 prod로 갑니다. 롤백은 targetRevision을 되돌리는 것만으로 충분합니다(값·스키마가 불변이라 무손실).
 
 ### 검증·롤백
 
@@ -110,15 +110,15 @@ metrics-server는 클러스터 부트스트랩 단계에서 **raw manifest로 �
 - [ ] **firehose 플러그인 초기화** — 신규 코어에서 IRSA 자격증명 획득·전송이 정상인지 로그로 확인.
 - [ ] **IRSA/AL2023 자격증명** — 신규 클러스터의 OIDC provider가 role trust에 추가됐는지 확인.
 - [ ] **arm64 이미지 pull** — finance 노드가 arm64이므로 목표 태그의 멀티아치 이미지에 arm64가 포함되는지 확인.
-- [ ] **prune:true/selfHeal:true** — 머지 즉시 자동 롤아웃되므로 카나리/수동 게이트가 필요하면 일시적으로 selfHeal을 끈다.
+- [ ] **prune:true/selfHeal:true** — 머지 즉시 자동 롤아웃되므로 카나리/수동 게이트가 필요하면 일시적으로 selfHeal을 끕니다.
 
 **배포 후 검증**
 
-- [ ] DaemonSet이 전 노드에서 Running이고 이미지 태그가 목표와 일치하는지, 플러그인 로드 에러가 없는지, 두 Firehose delivery stream(finance/mydata) 모두 실제 레코드 도착까지 stage에서 확인한다.
+- [ ] DaemonSet이 전 노드에서 Running이고 이미지 태그가 목표와 일치하는지, 플러그인 로드 에러가 없는지, 두 Firehose delivery stream(finance/mydata) 모두 실제 레코드 도착까지 stage에서 확인합니다.
 
 **롤백**
 
-- [ ] targetRevision을 0.1.34로 되돌리는 것만으로 충분하다(값·스키마 불변, 무손실).
+- [ ] targetRevision을 0.1.34로 되돌리는 것만으로 충분합니다(값·스키마 불변, 무손실).
 
 ## 4. descheduler — 0.28.0 → 0.35.x
 
@@ -136,8 +136,8 @@ client-go skew를 이유로 이 bump는 blocking으로 분류합니다 — 0.28(
 
 이 확정 결과에 따라 두 옵션이 갈립니다.
 
-- **옵션 A(현재 유효 동작 보존, 저위험)** — profiles에 topology-spread 하나만 남기고 `strategies` 블록을 삭제한다. 실제 축출 동작 변화가 최소화된다. 단 원래 의도했던 3개 플러그인은 계속 미동작 상태로 남는다.
-- **옵션 B(원 의도 복원, 동작 변화 있음)** — InterPodAntiAffinity·NodeAffinity·NodeTaints 셋을 `profiles.deschedule`로 이관해 실제로 켠다. 그동안 안 돌던 축출이 갑자기 시작되므로 파드 재스케줄이 늘어날 수 있어 staging에서 축출량을 관찰해야 한다.
+- **옵션 A(현재 유효 동작 보존, 저위험)** — profiles에 topology-spread 하나만 남기고 `strategies` 블록을 삭제합니다. 실제 축출 동작 변화가 최소화됩니다. 단 원래 의도했던 3개 플러그인은 계속 미동작 상태로 남습니다.
+- **옵션 B(원 의도 복원, 동작 변화 있음)** — InterPodAntiAffinity·NodeAffinity·NodeTaints 셋을 `profiles.deschedule`로 이관해 실제로 켭니다. 그동안 안 돌던 축출이 갑자기 시작되므로 파드 재스케줄이 늘어날 수 있어 staging에서 축출량을 관찰해야 합니다.
 
 어느 옵션을 택하든 `strategies` 블록 자체는 제거합니다(0.35에서도 non-strict 디코더가 무시할 가능성이 높지만 모호성과 향후 strict 디코드 리스크를 없애기 위해서입니다). finance가 쓰는 7개 플러그인명은 이름 변경이나 제거 없이 v0.35의 v1alpha2에서도 유효합니다.
 
@@ -145,20 +145,20 @@ client-go skew를 이유로 이 bump는 blocking으로 분류합니다 — 0.28(
 
 descheduler는 upstream `kubernetes-sigs.github.io/descheduler` 차트를 tier-3(`kubernetes.default.svc`)로 직접 소비하므로 신규 blue 클러스터에서 endpoint 재지정이 필요 없고 yo-charts 리워크도 필요 없습니다.
 
-1. **targetRevision bump** — chart를 0.35.x로 올린다. ECR 미러에 해당 태그가 있는지 먼저 확인한다.
-2. **policy 리워크** — `strategies` 블록을 제거하고 팀이 결정한 옵션(A 또는 B)에 맞춰 `profiles`/`plugins`/`pluginConfig`를 정리한다. `DefaultEvictor`의 `nodeFit`·`evictLocalStoragePods` 같은 기본값이 finance 의도와 맞는지 명시적으로 검토한다(특히 topology-spread 축출 시 `nodeFit`을 켜지 않으면 재스케줄 불가능한 노드로도 축출될 수 있다).
-3. **staging 선적용** — 리워크한 policy를 staging에 먼저 올린다.
+1. **targetRevision bump** — chart를 0.35.x로 올립니다. ECR 미러에 해당 태그가 있는지 먼저 확인합니다.
+2. **policy 리워크** — `strategies` 블록을 제거하고 팀이 결정한 옵션(A 또는 B)에 맞춰 `profiles`/`plugins`/`pluginConfig`를 정리합니다. `DefaultEvictor`의 `nodeFit`·`evictLocalStoragePods` 같은 기본값이 finance 의도와 맞는지 명시적으로 검토합니다(특히 topology-spread 축출 시 `nodeFit`을 켜지 않으면 재스케줄 불가능한 노드로도 축출될 수 있습니다).
+3. **staging 선적용** — 리워크한 policy를 staging에 먼저 올립니다.
 4. **prod 적용** — staging 관찰 후 동일 절차.
 
 ### 검증·롤백
 
 **배포 전 결정·확인**
 
-- [ ] **(리스크 1) 옵션 A/B 결정** — 작업 전 현재 파드 로그로 실제 enabled plugins를 캡처해 `strategies` 무시 여부를 확정한다.
+- [ ] **(리스크 1) 옵션 A/B 결정** — 작업 전 현재 파드 로그로 실제 enabled plugins를 캡처해 `strategies` 무시 여부를 확정합니다.
 - [ ] **ECR 미러 태그 존재 확인** — 없으면 배포 즉시 ImagePullBackOff.
-- [ ] **DefaultEvictor 기본값 검토** — 미지정 시 주입되는 기본값(`nodeFit`·`evictLocalStoragePods` 등)이 의도와 맞는지 확인한다.
-- [ ] **잔여 strategies 제거** — 두 옵션 모두에서 삭제하고 policy가 profiles만 갖는지 재확인한다.
-- [ ] prod/stage values가 현재 동일하므로 리워크 후에도 동일하게 유지한다.
+- [ ] **DefaultEvictor 기본값 검토** — 미지정 시 주입되는 기본값(`nodeFit`·`evictLocalStoragePods` 등)이 의도와 맞는지 확인합니다.
+- [ ] **잔여 strategies 제거** — 두 옵션 모두에서 삭제하고 policy가 profiles만 갖는지 재확인합니다.
+- [ ] prod/stage values가 현재 동일하므로 리워크 후에도 동일하게 유지합니다.
 
 **배포 후 검증**
 

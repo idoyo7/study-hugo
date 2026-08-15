@@ -8,10 +8,10 @@ aliases: ["/monitoring/victoriametrics/03-ingestion/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- **vmagent**는 OTel·InfluxDB·Datadog 등 다양한 프로토콜을 받아 릴레이블·dedup·스트리밍 집계 후 `remote_write`로 내보내는 만능 어댑터다. Fast Queue(메모리)→Persistent Queue(디스크) 버퍼링으로 지표를 잃지 않는다.
-- **vminsert**는 저장하지 않고 **랑데부 해싱**으로 vmstorage에 라우팅만 한다 — 노드 추가 시 재배치가 약 1/(N+1)로 최소화돼 리밸런싱 폭풍을 피한다.
-- 노드 다운 시 **페일오버**(살아있는 노드로 균등 재분배), **`replicationFactor`**로 복제 후 vmselect 쿼리 시 **dedup** — 쓰기 시점 복제(안정성)와 읽기 시점 dedup(정확성)이 짝을 이룬다.
-- vminsert↔vmstorage 연결은 압축 방식을 협의하며, `rpc.disableCompression`으로 CPU↔대역폭 트레이드오프를 조절할 수 있다.
+- **vmagent**는 OTel·InfluxDB·Datadog 등 다양한 프로토콜을 받아 릴레이블·dedup·스트리밍 집계 후 `remote_write`로 내보내는 만능 어댑터입니다. Fast Queue(메모리)→Persistent Queue(디스크) 버퍼링으로 지표를 잃지 않습니다.
+- **vminsert**는 저장하지 않고 **랑데부 해싱**으로 vmstorage에 라우팅만 합니다 — 노드 추가 시 재배치가 약 1/(N+1)로 최소화돼 리밸런싱 폭풍을 피합니다.
+- 노드 다운 시 **페일오버**(살아있는 노드로 균등 재분배), **`replicationFactor`**로 복제 후 vmselect 쿼리 시 **dedup** — 쓰기 시점 복제(안정성)와 읽기 시점 dedup(정확성)이 짝을 이룹니다.
+- vminsert↔vmstorage 연결은 압축 방식을 협의하며, `rpc.disableCompression`으로 CPU↔대역폭 트레이드오프를 조절할 수 있습니다.
 {{< /callout >}}
 
 VM에서 데이터가 들어오는 두 관문을 다룹니다. **vmagent**는 무엇이든 받아 정제하고 리모트로 흘려보내는 만능 어댑터이자 버퍼이고, **vminsert**는 그 데이터를 여러 vmstorage 노드로 흩뿌리는 라우팅 게이트웨이입니다.
@@ -27,7 +27,7 @@ vmagent는 지표 **수집**과 **1차 가공**을 책임집니다. 내부에는
 입력 쪽이 대단히 넓습니다. 모니터링 진영에서 쓰이는 거의 모든 프로토콜을 받습니다.
 
 - **OpenTelemetry**, **InfluxDB**(라인 프로토콜), **Datadog**, **Graphite**, **Prometheus**(agent), **NewRelic**, **JSON**, **CSV** 등.
-- `node_exporter`나 애플리케이션의 `/metrics` 엔드포인트에서 직접 스크랩도 한다.
+- `node_exporter`나 애플리케이션의 `/metrics` 엔드포인트에서 직접 스크랩도 합니다.
 
 출력은 단일합니다. **`remote_write` 프로토콜**로 VM 본체(vminsert)나 다른 Prometheus 호환 스토리지로 보냅니다. 한마디로 vmagent는 **"무엇이든 받아서 정제하고 `remote_write`로 내보내는 만능 어댑터"** 입니다.
 
@@ -35,8 +35,8 @@ vmagent는 지표 **수집**과 **1차 가공**을 책임집니다. 내부에는
 
 수집 방식은 두 가지를 모두 지원합니다.
 
-- **Pull (스크랩 / 폴링)**: Prometheus와 동일하다. `scrape.config` 파일에 스크랩 대상을 두면 주기적으로 익스포터를 찔러 지표를 가져온다. **보통 이쪽이 메인**이다.
-- **Push**: 스크랩과 반대로 외부에서 vmagent로 직접 데이터를 밀어 넣는다. 예를 들어 InfluxDB 라인 프로토콜로 `/write` 엔드포인트에 한 줄짜리 지표를 보낸다.
+- **Pull (스크랩 / 폴링)**: Prometheus와 동일합니다. `scrape.config` 파일에 스크랩 대상을 두면 주기적으로 익스포터를 찔러 지표를 가져옵니다. **보통 이쪽이 메인**입니다.
+- **Push**: 스크랩과 반대로 외부에서 vmagent로 직접 데이터를 밀어 넣습니다. 예를 들어 InfluxDB 라인 프로토콜로 `/write` 엔드포인트에 한 줄짜리 지표를 보냅니다.
 
 ```
 # Push 예시 — InfluxDB 라인 프로토콜
@@ -123,7 +123,7 @@ vminsert는 앞서 본 헬스 체크로 각 vmstorage 상태를 계속 파악하
 
 이렇게 같은 데이터가 여러 벌 생기지만, 중복은 나중에 vmselect가 쿼리할 때 **dedup(dedup min scrape interval)** 으로 제거됩니다. 즉 **쓰기 시점의 복제(안정성)** 와 **읽기 시점의 dedup(정확성)** 이 짝을 이뤄 동작합니다. 쿼리 시점 dedup의 세부는 [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}})에서 다룹니다.
 
-> 저장된 데이터가 vmstorage 안에서 어떻게 TSID로 바뀌고 압축·파티셔닝되는지는 [04 저장·압축]({{< relref "04-storage-and-compression.md" >}})에서 이어진다. `New TSID`가 폭증하는 카디널리티 문제는 [실전 01 카디널리티]({{< relref "../../practice/01-cardinality.md" >}})가 주인이다.
+> 저장된 데이터가 vmstorage 안에서 어떻게 TSID로 바뀌고 압축·파티셔닝되는지는 [04 저장·압축]({{< relref "04-storage-and-compression.md" >}})에서 이어집니다. `New TSID`가 폭증하는 카디널리티 문제는 [실전 01 카디널리티]({{< relref "../../practice/01-cardinality.md" >}})가 주인입니다.
 
 ## 출처
 

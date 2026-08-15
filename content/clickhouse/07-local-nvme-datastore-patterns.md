@@ -210,16 +210,16 @@ pulse.support의 요약이 본질을 찌릅니다 — "ClickHouse는 IO-bound·m
 **강화되는 근거** `Σ`:
 
 - **로컬 NVMe(i7i/i8g) 1차 방향은 업계 정설과 정확히 일치.** 9개 시스템이 같은 선택을 하고 인스턴스 패밀리까지 동일 계보다 — 하드웨어 리스크 없음.
-- **"로컬 NVMe replica + S3 백업" 3종 세트는 최소 요구선을 정확히 충족.** Aerospike shadow / Mongo Atlas Cloud Backup / CockroachDB RF5에 대응하는 ClickHouse의 표준이다.
-- **RF 상향의 논리적 정당성 확보.** CockroachDB "로컬이면 RF 3→5"가 ClickHouse "로컬이면 replica 2→3"를 이론적으로 뒷받침한다.
-- **S3 cold 티어링은 오히려 ClickHouse의 상대적 우위.** NoSQL 진영(Scylla=experimental, Cassandra=없음)이 아직 만드는 hot 로컬 + cold S3를 ClickHouse는 storage_policy로 코어에 내장·성숙시켰다. Kafka조차 RSM(S3 어댑터)을 직접 구현해야 하는데 ClickHouse는 완제품이다.
+- **"로컬 NVMe replica + S3 백업" 3종 세트는 최소 요구선을 정확히 충족.** Aerospike shadow / Mongo Atlas Cloud Backup / CockroachDB RF5에 대응하는 ClickHouse의 표준입니다.
+- **RF 상향의 논리적 정당성 확보.** CockroachDB "로컬이면 RF 3→5"가 ClickHouse "로컬이면 replica 2→3"를 이론적으로 뒷받침합니다.
+- **S3 cold 티어링은 오히려 ClickHouse의 상대적 우위.** NoSQL 진영(Scylla=experimental, Cassandra=없음)이 아직 만드는 hot 로컬 + cold S3를 ClickHouse는 storage_policy로 코어에 내장·성숙시켰습니다. Kafka조차 RSM(S3 어댑터)을 직접 구현해야 하는데 ClickHouse는 완제품입니다.
 
 **새로 드러난 리스크(반드시 런북/TCO에 반영)** `Σ`:
 
-- **재수화 MTTR이 로컬 NVMe self-host의 최대 운영 부채 — 그리고 EBS로 되돌리는 실질적 힘.** Grab(Kafka NVMe→EBS, 재복제 hours→minutes)·Pinterest(TiDB, MTTR로 EBS 검토)는 **실제로 후퇴한 반례**다. ClickHouse는 스토리지 민감도가 더 높아 후퇴가 Kafka만큼 쉽지 않으므로, ① 노드당 데이터량 절제(작은 노드·넓은 분산·shard 증가), ② S3 cold로 로컬을 hot만 남겨 재수화 대상 축소, ③ **TB당 재수화 시간 실측**으로 방어한다. 조사가 `?`으로 남긴 재수화 시간은 반드시 스테이징에서 벤치마킹한다.
-- **cross-AZ 복제 트래픽 비용을 TCO에서 누락하지 말 것.** diskless 진영이 폭로한 "클라우드 Kafka 비용의 70~90%가 inter-AZ"는 ClickHouse RMT 멀티 AZ 복제에도(정도는 다르나) 적용된다. RF2 검토·replica AZ 배치 최적화·cold는 S3 단일본으로 대응한다.
-- **"S3 티어링=사본 절감"이라는 UltraWarm식 오해의 교정.** self-host RMT는 shared-nothing이라 S3 cold도 replica마다 사본(RF2=S3에 2벌), zero-copy는 프로덕션 금지다. 절감은 **NVMe→S3 GB단가 차이에서만** 오므로 비용 계산 시 S3 cold도 RF배수(+백업)로 계상해야 공정하다. **티어링 ≠ 내구성/DR** — S3 cold도 살아있는 테이블이라 DROP·잘못된 ALTER에 똑같이 파괴된다(상세는 [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})).
-- **k8s local PV 정적 프로비저닝 함정 + Karpenter + anti-affinity.** 노드 영구 소실 시 PVC는 Bound인데 PV 하부가 소실돼 파드가 영원히 Pending에 빠지는 문제를 Kafka·ES·Aerospike가 모두 겪었다 — Altinity operator + local PV에서도 동일하므로 **자동 remediation 또는 수동 청소 절차를 런북에 명시·검증**한다. Karpenter consolidation의 stateful 위험, Flipkart 노이즈 네이버(replica 몰림)를 막는 파드 배치 anti-affinity도 필수다.
+- **재수화 MTTR이 로컬 NVMe self-host의 최대 운영 부채 — 그리고 EBS로 되돌리는 실질적 힘.** Grab(Kafka NVMe→EBS, 재복제 hours→minutes)·Pinterest(TiDB, MTTR로 EBS 검토)는 **실제로 후퇴한 반례**입니다. ClickHouse는 스토리지 민감도가 더 높아 후퇴가 Kafka만큼 쉽지 않으므로, ① 노드당 데이터량 절제(작은 노드·넓은 분산·shard 증가), ② S3 cold로 로컬을 hot만 남겨 재수화 대상 축소, ③ **TB당 재수화 시간 실측**으로 방어합니다. 조사가 `?`으로 남긴 재수화 시간은 반드시 스테이징에서 벤치마킹합니다.
+- **cross-AZ 복제 트래픽 비용을 TCO에서 누락하지 말 것.** diskless 진영이 폭로한 "클라우드 Kafka 비용의 70~90%가 inter-AZ"는 ClickHouse RMT 멀티 AZ 복제에도(정도는 다르나) 적용됩니다. RF2 검토·replica AZ 배치 최적화·cold는 S3 단일본으로 대응합니다.
+- **"S3 티어링=사본 절감"이라는 UltraWarm식 오해의 교정.** self-host RMT는 shared-nothing이라 S3 cold도 replica마다 사본(RF2=S3에 2벌), zero-copy는 프로덕션 금지입니다. 절감은 **NVMe→S3 GB단가 차이에서만** 오므로 비용 계산 시 S3 cold도 RF배수(+백업)로 계상해야 공정합니다. **티어링 ≠ 내구성/DR** — S3 cold도 살아있는 테이블이라 DROP·잘못된 ALTER에 똑같이 파괴됩니다(상세는 [스토리지 페이지]({{< relref "02-storage-local-nvme.md" >}})).
+- **k8s local PV 정적 프로비저닝 함정 + Karpenter + anti-affinity.** 노드 영구 소실 시 PVC는 Bound인데 PV 하부가 소실돼 파드가 영원히 Pending에 빠지는 문제를 Kafka·ES·Aerospike가 모두 겪었습니다 — Altinity operator + local PV에서도 동일하므로 **자동 remediation 또는 수동 청소 절차를 런북에 명시·검증**합니다. Karpenter consolidation의 stateful 위험, Flipkart 노이즈 네이버(replica 몰림)를 막는 파드 배치 anti-affinity도 필수입니다.
 
 **벤치마킹·이식할 런북** `Σ`:
 

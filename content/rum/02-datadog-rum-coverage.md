@@ -7,11 +7,11 @@ weight: 2
 
 {{< callout type="info" >}}
 **한눈에**
-- RUM을 하나로 묶어 "대체된다/안 된다"고 답하면 틀린다 — **4개의 이질적 하위 제품**으로 쪼개야 판정이 선다.
+- RUM을 하나로 묶어 "대체된다/안 된다"고 답하면 틀립니다 — **4개의 이질적 하위 제품**으로 쪼개야 판정이 섭니다.
 - **RUM-Core**(세션 리플레이+CWV/에러+트레이스 상관) 🟢 즉시(Wave 1) · **RUM-Frustration** 🟡 SQL 사후계산 · **RUM-PA**(퍼널/리텐션) 🔴 자작/PostHog 병행 · **RUM-Mobile** 🔴 OTel+Embrace/OpenReplay.
-- 대체는 **프록시가 아니라 `@hyperdx/browser` SDK 교체**다 — `datadogreceiver`는 브라우저 RUM intake(`/api/v2/rum`)를 아예 수신하지 않는다.
-- 좌절 신호·모바일 리플레이는 **네이티브 프리미티브 부재가 확인됨**(추측 격상 아님) — ClickHouse SQL(`sequenceMatch`/`windowFunnel`) 자작 또는 전용 툴이 필요하다.
-- **"Datadog RUM을 HyperDX로 대체한 공개 프로덕션 사례"는 찾지 못했다** → dual-instrument PoC 성공을 Wave 1 진입 게이트로 명문화한다.
+- 대체는 **프록시가 아니라 `@hyperdx/browser` SDK 교체**입니다 — `datadogreceiver`는 브라우저 RUM intake(`/api/v2/rum`)를 아예 수신하지 않습니다.
+- 좌절 신호·모바일 리플레이는 **네이티브 프리미티브 부재가 확인됨**(추측 격상 아님) — ClickHouse SQL(`sequenceMatch`/`windowFunnel`) 자작 또는 전용 툴이 필요합니다.
+- **"Datadog RUM을 HyperDX로 대체한 공개 프로덕션 사례"는 찾지 못했습니다** → dual-instrument PoC 성공을 Wave 1 진입 게이트로 명문화합니다.
 {{< /callout >}}
 
 "coverage가 어디까지 되나"에 답하는 페이지입니다. [HyperDX 심층 실사]({{< relref "01-hyperdx-deep-dive.md" >}})가 플랫폼 관점(연혁·아키텍처·거버넌스 갭)을 다뤘다면, 여기서는 **Datadog RUM의 기능을 하나씩 `@hyperdx/browser`와 대조**해 어디까지 1:1로 넘어오고 어디서 끊기는지를 커버리지 관점으로 확정합니다.
