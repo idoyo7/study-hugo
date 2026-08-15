@@ -13,7 +13,7 @@ weight: 7
 - 표준 CRD로 안 되는 레이트 리밋·저수준 조작은 [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})로 넘어간다.
 {{< /callout >}}
 
-> **왜 이 이야기.** nginx로 프록시를 운영하던 시절, 라우팅·rewrite·헤더 조작·접근 제어가 전부 `nginx.conf` **한 파일에 절차적으로** 모여 있었다. 메시로 오면서 이것들이 사라진 게 아니라 **여러 개의 선언적 CRD로 흩어졌다.** rewrite는 VirtualService로, `auth_request`는 AuthorizationPolicy·외부 인가로, 헤더 조작은 또 다른 필드로. 이 문서는 "nginx에서 하던 그것"이 Istio에서 어디로 갔는지를 대응표로 정리한다.
+> **왜 이 이야기.** nginx로 프록시를 운영하던 시절에는 라우팅·rewrite·헤더 조작·접근 제어가 전부 `nginx.conf` **한 파일에 절차적으로** 놓여 있었다. 메시로 오면서 이 일들이 사라진 게 아니라 **여러 개의 선언적 CRD로 흩어졌다.** rewrite는 VirtualService로, `auth_request`는 AuthorizationPolicy·외부 인가로, 헤더 조작은 또 다른 필드로 갔다. 이 문서는 "nginx에서 하던 그것"이 Istio에서 어디로 갔는지를 대응표로 정리한다.
 
 > 관련 문서: [03 게이트웨이·TLS]({{< relref "03-gateway-node-isolation.md" >}}) · [04 설정 GitOps]({{< relref "04-config-as-code.md" >}}) · 표준 CRD로 안 되면 → [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})
 
@@ -33,11 +33,11 @@ weight: 7
 | `ssl_certificate` | TLS 종료 | **Gateway** `tls`([03]({{< relref "03-gateway-node-isolation.md" >}})) |
 | `limit_req` | 레이트 리밋 | EnvoyFilter local/global rate limit → [08]({{< relref "08-envoyfilter-extension.md" >}}) |
 
-핵심 통찰 하나: **nginx는 하나의 파일에 절차적으로, Istio는 관심사별 CRD에 선언적으로.** 강력한 분리지만, "이 동작이 어디서 정의됐나"가 여러 리소스로 흩어지므로 형상 관리(GitOps)가 필수가 된다 → [04]({{< relref "04-config-as-code.md" >}}).
+결국 **nginx는 하나의 파일에 절차적으로, Istio는 관심사별 CRD에 선언적으로.** 분리 자체는 강력합니다. 대신 "이 동작이 어디서 정의됐나"가 여러 리소스로 흩어지므로 형상 관리(GitOps)가 필수가 된다 → [04]({{< relref "04-config-as-code.md" >}}).
 
 ## 라우팅·rewrite·리다이렉트
 
-nginx의 `location`과 `rewrite`가 하던 일은 대부분 **VirtualService** 하나에 모입니다.
+nginx에서 `location`과 `rewrite`가 하던 일은 대부분 **VirtualService** 하나로 모입니다.
 
 ```yaml
 apiVersion: networking.istio.io/v1
@@ -58,12 +58,12 @@ spec:
     redirect: { uri: /new, redirectCode: 301 }   # nginx: return 301 /new
 ```
 
-- `match`는 `uri.{exact,prefix,regex}`, `headers`, `method`, `queryParams`로 nginx의 다양한 `location` 매칭을 대체한다.
-- prefix 매칭에 `rewrite.uri`를 쓰면 접두어가 치환된다. `rewrite.authority`로 Host 헤더도 바꾼다(nginx `proxy_set_header Host`).
+- `match`가 `uri.{exact,prefix,regex}`, `headers`, `method`, `queryParams`를 받아 nginx의 다양한 `location` 매칭을 대체한다.
+- prefix 매칭에 `rewrite.uri`를 주면 접두어가 치환된다. Host 헤더는 `rewrite.authority`로 바꾼다(nginx `proxy_set_header Host`).
 
 ## 헤더 조작
 
-nginx의 `proxy_set_header`(요청)와 `add_header`(응답)는 VirtualService의 `headers`로 옵니다.
+요청 쪽 `proxy_set_header`와 응답 쪽 `add_header`는 VirtualService의 `headers`로 옵니다.
 
 ```yaml
   http:
@@ -77,15 +77,15 @@ nginx의 `proxy_set_header`(요청)와 `add_header`(응답)는 VirtualService의
         add:    { x-frame-options: DENY }  # add_header X-Frame-Options DENY;
 ```
 
-`set`은 덮어쓰기, `add`는 append, `remove`는 삭제입니다. 라우트 단위뿐 아니라 DestinationRule 등 다른 계층에서도 헤더를 만질 수 있습니다.
+`set`은 덮어쓰기, `add`는 append, `remove`는 삭제입니다. 헤더를 만질 자리는 라우트 단위만이 아닙니다 — DestinationRule 등 다른 계층에서도 손댈 수 있습니다.
 
 ## 인가 — nginx의 `allow`/`deny`/`auth_request`가 흩어지는 곳
 
-접근 제어는 Istio에서 **성격별로 리소스가 갈립니다.** 이게 nginx에서 넘어올 때 가장 헷갈리는 지점입니다.
+접근 제어는 Istio에서 **성격별로 리소스가 갈립니다.** nginx에서 넘어올 때 가장 헷갈리는 지점이 여기입니다.
 
 ### IP·워크로드 기반 (allow/deny)
 
-`AuthorizationPolicy`가 L7 ALLOW/DENY를 담당합니다. nginx `allow`/`deny`의 대응입니다.
+L7 ALLOW/DENY는 `AuthorizationPolicy`가 담당합니다. nginx `allow`/`deny`의 대응입니다.
 
 ```yaml
 apiVersion: security.istio.io/v1
@@ -101,8 +101,8 @@ spec:
     - operation: { methods: [ GET, POST ], paths: [ "/api/*" ] }
 ```
 
-- `from.source`로 **누가**(principals·namespaces·ipBlocks/remoteIpBlocks)를, `to.operation`으로 **무엇을**(paths·methods·hosts)을, `when`으로 조건을 건다.
-- IP 기반은 주의점이 있다: 클라이언트 실제 IP를 보려면 `remoteIpBlocks`(X-Forwarded-For 기반)와 게이트웨이의 XFF/externalTrafficPolicy 설정이 맞물려야 한다.
+- `from.source`로 **누가**(principals·namespaces·ipBlocks/remoteIpBlocks)를, `to.operation`으로 **무엇을**(paths·methods·hosts), `when`으로 조건을 건다.
+- IP 기반은 주의가 필요하다. 클라이언트 실제 IP를 보려면 `remoteIpBlocks`(X-Forwarded-For 기반)와 게이트웨이의 XFF/externalTrafficPolicy 설정이 맞물려야 한다.
 
 ### 인증 — JWT (auth_basic/JWT 검증)
 
@@ -128,11 +128,11 @@ spec:
   - from: [ { source: { requestPrincipals: [ "*" ] } } ]   # 유효한 JWT 필수
 ```
 
-RequestAuthentication은 "토큰이 있으면 검증"만 하지 **강제하지 않습니다**. "토큰 없으면 거부"는 AuthorizationPolicy가 `requestPrincipals`로 요구해야 완성됩니다. `when: request.auth.claims[...]`로 클레임 기반 인가도 가능합니다.
+RequestAuthentication은 "토큰이 있으면 검증"만 하지 **강제하지 않습니다**. "토큰 없으면 거부"는 AuthorizationPolicy가 `requestPrincipals`로 요구해야 완성됩니다. 클레임 기반 인가도 `when: request.auth.claims[...]`로 가능합니다.
 
 ### 외부 인가 — `auth_request`의 진짜 대응 (ext_authz)
 
-nginx `auth_request`처럼 **매 요청을 외부 인가 서비스에 물어보는** 패턴은 Istio의 **external authorization**입니다. 메시 설정에 인가 제공자를 등록하고, AuthorizationPolicy의 `action: CUSTOM`으로 그 제공자를 호출합니다.
+nginx `auth_request`처럼 **매 요청을 외부 인가 서비스에 물어보는** 패턴이 Istio의 **external authorization**입니다. 메시 설정에 인가 제공자를 등록해두고 AuthorizationPolicy의 `action: CUSTOM`으로 그 제공자를 호출합니다.
 
 ```yaml
 # meshConfig.extensionProviders 에 envoyExtAuthzHttp/Grpc 제공자 등록 후
@@ -142,11 +142,11 @@ spec:
   rules: [ { to: [ { operation: { paths: [ "/secure/*" ] } } ] } ]
 ```
 
-Envoy의 ext_authz 필터가 요청을 인가 서비스로 보내 allow/deny를 받습니다 — 커스텀 인증 로직을 메시 밖 서비스로 빼는, `auth_request`와 정확히 같은 발상입니다.
+Envoy의 ext_authz 필터가 요청을 인가 서비스로 보내 allow/deny를 받습니다 — 커스텀 인증 로직을 메시 밖 서비스로 빼는 셈이니 `auth_request`와 발상이 정확히 같습니다.
 
 ## CORS·타임아웃·재시도
 
-nginx에서 손으로 CORS 헤더를 붙이던 것도 선언적으로 바뀝니다.
+nginx에서 손으로 CORS 헤더를 붙이던 대목도 선언적으로 바뀝니다.
 
 ```yaml
   http:

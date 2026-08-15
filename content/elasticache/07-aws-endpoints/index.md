@@ -24,7 +24,7 @@ weight: 7
 
 ## 1. 엔드포인트 종류 — 배포 형태가 주소 구조를 결정한다
 
-이 표가 이 문서의 핵심 산출물입니다. **DNS 패턴 열에는 AWS 문서에 실제로 실린 예시·템플릿만 넣었습니다.** 문서에 없는 것은 지어내지 않고 `?` 로 표시했습니다.
+이 표가 이 문서의 핵심 산출물입니다. **DNS 패턴 열에는 AWS 문서에 실제로 실린 예시·템플릿만 넣었습니다** — 문서에 없는 것은 지어내지 않고 `?` 로 표시했습니다.
 
 | 배포 형태 | 엔드포인트 이름 | 용도 | 개수 | DNS 패턴 |
 |---|---|---|---|---|
@@ -43,15 +43,15 @@ weight: 7
 
 **판별 규칙.** 이름 안에 `clustercfg` 가 있으면 cluster 프로토콜 엔드포인트이므로 cluster-aware 클라이언트가 필수입니다. `.ng.0001.` 은 CMD primary, `.serverless.` 는 ElastiCache Serverless, `cfg` 는 Memcached 입니다. IaC 리뷰나 인시던트 대응에서 이 규칙만으로 "이 앱이 cluster 클라이언트를 써야 하는가"를 판정할 수 있습니다 `Σ`
 
-**그런데 CME 의 이름 형식은 문서가 규정한 적이 없습니다.** CMD 절은 TLS 유·무 두 템플릿을 다 주는데, CME 절("Finding Endpoints for a … Cluster Mode Enabled Cluster")은 *"The Configuration endpoint is displayed under Cluster details"* 로 끝나고 DNS 예시가 없습니다 `✓` 그래서 **CME configuration endpoint 의 이름을 미리 계산해 방화벽 규칙이나 CNAME 에 박아둘 문서적 근거가 없습니다.** Valkey/Redis CME 에 대한 CNAME 규칙도 문서에 없습니다 — `.cfg.` 를 CNAME 에 포함해야 한다는 규칙은 **Memcached auto-discovery 한정입니다** `✓`
+**그런데 CME 의 이름 형식은 문서가 규정한 적이 없습니다.** CMD 절이 TLS 유·무 두 템플릿을 다 주는 것과 달리, CME 절("Finding Endpoints for a … Cluster Mode Enabled Cluster")은 *"The Configuration endpoint is displayed under Cluster details"* 로 끝나고 DNS 예시를 주지 않습니다 `✓` 그래서 **CME configuration endpoint 의 이름을 미리 계산해 방화벽 규칙이나 CNAME 에 박아둘 문서적 근거가 없습니다.** Valkey/Redis CME 용 CNAME 규칙도 문서에 없습니다 — `.cfg.` 를 CNAME 에 포함해야 한다는 규칙은 **Memcached auto-discovery 한정입니다** `✓`
 
 ### 1.1 Serverless — 단일 DNS, 포트 2개, 내부는 항상 cluster mode
 
 Serverless 는 *"two different endpoints, for different consistency requirements. The two endpoints use the same DNS name but different ports"* 구조입니다 `✓` 6379 는 쓰기와 강한 일관성, 6380 은 read-optimized 입니다. 여기에 함정이 하나 있습니다 — *"Some clients establish connectivity to both ports for every new connection, even if your application is not using the Read from Replica feature"* 이므로 **6380 을 보안 그룹에서 안 열면 쓰지 않는데도 커넥션 수립이 느려집니다** `✓`
 
-샤드 수는 사용자에게 감춰지지만 **슬롯의 물리는 그대로 노출됩니다** — 단일 슬롯 한계가 30,000 ECPUs/s(Read from Replica 시 90,000)이므로 hot slot 은 그대로 병목입니다 `✓` 스케일 속도는 *"up to 10-12 minutes to double the request rate"* 입니다 `✓` 그리고 Serverless 는 지정한 서브넷에 VPC Endpoint 를 만들기 때문에, 앱이 다른 AZ 에 있으면 cross-AZ hop 이 붙습니다 `✓`
+샤드 수는 사용자에게 감춰지지만 **슬롯의 물리는 그대로 노출됩니다** — 단일 슬롯 한계가 30,000 ECPUs/s(Read from Replica 시 90,000)이므로 hot slot 은 그대로 병목입니다 `✓` 스케일 속도는 *"up to 10-12 minutes to double the request rate"* 입니다 `✓` Serverless 는 지정한 서브넷에 VPC Endpoint 를 만들기 때문에 앱이 다른 AZ 에 있으면 cross-AZ hop 이 붙습니다 `✓`
 
-가장 중요한 것은 **CMD 앱을 Serverless 로 옮기는 것이 CMD → CME 전환과 같은 작업**이라는 점입니다. *"ElastiCache Serverless always operates in Cluster Mode"* 이고 *"only accessible using clients that support the … cluster mode protocol"* 이며 TLS 가 강제입니다. CMD 가 필요하면 *"you must create a node-based cluster"* 입니다 `✓`
+무엇보다 **CMD 앱을 Serverless 로 옮기는 것이 CMD → CME 전환과 같은 작업**입니다. *"ElastiCache Serverless always operates in Cluster Mode"* 이고 *"only accessible using clients that support the … cluster mode protocol"* 이며 TLS 가 강제입니다. CMD 가 필요하면 *"you must create a node-based cluster"* 입니다 `✓`
 
 ### 1.2 MemoryDB — cluster endpoint 하나, 그리고 2026 년에 포지셔닝이 바뀌었다
 
@@ -69,17 +69,17 @@ MemoryDB 는 엔드포인트가 `cluster endpoint` 하나이고 *"You need to co
 
 **primary endpoint** 는 *"a DNS name that always resolves to the primary node in the cluster. The primary endpoint is immune to changes to your cluster, such as promoting a read replica to the primary role"* 입니다 `✓` failover 가 나면 ElastiCache 가 *"propagates the Domain Name Service (DNS) name of the promoted replica"* 하므로 애플리케이션 설정은 바꿀 필요가 없고, 쓰기 재개는 *"typically just a few seconds"* 입니다 `✓` 엔진 버전이 갈리는 지점이 있습니다 — Multi-AZ 를 켠 CMD 는 **5.0.6 이상**에서 계획된 노드 교체가 쓰기를 계속 처리하며 끝나지만, **4.0.10 이하**는 *"a brief write interruption associated with DNS updates"* 가 생깁니다 `✓`
 
-**reader endpoint 는 로드밸런서가 아닙니다.** 문서가 명시적으로 부정합니다 — *"A reader endpoint is not a load balancer. It is a DNS record that will resolve to an IP address of one of the replica nodes in a round robin fashion."* `✓` 대신 replica 증감은 실시간으로 따라갑니다(*"keep up with cluster changes in real-time as replicas are added or removed"*) `✓` 여기서 실무 함정이 나옵니다. 커넥션 풀을 프로세스 시작 시 한 번 만들어 계속 재사용하는 앱은 **한 replica 에 모든 커넥션이 몰릴 수 있습니다.** 문서도 *"Additional factors such as when the application creates the connections or how the application (re)-uses the connections will determine the traffic distribution"* 라고 인정합니다 `✓` 읽기 부하를 진짜로 나누려면 클라이언트 측 read-preference 설정을 쓰거나 CME 로 가야 합니다 `Σ`
+**reader endpoint 는 로드밸런서가 아닙니다.** 문서가 명시적으로 부정합니다 — *"A reader endpoint is not a load balancer. It is a DNS record that will resolve to an IP address of one of the replica nodes in a round robin fashion."* `✓` 대신 replica 증감은 실시간으로 따라갑니다(*"keep up with cluster changes in real-time as replicas are added or removed"*) `✓` 여기서 실무 함정이 나옵니다 — 커넥션 풀을 프로세스 시작 시 한 번 만들어 계속 재사용하는 앱은 **한 replica 에 모든 커넥션이 몰릴 수 있습니다.** 문서도 *"Additional factors such as when the application creates the connections or how the application (re)-uses the connections will determine the traffic distribution"* 라고 인정합니다 `✓` 읽기 부하를 진짜로 나누려면 클라이언트 측 read-preference 설정을 쓰거나 CME 로 가야 합니다 `Σ`
 
 **node endpoint** 는 *"resolve to specific endpoints. If you make a change in your cluster, such as adding or deleting a replica, you must update the node endpoints in your application"* 입니다 `✓` 즉 이 주소를 설정에 박아둔 앱은 스케일링과 TLS 전환에서 반드시 깨집니다.
 
 ### 3.1 DNS TTL — AWS 문서가 직접 지목하는 유일한 클라이언트 설정
 
-failover 는 몇 초에 끝나지만, 우리 앱이 겪는 장애 시간은 **새 IP 를 언제 인지하느냐**로 결정됩니다. AWS 문서가 이례적으로 구체적으로 지시합니다 — *"Because ElastiCache nodes use DNS name entries that might change, we recommend that you configure your JVM with a low TTL of 5 to 10 seconds."* 그리고 결정적 경고: **"On some Java configurations, the JVM default TTL is set so that it will never refresh DNS entries until the JVM is restarted."** `✓`
+failover 는 몇 초에 끝나지만, 우리 앱이 겪는 장애 시간은 **새 IP 를 언제 인지하느냐**로 결정됩니다. AWS 문서가 유례없이 구체적으로 지시합니다 — *"Because ElastiCache nodes use DNS name entries that might change, we recommend that you configure your JVM with a low TTL of 5 to 10 seconds."* 그리고 결정적 경고: **"On some Java configurations, the JVM default TTL is set so that it will never refresh DNS entries until the JVM is restarted."** `✓`
 
 대상 값은 `networkaddress.cache.ttl` 인데 이것은 **security property 라서 `-D` 시스템 프로퍼티로 넣을 수 없습니다** — `java.security.Security.setProperty("networkaddress.cache.ttl", "5")` 를 코드에서 호출하거나 `java.security` 파일을 고쳐야 합니다 `✓` 그리고 캐시는 한 층이 아닙니다 — *"Client-side DNS caching can occur in multiple places, including client libraries, the language runtime, or the client operating system"* `✓`
 
-**CMD 는 토폴로지 디스커버리를 아예 쓸 수 없습니다.** 문서 원문: *"Cluster mode disabled clusters don't support the cluster discovery commands and aren't compatible with all clients dynamic topology discovery functionality."* Lettuce 를 쓰는 경우 `MasterSlaveTopologyRefresh` 가 호환되지 않으므로 `StaticMasterReplicaTopologyProvider` 에 read/write 엔드포인트를 주는 방식이 문서 권고입니다 `✓` 즉 **CMD 에서 "클라이언트가 알아서 새 primary 를 찾는" 경로는 없습니다.** DNS 가 유일한 통보 수단이고, 그래서 TTL 이 전부입니다 `Σ`
+**CMD 는 토폴로지 디스커버리를 아예 쓸 수 없습니다.** 문서 원문: *"Cluster mode disabled clusters don't support the cluster discovery commands and aren't compatible with all clients dynamic topology discovery functionality."* Lettuce 를 쓴다면 `MasterSlaveTopologyRefresh` 가 호환되지 않으므로 `StaticMasterReplicaTopologyProvider` 에 read/write 엔드포인트를 주는 방식이 문서 권고입니다 `✓` 즉 **CMD 에서 "클라이언트가 알아서 새 primary 를 찾는" 경로는 없습니다.** DNS 가 유일한 통보 수단이고, 그래서 TTL 이 전부입니다 `Σ`
 
 Multi-AZ 자동 failover 자체에도 전제가 붙습니다 — 샤드마다 노드가 2개 이상이어야 하고(*"only supported on … clusters with more than one node in each shard"*), CMD 는 *"at least one available read replica"* 가 필요하며, **AOF 와는 상호배타**입니다(*"Multi-AZ and append-only file (AOF) are mutually exclusive"*) `✓` 그리고 *"A customer-initiated reboot of a primary doesn't trigger automatic failover"* — 사용자가 primary 를 리부트하면 failover 가 아니라 데이터 소실로 갑니다 `✓`
 
@@ -89,7 +89,7 @@ CME 는 *"a single configuration endpoint. By connecting to the configuration en
 
 구조가 API 응답에서도 드러납니다. CME 의 `DescribeReplicationGroups` 는 최상위에 `ConfigurationEndpoint` + `ClusterEnabled: true` 를 담고 `NodeGroups[]` 안에 `PrimaryEndpoint`/`ReaderEndpoint` 가 **없습니다**. CMD 는 반대로 `NodeGroups[0].PrimaryEndpoint` + `ReaderEndpoint` 를 담고 `ConfigurationEndpoint` 가 없습니다 `✓` (스키마상 두 필드 모두 `Required: No` 이고, 어느 모드에서 어느 필드가 나온다고 **규정한 문장은 없습니다** — 문서 예시로 확인한 것입니다 `≈`) "CME 로 갔는데 primary endpoint 를 못 찾겠다"는 혼란의 근본 원인이 여기입니다. **없는 게 정상입니다.**
 
-configuration endpoint 는 단일 A 레코드가 아닙니다 — *"The DNS lookup for this URI returns a list of all available nodes in the cluster, and is randomly resolved to one of them during the cluster initialization."* `✓` 즉 부트스트랩 시 임의의 한 노드로 들어가 거기서 슬롯 맵을 받습니다. 그 뒤부터 라우팅 책임은 클라이언트에 있고, 그래서 **클라이언트의 토폴로지 갱신 설정이 곧 가용성 설정**이 됩니다. 문서가 지목하는 항목이 네 개입니다 `✓`
+configuration endpoint 는 단일 A 레코드가 아닙니다 — *"The DNS lookup for this URI returns a list of all available nodes in the cluster, and is randomly resolved to one of them during the cluster initialization."* `✓` 즉 부트스트랩 시 임의의 한 노드로 들어가 거기서 슬롯 맵을 받습니다. 그 뒤부터 라우팅 책임은 클라이언트에 있습니다. 그래서 **클라이언트의 토폴로지 갱신 설정이 곧 가용성 설정**이 됩니다. 문서가 지목하는 항목이 네 개입니다 `✓`
 
 | 클라이언트 설정 | 문서가 말하는 동작 | 안 하면 |
 |---|---|---|
@@ -104,7 +104,7 @@ configuration endpoint 는 단일 A 레코드가 아닙니다 — *"The DNS look
 
 ## 5. 모드를 바꿀 때 실제로 무엇이 바뀌나
 
-"엔드포인트만 바꾸면 됩니다"가 틀리는 이유는, 바뀌는 것이 네 층이기 때문입니다.
+"엔드포인트만 바꾸면 됩니다"가 틀리는 이유는 바뀌는 것이 네 층이기 때문입니다.
 
 | 바뀌는 층 | CMD | CME | 실제로 해야 하는 일 |
 |---|---|---|---|
@@ -132,7 +132,7 @@ configuration endpoint 는 단일 A 레코드가 아닙니다 — *"The DNS look
 
 ### 5.2 문서가 답하지 않는 것 — 런북에 그대로 반영해야 하는 미확정 4건
 
-이 절은 실무 런북의 핵심인데, AWS 1차 문서가 답하지 않는 항목이 넷 있습니다. 확인한 범위를 명시해 둡니다.
+이 절은 실무 런북의 핵심인데 AWS 1차 문서가 답하지 않는 항목이 넷 있습니다. 확인한 범위를 명시해 둡니다.
 
 | 질문 | 문서 상태 | 런북에서의 처리 |
 |---|---|---|
@@ -141,7 +141,7 @@ configuration endpoint 는 단일 A 레코드가 아닙니다 — *"The DNS look
 | `compatible` 상태의 API 응답에 `ConfigurationEndpoint` 와 primary/reader 가 **동시에** 실리는가 | **문서에 예시가 없다.** 2차 근거(AWS Knowledge Center)는 두 계열을 **동시에 쓸 수 있다**고 말하지만, API 필드 동시 노출을 진술한 것은 아니다 `?` | 두 필드 동시 노출을 전제로 자동화를 쓰려면 실계정에서 1회 확인한다 |
 | *"make sure … the cluster's configuration endpoint is not in use"* 는 무슨 뜻인가 | **해명 문장이 어디에도 없다.** 같은 페이지의 직전 단계가 "config endpoint 로 옮기라"고 지시하므로 **문서 내부 상충**이고, AWS 자신의 KC 런북에는 이 조건이 아예 없다 `?` | 이 문장을 근거로 다운타임 단계를 설계하지 않는다. 실제 전제는 "모든 클라이언트가 cluster 프로토콜 + config endpoint 로 이전 완료" 로 잡는다 |
 
-**타 클라우드와의 대조가 이 전환의 가치를 보여줍니다.** Google Memorystore for Valkey 는 *"After you create an instance with either Cluster Mode Enabled or Cluster Mode Disabled, you can't change the instance to the other mode"* 이고, Azure Managed Redis 는 clustering policy 를 *"you can't change it … you must delete the Redis cache and recreate it"* 입니다 `✓` 즉 **사후 전환을 제공하는 것은 AWS 뿐이고, 그것조차 단방향입니다.** 멀티클라우드를 전제한 설계에서 CMD 를 고르면 다른 클라우드로 그대로 못 옮깁니다 `Σ`
+**타 클라우드와 대조하면 이 전환의 가치가 드러납니다.** Google Memorystore for Valkey 는 *"After you create an instance with either Cluster Mode Enabled or Cluster Mode Disabled, you can't change the instance to the other mode"* 이고, Azure Managed Redis 는 clustering policy 를 *"you can't change it … you must delete the Redis cache and recreate it"* 입니다 `✓` 즉 **사후 전환을 제공하는 것은 AWS 뿐이고, 그것조차 단방향입니다.** 멀티클라우드를 전제한 설계에서 CMD 를 고르면 다른 클라우드로 그대로 못 옮깁니다 `Σ`
 
 ## 6. 스케일링 중의 엔드포인트
 
@@ -157,7 +157,7 @@ configuration endpoint 는 단일 A 레코드가 아닙니다 — *"The DNS look
 
 **슬롯 재배치 중 클라이언트가 실제로 겪는 것은 무엇인가.** 문서는 `MOVED`/`ASK` 를 애플리케이션 에러로 설명하지 않고 **클라이언트 라이브러리가 처리하는 신호**로 설명합니다 — `valkey-cli` 는 `-c` 로 *"follow MOVED and ASK redirections automatically"*, 라이브러리는 리다이렉트를 토폴로지 재조회 트리거로 씁니다 `✓` 앱까지 올라오는 증상은 리다이렉트 에러가 아니라 **레이턴시 상승과 타임아웃**입니다 — *"Some clients might observe higher latency during online cluster resizing. Configuring your client library with a higher timeout can help…"* `✓` (**"`MOVED` 가 앱 예외로 올라오는가"를 직접 답한 문서 문장은 찾지 못했습니다.** 재시도를 소진하면 예외가 된다는 것은 node filter 설명의 *"causes a failure after retrying is exhausted"* 에서 간접 추론한 것입니다 `?`)
 
-resharding 중에는 기능 제약도 붙습니다 — *"FLUSHALL and FLUSHDB commands are not supported inside Lua scripts during a resharding operation"* 이고, Redis OSS 6 이전에는 마이그레이션 중인 슬롯에 대한 `BRPOPLPUSH` 가 미지원입니다 `✓` 사전 조건으로 문서가 권하는 수치도 있습니다 — scale-in 전 남길 샤드의 여유 메모리가 제거할 샤드 사용량의 **1.5배 이상**, CPU 는 멀티코어 80% 미만·싱글코어 50% 미만 `✓` durability 를 켠 클러스터에는 새 한계가 하나 더 생깁니다 — *"Durability-enabled clusters support up to 100 MiBps of write throughput per primary node"* 이므로 이 한계에 걸리면 샤드를 늘려야 합니다 `✓`
+resharding 중에는 기능 제약도 붙습니다. *"FLUSHALL and FLUSHDB commands are not supported inside Lua scripts during a resharding operation"* 이고, Redis OSS 6 이전에는 마이그레이션 중인 슬롯에 대한 `BRPOPLPUSH` 가 미지원입니다 `✓` 문서가 권하는 사전 조건 수치도 있습니다. scale-in 전 남길 샤드의 여유 메모리가 제거할 샤드 사용량의 **1.5배 이상**, CPU 는 멀티코어 80% 미만·싱글코어 50% 미만 `✓` durability 를 켠 클러스터에는 새 한계가 하나 더 생깁니다. *"Durability-enabled clusters support up to 100 MiBps of write throughput per primary node"* 이므로 이 한계에 걸리면 샤드를 늘려야 합니다 `✓`
 
 ## 7. 엔진 전환 — Redis OSS → Valkey 는 엔드포인트가 그대로다
 
@@ -226,7 +226,7 @@ MemoryDB 는 더 넓습니다 — 위 목록에 **`acl deluser`/`acl load`/`acl 
 
 ## 10. 대조군 — k8s 에서 직접 굴리면
 
-관리형 엔드포인트 구조가 왜 그 모양인지는, 직접 굴렸을 때 무엇을 해야 하는지를 보면 드러납니다.
+관리형 엔드포인트 구조가 왜 그 모양인지는 직접 굴렸을 때 무엇을 해야 하는지를 보면 드러납니다.
 
 **Cluster 는 NAT 를 지원하지 않는다.** valkey.io 공식 튜토리얼 원문: *"Valkey Cluster does not support NATted environments and in general environments where IP addresses or TCP ports are remapped."* 권고 해법은 *"you need to use Docker's host networking mode"* 다 `✓`
 

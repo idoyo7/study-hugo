@@ -7,23 +7,23 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- **최초 문제는 "캐시가 필요하다"가 아니라 "값이 blob 이면 안 된다"였다.** 첫 커밋에 동봉된 FAQ 가 프로젝트 시작 이유를 한 줄로 적는다 — `In order to scale LLOOGG.`(`redis ed9b544e1:doc/FAQ.html`) 그리고 같이 동봉된 `doc/README.html` 이 memcached 와의 차이를 자료형과 영속성 두 축으로만 설명한다 `✓`
+- **최초 문제는 "캐시가 필요하다"가 아니라 "값이 blob 이면 안 된다"였다.** 첫 커밋에 동봉된 FAQ 가 프로젝트 시작 이유를 한 줄로 적는다 — `In order to scale LLOOGG.`(`redis ed9b544e1:doc/FAQ.html`) 같은 커밋의 `doc/README.html` 은 memcached 와의 차이를 자료형과 영속성 두 축으로만 설명한다 `✓`
 - **첫 커밋(2009-03-22 `ed9b544e1`)은 캐시가 아니었다.** `saveDb()` 가 `.rdb` 로 쓰고 매직 `REDIS0000` 을 박고, `fork()` 기반 BGSAVE 와 `save 900 1 / save 300 10 / save 60 10000` 이 이미 있다 — 그 3줄은 6.0.0 의 기본값과 값까지 동일하다 `✓`
 - **반대로 없던 것이 더 많다** — EXPIRE·hash·sorted set·AOF·epoll·RESP·MULTI·pub/sub·Lua·Cluster·`src/` 전부. 이벤트 루프는 연결 리스트 + `select(2)` 단일 구현이고 응답은 `nil\r\n`·`0\r\n` 같은 **타입 프리픽스 없는 raw 문자열**이다 `✓`
 - **단일 스레드는 성능 최적화가 아니라 API 계약이었다.** "락을 지원하지 않는다, 대신 원자 프리미티브를 준다"가 day-1 문서의 답이고(`ed9b544e1:doc/README.html`), `INCR`·`LPUSH`·`SINTERSTORE` 가 별도 동기화 없이 원자인 이유가 이것뿐이다 `Σ`
 - **MANIFESTO 는 두 판본이다.** v1 은 2011-03-01(`be14f38de`, 7개 항목)이고 스레딩 항목이 없다. **`7 - Threading is not a silver bullet` 은 2019-03-18 v2(`a5af648fd`)에서 추가됐다** — 6.0.0 GA(2020-04-30)보다 약 13개월 앞서, 같은 문단이 `we may explore parallelism only for I/O, which is the low hanging fruit` 라고 예고한다 `✓`
 - **버린 것이 철학을 더 잘 보여준다.** Virtual Memory 는 2.0 에 `vm-enabled` 로 실렸고, 2.4 conf 가 `WARNING! Virtual Memory is deprecated in Redis 2.4` 를 붙였고, **2.6.0 에서 제거**됐다(`Virtual Memory removed (was deprecated in 2.4)`). 그 자리를 MANIFESTO 2번 `Memory storage is #1` 이 대신 지킨다 `✓`
-- **6.0 threaded I/O 는 커맨드를 병렬로 돌리지 않는다.** 워커가 하는 일은 `writeToClient()` 또는 `readQueryFromClient()` 둘 중 하나뿐이고, 커맨드는 배리어 통과 뒤 메인 스레드의 `processCommandAndResetClient()` 가 실행한다. 기본값은 `io-threads 1`(비활성) + `io-threads-do-reads no`, 둘 다 `IMMUTABLE_CONFIG`, 그리고 **SSL 이 켜져 있으면 동작하지 않는다** `✓`
+- **6.0 threaded I/O 는 커맨드를 병렬로 돌리지 않는다.** 워커가 하는 일은 `writeToClient()` 또는 `readQueryFromClient()` 둘 중 하나뿐이고, 커맨드는 배리어 통과 뒤 메인 스레드의 `processCommandAndResetClient()` 가 실행한다. 기본값은 `io-threads 1`(비활성) + `io-threads-do-reads no` 로 둘 다 `IMMUTABLE_CONFIG` 이며, **SSL 이 켜져 있으면 동작하지 않는다** `✓`
 - 6.0 릴리스노트의 "2배" 주장에는 **인스턴스·코어 수·값 크기·클라이언트 수가 없다** — `when pipelining cannot be used` 라는 한정만 있다 `Ⓥ`
 {{< /callout >}}
 
-> **왜 이 문서인가.** Redis 를 기능 목록으로 읽으면 "왜 이 기능은 이렇게 생겼나"에 답할 수 없다. 이 구간(2009~2021)에서 정해진 것은 기능이 아니라 **제약**이다 — 값이 자료구조라는 결정이 단일 스레드를 불렀다. 단일 스레드가 원자성을 공짜로 줬고, 그 대가를 6.0 이 threaded I/O 로 처음 갚기 시작했다. 7.0 이후에 나오는 거의 모든 논쟁(스레딩·메모리 레이아웃·cluster 제약)의 전제가 여기서 굳었다.
+> **왜 이 문서인가.** Redis 를 기능 목록으로 읽으면 "왜 이 기능은 이렇게 생겼나"에 답할 수 없다. 이 구간(2009~2021)에서 정해진 것은 기능이 아니라 **제약**이다 — 값이 자료구조라는 결정이 단일 스레드를 불렀다. 단일 스레드가 원자성을 공짜로 줬고 그 대가를 6.0 이 threaded I/O 로 처음 갚기 시작했다. 7.0 이후에 나오는 거의 모든 논쟁(스레딩·메모리 레이아웃·cluster 제약)의 전제가 여기서 굳었다.
 
 > 근거 기준: 로컬 blobless 클론 `~/evejuni/redis`(2026-08-05 fetch)의 `git show`/`for-each-ref`/`cat-file`, 그리고 릴리스노트 원문(2.8.0~6.2.0은 `RELEASENOTES-*.txt`, 2.6 이하는 리포에 커밋된 `00-RELEASENOTES`/`Changelog`). 날짜는 태그 기준이고 **일자만** 인용한다 — 이 구간에서 릴리스노트 헤더·태그 커밋·태그 객체의 *시각*은 몇 시간씩 어긋난다(5.0.0 은 노트 헤더 `13:28:26 CEST` 와 태그 객체 `17:32:28+02:00`, 6.2.0 은 `14:00:00 IST` 와 `23:23:58+02:00`).
 
 ## 1. 왜 태어났나 — 값이 blob 이면 안 되는 워크로드
 
-시작 이유는 첫 커밋에 동봉된 FAQ 에 그대로 적혀 있습니다 — `Why did you started the Redis project? / In order to scale LLOOGG.`(`redis ed9b544e1:doc/FAQ.html`) `✓`. 프로젝트 이름의 뜻도 같은 문서에 있습니다: `it means REmote DIctionary Server`, 그리고 `it's a joke on the word Redistribute` `✓`.
+시작 이유는 첫 커밋의 FAQ 에 그대로 적혀 있습니다 — `Why did you started the Redis project? / In order to scale LLOOGG.`(`redis ed9b544e1:doc/FAQ.html`) `✓`. 프로젝트 이름의 뜻도 같은 문서에 있습니다: `it means REmote DIctionary Server`, 그리고 `it's a joke on the word Redistribute` `✓`.
 
 같은 FAQ 가 요구사항을 자료구조로 진술합니다 — 컴퓨터별 로그를 모으려면 `RPUSH computer_ID` 하고 `LTRIM computer_ID 0 999` 로 잘라내면 되고, 태그 검색은 태그마다 SET 을 두고 서버측 교집합을 시키면 됩니다. 결론 문장이 논지 전체입니다: `So what is Redis really about? The User interface with the programmer.` `✓` 값이 opaque blob 이면 이 중 아무것도 서버에서 할 수 없고, 클라이언트가 값 전체를 왕복시켜 직렬화·역직렬화·재저장해야 하며 그 사이에 경쟁이 생깁니다.
 
@@ -46,7 +46,7 @@ weight: 1
 
 EXPIRE 는 열흘 뒤(2009-04-01 `3305306f0`), AOF 는 7개월 뒤(2009-10-30 `44b38ef43`)에 들어옵니다 `✓`.
 
-**세 번째 결정: 디스크를 기다리지 않습니다.** 이것도 day-1 에 논증돼 있습니다 — `If the data is larger then memory, and this data is stored on disk, what happens is that the bottleneck of the disk I/O speed will start to ruin the performances. Maybe not in benchmarks, but once you have real load with distributed key accesses the data must come from disk, and the disk is damn slow. Not only, but Redis supports higher level data structures than the plain values. To implement this things on disk is even slower.` 뒷문장이 핵심입니다 — **자료구조 연산은 blob get/put 보다 디스크에서 훨씬 더 불리합니다.** 값이 자료구조라는 첫 결정이 인메모리 전용을 요구한 것이고, 그 대신 FAQ 는 데이터가 메모리보다 크면 **Redis 와 MySQL 을 병행**하라고 권합니다 — 상태와 고빈도 접근은 Redis, 큰 데이터는 auto-increment ID + BLOB 컬럼의 MySQL 테이블(`redis ed9b544e1:doc/FAQ.html`) `✓`.
+**세 번째 결정: 디스크를 기다리지 않습니다.** 이것도 day-1 에 논증돼 있습니다 — `If the data is larger then memory, and this data is stored on disk, what happens is that the bottleneck of the disk I/O speed will start to ruin the performances. Maybe not in benchmarks, but once you have real load with distributed key accesses the data must come from disk, and the disk is damn slow. Not only, but Redis supports higher level data structures than the plain values. To implement this things on disk is even slower.` 뒷문장이 핵심입니다 — **자료구조 연산은 blob get/put 보다 디스크에서 훨씬 더 불리합니다.** 값이 자료구조라는 첫 결정이 인메모리 전용을 요구했습니다. 데이터가 메모리보다 크면 FAQ 는 **Redis 와 MySQL 을 병행**하라고 권합니다 — 상태와 고빈도 접근은 Redis, 큰 데이터는 auto-increment ID + BLOB 컬럼의 MySQL 테이블(`redis ed9b544e1:doc/FAQ.html`) `✓`.
 
 ### 1.1 결정의 연쇄 — 이 문서의 뼈대
 
@@ -74,12 +74,12 @@ MANIFESTO 는 첫 커밋에 없습니다. **v1 은 2011-03-01 `be14f38de` "Redis
 7번의 나머지 두 문장은 cluster 를 이 원칙의 짝으로 지목합니다 — `Multiple of such cores … are abstracted away as a single big system by higher order protocols and features: Redis Cluster and the upcoming Redis Proxy are our main goals.` **수직 확장을 포기하고 수평 확장에 위임한다**는 선언이고, 그 대가는 8번 항목이 스스로 적습니다: multi-key API 를 분산에서 투명하게 만들 방법은 없으니 `expose the trade-offs to the user` 합니다 `✓`. cluster 가 강제하는 제약은 [06 · cluster mode]({{< relref "../06-cluster-mode/index.md" >}})가 소유합니다.
 
 {{< callout type="warning" >}}
-MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하는 것은 v1 과 v2 를 섞는 것입니다. 스레딩 항목 자체가 **threaded I/O 직전에 쓰였고**, 그 문단이 I/O 병렬화를 예고합니다. 이 문서에서 인용하는 문구는 전부 `git -C ~/evejuni/redis show 8.10.0:MANIFESTO`(= `6.2.0:MANIFESTO`) 기준입니다.
+MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하면 v1 과 v2 를 섞는 셈입니다. 스레딩 항목 자체가 **threaded I/O 직전에 쓰였고**, 그 문단이 I/O 병렬화를 예고합니다. 이 문서에서 인용하는 문구는 전부 `git -C ~/evejuni/redis show 8.10.0:MANIFESTO`(= `6.2.0:MANIFESTO`) 기준입니다.
 {{< /callout >}}
 
 ## 3. 단일 스레드 이벤트 루프 — 왜 이게 빨랐나
 
-`ae.c` 는 첫 커밋부터 있었지만 백엔드 추상화는 아니었습니다. 지금의 형태는 컴파일 타임 단일 선택이고, 선택 순서에 이유가 주석으로 붙어 있습니다 — `Include the best multiplexing layer supported by this system. / The following should be ordered by performances, descending.` 그 아래가 `HAVE_EVPORT` → `HAVE_EPOLL` → `HAVE_KQUEUE` → `ae_select.c` 입니다(`redis 6.2.0:src/ae.c:49-63`). 이 블록은 `redis 8.10.0:src/ae.c:30-44` 와 동일합니다 `✓`. 리눅스는 epoll, BSD·macOS 는 kqueue, Solaris 계열은 event port 를 씁니다. **`select(2)` 는 첫 커밋의 유일한 구현이었다가 지금은 최후 폴백**입니다.
+`ae.c` 는 첫 커밋부터 있었지만 백엔드 추상화는 아니었습니다. 지금의 형태는 컴파일 타임 단일 선택이고 선택 순서에 이유가 주석으로 붙어 있습니다 — `Include the best multiplexing layer supported by this system. / The following should be ordered by performances, descending.` 그 아래가 `HAVE_EVPORT` → `HAVE_EPOLL` → `HAVE_KQUEUE` → `ae_select.c` 입니다(`redis 6.2.0:src/ae.c:49-63`). 이 블록은 `redis 8.10.0:src/ae.c:30-44` 와 동일합니다 `✓`. 리눅스는 epoll, BSD·macOS 는 kqueue, Solaris 계열은 event port 를 씁니다. **`select(2)` 는 첫 커밋의 유일한 구현이었다가 지금은 최후 폴백**입니다.
 
 한 바퀴의 골격은 `aeMain()` → `aeProcessEvents(AE_ALL_EVENTS | AE_CALL_BEFORE_SLEEP | AE_CALL_AFTER_SLEEP)` 이고(`redis 6.2.0:src/ae.c:485-489`), 그 안에서 `beforesleep` 콜백 → `aeApiPoll()` → `aftersleep` 콜백 순으로 돕니다(`:391-400`) `✓`. 실제 작업 대부분은 poll 이 아니라 **`beforeSleep()` 안에 줄지어 있습니다** — `redis 6.0.0:src/server.c:2087` 부터 pending read 처리(`:2094`) → fast expire cycle(`:2111`) → unblocked client 처리(`:2124`) → tracking 무효화 브로드캐스트 → AOF 버퍼 flush(`:2149`) → pending write 처리(`:2152`) → async free 큐 정리(`:2155`) 순입니다 `✓`.
 
@@ -95,7 +95,7 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 | **락·동기화 코드 부재** | 자료구조 구현에 뮤텍스가 없다 → MANIFESTO 6번의 "몇 주면 읽힌다"가 가능 | 코어를 더 쓰려면 인스턴스를 늘려야 한다 — `spawn multiple instances`(`redis 6.0.0:redis.conf`) |
 | **결정적 지연** | 스케줄링·경쟁으로 인한 꼬리 지연이 없다 | **느린 커맨드 하나가 전체를 세운다.** 4.0 의 lazyfree/`UNLINK` 와 3.0 의 `blocked.c` 리팩터가 이 대가를 갚는 작업이다 |
 
-세 번째 행의 대가가 이 구간 커맨드 설계의 절반을 설명합니다 `Σ`. `KEYS` 는 첫 커밋의 45개 커맨드 안에 있었고 키가 늘어나면 그만큼 루프가 길어집니다 — 단일 스레드에서 그 시간은 곧 전면 정지입니다. **`SCAN`/`SSCAN`/`HSCAN`/`ZSCAN` 이 2.8 GA 직전 RC6 에 뒤늦게 들어온 이유가 이것**이고(RN-2.8.0:32), 같은 논리가 4.0 의 `UNLINK`·`FLUSHALL ASYNC`(큰 값의 free 를 배경 스레드로)와 2.6 의 클라이언트 출력 버퍼 한도(느린 소비자가 메모리를 밀어올리는 것을 끊음)까지 이어집니다 `✓`. 이 구간의 신규 커맨드 상당수는 기능 추가가 아니라 **"단일 스레드를 오래 붙잡지 않는 버전"** 입니다.
+세 번째 행의 대가가 이 구간 커맨드 설계의 절반을 설명합니다 `Σ`. `KEYS` 는 첫 커밋의 45개 커맨드 안에 있었고 키가 늘어나면 그만큼 루프가 길어집니다 — 단일 스레드에서 그 시간은 곧 전면 정지입니다. **`SCAN`/`SSCAN`/`HSCAN`/`ZSCAN` 이 2.8 GA 직전 RC6 에 뒤늦게 들어온 이유가 이것**입니다(RN-2.8.0:32). 같은 논리가 4.0 의 `UNLINK`·`FLUSHALL ASYNC`(큰 값의 free 를 배경 스레드로)에도, 2.6 의 클라이언트 출력 버퍼 한도(느린 소비자가 메모리를 밀어올리지 못하게 끊음)에도 이어집니다 `✓`. 이 구간의 신규 커맨드 상당수는 기능 추가가 아니라 **"단일 스레드를 오래 붙잡지 않는 버전"** 입니다.
 
 첫 커밋 FAQ 가 이미 한계도 적었습니다 — `the price to pay is exactly this, that the dataset must fit on your computers RAM` `✓`. 그 문장을 뒤집으려던 시도가 §4 의 VM 입니다.
 
@@ -125,7 +125,7 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 | 4.0.0 | `8` | `redis 4.0.0:src/rdb.h:41` |
 | **5.0.0 / 6.0.0 / 6.2.0** | **`9` — 세 마이너 연속 고정** | `redis 5.0.0:src/rdb.h:41`; `6.0.0:41`; `6.2.0:41` |
 
-5.0→6.2 가 세 마이너 내내 9 라는 것은 **이 구간이 RDB 호환 다운그레이드가 가능한 드문 구간**이라는 뜻입니다. 3.2→4.0→5.0 은 메이저마다 올랐고, 7.0·7.2·7.4 가 10·11·12 로 다시 마이너마다 오른 뒤 8.0~8.4 는 12 에 머물고 8.6 부터 또 마이너마다 오릅니다 — 그 이후의 차단선은 [04 · Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}})가 소유합니다.
+5.0→6.2 가 세 마이너 내내 9 라는 것은 **이 구간이 RDB 호환 다운그레이드가 가능한 드문 구간**이라는 뜻입니다. 3.2→4.0→5.0 은 메이저마다 올랐습니다. 7.0·7.2·7.4 가 10·11·12 로 다시 마이너마다 오른 뒤 8.0~8.4 는 12 에 머물다가 8.6 부터 또 마이너마다 오릅니다 — 그 이후의 차단선은 [04 · Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}})가 소유합니다.
 
 ### 4.1 Virtual Memory — 유일하게 되돌린 설계
 
@@ -140,7 +140,7 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 | **2.6.0 (2012-10-22)** | **제거.** 노트의 신기능 개요 둘째 줄이 `* Virtual Memory removed (was deprecated in 2.4)` — 첫 줄은 Lua 다. `redis.conf` 에서 `vm-` 0건 | `redis 2.6.0:00-RELEASENOTES:153`; `git show 2.6.0:redis.conf` |
 | 2019-03-18 | MANIFESTO v2 2번이 입장을 문서화 — 디스크는 "선택적으로 탐색", 목표는 인메모리 | `a5af648fd`; `redis 8.10.0:MANIFESTO:17-26` |
 
-읽는 법: **VM 은 §3 이 준 세 가지 부재를 전부 깹니다.** 값이 스왑 파일에 있으면 커맨드가 디스크를 기다리므로 결정적 지연이 사라집니다. 스왑 인/아웃을 하는 동안 다른 커맨드를 받으려면 락이 필요해지고, 그러면 "커맨드 = 임계 구역" 계약이 무너집니다 `Σ`. 같은 릴리스가 Lua 를 넣으면서 VM 을 뺐다는 것도 방향을 말해줍니다 — 서버 안에서 하는 일은 늘리고, 서버 밖(디스크)을 기다리는 일은 뺐습니다. 그리고 이 자리는 이후 OSS 에서 채워지지 않았습니다 — 7.x·8.x 릴리스노트와 `redis 8.10.0:redis.conf` 에 `flash`/`tiering`/`flex` 가 0건이고, 티어링은 상용 제품 쪽 기능으로만 남았습니다 `✓`.
+읽는 법: **VM 은 §3 이 준 세 가지 부재를 전부 깹니다.** 값이 스왑 파일에 있으면 커맨드가 디스크를 기다리므로 결정적 지연이 사라집니다. 스왑 인/아웃을 하는 동안 다른 커맨드를 받으려면 락이 필요해지고, 그러면 "커맨드 = 임계 구역" 계약이 무너집니다 `Σ`. 같은 릴리스가 Lua 를 넣으면서 VM 을 뺐다는 것도 방향을 말해줍니다 — 서버 안에서 하는 일은 늘리고, 서버 밖(디스크)을 기다리는 일은 뺐습니다. 이 자리는 이후 OSS 에서 채워지지 않았습니다 — 7.x·8.x 릴리스노트와 `redis 8.10.0:redis.conf` 에 `flash`/`tiering`/`flex` 가 0건이고, 티어링은 상용 제품 쪽 기능으로만 남았습니다 `✓`.
 
 ## 5. 복제와 가용성 — SYNC 에서 PSYNC2 까지
 
@@ -169,13 +169,13 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 | **4.0.0** (2017-07-14) | **모듈 API**(`module.c` + `redismodule.h`, thread-safe context). lazyfree/`UNLINK`/`FLUSHALL ASYNC`, `MEMORY` 커맨드, LFU eviction, active defrag, `SWAPDB` | 확장 지점. 대가는 **cluster 버스 프로토콜 비호환** — 3.2 → 4.0 은 rolling upgrade 가 불가하고 전 노드 mass-restart 가 필요하다 |
 | **5.0.0** (2018-10-17) | **Stream 자료형**(`t_stream.c`, `XADD`/`XREAD`/`XGROUP`…). `ZPOPMIN`/`ZPOPMAX` + 블로킹 변형, cluster manager 를 Ruby → C(`redis-cli --cluster`)로 포팅, `CLIENT ID`/`UNBLOCK`, dynamic HZ | 커맨드 추가 + 새 타입. 노트가 GA 품질을 스스로 유보한다 — `handle it with some care for the first weeks`, GA 사유가 `Several fixes to streams AOF and replication.` |
 
-`ziplist` → `quicklist` 전환이 이 표에서 가장 조용하고 가장 큽니다. 리스트 하나를 ziplist 한 덩어리로 두면 요소 추가마다 재할당·복사가 나고 커지면 O(N) 이 됩니다. quicklist 는 ziplist 노드들의 연결 리스트로 바꿔 그 상충을 끊었고, 노트가 효과를 `Very important memory savings and storage space in RDB gains (up to 10x sometimes).` 로 적지만 **요소 크기·개수·비교 대상을 밝히지 않습니다** `Ⓥ` — **설계·구현은 Matt Stancliff** 입니다 `✓`. 즉 "값이 자료구조"라는 결정의 청구서를 인코딩 계층에서 갚는 패턴이 3.2 에서 시작됩니다.
+`ziplist` → `quicklist` 전환이 이 표에서 가장 조용하고 가장 큽니다. 리스트 하나를 ziplist 한 덩어리로 두면 요소 추가마다 재할당·복사가 나고 커지면 O(N) 이 됩니다. quicklist 는 ziplist 노드들의 연결 리스트로 바꿔 그 상충을 끊었습니다. 노트는 효과를 `Very important memory savings and storage space in RDB gains (up to 10x sometimes).` 로 적지만 **요소 크기·개수·비교 대상을 밝히지 않습니다** `Ⓥ`. **설계·구현은 Matt Stancliff** 입니다 `✓`. "값이 자료구조"라는 결정의 청구서를 인코딩 계층에서 갚는 패턴이 3.2 에서 시작됩니다.
 
 모듈 API 도 "코어를 안 건드리고 넓힌다"는 정확한 의도로 들어왔습니다 — `the module API implements a complete abstraction layer that separates the Redis core from the module implementation, allowing the same module to be loaded by different versions of Redis without modifications.` `✓` 이 결정이 8.x 의 번들 논쟁까지 이어집니다([04 · Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}})).
 
 ## 7. 6.0 이 바꾼 표면 — threaded I/O 의 정확한 경계
 
-6.0.0(2020-04-30)은 자료형을 하나도 안 늘리고 **접속 표면을 전부 갈았습니다**. 그리고 GA 노트의 마지막 줄이 `Enjoy Redis 6! :-) / Goodbye antirez` 입니다 `✓`.
+6.0.0(2020-04-30)은 자료형을 하나도 안 늘리고 **접속 표면을 전부 갈았습니다**. GA 노트의 마지막 줄은 `Enjoy Redis 6! :-) / Goodbye antirez` 입니다 `✓`.
 
 | 기능 | 릴리스노트가 말한 것 | 소스·설정 실측 | 기본값 |
 |---|---|---|---|
@@ -209,11 +209,11 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 
 ### 7.2 6.2 — 큰 기능 없이 커맨드를 완성시킨 릴리스
 
-6.2.0(2021-02-22)의 자기 규정이 그대로입니다 — `Redis 6.2 includes many new commands and improvements, but no big features. It mainly makes Redis more complete and addresses issues that have been requested by many users frequently or for a long time.` 그리고 이것을 6.0.x 패치로 못 넣은 이유도 밝힙니다: 새·확장 커맨드는 하위 호환이 아니라 **구버전 replica 로 복제되지 않습니다** `✓`. 같은 노트가 antirez 이후를 선언합니다 — `This release is the first significant Redis release managed by the core team under the new project governance model.` `✓`
+6.2.0(2021-02-22)의 자기 규정이 그대로입니다 — `Redis 6.2 includes many new commands and improvements, but no big features. It mainly makes Redis more complete and addresses issues that have been requested by many users frequently or for a long time.` 이것을 6.0.x 패치로 못 넣은 이유도 밝힙니다: 새·확장 커맨드는 하위 호환이 아니라 **구버전 replica 로 복제되지 않습니다** `✓`. 같은 노트가 antirez 이후를 선언합니다 — `This release is the first significant Redis release managed by the core team under the new project governance model.` `✓`
 
 들어온 것: `SMISMEMBER`·`ZMSCORE`·`LMOVE`/`BLMOVE`·`RESET`·`COPY`·`ZDIFF(STORE)`·`ZINTER`/`ZUNION`·`GEOSEARCH(STORE)`·`SET … GET`·`ZADD GT/LT`·`ZRANGESTORE` + `ZRANGE REV/BYLEX/BYSCORE`·`XAUTOCLAIM`·`XADD MINID/LIMIT/NOMKSTREAM`·`LPOP/RPOP COUNT`·`CLIENT PAUSE WRITE`·`CLIENT TRACKINGINFO`·`HRANDFIELD`/`ZRANDMEMBER`·`FAILOVER`·`GETEX`/`GETDEL`·`SET PXAT/EXAT`, dump payload sanitization, Pub/Sub 채널 ACL 패턴, INFO `errorstats` `✓`.
 
-운영에서 걸리는 것은 커맨드가 아니라 **동작 변경 세 개, 그리고 6.0 에서 유입된 호환성 수정 둘**입니다 `✓`.
+운영에서 걸리는 것은 커맨드가 아니라 **동작 변경 세 개와 6.0 에서 유입된 호환성 수정 둘**입니다 `✓`.
 
 | 무엇이 바뀌었나 | 그래서 |
 |---|---|
@@ -225,7 +225,7 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 
 ## 8. 버전표 — 1.0 에서 6.2 까지
 
-날짜는 태그 기준 **일자**입니다. 이 구간에서 2.6.0~6.0.0 태그는 annotated, 6.2.0 이후는 lightweight 이고, 일자 수준에서는 릴리스노트 헤더·태그 커밋·태그 객체가 모두 일치합니다(시각은 몇 시간씩 어긋납니다) `✓`.
+날짜는 태그 기준 **일자**입니다. 이 구간에서 2.6.0~6.0.0 태그는 annotated, 6.2.0 이후는 lightweight 입니다. 일자 수준에서는 릴리스노트 헤더·태그 커밋·태그 객체가 모두 일치합니다(시각은 몇 시간씩 어긋납니다) `✓`.
 
 | 버전 | 릴리스 | 무엇이 가능해졌나 | 대가 |
 |---|---|---|---|

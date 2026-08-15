@@ -7,9 +7,9 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- k8s 위 **VM operator**가 vmagent를 **Deployment(stateless)** 로 띄우고, 중앙 VM 클러스터의 vminsert 엔드포인트로 `remote_write` 한다.
+- k8s 위 **VM operator**가 vmagent를 **Deployment(stateless)** 로 띄우고 중앙 VM 클러스터의 vminsert 엔드포인트로 `remote_write` 한다.
 - 목적지 경로 `/insert/0/prometheus`는 **클러스터 모드 · tenant 0**을 뜻한다.
-- stage/prod는 값이 다르다 — 리소스·`maxDiskUsagePerURL`이 환경별로 갈리고, **prod는 vmagent가 두 계열(용도별 분리)** 이라 `extraArgs`가 양쪽에 함께 걸린다.
+- stage/prod는 값이 다르다 — 리소스·`maxDiskUsagePerURL`이 환경별로 갈리고 **prod는 vmagent가 두 계열(용도별 분리)** 이라 `extraArgs`가 양쪽에 함께 걸린다.
 - 공통 수집 설정은 `scrapeInterval 30s` · `promscrape.streamParse=true` · `promscrape.maxScrapeSize=24GiB`.
 {{< /callout >}}
 
@@ -21,7 +21,7 @@ weight: 1
 
 {{< flow src="_flow/전체-구조.json" />}}
 
-vmagent는 **k8s 위에서 VM operator가 관리하는 Deployment**입니다. 무상태(stateless)라 스크랩한 지표를 자체 보관하지 않고 곧바로 중앙 VM 클러스터의 vminsert로 흘려보냅니다. vmagent의 7단계 수집 파이프라인과 유실 방지 큐 등 원리는 [개념 03 수집]({{< relref "../../concepts/03-ingestion.md" >}})에서 다룹니다 — 이 문서는 그 원리를 우리 값으로 옮긴 결과만 봅니다.
+vmagent는 **k8s 위에서 VM operator가 관리하는 Deployment**입니다. 무상태(stateless)라 스크랩한 지표를 자체 보관하지 않고 곧바로 중앙 VM 클러스터의 vminsert로 흘려보냅니다. 7단계 수집 파이프라인과 유실 방지 큐 같은 vmagent 자체의 원리는 [개념 03 수집]({{< relref "../../concepts/03-ingestion.md" >}})에 있습니다 — 이 문서는 그 원리를 우리 값으로 옮긴 결과만 봅니다.
 
 ## 목적지 경로 — `/insert/0/prometheus`
 
@@ -31,11 +31,11 @@ remote_write 목적지 URL은 다음 형태입니다.
 https://<vminsert-endpoint>/insert/0/prometheus/api/v1/write
 ```
 
-경로 `/insert/<tenantID>/prometheus`는 VM **클러스터 모드**의 vminsert 규약입니다. 여기서 `0`은 **tenant 0**을 뜻합니다. 즉 우리는 단일 노드(vmsingle)가 아니라 클러스터 모드 vminsert를 tenant 0으로 쓰고 있습니다. TLS는 `insecureSkipVerify: true`로 붙습니다.
+`/insert/<tenantID>/prometheus`라는 경로는 VM **클러스터 모드**의 vminsert 규약이고 그 자리에 박힌 `0`이 **tenant 0**입니다. 즉 우리는 단일 노드(vmsingle)가 아니라 클러스터 모드 vminsert를 tenant 0으로 쓰고 있습니다. TLS는 `insecureSkipVerify: true`로 붙습니다.
 
 ## stage/prod 값 차이
 
-같은 구조지만 환경별 값이 다릅니다.
+구조는 같고 채워진 값이 다릅니다.
 
 | 항목 | stage | prod |
 |------|-------|------|
@@ -62,4 +62,4 @@ Phase 1에서 여기에 `remoteWrite.forceVMProto`가 추가됐습니다. 그 �
 
 ## prod 주의 — 두 계열에 함께 걸린다
 
-prod의 vmagent는 **용도에 따라 두 계열**로 운영합니다. `extraArgs`는 base 설정이라 **양쪽 vmagent에 함께 적용됩니다.** [02]({{< relref "02-vmagent-transport-tuning.md" >}})에서 다룰 `remoteWrite.forceVMProto`도 base에 넣으면 두 계열 모두에 걸리는데, **둘 다 목적지가 VM이라 안전**합니다. 한쪽이라도 VM이 아닌 목적지였다면 base가 아니라 계열별로 나눠 걸어야 합니다.
+prod의 vmagent는 **용도에 따라 두 계열**로 운영합니다. `extraArgs`는 base 설정이라 **양쪽 vmagent에 함께 적용됩니다.** [02]({{< relref "02-vmagent-transport-tuning.md" >}})에서 다룰 `remoteWrite.forceVMProto`도 base에 넣으면 두 계열 모두에 걸리는데 **둘 다 목적지가 VM이라 안전**합니다. 한쪽이라도 VM이 아닌 목적지였다면 base가 아니라 계열별로 나눠 걸어야 합니다.

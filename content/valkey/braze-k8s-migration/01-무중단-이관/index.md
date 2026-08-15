@@ -12,7 +12,7 @@ weight: 1
 - 이관을 어렵게 만든 건 Redis가 아니라 ClusterIP다. Sentinel은 replica를 IP로 추적하는데 파드가 롤되면 IP가 바뀐다 → 파드마다 Service를 붙여 고정 ClusterIP를 얻는다 → 그런데 ClusterIP는 클러스터 밖에서 안 보인다. 남은 EC2 primary가 안쪽 파드를 복제 대상으로 잡을 방법이 사라진다.
 - 해법은 L4를 클러스터 밖으로 빼는 것이다. RESP가 L4 프로토콜이라 [NLB가 라우팅할 수 있고](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html), 서버·sentinel이 `replica-announce-ip`/`announce-ip`로 자기 주소를 NLB 주소라고 거짓말한다. 이 한 수로 무중단과 무손실 롤백이 동시에 성립한다.
 - 이관 중에만 생기는 위험이 둘이다 — NLB 데이터 전송비 월 $100,000 초과 추정치, 그리고 sentinel이 6대로 늘어나며 생기는 split brain. 후자는 7번째 sentinel + quorum 5로 절대 과반을 강제해 막았다.
-- Valkey 이관은 실제로 두 줄이었다. helm `_helpers.tpl`의 flavor 판별 함수와 values의 이미지 두 줄(`redis:7.2.4-alpine` → `valkey/valkey:8.1.1-alpine`). config는 한 줄도 안 고쳤고, 350샤드·10클러스터를 6주에 끝냈다.
+- Valkey 이관은 실제로 두 줄이었다. helm `_helpers.tpl`의 flavor 판별 함수와 values의 이미지 두 줄(`redis:7.2.4-alpine` → `valkey/valkey:8.1.1-alpine`). config는 한 줄도 안 고쳤고 350샤드·10클러스터를 6주에 끝냈다.
 - 90%는 최선값 하나다. 슬라이드 26쪽은 "90% p95 latency improvement"만 크게 띄우지만, 발표자 본인이 22:12~23:44에서 전체 평균 p95 15% · p50 5%를 덧붙인다. 90%만 인용하면 발표자가 무대에서 직접 부인한 주장을 하는 셈이 된다.
 {{< /callout >}}
 
@@ -26,7 +26,7 @@ weight: 1
 
 이 문서에서 가장 먼저 박아야 할 사실입니다. 같은 방에서 15분 전에 끝난 AWS 발표는 cluster bus와 16384 슬롯을 말했습니다. Braze는 그 기능을 하나도 쓰지 않습니다.
 
-Braze의 한 샤드는 primary 하나와 replica들로 이뤄진 HA 단위이고, 이걸 Sentinel이 감시합니다. 샤드끼리는 서로를 모릅니다 — 슬롯도, gossip도, cluster bus도 없습니다. 그러면 어느 키가 어느 샤드로 가는지는 누가 정할까요? 발표자가 정확히 답합니다.
+Braze의 한 샤드는 primary 하나와 replica들로 이뤄진 HA 단위이고 이걸 Sentinel이 감시합니다. 샤드끼리는 서로를 모릅니다 — 슬롯도, gossip도, cluster bus도 없습니다. 그러면 어느 키가 어느 샤드로 가는지는 누가 정할까요? 발표자가 정확히 답합니다.
 
 > the clients connect to Sentinel, and the clients decide what shard they need to write to based on their own hashing logic, which is baked into the client side. — 05:10~05:19
 
@@ -54,7 +54,7 @@ Braze의 한 샤드는 primary 하나와 replica들로 이뤄진 HA 단위이고
 | 초당 연산 | **36M ops/sec** | 그대로 |
 | 메모리 총량 | **6.6TiB** | "6 and 1/2 terabytes" |
 
-용도는 캐시 하나가 아닙니다 — rate limiting, distributed lock, message deduplication, 그리고 Sidekiq입니다(02:37~02:51). Sidekiq은 Ruby 잡 큐이고 Redis가 그 심장이므로, 이건 캐시가 아니라 작업 파이프라인 자체가 여기 얹혀 있다는 뜻입니다. 발표자 표현대로 "the entire backbone of the Braze platform"입니다. 다운타임을 못 받아들이는 이유가 여기서 나옵니다.
+용도는 캐시 하나가 아닙니다 — rate limiting, distributed lock, message deduplication, 그리고 Sidekiq입니다(02:37~02:51). Sidekiq은 Ruby 잡 큐이고 Redis가 그 심장이므로 여기 얹혀 있는 것은 캐시가 아니라 작업 파이프라인 자체입니다. 발표자 표현대로 "the entire backbone of the Braze platform"입니다. 다운타임을 못 받아들이는 이유가 여기서 나옵니다.
 
 레거시는 EC2 + Chef였습니다. 3AZ에 primary/replica 쌍을 흩고, cluster-scoped Sentinel 3대(sentinel-001~003)가 그 클러스터의 모든 샤드를 한꺼번에 감시하는 구조입니다(슬라이드 7쪽).
 
@@ -69,7 +69,7 @@ Braze의 한 샤드는 primary 하나와 replica들로 이뤄진 HA 단위이고
 | "over $130M R&D expense **in 2024**" | 같은 공시 손익계산서 — "Research and development 133,969" = **$133.969M** | 액수는 부합. 다만 그 수치는 역년 2024가 아니라 **FY2025**(2024-02~2025-01) 값이다 |
 | API 호출 8.6T · 메시지 3.9T | 같은 블로그 — 2024 **역년 전체** 수치, as-of 날짜 없음 | 기준이 다름 |
 
-R&D를 두고 슬라이드가 틀렸다고 말하면 과합니다 — 원문이 "over $130M"이라 $133.969M은 그 안에 들어옵니다. 어긋나는 건 액수가 아니라 기간 라벨이고, 회계연도와 역년이 한 판에 섞여 있습니다. 인용할 일이 있으면 MAU 69억은 2024-10-31 기준, R&D는 FY2025 기준 $133.969M이라고 적는 편이 원문에 맞습니다. 발표 자체의 논지에는 영향이 없지만, 이 문서가 확인한 것은 그대로 적어 둡니다.
+R&D를 두고 슬라이드가 틀렸다고 말하면 과합니다 — 원문이 "over $130M"이라 $133.969M은 그 안에 들어옵니다. 어긋나는 건 액수가 아니라 기간 라벨이고 회계연도와 역년이 한 판에 섞여 있습니다. 인용할 일이 있으면 MAU 69억은 2024-10-31 기준, R&D는 FY2025 기준 $133.969M이라고 적는 편이 원문에 맞습니다. 발표 자체의 논지에는 영향이 없지만, 이 문서가 확인한 것은 그대로 적어 둡니다.
 
 ## 2. Kubernetes가 Sentinel을 깨뜨리는 지점
 
@@ -87,7 +87,7 @@ Braze는 이관을 시작하기 전부터 이미 greenfield Kubernetes 클러스
 
 **Sentinel은 replica를 IP로 추적합니다.** 정확히는 primary의 `INFO` 출력에서 replica 목록을 읽어 자동으로 찾아내는데, [Redis 복제 문서](https://redis.io/docs/latest/operate/oss_and_stack/management/replication/)가 그 성질을 이렇게 적습니다 — replica는 "the IP address they use to connect to the master"로 보이고, 포트는 "the listening port configured into redis.conf"로 보입니다. 둘 다 **접속 시점의 실제 값**이지 논리 주소가 아닙니다.
 
-Kubernetes에서 파드가 롤되면 파드 IP가 바뀝니다. Sentinel 입장에서는 **옛 IP가 응답을 멈춘 것**이고, 새 IP는 별개의 replica로 새로 등록됩니다. 슬라이드 8쪽의 `sentinel replicas cache-0` 출력에 그 상태가 그대로 남아 있습니다 — 살아 있는 셋 옆에 `down` 하나가 붙어 있습니다.
+Kubernetes에서 파드가 롤되면 파드 IP가 바뀝니다. Sentinel 입장에서는 **옛 IP가 응답을 멈춘 것**이고 새 IP는 별개의 replica로 등록됩니다. 슬라이드 8쪽의 `sentinel replicas cache-0` 출력에 그 상태가 그대로 남아 있습니다 — 살아 있는 셋 옆에 `down` 하나가 붙어 있습니다.
 
 이게 왜 사고인가요? [Sentinel 문서](https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/)가 Docker/NAT 절에서 최악의 경우를 명시합니다.
 
@@ -109,7 +109,7 @@ announce는 발명이 아니라 [문서화된 기능](https://redis.io/docs/late
 ### 2.3 그리고 여기서 진짜 문제가 시작된다
 
 {{< callout type="warning" >}}
-**ClusterIP는 클러스터 밖에서 접근할 수 없습니다.** 파드끼리는 서로 잘 통신하지만 아직 EC2에 남아 있는 primary는 그 주소로 패킷을 보낼 수 없습니다.
+**ClusterIP는 클러스터 밖에서 접근할 수 없습니다.** 파드끼리는 잘 통신하지만 아직 EC2에 남아 있는 primary는 그 주소로 패킷을 보낼 수 없습니다.
 
 이게 이관 전체를 어렵게 만든 단 하나의 제약입니다. 안쪽에서는 완결된 설계인데, **바깥에 남은 원본이 안쪽을 복제 대상으로 지목할 방법이 없습니다.**
 {{< /callout >}}
@@ -137,7 +137,7 @@ announce는 발명이 아니라 [문서화된 기능](https://redis.io/docs/late
 
 ## 4. 채택안 — L4를 클러스터 밖으로 빼기
 
-관건은 EC2 primary가 클러스터 안쪽 파드에 닿게 만드는 것입니다. 발표자의 한 줄이 열쇠입니다.
+관건은 EC2 primary가 클러스터 안쪽 파드에 닿게 하는 것입니다. 발표자의 한 줄이 열쇠입니다.
 
 > The Redis protocol operates on layer four, right? So, what we need is some routing infrastructure that sits outside the cluster and then routes it to the Kubernetes pods. — 11:38~11:47
 
@@ -185,7 +185,7 @@ failover로 승격시킬 파드는 **기존 EC2 primary와 같은 AZ에 있는 �
 
 ### 4.3 사전 헬스체크 — 플랫폼만 바뀌어야 한다
 
-이관은 사람이 아니라 스크립트가 돌렸고, 실행 전에 세 가지를 양쪽에서 비교했습니다.
+이관은 사람이 아니라 스크립트가 돌렸고 실행 전에 세 가지를 양쪽에서 비교했습니다.
 
 - 정상 replica 개수
 - Sentinel 개수
@@ -199,7 +199,7 @@ failover로 승격시킬 파드는 **기존 EC2 primary와 같은 AZ에 있는 �
 
 ## 5. 이관 중에만 존재하는 위험 둘
 
-발표자는 "예상 못 한 것이 너무 많아 다 못 말한다"며 둘만 골랐습니다(17:06~17:16). 둘 다 정상 상태에는 없고 이관 창(window) 안에만 존재하는 위험이라는 공통점이 있습니다.
+발표자는 "예상 못 한 것이 너무 많아 다 못 말한다"며 둘만 골랐습니다(17:06~17:16). 둘 다 정상 상태에는 없고 이관 창(window) 안에만 존재하는 위험입니다.
 
 ### 5.1 NLB 데이터 전송비 — 월 $100,000
 
@@ -229,7 +229,7 @@ NLCU는 세 차원 중 그 시간에 가장 큰 것으로 청구됩니다. Braze
 | 연산당 바이트 | 6.3GB/s ÷ 36M ops/s | **약 176B / op** |
 | 샤드당 | 6.3GB/s ÷ 581 | 약 **10.9MB/s** ≈ **87Mbps** |
 
-여기서 replication fan-out을 넣어야 payload 크기가 나옵니다. Kubernetes 샤드는 primary 1 + replica 2이므로, 쓰기 하나가 NLB를 건너는 횟수가 1회(클라이언트→primary)가 아니라 최대 3회(+ replica 2개로 가는 복제)입니다.
+여기서 replication fan-out을 넣어야 payload 크기가 나옵니다. Kubernetes 샤드는 primary 1 + replica 2이므로 쓰기 하나가 NLB를 건너는 횟수가 1회(클라이언트→primary)가 아니라 최대 3회(+ replica 2개로 가는 복제)입니다.
 
 | 가정 | NLB 통과 배수 | 함의되는 payload |
 |---|---|---|
@@ -263,7 +263,7 @@ $100,000는 부풀린 숫자가 아닙니다. rate limiting(`INCR`), distributed
 {{< callout type="warning" >}}
 단, 발표자가 말한 위험과 Sentinel 문서의 메커니즘이 정확히 맞물리지는 않습니다. 문서는 failover 실행에 감지 quorum과 별개로 "authorization to a majority of Sentinels"를 요구합니다 — 6대의 과반은 4이므로, 3:3 분할이면 문서대로는 양쪽 다 승격을 못 해야 합니다. 이관 전 quorum 값이 얼마였는지도 발표·슬라이드 어디에도 없습니다(전사 18:55는 "updated the quorum Sentinel to be five"까지만 말합니다).
 
-그래도 대응 자체는 정당합니다. 두 진영이 파티션 동안 서로를 sentinel 집합의 구성원으로 계속 세느냐에 따라 과반 계산이 갈리고, 그 상태를 이관 창 안에서 확신할 방법이 없습니다. 아래 수는 그 불확실성을 지우는 쪽에 건 것입니다.
+그래도 대응 자체는 정당합니다. 두 진영이 파티션 동안 서로를 sentinel 집합의 구성원으로 계속 세느냐에 따라 과반 계산이 갈리고 그 상태를 이관 창 안에서 확신할 방법이 없습니다. 아래 수는 그 불확실성을 지우는 쪽에 건 것입니다.
 {{< /callout >}}
 
 해법은 두 수를 같이 두는 것입니다.
@@ -320,7 +320,7 @@ image:                        image:
   tag: 7.2.4-alpine             tag: 8.1.1-alpine
 ```
 
-**config는 한 줄도 안 고쳤습니다.** Valkey가 Redis 설정과 완전 하위호환이기 때문이고, Sentinel 쪽도 마찬가지입니다 — [Valkey는 Sentinel 문서를 직접 유지](https://valkey.io/topics/sentinel/)하며 `announce-ip`/`announce-port`를 포함해 Braze가 의존하던 지시어가 그대로 있습니다. 참고로 [8.1.1](https://github.com/valkey-io/valkey/releases/tag/8.1.1)은 2025-04-23 릴리스이고 urgency가 SECURITY입니다 — CVE-2025-21605(미인증 클라이언트 출력 버퍼 제한)를 포함한 버그 수정 11건짜리 패치 릴리스입니다.
+**config는 한 줄도 안 고쳤습니다.** Valkey가 Redis 설정과 완전 하위호환이기 때문이고 Sentinel 쪽도 마찬가지입니다 — [Valkey는 Sentinel 문서를 직접 유지](https://valkey.io/topics/sentinel/)하며 `announce-ip`/`announce-port`를 포함해 Braze가 의존하던 지시어가 그대로 있습니다. 참고로 [8.1.1](https://github.com/valkey-io/valkey/releases/tag/8.1.1)은 2025-04-23 릴리스이고 urgency가 SECURITY입니다 — CVE-2025-21605(미인증 클라이언트 출력 버퍼 제한)를 포함한 버그 수정 11건짜리 패치 릴리스입니다.
 
 | 이관 | 기간 | 샤드 | 클러스터 |
 |---|---|---|---|
@@ -460,7 +460,7 @@ Braze의 이관을 어렵게 만든 건 Redis도 Kubernetes도 아니라 **Clust
 - 581이라는 샤드 수가 현재값인지 확인하지 못했다. 슬라이드 5쪽 수치이고 발표자는 "just this month, we have about 600"이라 말한다. 기준일 표기가 없다.
 - Braze 회사 수치의 기준 시점이 슬라이드 표기와 어긋난다. MAU 69억은 [2024-10-31 기준](https://www.braze.com/resources/articles/2024-how-braze-powered-exceptional-marketing-at-scale)인데 슬라이드는 전 수치를 "As of January 31, 2025"로 묶었고 "over $130M R&D expense in 2024"에 대응하는 [공시치 $133.969M](https://investors.braze.com/news/news-details/2025/Braze-Reports-Fiscal-Year-and-Fourth-Quarter-2025-Results/default.aspx)은 역년 2024가 아니라 FY2025(2024-02~2025-01) 값이다. 액수 자체는 "over $130M"에 부합한다.
 - 이관 전 Sentinel quorum 값을 확인하지 못했다. 발표·슬라이드는 "5로 올렸다"만 말한다. §5.2의 3:3 대칭 split brain은 발표자의 설명을 옮긴 것이고 Sentinel 문서가 요구하는 "majority authorization"과는 계산이 맞지 않는다는 점을 같은 절에 밝혀 뒀다.
-- 발표자의 [Velero 블로그](https://www.braze.com/resources/articles/faster-cheaper-more-dependable-how-braze-uses-velero-to-power-backup-stateful-services-in-kubernetes)는 이관 후 토폴로지를 서술한다. "Each shard is managed by a StatefulSet, which creates three pods"는 **Kubernetes 시대**의 배치이고, EC2 시대는 BGSAVE→S3 백업 흐름만 다룬다. 581샤드 수치도, 클라이언트 해싱 서술도 이 글에는 없다 — 그 둘의 근거는 발표와 슬라이드뿐이다.
+- 발표자의 [Velero 블로그](https://www.braze.com/resources/articles/faster-cheaper-more-dependable-how-braze-uses-velero-to-power-backup-stateful-services-in-kubernetes)는 이관 후 토폴로지를 서술한다. "Each shard is managed by a StatefulSet, which creates three pods"는 **Kubernetes 시대**의 배치이고 EC2 시대는 BGSAVE→S3 백업 흐름만 다룬다. 581샤드 수치도, 클라이언트 해싱 서술도 이 글에는 없다 — 그 둘의 근거는 발표와 슬라이드뿐이다.
 - valkey-operator의 "Cells" 모드는 슬라이드 31쪽에만 있다. 레포 `docs/architecture.md`를 직접 확인했으나 "Cells"도 모드 열거도 없다. repo 문서를 근거로 인용하면 안 된다.
 - NLB를 샤드당 뒀는지 클러스터당 뒀는지 확인하지 못했다. 슬라이드 33쪽은 한 샤드에 NLB 하나가 붙은 그림이지만 설명 도식일 수 있다. §5.1의 LB-hour 추가분 계산이 이 값에 달려 있다.
 - 이관 스크립트가 config 동일성을 어떤 범위로 비교했는지 알 수 없다. "the config is the same between the two"(15:18)까지만 나온다.

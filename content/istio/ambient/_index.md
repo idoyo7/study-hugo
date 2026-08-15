@@ -8,7 +8,7 @@ weight: 20
 {{< callout type="info" >}}
 **참조한 내용정리**
 
-이 섹션의 모든 문서는 아래 채널코퍼레이션 기술 블로그(tech.channel.io) 원문 6건을 읽고 이 지식베이스 형식으로 재구성한 요약입니다. **원문 자체가 아니며**, 정확한 워딩·전체 맥락·원문에 실린 그림과 config 덤프 전문은 각 링크에서 확인합니다.
+여기 실린 문서는 모두 채널코퍼레이션 기술 블로그(tech.channel.io)의 아래 원문 6건을 읽고 이 지식베이스 형식으로 다시 묶은 요약입니다. **원문 자체가 아니며**, 정확한 워딩·전체 맥락·원문에 실린 그림과 config 덤프 전문은 각 링크에서 확인합니다.
 
 - [Istio 1편: 왜 Istio Ambient mode인가?](https://tech.channel.io/kr/articles/tech-istio-ambient-mode-30cdf79a) · 2026-03-20
 - [Istio 2편: Envoy config로 해부하는 Ambient mode](https://tech.channel.io/kr/articles/tech-istio-envoy-config-c5193569) · 2026-04-14
@@ -20,21 +20,21 @@ weight: 20
 
 {{< callout type="info" >}}
 **한눈에**
-- 채널코퍼레이션 DevOps팀은 2025년 3월부터 11월까지 약 8개월에 걸쳐 서비스 메시를 처음 올렸다. 성숙한 Sidecar mode를 건너뛰고 Istio 1.24에서 GA된 **Ambient mode를 첫 대상으로 골랐다**.
-- 결정의 무게추는 **약 4,000개 파드**였다. 전부 사이드카를 붙이면 idle 상태에서만 약 240Gi 메모리가 프록시로 나간다. 프록시 개수가 파드 개수에 1:1로 묶이기 때문이다.
-- 대가는 장애 격리 단위의 확대다. 사이드카는 장애 범위가 파드 하나였지만 ztunnel은 노드 전체, waypoint는 namespace 전체다. 팀은 문제 발생 빈도 대신 **장애 복구 속도와 나중에 다시 갈아엎지 않아도 되는 쪽**을 기준으로 삼았다.
+- 채널코퍼레이션 DevOps팀이 2025년 3월부터 11월까지 약 8개월을 들여 서비스 메시를 처음 올렸다. 성숙한 Sidecar mode를 지나치고 Istio 1.24에서 GA된 **Ambient mode를 첫 대상으로 골랐다**.
+- 결정의 무게추는 **약 4,000개 파드**였다. 프록시 개수가 파드 개수에 1:1로 묶이는 구조라 전부 사이드카를 붙이면 idle 상태에서만 약 240Gi 메모리가 프록시로 나간다.
+- 대가는 장애 격리 단위의 확대다. 사이드카는 장애 범위가 파드 하나였지만 ztunnel은 노드 전체, waypoint는 namespace 전체다. 팀이 잡은 기준은 문제 발생 빈도가 아니라 **장애 복구 속도와 나중에 다시 갈아엎지 않아도 되는 쪽**이었다.
 - 프로덕션에서 터진 것은 전부 **프록시가 파드 밖으로 나가면서 생긴 타이밍 문제**다 — 죽은 Pod의 HBONE 터널을 재사용해 터지는 503, istio-cni보다 먼저 뜬 파드(partially enrolled), 노드 단위가 되어 버린 업그레이드 카나리, 그리고 xDS 단절을 못 잡는 readinessProbe.
-- Ambient가 사이드카 비용을 없앤 자리에 들어온 새 운영 축은 **노드 라이프사이클과 메시 데이터플레인 준비 사이의 정합성**이다. 청구서가 사라진 게 아니라 항목이 바뀌었다.
+- 사이드카 비용이 빠진 자리에 들어선 새 운영 축은 **노드 라이프사이클과 메시 데이터플레인 준비 사이의 정합성**이다. 청구서가 사라진 게 아니라 항목이 바뀌었다.
 {{< /callout >}}
 
 ## 왜 이 섹션이 상위 Istio 챕터와 따로 있는가
 
-이 레포의 [상위 Istio 챕터]({{< relref "../_index.md" >}}) 01~09편은 전부 **Sidecar mode를 전제로 쓰인 운영기**입니다. 파드마다 Envoy가 붙고, istiod가 그 프록시 전부에 xDS를 밀어 넣고, 게이트웨이를 전용 노드로 빼고, 5xx가 나면 게이트웨이 → 사이드카 → 앱 순으로 hop을 좁혀 갑니다. 이 `ambient/` 섹션은 그 전제를 바꾼 외부 팀(채널코퍼레이션)의 프로덕션 기록입니다. 우리 환경이 아닌 남의 사례라 따로 두고, 같은 문제를 다른 아키텍처로 푼 **대조군**으로 읽습니다. 컨트롤 플레인 부하·데이터 플레인 비용·장애 추적이라는 세 축은 양쪽이 똑같이 마주합니다. 다만 사이드카 모드는 "파드당 프록시 하나"라는 전제에서, Ambient는 "노드당 ztunnel 하나 + 필요한 곳에만 waypoint"라는 전제에서 답을 찾습니다.
+이 레포의 [상위 Istio 챕터]({{< relref "../_index.md" >}}) 01~09편은 전부 **Sidecar mode를 전제로 쓰인 운영기**입니다. 파드마다 Envoy가 붙습니다. istiod는 그 프록시 전부에 xDS를 밀어 넣고, 게이트웨이는 전용 노드로 빠집니다. 5xx가 나면 게이트웨이 → 사이드카 → 앱 순으로 hop을 좁혀 갑니다. 이 `ambient/` 섹션은 그 전제를 바꾼 외부 팀(채널코퍼레이션)의 프로덕션 기록입니다. 우리 환경이 아닌 남의 사례라 따로 두고 같은 문제를 다른 아키텍처로 푼 **대조군**으로 읽습니다. 컨트롤 플레인 부하·데이터 플레인 비용·장애 추적이라는 세 축은 양쪽이 똑같이 마주합니다. 다만 출발점이 다릅니다 — 사이드카 모드는 "파드당 프록시 하나"라는 전제에서, Ambient는 "노드당 ztunnel 하나 + 필요한 곳에만 waypoint"라는 전제에서 답을 찾습니다.
 
 ## 문서 지도
 
 - **[01 왜 Ambient mode인가]({{< relref "01-why-ambient-mode.md" >}})** · 2026-03 · 의사결정 — 4,000 파드·240Gi라는 계산과 polynomial scaling problem, 그리고 SPoF를 감수한 이유
-- **[02 Envoy config로 해부하는 Ambient mode]({{< relref "02-envoy-config-anatomy.md" >}})** · 2026-04 · 기술 해부 — 클러스터 하나가 endpoint 메타데이터로 세 갈래로 갈린다 · HBONE은 Envoy 부품 세 개의 조합
+- **[02 Envoy config로 해부하는 Ambient mode]({{< relref "02-envoy-config-anatomy.md" >}})** · 2026-04 · 기술 해부 — 클러스터 하나가 endpoint 메타데이터를 따라 세 갈래로 갈린다 · HBONE은 Envoy 부품 세 개의 조합이다
 - **[03-1 503과 Half-open Connection]({{< relref "03-1-503-half-open-connection.md" >}})** · 2026-06 · 장애 추적 — waypoint가 `IP:Port`만을 키로 죽은 Pod의 HBONE 터널을 재사용한다
 - **[03-2 Partially Enrolled Pod와 Untaint Controller]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}})** · 2026-07 · 장애 추적 — Running·Ready인데 메시 밖 — kube-scheduler는 DaemonSet 준비를 기다리지 않는다
 - **[03-3 Ambient 안전하게 업그레이드하기]({{< relref "03-3-ambient-upgrade-in-place.md" >}})** · 2026-07 · 운영 런북 — istiod → istio-cni → ztunnel 순서, ztunnel만은 node pool blue-green
@@ -43,15 +43,15 @@ weight: 20
 ## 읽는 순서
 
 - **사이드카에서 넘어올 계획이면** [10 Ambient 이행 심사]({{< relref "../10-ambient-migration-questions.md" >}})를 먼저 본다. 이 섹션은 사이드카를 거치지 않은 그린필드 기록이라 "버리고 오는 쪽"의 비용이 빠져 있다.
-- **처음이라면** 01을 먼저 읽는다. 왜 사이드카를 건너뛰었는지, 그 대가로 무엇을 받아들였는지가 나머지 다섯 편의 전제다. ztunnel · waypoint · HBONE · istio-cni라는 용어도 여기서 잡힌다.
+- **처음이라면** 01부터 읽는다. 왜 사이드카를 건너뛰었는지, 그 대가로 무엇을 받아들였는지가 나머지 다섯 편의 전제다. ztunnel · waypoint · HBONE · istio-cni라는 용어도 여기서 잡힌다.
 - **개념까지만 필요하면** 01에서 멈춰도 된다. 02는 Envoy config 덤프를 필드 단위로 따라가는 문서라 밀도가 가장 높다. 다만 03-1의 커넥션 pool 문제와 03-4의 `xds-grpc` cluster를 이해하려면 02가 선행 지식이다.
 - **장애 대응 관점이면** 03-1 → 03-2 순서로 본다. 03-1은 이미 메시에 들어온 커넥션의 수명 문제이고, 03-2는 애초에 메시에 못 들어온 파드의 문제다. 증상은 둘 다 5xx지만 원인 계층이 다르다.
-- **Ambient를 이미 운영 중이라면** 03-3(업그레이드)과 03-4(탐지)가 실무 직결이다. 특히 03-4의 두 사례는 원문이 Ambient 고유 문제가 아니라고 밝힌 것이라 사이드카 모드 운영자에게도 적용된다.
+- **Ambient를 이미 운영 중이라면** 03-3(업그레이드)과 03-4(탐지)가 실무 직결이다. 특히 03-4의 두 사례는 원문이 Ambient 고유 문제가 아니라고 밝혔으니 사이드카 모드 운영자에게도 적용된다.
 - 시간순 01 → 02 → 03-1 → 03-2 → 03-3 → 03-4가 원문 시리즈의 순서이자 채널팀이 실제로 겪은 순서다.
 
 ## 사이드카 모드와 대조해서 읽기
 
-같은 문제를 상위 챕터(Sidecar mode)와 이 섹션(Ambient mode)이 각각 어떻게 다루는지의 대응표입니다.
+같은 문제를 상위 챕터(Sidecar mode)와 이 섹션(Ambient mode)이 각각 어떻게 다루는지 짝지어 둡니다.
 
 - **메시의 비용 구조**
   - 상위 챕터 (Sidecar mode): [01 서비스 메시와 Istio 기초]({{< relref "../01-mesh-basics.md" >}}) — 파드마다 붙는 프록시가 CPU·메모리·지연을 더한다

@@ -5,15 +5,15 @@ weight: 2
 
 # 메트릭 장기보관 아키텍처 비교 — 400일 보관 권장안
 
-과거 장애 재조사를 위한 **메트릭 400일 보관** 아키텍처를 비교하고 권장안을 정리한 챕터입니다. 옵션별 비용·구성·제약을 같은 축으로 놓고, 왜 VM OSS 아카이브안이 이 조건에서 최적인지까지 연결해서 읽도록 구성했습니다.
+과거 장애를 다시 파헤치려면 그때 메트릭이 남아 있어야 합니다. 이 챕터는 **메트릭 400일 보관**을 놓고 아키텍처 후보를 비교해 권장안까지 정리합니다. 옵션마다 비용·구성·제약을 같은 축에 올려두고 VM OSS 아카이브안이 이 조건에서 최적인 이유까지 이어서 짚습니다.
 
 > 자매 챕터: [VictoriaMetrics Deep Dive]({{< relref "../victoriametrics/_index.md" >}}) — 이 챕터의 VM 아카이브안이 쓰는 streamAggr·vmsingle·vmbackup·MetricsQL의 내부 동작은 그쪽에서 다룬다.
 
 ## 전제 (사용자 확정)
 
-- **목적**: 과거 장애 재조사용 400d 보관. 어떤 메트릭이 필요할지 사전에 모르므로 **전 메트릭 커버리지** 필요.
-- **>90d 구간은 5m 해상도 허용** — 이 한 줄이 비용을 자릿수로 가른다.
-- **OSS 우선.** 근거는 공식 문서 + AWS Price List API(서울, 2026-07-10) 적대적 검증.
+- **목적**: 과거 장애 재조사용 400d 보관. 어떤 메트릭이 필요할지 미리 고를 수 없으니 **전 메트릭 커버리지**가 조건이다.
+- **>90d 구간은 5m 해상도 허용** — 이 한 줄에서 비용이 자릿수로 갈린다.
+- **OSS 우선.** 근거는 공식 문서와 AWS Price List API(서울, 2026-07-10) 적대적 검증이다.
 
 ## 문서 지도
 
@@ -37,10 +37,10 @@ weight: 2
 | ① | raw 30s × 400d | $1,600+/mo |
 | ② (← 본 건 확정) | raw 90d + 전 메트릭 5m 집계 400d | $400~500/mo |
 
-②가 전제이므로 남는 질문은 "VM OSS엔 downsampling이 없는데 5m을 누가 만드나": **streamAggr(VM 아카이브안)** / **Thanos compactor(Thanos안)** / **Mimir는 downsampling 자체가 없어 탈락**.
+본 건은 ②를 전제로 깔고 들어가므로 남는 질문은 하나입니다. "VM OSS엔 downsampling이 없는데 5m을 누가 만드나" — 후보는 **streamAggr(VM 아카이브안)** 아니면 **Thanos compactor(Thanos안)** 둘 중 하나입니다. **Mimir는 downsampling 자체가 없어 탈락**입니다.
 
-**축 2: 어디에 저장하나** — VM은 S3를 쿼리 가능한 primary 스토리지로 지원하지 않습니다(VM 계열은 EBS 위). 서울 단가는 `sc1 < S3 Standard < st1 < gp3`라 "S3라서 싸다"가 성립하지 않습니다. 차이는 단가가 아니라 **내구성 모델과 운영 컴포넌트 수**입니다.
+**축 2: 어디에 저장하나** — VM은 S3를 쿼리 가능한 primary 스토리지로 지원하지 않습니다. VM 계열은 EBS 위입니다. 서울 단가가 `sc1 < S3 Standard < st1 < gp3` 순이라 "S3라서 싸다"는 전제부터 성립하지 않습니다. 갈리는 지점은 단가가 아니라 **내구성 모델과 운영 컴포넌트 수**입니다.
 
 ## 권장 요약
 
-**VM OSS 아카이브안** — 라우터 RW#4 + streamAggr 5m → vmsingle-archive. 월 **$385~416**, 단순 확장안 대비 **~70% 절감**, 신규 기술 0, service 무상태 무영향, MetricsQL 유지, 그리고 **가역적**(RW#4를 Thanos Receive로 갈아끼우면 Thanos안 전환). 상세 근거와 잔여 리스크 수용 논리는 [08 권장안]({{< relref "08-recommendation-and-pitfalls.md" >}}), 사전/사후 집계 판정은 [07 핵심 논점]({{< relref "07-streamaggr-vs-downsampling.md" >}}).
+**VM OSS 아카이브안** — 라우터 RW#4 + streamAggr 5m → vmsingle-archive. 월 **$385~416**으로 단순 확장안 대비 **~70% 절감**이고 새로 들일 기술은 0입니다. service는 무상태라 무영향, MetricsQL도 그대로 갑니다. **가역적**이기도 합니다 — RW#4를 Thanos Receive로 갈아끼우면 Thanos안으로 넘어갑니다. 상세 근거와 잔여 리스크 수용 논리는 [08 권장안]({{< relref "08-recommendation-and-pitfalls.md" >}}), 사전/사후 집계 판정은 [07 핵심 논점]({{< relref "07-streamaggr-vs-downsampling.md" >}}).

@@ -17,7 +17,7 @@ weight: 5
 - **2026-07-21 의 7.2.14 / 8.0.10 / 8.1.9 / 9.0.5 / 9.1.1 동시 릴리스는 보안 릴리스다** — CVE-2026-56684(TLS use-after-free, CVSS 7.5) · CVE-2026-63639(stream PEL use-after-free, CVSS 8.8, **모든 버전 영향**) `✓`.
 {{< /callout >}}
 
-> **왜 이 문서인가.** "Valkey = 리브랜딩된 Redis 7.2" 로 읽으면 튜닝 가이드·모니터링 쿼리·마이그레이션 계획이 전부 어긋난다. 스레드 수를 올려도 안 빨라지고, 빠른 full sync 는 켜지지 않고, Redis 7.4 에서 뜬 RDB 를 올리면 `Can't handle RDB format version 12` 로 거절당한다. 이 문서는 그 어긋남을 **설정 이름·기본값·소스 경로**로 확정한다.
+> **왜 이 문서인가.** "Valkey = 리브랜딩된 Redis 7.2" 를 전제로 깔면 튜닝 가이드·모니터링 쿼리·마이그레이션 계획이 전부 어긋난다. 스레드 수를 올려도 안 빨라지고, 빠른 full sync 는 켜지지 않고, Redis 7.4 에서 뜬 RDB 를 올리면 `Can't handle RDB format version 12` 로 거절당한다. 이 문서는 그 어긋남을 **설정 이름·기본값·소스 경로**로 확정한다.
 
 > 근거 기준: 로컬 blobless 클론 `~/evejuni/valkey`·`~/evejuni/redis` 의 태그별 소스(`git show <tag>:<path>`), 각 릴리스의 `RELEASENOTES-*.txt`, GitHub PR·릴리스·security advisory, valkey.io 공식 문서·블로그. **릴리스일은 GitHub `published_at`** 기준이며 기준일은 2026-08-05 다. 성능 수치는 발행 주체가 프로젝트 자신이므로 전부 `Ⓥ` 로 표기하고 측정 조건을 병기한다.
 
@@ -32,7 +32,7 @@ weight: 5
 
 마이그레이션 호환성은 한 줄로 끝납니다 — **Redis 7.2.x 이하에서만 RDB·복제로 넘어올 수 있고, Redis 7.4 이상과 Valkey 9.x → 8.x 는 소스 레벨에서 막혀 있습니다** `✓`. 상세는 §9.
 
-버전 번호 읽는 법도 진영별로 반대입니다. **Valkey 는 홀수 마이너(8.1, 9.1)를 정식 GA 로 씁니다** — Redis 의 홀수 마이너는 프리릴리스 전용 번호입니다([04 · Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}})) `✓`. "Redis 9" 를 찾는 사람은 사실 Valkey 9 를 보고 있습니다.
+버전 번호를 읽는 규칙도 진영별로 반대입니다. **Valkey 는 홀수 마이너(8.1, 9.1)를 정식 GA 로 씁니다** — Redis 의 홀수 마이너는 프리릴리스 전용 번호입니다([04 · Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}})) `✓`. "Redis 9" 를 찾는 사람은 사실 Valkey 9 를 보고 있습니다.
 
 ## 2. 포크 직후의 선택 — 7.2.4 에서 무엇을 먼저 손댔나
 
@@ -48,7 +48,7 @@ Valkey 리포의 `7.2.4` 태그는 Redis 7.2.4 히스토리를 그대로 승계�
 | 2024-08-27 | **`src/memory_prefetch.c` 신설** | Memory Access Amortization (#861) |
 | 2024-11-18 | **`src/hashtable.c` 최초 커밋** | 8.1 로 가는 자료구조 교체의 시작 (`c8ee5c2c`) |
 
-리브랜딩 커밋(`pidfile` `redis.pid` → `valkey.pid`, `syslog-ident`, 에러 메시지의 "Redis" 제거)은 같은 기간에 함께 들어갔지만 **신설 파일 4개가 전부 성능·전송 계층**입니다 `✓`. 이 선택이 이후 2년의 분기를 결정했습니다.
+리브랜딩 커밋(`pidfile` `redis.pid` → `valkey.pid`, `syslog-ident`, 에러 메시지의 "Redis" 제거)도 같은 기간에 들어갔지만 **신설 파일 4개가 전부 성능·전송 계층**입니다 `✓`. 이 선택이 이후 2년의 분기를 결정했습니다.
 
 호환성 쪽으로는 반대 방향의 스위치가 하나 있습니다. `extended-redis-compatibility` — Valkey 가 자신을 "Redis" 로 보고하게 만드는 임시 노브입니다. 8.1 의 `valkey.conf` 는 "9.0 에서 무효화, 10.0 에서 제거" 를 예고했지만 **그 예고는 실행되지 않았습니다** — 9.0 의 conf 에서 문구가 "will be removed in a future version" 으로 완화되고 9.1.1 의 `config.c:3320` 에도 `MODIFIABLE_CONFIG` 로 살아 있습니다 `✓`. 이 스위치에 의존하는 툴은 여전히 시한폭탄입니다.
 
@@ -66,7 +66,7 @@ Redis 6.0 threaded I/O 가 어디까지만 했고 왜 "안 켜는 게 낫다" �
 | 클라이언트 배정 | `c->id % num_of_threads` **고정 바인딩** | 같은 클라이언트가 두 스레드에 동시 배정되는 일이 구조적으로 불가 → **TLS + I/O threads 조합이 지원된다** |
 | 활성화 | pending 클라이언트 수에 비례한 부분 활성(기존은 all-or-nothing) | idle busy-wait 감소 |
 
-세 번째로 넘긴 작업이 이 릴리스의 성격을 말합니다. PR #763 이 추가한 것은 **poll offload**(`aeEventLoop` 에 `custompoll` 콜백 신설 — PR 본문은 poll-wait 가 메인 스레드 시간의 최대 30% 를 먹는다고 측정했습니다), **command lookup offload**(워커가 파싱하면서 커맨드 dict 조회까지 하고 `c->io_parsed_cmd` 에 넣습니다 — 메인 런타임의 약 5%), **free offload**(argv 를 할당한 스레드에게 되돌려 free 시킵니다 — 근거는 jemalloc 의 thread-local `tcache`)습니다 `✓`. 이름은 "I/O 스레드" 인데 하는 일은 이미 I/O 가 아닙니다.
+세 번째로 넘긴 작업이 이 릴리스의 성격을 말합니다. PR #763 이 추가한 것은 셋입니다. **poll offload** — `aeEventLoop` 에 `custompoll` 콜백을 신설했고, PR 본문은 poll-wait 가 메인 스레드 시간의 최대 30% 를 먹는다고 측정했습니다. **command lookup offload** — 워커가 파싱하면서 커맨드 dict 조회까지 하고 `c->io_parsed_cmd` 에 넣습니다. 메인 런타임의 약 5% 입니다. **free offload** — argv 를 할당한 스레드에게 되돌려 free 시킵니다. 근거는 jemalloc 의 thread-local `tcache` 입니다 `✓`. 이름은 "I/O 스레드" 인데 하는 일은 이미 I/O 가 아닙니다.
 
 PR #861 은 그 결과로 드러난 새 병목을 잡습니다. async I/O 도입 후 `lookupKey` 가 메인 스레드 시간의 약 50%(SET 기준)를 차지하게 됐고, 해법은 배치 prefetch 입니다 — 실행 준비된 커맨드를 최대 16개 모아 argv → dict entry → value 순으로 prefetch 한 뒤 실행합니다(`prefetch-batch-max-size`, 기본 16, 0 이면 비활성, 최대 128) `✓`. **이 최적화는 배치를 I/O 스레드가 만들어주므로 `io-threads` 를 켜지 않으면 사실상 작동하지 않습니다.**
 
@@ -79,7 +79,7 @@ PR #861 은 그 결과로 드러난 새 병목을 잡습니다. async I/O 도입
 | `events-per-io-thread` | 2 | 8.1 에서 `HIDDEN_CONFIG` → **9.1 에서 deprecated 목록으로** | 튜닝 노브로 만든 게 아니다. 설정 파일에 남아 있으면 조용히 무시된다 |
 | `io-threads-do-reads` | — | **8.1 에서 deprecated** | 새 구현은 항상 read 를 한다. 값을 주면 무시 |
 
-공식 수치는 **360K → 1.19M rps, 평균 레이턴시 1.792ms → 0.542ms(-69.8%)** 습니다 `Ⓥ`. 측정 조건은 **AWS EC2 c7g.16xlarge(64 vCPU) · `io-threads 8` · 3M keys · value 512바이트 · 650 clients · sequential SET** 이고, 블로그가 스스로 "these numbers include the Prefetch change" 라고 밝힙니다 — #758 + #763 + #861 **합산치**이며 I/O 스레딩 단독 효과가 아닙니다. 파이프라인 깊이는 어떤 1차 출처에도 없습니다 `?`. 4 vCPU 인스턴스에서 재현되는 숫자가 아니고, `valkey.conf` 가 직접 경고하듯 벤치마크 클라이언트도 `--threads` 로 맞춰야 합니다.
+공식 수치는 **360K → 1.19M rps, 평균 레이턴시 1.792ms → 0.542ms(-69.8%)** 습니다 `Ⓥ`. 측정 조건은 **AWS EC2 c7g.16xlarge(64 vCPU) · `io-threads 8` · 3M keys · value 512바이트 · 650 clients · sequential SET** 입니다. 블로그가 스스로 "these numbers include the Prefetch change" 라고 밝히므로 이 값은 #758 + #763 + #861 **합산치**이며 I/O 스레딩 단독 효과가 아닙니다. 파이프라인 깊이는 어떤 1차 출처에도 없습니다 `?`. 4 vCPU 인스턴스에서 재현되는 숫자가 아니고, `valkey.conf` 가 직접 경고하듯 벤치마크 클라이언트도 `--threads` 로 맞춰야 합니다.
 
 같은 문제에 Redis 8.0 은 **다른 답**을 냈습니다. 두 구현의 튜닝 가이드는 서로 통하지 않습니다 `✓`.
 
@@ -100,9 +100,7 @@ full sync 중 primary 는 RDB 를 보내는 동안 들어오는 쓰기를 **repl
 
 {{< seq src="_seq/3-2-dual-channel-replication.json" />}}
 
-부수 효과가 성능의 실체입니다. 기존에는 TLS 제약 때문에 bgsave 자식이 RDB 바이트를 **파이프로 메인 프로세스에 넘기고 메인이 소켓에 다시 써야** 했습니다. 전용 커넥션이 생기면서 자식이 소켓에 직접 쓰게 되고, primary 메인 프로세스의 CPU 가 그만큼 풀립니다 `✓`.
-
-PR #60 자체 측정은 이렇습니다 `Ⓥ` — primary/replica 같은 머신, RDB 3.7GB, `valkey-benchmark -r 100000 -n 6000000 lpush my_list __rand_int__`. 클라이언트 50개 이하 경량 커맨드에서 sync 중 write 레이턴시 **5~7.5% 개선**, primary 가 `sdiff`/`sunion` 같은 무거운 읽기를 처리하는 상황에서는 **sync 시간 약 50% 단축**과 그에 따른 복제 diff 저장 메모리 **일부 케이스 60%+ 감소**. 즉 이 기능은 "복제가 빨라진다" 가 아니라 **"바쁜 primary 에서 full sync 가 덜 망가진다"** 쪽입니다.
+부수 효과가 성능의 실체입니다. 기존에는 TLS 제약 때문에 bgsave 자식이 RDB 바이트를 **파이프로 메인 프로세스에 넘기고 메인이 소켓에 다시 써야** 했습니다. 전용 커넥션이 생기면서 자식이 소켓에 직접 쓰게 되고, primary 메인 프로세스의 CPU 가 그만큼 풀립니다 `✓`. PR #60 자체 측정은 이렇습니다 `Ⓥ` — primary/replica 같은 머신, RDB 3.7GB, `valkey-benchmark -r 100000 -n 6000000 lpush my_list __rand_int__`. 클라이언트 50개 이하 경량 커맨드에서 sync 중 write 레이턴시 **5~7.5% 개선**, primary 가 `sdiff`/`sunion` 같은 무거운 읽기를 처리하는 상황에서는 **sync 시간 약 50% 단축**과 그에 따른 복제 diff 저장 메모리 **일부 케이스 60%+ 감소**. 즉 이 기능은 "복제가 빨라진다" 가 아니라 **"바쁜 primary 에서 full sync 가 덜 망가진다"** 쪽입니다.
 
 켜기 전에 알아야 할 제약이 넷입니다.
 
@@ -113,7 +111,7 @@ PR #60 자체 측정은 이렇습니다 `Ⓥ` — primary/replica 같은 머신,
 | replica 로컬 버퍼 상한 | **전용 config 가 없다.** `client-output-buffer-limit replica` 하드 리밋을 재사용하고, 초과하면 실패가 아니라 읽기 핸들러를 떼서 버퍼링을 멈춘다. 그 이후 누적은 **primary COB 로 되돌아가므로 결국 끊길 수 있다** `✓` |
 | 적용 시점 | 켜고 끄는 것이 진행 중인 sync 에는 영향이 없다 — 다음 sync 부터 `✓` |
 
-세 번째가 핵심 함정입니다. Redis 는 같은 자리에 전용 리밋 `replica-full-sync-buffer-limit` 을 뒀습니다 — 이 항목만은 Redis 쪽 설계가 낫습니다 `Σ`. 그리고 두 진영의 와이어가 다릅니다.
+세 번째가 핵심 함정입니다. Redis 는 같은 자리에 전용 리밋 `replica-full-sync-buffer-limit` 을 뒀습니다 — 이 항목만은 Redis 쪽 설계가 낫습니다 `Σ`. 두 진영의 와이어도 다릅니다.
 
 | | Valkey 8.0/8.1 | Redis 8.0+ |
 |---|---|---|
@@ -138,9 +136,7 @@ Redis PR #13732 "Rdb channel replication" 은 본문 첫 줄에 `valkey-io/valke
 
 첫 행에 함정이 있습니다. `src/kvstore.c` 는 커밋 `8cd62f82`(2024-02-05, Redis #12822 "Refactor the per-slot dict-array db.c into a new kvstore data structure")에서 생겼고 이건 **포크 이전 Redis unstable 커밋**입니다 — `git merge-base --is-ancestor` 로 valkey 8.0.0 과 redis 7.4.0 **양쪽의 조상**임이 확인됩니다 `✓`. Valkey 8.0 릴리스노트도 이 항목을 `Redis#12822` 로 표기합니다. "Valkey 가 per-slot dict 로 클러스터 메모리를 줄였다" 는 서술은 절반만 맞습니다.
 
-**엔진 측에서 per-slot 으로 쪼갠 이유**는 세 가지입니다 — 슬롯 소속 추적 연결리스트를 자료구조 자체로 대체해 엔트리당 16바이트를 없애고, 슬롯 단위 순회를 O(슬롯 크기)로 만들고, 해시 태그가 단일 슬롯을 함의하는 `KEYS`/`SCAN` 을 그 슬롯만 훑게 합니다. 대가는 노드당 약 1MB 의 Binary Indexed Tree(슬롯별 키 개수 누적합)입니다 `✓`. **cluster 운영에서 무엇이 달라지는지는** [06 · cluster mode]({{< relref "../06-cluster-mode/index.md" >}}) 가 소유합니다.
-
-그리고 16바이트 절감은 **cluster mode 에서만** 발생합니다 — standalone 에서 8.0 으로 올리면서 -20% 를 기대하면 틀립니다 `Σ`.
+**엔진 측에서 per-slot 으로 쪼갠 이유**는 세 가지입니다 — 슬롯 소속 추적 연결리스트를 자료구조 자체로 대체해 엔트리당 16바이트를 없애고, 슬롯 단위 순회를 O(슬롯 크기)로 만들고, 해시 태그가 단일 슬롯을 함의하는 `KEYS`/`SCAN` 을 그 슬롯만 훑게 합니다. 대가는 노드당 약 1MB 의 Binary Indexed Tree(슬롯별 키 개수 누적합)입니다 `✓`. 그리고 이 16바이트 절감은 **cluster mode 에서만** 발생합니다 — standalone 에서 8.0 으로 올리면서 -20% 를 기대하면 틀립니다 `Σ`. **cluster 운영에서 무엇이 달라지는지는** [06 · cluster mode]({{< relref "../06-cluster-mode/index.md" >}}) 가 소유합니다.
 
 Redis 도 같은 목표로 수렴했습니다. PR #13806 은 본문에 "This PR adopts Valkey's packing layout and logic for key, value, and TTL" 를 명시하고 `kvobj` 를 도입했습니다(8.2, 1M keys 77.34M→59.87M · 10M keys 883.98M→624.07M, 약 -29% `Ⓥ` 로컬 랩톱). **다만 hashtable 은 갈아끼우지 않았습니다** — 같은 PR 본문이 open addressing POC 를 해보고 `dict` + `no_value=1` 이 더 나은 균형이었다고 적습니다 `✓`. 이 갈림이 8.1 에서 결정적으로 벌어집니다.
 
@@ -148,7 +144,7 @@ Redis 도 같은 목표로 수렴했습니다. PR #13806 은 본문에 "This PR 
 
 ### 4.1 새 hashtable
 
-PR #1186 은 `src/hashtable.c` 를 새로 써서 `src/dict.c`(chained hash)를 대체하고, `kvstore` 의 백엔드를 통째로 옮겼습니다. 버킷이 **정확히 64바이트 = 캐시라인 1개**입니다 — `presence` 비트 7개 + 해시 상위 1바이트 7개 + 엔트리 포인터 7개 `✓`(`valkey 8.1.0:src/hashtable.h:91` 의 `#define HASHTABLE_BUCKET_SIZE 64`, `src/hashtable.c:275-283` 의 `bucket` 구조체 + `static_assert`).
+PR #1186 은 `src/hashtable.c` 를 새로 써서 `src/dict.c`(chained hash)를 대체하고 `kvstore` 의 백엔드를 통째로 옮겼습니다. 버킷이 **정확히 64바이트 = 캐시라인 1개**입니다 — `presence` 비트 7개 + 해시 상위 1바이트 7개 + 엔트리 포인터 7개 `✓`(`valkey 8.1.0:src/hashtable.h:91` 의 `#define HASHTABLE_BUCKET_SIZE 64`, `src/hashtable.c:275-283` 의 `bucket` 구조체 + `static_assert`).
 
 | 설계 결정 | 내용 |
 |---|---|
@@ -158,7 +154,7 @@ PR #1186 은 `src/hashtable.c` 를 새로 써서 `src/dict.c`(chained hash)를 �
 | 리사이즈 정책 | `ALLOW` / `AVOID`(fork 중 — CoW 보호, insert 에서만 rehash step) / `FORBID`(자식 프로세스) |
 | 엔트리 = 값 객체 | keyspace 엔트리가 `serverObject`(= `robj`) 자체다. 키와 옵션 expire 를 객체에 임베딩(`hasexpire:1`, `hasembkey:1` 비트 신설) → **dictEntry 라는 중간 할당이 완전히 사라진다** |
 
-절감은 PR 본문 "roughly 20 bytes per key for short string keys", 공식 블로그는 **TTL 없는 key-value 당 약 20바이트, TTL 있으면 최대 30바이트**입니다 `Ⓥ`. 적용 범위는 keyspace + expires(#1186) → hash(#1502) → set(#1176) → sorted set(#1427) → command lookup 이고, 소스로는 `valkey 8.1.0:src/kvstore.h` 가 `#include "hashtable.h"` 로 바뀌고 모든 API 가 `kvstoreDict*` → `kvstoreHashtable*` 로 개명된 것으로 확인됩니다 `✓`.
+절감은 PR 본문 "roughly 20 bytes per key for short string keys", 공식 블로그는 **TTL 없는 key-value 당 약 20바이트, TTL 있으면 최대 30바이트**입니다 `Ⓥ`. 적용 범위는 keyspace + expires(#1186) → hash(#1502) → set(#1176) → sorted set(#1427) → command lookup 이고, 소스로는 `valkey 8.1.0:src/kvstore.h` 가 `#include "hashtable.h"` 로 바뀌고 모든 API 가 `kvstoreDict*` → `kvstoreHashtable*` 로 개명된 것이 확인됩니다 `✓`.
 
 공식 8.1 GA 블로그의 성능 주장은 항목이 많습니다 `Ⓥ` — 파이프라인 처리량 8.0 대비 약 +10%, iterator prefetch 로 키 순회 3.5배, `ZRANK` +45%, `PFMERGE`/`PFCOUNT` 12배, `BITCOUNT` 최대 +514%, TLS full sync +18%, fork CoW 오버헤드 -47%, TLS 연결 수락률 +300%, `SET` +10% / `GET` +22%. **각 항목의 인스턴스·데이터셋 조건이 개별 공개되지 않았습니다** `?`. 그리고 `PFMERGE`/`PFCOUNT` 는 AVX, `BITCOUNT` 는 AVX2 의존이므로 **Graviton 같은 ARM 에서는 이 수치가 나오지 않을 가능성이 큽니다** `≈` — Graviton 인스턴스로 표준화한 환경이라면 이 두 항목은 계획에서 빼는 게 맞습니다.
 
@@ -220,11 +216,11 @@ hash 타입도 별도로 최적화됐습니다 — PR #1579 는 hashtable-encode
 | 성능 | BITCOUNT SIMD(#1741)·ARM NEON(#1867)·HyperLogLog NEON(#1859) · zero-copy 응답(#2078) · **파이프라이닝 선행 파싱 + prefetch**(#2092) · replica RDB 를 백그라운드 스레드로 저장(#1784) |
 | 관측·툴링 | **lttng 기반 트레이싱**(#2070, `src/trace/` 신설) · `valkey-cli --hotkeys-count`(#1933) · `valkey-cli`/`valkey-benchmark` 의 RDMA·MPTCP 지원(#2059, #2067) |
 
-블로그 수치는 BITCOUNT/HLL SIMD 최대 200%, zero-copy 최대 20%, 파이프라이닝 최적화 최대 40%, 그리고 "2,000노드 클러스터에서 초당 10억 요청 이상" 입니다 `Ⓥ`. **넷 다 측정 조건이 공개되지 않았습니다** `?` — 앞의 세 항목은 인스턴스·페이로드·클라이언트 수가 어디에도 없고, 특히 SIMD 항목은 구현이 x86 SIMD(#1741)와 ARM NEON(#1859·#1867)으로 나뉘어 있으므로 CPU 아키텍처를 고정하지 않으면 재현 대상조차 특정되지 않습니다. 마지막 것은 하드웨어·방법론이 아예 없으므로 단일 인스턴스 수치와 섞으면 안 됩니다. 넷 다 용량 계획의 입력값으로 쓸 수 없습니다 `Σ`.
+블로그 수치는 BITCOUNT/HLL SIMD 최대 200%, zero-copy 최대 20%, 파이프라이닝 최적화 최대 40%, 그리고 "2,000노드 클러스터에서 초당 10억 요청 이상" 입니다 `Ⓥ`. **넷 다 측정 조건이 공개되지 않았습니다** `?`. 앞의 세 항목은 인스턴스·페이로드·클라이언트 수가 어디에도 없고, 특히 SIMD 항목은 구현이 x86 SIMD(#1741)와 ARM NEON(#1859·#1867)으로 나뉘어 있으므로 CPU 아키텍처를 고정하지 않으면 재현 대상조차 특정되지 않습니다. 마지막 것은 하드웨어·방법론이 아예 없으므로 단일 인스턴스 수치와 섞으면 안 됩니다. 네 항목 어느 것도 용량 계획의 입력값으로 쓸 수 없습니다 `Σ`.
 
 ### 5.1 HFE 는 Redis API 호환이지만 동작이 다르다
 
-API 를 일부러 그대로 복사해 클라이언트 호환성을 유지했지만, PR #2089 이 명시한 설계 결정 때문에 동작이 갈립니다 `✓`.
+API 를 일부러 그대로 복사해 클라이언트 호환성을 유지했지만 PR #2089 이 명시한 설계 결정 때문에 동작이 갈립니다 `✓`.
 
 - **lazy expiration 을 도입하지 않았다.** 메모리 회수는 active expiration 에만 의존한다.
 - `HLEN` 은 **실제로 만료된 필드까지 포함**한 필드 수를 반영한다.
@@ -263,7 +259,7 @@ Redis 는 같은 기능을 **7.4.0(2024-07-29)** 에 냈습니다 — Valkey 가
 
 블로그 종합 수치는 **단일 서버 초당 210만 요청**이고 조건은 **512B payload · 9 IO threads · pipeline depth 10** 입니다 `Ⓥ`.
 
-**릴리스노트를 그대로 읽으면 틀리는 항목이 하나 있습니다.** 9.1.0-rc1 은 "Prevent invalid TLS certificates from being loaded"(#2999)를 신기능으로 실었지만, rc2 에서 **"as it is a breaking change, deferred to next major version" 으로 revert 됐습니다**(#3572). GA 릴리스노트에 rc1 목록이 그대로 남아 있어 오독하기 쉽습니다 — **9.1.0/9.1.1 에는 이 동작이 없습니다** `✓`.
+**릴리스노트를 그대로 읽으면 틀리는 항목이 하나 있습니다.** 9.1.0-rc1 은 "Prevent invalid TLS certificates from being loaded"(#2999)를 신기능으로 실었지만 rc2 에서 **"as it is a breaking change, deferred to next major version" 으로 revert 됐습니다**(#3572). GA 릴리스노트에 rc1 목록이 그대로 남아 있어 오독하기 쉽습니다 — **9.1.0/9.1.1 에는 이 동작이 없습니다** `✓`.
 
 9.1 의 그 밖의 breaking 성 변경은 넷입니다 — `events-per-io-thread` 소멸(설정 파일 경로에는 shim 이 있어 조용히 무시됩니다. `CONFIG SET` 경로는 미검증 `?`), 모듈 API `VM_ACLCheckCommandPermissions()` 지원 중단, **querybuf CRLF 엄격 검사**(#2872 — 그동안 통과했던 malformed RESP 가 protocol error 가 됩니다. 9.0.5 에도 백포트됐습니다), `COMMAND INFO`(RESP3)에서 subcommand 없는 커맨드의 `subcommands` 필드가 Set → **Array**(#3939) `✓`.
 
@@ -281,7 +277,7 @@ Redis 는 같은 기능을 **7.4.0(2024-07-29)** 에 냈습니다 — Valkey 가
 
 동시 릴리스의 성격은 **보안**이고 두 건입니다 `✓`.
 
-- **CVE-2026-56684** (GHSA-53mc-f3m3-99vh, CVSS 3.1 **7.5**, CWE-416) — TLS 커넥션 처리의 use-after-free. "읽을 데이터가 남은 커넥션" 목록을 처리하는 중 한 커넥션이 닫히면 방금 해제된 다른 커넥션의 메모리에 접근할 수 있다. 트리거는 **인증된 클라이언트가 `CLIENT KILL` 등으로 커넥션을 닫는 동안** 다른 TLS 커넥션에 버퍼된 데이터가 남아 있는 상황이고, heap grooming 으로 RCE 가 가능하다. **TLS 를 켠 배포만 영향**이며 완화책은 `ACL SETUSER <user> -client` / TLS 미사용 / 네트워크 격리 — **완전한 우회책은 없다**(수정 PR #4234).
+- **CVE-2026-56684** (GHSA-53mc-f3m3-99vh, CVSS 3.1 **7.5**, CWE-416) — TLS 커넥션 처리의 use-after-free. "읽을 데이터가 남은 커넥션" 목록을 처리하는 중 한 커넥션이 닫히면 방금 해제된 다른 커넥션의 메모리에 접근할 수 있다. 트리거는 **인증된 클라이언트가 `CLIENT KILL` 등으로 커넥션을 닫는 동안** 다른 TLS 커넥션에 버퍼된 데이터가 남아 있는 상황이고 heap grooming 으로 RCE 가 가능하다. **TLS 를 켠 배포만 영향**이며 완화책은 `ACL SETUSER <user> -client` / TLS 미사용 / 네트워크 격리 — **완전한 우회책은 없다**(수정 PR #4234).
 - **CVE-2026-63639** (GHSA-mvcj-73cw-22m4, CVSS 3.1 **8.8**) — 인증된 사용자가 조작한 `RESTORE` 로 **중복 PEL(Pending Entry List) 할당**이 든 malformed payload 를 주입하면 stream consumer group 역직렬화 또는 consumer 삭제 중 use-after-free 가 나고 RCE 로 이어질 수 있다. advisory 원문은 **"The problem exists in all versions of Valkey"** 다. 완화책은 ACL 로 `RESTORE` 차단 또는 conf 에서 disable/rename(수정 PR #4073).
 
 취약 범위는 `<= 9.1.0, <= 9.0.4, <= 8.1.8, <= 8.0.9, <= 7.2.13` 이고 패치 버전 문자열은 두 advisory 가 동일합니다. **`RESTORE` 를 애플리케이션에 허용했거나 TLS 를 쓰는 배포는 즉시 올려야 합니다** `Σ`.
@@ -309,13 +305,13 @@ CVE 출처가 두 갈래라는 점도 알아야 합니다. Valkey 자체 GHSA �
 
 표를 읽는 법: security 종료가 maintenance 종료와 같은 줄(9.0, 8.0)은 **그 major 의 최신 minor 가 아니기 때문**입니다. 7.2 는 7.x 의 유일·최신 minor 라 5년을 받습니다. 7.2 의 기산일이 포크 기점 7.2.4(2024-01-09)가 아니라 **Valkey 가 처음 발행한 7.2 릴리스(7.2.5)의 2024-04-16** 인 점도 주의합니다 `✓`.
 
-여기서 유도되는 위험이 하나 있습니다. **9.2.0 GA(목표 2026-11-15, 이슈 #4218)가 나오면 9.1 이 "최신 minor" 지위를 잃습니다.** 규칙을 그대로 적용하면 9.1 의 security 종료가 2031-05-19 → 2029-05-19 로 당겨집니다 — 다만 공식 문서에 "최신 minor 지위를 잃으면 5년을 되돌린다" 고 명시한 문장은 확인되지 않았습니다 `≈`/`?`. **"9.1 은 2031년까지 안전하다" 를 계획의 전제로 삼지 않는 편이 맞습니다** `Σ`.
+여기서 따라 나오는 위험이 하나 있습니다. **9.2.0 GA(목표 2026-11-15, 이슈 #4218)가 나오면 9.1 이 "최신 minor" 지위를 잃습니다.** 규칙을 그대로 적용하면 9.1 의 security 종료가 2031-05-19 → 2029-05-19 로 당겨집니다 — 다만 공식 문서에 "최신 minor 지위를 잃으면 5년을 되돌린다" 고 명시한 문장은 확인되지 않았습니다 `≈`/`?`. **"9.1 은 2031년까지 안전하다" 를 계획의 전제로 삼지 않는 편이 맞습니다** `Σ`.
 
 케이던스는 "안정 major 를 연 1회, minor 는 필요에 따라 최소 연 1회" 이고, 버저닝이 보호하는 API 계약을 7개로 명시합니다 — 커맨드, Lua 에서 실행 가능한 함수·API, **RDB 버전**, **replication 프로토콜**, **cluster node 프로토콜**, Module API, AOF 디스크 포맷 `✓`. 9.0 이 RDB 를 80 으로 올린 것은 이 계약을 major 에서 깬 정당한 행사였다는 뜻입니다.
 
 ## 8. Redis 8.x 대비 기능 매트릭스 — Valkey 관점
 
-기준은 **Valkey 9.1.1(2026-07-21)** vs **Redis Open Source 8.10.0(2026-07-29)**. Redis 쪽 릴리스별 서사는 [04 · Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}}) 가 소유하므로, 여기서는 **Valkey 를 고를 때 얻는 것과 포기하는 것**만 봅니다.
+기준은 **Valkey 9.1.1(2026-07-21)** vs **Redis Open Source 8.10.0(2026-07-29)**. Redis 쪽 릴리스별 서사는 [04 · Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}}) 가 소유하므로 여기서는 **Valkey 를 고를 때 얻는 것과 포기하는 것**만 봅니다.
 
 **Valkey 에만 있는 것** `✓`
 
@@ -377,7 +373,7 @@ CVE 출처가 두 갈래라는 점도 알아야 합니다. Valkey 자체 GHSA �
 
 공식 문서의 호환 범위 표현은 **"Valkey reads and writes RDB and AOF files compatible with Redis OSS 7.2. RDB files produced by Redis CE 7.4 and later are not compatible."** 입니다 `✓`. AOF 도 같은 경계로 보는 게 안전합니다 — AOF 는 base RDB 를 품으므로 RDB 버전 검사에 걸릴 것으로 추정되지만 MP-AOF manifest 레벨의 실패 양상은 소스로 추적되지 않았습니다 `≈`. 파일 복사 방식에는 문서가 명시한 함정도 있습니다 — **"If you enabled AOF in your Valkey configuration, disable it on the first start. Otherwise, the copied RDB file will not be imported into Valkey."**
 
-**그래서 소스 Redis 의 마이너 버전이 경로를 완전히 갈라놓습니다.** 7.4 이상이면 RDB·복제·`DUMP`/`RESTORE` 세 경로가 모두 막히므로 남는 것은 (a) 애플리케이션 이중 쓰기, (b) 논리적 재적재(키를 읽어 타입별 커맨드로 재생성)뿐이고, 실질적으로 **(b) + `import-mode yes` + `CLIENT IMPORT-SOURCE ON`** 조합이 유일한 안전 경로입니다 `Σ`. import-mode 는 동기화 중 destination 의 expire/evict 가 데이터를 깨뜨리는 것을 막고, import-source 로 표시한 클라이언트에서 오는 커맨드만 예외 처리합니다.
+**그래서 소스 Redis 의 마이너 버전이 경로를 완전히 갈라놓습니다.** 7.4 이상이면 RDB·복제·`DUMP`/`RESTORE` 세 경로가 모두 막히므로 남는 것은 (a) 애플리케이션 이중 쓰기, (b) 논리적 재적재(키를 읽어 타입별 커맨드로 재생성)뿐이고, 실질적으로 **(b) + `import-mode yes` + `CLIENT IMPORT-SOURCE ON`** 조합이 유일한 안전 경로입니다 `Σ` — import-mode 가 동기화 중 destination 의 expire/evict 가 데이터를 깨뜨리는 것을 막고, import-source 로 표시한 클라이언트에서 오는 커맨드만 예외 처리하기 때문입니다.
 
 AWS 환경의 엔진 전환(ElastiCache 의 Redis → Valkey, 엔드포인트가 바뀌는가)은 [07 · AWS 엔드포인트]({{< relref "../07-aws-endpoints/index.md" >}}) 가 소유합니다.
 
@@ -391,4 +387,3 @@ AWS 환경의 엔진 전환(ElastiCache 의 Redis → Valkey, 엔드포인트가
 - **모듈 생태계**: `gh api orgs/valkey-io/repos --paginate` 로 공식 모듈 4개(`valkey-search`/`valkey-json`/`valkey-bloom`/`valkey-ldap`) 확정, 각 리포 소스에서 ASM opt-in 플래그 선언 여부 확인.
 - **공식 문서·블로그**: valkey.io 의 릴리스·지원 정책 페이지, 마이그레이션 문서, 8.0 메모리 효율 / 1M rps / 8.1 GA / 9.0 / 9.1 발표 블로그. 성능 수치는 전부 발행 주체가 Valkey 프로젝트 자신이므로 `Ⓥ` 로 표기하고 측정 조건 없는 값은 인용하지 않거나 `?` 를 붙였다.
 - **URL 전량**은 [99 · 출처]({{< relref "../99-sources.md" >}}) 가 모은다.
-
