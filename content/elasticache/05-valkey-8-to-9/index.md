@@ -79,7 +79,7 @@ PR #861 은 그 결과로 드러난 새 병목을 잡습니다. async I/O 도입
 | `events-per-io-thread` | 2 | 8.1 에서 `HIDDEN_CONFIG` → **9.1 에서 deprecated 목록으로** | 튜닝 노브로 만든 게 아니다. 설정 파일에 남아 있으면 조용히 무시된다 |
 | `io-threads-do-reads` | — | **8.1 에서 deprecated** | 새 구현은 항상 read 를 한다. 값을 주면 무시 |
 
-공식 수치는 **360K → 1.19M rps, 평균 레이턴시 1.792ms → 0.542ms(-69.8%)** 습니다 `Ⓥ`. 측정 조건은 **AWS EC2 c7g.16xlarge(64 vCPU) · `io-threads 8` · 3M keys · value 512바이트 · 650 clients · sequential SET** 입니다. 블로그가 스스로 "these numbers include the Prefetch change" 라고 밝히므로 이 값은 #758 + #763 + #861 **합산치**이며 I/O 스레딩 단독 효과가 아닙니다. 파이프라인 깊이는 어떤 1차 출처에도 없습니다 `?`. 4 vCPU 인스턴스에서 재현되는 숫자가 아니고, `valkey.conf` 가 직접 경고하듯 벤치마크 클라이언트도 `--threads` 로 맞춰야 합니다.
+공식 수치는 **360K → 1.19M rps, 평균 레이턴시 1.792ms → 0.542ms(-69.8%)** 입니다 `Ⓥ`. 측정 조건은 **AWS EC2 c7g.16xlarge(64 vCPU) · `io-threads 8` · 3M keys · value 512바이트 · 650 clients · sequential SET** 입니다. 블로그가 스스로 "these numbers include the Prefetch change" 라고 밝히므로 이 값은 #758 + #763 + #861 **합산치**이며 I/O 스레딩 단독 효과가 아닙니다. 파이프라인 깊이는 어떤 1차 출처에도 없습니다 `?`. 4 vCPU 인스턴스에서 재현되는 숫자가 아니고, `valkey.conf` 가 직접 경고하듯 벤치마크 클라이언트도 `--threads` 로 맞춰야 합니다.
 
 같은 문제에 Redis 8.0 은 **다른 답**을 냈습니다. 두 구현의 튜닝 가이드는 서로 통하지 않습니다 `✓`.
 

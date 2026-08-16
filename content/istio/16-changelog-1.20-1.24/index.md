@@ -61,7 +61,7 @@ Envoy 마이너 버전 대응은 **업스트림 문서에 이 구간이 없습�
 - **1.23.0** — **Beta(대규모 개선)**. waypoint의 `DestinationRule` 지원, DNS `ServiceEntry`, 네임스페이스 간 waypoint 공유, dual-stack/IPv6, 단일 ambient Helm 차트, 처리량 최대 50% 개선.
 - **1.24.0** — **GA**. *"The core features (ztunnel, waypoints and APIs) have been marked as Stable by the Istio TOC. This marks the final stage in Istio's feature phase progression"*.
 
-1.22.0은 성숙도만 올린 게 아니라 **waypoint 첨부 방식을 전면 재설계**했습니다 — 서비스 어카운트/네임스페이스 attach 시맨틱을 버리고 서비스 향(向) 트래픽과 워크로드 향 트래픽을 구분해 각각 라벨로 붙이는 방식이 됐습니다(1.22 upgrade-notes "New ambient mode waypoint attachment method"). **Beta 승격과 API 재설계가 같은 릴리스에서 일어났습니다**는 사실은 그 시점의 안정성 판단에 그대로 반영해야 합니다.
+1.22.0은 성숙도만 올린 게 아니라 **waypoint 첨부 방식을 전면 재설계**했습니다 — 서비스 어카운트/네임스페이스 attach 시맨틱을 버리고 서비스 향(向) 트래픽과 워크로드 향 트래픽을 구분해 각각 라벨로 붙이는 방식이 됐습니다(1.22 upgrade-notes "New ambient mode waypoint attachment method"). **Beta 승격과 API 재설계가 같은 릴리스에서 일어났다**는 사실은 그 시점의 안정성 판단에 그대로 반영해야 합니다.
 
 ### 2.2 두 데이터패스가 지나는 곳
 
@@ -110,7 +110,7 @@ ambient가 아예 안 되는 것도 명시돼 있습니다(`docs/ambient/migrate
 
 {{< flow src="_flow/3-1-세-번에-걸쳐-끊긴다.json" />}}
 
-**핵심은 API 타입이 죽지 않았다는 것입니다.** `IstioOperator` 스펙은 1.30.0에도 `operator/pkg/apis/types.go`에 그대로 있고 `apiVersion: install.istio.io/v1alpha1`을 문서 주석에 명시합니다. 폐기 블로그도 같은 말을 합니다 — *"Users who install Istio with the `istioctl install` command and an `IstioOperator` YAML file are not affected."* 사라진 것은 **그 CR을 클러스터 안에서 감시·적용하던 고권한 컨트롤러와 그 컨트롤러를 배포하던 차트**습니다.
+**핵심은 API 타입이 죽지 않았다는 것입니다.** `IstioOperator` 스펙은 1.30.0에도 `operator/pkg/apis/types.go`에 그대로 있고 `apiVersion: install.istio.io/v1alpha1`을 문서 주석에 명시합니다. 폐기 블로그도 같은 말을 합니다 — *"Users who install Istio with the `istioctl install` command and an `IstioOperator` YAML file are not affected."* 사라진 것은 **그 CR을 클러스터 안에서 감시·적용하던 고권한 컨트롤러와 그 컨트롤러를 배포하던 차트**입니다.
 
 ### 3.2 우리가 어느 경로인지 — 확인 명령이 판정을 대신한다
 
@@ -165,7 +165,7 @@ kubectl annotate $CRDS "meta.helm.sh/release-namespace=istio-system"  # 실제 �
 
 ### 3.4 같은 릴리스의 나머지 설치 변경
 
-`istiod-remote` 차트가 1.24.0에서 제거되고 `helm install istiod istio/istiod --set profile=remote`로 대체됐습니다. 업스트림이 "never been officially documented or stable"이라고 밝힌 경로이므로 remote/external control plane을 쓰지 않으면 무관하지만, 같은 upgrade-note가 덧붙인 문장은 넓게 적용됩니다 — **`istio-base` 차트 설치가 로컬·리모트 양쪽에서 이제 필수**습니다.
+`istiod-remote` 차트가 1.24.0에서 제거되고 `helm install istiod istio/istiod --set profile=remote`로 대체됐습니다. 업스트림이 "never been officially documented or stable"이라고 밝힌 경로이므로 remote/external control plane을 쓰지 않으면 무관하지만, 같은 upgrade-note가 덧붙인 문장은 넓게 적용됩니다 — **`istio-base` 차트 설치가 로컬·리모트 양쪽에서 이제 필수**입니다.
 
 `istioctl` 쪽에서는 `istioctl manifest diff`·`manifest profile diff`·`profile`이 제거됐습니다(1.24 change-notes:275,277). CI에서 프로파일 diff로 드리프트를 검사하는 스텝이 있으면 **범용 YAML diff로 바꿔야 하고**, 이건 [04 설정을 코드로]({{< relref "04-config-as-code.md" >}})가 다루는 파이프라인에 직접 걸리는 변경입니다.
 
@@ -183,7 +183,7 @@ kubectl annotate $CRDS "meta.helm.sh/release-namespace=istio-system"  # 실제 �
 | 1.22.0 · 1.24.0 · 1.26.0 | served·storage=false | served·storage=false | served·**storage=true** |
 | **1.27.0** · 1.30.0 | served·**storage=true** | served·storage=false | served·storage=false |
 
-읽는 법이 셋입니다. ① **`v1`은 1.22.0에서 CRD에 처음 등장합니다** — 그 전에는 아예 없습니다. ② **storage 버전은 이 구간에서 한 번 움직입니다** — 1.21.0까지는 `v1alpha3`가 storage였고 1.22.0에 `v1beta1`로 올라갑니다. `v1`로 넘어가는 것은 1.27.0이고, 그건 [17 1.25 → 1.30]({{< relref "17-changelog-1.25-1.30.md" >}}) 소관입니다. ③ **세 버전 모두 1.30.0까지 `served: true`**습니다. 즉 `apiVersion: networking.istio.io/v1alpha3`로 쓴 옛 매니페스트는 목표 버전 1.30.3에서도 그대로 apply됩니다. **구버전 served 종료 예정일은 업스트림 문서에 명시가 없습니다.**
+읽는 법이 셋입니다. ① **`v1`은 1.22.0에서 CRD에 처음 등장합니다** — 그 전에는 아예 없습니다. ② **storage 버전은 이 구간에서 한 번 움직입니다** — 1.21.0까지는 `v1alpha3`가 storage였고 1.22.0에 `v1beta1`로 올라갑니다. `v1`로 넘어가는 것은 1.27.0이고, 그건 [17 1.25 → 1.30]({{< relref "17-changelog-1.25-1.30.md" >}}) 소관입니다. ③ **세 버전 모두 1.30.0까지 `served: true`**입니다. 즉 `apiVersion: networking.istio.io/v1alpha3`로 쓴 옛 매니페스트는 목표 버전 1.30.3에서도 그대로 apply됩니다. **구버전 served 종료 예정일은 업스트림 문서에 명시가 없습니다.**
 
 실무 결론: **기존 매니페스트를 일괄 치환할 이유가 없습니다.** 신규 리소스만 `v1`로 쓰고, 기존 것은 다른 이유로 그 파일을 만질 때 함께 올립니다.
 
@@ -394,7 +394,7 @@ revision canary 절차 자체는 이 구간에서 바뀌지 않았습니다. 다
 
 ② **1.24는 2025-06-24에 EOL됐습니다.** 지원 정책은 "N+2 마이너 릴리스 후 6주까지"이고(`docs/releases/supported-releases/index.md`), 오늘(2026-07-30) 기준 지원 중인 마이너는 **1.29와 1.30 둘뿐**입니다. 1.28도 2026-07-01에 EOL됐습니다. 하한 가정(chart tip 1.24.1)은 **13개월 전에 EOL된 버전을 기준선으로 잡고 있다는 뜻이고, 그 자체가 시급성의 근거입니다.** 목표 1.30.3은 지원 여유가 남은 유일한 선택지입니다.
 
-여기서 §5.6의 완충 수단이 사라지는 것과 맞물립니다. compat profile은 **가리키는 릴리스가 EOL되면 제거**되므로, 1.24로 갈 때 `compatibilityVersion=1.23`을 쓰는 선택은 지금 존재하지 않습니다. 1.30으로 갈 때 쓸 수 있는 것은 1.30.0 태그가 들고 있는 직전 3개 프로파일뿐입니다. **"일단 옛 동작으로 깔고 나중에 전환합니다"는 전략의 유효기간은 릴리스 지원 기간과 같습니다.**
+여기서 §5.6의 완충 수단이 사라지는 것과 맞물립니다. compat profile은 **가리키는 릴리스가 EOL되면 제거**되므로, 1.24로 갈 때 `compatibilityVersion=1.23`을 쓰는 선택은 지금 존재하지 않습니다. 1.30으로 갈 때 쓸 수 있는 것은 1.30.0 태그가 들고 있는 직전 3개 프로파일뿐입니다. **"일단 옛 동작으로 깔고 나중에 전환한다"는 전략의 유효기간은 릴리스 지원 기간과 같습니다.**
 
 ## 8. 근거
 

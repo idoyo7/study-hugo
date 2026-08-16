@@ -129,7 +129,7 @@ IaC 레포에는 EKS 클러스터를 만드는 모듈이 이미 존재하지만 
 | `aws_eks_fargate_profile` | `${cluster_name}-fargate`, subnet = green private only, selector 2종 |
 | selector | `{ns: karpenter}` + `{ns: kube-system, labels:{k8s-app: kube-dns}}` |
 
-재활용 판정은 높습니다. `cluster_name`을 blue 이름으로, subnet 필터를 blue private subnet으로만 바꾸면 그대로 동작합니다(stage blue subnet은 이미 선provisioned 상태입니다). 다만 ⚠️ **prod에는 이 Fargate 스택 자체가 없습니다** stage 패턴을 복제해 신규 작성해야 하고, ⚠️ **prod blue 클러스터용 subnet이 아직 어디에도 정의돼 있지 않습니다** prod 재구축 전에 subnet 확보가 선행돼야 합니다. 또 selector는 파드 생성 시점에만 평가되므로 프로필 생성 후 대상 워크로드를 rollout restart해야 하고, coredns의 arm64 nodeAffinity를 먼저 제거해야 합니다(§2).
+재활용 판정은 높습니다. `cluster_name`을 blue 이름으로, subnet 필터를 blue private subnet으로만 바꾸면 그대로 동작합니다(stage blue subnet은 이미 선provisioned 상태입니다). 다만 ⚠️ **prod에는 이 Fargate 스택 자체가 없어서** stage 패턴을 복제해 신규 작성해야 하고, ⚠️ **prod blue 클러스터용 subnet이 아직 어디에도 정의돼 있지 않습니다** prod 재구축 전에 subnet 확보가 선행돼야 합니다. 또 selector는 파드 생성 시점에만 평가되므로 프로필 생성 후 대상 워크로드를 rollout restart해야 하고, coredns의 arm64 nodeAffinity를 먼저 제거해야 합니다(§2).
 
 ### kube-proxy addon mode 변수화 — nftables opt-in 준비
 

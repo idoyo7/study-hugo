@@ -191,7 +191,7 @@ kubectl drain <blue-node> --ignore-daemonsets --delete-emptydir-data
 - **`istio-cni`** — 방식: in-place (DaemonSet rollout). 재시작 대상: istio-cni Pod. 주 위험: rollout 틈에 생성되는 Pod의 `FailedCreatePodSandBox`. 확인 지표: DaemonSet rollout 완료, redirection 누락·pending Pod
 - **`ztunnel`** — 방식: blue-green node pool. 재시작 대상: 노드 전체 (workload 재스케줄). 주 위험: graceful shutdown 30초를 넘긴 long-lived connection 절단. 확인 지표: 5xx, TCP reset, latency
 
-아래 대조는 원문이 직접 말한 것이 아니라, 이 지식베이스의 사이드카 모드 문서들과 맞춰 읽기 위한 정리습니다.
+아래 대조는 원문이 직접 말한 것이 아니라, 이 지식베이스의 사이드카 모드 문서들과 맞춰 읽기 위한 정리입니다.
 
 | 항목 | 사이드카 모드 | Ambient mode |
 | --- | --- | --- |

@@ -241,7 +241,7 @@ SETTINGS storage_policy = 's3_main';
 
 여기에 우리 도메인이 이미 확정한 3중 제약이 겹칩니다 — **사본 배수**(shared-nothing 이라 RF2 면 S3 에도 2벌), **메타데이터 지역성**(part metadata 가 로컬에 남아 filesystem cache 가 사실상 필수), **지연**(콜드 쿼리가 느립니다). 상세는 반복하지 않고 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})와 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})에 위임합니다. 그리고 "S3 를 1벌만 두고 컴퓨트가 캐시로 읽는" OSS 경로(`plain_rewritable` + readonly part refresh)를 왜 기각하는지 — mutation·테이블 복제 미지원으로 RMT 와 배타라는 결정적 사유를 포함한 기각 사유 6개 — 는 [스토리지 · S3 primary 의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}})가 소유합니다.
 
-**③ 은 아예 다른 축입니다.** ①② 가 "S3 를 싸게 쓴다"는 비용 문제라면, ③ 은 "여러 엔진이 공유하는 개방 테이블을 만든다"는 **거버넌스·lock-in 문제**를 푸니다. 목적이 다르므로 ③ 을 ② 의 우회로로 쓰려는 발상 자체가 층위 혼동입니다 `Σ`. 그리고 관측성 메인 스토리지로서의 ③ 은 §6 대로 공식적으로도 비권장입니다.
+**③ 은 아예 다른 축입니다.** ①② 가 "S3 를 싸게 쓴다"는 비용 문제라면, ③ 은 "여러 엔진이 공유하는 개방 테이블을 만든다"는 **거버넌스·lock-in 문제**를 풉니다. 목적이 다르므로 ③ 을 ② 의 우회로로 쓰려는 발상 자체가 층위 혼동입니다 `Σ`. 그리고 관측성 메인 스토리지로서의 ③ 은 §6 대로 공식적으로도 비권장입니다.
 
 ### Altinity Antalya 는 어디에 놓나
 

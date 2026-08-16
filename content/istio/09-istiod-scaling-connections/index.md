@@ -179,7 +179,7 @@ container_memory_working_set_bytes{container="discovery"} / limit > 0.85
 | `exportTo` | 서비스별 | 서비스 소유자가 노출 네임스페이스를 제어 |
 | `discoverySelectors` | 컨트롤플레인 | 매칭 안 되는 네임스페이스를 **istiod가 아예 무시** — 위 둘보다 상위 필터 |
 
-공식 문서가 배제 1순위로 지목하는 건 **헤드리스 서비스(HTTP 타입 제외)** 습니다. 인스턴스 수에 비례해 설정이 커져서 특히 비쌉니다. 다만 스코프 제한은 트래픽 강제(enforcement)가 아니라서, 스코프 밖 목적지로의 요청은 unmatched traffic으로 처리된다는 점은 알고 써야 합니다.
+공식 문서가 배제 1순위로 지목하는 건 **헤드리스 서비스(HTTP 타입 제외)** 입니다. 인스턴스 수에 비례해 설정이 커져서 특히 비쌉니다. 다만 스코프 제한은 트래픽 강제(enforcement)가 아니라서, 스코프 밖 목적지로의 요청은 unmatched traffic으로 처리된다는 점은 알고 써야 합니다.
 
 ### push·요청 레이트 제어
 
@@ -204,7 +204,7 @@ RequestRateLimit *rate.Limiter
 | `PILOT_ENABLE_EDS_DEBOUNCE` | `true` | EDS도 디바운스 대상에 포함 |
 
 {{< callout type="info" >}}
-**리미터가 병목인지부터 확인할 것입니다.** 커넥션 3,600개 / 15분 = ~4 conn/s인데, `PILOT_MAX_REQUESTS_PER_SECOND`의 자동 기본값은 2 vCPU 기준으로도 25/s습니다. 이 규모에서 리미터가 재연결을 억제하고 있을 가능성은 낮습니다 — 즉 관측되는 CPU는 **억제되지 않은 실제 작업량**입니다. 리미터를 만지기 전에 `pilot_xds_config_size_bytes`·`pilot_xds_push_time`으로 단가부터 보는 게 순서입니다.
+**리미터가 병목인지부터 확인할 것입니다.** 커넥션 3,600개 / 15분 = ~4 conn/s인데, `PILOT_MAX_REQUESTS_PER_SECOND`의 자동 기본값은 2 vCPU 기준으로도 25/s입니다. 이 규모에서 리미터가 재연결을 억제하고 있을 가능성은 낮습니다 — 즉 관측되는 CPU는 **억제되지 않은 실제 작업량**입니다. 리미터를 만지기 전에 `pilot_xds_config_size_bytes`·`pilot_xds_push_time`으로 단가부터 보는 게 순서입니다.
 {{< /callout >}}
 
 ### 그 밖의 수단

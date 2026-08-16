@@ -214,7 +214,7 @@ if itCompat && itFits && itHasOffering {
 
 ## 5. NodePool requirements에 선호는 없다
 
-그러면 "8세대를 선호"를 requirements에 쓸 수 있습니다. 스키마를 보면 답이 나옵니다.
+그러면 "8세대를 선호"를 requirements에 쓸 수 있을까요. 스키마를 보면 답이 나옵니다.
 
 ```go
 // pkg/apis/v1/nodeclaim.go:93-124

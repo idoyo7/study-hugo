@@ -192,7 +192,7 @@ AGPLv3 와 SSPLv1 은 겉보기 구조가 같습니다 — 둘 다 "네트워크
 
 즉 AGPL 은 "당신이 고친 그것"까지, SSPL 은 "당신 인프라 전체"까지를 요구합니다. 후자가 OSI 정의를 통과하지 못하는 이유이고, 그래서 AGPL 옵션 추가만으로 배포판 판정이 뒤집힙니다(§4.2 Debian).
 
-발표문의 논지는 세 겹였습니다 `✓`
+발표문의 논지는 세 겹이었습니다 `✓`
 1. **2024-03 의 목표는 달성됐다** — "This achieved our goal—**AWS and Google now maintain their own fork**—but the change hurt our relationship with the Redis community."
 2. **SSPL 은 오픈소스가 아니다** — "SSPL is not truly open source because the Open Source Initiative clarified it lacks the requisites to be an OSI-approved license."
 3. **antirez 가 돌아왔다** — 복귀 공표는 2024-12-10(회사 발표문은 결정 시점을 "in November of 2024"로 쓴다 `?`), 역할은 part-time evangelist. Vector Sets 를 그가 만들었고 오픈소스로 내보내고 싶어 했다.
@@ -217,7 +217,7 @@ Redis 8 GA 블로그는 실무 이유를 하나 더 줍니다 — "We heard from
 
 안 됐습니다. 근거 넷입니다.
 
-**첫째, 대응 자체가 없었습니다.** valkey.io 블로그 전량(2024-04-12~2026-07-17)을 확인했고 2025-05 의 AGPL 발표에 대응하는 글은 **존재하지 않습니다** `✓`. The Register 인터뷰(2025-05-15)는 "We spoke to Olson **before** Redis announced that it would be switching to the AGPL" 이라고 명시합니다 — 즉 공식 반박 성명이 없었고, 무대응이 답였습니다 `Σ`. 대신 2025-09-16 블로그가 자기 정의를 반복합니다. "Valkey was founded just over a year ago to keep high-performance key/value storage in the open source community: **free from vendor lock-in and restrictive licenses**." `✓`
+**첫째, 대응 자체가 없었습니다.** valkey.io 블로그 전량(2024-04-12~2026-07-17)을 확인했고 2025-05 의 AGPL 발표에 대응하는 글은 **존재하지 않습니다** `✓`. The Register 인터뷰(2025-05-15)는 "We spoke to Olson **before** Redis announced that it would be switching to the AGPL" 이라고 명시합니다 — 즉 공식 반박 성명이 없었고, 무대응이 답이었습니다 `Σ`. 대신 2025-09-16 블로그가 자기 정의를 반복합니다. "Valkey was founded just over a year ago to keep high-performance key/value storage in the open source community: **free from vendor lock-in and restrictive licenses**." `✓`
 
 **둘째, 개발 활동이 돌아오지 않았습니다.** 로컬 클론 직접 계측(`--all` 기준)입니다.
 

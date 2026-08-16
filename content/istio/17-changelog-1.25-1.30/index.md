@@ -334,7 +334,7 @@ upgrade-notes가 breaking으로 분류한 유일한 **트래픽 경로** 변경�
 | top-level `retryBudget` + subset이 자체 `trafficPolicy` | top-level 예산이 **드롭**(예산 없음 = 재시도 무제한) | 정상 상속 |
 | subset 레벨 `retryBudget` | **무시** | 적용 |
 
-**즉 `retryBudget`을 쓰고 있었다면 실제 동작이 무엇이었는지 모르는 상태였습니다.** 1.30에서 처음으로 선언한 대로 동작하고 결과는 "재시도가 늘어난다" 방향이므로 **업스트림 부하가 습니다.** 우리 `DestinationRule`에 `retryBudget`이 있으면 값을 다시 정하고 없으면 무해합니다.
+**즉 `retryBudget`을 쓰고 있었다면 실제 동작이 무엇이었는지 모르는 상태였습니다.** 1.30에서 처음으로 선언한 대로 동작하고 결과는 "재시도가 늘어난다" 방향이므로 **업스트림 부하가 늡니다.** 우리 `DestinationRule`에 `retryBudget`이 있으면 값을 다시 정하고 없으면 무해합니다.
 
 ## 7. 판단 목록
 

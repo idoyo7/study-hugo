@@ -88,7 +88,7 @@ weight: 8
 
 이전 구성에서는 스토리지가 부착 EBS 볼륨을 통해 각 노드에 묶여 있었고, 이후 구성에서는 계층이 분리되어 compute 노드가 공유 S3 스토리지를 참조한다는 서술입니다 `✓`. 본문 산문은 같은 변화를 "separating the compute and storage layers", "allowing you to use shared storage and connect compute resources only when needed"로 표현합니다 `✓` — 공유 스토리지를 두고 컴퓨트는 필요할 때만 붙인다는 뜻입니다.
 
-계층 분리는 컴퓨트 배치도 바꿨습니다. 단일 클러스터가 모든 것을 함께 처리하던 구성에서 워크로드마다 전용 컴퓨트를 갖고 스펙을 따로 맞추는 구성으로 옮겼습니다 — 원문 표현은 "By separating computing resources by function and assigning the right specs to each, every task runs independently without interfering with one another"습니다 `✓`. 여기에 자동 idling(쓰지 않는 클러스터를 유휴로 전환)과 수직 오토스케일링(쿼리가 메모리를 더 요구할 때 자원을 올리고 끝나면 되돌림)이 붙습니다 `✓`. 원문은 자동 idling이 배치 파이프라인·주기 적재에 특히 효과적이라고 적습니다 `✓` — 상시 가동이 아닌 워크로드가 그만큼 유휴 구간을 오래 갖는다는 뜻입니다 `Σ`.
+계층 분리는 컴퓨트 배치도 바꿨습니다. 단일 클러스터가 모든 것을 함께 처리하던 구성에서 워크로드마다 전용 컴퓨트를 갖고 스펙을 따로 맞추는 구성으로 옮겼습니다 — 원문 표현은 "By separating computing resources by function and assigning the right specs to each, every task runs independently without interfering with one another" 입니다 `✓`. 여기에 자동 idling(쓰지 않는 클러스터를 유휴로 전환)과 수직 오토스케일링(쿼리가 메모리를 더 요구할 때 자원을 올리고 끝나면 되돌림)이 붙습니다 `✓`. 원문은 자동 idling이 배치 파이프라인·주기 적재에 특히 효과적이라고 적습니다 `✓` — 상시 가동이 아닌 워크로드가 그만큼 유휴 구간을 오래 갖는다는 뜻입니다 `Σ`.
 
 적재 경로도 함께 바뀌었습니다. 실시간 적재를 기존에는 Databricks Auto Loader가 **별도 Spark 클러스터** 위에서 담당했고, 이전 후에는 ClickPipes로 전환했습니다 `✓`.
 

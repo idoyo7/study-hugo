@@ -94,7 +94,7 @@ DestinationRule을 "subset 정의용"으로만 아는 경우가 있는데, 레�
 - **WorkloadEntry** — "enables operators to describe the properties of a single non-Kubernetes workload such as a VM or a bare metal server as it is onboarded into the mesh."
 - **WorkloadGroup** — 둘의 관계는 공식 문서가 익숙한 비유로 직접 설명한다. "WorkloadGroup enables specifying the properties of a single workload for bootstrap and provides a template for WorkloadEntry, similar to how Deployment specifies properties of workloads via Pod templates." **WorkloadGroup:WorkloadEntry = Deployment:Pod**라는 대응이 레퍼런스에 그대로 있다.
 
-우리 클러스터는 EKS 위 파드만 다루므로 이 셋 중 실제로 쓰는 것은 ServiceEntry뿐입니다. 그래도 WorkloadEntry/WorkloadGroup이 깔려 있다는 사실 자체는 의미가 있습니다 — **메시의 경계가 쿠버네티스 경계와 같아야 할 이유가 없습니다**는 것이 API 수준에서 이미 전제돼 있습니다.
+우리 클러스터는 EKS 위 파드만 다루므로 이 셋 중 실제로 쓰는 것은 ServiceEntry뿐입니다. 그래도 WorkloadEntry/WorkloadGroup이 깔려 있다는 사실 자체는 의미가 있습니다 — **메시의 경계가 쿠버네티스 경계와 같아야 할 이유가 없다**는 것이 API 수준에서 이미 전제돼 있습니다.
 
 ## 3. 보안 축 — 짝 맞추기와 2단 관문
 

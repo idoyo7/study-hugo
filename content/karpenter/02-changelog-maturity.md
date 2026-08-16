@@ -49,7 +49,7 @@ k8s 호환 하한도 올라갔습니다 — 1.14는 k8s 1.30~1.36 커버, **1.36
 
 ### 2.1 라벨의 정체 — EC2가 주는 필드가 아니라 문자열 패턴이다
 
-1.7에서 `karpenter.k8s.aws/instance-capability-flex`가 well-known 라벨로 추가됐다([aws#8315](https://github.com/aws/karpenter-provider-aws/pull/8315)→[aws#8490](https://github.com/aws/karpenter-provider-aws/pull/8490)에서 `capacity`→`capability`로 개명). **GA 시점 이름은 처음부터 `capability`**다.
+1.7에서 `karpenter.k8s.aws/instance-capability-flex`가 well-known 라벨로 추가됐다([aws#8315](https://github.com/aws/karpenter-provider-aws/pull/8315)→[aws#8490](https://github.com/aws/karpenter-provider-aws/pull/8490)에서 `capacity`→`capability`로 개명). **GA 시점 이름은 처음부터 `capability`**입니다.
 
 값을 정하는 코드는 세 줄입니다(`pkg/providers/instancetype/types.go:261-265`):
 
@@ -318,7 +318,7 @@ DisruptionBlocked  No allowed disruptions for disruption reason Empty due to blo
         duration: 4h
 ```
 
-`nodes: "0"`을 무기한 두면 안 됩니다 — **정상 drift(AMI 갱신 등)도 막히고**, 예산을 푸는 순간 쌓인 drift가 한꺼번에 터집니다. 업그레이드 직후 며칠만 좁게 잡고 단계적으로 푼습니다.
+`nodes: "0"`을 무기한 두면 안 됩니다 — **정상 drift(AMI 갱신 등)도 막히고**, 예산을 푸는 순간 쌓인 drift가 한꺼번에 터집니다. 업그레이드 직후 며칠만 좁게 잡고 단계적으로 풉니다.
 
 ### 6.2 ARC Zonal Shift (옵트인)
 
@@ -328,7 +328,7 @@ AWS Application Recovery Controller의 Zonal Shift를 Karpenter가 인지합니�
 
 ### 6.3 헬스체크와 do-not-disrupt grace period
 
-**인터럽션 컨트롤러가 `ec2:DescribeInstanceStatus`를 봅니다**([aws#9064](https://github.com/aws/karpenter-provider-aws/pull/9064)) — 지금까지 인터럽션 소스는 SQS EventBridge 이벤트뿐이라 EC2 상태 검사 실패는 감지 밖였습니다. 이제 상태 검사 실패 인스턴스도 인터럽션으로 처리합니다. **이 권한은 필수**입니다 — 안 주면 하드웨어 문제로 unhealthy가 된 인스턴스가 drain 없이 방치됩니다.
+**인터럽션 컨트롤러가 `ec2:DescribeInstanceStatus`를 봅니다**([aws#9064](https://github.com/aws/karpenter-provider-aws/pull/9064)) — 지금까지 인터럽션 소스는 SQS EventBridge 이벤트뿐이라 EC2 상태 검사 실패는 감지 밖이었습니다. 이제 상태 검사 실패 인스턴스도 인터럽션으로 처리합니다. **이 권한은 필수**입니다 — 안 주면 하드웨어 문제로 unhealthy가 된 인스턴스가 drain 없이 방치됩니다.
 
 `karpenter.sh/do-not-disrupt`가 **기간제**를 받습니다([core#2874](https://github.com/kubernetes-sigs/karpenter/pull/2874)) — `"true"`는 영구 보호(기존 동작), `"30m"` 같은 Go duration은 파드가 Running이 된 뒤 그 기간만 보호합니다. 용도는 "웜업 전엔 건드리지 마라"입니다 — 캐시 프리로드, 인덱스 로딩, 배치 잡 초기 구간. 지금까지는 `"true"`를 걸고 **떼는 걸 잊어** 통합에서 영구 제외되는 패턴이 흔했습니다.
 

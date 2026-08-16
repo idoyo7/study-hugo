@@ -207,7 +207,7 @@ A의 폴백은 ICE 왕복 이후 3분간은 즉시 gen7로 갑니다 — 오퍼�
 ## 4. 매니페스트 전문
 
 {{< callout type="warning" >}}
-**적용 순서를 먼저 읽습니다.** 기존 단일 NodePool의 `requirements`에서 세대를 *빼는* 편집은 그 세대로 떠 있던 노드를 전부 `RequirementsDrifted`로 만들어 **대량 교체**를 시작시킵니다(`drift.go:170-180` — 값을 *늘리는* 건 드리프트가 아니지만 *줄이는* 건 드리프트입니다). 순서는 **① 아래 두 풀을 새로 생성 → ② 신규 파드가 gen8로 붙는지 확인 → ③ 기존 풀 삭제**입니다. `disruption.budgets`로 교체 속도를 제어합니다. 상세는 [06]({{< relref "06-consolidation-traps.md" >}})입니다.
+**적용 순서를 먼저 읽으십시오.** 기존 단일 NodePool의 `requirements`에서 세대를 *빼는* 편집은 그 세대로 떠 있던 노드를 전부 `RequirementsDrifted`로 만들어 **대량 교체**를 시작시킵니다(`drift.go:170-180` — 값을 *늘리는* 건 드리프트가 아니지만 *줄이는* 건 드리프트입니다). 순서는 **① 아래 두 풀을 새로 생성 → ② 신규 파드가 gen8로 붙는지 확인 → ③ 기존 풀 삭제**입니다. `disruption.budgets`로 교체 속도를 제어합니다. 상세는 [06]({{< relref "06-consolidation-traps.md" >}})입니다.
 {{< /callout >}}
 
 ### 4.1 NodePool 두 개 (권장)
@@ -438,7 +438,7 @@ price = odPrice / 10_000_000.0
 
 **사실상 0입니다.** 그래서 이 가격은 코어의 `OrderByPrice`·`Truncate`·EC2의 `lowest-price` 전부에서 무조건 1순위가 되고 consolidation의 `launchPrice < maxPrice` 비교에서도 항상 이깁니다. `ReservedCapacity` feature gate는 **기본 ON**입니다(위 `FEATURE_GATES` 기본 문자열, BETA).
 
-⇒ 8세대에 ODCR을 잡아두면 **알파 기능 없이 "평소 8세대 → 예약 소진 시 나머지"**가 성립합니다. 예약 오퍼링이 있는 NodePool과 호환되면 더 낮은 weight 풀로 **폴백하지 않습니다**(`scheduler.go:734-751` `IsReservedOfferingError`) — weight 기반 폴백을 막는 코드 전체에서 유일한 분기습니다.
+⇒ 8세대에 ODCR을 잡아두면 **알파 기능 없이 "평소 8세대 → 예약 소진 시 나머지"**가 성립합니다. 예약 오퍼링이 있는 NodePool과 호환되면 더 낮은 weight 풀로 **폴백하지 않습니다**(`scheduler.go:734-751` `IsReservedOfferingError`) — weight 기반 폴백을 막는 코드 전체에서 유일한 분기입니다.
 
 값은 **돈**으로 치릅니다 — ODCR은 쓰든 안 쓰든 과금되고 예약한 만큼만 우선순위를 삽니다. 그래서 A의 대안이라기보다 **A와 함께 쓰는 강화 장치**에 가깝습니다 — 기저 부하만큼 8세대 ODCR을 잡고 변동분은 weight 폴백에 맡기는 구성.
 

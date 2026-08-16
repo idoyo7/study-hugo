@@ -13,7 +13,7 @@ weight: 1
 - 인력이 이미 있으면 self-host가 비용·성능(로컬 NVMe 수십만 IOPS)에서 모두 앞섭니다.
 {{< /callout >}}
 
-ClickHouse를 어디에 얹을지는 데이터 크기가 아니라 **운영 인력을 이미 보유했는지**로 갈립니다. 데이터가 ~5TB에 머물고 사용이 간헐적이면 Cloud가 압승하고, 60TB+ / 24-7이면 self-host가 명확히 쌉니다. 진짜 접전 구간(~20TB / 24-7)에서 인프라 비용은 거의 붙어서, 결정을 가르는 건 월 $1,600~4,800의 **people TCO** `≈`습니다. 인력이 이미 있으면 self-host의 유일한 약점이 상쇄돼 성능·비용 모두에서 앞섭니다.
+ClickHouse를 어디에 얹을지는 데이터 크기가 아니라 **운영 인력을 이미 보유했는지**로 갈립니다. 데이터가 ~5TB에 머물고 사용이 간헐적이면 Cloud가 압승하고, 60TB+ / 24-7이면 self-host가 명확히 쌉니다. 진짜 접전 구간(~20TB / 24-7)에서 인프라 비용은 거의 붙어서, 결정을 가르는 건 월 $1,600~4,800의 **people TCO** `≈`입니다. 인력이 이미 있으면 self-host의 유일한 약점이 상쇄돼 성능·비용 모두에서 앞섭니다.
 
 여기에 기술적 갈림길이 하나 더 겹칩니다. **SharedMergeTree(진짜 storage-compute 분리)는 ClickHouse Cloud 전용**이고 `✓`, self-host는 ReplicatedMergeTree(RMT)를 강제당합니다. 즉 "managed냐 self-host냐"는 단순 가격 비교가 아니라 **아키텍처 선택**입니다. 이 페이지는 그 결정 기준을 다룹니다. 인스턴스·스토리지 상세는 [로컬 NVMe & 인스턴스]({{< relref "02-storage-local-nvme.md" >}})로 위임합니다.
 

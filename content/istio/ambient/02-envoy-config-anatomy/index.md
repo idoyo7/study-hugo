@@ -83,7 +83,7 @@ outbound|8080||ch-dropwizard-public.channel.svc.cluster.local
 
 목적지가 메시에 들어와 있으면 endpoint의 주소가 실제 네트워크 주소가 아니라 **`envoy_internal_address`** 로 바뀝니다. Envoy 프로세스 내부의 user space 통신을 가리키는 주소이고 `server_listener_name`으로 **`connect_originate`라는 이름의 internal listener**를 지정합니다. 최종 목적지 정보는 메타데이터(`endpoint_id`, `original_dst` 등)에 실려 함께 넘어갑니다.
 
-동시에 endpoint 메타데이터에는 **`tunnel: http`** 가 붙습니다. 클러스터의 `transport_socket_matches`가 이 키를 보고 `tlsMode-disabled` 대신 `InternalUpstreamTransport`를 고릅니다. 즉 **평문 직결이냐 HBONE이냐는 라우팅 규칙이 아니라 endpoint 메타데이터 한 줄이 갑니다.**
+동시에 endpoint 메타데이터에는 **`tunnel: http`** 가 붙습니다. 클러스터의 `transport_socket_matches`가 이 키를 보고 `tlsMode-disabled` 대신 `InternalUpstreamTransport`를 고릅니다. 즉 **평문 직결이냐 HBONE이냐는 라우팅 규칙이 아니라 endpoint 메타데이터 한 줄이 가릅니다.**
 
 ### 케이스 3 — waypoint: endpoint가 Service ClusterIP가 된다
 

@@ -15,7 +15,7 @@ weight: 2
 - operator 연동은 **gp3 StorageClass(EBS CSI) + volumeClaimTemplate `reclaimPolicy: Retain` + `allowVolumeExpansion`(온라인 확장)** 세 축이다.
 {{< /callout >}}
 
-이 카테고리는 **EBS(gp3/io2) 1차** 전제입니다. 로컬 NVMe(i7i/i8g) 1차 전제와 스토리지 4전략·티어링≠내구성·**재수화 위험 창의 정의와 MTTR 산식**은 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 기준 문서이므로 여기서 반복하지 않고, 이 페이지는 **왜 우리 스케일에선 EBS가 1차인지**와 **gp3/io2를 operator에 어떻게 얹는지**만 실전 관점으로 깊게 판니다. cold 티어링(S3)은 {{< relref "03-s3-cold-tiering.md" >}}, hot 창별 캐파 산정은 {{< relref "07-capacity-planning.md" >}}가 전담합니다.
+이 카테고리는 **EBS(gp3/io2) 1차** 전제입니다. 로컬 NVMe(i7i/i8g) 1차 전제와 스토리지 4전략·티어링≠내구성·**재수화 위험 창의 정의와 MTTR 산식**은 {{< relref "../../clickhouse/02-storage-local-nvme.md" >}}가 기준 문서이므로 여기서 반복하지 않고, 이 페이지는 **왜 우리 스케일에선 EBS가 1차인지**와 **gp3/io2를 operator에 어떻게 얹는지**만 실전 관점으로 깊게 팝니다. cold 티어링(S3)은 {{< relref "03-s3-cold-tiering.md" >}}, hot 창별 캐파 산정은 {{< relref "07-capacity-planning.md" >}}가 전담합니다.
 
 **이 페이지가 단일 출처로 소유하는 것** — 다른 장은 결론만 인용하고 아래 네 축을 재서술하지 않습니다:
 
