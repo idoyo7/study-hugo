@@ -60,7 +60,7 @@ aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 ### 언제 단순 확장안을 고르나
 
 - >90d 구간에도 raw 30s가 **규제·감사로 필수**이고, 운영 단순성이 비용보다 중요할 때
-- 그 외에는 선택할 이유가 없다 — 단순성의 대가가 월 $1,000 이상이기 때문
+- 그 외에는 선택할 이유가 없습니다 — 단순성의 대가가 월 $1,000 이상이기 때문
 
 >90d raw가 규제상 필수라면 확장안 대신 VM raw 아카이브 변형(RF1 sc1/st1 + vmbackup, $485~787)으로도 raw를 훨씬 싸게 들 수 있습니다. 판단 트리와 시나리오 ① 비용 종합은 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})이 주인입니다.
 

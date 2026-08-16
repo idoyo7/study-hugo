@@ -9,7 +9,7 @@ weight: 1
 **한눈에**
 - k8s 위 **VM operator**가 vmagent를 **Deployment(stateless)** 로 띄우고 중앙 VM 클러스터의 vminsert 엔드포인트로 `remote_write` 합니다.
 - 목적지 경로 `/insert/0/prometheus`는 **클러스터 모드 · tenant 0**을 뜻합니다.
-- stage/prod는 값이 다르다 — 리소스·`maxDiskUsagePerURL`이 환경별로 갈리고 **prod는 vmagent가 두 계열(용도별 분리)** 이라 `extraArgs`가 양쪽에 함께 걸립니다.
+- stage/prod는 값이 다릅니다 — 리소스·`maxDiskUsagePerURL`이 환경별로 갈리고 **prod는 vmagent가 두 계열(용도별 분리)** 이라 `extraArgs`가 양쪽에 함께 걸립니다.
 - 공통 수집 설정은 `scrapeInterval 30s` · `promscrape.streamParse=true` · `promscrape.maxScrapeSize=24GiB`.
 {{< /callout >}}
 

@@ -29,7 +29,7 @@ Istio Slack의 `#ambient` 채널에도 업그레이드 절차 질문이 종종 �
 
 원문이 정리한 결론은 한 문장입니다.
 
-> Ambient mode 업그레이드는 `istiod → istio-cni → ztunnel` 순서로 진행하되, ztunnel은 일반적인 rolling update보다 **blue-green node pool 방식**으로 접근하는 편이 안전하입니다.
+> Ambient mode 업그레이드는 `istiod → istio-cni → ztunnel` 순서로 진행하되, ztunnel은 일반적인 rolling update보다 **blue-green node pool 방식**으로 접근하는 편이 안전합니다.
 
 ## 1. 업그레이드 대상은 세 가지
 

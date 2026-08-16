@@ -7,17 +7,17 @@ weight: 6
 
 {{< callout type="info" >}}
 **한눈에**
-- **cluster mode 는 스케일을 주는 대신 애플리케이션의 자유를 뺏는다.** 프록시를 두지 않기로 한 2015-04-01(3.0.0)의 결정이 그 대가의 근원이다 — 라우팅 비용을 클라이언트로 옮겨 hop 을 하나 없앤 대신, **smart client 가 없으면 아무것도 동작하지 않는다** `✓`.
-- `MOVED` 와 `ASK` 는 같은 코드 경로에서 접두어만 갈려 나오는데 의미는 정반대다. `MOVED` 는 영구 재배치라 **슬롯 맵을 갱신**해야 하고, `ASK` 는 단발이라 **슬롯 맵을 갱신하면 안 되고** `ASKING` 을 앞세워 한 번만 재시도해야 한다. 이 구분을 못 하는 클라이언트는 리샤딩 중 슬롯 맵을 오염시킨다 `✓`.
-- **16384 는 미학이 아니라 gossip 헤더 예산이다.** 모든 PING/PONG/MEET 헤더에 슬롯 비트맵이 raw 로 실리고 그게 정확히 2048바이트다 — `clusterMsg` 의 `myslots` 오프셋 80, `replicaof` 오프셋 2128 이 `static_assert` 로 못 박혀 있다 `✓`.
-- 슬롯 계산은 `mod` 가 아니라 `crc16(key) & 0x3FFF` 다. 해시 태그는 **첫 `{` 와 그 뒤 첫 `}`** 만 본다 — `{a}{b}` 는 `a` 로 해시되고, `{}` 나 `}` 없는 경우는 태그가 **무시되고 키 전체**가 해시된다 `✓`.
-- 잃는 것은 cross-slot 다중 키 연산·단일 슬롯 트랜잭션·pub/sub 브로드캐스트 비용·`KEYS`/`SCAN`/`DBSIZE` 의 의미·커넥션 수 곱셈이다. **"DB 0 하나뿐"만은 진영이 갈렸다** — Valkey 9.0.0 이 `cluster-databases` 를 열었고 Redis 8.10.0 에는 그 설정이 없다 `✓`.
-- 가장 아팠던 슬롯 마이그레이션을 **양쪽이 각자 원자적으로 고쳤고 방향이 반대다** — Valkey 9.0.0(2025-10-21) `CLUSTER MIGRATESLOTS` 는 source 에서 push, Redis 8.4.0(2025-11-18) `CLUSTER MIGRATION IMPORT` 는 destination 에서 pull. **리샤딩 자동화가 두 진영 호환되지 않는 첫 사례**다 `✓`.
-- `cluster_state:ok` 는 세 가지 방식으로 거짓 안심을 준다 — `cluster-require-full-coverage no` 면 커버리지 검사를 아예 하지 않는다. 커버리지 검사는 **PFAIL 을 안 본다**. 값은 **그 노드의 로컬 gossip 시야**로 계산된다 `✓`.
-- Valkey 에서 **모듈을 하나라도 로드하면 ASM 이 아예 거부된다.** 공식 모듈 4개(search/json/bloom/ldap) 전부가 `VALKEYMODULE_OPTIONS_HANDLE_ATOMIC_SLOT_MIGRATION` 을 선언하지 않는다 `✓`.
+- **cluster mode 는 스케일을 주는 대신 애플리케이션의 자유를 뺏습니다.** 프록시를 두지 않기로 한 2015-04-01(3.0.0)의 결정이 그 대가의 근원입니다 — 라우팅 비용을 클라이언트로 옮겨 hop 을 하나 없앤 대신, **smart client 가 없으면 아무것도 동작하지 않습니다** `✓`.
+- `MOVED` 와 `ASK` 는 같은 코드 경로에서 접두어만 갈려 나오는데 의미는 정반대입니다. `MOVED` 는 영구 재배치라 **슬롯 맵을 갱신**해야 하고, `ASK` 는 단발이라 **슬롯 맵을 갱신하면 안 되고** `ASKING` 을 앞세워 한 번만 재시도해야 합니다. 이 구분을 못 하는 클라이언트는 리샤딩 중 슬롯 맵을 오염시킵니다 `✓`.
+- **16384 는 미학이 아니라 gossip 헤더 예산입니다.** 모든 PING/PONG/MEET 헤더에 슬롯 비트맵이 raw 로 실리고 그게 정확히 2048바이트입니다 — `clusterMsg` 의 `myslots` 오프셋 80, `replicaof` 오프셋 2128 이 `static_assert` 로 못 박혀 있습니다 `✓`.
+- 슬롯 계산은 `mod` 가 아니라 `crc16(key) & 0x3FFF` 입니다. 해시 태그는 **첫 `{` 와 그 뒤 첫 `}`** 만 봅니다 — `{a}{b}` 는 `a` 로 해시되고, `{}` 나 `}` 없는 경우는 태그가 **무시되고 키 전체**가 해시됩니다 `✓`.
+- 잃는 것은 cross-slot 다중 키 연산·단일 슬롯 트랜잭션·pub/sub 브로드캐스트 비용·`KEYS`/`SCAN`/`DBSIZE` 의 의미·커넥션 수 곱셈입니다. **"DB 0 하나뿐"만은 진영이 갈렸습니다** — Valkey 9.0.0 이 `cluster-databases` 를 열었고 Redis 8.10.0 에는 그 설정이 없습니다 `✓`.
+- 가장 아팠던 슬롯 마이그레이션을 **양쪽이 각자 원자적으로 고쳤고 방향이 반대입니다** — Valkey 9.0.0(2025-10-21) `CLUSTER MIGRATESLOTS` 는 source 에서 push, Redis 8.4.0(2025-11-18) `CLUSTER MIGRATION IMPORT` 는 destination 에서 pull. **리샤딩 자동화가 두 진영 호환되지 않는 첫 사례**입니다 `✓`.
+- `cluster_state:ok` 는 세 가지 방식으로 거짓 안심을 줍니다 — `cluster-require-full-coverage no` 면 커버리지 검사를 아예 하지 않습니다. 커버리지 검사는 **PFAIL 을 안 봅니다**. 값은 **그 노드의 로컬 gossip 시야**로 계산됩니다 `✓`.
+- Valkey 에서 **모듈을 하나라도 로드하면 ASM 이 아예 거부됩니다.** 공식 모듈 4개(search/json/bloom/ldap) 전부가 `VALKEYMODULE_OPTIONS_HANDLE_ATOMIC_SLOT_MIGRATION` 을 선언하지 않습니다 `✓`.
 {{< /callout >}}
 
-> **왜 이 문서인가.** cluster mode 를 "샤딩 켜기"로 읽으면 매니페스트는 통과하고 애플리케이션이 나중에 터집니다. 실제로 켜지는 것은 **애플리케이션 계약의 변경**이다 — 같이 읽던 키를 같이 읽을 수 없습니다. standalone 에서 통과한 트랜잭션이 `EXEC` 에서만 실패합니다. 모니터링이 보던 `DBSIZE` 가 다른 뜻이 됩니다. 이 문서가 다루는 것은 그 제약이 **어느 코드에서 어떤 조건으로 발생하는지**, 그리고 11년간 가장 아팠던 슬롯 마이그레이션이 2025년에 어떻게 바뀌었는지입니다.
+> **왜 이 문서인가.** cluster mode 를 "샤딩 켜기"로 읽으면 매니페스트는 통과하고 애플리케이션이 나중에 터집니다. 실제로 켜지는 것은 **애플리케이션 계약의 변경**입니다 — 같이 읽던 키를 같이 읽을 수 없습니다. standalone 에서 통과한 트랜잭션이 `EXEC` 에서만 실패합니다. 모니터링이 보던 `DBSIZE` 가 다른 뜻이 됩니다. 이 문서가 다루는 것은 그 제약이 **어느 코드에서 어떤 조건으로 발생하는지**, 그리고 11년간 가장 아팠던 슬롯 마이그레이션이 2025년에 어떻게 바뀌었는지입니다.
 
 > 근거 기준: 소스는 `valkey 9.1.0`/`9.1.1`, `redis 8.10.0`, `redis 3.0.0` 로컬 클론과 각 릴리스노트입니다. 릴리스일은 GitHub `published_at` 이고 사건 시각은 UTC 로 통일했습니다. 기준일 2026-08-06. 줄 번호는 해당 태그 스냅샷입니다.
 
@@ -155,7 +155,7 @@ void markNodeAsFailingIfNeeded(clusterNode *node) {
 | `yes`(기본) | 클러스터 전체가 `CLUSTER_FAIL` — 모든 요청 거부 | 부분 장애가 전체 장애로 번진다 |
 | `no` | 없는 슬롯 요청만 `-CLUSTERDOWN Hash slot not served` | **`cluster_state` 는 `ok` 를 보고한다 → 모니터링이 눈이 먼다** |
 
-`no` 로 두면 가용성이 좋아지는 것이 아니라 **장애가 관측되지 않는 형태로 바뀐다.** `clusterUpdateState()` 가 이 설정이 꺼져 있으면 커버리지 검사 자체를 하지 않기 때문이다(§9).
+`no` 로 두면 가용성이 좋아지는 것이 아니라 **장애가 관측되지 않는 형태로 바뀝니다.** `clusterUpdateState()` 가 이 설정이 꺼져 있으면 커버리지 검사 자체를 하지 않기 때문입니다(§9).
 
 과거의 wire 호환성 사고도 여기 속합니다. Redis 4.0 은 NAT/Docker 지원을 넣으면서 버스 프로토콜을 깨뜨렸습니다 — "Redis 4.0 cluster bus protocol is not compatible with Redis 3.2, so in order to upgrade, a mass reboot of the instances is needed and rolling upgrades are not possible"(`redis:RELEASENOTES-4.0.0.txt:51-57`) `✓`. 오늘의 `static_assert` 블록(§3)이 이 사고의 재발 방지 장치입니다 `Σ`.
 
@@ -266,7 +266,7 @@ Valkey 9.1.0 이 ASM 후속으로 **실제로 넣은 것은 둘**입니다 — `
 
 판정은 단순합니다. 데이터가 한 노드에 들어가고 §5 의 자유도가 필요하면 **Sentinel**, 메모리·처리량이 한 노드를 넘거나 넘을 예정이면 **Cluster** 입니다 `Σ`. "Cluster 가 Sentinel 을 대체하는가"는 HA 기능 축에서는 그렇습니다. 하지만 **Sentinel 을 쓰던 앱을 Cluster 로 옮기는 것은 HA 방식 교체가 아니라 §5 의 데이터 모델 제약을 애플리케이션에 도입하는 일**이고, 그것이 이 마이그레이션의 실제 비용입니다. 둘 다 비동기 복제라 acked write 유실 가능성은 그대로 남습니다 — Sentinel 문서 원문: "Sentinel + Redis distributed system does not guarantee that acknowledged writes are retained during failures, since Redis uses asynchronous replication" `✓`.
 
-Sentinel 은 죽은 기능이 아니다. Valkey 도 계속 유지·수정한다(9.1.1 에서 coordinated failover 중 Sentinel crash 수정, #4068, `valkey:RELEASENOTES-9.1.1.txt:32`) `✓`.
+Sentinel 은 죽은 기능이 아닙니다. Valkey 도 계속 유지·수정합니다(9.1.1 에서 coordinated failover 중 Sentinel crash 수정, #4068, `valkey:RELEASENOTES-9.1.1.txt:32`) `✓`.
 
 ## 8. 클라이언트 라이브러리
 
@@ -316,7 +316,7 @@ if (reachable_primaries < needed_quorum) { new_state = CLUSTER_FAIL; new_reason 
 
 토폴로지 조회 커맨드는 **deprecation 상태가 진영별로 반대입니다.** Redis 는 7.0.0 에서 `CLUSTER SLOTS` 를 deprecate 하고 `CLUSTER SHARDS` 로 대체했으며 **8.10.0 에도 여전히 deprecated** 입니다(`redis 8.10.0:src/commands/cluster-slots.json` 의 `"deprecated_since": "7.0.0"`, `"replaced_by": "CLUSTER SHARDS"`). Valkey 는 7.2.4 까지 deprecated 였다가 **8.0.0 에서 un-deprecate**(#536)하고 9.1.0 에 `availability-zone` 필드까지 추가했습니다(`valkey 8.0.0`/`9.1.0:src/commands/cluster-slots.json` 에 deprecated 표기 없음) `✓`. 즉 "`CLUSTER SLOTS` 는 쓰지 말아야 합니다"는 조언은 Valkey 에서 틀립니다.
 
-hot slot 탐지는 `CLUSTER SLOT-STATS` 다 — `KEY-COUNT`/`CPU-USEC`/`NETWORK-BYTES-IN`/`OUT`, Redis 8.4+ 는 `MEMORY-BYTES` 추가. Valkey 8.0.0(#20, #351)이 먼저이고 Redis 는 8.2.0 이다(`redis 8.2.0:src/commands/cluster-slot-stats.json` 의 `"since": "8.2.0"`) `✓`. Redis 8.6 은 `cluster-slot-stats-enabled` 로 수집 항목을 제어한다(#14719).
+hot slot 탐지는 `CLUSTER SLOT-STATS` 입니다 — `KEY-COUNT`/`CPU-USEC`/`NETWORK-BYTES-IN`/`OUT`, Redis 8.4+ 는 `MEMORY-BYTES` 추가. Valkey 8.0.0(#20, #351)이 먼저이고 Redis 는 8.2.0 입니다(`redis 8.2.0:src/commands/cluster-slot-stats.json` 의 `"since": "8.2.0"`) `✓`. Redis 8.6 은 `cluster-slot-stats-enabled` 로 수집 항목을 제어합니다(#14719).
 
 **리샤딩 중에 추가로 볼 것**은 방식별로 다릅니다.
 

@@ -8,10 +8,10 @@ aliases: ["/monitoring/longterm-retention/04-option-c-mimir/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- Mimir는 **다운샘플링이 OSS·GEM·3.0 어디에도 없어** "5m 해상도 400d" 요구를 원리적으로 충족할 수 없다 — 이 시나리오에서 탈락.
+- Mimir는 **다운샘플링이 OSS·GEM·3.0 어디에도 없어** "5m 해상도 400d" 요구를 원리적으로 충족할 수 없습니다 — 이 시나리오에서 탈락.
 - 유일한 실현 형태는 **raw 400d 전부 S3** — 경제성이 시나리오 ①(전 구간 raw)로 되돌아가 월 **~$740 + Kafka·컴퓨트**.
 - 운영 footprint가 최대다 — distributor/ingester/compactor/store-gateway/querier/query-frontend에 3.0부터 Kafka 기본 의존까지 **8~10종**.
-- **PromQL 전용**이라 MetricsQL 상실은 Thanos안과 동일하다. 재검토는 대규모 멀티테넌시·Grafana 스택 표준화가 독립 목표일 때만.
+- **PromQL 전용**이라 MetricsQL 상실은 Thanos안과 동일합니다. 재검토는 대규모 멀티테넌시·Grafana 스택 표준화가 독립 목표일 때만.
 {{< /callout >}}
 
 > 관련 문서: [01 문제·2축]({{< relref "01-problem-and-axes.md" >}}), [02 VictoriaMetrics]({{< relref "02-vm-archive.md" >}}), [03 Thanos]({{< relref "03-thanos-s3.md" >}}), [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}}) · PromQL vs MetricsQL은 [VM 쿼리·컴포넌트]({{< relref "../victoriametrics/concepts/05-query-and-ops-components.md" >}})
@@ -28,7 +28,7 @@ S3 native 저장과 remote_write native 수신으로 매력적으로 보이지�
   compactor(-compactor.blocks-retention-period=400d) / store-gateway / querier / query-frontend …
 ```
 
-- **remote_write 수신**: vmagent가 `/api/v1/push`로 그대로 송신할 수 있다(자동 Prometheus proto 다운그레이드, `-remoteWrite.forcePromProto` 명시 권장). out-of-order를 기본 거부(409)하므로 해당 URL에 `-remoteWrite.queues=1`이 필요하다 — 이 레그의 백프레셔·OOM 리스크는 Thanos안과 동일하다([03 Thanos안]({{< relref "03-thanos-s3.md" >}}) 참조).
+- **remote_write 수신**: vmagent가 `/api/v1/push`로 그대로 송신할 수 있습니다(자동 Prometheus proto 다운그레이드, `-remoteWrite.forcePromProto` 명시 권장). out-of-order를 기본 거부(409)하므로 해당 URL에 `-remoteWrite.queues=1`이 필요합니다 — 이 레그의 백프레셔·OOM 리스크는 Thanos안과 동일합니다([03 Thanos안]({{< relref "03-thanos-s3.md" >}}) 참조).
 - **멀티테넌시**: `X-Scope-OrgID` 헤더가 필요하다(테넌시 비활성화 시 생략 가능).
 - **S3 retention**: `-compactor.blocks-retention-period` 단일 플래그로 잡는다(YAML `limits.compactor_blocks_retention_period`, 테넌트별 오버라이드 가능). **기본값 0 = 무기한**이라 명시하지 않으면 S3가 영원히 쌓입니다.
 

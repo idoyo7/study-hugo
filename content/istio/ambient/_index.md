@@ -20,7 +20,7 @@ weight: 20
 
 {{< callout type="info" >}}
 **한눈에**
-- 채널코퍼레이션 DevOps팀이 2025년 3월부터 11월까지 약 8개월을 들여 서비스 메시를 처음 올렸다. 성숙한 Sidecar mode를 지나치고 Istio 1.24에서 GA된 **Ambient mode를 첫 대상으로 골랐다**.
+- 채널코퍼레이션 DevOps팀이 2025년 3월부터 11월까지 약 8개월을 들여 서비스 메시를 처음 올렸습니다. 성숙한 Sidecar mode를 지나치고 Istio 1.24에서 GA된 **Ambient mode를 첫 대상으로 골랐습니다**.
 - 결정의 무게추는 **약 4,000개 파드**였습니다. 프록시 개수가 파드 개수에 1:1로 묶이는 구조라 전부 사이드카를 붙이면 idle 상태에서만 약 240Gi 메모리가 프록시로 나갑니다.
 - 대가는 장애 격리 단위의 확대입니다. 사이드카는 장애 범위가 파드 하나였지만 ztunnel은 노드 전체, waypoint는 namespace 전체입니다. 팀이 잡은 기준은 문제 발생 빈도가 아니라 **장애 복구 속도와 나중에 다시 갈아엎지 않아도 되는 쪽**이었습니다.
 - 프로덕션에서 터진 것은 전부 **프록시가 파드 밖으로 나가면서 생긴 타이밍 문제**다 — 죽은 Pod의 HBONE 터널을 재사용해 터지는 503, istio-cni보다 먼저 뜬 파드(partially enrolled), 노드 단위가 되어 버린 업그레이드 카나리, 그리고 xDS 단절을 못 잡는 readinessProbe.
@@ -61,7 +61,7 @@ weight: 20
   - 이 섹션 (Ambient mode): [01]({{< relref "01-why-ambient-mode.md" >}}) — polynomial scaling problem의 분모(프록시 수) 자체를 줄입니다
 - **xDS 커넥션**
   - 상위 챕터 (Sidecar mode): [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../09-istiod-scaling-connections.md" >}}) — 장수 gRPC는 스케일아웃해도 재분배되지 않습니다
-  - 이 섹션 (Ambient mode): [03-4]({{< relref "03-4-507-istiod-disconnected.md" >}}) — 한 번 끊긴 stream은 스스로 낫지 않아 탐지가 필요하입니다
+  - 이 섹션 (Ambient mode): [03-4]({{< relref "03-4-507-istiod-disconnected.md" >}}) — 한 번 끊긴 stream은 스스로 낫지 않아 탐지가 필요합니다
 - **데이터 플레인 격리**
   - 상위 챕터 (Sidecar mode): [03 데이터 플레인과 Ingress Gateway]({{< relref "../03-gateway-node-isolation.md" >}}) — 자원 경합을 피하려 게이트웨이를 노드로 뺍니다
   - 이 섹션 (Ambient mode): [03-2]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}}) — 노드가 준비될 때까지 스케줄을 미룬다(시간 축의 격리)

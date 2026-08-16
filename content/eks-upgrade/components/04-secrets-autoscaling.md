@@ -60,7 +60,7 @@ external-secrets는 `cluster-bootstrap-v2` umbrella의 서브차트입니다. Ar
 
 CRD apiVersion(`keda.sh/v1alpha1`)이 2.x 전 구간에서 불변이라 CRD conversion 이슈는 없습니다. finance가 실제로 쓰는 스칼러는 `cpu`·`memory`·`cron`·`datadog`·`kafka`·`prometheus`·`aws-sqs-queue`입니다. 2.10→2.20 사이에 제거된 스칼러/필드(NATS Streaming, GCP Pub/Sub `subscriptionSize`, Huawei Cloudeye `minMetricValue`, IBM MQ `tls`, Azure 관련 다수)는 전부 이 사용면과 무관합니다. 그래서 finance가 확인해야 할 지점은 두 갈래로 좁혀집니다.
 
-- **CPU/Memory 스칼러의 `metadata.type` 제거**(2.18 부근, 정확한 제거 시점은 공식 소스 간 상충) — finance 차트는 이미 트리거 레벨 `metricType`(신식 포맷)을 쓰므로 렌더 결과에는 영향이 없습니다. 다만 라이브에 손수 작성한 ScaledObject가 구식 `metadata.type`을 쓰고 있으면 거부될 수 있어 사전 인벤토리가 필요하입니다.
+- **CPU/Memory 스칼러의 `metadata.type` 제거**(2.18 부근, 정확한 제거 시점은 공식 소스 간 상충) — finance 차트는 이미 트리거 레벨 `metricType`(신식 포맷)을 쓰므로 렌더 결과에는 영향이 없습니다. 다만 라이브에 손수 작성한 ScaledObject가 구식 `metadata.type`을 쓰고 있으면 거부될 수 있어 사전 인벤토리가 필요합니다.
 - **admission webhook 검증 강화** — 여러 마이너에 걸쳐 fallback 시 명시적 `metricType` 요구, 중복/충돌 scaleTargetRef 거부 같은 규칙이 추가됐습니다. 기존 SO가 새 검증에 걸릴 수 있으므로 dry-run 선행이 최대 리스크 완화책입니다.
 
 비차단이지만 부채로 이월되는 항목도 있습니다. `aws-eks` podIdentity와 SQS 트리거의 `identityOwner: operator`는 v3에서 제거 예정이라 지금은 deprecation 경고만 뜨고 2.20에서는 정상 동작합니다. finance는 이미 2.10.2를 arm64 노드에서 구동 중이므로 2.20의 멀티아치(amd64/arm64/s390x) 지원은 실증된 것으로 봅니다.

@@ -8,7 +8,7 @@ weight: 1
 {{< callout type="info" >}}
 **한눈에**
 - **웹 RUM 대체 후보로는 사실상 유일**하지만, OSS 접근통제 공백(SSO·RBAC·멀티테넌시·감사로그 전무)이 다중 팀 도입의 결정적 게이트입니다.
-- 3 코어(ClickHouse·HyperDX·OTel Collector) + **메타데이터 전용 MongoDB가 필수 의존성**으로 붙는다 — 자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only' 모드에서도 사라지지 않습니다.
+- 3 코어(ClickHouse·HyperDX·OTel Collector) + **메타데이터 전용 MongoDB가 필수 의존성**으로 붙습니다 — 자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only' 모드에서도 사라지지 않습니다.
 - 배포 6모드 중 프로덕션 적합은 Managed 또는 Helm뿐이고, 자체 인프라를 지키려면 **HyperDX Only**가 정답 축입니다.
 - 기능 성숙도: 로그검색·트레이스·웹 세션 리플레이는 🟢, 모바일 RUM은 🔴(네이티브 리플레이 없음), 메트릭은 🟡(PromQL 미지원).
 - **RBAC는 Managed(ClickHouse Cloud) 전용으로만 GA**됐고 OSS는 SSO/RBAC/멀티테넌시/감사로그가 전무하다 — self-host를 고수하려면 oauth2-proxy·팀별 인스턴스·row policy를 조합해야 합니다.
@@ -32,7 +32,7 @@ HyperDX/ClickStack을 **"Datadog RUM 대체 + 통합 관측성 플랫폼" 후보
 | 2025-12 | Materialized Views 완전 통합(쿼리 가속) `✓` |
 | 2026-04-01 | **RBAC GA — 단, Managed(ClickHouse Cloud) 전용** `✓` |
 
-> 실사 주의: "Anthropic·character.AI가 ClickStack 프로덕션 레퍼런스"라는 프레이밍은 1차 출처로 뒷받침되지 않는다. 두 팀은 고볼륨·고카디널리티 UI 동작에 **피드백/입력을 제공**한 것이고, ClickHouse 공식 블로그상 Anthropic은 HyperDX UI가 아니라 **자체 air-gapped ClickHouse 관측성 스택**(k8s + ClickHouse Operator + Prometheus + Vector)을 운영한다 `✓`. 패키지드 ClickStack 자체의 대규모 named 프로덕션 사례는 제품이 ~1년 되어 아직 얇다 `≈`.
+> 실사 주의: "Anthropic·character.AI가 ClickStack 프로덕션 레퍼런스"라는 프레이밍은 1차 출처로 뒷받침되지 않습니다. 두 팀은 고볼륨·고카디널리티 UI 동작에 **피드백/입력을 제공**한 것이고, ClickHouse 공식 블로그상 Anthropic은 HyperDX UI가 아니라 **자체 air-gapped ClickHouse 관측성 스택**(k8s + ClickHouse Operator + Prometheus + Vector)을 운영합니다 `✓`. 패키지드 ClickStack 자체의 대규모 named 프로덕션 사례는 제품이 ~1년 되어 아직 얇습니다 `≈`.
 
 ## 아키텍처 — 3 코어 + 1 필수 메타스토어
 
@@ -45,7 +45,7 @@ HyperDX/ClickStack을 **"Datadog RUM 대체 + 통합 관측성 플랫폼" 후보
 | **OpenTelemetry Collector** | 인제스천 게이트웨이(OTLP 수신 → ClickHouse export), 스키마 강제 | Apache 2.0 |
 | **MongoDB** | **앱 상태 저장(필수)** — 대시보드·저장검색·사용자·알림 정의 | 외부 의존성 |
 
-- 인제스천은 **OTLP**(4317 gRPC / 4318 HTTP), 컬렉터 동적 구성은 **OpAMP**로 표준 프로토콜을 쓴다 `✓`. 커스텀 컬렉터 config는 `CUSTOM_OTELCOL_CONFIG_FILE`로 **베이스 config에 병합**되며 기존 컴포넌트 오버라이드는 불가(신규 receiver/processor만 추가) `✓`.
+- 인제스천은 **OTLP**(4317 gRPC / 4318 HTTP), 컬렉터 동적 구성은 **OpAMP**로 표준 프로토콜을 씁니다 `✓`. 커스텀 컬렉터 config는 `CUSTOM_OTELCOL_CONFIG_FILE`로 **베이스 config에 병합**되며 기존 컴포넌트 오버라이드는 불가(신규 receiver/processor만 추가) `✓`.
 - MongoDB를 FerretDB(Postgres 기반 호환)로 대체한 커뮤니티 사례가 있으나 **공식 지원 아님** `≈`.
 
 ### 신호별 테이블 스키마 — RUM 상관의 근거
@@ -86,11 +86,11 @@ ClickStack은 신호별 최적화 스키마를 자동 생성합니다(codecs·TT
 
 자체 인프라(EKS + 자체 ClickHouse)를 지키면서 HyperDX UI만 얹는 유일한 경로입니다. 다만 "가볍다"고 오해하면 안 됩니다.
 
-- **MongoDB는 여전히 필수** — 대시보드·저장검색·사용자·알림을 저장한다. CH만 자체 운영한다고 메타스토어가 사라지지 않는다 `✓`.
+- **MongoDB는 여전히 필수** — 대시보드·저장검색·사용자·알림을 저장합니다. CH만 자체 운영한다고 메타스토어가 사라지지 않습니다 `✓`.
 - **인제스천은 전적으로 사용자 책임** — 자체 OTel Collector, 클라이언트 직접 인입, ClickHouse Kafka/S3 테이블 엔진, ETL, ClickPipes 중 선택 `✓`.
 - **임의 스키마 허용**(`timestamp`만 있으면) → 범용 분석용 ClickHouse에 관측성을 겸용하려는 니즈와 정합적 `✓`.
 - 기동은 `docker run -e MONGO_URI=... docker.hyperdx.io/hyperdx/hyperdx` 후 UI(8080)에서 외부 CH data source 등록 `✓`.
-- **프로덕션 노브**: 기본 데이터 TTL은 **3일**(`TABLES_TTL=72h`)로 짧아 프로덕션에서는 대개 변경이 필요하다. ClickHouse 사이징 가이드는 인제스트 워크로드 **10 MB/s당 1 vCPU**, 쿼리 워크로드 **1 QPS당 + 10 MB/s당 1 vCPU**를 권장한다(예: 100 MB/s 인제스트+쿼리 → 약 40 vCPU) `Ⓥ`.
+- **프로덕션 노브**: 기본 데이터 TTL은 **3일**(`TABLES_TTL=72h`)로 짧아 프로덕션에서는 대개 변경이 필요합니다. ClickHouse 사이징 가이드는 인제스트 워크로드 **10 MB/s당 1 vCPU**, 쿼리 워크로드 **1 QPS당 + 10 MB/s당 1 vCPU**를 권장합니다(예: 100 MB/s 인제스트+쿼리 → 약 40 vCPU) `Ⓥ`.
 
 ## 기능 성숙도 매트릭스
 
@@ -140,7 +140,7 @@ ClickStack은 신호별 최적화 스키마를 자동 생성합니다(codecs·TT
 | **감사로그** | **없음**(전 배포 공통 미출시) `✓` |
 
 - **RBAC는 이미 GA됐으나 OSS로 오지 않았습니다.** 2026-04-01 RBAC 공지는 **Managed ClickStack(ClickHouse Cloud) 전용**이고, 사용자는 ClickHouse Cloud 조직 레벨에서 관리됩니다. OSS RBAC 요청 이슈 #1293은 **not planned로 CLOSED** `✓`. → "로드맵 GA를 기다린다"는 전략은 RBAC에 관한 한 **로드맵에 없는 것을 기다리는 것**입니다.
-- **감사로그**는 아직 미출시이나, RBAC 선례를 보면 **Cloud 전용 착지 가능성이 높다** `≈`.
+- **감사로그**는 아직 미출시이나, RBAC 선례를 보면 **Cloud 전용 착지 가능성이 높습니다** `≈`.
 
 {{< callout type="warning" >}}
 **운영 리스크**: HyperDX가 요구하는 MongoDB가 **기본 무인증으로 기동**돼 포트(27017)가 노출되자 스캐너에 데이터가 삭제된 자체 호스팅 실사례가 있습니다. 접근통제 설계에 **MongoDB 인증·NetworkPolicy 격리를 반드시 포함**합니다 `✓`. 부하 프로파일·배포 경로별 운영 상세는 [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}}) 참고.
@@ -176,4 +176,4 @@ oauth2-proxy는 HyperDX 자체 로그인을 못 꺼 이중 로그인이 생기�
 - **RUM은 SDK 교체(`@hyperdx/browser`)로 간다.** 프록시 매핑이 아니다 — 웹 세션 리플레이·CWV·프론트↔백엔드 상관을 dual-instrument로 병행 검증한 뒤 컷오버. RUM 대체는 **대규모 프로덕션 레퍼런스가 아직 얇아 PoC 성공을 진입 게이트**로 삼는다 `≈`.
 - **ClickHouse는 HyperDX Only로 붙입니다.** ClickStack 내장 CH를 켜지 말고 자체 운영 CH(범용 분석 겸용)에 연결해 operator를 일원화합니다. CH 배포·operator 판단은 [ClickHouse 심층]({{< relref "../clickhouse/_index.md" >}})에서 다룹니다.
 - **메트릭은 HyperDX로 몰지 않는다.** PromQL 부재·대시보드/알림 미성숙 때문에 메트릭 계층은 VictoriaMetrics + Grafana로 분리 존치한다 `✓`.
-- **최대 리스크는 OSS 접근통제 공백입니다.** 다중 팀 광범위 롤아웃을 단일 OSS 인스턴스로 하면 Datadog 대비 거버넌스가 후퇴한다 → 파일럿은 oauth2-proxy 경계 SSO, 중간 롤아웃은 팀별 인스턴스 + row policy, 규제/감사 필수 팀만 Managed로 분리하는 **단계적 하이브리드**로 완화합니다.
+- **최대 리스크는 OSS 접근통제 공백입니다.** 다중 팀 광범위 롤아웃을 단일 OSS 인스턴스로 하면 Datadog 대비 거버넌스가 후퇴합니다 → 파일럿은 oauth2-proxy 경계 SSO, 중간 롤아웃은 팀별 인스턴스 + row policy, 규제/감사 필수 팀만 Managed로 분리하는 **단계적 하이브리드**로 완화합니다.

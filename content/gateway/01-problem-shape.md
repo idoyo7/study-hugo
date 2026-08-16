@@ -10,7 +10,7 @@ weight: 1
 **한눈에**
 - **`Connection duration for WebSocket API: 2 hours` · `Can be increased: No`.** 이것이 이 전환의 유일한 구조적 논거입니다. 상시 연결이 전제인 단말에 2시간마다 강제 종료가 걸립니다.
 - **비용 논거는 성립하지 않습니다.** 5만 대 상시 연결의 connection-minutes는 **월 $540**입니다. "비싸서 나간다"고 쓰면 첫 질문에서 무너집니다. 정확히는 *싸지만 맞지 않습니다.*
-- **2시간 종료가 비싼 이유는 쿼터가 아니라 재동기화입니다.** 재접속률 자체는 초당 7건으로 500/s 쿼터의 1.4%에 불과하입니다. 진짜 비용은 **재개 메커니즘이 없으면 2시간마다 5만 대가 전량 재동기화한다**는 것입니다.
+- **2시간 종료가 비싼 이유는 쿼터가 아니라 재동기화입니다.** 재접속률 자체는 초당 7건으로 500/s 쿼터의 1.4%에 불과합니다. 진짜 비용은 **재개 메커니즘이 없으면 2시간마다 5만 대가 전량 재동기화한다**는 것입니다.
 - **`Idle Connection Timeout: 10 minutes`도 상향 불가**라, 하트비트는 선택이 아니라 강제입니다. 자체 구현으로 옮겨도 이 제약은 없어지지 않고 **LB idle timeout으로 이름만 바뀝니다.**
 - **프레임 32KB / 페이로드 128KB.** 초과하면 에러가 아니라 **close code 1009로 연결이 끊깁니다.** 페이로드가 자랄 여지가 있으면 이게 조용한 시한폭탄입니다.
 - **흐름이 일방향이면 WebSocket의 양방향성은 안 쓰는 기능입니다.** SSE로 내려가면 재연결과 재개(`Last-Event-ID`)가 **프로토콜에 내장**되어 따라온다 — WebSocket에서는 전부 직접 만들어야 하는 것들입니다.
@@ -33,7 +33,7 @@ weight: 1
 
 동시 연결 수에는 쿼터가 없습니다. 문서는 그 대신 **동시 연결 수가 두 값의 곱으로 결정된다**고 설명합니다 — *"The maximum number of concurrent connections is determined by the rate of new connections per second and maximum connection duration of two hours. For example, with the default quota of 500 new connections per second, ... API Gateway can serve up to 3,600,000 concurrent connections."*
 
-5만 대는 360만의 1.4%다. **용량은 문제가 아니다.**
+5만 대는 360만의 1.4%입니다. **용량은 문제가 아닙니다.**
 
 ### 1.1 32KB 프레임은 에러가 아니라 절단이다
 
@@ -59,7 +59,7 @@ connection-minutes = 50,000 × 60분 × 24시간 × 30일
 
 ## 3. 2시간 강제 종료 — 무엇이 실제로 비싼가
 
-먼저 겁먹기 쉬운 계산부터 걷어내자.
+먼저 겁먹기 쉬운 계산부터 걷어내겠습니다.
 
 ```
 정상 상태 재접속률 = 50,000 / 7,200초 ≈ 6.9 conn/s

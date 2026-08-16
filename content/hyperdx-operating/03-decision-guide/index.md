@@ -12,7 +12,7 @@ aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decisi
 - 7축(배포·hot 스토리지·cold 티어링·토폴로지·조정 계층·MongoDB·업그레이드) 각각을 **기본값 + 왜 안전/충분 + 승급 트리거** 한 표로 못박습니다. 뼈대는 HyperDX Only(`clickhouse.enabled:false`)+Altinity CHI/CHK · 단일 gp3 · S3 TTL MOVE · 1 shard × RF2(2 AZ) · Keeper 3노드 · MongoDB 최소 · LTS 핀.
 - 승급은 감이 아니라 **관측된 신호**로만 합니다 — 각 트리거를 "어떤 신호를 어디서 보면 발동인가"(`system.parts`·`system.asynchronous_metrics`·CloudWatch EBS 지표·K8s 메트릭)까지 §2에서 한 단계 내렸습니다.
 - 단 **업그레이드 축엔 승급 방향이 없습니다** — 온디스크 포맷이 바뀐 뒤의 다운그레이드는 "없다고 가정"하고, 유일한 되돌림은 업그레이드 직전 EBS 스냅샷입니다.
-- 배포 전 실측 항목은 전부 `?`다 — 원래 4항목(0.7TB 해석·리플레이 압축비·기본 TTL·reattach 실소요)에 IRSA·경로·볼륨 회수 계열 5항목이 합쳐져 **9항목**이 됐고, **staging에서 측정해 `✓`로 승격**하는 것이 staging을 두는 캐파상 이유다(§3).
+- 배포 전 실측 항목은 전부 `?`입니다 — 원래 4항목(0.7TB 해석·리플레이 압축비·기본 TTL·reattach 실소요)에 IRSA·경로·볼륨 회수 계열 5항목이 합쳐져 **9항목**이 됐고, **staging에서 측정해 `✓`로 승격**하는 것이 staging을 두는 캐파상 이유입니다(§3).
 {{< /callout >}}
 
 트랙의 다른 두 페이지가 우리 형상의 **현황**([우리 배포 형상]({{< relref "01-our-deployment.md" >}}))과 사건 시 **순서**([운영 런북]({{< relref "02-runbook.md" >}}))를 맡는다면, 이 페이지는 **언제 무엇을 승급하나**를 맡습니다 — 결정 매트릭스 하나로 접고, 매트릭스의 기준 문서는 이 페이지입니다. 각 축의 "왜"의 전개는 챕터 기준 문서로 위임하고, 여기서는 판단에 필요한 최소 근거, 그리고 로드맵 요약에는 없던 한 단계 — **승급 트리거의 관측 지점** — 를 더합니다.
@@ -68,7 +68,7 @@ aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decisi
 - **gp3→io2**
   - 발동 신호: 단일 볼륨 **2,000 MiB/s 지속 초과** 또는 **80,000 IOPS/vol 초과**(또는 볼륨 99.999% 규제)
   - 관측 지점: CloudWatch EBS 볼륨 대역 지표 + `system.asynchronous_metrics`
-  - 선행 단계/비고: 그 전에 **gp3 안에서 2단계**가 남아 있다 — baseline 125 MiB/s 지속 초과가 보이면 먼저 provisioned throughput을 인스턴스 baseline(r7g.2xlarge ~312 MB/s)까지 상향 `≈`, io2는 그 다음이다([블록 온리 §5]({{< relref "../../hyperdx/08-block-only-tuning.md" >}}))
+  - 선행 단계/비고: 그 전에 **gp3 안에서 2단계**가 남아 있다 — baseline 125 MiB/s 지속 초과가 보이면 먼저 provisioned throughput을 인스턴스 baseline(r7g.2xlarge ~312 MB/s)까지 상향 `≈`, io2는 그 다음입니다([블록 온리 §5]({{< relref "../../hyperdx/08-block-only-tuning.md" >}}))
 - **S3→block-only**
   - 발동 신호: 메트릭이 아니라 **요구사항 신호**: 보존 ≤90일 확정 · S3 미접근 규정 · staging
   - 관측 지점: 보존 정책·규정(운영 지표 아님)
@@ -76,11 +76,11 @@ aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decisi
 - **RF2→RF3**
   - 발동 신호: 요구사항 신호(임의 2대 유실 무손실 · AZ 무저하 · 규제) + **`insert_quorum:2` 상시 필요**
   - 관측 지점: reattach 창 실측치(§3 항목 4) · quorum 쓰기 차단 발생 여부
-  - 선행 단계/비고: RF2에서 `insert_quorum:2`를 켜면 replica 1대가 reattach 중일 때 확정 가능 replica가 1이라 **쓰기가 차단**된다 — 이 조합이 상시 요구면 RF3가 짝이다([배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}}))
+  - 선행 단계/비고: RF2에서 `insert_quorum:2`를 켜면 replica 1대가 reattach 중일 때 확정 가능 replica가 1이라 **쓰기가 차단**된다 — 이 조합이 상시 요구면 RF3가 짝입니다([배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}}))
 - **1 shard→shard 추가**
   - 발동 신호: hot 단일사본/노드가 실용 상한(예 4~8TB) 접근 · 머지/쿼리 CPU 지속 포화
   - 관측 지점: 노드별 `system.parts` `bytes_on_disk` 합 · 데이터 노드 CPU 지속 >70%(K8s/CloudWatch) `≈`
-  - 선행 단계/비고: 선행은 replica 추가(읽기)·노드 사이즈업이다. 신규 shard 스키마·리밸런싱은 **수동**([Altinity 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}}))
+  - 선행 단계/비고: 선행은 replica 추가(읽기)·노드 사이즈업입니다. 신규 shard 스키마·리밸런싱은 **수동**([Altinity 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}}))
 - **Keeper 3→5노드**
   - 발동 신호: 요구사항 신호: **2대 동시 손실 허용**이 요구일 때만
   - 관측 지점: — (부하 지표 아님)

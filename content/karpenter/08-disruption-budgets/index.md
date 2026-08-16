@@ -7,12 +7,12 @@ weight: 8
 
 {{< callout type="info" >}}
 **한눈에**
-- disruption 이유 셋을 갈라놓는 기준은 **파드를 옮기느냐**다. `Empty`만 안 옮긴다 — 예산 설계는 여기서 출발합니다.
+- disruption 이유 셋을 갈라놓는 기준은 **파드를 옮기느냐**입니다. `Empty`만 안 옮깁니다 — 예산 설계는 여기서 출발합니다.
 - **`reasons`를 생략한 예산은 셋 모두에 적용됩니다.** 피크 차단용 `nodes: "0"`에 `reasons`를 안 적으면 **빈 노드 정리까지 같이 멈춥니다.** 가장 흔한 오설정인데 실패가 아니라 침묵으로 나타나 발견이 늦습니다.
 - 같은 이유에 예산이 여럿 활성이면 **가장 제한적인 값이 이깁니다.** 전역 `nodes: "1"` 하나로 나머지 설계가 전부 무력화될 수 있습니다.
 - 예산이 막는 것은 **graceful disruption만**입니다. `expireAfter` 만료·인터럽션·Node Repair는 예산 밖입니다.
 - `nodes: "0"`이 막는 것은 **실행만**입니다. drift 판정과 마킹은 계속 쌓이므로 예산을 푸는 순간 밀린 교체가 한꺼번에 터집니다.
-- "노드가 안 줄어든다"의 진단 순서는 **이벤트 → 예산 → requirements → topology**다. 예산을 1순위에 두는 이유는 유일하게 **시도했다는 증거를 이벤트로 남기기** 때문입니다.
+- "노드가 안 줄어든다"의 진단 순서는 **이벤트 → 예산 → requirements → topology**입니다. 예산을 1순위에 두는 이유는 유일하게 **시도했다는 증거를 이벤트로 남기기** 때문입니다.
 {{< /callout >}}
 
 > **왜 이 문서인가.** v1에서 drift는 못 끄게 되고 expiration은 forceful로 되돌아갔다([01]({{< relref "01-changelog-v1-transition.md" >}})). 그래서 남은 통제 수단이 사실상 `disruption.budgets` 하나인데 문법이 짧아 다 이해했다고 착각하기 쉽습니다. **생략된 필드의 기본 해석**이 동작의 절반을 결정합니다.
@@ -21,7 +21,7 @@ weight: 8
 
 ## 1. 이유 셋은 성질이 다르다
 
-`reasons`에 쓸 수 있는 값은 셋뿐이다(`karpenter-core/pkg/apis/v1/nodepool.go`의 `DisruptionReason` enum). 셋을 가르는 기준은 하나 — **파드를 실제로 옮기는가.**
+`reasons`에 쓸 수 있는 값은 셋뿐입니다(`karpenter-core/pkg/apis/v1/nodepool.go`의 `DisruptionReason` enum). 셋을 가르는 기준은 하나 — **파드를 실제로 옮기는가.**
 
 | 이유 | 언제 | 파드 이동 | 피크에 위험 |
 |---|---|---|---|

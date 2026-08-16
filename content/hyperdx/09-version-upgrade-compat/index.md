@@ -38,9 +38,9 @@ weight: 9
 
 ### 1.2 매트릭스에서 나오는 실전 결정 3가지
 
-1. **CH 이미지 = 24.8 LTS 핀 vs 25.x 추종.** ClickStack 최소요구는 24.8 LTS, 차트 기본은 25.7이다. self-host(Altinity CHI)에서는 `podTemplate` 이미지 태그를 **우리가 직접 정한다** — 관측성 워크로드는 안정성이 우선이므로 **LTS(24.8) 또는 검증된 최근 안정판을 핀**하고 25.x 최신 추종은 하지 않는 게 기본 `≈`.
-2. **Keeper 이미지 = CH 이미지와 정렬.** CHK `clickhouse/clickhouse-keeper` 태그를 CH 서버와 같은 메이저.마이너로 맞춘다(둘 다 24.8). ClickStack 차트는 Keeper를 별도 이미지 없이 CH 서버 이미지로 돌리지만, 우리는 Altinity CHK로 분리하므로 태그를 명시 정렬한다 `✓/≈`.
-3. **컴포넌트별 업그레이드는 독립 관심사.** CH·operator·Keeper·HyperDX·OTel·MongoDB는 각각 별도 케이던스로 올린다. 한 reconcile에 여러 변화를 몰면 원인 추적이 불가능해지고, [이미지+설정 동시변경 crash(#1926)]({{< relref "../../clickhouse/05-altinity-operations.md" >}})와 같은 결의 위험이 생긴다 `≈⁽corpus 원칙 연장⁾`.
+1. **CH 이미지 = 24.8 LTS 핀 vs 25.x 추종.** ClickStack 최소요구는 24.8 LTS, 차트 기본은 25.7입니다. self-host(Altinity CHI)에서는 `podTemplate` 이미지 태그를 **우리가 직접 정합니다** — 관측성 워크로드는 안정성이 우선이므로 **LTS(24.8) 또는 검증된 최근 안정판을 핀**하고 25.x 최신 추종은 하지 않는 게 기본 `≈`.
+2. **Keeper 이미지 = CH 이미지와 정렬.** CHK `clickhouse/clickhouse-keeper` 태그를 CH 서버와 같은 메이저.마이너로 맞춥니다(둘 다 24.8). ClickStack 차트는 Keeper를 별도 이미지 없이 CH 서버 이미지로 돌리지만, 우리는 Altinity CHK로 분리하므로 태그를 명시 정렬합니다 `✓/≈`.
+3. **컴포넌트별 업그레이드는 독립 관심사.** CH·operator·Keeper·HyperDX·OTel·MongoDB는 각각 별도 케이던스로 올립니다. 한 reconcile에 여러 변화를 몰면 원인 추적이 불가능해지고, [이미지+설정 동시변경 crash(#1926)]({{< relref "../../clickhouse/05-altinity-operations.md" >}})와 같은 결의 위험이 생깁니다 `≈⁽corpus 원칙 연장⁾`.
 
 ### 1.3 정정 — "최소 24.8"과 "차트 기본 25.7"은 모순이 아니다 `✓`
 
@@ -135,7 +135,7 @@ spec:
 
 ### 3.3 롤백 창을 여는 규칙 & 실질 롤백 경로 `✓`
 
-- **업그레이드 관찰 창(24~48h) 동안 롤백 창을 열어두려면**: (a) `OPTIMIZE ... FINAL` 금지, (b) 새 컬럼 타입/신규 기능 사용 금지, (c) 새 시스템 테이블/컬럼을 MV에서 참조 금지. 이 규칙을 지키면 온디스크 포맷이 그대로라 바이너리만 되돌려도 롤백 가능하입니다.
+- **업그레이드 관찰 창(24~48h) 동안 롤백 창을 열어두려면**: (a) `OPTIMIZE ... FINAL` 금지, (b) 새 컬럼 타입/신규 기능 사용 금지, (c) 새 시스템 테이블/컬럼을 MV에서 참조 금지. 이 규칙을 지키면 온디스크 포맷이 그대로라 바이너리만 되돌려도 롤백 가능합니다.
 - **그 창을 넘겼거나 포맷이 바뀌면 실질 롤백은 오직 복구다**:
   - **사전 백업**: 업그레이드 직전 `BACKUP DATABASE ... TO ...` 또는 `clickhouse-backup create_remote`(FREEZE PARTITION 래핑 + S3 업로드).
   - **스키마 스냅샷**: `SELECT database, name, create_table_query FROM system.tables`를 사전에 저장.
@@ -163,9 +163,9 @@ CH 다운그레이드가 포맷 때문에 막힐 수 있으므로(§3), EBS-firs
 ### 4.1 EBS 스냅샷 → 롤백 경로 `✓⁽AWS⁾`
 
 - EBS 스냅샷은 **시점(point-in-time) 증분 백업**이다(첫 스냅샷만 full, 이후 델타). "위험한 배포 직전 스냅샷 = 깨끗한 롤백 지점".
-- **정합성**: 스냅샷은 비동기(생성 즉시 시작, pending 동안 S3로 전송). AWS는 완전 정합 스냅샷을 원하면 스냅샷 전 볼륨 쓰기를 멈추라고 권고한다. CH는 롤링 중 해당 replica를 어차피 순차 정지하므로, **그 replica가 stop된 상태에서 스냅샷**을 뜨면 정합성이 좋다 `≈`.
+- **정합성**: 스냅샷은 비동기(생성 즉시 시작, pending 동안 S3로 전송). AWS는 완전 정합 스냅샷을 원하면 스냅샷 전 볼륨 쓰기를 멈추라고 권고합니다. CH는 롤링 중 해당 replica를 어차피 순차 정지하므로, **그 replica가 stop된 상태에서 스냅샷**을 뜨면 정합성이 좋습니다 `≈`.
 - **복원**: 스냅샷에서 새 gp3 볼륨을 만들고(`create-volume --snapshot-id <id> --volume-type gp3`) PV/PVC를 교체해 그 시점 상태로 되돌립니다.
-- **replica 병렬성 활용**: RF2/RF3라 한 replica씩 업그레이드하므로, "한 replica 스냅샷 → 업그레이드 → 실패 시 그 replica만 스냅샷 복원 → 나머지 healthy replica에서 [델타 catch-up]({{< relref "04-operator-topology-downtime.md" >}})"이 성립한다 `≈`.
+- **replica 병렬성 활용**: RF2/RF3라 한 replica씩 업그레이드하므로, "한 replica 스냅샷 → 업그레이드 → 실패 시 그 replica만 스냅샷 복원 → 나머지 healthy replica에서 [델타 catch-up]({{< relref "04-operator-topology-downtime.md" >}})"이 성립합니다 `≈`.
 
 {{< seq src="_seq/4-1-ebs-스냅샷-롤백-경로.json" />}}
 

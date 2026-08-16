@@ -8,7 +8,7 @@ aliases: ["/k8s-features/karpenter/02-generation-preference/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- **GA 해법은 NodePool을 쪼개고 `spec.weight`를 주는 것이다.** weight는 가격보다 **먼저** 적용된다 — NodePool을 고르는 코드 경로(`scheduler.go` `addToNewNodeClaim`)에는 가격 비교가 아예 없다. `grep -ic price scheduler.go` → **0건**.
+- **GA 해법은 NodePool을 쪼개고 `spec.weight`를 주는 것입니다.** weight는 가격보다 **먼저** 적용됩니다 — NodePool을 고르는 코드 경로(`scheduler.go` `addToNewNodeClaim`)에는 가격 비교가 아예 없습니다. `grep -ic price scheduler.go` → **0건**.
 - 동작을 정확히 말하면 **"위에서부터 순차 시도"가 아닙니다.** NodeClaimTemplate들이 **병렬로 시뮬레이션**되고 뮤텍스 아래에서 **성공한 것 중 인덱스가 가장 앞선(=weight 최고) 것**만 채택됩니다.
 - **파드 쪽에는 아무것도 걸지 않는다.** nodeSelector/affinity는 불필요하고 오히려 `karpenter.sh/nodepool` 셀렉터를 걸면 weight가 통째로 무시된다(테스트가 못박음).
 - **NodeOverlay `priceAdjustment`는 알파다.** feature gate `NodeOverlay`가 **기본 false**다. 세대 선호를 실제로 만드는 건 provider-aws가 EC2 Fleet 전략을 `prioritized`로 바꾸는 지점인데 — 거기에 **확인 못 한 구멍이 둘** 있다(정수 Priority 규정, 단일 CreateFleet 내 폴백 미보장).
@@ -160,7 +160,7 @@ NodeOverlay=false,StaticCapacity=false,CapacityBuffer=false
 
 - **feature gate `NodeOverlay`는 기본 false**(`options.go:134`). helm은 `settings.featureGates.nodeOverlay=true`로 켠다 — **이 helm 키는 provider-aws 차트 문서 기준이며 코어 체크아웃(`charts/` 없음)으로는 재확인하지 못했다 — 확인 필요.** 안 켜면 `overlay/cloudprovider.go:48`에서 `ApplyAll` 자체를 건너뛰어 **에러 없이 조용히 무시됩니다.**
 - **provider-aws ≥ v1.7.0.** 코어 CRD 도입 커밋 `218cca8f`의 최초 태그가 v1.7.0이고 provider-aws v1.7.0 릴리스 노트에 *"Add Node Overlay Support (#8305)"*가 있습니다. v1.6.x에는 없습니다.
-- **CRD `nodeoverlays.karpenter.sh` 필요** — `karpenter-crd` 차트에 동봉된다고 하므로 정상 경로는 `helm upgrade karpenter-crd`지만 **이 역시 provider-aws 차트 문서 기준이라 코어 체크아웃으로는 재확인하지 못했다 — 확인 필요.**
+- **CRD `nodeoverlays.karpenter.sh` 필요** — `karpenter-crd` 차트에 동봉된다고 하므로 정상 경로는 `helm upgrade karpenter-crd`지만 **이 역시 provider-aws 차트 문서 기준이라 코어 체크아웃으로는 재확인하지 못했습니다 — 확인 필요.**
 - **배선은 코어가 아니라 provider가 한다** — 코어의 `overlay.Decorate` 호출부는 `kwok/main.go` 하나뿐이고 실제 배선은 provider-aws `cmd/controller/main.go:44-45`가 수행합니다. "코어에 기능이 있다"와 "동작한다" 사이에 버전 의존이 한 겹 더 있습니다.
 - **게이트를 켜는 순간 공백이 생긴다.** 오버레이 평가가 끝나기 전의 NodePool은 `UnevaluatedNodePoolError`로 프로비저닝·disruption 양쪽에서 통째로 스킵된다(`provisioner.go:295-298` `"skipping, awaiting nodeoverlay evaluation"`).
 - 정기 재조정은 **6시간 주기**(`controller.go:140`). 오버레이/NodePool/NodeClass 변경은 watch로 즉시 반영되지만 `GenerationChangedPredicate`를 쓰므로 status만 바뀌면 재조정되지 않습니다.
@@ -195,7 +195,7 @@ A의 폴백은 ICE 왕복 이후 3분간은 즉시 gen7로 갑니다 — 오퍼�
 ### A를 고르는 이유 세 가지
 
 1. **결정성이 코어 안에서 닫힙니다.** A는 gen8 풀의 요청에 8세대 타입만 실어 보내므로 EC2가 세대를 고를 여지 자체가 없습니다. B는 마지막 결정을 `prioritized` 해석에 맡기는데 거기에 §2.4의 미검증 구멍이 둘 있습니다.
-2. **알파를 회피합니다.** B는 `v1alpha1` + 기본 OFF 게이트 + provider 버전 의존 + 게이트 활성화 시의 평가 공백이 한 세트입니다. 프로덕션 노드 프로비저닝 경로에 이 조합을 얹을 이유가 약하입니다.
+2. **알파를 회피합니다.** B는 `v1alpha1` + 기본 OFF 게이트 + provider 버전 의존 + 게이트 활성화 시의 평가 공백이 한 세트입니다. 프로덕션 노드 프로비저닝 경로에 이 조합을 얹을 이유가 약합니다.
 3. **A의 최대 약점은 실제로는 좁다.** "consolidation이 gen8을 gen7로 다운그레이드한다"는 우려가 있지만 대체안 시뮬레이션도 같은 weight 정렬 스케줄러를 쓰므로(`disruption/helpers.go:113`) 평상시엔 gen8 풀에서 대체안이 나오고 `launchPrice < maxPrice`(strict 부등호)에 걸려 탈락한다. **크로스 풀 다운그레이드는 gen8 풀이 스케줄에 실패할 때만 일어난다. 그건 정확히 gen7을 원하는 상황이다.** 상세는 [06]({{< relref "06-consolidation-traps.md" >}}).
 
 ### B가 A보다 나은 유일한 지점

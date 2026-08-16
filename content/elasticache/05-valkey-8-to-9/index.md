@@ -7,19 +7,19 @@ weight: 5
 
 {{< callout type="info" >}}
 **한눈에**
-- **Valkey 는 이름만 바꾼 Redis 7.2 가 아니다.** 8.0 에서 네트워크 스레딩(`src/io_threads.c` 신설)과 full sync 프로토콜(`capa dual-channel`)이, 8.1 에서 키 저장 자료구조(`src/hashtable.c` 신설)가 교체됐다. Redis 는 8.10.0 트리에도 `hashtable.c` 가 **없다** — `dict.c` + `no_value=1` 이다 `✓`.
-- **8.0 의 async I/O 스레딩은 6.0 threaded I/O 를 통째로 교체한 결과다.** lock-free ring buffer(잡 2048개 고정) 기반 비동기 잡 큐로 바뀌고, read/parse/write 를 넘어 **poll-wait · command lookup · 메모리 free** 까지 워커로 넘어갔다 `✓`.
-- **그래도 기본값은 `io-threads 1`(비활성)입니다.** 8.0/8.1 에서는 `IMMUTABLE_CONFIG` 라 재시작 없이 켤 수도 없고, 런타임 변경은 **9.0 부터**다 `✓`. "올렸는데 안 빨라진다"의 1차 원인이 이것입니다.
-- **dual channel replication 은 기본 `no`** 다(8.0·8.1 모두). Redis 의 대응물 `repl-rdb-channel` 은 기본 on 이고 **와이어 문자열이 달라 서로 붙지 않는다** — Redis primary ↔ Valkey replica 를 섞으면 이 경로는 조용히 레거시 단일 채널로 폴백한다 `✓`.
-- **8.1 은 재시작만으로 키당 20~30바이트를 회수한다.** 64바이트(= 캐시라인 1개) 버킷에 엔트리 7개를 담는 새 hashtable 로 `kvstore` 백엔드를 갈아끼웠다. 설정 변경이 없는 순수 이득이지만 `MEMORY USAGE`·`INFO memory` 절대값이 바뀌므로 알림 임계값 재보정이 필요하다 `✓`.
-- **RDB 포맷은 9.0 에서 영구히 갈라졌다** — `RDB_VERSION 11` → **80**, magic `REDIS0011` → **`VALKEY080`**. 12~79 는 Redis 비-OSS 포맷용으로 **예약해 거부**한다. Redis **7.4 이상에서 만든 RDB·DUMP 페이로드는 Valkey 가 받지 않고, 우회 방법이 없다** `✓`.
-- **9.0 은 breaking change 섹션이 없는 major 다.** 커맨드 제거 0건, 설정 제거 0건, behavior change 3건. 오히려 25개 커맨드의 deprecation 을 되돌렸다. 실질적 breaking 은 RDB 버전 하나다 `✓`.
-- **2026-07-21 의 7.2.14 / 8.0.10 / 8.1.9 / 9.0.5 / 9.1.1 동시 릴리스는 보안 릴리스다** — CVE-2026-56684(TLS use-after-free, CVSS 7.5) · CVE-2026-63639(stream PEL use-after-free, CVSS 8.8, **모든 버전 영향**) `✓`.
+- **Valkey 는 이름만 바꾼 Redis 7.2 가 아닙니다.** 8.0 에서 네트워크 스레딩(`src/io_threads.c` 신설)과 full sync 프로토콜(`capa dual-channel`)이, 8.1 에서 키 저장 자료구조(`src/hashtable.c` 신설)가 교체됐습니다. Redis 는 8.10.0 트리에도 `hashtable.c` 가 **없습니다** — `dict.c` + `no_value=1` 입니다 `✓`.
+- **8.0 의 async I/O 스레딩은 6.0 threaded I/O 를 통째로 교체한 결과입니다.** lock-free ring buffer(잡 2048개 고정) 기반 비동기 잡 큐로 바뀌고, read/parse/write 를 넘어 **poll-wait · command lookup · 메모리 free** 까지 워커로 넘어갔습니다 `✓`.
+- **그래도 기본값은 `io-threads 1`(비활성)입니다.** 8.0/8.1 에서는 `IMMUTABLE_CONFIG` 라 재시작 없이 켤 수도 없고, 런타임 변경은 **9.0 부터**입니다 `✓`. "올렸는데 안 빨라진다"의 1차 원인이 이것입니다.
+- **dual channel replication 은 기본 `no`** 입니다(8.0·8.1 모두). Redis 의 대응물 `repl-rdb-channel` 은 기본 on 이고 **와이어 문자열이 달라 서로 붙지 않습니다** — Redis primary ↔ Valkey replica 를 섞으면 이 경로는 조용히 레거시 단일 채널로 폴백합니다 `✓`.
+- **8.1 은 재시작만으로 키당 20~30바이트를 회수합니다.** 64바이트(= 캐시라인 1개) 버킷에 엔트리 7개를 담는 새 hashtable 로 `kvstore` 백엔드를 갈아끼웠습니다. 설정 변경이 없는 순수 이득이지만 `MEMORY USAGE`·`INFO memory` 절대값이 바뀌므로 알림 임계값 재보정이 필요합니다 `✓`.
+- **RDB 포맷은 9.0 에서 영구히 갈라졌습니다** — `RDB_VERSION 11` → **80**, magic `REDIS0011` → **`VALKEY080`**. 12~79 는 Redis 비-OSS 포맷용으로 **예약해 거부**합니다. Redis **7.4 이상에서 만든 RDB·DUMP 페이로드는 Valkey 가 받지 않고, 우회 방법이 없습니다** `✓`.
+- **9.0 은 breaking change 섹션이 없는 major 입니다.** 커맨드 제거 0건, 설정 제거 0건, behavior change 3건. 오히려 25개 커맨드의 deprecation 을 되돌렸습니다. 실질적 breaking 은 RDB 버전 하나입니다 `✓`.
+- **2026-07-21 의 7.2.14 / 8.0.10 / 8.1.9 / 9.0.5 / 9.1.1 동시 릴리스는 보안 릴리스입니다** — CVE-2026-56684(TLS use-after-free, CVSS 7.5) · CVE-2026-63639(stream PEL use-after-free, CVSS 8.8, **모든 버전 영향**) `✓`.
 {{< /callout >}}
 
 > **왜 이 문서인가.** "Valkey = 리브랜딩된 Redis 7.2" 를 전제로 깔면 튜닝 가이드·모니터링 쿼리·마이그레이션 계획이 전부 어긋납니다. 스레드 수를 올려도 안 빨라지고, 빠른 full sync 는 켜지지 않고, Redis 7.4 에서 뜬 RDB 를 올리면 `Can't handle RDB format version 12` 로 거절당합니다. 이 문서는 그 어긋남을 **설정 이름·기본값·소스 경로**로 확정합니다.
 
-> 근거 기준: 로컬 blobless 클론 `~/evejuni/valkey`·`~/evejuni/redis` 의 태그별 소스(`git show <tag>:<path>`), 각 릴리스의 `RELEASENOTES-*.txt`, GitHub PR·릴리스·security advisory, valkey.io 공식 문서·블로그. **릴리스일은 GitHub `published_at`** 기준이며 기준일은 2026-08-05 다. 성능 수치는 발행 주체가 프로젝트 자신이므로 전부 `Ⓥ` 로 표기하고 측정 조건을 병기합니다.
+> 근거 기준: 로컬 blobless 클론 `~/evejuni/valkey`·`~/evejuni/redis` 의 태그별 소스(`git show <tag>:<path>`), 각 릴리스의 `RELEASENOTES-*.txt`, GitHub PR·릴리스·security advisory, valkey.io 공식 문서·블로그. **릴리스일은 GitHub `published_at`** 기준이며 기준일은 2026-08-05 입니다. 성능 수치는 발행 주체가 프로젝트 자신이므로 전부 `Ⓥ` 로 표기하고 측정 조건을 병기합니다.
 
 ## 1. 한눈에 — 네 릴리스가 각각 무엇을 갈라놨나
 
@@ -277,12 +277,12 @@ Redis 는 같은 기능을 **7.4.0(2024-07-29)** 에 냈습니다 — Valkey 가
 
 동시 릴리스의 성격은 **보안**이고 두 건입니다 `✓`.
 
-- **CVE-2026-56684** (GHSA-53mc-f3m3-99vh, CVSS 3.1 **7.5**, CWE-416) — TLS 커넥션 처리의 use-after-free. "읽을 데이터가 남은 커넥션" 목록을 처리하는 중 한 커넥션이 닫히면 방금 해제된 다른 커넥션의 메모리에 접근할 수 있다. 트리거는 **인증된 클라이언트가 `CLIENT KILL` 등으로 커넥션을 닫는 동안** 다른 TLS 커넥션에 버퍼된 데이터가 남아 있는 상황이고 heap grooming 으로 RCE 가 가능하다. **TLS 를 켠 배포만 영향**이며 완화책은 `ACL SETUSER <user> -client` / TLS 미사용 / 네트워크 격리 — **완전한 우회책은 없다**(수정 PR #4234).
-- **CVE-2026-63639** (GHSA-mvcj-73cw-22m4, CVSS 3.1 **8.8**) — 인증된 사용자가 조작한 `RESTORE` 로 **중복 PEL(Pending Entry List) 할당**이 든 malformed payload 를 주입하면 stream consumer group 역직렬화 또는 consumer 삭제 중 use-after-free 가 나고 RCE 로 이어질 수 있다. advisory 원문은 **"The problem exists in all versions of Valkey"** 다. 완화책은 ACL 로 `RESTORE` 차단 또는 conf 에서 disable/rename(수정 PR #4073).
+- **CVE-2026-56684** (GHSA-53mc-f3m3-99vh, CVSS 3.1 **7.5**, CWE-416) — TLS 커넥션 처리의 use-after-free. "읽을 데이터가 남은 커넥션" 목록을 처리하는 중 한 커넥션이 닫히면 방금 해제된 다른 커넥션의 메모리에 접근할 수 있습니다. 트리거는 **인증된 클라이언트가 `CLIENT KILL` 등으로 커넥션을 닫는 동안** 다른 TLS 커넥션에 버퍼된 데이터가 남아 있는 상황이고 heap grooming 으로 RCE 가 가능합니다. **TLS 를 켠 배포만 영향**이며 완화책은 `ACL SETUSER <user> -client` / TLS 미사용 / 네트워크 격리 — **완전한 우회책은 없습니다**(수정 PR #4234).
+- **CVE-2026-63639** (GHSA-mvcj-73cw-22m4, CVSS 3.1 **8.8**) — 인증된 사용자가 조작한 `RESTORE` 로 **중복 PEL(Pending Entry List) 할당**이 든 malformed payload 를 주입하면 stream consumer group 역직렬화 또는 consumer 삭제 중 use-after-free 가 나고 RCE 로 이어질 수 있습니다. advisory 원문은 **"The problem exists in all versions of Valkey"** 입니다. 완화책은 ACL 로 `RESTORE` 차단 또는 conf 에서 disable/rename(수정 PR #4073).
 
 취약 범위는 `<= 9.1.0, <= 9.0.4, <= 8.1.8, <= 8.0.9, <= 7.2.13` 이고 패치 버전 문자열은 두 advisory 가 동일합니다. **`RESTORE` 를 애플리케이션에 허용했거나 TLS 를 쓰는 배포는 즉시 올려야 합니다** `Σ`.
 
-CVE 출처가 두 갈래라는 점도 알아야 합니다. Valkey 자체 GHSA 는 총 10건뿐이고, CVE-2026-23479 / 25243 / 23631 과 CVE-2025-46817 / 46818 / 46819 는 **Redis 가 GHSA 를 발행하고 Valkey 는 릴리스노트로만 고지**했습니다 — **"valkey GHSA 목록에 없다" 가 "Valkey 는 영향 없다" 를 뜻하지 않습니다.** 정본은 릴리스노트의 Security fixes 섹션입니다 `✓`.
+CVE 출처가 두 갈래라는 점도 알아야 합니다. Valkey 자체 GHSA 는 총 10건뿐이고, CVE-2026-23479 / 25243 / 23631 과 CVE-2025-46817 / 46818 / 46819 는 **Redis 가 GHSA 를 발행하고 Valkey 는 릴리스노트로만 고지**했습니다 — **"valkey GHSA 목록에 없다"가 "Valkey 는 영향 없다"를 뜻하지 않습니다.** 정본은 릴리스노트의 Security fixes 섹션입니다 `✓`.
 
 ## 7. 버전 선택과 지원 정책
 
@@ -305,7 +305,7 @@ CVE 출처가 두 갈래라는 점도 알아야 합니다. Valkey 자체 GHSA �
 
 표를 읽는 법: security 종료가 maintenance 종료와 같은 줄(9.0, 8.0)은 **그 major 의 최신 minor 가 아니기 때문**입니다. 7.2 는 7.x 의 유일·최신 minor 라 5년을 받습니다. 7.2 의 기산일이 포크 기점 7.2.4(2024-01-09)가 아니라 **Valkey 가 처음 발행한 7.2 릴리스(7.2.5)의 2024-04-16** 인 점도 주의합니다 `✓`.
 
-여기서 따라 나오는 위험이 하나 있습니다. **9.2.0 GA(목표 2026-11-15, 이슈 #4218)가 나오면 9.1 이 "최신 minor" 지위를 잃습니다.** 규칙을 그대로 적용하면 9.1 의 security 종료가 2031-05-19 → 2029-05-19 로 당겨집니다 — 다만 공식 문서에 "최신 minor 지위를 잃으면 5년을 되돌린다" 고 명시한 문장은 확인되지 않았습니다 `≈`/`?`. **"9.1 은 2031년까지 안전하다" 를 계획의 전제로 삼지 않는 편이 맞습니다** `Σ`.
+여기서 따라 나오는 위험이 하나 있습니다. **9.2.0 GA(목표 2026-11-15, 이슈 #4218)가 나오면 9.1 이 "최신 minor" 지위를 잃습니다.** 규칙을 그대로 적용하면 9.1 의 security 종료가 2031-05-19 → 2029-05-19 로 당겨집니다 — 다만 공식 문서에 "최신 minor 지위를 잃으면 5년을 되돌린다"고 명시한 문장은 확인되지 않았습니다 `≈`/`?`. **"9.1 은 2031년까지 안전하다"를 계획의 전제로 삼지 않는 편이 맞습니다** `Σ`.
 
 케이던스는 "안정 major 를 연 1회, minor 는 필요에 따라 최소 연 1회" 이고, 버저닝이 보호하는 API 계약을 7개로 명시합니다 — 커맨드, Lua 에서 실행 가능한 함수·API, **RDB 버전**, **replication 프로토콜**, **cluster node 프로토콜**, Module API, AOF 디스크 포맷 `✓`. 9.0 이 RDB 를 80 으로 올린 것은 이 계약을 major 에서 깬 정당한 행사였다는 뜻입니다.
 

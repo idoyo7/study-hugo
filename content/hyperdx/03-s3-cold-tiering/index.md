@@ -8,8 +8,8 @@ aliases: ["/hyperdx-operating/02-tiering/", "/hyperdx/operating/02-tiering/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- **이 장의 경계**: "cold를 켤 것인가"는 [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}) §6의 결정표와 운영 트랙 의사결정 가이드의 cold 축이 소유한다. 이 장은 **켠다고 결정한 뒤**의 조립을 소유한다(§0).
-- **hot = EBS `default` 디스크**(gp3/io2), **cold = S3 Standard + `cache` 디스크**(EBS 위 LRU, `max_size` 150Gi). [로컬 NVMe 예제]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})의 hot 자리를 EBS로 계승할 뿐, cold(S3) 조립은 동일하입니다.
+- **이 장의 경계**: "cold를 켤 것인가"는 [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}) §6의 결정표와 운영 트랙 의사결정 가이드의 cold 축이 소유합니다. 이 장은 **켠다고 결정한 뒤**의 조립을 소유합니다(§0).
+- **hot = EBS `default` 디스크**(gp3/io2), **cold = S3 Standard + `cache` 디스크**(EBS 위 LRU, `max_size` 150Gi). [로컬 NVMe 예제]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})의 hot 자리를 EBS로 계승할 뿐, cold(S3) 조립은 동일합니다.
 - **storage_configuration 기준 문서**: 내장 `default` + `s3`(신문법 `object_storage`) + `cache`. 정책 `rum_hot_cold`는 `move_factor=0.1`(안전판만), `prefer_not_to_merge` 미설정(기본 false 유지).
 - **이 페이지가 TTL 단일 기준 문서다**([07 용량 산정]({{< relref "07-capacity-planning.md" >}})이 이 표를 relref): `otel_logs`/`otel_traces` hot **14일**→S3→DELETE(지평 90/180/365), `otel_metrics_*` hot **30일**→S3→DELETE(180/365), **`hyperdx_sessions`는 S3에 안 내리고 hot만·DELETE 30일**.
 - **인증 = IRSA**(정적 키 금지) + `use_environment_credentials=1` + `region` 명시 + `{replica}` 경로 분리(shared-nothing 필수). **주입 = CHI `files`의 `config.d/storage_configuration.xml`**. 그 다음이 **네트워크 경로 — S3 Gateway VPC Endpoint**(무료, 없으면 NAT 처리요금이 절감액을 먹는다, §3.4).
@@ -18,7 +18,7 @@ aliases: ["/hyperdx-operating/02-tiering/", "/hyperdx/operating/02-tiering/"]
 
 [로컬 NVMe 스토리지]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})가 hot을 로컬 NVMe로 두는 전제였다면, 이 카테고리는 **hot = EBS(gp3/io2)** 전제입니다({{< relref "02-hot-storage-ebs.md" >}}). 티어링의 골격 — TTL로 오래된 part를 S3로 밀고 최근 데이터만 로컬에 둡니다 — 은 같지만, ClickHouse `storage_configuration`에서 hot 볼륨의 disk가 로컬 SC PVC가 아니라 **내장 `default` 디스크(=`/var/lib/clickhouse` = gp3/io2 PVC)** 라는 점만 다릅니다. 이 페이지는 그 hot=EBS 전제로 **복붙 가능한 storage XML·CHI 매니페스트·TTL DDL**을 조립하고, HyperDX/ClickStack이 자동 생성하는 관리 테이블(`otel_*`/`hyperdx_sessions`)에 실제로 티어링을 얹습니다. **티어링 ≠ 내구성**·zero-copy 금지·S3 lifecycle 함정의 *배경*은 이미 [클릭하우스 챕터]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})가 깊게 다뤘으므로 여기선 relref로 위임하고, EBS-first worked example의 새 각도만 팝니다.
 
-> 이 매니페스트들은 표준 ClickStack Helm 2차트가 쓰는 ClickHouse Inc. 공식 operator(ClickHouseCluster CRD)가 아니라, `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only')로 CH/Keeper를 **Altinity CHI/CHK로 분리 운영**하는 전제로 쓰였다. 이 분기의 배경은 [스택 토폴로지]({{< relref "01-stack-topology.md" >}})·[operator·다운타임]({{< relref "04-operator-topology-downtime.md" >}}) 참조. `✓`
+> 이 매니페스트들은 표준 ClickStack Helm 2차트가 쓰는 ClickHouse Inc. 공식 operator(ClickHouseCluster CRD)가 아니라, `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only')로 CH/Keeper를 **Altinity CHI/CHK로 분리 운영**하는 전제로 쓰였습니다. 이 분기의 배경은 [스택 토폴로지]({{< relref "01-stack-topology.md" >}})·[operator·다운타임]({{< relref "04-operator-topology-downtime.md" >}}) 참조. `✓`
 
 ## 0. 결정 게이트 — 이 장은 "켠다고 결정한 뒤"부터다
 
@@ -118,8 +118,8 @@ cache disk 필드 `✓`:
 ```
 
 - **볼륨 순서 = 이동 우선순위**(hot=index0 → cold=index1). TTL `TO VOLUME 'cold'`가 hot→cold로 밉니다. `✓`
-- **`prefer_not_to_merge`는 설정하지 않는다(기본 false).** true면 S3 위 작은 part가 폭증해 `TOO_MANY_PARTS`로 파국 — 병합은 hot(EBS)에서 끝내고 이동한다. `✓` 이 선택은 안정성 방어이면서 동시에 **요청 비용 방어**이기도 하다(§5.6).
-- hot 볼륨의 `default` 디스크는 데이터 VCT(gp3/io2 PVC)에 매핑되는 내장 디스크라 **별도 선언·별도 로컬 provisioner 계층이 불필요**하입니다. 이것이 로컬 NVMe 예제(별도 로컬 SC·StatefulSet 고정)와의 실질 차입니다. `✓`
+- **`prefer_not_to_merge`는 설정하지 않습니다(기본 false).** true면 S3 위 작은 part가 폭증해 `TOO_MANY_PARTS`로 파국 — 병합은 hot(EBS)에서 끝내고 이동합니다. `✓` 이 선택은 안정성 방어이면서 동시에 **요청 비용 방어**이기도 하다(§5.6).
+- hot 볼륨의 `default` 디스크는 데이터 VCT(gp3/io2 PVC)에 매핑되는 내장 디스크라 **별도 선언·별도 로컬 provisioner 계층이 불필요**합니다. 이것이 로컬 NVMe 예제(별도 로컬 SC·StatefulSet 고정)와의 실질 차입니다. `✓`
 - hot 매체 자체의 산정(노드당 단일 gp3로 갈 것인가, baseline IOPS·인스턴스 EBS 파이프 천장·RAID0 기각·io2 각주)은 [hot 스토리지]({{< relref "02-hot-storage-ebs.md" >}})가 기준 문서다 — 이 장은 그 결론인 `default` 디스크를 hot 볼륨으로 받아 쓰기만 합니다.
 
 ### 1.3 정정 — `move_factor`는 "여유 공간 임계"다 `✓`
@@ -292,7 +292,7 @@ metadata:
 - **`region` 명시 필수** `≈`: IRSA는 STS regional endpoint 서명이 얽혀 `region` 미지정 시 서명/리다이렉트 오류가 나기 쉽다. disk XML에 `region` + `endpoint` 리전 도메인 둘 다 명시.
 - **`{replica}` 경로 분리 필수** `✓`: `metadata_type=local`은 shared-nothing이라 RF>1에서 replica들이 같은 S3 prefix를 쓰면 blob을 서로 덮어쓴다. operator 예제가 `.../s3_disk/{replica}/`인 이유.
 - **clickhouse-backup의 IRSA self-assume 버그**(#798) `✓`: 백업 도구는 `AWS_ROLE_ARN`이 있으면 자기 자신을 다시 assume 시도하는 이슈가 있었다. 이는 **백업 사이드카** 얘기지 CH 서버 disk와는 별개이나, 같은 클러스터에서 백업도 IRSA로 붙일 때 `AssumeRoleARN` 미설정을 확인.
-- **CH 서버 disk에서 IRSA `use_environment_credentials` 실동작(최소 버전·필수 env·`AWS_EC2_METADATA_DISABLED` 영향)은 스테이징 실측이 필요하다** — 백업 도구 이슈는 확인됐으나 서버 disk 경로는 미실측입니다. `?`
+- **CH 서버 disk에서 IRSA `use_environment_credentials` 실동작(최소 버전·필수 env·`AWS_EC2_METADATA_DISABLED` 영향)은 스테이징 실측이 필요합니다** — 백업 도구 이슈는 확인됐으나 서버 disk 경로는 미실측입니다. `?`
 
 ### 3.4 S3 Gateway VPC Endpoint — 티어링 절감의 전제조건
 
@@ -415,7 +415,7 @@ EBS PVC 용량 ≥  hot 데이터(로그·트레이스 14일 + 메트릭·세션
               (+ 로그는 별도 log VCT 권장)
 ```
 
-- metadata 자체는 소량이나 **part 수가 많으면**(잦은 INSERT·미머지) 무시 못 한다 — 정량은 워크로드 의존이라 스테이징 실측이 필요하다 `?`. 로컬 최대 소비항은 보통 `cache max_size`다.
+- metadata 자체는 소량이나 **part 수가 많으면**(잦은 INSERT·미머지) 무시 못 합니다 — 정량은 워크로드 의존이라 스테이징 실측이 필요합니다 `?`. 로컬 최대 소비항은 보통 `cache max_size`다.
 - 이 항들을 hot 데이터량과 함께 EBS 사이징에 명시하는 것은 [용량 산정]({{< relref "07-capacity-planning.md" >}})의 몫입니다.
 
 ### 5.2 S3 lifecycle → Glacier/IA 전환 금지 `✓`
@@ -430,7 +430,7 @@ RF2에서 "S3에 사본 1벌로 줄이자"는 유혹이 생기지만 zero-copy�
 
 ### 5.4 cold 쿼리 지연 = 캐시 미스 `✓`
 
-- cold(S3) part를 처음 조회하면 캐시 미스 → S3 왕복(수십~수백 ms). `cache_on_write_operations=1`로 **이동 시점에 프리페치**하면 첫 조회를 완화한다. 대시보드가 자주 긁는 기간은 hot 창에 포함시키는 것이 근본책.
+- cold(S3) part를 처음 조회하면 캐시 미스 → S3 왕복(수십~수백 ms). `cache_on_write_operations=1`로 **이동 시점에 프리페치**하면 첫 조회를 완화합니다. 대시보드가 자주 긁는 기간은 hot 창에 포함시키는 것이 근본책.
 - hot·cold가 **같은 CH 서버**에 붙어 한 쿼리가 두 티어를 투명 횡단한다 → 컴퓨트 격리가 없다(OpenSearch UltraWarm 전용 노드와 다름). cold full-scan이 hot 쿼리 리소스를 잠식할 수 있습니다. `✓`
 
 ### 5.5 사본 경제와 내구성 — cold도 RF배수, 티어링은 내구성이 아니다 `✓`

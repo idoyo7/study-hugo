@@ -13,7 +13,7 @@ weight: 6
 - **카디널리티는 공짜가 아니다** — Telemetry API로 태그를 정리·집약해 관리합니다.
 {{< /callout >}}
 
-> **왜 이 이야기.** 메시를 얹기 전에는 서비스마다 지표가 제각각이었습니다. 어떤 팀은 요청 수를 내보내고, 어떤 팀은 안 내보내고, 라벨 이름도 서비스마다 달랐습니다. Istio를 얹자 **모든 서비스가 동일한 스키마의 골든 시그널을 앱 코드 수정 없이** 뿜기 시작했다 — 사이드카가 이미 모든 요청을 보고 있으니 공짜입니다. 이 문서는 메시가 주는 관측성의 세 축(메트릭·액세스 로그·트레이싱)과, 그 "공짜"의 한계·비용을 정리합니다.
+> **왜 이 이야기.** 메시를 얹기 전에는 서비스마다 지표가 제각각이었습니다. 어떤 팀은 요청 수를 내보내고, 어떤 팀은 안 내보내고, 라벨 이름도 서비스마다 달랐습니다. Istio를 얹자 **모든 서비스가 동일한 스키마의 골든 시그널을 앱 코드 수정 없이** 뿜기 시작했습니다 — 사이드카가 이미 모든 요청을 보고 있으니 공짜입니다. 이 문서는 메시가 주는 관측성의 세 축(메트릭·액세스 로그·트레이싱)과, 그 "공짜"의 한계·비용을 정리합니다.
 
 > 관련 문서: [02 컨트롤 플레인 지표]({{< relref "02-istiod-control-plane.md" >}})(istiod 쪽 지표는 그쪽) · [05 장애 추적]({{< relref "05-incident-intermittent-5xx.md" >}})(response_flags) · 저장/카디널리티는 [VictoriaMetrics]({{< relref "../monitoring/victoriametrics/_index.md" >}}), 로그 목적지는 [로깅]({{< relref "../logging/_index.md" >}}).
 
@@ -59,7 +59,7 @@ Istio가 내보내는 핵심 프록시 메트릭은 다음과 같습니다. 이�
 메트릭이 집계라면, 액세스 로그는 개별 요청의 기록입니다. Istio 액세스 로그의 결정적 필드가 **`%RESPONSE_FLAGS%`** — 05에서 5xx의 홉과 원인을 가르는 그 두세 글자입니다. 표준 포맷에는 응답코드·지연·업스트림 호스트·요청 ID가 함께 찍힙니다.
 
 - **켜고 끄기** — 메시 전역(`meshConfig.accessLogFile: /dev/stdout`)으로 켜거나, **Telemetry API**로 네임스페이스·워크로드 단위로 세밀하게 제어합니다. 전량 로깅은 비싸므로 보통 게이트웨이·핵심 서비스에 집중하거나 샘플링합니다.
-- **어디로 보내나** — Envoy stdout으로 나온 로그를 로그 파이프라인이 수집한다. 이 로그를 어느 저장소에 쌓을지가 [로깅 챕터]({{< relref "../logging/_index.md" >}})의 결정과 직결된다(istio 액세스 로그 → VictoriaLogs 등).
+- **어디로 보내나** — Envoy stdout으로 나온 로그를 로그 파이프라인이 수집합니다. 이 로그를 어느 저장소에 쌓을지가 [로깅 챕터]({{< relref "../logging/_index.md" >}})의 결정과 직결됩니다(istio 액세스 로그 → VictoriaLogs 등).
 
 ## 3) 분산 트레이싱 — "공짜"의 명확한 한계
 
@@ -80,7 +80,7 @@ Istio가 내보내는 핵심 프록시 메트릭은 다음과 같습니다. 이�
 
 - `destination_service` × `source_workload` × `response_code` × … 의 조합이 곱해지며 시계열이 폭증할 수 있습니다.
 - 특히 **커스텀 라벨에 高카디널리티 값**(요청 경로 원문, user id 등)을 넣으면 저장이 터집니다. Istio가 기본적으로 raw path를 라벨에 안 넣는 이유입니다.
-- 대응: **Telemetry API로 불필요한 태그를 제거·집약**하고, 저장 계층에서 카디널리티를 관리한다. → [VictoriaMetrics 카디널리티]({{< relref "../monitoring/victoriametrics/practice/01-cardinality.md" >}})와 정확히 같은 원칙이다("자주 바뀌는 값은 라벨이 아니라 로그·트레이스로").
+- 대응: **Telemetry API로 불필요한 태그를 제거·집약**하고, 저장 계층에서 카디널리티를 관리합니다. → [VictoriaMetrics 카디널리티]({{< relref "../monitoring/victoriametrics/practice/01-cardinality.md" >}})와 정확히 같은 원칙입니다("자주 바뀌는 값은 라벨이 아니라 로그·트레이스로").
 
 ## 커스터마이징 — Telemetry API
 

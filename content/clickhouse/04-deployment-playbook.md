@@ -293,9 +293,9 @@ replica를 2~3벌 두는 것만으로는 부족합니다 — 그 사본들이 **
 | AZ topology spread | `ShardAntiAffinity`(zone) + `topologySpreadConstraints` | 같은 shard replica의 **AZ 몰림** |
 | PDB | `pdbMaxUnavailable: 1` | **자발적** 중단이 같은 shard 2대를 동시에 내림 |
 
-- **hostname anti-affinity의 인과**: 같은 shard의 replica가 한 노드에 co-locate되면 그 노드 장애가 shard 전멸로 번진다 — 상세 인과는 [Altinity operator]({{< relref "03-operator.md" >}}) 참고.
-- **AZ spread의 인과**: 각 shard의 replica가 서로 다른 AZ에 흩어져 있으면 AZ 하나가 통째로 죽어도 모든 shard가 최소 1사본을 다른 AZ에 남겨 클러스터가 산다. spread가 없으면 스케줄러가 한 shard의 replica들을 같은 AZ에 몰 수 있어 **AZ 1개 소실 = 그 shard 전멸**이다. 단 RF2를 3 AZ에 펴면 AZ 1개가 죽는 순간 **모든 shard가 동시에 RF1로 하락** — 전 클러스터가 한꺼번에 [재수화 위험 창]({{< relref "02-storage-local-nvme.md" >}})에 진입한다. "AZ 장애까지 무손실 생존"이 요구면 RF3 여지를 함께 본다(위 'RF 선택' 절).
-- **PDB가 막는 것은 자발적 중단뿐**: drain·롤링 업그레이드·Karpenter consolidation 세 vector가 같은 shard 2대를 동시에 내리는 것을 `maxUnavailable: 1`이 직렬화로 막는다. operator 자동 PDB는 `clusters[].layout`이 만든 host(=replica) 라벨 셀렉터를 대상으로 잡으므로, RF2 shard에서 "동시 1대만 down"이 실제 shard 단위로 보장되는지 배포 후 `kubectl get pdb -o yaml`로 셀렉터 범위를 확인한다 `?`. 다만 PDB는 **시간차 독립 하드웨어 장애의 2차 타격**까지는 못 막는다 — 그 방어는 RF3다(위 'RF 선택' 절).
+- **hostname anti-affinity의 인과**: 같은 shard의 replica가 한 노드에 co-locate되면 그 노드 장애가 shard 전멸로 번집니다 — 상세 인과는 [Altinity operator]({{< relref "03-operator.md" >}}) 참고.
+- **AZ spread의 인과**: 각 shard의 replica가 서로 다른 AZ에 흩어져 있으면 AZ 하나가 통째로 죽어도 모든 shard가 최소 1사본을 다른 AZ에 남겨 클러스터가 삽니다. spread가 없으면 스케줄러가 한 shard의 replica들을 같은 AZ에 몰 수 있어 **AZ 1개 소실 = 그 shard 전멸**입니다. 단 RF2를 3 AZ에 펴면 AZ 1개가 죽는 순간 **모든 shard가 동시에 RF1로 하락** — 전 클러스터가 한꺼번에 [재수화 위험 창]({{< relref "02-storage-local-nvme.md" >}})에 진입합니다. "AZ 장애까지 무손실 생존"이 요구면 RF3 여지를 함께 봅니다(위 'RF 선택' 절).
+- **PDB가 막는 것은 자발적 중단뿐**: drain·롤링 업그레이드·Karpenter consolidation 세 vector가 같은 shard 2대를 동시에 내리는 것을 `maxUnavailable: 1`이 직렬화로 막습니다. operator 자동 PDB는 `clusters[].layout`이 만든 host(=replica) 라벨 셀렉터를 대상으로 잡으므로, RF2 shard에서 "동시 1대만 down"이 실제 shard 단위로 보장되는지 배포 후 `kubectl get pdb -o yaml`로 셀렉터 범위를 확인합니다 `?`. 다만 PDB는 **시간차 독립 하드웨어 장애의 2차 타격**까지는 못 막습니다 — 그 방어는 RF3입니다(위 'RF 선택' 절).
 
 ### 데이터/로그 볼륨 분리와 storageManagement
 
@@ -304,7 +304,7 @@ replica를 2~3벌 두는 것만으로는 부족합니다 — 그 사본들이 **
 **storageManagement** `✓`:
 
 - **`provisioner`**(값: `StatefulSet`(기본) | `Operator`) — 로컬 NVMe 권고는 **`StatefulSet`**. `Operator`는 CSI `allowVolumeExpansion` 환경에서 파드 재시작 없이 온라인 확장할 때만 쓰며, 로컬 NVMe는 물리적으로 확장 불가라 이점이 없습니다.
-- **`reclaimPolicy`**(값: `Retain` | `Delete`(기본)) — 로컬 NVMe 권고는 **`Retain`**. STS/CHI 삭제·`helm uninstall`에도 PVC가 잔존해 실수 삭제를 방어한다. `stop: 1`은 Replicas=0으로 만들되 PVC는 intact.
+- **`reclaimPolicy`**(값: `Retain` | `Delete`(기본)) — 로컬 NVMe 권고는 **`Retain`**. STS/CHI 삭제·`helm uninstall`에도 PVC가 잔존해 실수 삭제를 방어합니다. `stop: 1`은 Replicas=0으로 만들되 PVC는 intact.
 
 {{< callout type="warning" >}}
 **주의**: `Operator` provisioner + VCT 크기 변경 시 과거 데이터 손실 회귀(#1385/#457)가 있었습니다. 확장은 스테이징 검증 후에만 `✓`.

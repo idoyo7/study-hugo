@@ -9,7 +9,7 @@ aliases: ["/monitoring/victoriametrics/02-architecture/"]
 {{< callout type="info" >}}
 **한눈에**
 - VM 클러스터는 **vmagent(수집) → vminsert(라우팅·샤딩) → vmstorage(저장, n노드) → vmselect(fanout+merge 쿼리)** 4컴포넌트로 흐릅니다.
-- **SingleNode**(간편, SPOF)와 **Cluster**(수평확장, `replicationFactor`로 유실 방지) 두 배포 모드 — vminsert/vmselect는 stateless라 k8s에, vmstorage는 stateful이라 물리 장비에 두는 편이 유리하입니다.
+- **SingleNode**(간편, SPOF)와 **Cluster**(수평확장, `replicationFactor`로 유실 방지) 두 배포 모드 — vminsert/vmselect는 stateless라 k8s에, vmstorage는 stateful이라 물리 장비에 두는 편이 유리합니다.
 - 대용량 write/read를 동시에 만족시키는 자료구조가 **LSM 트리**(append로 빠른 write, 정렬 유지로 빠른 read, merge는 백그라운드) — VM의 파티션 구조가 이 구체화입니다.
 - **IndexDB**(거의 불변, 지표이름+레이블 역색인)와 **DataDB**(TSID → timestamp+value, 계속 쌓임) 분리가 정규화로 압축 효율을 극대화합니다.
 {{< /callout >}}
@@ -26,10 +26,10 @@ VM 클러스터 버전은 4개의 핵심 컴포넌트로 구성됩니다. 대규
 
 한 줄 역할 요약:
 
-- **vmagent** — 타깃에서 지표를 스크랩하고 1차 가공(릴레이블, 드랍 등)을 담당하는 수집 컴포넌트다. → [03 수집]({{< relref "03-ingestion.md" >}})
-- **vminsert** — 받은 데이터를 여러 vmstorage 노드로 라우팅·샤딩하는 수집 게이트웨이다. → [03 수집]({{< relref "03-ingestion.md" >}})
-- **vmstorage** — 실제 저장을 책임진다. 월별 파티션 단위로 저장하고 vmselect의 쿼리에 응답한다. → [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}})
-- **vmselect** — 쿼리 엔진. 쿼리를 받아 모든 vmstorage에 던지고(Fanout), 돌아온 결과를 모아(Merge) 클라이언트에 반환한다. → [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}})
+- **vmagent** — 타깃에서 지표를 스크랩하고 1차 가공(릴레이블, 드랍 등)을 담당하는 수집 컴포넌트입니다. → [03 수집]({{< relref "03-ingestion.md" >}})
+- **vminsert** — 받은 데이터를 여러 vmstorage 노드로 라우팅·샤딩하는 수집 게이트웨이입니다. → [03 수집]({{< relref "03-ingestion.md" >}})
+- **vmstorage** — 실제 저장을 책임집니다. 월별 파티션 단위로 저장하고 vmselect의 쿼리에 응답합니다. → [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}})
+- **vmselect** — 쿼리 엔진. 쿼리를 받아 모든 vmstorage에 던지고(Fanout), 돌아온 결과를 모아(Merge) 클라이언트에 반환합니다. → [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}})
 
 여기에 운영용 컴포넌트인 **vmalert**(지표 선계산)와 **vmauth**(라우팅/인증 게이트웨이)가 더해집니다. 이 둘은 [05 쿼리·운영 컴포넌트]({{< relref "05-query-and-ops-components.md" >}})에서 다룹니다.
 
@@ -40,13 +40,13 @@ VM에는 두 가지 배포 모드가 있습니다. 네이버 검색 SRE도 처�
 **SingleNode**
 
 - **구성** — 바이너리 파일 하나로 모든 기능을 제공합니다.
-- **장점** — 구축·사용이 간편하입니다. VM 자체 최적화로 Prometheus보다 빠른 성능을 체감합니다.
-- **단점** — 수천만 개 이상으로 늘면 단일 장비로 감당이 안 된다. 단일 장비가 **SPOF**(단일 장애점)다.
+- **장점** — 구축·사용이 간편합니다. VM 자체 최적화로 Prometheus보다 빠른 성능을 체감합니다.
+- **단점** — 수천만 개 이상으로 늘면 단일 장비로 감당이 안 됩니다. 단일 장비가 **SPOF**(단일 장애점)입니다.
 
 **Cluster**
 
 - **구성** — write/read/storage 3역할을 vminsert·vmselect·vmstorage로 분리합니다.
-- **장점** — 데이터 규모에 따라 컴포넌트만 추가하면 **손쉬운 수평 확장(scale out)**이 가능하입니다. Prometheus의 최대 약점인 scale out 한계를 극복합니다. `replicationFactor`로 유실을 방지합니다.
+- **장점** — 데이터 규모에 따라 컴포넌트만 추가하면 **손쉬운 수평 확장(scale out)**이 가능합니다. Prometheus의 최대 약점인 scale out 한계를 극복합니다. `replicationFactor`로 유실을 방지합니다.
 - **단점** — 구조가 복잡하고 운영이 어렵습니다. 의존성은 Thanos·Cortex보다 적은 편입니다.
 
 운영 방식은 컴포넌트 성격에 따라 갈립니다. **Stateless** 컴포넌트인 vminsert(write)·vmselect(read)는 Kubernetes에 올려 유연하게 scale out하고, **Stateful** 컴포넌트인 vmstorage는 물리 장비에서 운영하는 편이 이점이 있습니다. 이 구성이 초대규모에서 어떻게 확장되는지는 [실전 02 대규모 운영]({{< relref "../../practice/02-operations-at-scale.md" >}})에서 다룹니다.

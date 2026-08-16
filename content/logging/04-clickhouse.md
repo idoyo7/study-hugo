@@ -7,9 +7,9 @@ weight: 4
 
 {{< callout type="info" >}}
 **한눈에**
-- 압축·저장 밀도가 이 클래스 최상급이다 — OTel 로그 벤치에서 CH 내부 압축 ~16.3x, 디스크 상 Elasticsearch 대비 ~4.95x 작음.
+- 압축·저장 밀도가 이 클래스 최상급입니다 — OTel 로그 벤치에서 CH 내부 압축 ~16.3x, 디스크 상 Elasticsearch 대비 ~4.95x 작음.
 - 분석 쿼리 성능이 뛰어나고(Uber 10x 처리량·50x aggregation) PB 스케일에서 실전 검증됐다(Trip.com 4→50PB+, Cloudflare quadrillion-row).
-- **셀프호스트 운영 부담이 실재한다** — 스키마·`ORDER BY`·TTL 설계가 상시 스킬 요구사항이고, `clickhouse-backup`의 incremental 체인은 fragile하입니다.
+- **셀프호스트 운영 부담이 실재한다** — 스키마·`ORDER BY`·TTL 설계가 상시 스킬 요구사항이고, `clickhouse-backup`의 incremental 체인은 fragile합니다.
 - **진짜 storage-compute 분리는 Cloud 전용**(SharedMergeTree)이다 — self-host는 shared-nothing이라 RF2여도 S3에서 사본이 두 배가 됩니다.
 - 우리 케이스: PLG 방치 이력이 있는 소규모 플랫폼 팀이라 **self-host CH를 1차 채택안으로 밀지 않는다** — 지배적 위험은 기술이 아니라 오너십입니다.
 {{< /callout >}}
@@ -27,7 +27,7 @@ weight: 4
   Didi는 **machine cost ~30% 절감**(2024-04 스냅샷, 엔지니어링·마이그레이션 비용 제외) `Ⓥ`, 한 crypto-derivatives 플랫폼은 OTel 통합으로 관측성 청구를 high-six-figures에서 **~$50K(약 90% 절감)** `Ⓥ`.
 - **통합 저장소 잠재력.** 로그·트레이스·이벤트를 한 스키마 계열로 다루고 SQL로 조회합니다. TTL 티어링, materialized view, AggregatingMergeTree 같은 프리미티브로 pre-aggregation·다운샘플·hot→cold 이동을 엔진 안에서 처리합니다. 로그 검색에 필요한 **풀텍스트 text index GA(2026-03)**, **native JSON GA(25.3)**도 이미 정식입니다.
 - **PB 스케일에서 실전 검증됨.** Trip.com은 **4PB→50PB+**로 성장 `Ⓥ`, Cloudflare는 quadrillion-row 스케일을 active-active로 운영. 성능·비용 방향성이 매우 큰 규모에서도 일관됩니다.
-- **넓은 생태계와 성숙한 운영 도구.** 드라이버/BI/OTel/Vector 연동이 풍부하입니다. **Altinity clickhouse-operator**는 약 7년간 사실상 표준(라인 0.27.x, 0.27.1은 2026-06-04·FIPS 지원), ClickHouse Inc.의 **공식 first-party operator**도 2026-01 등장했습니다. 조율 계층인 **ClickHouse Keeper**는 JVM/GC가 없어 ZooKeeper보다 가볍다 — Bonree는 교체로 **CPU/메모리 >75% 절감, IO·성능 ~8x** `Ⓥ`. `clickhouse-backup`, Terraform EKS blueprint 등 도구가 갖춰져 있습니다.
+- **넓은 생태계와 성숙한 운영 도구.** 드라이버/BI/OTel/Vector 연동이 풍부합니다. **Altinity clickhouse-operator**는 약 7년간 사실상 표준(라인 0.27.x, 0.27.1은 2026-06-04·FIPS 지원), ClickHouse Inc.의 **공식 first-party operator**도 2026-01 등장했습니다. 조율 계층인 **ClickHouse Keeper**는 JVM/GC가 없어 ZooKeeper보다 가볍습니다 — Bonree는 교체로 **CPU/메모리 >75% 절감, IO·성능 ~8x** `Ⓥ`. `clickhouse-backup`, Terraform EKS blueprint 등 도구가 갖춰져 있습니다.
 - **유연한 스토리지 티어링.** EBS gp3(churn 이후 생존, snapshot 용이), 로컬 NVMe(최고 throughput·최저 latency; i7ie는 노드당 최대 **120 TB**, i3en 대비 실시간 성능 ~65%↑·I/O latency ~50%↓ `Ⓥ`), TTL MOVE로 S3 콜드 티어까지 워크로드에 맞춰 조합할 수 있다. 인스턴스 패밀리 선택의 현재 권고(i8g 기본, i7i/i7ie는 대용량·x86 의존 시)는 [ClickHouse 스토리지 · 로컬 NVMe]({{< relref "../clickhouse/02-storage-local-nvme.md" >}}) 참고.
 
 ## 약점 · 한계

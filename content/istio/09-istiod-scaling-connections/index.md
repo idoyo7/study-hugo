@@ -110,7 +110,7 @@ istiod 파드 메모리 ≈ 240MB(base) + 400B × (파드당 커넥션 수 × �
 {{< callout type="important" >}}
 **이름에 속기 쉬운 것 둘**
 
-- `pilot_xds_pushes`는 성공 카운터가 **아니라 에러 카운터**다. Help 문자열이 "Pilot build and send **errors** for lds, rds, cds and eds"이고 label도 `cds_senderr`/`eds_senderr`/`lds_senderr`/`rds_senderr`다.
+- `pilot_xds_pushes`는 성공 카운터가 **아니라 에러 카운터**입니다. Help 문자열이 "Pilot build and send **errors** for lds, rds, cds and eds"이고 label도 `cds_senderr`/`eds_senderr`/`lds_senderr`/`rds_senderr`입니다.
 - `pilot_xds_write_timeout`, `pilot_total_xds_rejects`는 **현재 master 소스에 존재하지 않습니다.** 3rd-party 블로그에만 나오는 이름이니 알럿에 걸면 조용히 아무것도 안 잡습니다.
 {{< /callout >}}
 
@@ -376,7 +376,7 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 {{< callout type="important" >}}
 **GOMAXPROCS=1은 이 상황에서 최악의 조합입니다.**
 
-- **스트랜딩은 그대로 얻는다** — 스레드 17개가 여러 CPU에 흩어지는 건 GOMAXPROCS와 무관하입니다.
+- **스트랜딩은 그대로 얻는다** — 스레드 17개가 여러 CPU에 흩어지는 건 GOMAXPROCS와 무관합니다.
 - **병렬성은 잃는다** — P가 하나라 CPU-bound 작업(xDS 마샬링·직렬화)은 직렬화됩니다.
 
 즉 멀티스레드 프로세스의 좌초 표면적은 다 떠안으면서, 그 대가로 얻어야 할 병렬 처리량은 못 받습니다. "GOMAXPROCS를 낮췄으니 quota를 천천히 태울 것"이라는 직관은 성립하지 않습니다.
@@ -537,7 +537,7 @@ resources:
 - 커넥션 수 트리거는 "모든 커넥션의 비용이 일정하다"는 전제를 깔고, 그 전제는 **규모가 가장 큰 날 깨집니다.** 임계를 잡을 때 `conn × endpoints`를 같이 봐야 합니다.
 - **Istio에 커넥션 능동 재분배는 없습니다.** `keepaliveMaxServerConnectionAge` 강제 종료가 전부이고, Google 공식 권고도 레플리카 다중화 + 사전 스케일링 두 개뿐입니다.
 - 주기를 절반으로 줄이면 재연결 레이트가 **정확히 2배**가 됩니다. 지터(±10%)는 창을 넓혀줄 뿐 총량을 줄이지 않습니다.
-- CPU를 되돌리는 지렛대는 빈도가 아니라 **단가** 쪽에 있다 — `Sidecar`·`exportTo`·`discoverySelectors`로 커넥션당 config 크기를 깎는 것.
+- CPU를 되돌리는 지렛대는 빈도가 아니라 **단가** 쪽에 있습니다 — `Sidecar`·`exportTo`·`discoverySelectors`로 커넥션당 config 크기를 깎는 것.
 - **재분배 지표와 CPU 지표는 다른 순간에 튄다**(§7). CoV는 파드 20대가 죽은 09:40에 146%로 튀었지만, CPU·스로틀·`pilot_xds_push_time`은 커넥션이 3배로 불어난 스케일아웃 구간에서 더 나빴다(push p99 79배). 커넥션 분포만 보고 CPU 부하를 추정하지 말 것.
 - **평균 사용률로 CPU limit을 사이징하지 말 것**(§7). CPU 그래프는 여유로워 보이는데 (파드, 시각) 표본의 **77.2%에서 스로틀이 발생**했고 피크 분율은 30.9%였습니다. `throttled_periods / periods`를 같이 보지 않으면 이 상태는 보이지 않습니다.
 - **quota는 명목대로 다 쓰이지 않을 수 있지만, 규모를 과장하지 말 것**(§7). CFS는 quota를 CPU별 5ms 슬라이스로 넘기는데, 스레드가 잠들면 **1ms만 남기고 반환**된다(kubernetes#67577, 커널 문서의 `min_cfs_rq_runtime`). 표본의 6.5%에서만 명목 60ms로 설명이 안 됐다 — **2차 요인이지 주범이 아니다.**

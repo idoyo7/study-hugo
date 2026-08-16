@@ -121,7 +121,7 @@ AWS 공식 문서에서 애드온과 NPD의 관계를 대체 또는 보완으로
 
 - 탐지하려는 항목이 EKS 애드온 5개 카테고리 안에 들어오는지 먼저 대조합니다. 들어오면 EKS 클러스터에서 NPD의 추가 가치는 커스텀 룰로 좁혀집니다.
 - 조치 주체를 함께 정합니다. remedy system 없이 NPD만 배포하면 컨디션이 붙은 노드가 그대로 남습니다. Descheduler를 쓸 경우 `TaintNodesByCondition` 활성화 여부를 먼저 확인합니다.
-- 자체 클러스터에는 NPD + remedy system 조합이 필요하입니다. Draino는 유지보수가 멈춰 있으므로 mediK8S 또는 MachineHealthCheck 중에서 고릅니다.
+- 자체 클러스터에는 NPD + remedy system 조합이 필요합니다. Draino는 유지보수가 멈춰 있으므로 mediK8S 또는 MachineHealthCheck 중에서 고릅니다.
 - 룰 파일의 소유·배포 경로를 정합니다. `config/` JSON을 ConfigMap으로 관리합니다. 커널·systemd 로그 포맷이 노드 OS에 따라 달라지므로 AMI 변경 시 정규식 매칭을 재검증합니다.
 - Prometheus 스크레이프를 쓸지 결정합니다. 기본 바인드가 `127.0.0.1:20257`이라 그대로는 외부에서 수집되지 않습니다.
 - 리소스 한도는 문서 예시값을 출발점으로 두되 자체 노드의 로그 유입량으로 재측정합니다.

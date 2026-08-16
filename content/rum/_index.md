@@ -43,7 +43,7 @@ Datadog RUM이 **RWoL(RUM without Limits)** 재요율로 실질 ~2배 인상되�
 
 이후 조사에서 웹 코어 지표는 SDK 교체로 즉시 대체 가능하나 Frustration·Product Analytics 등 나머지 슬라이스는 CH SQL 자작이 필요하고 패키지드 ClickStack의 웹 RUM 전면 대체 전례가 아직 부재함이 확인됐습니다 → [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}}) 판정에 따라 **Wave 1에 PoC 게이트**를 추가합니다.
 
-> `≈`은 자릿수 추정으로, 실 계약 할인·트래픽으로 교정이 필요하다. 시점 기준 2026-07.
+> `≈`은 자릿수 추정으로, 실 계약 할인·트래픽으로 교정이 필요합니다. 시점 기준 2026-07.
 
 ## 문서 지도
 

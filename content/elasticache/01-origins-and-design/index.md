@@ -8,7 +8,7 @@ weight: 1
 {{< callout type="info" >}}
 **한눈에**
 - **최초 문제는 "캐시가 필요하다"가 아니라 "값이 blob 이면 안 된다"였습니다.** 첫 커밋에 동봉된 FAQ 가 프로젝트 시작 이유를 한 줄로 적는다 — `In order to scale LLOOGG.`(`redis ed9b544e1:doc/FAQ.html`) 같은 커밋의 `doc/README.html` 은 memcached 와의 차이를 자료형과 영속성 두 축으로만 설명합니다 `✓`
-- **첫 커밋(2009-03-22 `ed9b544e1`)은 캐시가 아니었습니다.** `saveDb()` 가 `.rdb` 로 쓰고 매직 `REDIS0000` 을 박고, `fork()` 기반 BGSAVE 와 `save 900 1 / save 300 10 / save 60 10000` 이 이미 있다 — 그 3줄은 6.0.0 의 기본값과 값까지 동일하입니다 `✓`
+- **첫 커밋(2009-03-22 `ed9b544e1`)은 캐시가 아니었습니다.** `saveDb()` 가 `.rdb` 로 쓰고 매직 `REDIS0000` 을 박고, `fork()` 기반 BGSAVE 와 `save 900 1 / save 300 10 / save 60 10000` 이 이미 있다 — 그 3줄은 6.0.0 의 기본값과 값까지 동일합니다 `✓`
 - **반대로 없던 것이 더 많다** — EXPIRE·hash·sorted set·AOF·epoll·RESP·MULTI·pub/sub·Lua·Cluster·`src/` 전부. 이벤트 루프는 연결 리스트 + `select(2)` 단일 구현이고 응답은 `nil\r\n`·`0\r\n` 같은 **타입 프리픽스 없는 raw 문자열**입니다 `✓`
 - **단일 스레드는 성능 최적화가 아니라 API 계약이었습니다.** "락을 지원하지 않는다, 대신 원자 프리미티브를 준다"가 day-1 문서의 답이고(`ed9b544e1:doc/README.html`), `INCR`·`LPUSH`·`SINTERSTORE` 가 별도 동기화 없이 원자인 이유가 이것뿐입니다 `Σ`
 - **MANIFESTO 는 두 판본입니다.** v1 은 2011-03-01(`be14f38de`, 7개 항목)이고 스레딩 항목이 없습니다. **`7 - Threading is not a silver bullet` 은 2019-03-18 v2(`a5af648fd`)에서 추가됐다** — 6.0.0 GA(2020-04-30)보다 약 13개월 앞서, 같은 문단이 `we may explore parallelism only for I/O, which is the low hanging fruit` 라고 예고합니다 `✓`

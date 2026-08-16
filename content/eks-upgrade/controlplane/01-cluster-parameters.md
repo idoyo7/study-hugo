@@ -8,11 +8,11 @@ weight: 1
 {{< callout type="info" >}}
 **한눈에**
 - **finance blue를 만들 때 못 박을 것 셋** — `upgradePolicy.supportType = STANDARD`(기본이 EXTENDED다), `deletionProtection = true`, 그리고 `serviceIpv4Cidr`·`ipFamily`·`bootstrapClusterCreatorAdminPermissions`. 뒤 셋은 지금 틀리면 재생성뿐입니다.
-- 최상위 29개 파라미터는 **create-only 8 · 단방향 불가역 6 · day-2 가변 15**로 갈린다(§1).
-- ⚠️ **`upgradePolicy.supportType` 기본값은 `EXTENDED`다.** 명시하지 않으면 표준지원 종료일부터 시간당 $0.60이 자동으로 붙고, 확장지원에 실제로 진입한 뒤에는 STANDARD로 못 돌아온다(§4).
-- **되돌릴 수 없는 문 넷** — `controlPlaneEgressMode`(CUSTOMER_ROUTED 진입), `encryptionConfig`(`DisassociateEncryptionConfig` API가 아예 없다), `authenticationMode`(전진만), `ipFamily`(생성 시 영구 고정)(§2).
-- Terraform은 되돌리기를 **클러스터 재생성으로 모델링**한다 — `plan`에 뜨는 `# forces replacement`는 버그가 아니라 안전장치다(§3).
-- **버전은 2026-07부터 되돌릴 수 있다**(7일 창·마이너 1단계·컨트롤 플레인만). 단 `--force`는 PDB도 어드미션 웹훅도 우회하지 않는다(§5).
+- 최상위 29개 파라미터는 **create-only 8 · 단방향 불가역 6 · day-2 가변 15**로 갈립니다(§1).
+- ⚠️ **`upgradePolicy.supportType` 기본값은 `EXTENDED`입니다.** 명시하지 않으면 표준지원 종료일부터 시간당 $0.60이 자동으로 붙고, 확장지원에 실제로 진입한 뒤에는 STANDARD로 못 돌아옵니다(§4).
+- **되돌릴 수 없는 문 넷** — `controlPlaneEgressMode`(CUSTOMER_ROUTED 진입), `encryptionConfig`(`DisassociateEncryptionConfig` API가 아예 없습니다), `authenticationMode`(전진만), `ipFamily`(생성 시 영구 고정)(§2).
+- Terraform은 되돌리기를 **클러스터 재생성으로 모델링**합니다 — `plan`에 뜨는 `# forces replacement`는 버그가 아니라 안전장치입니다(§3).
+- **버전은 2026-07부터 되돌릴 수 있습니다**(7일 창·마이너 1단계·컨트롤 플레인만). 단 `--force`는 PDB도 어드미션 웹훅도 우회하지 않습니다(§5).
 {{< /callout >}}
 
 이 페이지가 다루는 범위는 `CreateCluster`·`UpdateClusterConfig`·`UpdateClusterVersion`이 받는 **클러스터 레벨 최상위 필드**입니다. 판정하는 것은 하나뿐입니다. 그 값을 언제 정할 수 있고, 정한 뒤에 되돌릴 수 있는가. 2026-08에 새로 열린 컨트롤 플레인 컴포넌트 파라미터의 내부 동작과 튜닝 판단은 [레이어 2]({{< relref "02-component-parameters.md" >}}), 용량 축인 Provisioned Control Plane 티어는 [용량 축]({{< relref "03-provisioned-control-plane.md" >}}), 애초에 손댈 수 없는 영역은 [레이어 3]({{< relref "04-not-tunable.md" >}})이 갖습니다.

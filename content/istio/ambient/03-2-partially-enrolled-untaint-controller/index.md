@@ -212,7 +212,7 @@ untaint controller가 없애는 것은 경합의 큰 축 하나입니다. 원문
 ## 이 문서에서 가져갈 것
 
 - **Ambient에서 Pod의 Ready는 메시 준비를 뜻하지 않습니다.** `istio.io/dataplane-mode=ambient` 레이블은 의도일 뿐이고 실제 참여는 istio-cni의 netns 리다이렉션 규칙과 ztunnel의 workload 등록이 둘 다 끝나야 성립합니다.
-- 등록 상태는 `ambient.istio.io/redirection` annotation으로 판별합니다. `enabled`면 captured, `pending`이면 ztunnel이 아직 프록시하지 않는 상태입니다. annotation이 아예 없는 경우가 더 위험하다 — 트래픽이 실패하지 않고 mTLS·`AuthorizationPolicy`·telemetry를 우회한 채 성공합니다.
+- 등록 상태는 `ambient.istio.io/redirection` annotation으로 판별합니다. `enabled`면 captured, `pending`이면 ztunnel이 아직 프록시하지 않는 상태입니다. annotation이 아예 없는 경우가 더 위험합니다 — 트래픽이 실패하지 않고 mTLS·`AuthorizationPolicy`·telemetry를 우회한 채 성공합니다.
 - kube-scheduler는 DaemonSet 준비를 워크로드 스케줄링의 선행 조건으로 보장하지 않습니다. 노드 프로비저닝이 잦은 환경(오토스케일, 노드 교체)일수록 이 경합에 반복적으로 노출됩니다.
 - 해법은 사전 차단입니다. `cni.istio.io/not-ready` startup taint로 스케줄 자체를 막고 istio-cni Ready 이후 untaint-controller가 taint를 뗍니다. 재시도 로직은 존재하지만 재시도 성공 전까지의 구간은 그대로 트래픽 유실입니다.
 - 설정은 `pilot.taint.enabled`(권한·네임스페이스)와 `PILOT_ENABLE_NODE_UNTAINT_CONTROLLERS`(컨트롤러 실행) 두 손잡이가 짝이며 Istio 1.30부터는 전자가 후자를 자동 구성합니다. taint를 **붙이는 쪽은 인프라(Karpenter NodePool 등)** 이고 컨트롤러는 떼기만 합니다.

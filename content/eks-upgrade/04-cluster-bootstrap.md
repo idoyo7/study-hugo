@@ -9,7 +9,7 @@ weight: 5
 **한눈에**
 - **ArgoCD 토폴로지는 3-tier**입니다 — 허브가 워크로드 endpoint를 **하드코딩해 push**하는 tier-1과, 워크로드 자체 ArgoCD가 `kubernetes.default.svc`로 도는 tier-3이 완전히 다른 재지정 부담을 집니다.
 - **metrics-server=cluster-bootstrap의 raw manifest, kube-state-metrics=VM 스택 서브차트** — 어떤 ArgoCD 앱 스캔에도 독립 앱으로 안 잡힙니다. "누락"으로 오독하기 쉽습니다.
-- 워크로드 API endpoint가 **8개 매니페스트, 총 19곳**에 하드코딩돼 있어 클러스터를 세울 때마다 전량 교체 + cluster secret 재발급이 필요하입니다.
+- 워크로드 API endpoint가 **8개 매니페스트, 총 19곳**에 하드코딩돼 있어 클러스터를 세울 때마다 전량 교체 + cluster secret 재발급이 필요합니다.
 - 부트스트랩은 **Fargate 닭-달걀부터 service 배포까지** 하나의 마스터 순서로 흐릅니다.
 {{< /callout >}}
 

@@ -7,11 +7,11 @@ weight: 2
 
 {{< callout type="info" >}}
 **한눈에**
-- **판정: 실제 후보는 `MostAllocated` 하나**이고 그것도 blue 안정화 이후 별건이다. create 시점에는 4개 전부 기본값으로 둔다(§8).
+- **판정: 실제 후보는 `MostAllocated` 하나**이고 그것도 blue 안정화 이후 별건입니다. create 시점에는 4개 전부 기본값으로 둡니다(§8).
 - **4개가 열렸고 그중 3개는 추가 과금이 없습니다.** scoringStrategy·eventTtl·serviceNodePortRange는 **k8s 1.31+** 전 리전에서 무료로 쓸 수 있고, **HPA syncPeriod만 Provisioned Control Plane**(월 증분 **+$1,204.50**)이 전제입니다.
-- **완전 개방이 아니라 검증된 범위 안의 개방이다.** 범위 폭(HPA 5초 · eventTtl 축소 방향만 · 스케줄러 전략 2종만)이 그대로 AWS의 책임 경계 선언이다 — 업스트림 kube-controller-manager에는 sync period validation이 **아예 없다**(§2).
-- **karpenter는 이 설정을 읽지 않는다.** karpenter-core v1.14.0 전체에서 scoringStrategy 관련 심볼이 grep 0건이다. 게다가 점수 공식이 각 항을 **그 노드 자신의 allocatable로 나누므로** "노드의 cpu/memory 비율에 맞춰 가중치를 조정한다"는 작업은 애초에 필요하지 않다(§4).
-- **AWS 문서와 실제가 어긋난다.** User Guide는 Terraform을 "coming soon"이라 쓰지만 provider **v6.59.0**(발표 당일)에 이미 들어왔고, eksctl·CDK는 반대로 과대 서술이다(§6).
+- **완전 개방이 아니라 검증된 범위 안의 개방입니다.** 범위 폭(HPA 5초 · eventTtl 축소 방향만 · 스케줄러 전략 2종만)이 그대로 AWS의 책임 경계 선언입니다 — 업스트림 kube-controller-manager에는 sync period validation이 **아예 없습니다**(§2).
+- **karpenter는 이 설정을 읽지 않습니다.** karpenter-core v1.14.0 전체에서 scoringStrategy 관련 심볼이 grep 0건입니다. 게다가 점수 공식이 각 항을 **그 노드 자신의 allocatable로 나누므로** "노드의 cpu/memory 비율에 맞춰 가중치를 조정한다"는 작업은 애초에 필요하지 않습니다(§4).
+- **AWS 문서와 실제가 어긋납니다.** User Guide는 Terraform을 "coming soon"이라 쓰지만 provider **v6.59.0**(발표 당일)에 이미 들어왔고, eksctl·CDK는 반대로 과대 서술입니다(§6).
 {{< /callout >}}
 
 2026-08-12, EKS가 관리형 컨트롤 플레인 3개 컴포넌트의 파라미터 4종을 고객 설정 대상으로 열었습니다. 지금까지 kube-scheduler·kube-apiserver·kube-controller-manager 설정은 손댈 수 없는 영역이었습니다. 노드를 채워 써서 컴퓨트 비용을 줄이고 싶어도 관리형 스케줄러의 전략을 바꿀 방법이 없었습니다. [목표버전]({{< relref "../01-target-version.md" >}})에서 확정한 blue의 목표는 **1.35**이고 이 4종의 하한은 **1.31**입니다. blue는 4개를 전부 쓸 수 있는 상태로 태어납니다. 그래서 이 페이지는 **"써야 하나"**를 판정합니다. "쓸 수 있나"는 이미 답이 나와 있습니다. 클러스터 레벨 파라미터와 가변성 3분류는 [레이어 1]({{< relref "01-cluster-parameters.md" >}}), HPA syncPeriod가 요구하는 용량 축은 [Provisioned Control Plane]({{< relref "03-provisioned-control-plane.md" >}}), 이번에도 여전히 닫혀 있는 플래그들은 [레이어 3]({{< relref "04-not-tunable.md" >}})이 다룹니다.
@@ -40,14 +40,14 @@ scoringStrategy의 하위 `resources[]` 배열에는 별도 제약이 붙습니�
 
 | 항목 | 값 |
 |---|---|
-| API | **신규 API가 아니다.** 기존 `CreateCluster`·`UpdateClusterConfig`의 필드 확장 |
+| API | **신규 API가 아닙니다.** 기존 `CreateCluster`·`UpdateClusterConfig`의 필드 확장 |
 | 스코프 | **항상 클러스터 전역.** namespace·워크로드 단위 스코핑 불가 |
 | 과금 | 파라미터 자체는 추가 과금 없음. HPA syncPeriod만 Provisioned CP 티어 시간당 요금이 붙는다 |
 | 리전 | 전 상용 리전 + GovCloud(US) + China 리전 중 EKS가 제공되는 곳 |
 | 대상 | 신규·기존 클러스터 모두 |
 | 적용 방식 | 컨트롤 플레인 **롤링 업데이트**, 수 분 소요. EKS가 적용 전 검증하고 CloudTrail에 기록한다 |
 | 업데이트 시맨틱 | **merge** — 생략한 필드는 지워지지 않고 현재값이 유지된다 |
-| 리셋 | **전용 리셋 오퍼레이션이 없다.** 기본값으로 되돌리려면 기본값을 명시해서 다시 설정한다 |
+| 리셋 | **전용 리셋 오퍼레이션이 없습니다.** 기본값으로 되돌리려면 기본값을 명시해서 다시 설정합니다 |
 
 AWS의 요금 문구는 이렇게 못박혀 있습니다. "There is no additional charge for configuring control plane parameters. Using `horizontalPodAutoscalerSyncPeriod` requires Provisioned Control Plane, which is billed at the hourly rate for your scaling tier." 티어 요금표와 Standard 복귀 제약은 [Provisioned Control Plane]({{< relref "03-provisioned-control-plane.md" >}})이 다룹니다.
 
@@ -68,8 +68,8 @@ AWS의 요금 문구는 이렇게 못박혀 있습니다. "There is no additiona
 
 | 파라미터 | 개방 폭 | 무엇을 말하는가 |
 |---|---|---|
-| HPA syncPeriod | 10s ~ 15s — **5초 폭** | 업스트림에는 상·하한 validation이 **아예 없다**. `cmd/kube-controller-manager/app/options/hpacontroller.go:58-68`의 `Validate()`는 `ConcurrentHorizontalPodAutoscalerSyncs < 1`만 검사한다. 이 5초 폭은 순전히 EKS가 얹은 제약이다 |
-| eventTtl | 10m ~ 60m — **줄이는 방향만** | 기본값이 그대로 상한이다. 늘려서 etcd를 압박하는 방향은 막혀 있다 |
+| HPA syncPeriod | 10s ~ 15s — **5초 폭** | 업스트림에는 상·하한 validation이 **아예 없다**. `cmd/kube-controller-manager/app/options/hpacontroller.go:58-68`의 `Validate()`는 `ConcurrentHorizontalPodAutoscalerSyncs < 1`만 검사합니다. 이 5초 폭은 순전히 EKS가 얹은 제약입니다 |
+| eventTtl | 10m ~ 60m — **줄이는 방향만** | 기본값이 그대로 상한입니다. 늘려서 etcd를 압박하는 방향은 막혀 있습니다 |
 | scoringStrategy | 2종만 | 업스트림에 존재하는 세 번째 전략 `RequestedToCapacityRatio`가 제외됐다 |
 | serviceNodePortRange | 하한만 내려간다 | 상한 32767은 업스트림 기본값과 같고, 확장 여지는 아래쪽 10260까지뿐이다 |
 
@@ -118,8 +118,8 @@ karpenter·Auto Mode와의 관계는 AWS가 원론부터 못박습니다. "The s
 함정은 여기서 나옵니다.
 
 1. **신규 이벤트에만 적용됩니다.** 기존 이벤트는 생성 시점 TTL로 만료되므로 스토리지 회수가 점진적입니다. 바꾸고 나서 etcd 크기가 즉시 줄지 않는 것이 정상입니다.
-2. **삭제된 이벤트는 복구할 수 없습니다.** 축소는 외부 보존 파이프라인이 **이미 돌고 있다는 전제**에서만 안전하입니다.
-3. **설정한 기간보다 살짝 더 오래 남을 수 있다.** AWS 원문은 이렇다. "Events can persist slightly beyond the configured period ... because of etcd lease renewal that might happen during control plane leader election."
+2. **삭제된 이벤트는 복구할 수 없습니다.** 축소는 외부 보존 파이프라인이 **이미 돌고 있다는 전제**에서만 안전합니다.
+3. **설정한 기간보다 살짝 더 오래 남을 수 있습니다.** AWS 원문은 이렇습니다. "Events can persist slightly beyond the configured period ... because of etcd lease renewal that might happen during control plane leader election."
 
 3번은 표현을 그대로 옮겼지만 오픈소스 코드에서 이 메커니즘의 근거는 **확인되지 않았습니다.** 이벤트 TTL 만료는 kube-apiserver → etcd lease 경로로만 구현돼 있습니다(`pkg/registry/core/event/storage/storage.go:36-41` → `staging/.../etcd3/lease_manager.go`). kube-controller-manager의 leader election과는 코드 경로상 연결점이 없습니다. 업스트림에 실재하는 유사 현상은 **lease 재사용 최적화**입니다. 같은 TTL의 이벤트들을 하나의 lease에 묶으려고 `min(60s, TTL의 5%)`를 얹어 lease를 발급하므로(`lease_manager.go:28-29, 85-113`) 개별 이벤트의 실제 삭제가 설정값보다 수십 초 늦어질 수 있습니다. AWS 문구가 관리형 구현의 비공개 디테일을 가리키는 것일 수도 있어 어느 쪽이라 단정하지 않습니다. 실무 결론은 같습니다. eventTtl은 **하드 데드라인이 아닙니다.**
 
@@ -131,15 +131,15 @@ karpenter·Auto Mode와의 관계는 AWS가 원론부터 못박습니다. "The s
 
 | 방향 | 무엇이 일어나는가 | 선행 작업 |
 |---|---|---|
-| **확대**(하한을 10260 쪽으로) | 슬롯이 최대 22,508개까지 늘어난다 | ⚠️ **SG·NACL이 새 범위를 허용하는지 먼저 확인.** NLB `target-type: instance`는 트래픽이 실제로 노드 NodePort로 들어오므로 노드 SG에 새 범위 전체를 열어야 한다. 노드의 다른 소프트웨어 포트와 충돌하지 않는지도 확인 |
-| **축소** | 기존 서비스는 포트를 그대로 유지한다 | 재생성 시점에 범위 밖 포트를 못 받는다. 명시적 `nodePort` 지정도 범위 검증을 받는다 |
+| **확대**(하한을 10260 쪽으로) | 슬롯이 최대 22,508개까지 늘어납니다 | ⚠️ **SG·NACL이 새 범위를 허용하는지 먼저 확인.** NLB `target-type: instance`는 트래픽이 실제로 노드 NodePort로 들어오므로 노드 SG에 새 범위 전체를 열어야 합니다. 노드의 다른 소프트웨어 포트와 충돌하지 않는지도 확인 |
+| **축소** | 기존 서비스는 포트를 그대로 유지합니다 | 재생성 시점에 범위 밖 포트를 못 받습니다. 명시적 `nodePort` 지정도 범위 검증을 받습니다 |
 
 축소해도 기존 서비스가 살아 있는 이유는 업스트림 Repair 컨트롤러의 동작에서 나옵니다. 새 범위로 할당기를 재구축하면서 범위 밖 포트를 만나면 `PortOutOfRange` Warning 이벤트만 발생시키고 Service 객체는 건드리지 않습니다(`portallocator/controller/repair.go:147-149, 177-181`). 삭제도, `spec.ports[].nodePort` 강제 변경도 없습니다. kube-proxy는 할당기 상태가 아니라 Service 오브젝트의 `nodePort`를 직접 읽어 규칙을 만들기 때문에 포워딩은 계속 동작합니다. 다만 그 포트는 할당기가 추적하지 않는 상태가 됩니다. 다른 서비스가 재사용하려 해도 `AllocateNext`가 애초에 범위 밖을 뽑지 않습니다.
 
 가장 자주 놓치는 함정은 `allocateLoadBalancerNodePorts`입니다.
 
-- `Service.spec.allocateLoadBalancerNodePorts`의 **기본값은 `true`**다. 그래서 LoadBalancer 타입 서비스는 **`target-type: ip`를 쓰더라도** 명시적으로 `false`로 두지 않으면 NodePort를 계속 할당해 슬롯을 소비합니다. 트래픽이 그 포트를 타지 않아도 슬롯은 줄어듭니다.
-- 반대로 NLB instance 모드에서 `false`로 두면 AWS Load Balancer Controller가 **reconcile에 실패한다**(LBC 공식 문서 명시). `ip` 모드에는 해당하지 않습니다.
+- `Service.spec.allocateLoadBalancerNodePorts`의 **기본값은 `true`**입니다. 그래서 LoadBalancer 타입 서비스는 **`target-type: ip`를 쓰더라도** 명시적으로 `false`로 두지 않으면 NodePort를 계속 할당해 슬롯을 소비합니다. 트래픽이 그 포트를 타지 않아도 슬롯은 줄어듭니다.
+- 반대로 NLB instance 모드에서 `false`로 두면 AWS Load Balancer Controller가 **reconcile에 실패합니다**(LBC 공식 문서 명시). `ip` 모드에는 해당하지 않습니다.
 
 이 스위치는 "쓰지 않는 포트를 아끼는 최적화"와 "LBC를 깨뜨리는 설정"이 같은 필드에 붙어 있는 구조입니다. 서비스별 target-type을 확인한 뒤에만 만져야 합니다.
 
@@ -166,9 +166,9 @@ sync period 쪽 메커니즘은 코드에서 명확합니다. `processNextWorkIt
 
 | 상한을 거는 요소 | 내용 |
 |---|---|
-| **metrics-server** | 기본 `--metric-resolution`이 15초다. HPA가 10초마다 돌아도 새 값이 15초에 한 번만 생기면 상당수 reconcile은 같은 스냅샷을 다시 읽는다. AWS도 같은 얘기를 한다 — "If your metrics source cannot serve requests fast enough, reconciliations slow down regardless of how many are processed in parallel." |
-| **scaleDown stabilization** | HPA v2 `behavior.scaleDown.stabilizationWindowSeconds` 기본값이 5분이다. syncPeriod를 줄여도 스케일다운은 이 윈도우가 지배한다. 실효는 **scaleUp 반응성에만** 걸린다 |
-| **KEDA** | KEDA는 자체 폴링 루프(`pollingInterval`)로 외부 메트릭을 조회하고 그 결과로 내부 HPA를 갱신한다. syncPeriod를 줄이면 컨트롤러 매니저가 KEDA가 만든 HPA를 더 자주 들여다볼 뿐, **KEDA가 더 자주 조회하지는 않는다** |
+| **metrics-server** | 기본 `--metric-resolution`이 15초입니다. HPA가 10초마다 돌아도 새 값이 15초에 한 번만 생기면 상당수 reconcile은 같은 스냅샷을 다시 읽습니다. AWS도 같은 얘기를 합니다 — "If your metrics source cannot serve requests fast enough, reconciliations slow down regardless of how many are processed in parallel." |
+| **scaleDown stabilization** | HPA v2 `behavior.scaleDown.stabilizationWindowSeconds` 기본값이 5분입니다. syncPeriod를 줄여도 스케일다운은 이 윈도우가 지배합니다. 실효는 **scaleUp 반응성에만** 걸립니다 |
+| **KEDA** | KEDA는 자체 폴링 루프(`pollingInterval`)로 외부 메트릭을 조회하고 그 결과로 내부 HPA를 갱신합니다. syncPeriod를 줄이면 컨트롤러 매니저가 KEDA가 만든 HPA를 더 자주 들여다볼 뿐, **KEDA가 더 자주 조회하지는 않습니다** |
 
 판단 절차는 문서가 제시한 대로가 맞습니다. 먼저 `kubectl get hpa --all-namespaces --no-headers | wc -l`로 개수를 센 다음 `workqueue_depth{name="horizontalpodautoscaler"}`를 봅니다. 이 큐 깊이가 이미 0 근처라면 애초에 컨트롤 플레인이 병목이 아니었다는 뜻입니다. 축소는 아무 이득이 없습니다.
 
@@ -196,7 +196,7 @@ karpenter가 c계열(cpu:mem 1:2)·m계열(1:4)·r계열(1:8)을 섞어 띄우�
 |---|---|
 | `resources` 생략 | 기본값 cpu:1 / memory:1 적용 → memory가 점수의 50%를 지배 |
 | `cpu:100, memory:1` | memory가 1/101만큼 여전히 점수에 개입한다 |
-| `cpu:1`만 명시 | memory가 **분모에서도 빠져** 점수에 전혀 개입하지 않는다 |
+| `cpu:1`만 명시 | memory가 **분모에서도 빠져** 점수에 전혀 개입하지 않습니다 |
 
 `weight`의 최소값이 1이라 "가중치 0으로 무시"는 애초에 표현할 수 없습니다. 리소스를 점수에서 완전히 배제하겠다는 의사는 **생략으로만** 표현됩니다. 영향을 줄이고 싶으면 빼지 말고 낮은 가중치로 나열해야 합니다.
 
@@ -216,10 +216,10 @@ karpenter는 EKS에 설정한 kube-scheduler scoring 전략을 **읽지 않습�
 
 | 상황 | scoringStrategy의 영향 |
 |---|---|
-| 프로비저닝을 유발한 파드 | 거의 없다 — karpenter가 그 파드에 맞춰 띄운 신규 노드에 앉는다 |
+| 프로비저닝을 유발한 파드 | 거의 없습니다 — karpenter가 그 파드에 맞춰 띄운 신규 노드에 앉습니다 |
 | **이미 있는 노드 중에서 고를 때** | **실제로 작동하는 구간** |
 | consolidation과의 관계 | **상보적** — MostAllocated가 덜 쓰는 노드에 신규 파드를 주지 않으면 그 노드가 비어가고 consolidation이 걷어낸다("this packing behavior keeps lightly used nodes free of new workloads, so node pools that support consolidation can remove them") |
-| churn 위험 | 기존 노드를 더 빡빡히 채우므로 파드 churn이 높으면 Pending이 늘 수 있다(AWS 명시) |
+| churn 위험 | 기존 노드를 더 빡빡히 채우므로 파드 churn이 높으면 Pending이 늘 수 있습니다(AWS 명시) |
 
 karpenter 코어 메인테이너(jonathan-innis)도 2024년 이슈 `kubernetes-sigs/karpenter#1228`에서 독립적으로 같은 방향을 말했습니다. 헤지를 붙인 추측이라는 점까지 그대로 옮깁니다. "**I suspect that you are right about the performance, at least that** we would be able to act more aggressively with consolidation since we'd have '**less cluster churn**' disrupting our current consolidation decision-making." 메인테이너의 추측이며 단정이 아닙니다. AWS 쪽도 "Validate the combined behavior for your workload"까지만 말합니다. MostAllocated × karpenter 조합의 정량 벤치마크는 **존재하지 않습니다.**
 
@@ -434,7 +434,7 @@ getting-started 가이드의 전제조건은 "describe and update Amazon EKS clu
 | **AWS CLI** | "at launch" | 일치. 단 **CLI를 올려야 플래그가 보인다** | **aws-cli v2 2.36.21+** |
 | **CloudFormation** | "at launch" | 일치. PascalCase 확정, 전부 No interruption | — |
 | ⚠️ **Terraform** | User Guide는 2026-08-14 재확인 시점에도 **"Support for ... Terraform is coming soon"** | **이미 지원.** provider **v6.59.0**(2026-08-12, 발표 당일) PR #49412가 3개 블록을 쓰기 가능하게 추가. data source도 동시(#49420/#49421) | **`hashicorp/aws >= 6.59.0`** |
-| ⚠️ **eksctl** | User Guide: **"eksctl ... at launch"** / 같은 날 Containers 블로그: **"with support for eksctl ... planned"** | **GA 릴리스로는 못 쓴다.** 최신 GA는 **v0.229.0**(2026-07-01)로 이 기능 이전. 소스에는 PR #8821(머지 **2026-08-12T21:34:25Z**)로 들어왔고 이를 담은 태그는 **v0.230.0-rc.0**(프리릴리스, 2026-08-13)뿐 | GA 대기(또는 소스 빌드·rc 바이너리) |
+| ⚠️ **eksctl** | User Guide: **"eksctl ... at launch"** / 같은 날 Containers 블로그: **"with support for eksctl ... planned"** | **GA 릴리스로는 못 씁니다.** 최신 GA는 **v0.229.0**(2026-07-01)로 이 기능 이전. 소스에는 PR #8821(머지 **2026-08-12T21:34:25Z**)로 들어왔고 이를 담은 태그는 **v0.230.0-rc.0**(프리릴리스, 2026-08-13)뿐 | GA 대기(또는 소스 빌드·rc 바이너리) |
 | ⚠️ **AWS CDK** | "CDK at launch" | **4개 파라미터 미지원** — aws-cdk 저장소 전체 코드 검색 0건. `controlPlaneScalingTier`(Provisioned CP 티어)만 지원(PR #36651 머지 2026-07-29, `aws-cdk-lib` 2.263.0+에서 enum 실물 확인) | L1 `CfnCluster` escape hatch |
 | ACK | "coming soon" | 미확인 | — |
 
@@ -474,9 +474,9 @@ getting-started 가이드의 전제조건은 "describe and update Amazon EKS clu
 | 파라미터 | 판정 | 핵심 근거 |
 |---|---|---|
 | `scoringStrategy` = MostAllocated | **유일한 실제 후보. 단 blue 안정화 이후 별건** | karpenter consolidation과 상보. 정량 벤치마크가 없어 검증이 우리 몫이고, 효과가 파드 재배포 시점에 나타나 컷오버와 겹치면 원인 분리가 불가능해진다 |
-| `serviceNodePortRange` | **기본값 유지** | 내부 ALB `target-type: ip`라 트래픽 경로에 NodePort가 없다. 확인할 것은 경로가 아니라 슬롯 개수다(§8.3) |
-| `eventTtl` | **컷오버 이후 재검토** | 컷오버 창은 이벤트가 가장 필요한 구간이다. 축소는 정확히 반대 방향(§8.3) |
-| HPA `syncPeriod` | ⚠️ **해당 없음** | 월 증분 +$1,204.50을 쓰고 얻는 5초가 KEDA·metrics-server·scaleDown 윈도우에서 대부분 소멸한다(§8.3) |
+| `serviceNodePortRange` | **기본값 유지** | 내부 ALB `target-type: ip`라 트래픽 경로에 NodePort가 없습니다. 확인할 것은 경로가 아니라 슬롯 개수입니다(§8.3) |
+| `eventTtl` | **컷오버 이후 재검토** | 컷오버 창은 이벤트가 가장 필요한 구간입니다. 축소는 정확히 반대 방향입니다(§8.3) |
+| HPA `syncPeriod` | ⚠️ **해당 없음** | 월 증분 +$1,204.50을 쓰고 얻는 5초가 KEDA·metrics-server·scaleDown 윈도우에서 대부분 소멸합니다(§8.3) |
 
 ### 8.2 MostAllocated 도입 선행조건
 
@@ -487,7 +487,7 @@ getting-started 가이드의 전제조건은 "describe and update Amazon EKS clu
 | requests 정확도 | 밀집도와 karpenter 사이징이 둘 다 requests에 의존한다 | **선행 필수** — 부정확하면 두 레이어가 함께 오작동 |
 | non-CPU requests=limits | consolidation은 limits를 보지 않는다 → 밀집 시 OOM 확률 상승 | **선행 필수**(EKS Best Practices 공식 권고) |
 | PDB | 밀집 노드 교체 시 가용성 방어선 | **선행 필수** |
-| zonal `topologySpreadConstraints` | karpenter는 AZ를 자체 재균형하지 않는다. 노드 총수가 줄면 원래 완충됐던 편향이 장애로 드러난다 | **파드 레벨 명시 필요** |
+| zonal `topologySpreadConstraints` | karpenter는 AZ를 자체 재균형하지 않습니다. 노드 총수가 줄면 원래 완충됐던 편향이 장애로 드러납니다 | **파드 레벨 명시 필요** |
 | spot 결합 | 밀집 × 회수 2분 통지 = 회수 1건당 영향 파드 증가 | ⚠️ **추론 영역** — 정량 근거 없음. spot 풀에는 나중에 |
 | descheduler | 기존 파드 재배치 | **단정 불가.** "재조정이 필요할 수 있다"까지만 |
 
@@ -511,8 +511,8 @@ getting-started 가이드의 전제조건은 "describe and update Amazon EKS clu
 | 2 | **merge 시맨틱** | 업데이트에서 생략한 필드는 지워지지 않고 현재값이 유지된다 | 부분 업데이트가 부분 롤백이 아니다. 되돌릴 필드를 명시 |
 | 3 | **기본값을 IaC에 하드코딩하면 안 된다** | 기본값·제약이 k8s 버전마다, 어쩌면 티어마다 달라질 수 있다(§7) | `describe-cluster-versions`(또는 `data.aws_eks_cluster_versions`)로 조회 |
 | 4 | **`describe-cluster`가 항상 값을 반환한다** | 커스터마이즈 안 한 파라미터까지 기본값이 채워져 나온다 | **응답만으로는 "우리가 무엇을 바꿨나"를 구분할 수 없다.** 변경 이력은 CloudTrail·IaC에서 본다 |
-| 5 | **클러스터 전역** | namespace·워크로드 단위 스코핑이 불가능하다 | 실험 단위가 클러스터다. 클러스터를 나눌 수 없으면 실험이 곧 프로덕션이다 |
-| 6 | **롤링 업데이트** | 수 분 소요. 컨트롤 플레인 교체 과정에서 API 서버 IP가 바뀌고 watch가 **끊길 수 있다** | `client-go` 기반 컨트롤러는 대개 자동 재연결된다. 다만 이 표현의 근거는 이번 기능 문서가 아니라 컨트롤 플레인 교체 전반을 서술한 re:Post의 "might be affected"이므로 단정하지 않는다. **AWS 문서에 "maintenance window"라는 표현은 아예 없다** — 불필요하다고 단정할 근거도 없어 비프로덕션 선행 테스트 일반 권고를 따른다 |
+| 5 | **클러스터 전역** | namespace·워크로드 단위 스코핑이 불가능합니다 | 실험 단위가 클러스터입니다. 클러스터를 나눌 수 없으면 실험이 곧 프로덕션입니다 |
+| 6 | **롤링 업데이트** | 수 분 소요. 컨트롤 플레인 교체 과정에서 API 서버 IP가 바뀌고 watch가 **끊길 수 있습니다** | `client-go` 기반 컨트롤러는 대개 자동 재연결됩니다. 다만 이 표현의 근거는 이번 기능 문서가 아니라 컨트롤 플레인 교체 전반을 서술한 re:Post의 "might be affected"이므로 단정하지 않습니다. **AWS 문서에 "maintenance window"라는 표현은 아예 없다** — 불필요하다고 단정할 근거도 없어 비프로덕션 선행 테스트 일반 권고를 따른다 |
 | 7 | **HPA 역설** | 주기를 줄였는데 오토스케일이 **조용히** 느려진다. 경보·이벤트 없음 | 사전에 HPA 개수를 세고, 사후에 `workqueue_depth`를 본다. 느려지면 15s로 복귀 |
 | 8 | **HPA 비기본값 = Standard 복귀 불가** | 파라미터가 티어 전환을 잠근다 | 15s 복귀 → 티어 변경, 2단계(→ [Provisioned CP]({{< relref "03-provisioned-control-plane.md" >}})) |
 | 9 | **scoringStrategy는 기존 파드를 옮기지 않는다** | 전환 즉시 밀집되지 않는다 | 재조정하려면 evict·restart |

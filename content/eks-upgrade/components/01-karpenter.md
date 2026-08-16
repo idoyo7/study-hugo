@@ -7,7 +7,7 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- 컨트롤러를 `0.36.2`에서 최신 stable **`1.14.0`**(2026-07-11 릴리스)로 올립니다. 목표 k8s 1.35를 지원하는 최소가 1.9이고 1.14는 1.30~1.36을 커버하므로 "가능한 최신 stable" 방침에 맞는다 — 1.36으로 재검토할 때도 하한이 1.13이라 1.14.0이 그대로 유효하입니다 `✓`
+- 컨트롤러를 `0.36.2`에서 최신 stable **`1.14.0`**(2026-07-11 릴리스)로 올립니다. 목표 k8s 1.35를 지원하는 최소가 1.9이고 1.14는 1.30~1.36을 커버하므로 "가능한 최신 stable" 방침에 맞는다 — 1.36으로 재검토할 때도 하한이 1.13이라 1.14.0이 그대로 유효합니다 `✓`
 - 넘을 스키마 경계는 **`v1beta1` → `v1` 하나뿐**입니다. finance의 0.36.2는 이미 v1beta1(`karpenter.sh/v1beta1` NodePool·`karpenter.k8s.aws/v1beta1` EC2NodeClass)입니다. v1alpha5의 Provisioner·AWSNodeTemplate은 v0.33에서 졸업해 애초에 없습니다 `✓`
 - v1에서 **`amiSelectorTerms`가 필수화**됩니다. 빠뜨리면 EC2NodeClass와 그것을 참조하는 모든 NodePool이 통째로 `NotReady`가 됩니다 `✓`
 - v1은 **drift를 GA로 승격시키며 비활성화가 불가능**해집니다. finance가 명시한 `featureGates.drift: false`는 무효화되고 drift가 강제로 켜집니다 `✓`

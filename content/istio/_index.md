@@ -9,7 +9,7 @@ cascade:
 
 > EKS 클러스터에 Istio를 올려 운영하면서 실제로 부딪힌 일들을 스토리 순서로 정리한 챕터입니다. **컨트롤 플레인이 CPU를 먹어 증설했던 일**, **Ingress Gateway를 전용 노드로 분리한 일**, **메시 설정을 Git으로 동기화한 일**, 그리고 **간헐적 응답 이상 장애를 메시 관점에서 추적한 일** — 네 개의 사건을 척추로 삼고, 그 밑에 깔린 Istio 메커니즘을 하나씩 파고듭니다.
 
-> 자매 챕터: [로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}}) — istio 액세스 로그를 어디에 쌓을지는 그쪽 로그 스택 결정과 이어진다. · [VictoriaMetrics]({{< relref "../monitoring/victoriametrics/_index.md" >}}) — 메시가 뿜는 텔레메트리를 받는 저장 계층.
+> 자매 챕터: [로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}}) — istio 액세스 로그를 어디에 쌓을지는 그쪽 로그 스택 결정과 이어집니다. · [VictoriaMetrics]({{< relref "../monitoring/victoriametrics/_index.md" >}}) — 메시가 뿜는 텔레메트리를 받는 저장 계층.
 
 ## 왜 이걸 정리하는가
 
@@ -52,11 +52,11 @@ cascade:
 
 ## 공통 핵심
 
-- **메시는 공짜가 아니다.** 파드마다 붙는 사이드카 프록시가 CPU·메모리·지연을 더하고, 컨트롤 플레인은 프록시 수에 비례해 부하를 받는다. → [01]({{< relref "01-mesh-basics.md" >}})
-- **istiod 부하 = f(프록시 수, 설정 변경 빈도, 설정 범위).** CPU 증설은 응급 처치고, 근본 해법은 각 프록시가 보는 설정 범위를 좁히는 것이다. → [02]({{< relref "02-istiod-control-plane.md" >}})
-- **xDS 커넥션은 장수 gRPC라 스케일아웃해도 재분배되지 않는다.** 파드를 늘려도 기존 커넥션은 그 자리에 남아, 늘린 만큼 부하가 나눠지지 않는다. Istio에 능동 재분배 기능은 없다. → [09]({{< relref "09-istiod-scaling-connections.md" >}})
-- **게이트웨이는 데이터 경로의 병목이자 격리 대상이다.** 남북(north-south) 트래픽을 받는 Ingress Gateway는 워크로드와 자원을 다투면 안 되므로 전용 노드로 뺀다. → [03]({{< relref "03-gateway-node-isolation.md" >}})
-- **메시 설정은 손이 아니라 Git으로 관리한다.** VirtualService·DestinationRule 같은 CRD가 손으로 바뀌면 드리프트가 장애로 돌아온다. → [04]({{< relref "04-config-as-code.md" >}})
-- **관측성은 공짜로 얻지만 카디널리티는 공짜가 아니다.** 사이드카가 앱 무수정으로 표준 골든 시그널을 뿜는다 — 대신 라벨 폭발을 관리해야 한다. → [06]({{< relref "06-observability-points.md" >}})
-- **Ambient mode는 프록시 개수를 파드 수에서 노드 수로 옮긴다.** 사이드카 몫의 CPU·메모리는 줄지만, 노드 라이프사이클과 메시 데이터플레인 준비 사이의 정합성이 새 운영 축이 된다. → [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})
-- **nginx가 한 파일에 하던 걸 Istio는 CRD로 흩는다.** rewrite·헤더·인가가 VirtualService·AuthorizationPolicy·ext_authz로 갈리고, 그래도 안 되는 건 EnvoyFilter가 최후의 수단이다. → [07]({{< relref "07-from-nginx-to-istio.md" >}}) · [08]({{< relref "08-envoyfilter-extension.md" >}})
+- **메시는 공짜가 아닙니다.** 파드마다 붙는 사이드카 프록시가 CPU·메모리·지연을 더하고, 컨트롤 플레인은 프록시 수에 비례해 부하를 받습니다. → [01]({{< relref "01-mesh-basics.md" >}})
+- **istiod 부하 = f(프록시 수, 설정 변경 빈도, 설정 범위).** CPU 증설은 응급 처치고, 근본 해법은 각 프록시가 보는 설정 범위를 좁히는 것입니다. → [02]({{< relref "02-istiod-control-plane.md" >}})
+- **xDS 커넥션은 장수 gRPC라 스케일아웃해도 재분배되지 않습니다.** 파드를 늘려도 기존 커넥션은 그 자리에 남아, 늘린 만큼 부하가 나눠지지 않습니다. Istio에 능동 재분배 기능은 없습니다. → [09]({{< relref "09-istiod-scaling-connections.md" >}})
+- **게이트웨이는 데이터 경로의 병목이자 격리 대상입니다.** 남북(north-south) 트래픽을 받는 Ingress Gateway는 워크로드와 자원을 다투면 안 되므로 전용 노드로 뺍니다. → [03]({{< relref "03-gateway-node-isolation.md" >}})
+- **메시 설정은 손이 아니라 Git으로 관리합니다.** VirtualService·DestinationRule 같은 CRD가 손으로 바뀌면 드리프트가 장애로 돌아옵니다. → [04]({{< relref "04-config-as-code.md" >}})
+- **관측성은 공짜로 얻지만 카디널리티는 공짜가 아닙니다.** 사이드카가 앱 무수정으로 표준 골든 시그널을 뿜습니다 — 대신 라벨 폭발을 관리해야 합니다. → [06]({{< relref "06-observability-points.md" >}})
+- **Ambient mode는 프록시 개수를 파드 수에서 노드 수로 옮깁니다.** 사이드카 몫의 CPU·메모리는 줄지만, 노드 라이프사이클과 메시 데이터플레인 준비 사이의 정합성이 새 운영 축이 됩니다. → [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})
+- **nginx가 한 파일에 하던 걸 Istio는 CRD로 흩습니다.** rewrite·헤더·인가가 VirtualService·AuthorizationPolicy·ext_authz로 갈리고, 그래도 안 되는 건 EnvoyFilter가 최후의 수단입니다. → [07]({{< relref "07-from-nginx-to-istio.md" >}}) · [08]({{< relref "08-envoyfilter-extension.md" >}})

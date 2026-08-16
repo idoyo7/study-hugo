@@ -11,7 +11,7 @@ aliases: ["/monitoring/longterm-retention/03-option-b-thanos/"]
 - raw를 S3에 짧게(7~30d) 쌓고 compactor가 **사후에** 5m/1h 다운샘플 블록을 만들어 400d 보관 — **S3 내구성(11-nines) + 사후 재계산 보험**을 얻지만 stateful 컴포넌트 3~4종과 더 높은 비용을 치릅니다.
 - **다운샘플링은 저장 절감 수단이 아니다**(공식 명시) — 해상도 공존 구간이 ~3x로 부풀어 총액 월 **$780~1,200 + 컴퓨트**.
 - **Receive**는 hashring 상태를 보유한 StatefulSet이라 반드시 chain에 둬야 하고, **Compactor**는 오류 시 조용히 halt하므로 알림이 필수입니다.
-- 쿼리는 **PromQL 전용**이라 MetricsQL 전 기능을 상실한다 — VM 아카이브안에서 RW#4 대상만 교체하면 언제든 이 안으로 전환 가능하입니다.
+- 쿼리는 **PromQL 전용**이라 MetricsQL 전 기능을 상실합니다 — VM 아카이브안에서 RW#4 대상만 교체하면 언제든 이 안으로 전환 가능합니다.
 {{< /callout >}}
 
 VM hot을 단기로 유지하고 raw를 S3에 짧게 쌓은 뒤, Thanos compactor가 **사후에** 5m/1h 다운샘플 블록을 만들어 400d를 보관하는 안입니다. **S3 내구성 + 사후 재계산 보험**을 얻는 대신 **stateful 컴포넌트 3~4종과 더 높은 저장비**를 치웁니다.
@@ -29,7 +29,7 @@ VM hot을 단기로 유지하고 raw를 S3에 짧게 쌓은 뒤, Thanos compacto
 Grafana(Prometheus 타입 DS) ◀─ Querier ◀─ Store Gateway (블록당 ~6MB 로컬 index-header)
 ```
 
-- 라우터 vmagent의 RW#4만 Thanos Receive로 보낸다. raw는 S3에 짧게(7~30d), 5m/1h는 400d다.
+- 라우터 vmagent의 RW#4만 Thanos Receive로 보냅니다. raw는 S3에 짧게(7~30d), 5m/1h는 400d다.
 - ≤90d 조회는 기존 vmselect, >90d는 Thanos Querier — Grafana에 **datasource 2개가 공존**합니다.
 - **다운샘플 성립 조건**: raw 보존 >40h여야 5m 블록이 생성되고, 5m 보존 >10d여야 1h 블록이 생성됩니다. 그래서 `resolution-raw`를 7~30d로 권장합니다.
 
@@ -42,8 +42,8 @@ Grafana(Prometheus 타입 DS) ◀─ Querier ◀─ Store Gateway (블록당 ~6M
 | **Store Gateway** | 블록당 ~6MB 로컬 index-header | chain | 캐시 계층 없으면 쿼리 팬아웃 GET 급증 |
 | **캐시(권장)** | index/chunk/bucket 캐시 | chain | Store GW 지연·S3 요청비 완화용, 3~4번째 유형 |
 
-- **Receive는 hashring 상태를 보유한 StatefulSet이라 service 클러스터의 무상태 원칙과 양립 불가하다 — 반드시 chain에 둡니다.** 로컬 TSDB는 기본 `--tsdb.retention=15d`라 EBS가 별도로 필요하입니다.
-- **Compactor는 자체 실패 모드가 있다**: 데이터 오류를 만나면 죽지 않고 **halt(`thanos_compact_halted=1`)** 한다. halt되면 **compaction·다운샘플·retention이 조용히 전면 정지**하고 S3는 계속 증가한다(반복 보고된 운영 이슈 #517 / #6748 / #5211). → **halt 알림은 필수**다.
+- **Receive는 hashring 상태를 보유한 StatefulSet이라 service 클러스터의 무상태 원칙과 양립 불가합니다 — 반드시 chain에 둡니다.** 로컬 TSDB는 기본 `--tsdb.retention=15d`라 EBS가 별도로 필요합니다.
+- **Compactor는 자체 실패 모드가 있다**: 데이터 오류를 만나면 죽지 않고 **halt(`thanos_compact_halted=1`)** 합니다. halt되면 **compaction·다운샘플·retention이 조용히 전면 정지**하고 S3는 계속 증가한다(반복 보고된 운영 이슈 #517 / #6748 / #5211). → **halt 알림은 필수**다.
 
 ## 송신 레그 주의 (vmagent → Receive)
 
@@ -83,14 +83,14 @@ S3 = S × (1.5~2 B/sample) × (raw일수 + 400d × 1.2~1.8) × $0.025
 ## 버킷 스토리지 클래스 — S3 Standard 필수
 
 - Store Gateway가 읽는 버킷은 **반드시 S3 Standard**($0.025/GB-mo, 리트리벌 수수료 없음)여야 합니다.
-- **S3 Standard-IA/Glacier IR 금지**: IA는 +리트리벌 $0.01/GB(최소 30일), Glacier IR은 +$0.03/GB(최소 90일)의 **GB당 리트리벌 수수료가 Store Gateway 동기화·쿼리마다** 부과된다. 자주 읽는 primary 저장에는 부적합하고, IA/GIR는 vmbackup류 콜드 사본 전용이다(하지 말 것 #5, [08]({{< relref "08-recommendation-and-pitfalls.md" >}})).
-- 같은 리전 S3↔EC2 전송은 무료다. 단가·클래스 상세는 [06]({{< relref "06-storage-pricing.md" >}}).
+- **S3 Standard-IA/Glacier IR 금지**: IA는 +리트리벌 $0.01/GB(최소 30일), Glacier IR은 +$0.03/GB(최소 90일)의 **GB당 리트리벌 수수료가 Store Gateway 동기화·쿼리마다** 부과됩니다. 자주 읽는 primary 저장에는 부적합하고, IA/GIR는 vmbackup류 콜드 사본 전용입니다(하지 말 것 #5, [08]({{< relref "08-recommendation-and-pitfalls.md" >}})).
+- 같은 리전 S3↔EC2 전송은 무료입니다. 단가·클래스 상세는 [06]({{< relref "06-storage-pricing.md" >}}).
 
 ## 강점·약점 요약
 
 **강점**
 - **S3 내구성(11-nines)** — RF1 EBS 아카이브보다 우월(감사 등 조직 요구 대응).
-- **사후 재계산 보험** — raw를 S3에 두는 기간 내에는 "5m으로 부족했다" 시나리오에 대응 가능하입니다.
+- **사후 재계산 보험** — raw를 S3에 두는 기간 내에는 "5m으로 부족했다" 시나리오에 대응 가능합니다.
 - 카운터/게이지 구분·설계 불필요(5 aggregate 자동 내장).
 
 **약점 / 리스크**
@@ -104,7 +104,7 @@ S3 = S × (1.5~2 B/sample) × (raw일수 + 400d × 1.2~1.8) × $0.025
 - raw의 **사후 재계산 보험**이 집계-확정 리스크보다 중요할 때.
 - S3 내구성이 조직 요구(감사 등)일 때.
 - Thanos 운영 경험·여력이 이미 있을 때(hashring·compactor halt·캐시 계층 상시 운영).
-- **VM 아카이브안에서 전환 가능하다** — 라우터의 RW#4 대상만 Thanos Receive로 갈아끼우면 되므로, 처음부터 Thanos안으로 갈 필요는 없다. VM 아카이브안 구성과 가역성은 [02]({{< relref "02-vm-archive.md" >}}) 참조.
+- **VM 아카이브안에서 전환 가능하다** — 라우터의 RW#4 대상만 Thanos Receive로 갈아끼우면 되므로, 처음부터 Thanos안으로 갈 필요는 없습니다. VM 아카이브안 구성과 가역성은 [02]({{< relref "02-vm-archive.md" >}}) 참조.
 
 ## 출처
 

@@ -70,7 +70,7 @@ Didi 수치는 2024-04 스냅샷이며, 물리 노드 400+는 Log 300+/Trace 40+
 매트릭스의 "가능하다"를 액면 그대로 읽으면 안 됩니다 — **각 규모를 내기까지 상당한 엔지니어링이 붙었습니다**. 즉 대규모 레퍼런스는 "CH면 공짜로 된다"가 아니라 "이만큼 튜닝하면 이 규모가 난다"로 읽어야 합니다.
 
 {{% details title="근거 — Netflix·Cloudflare가 규모를 낸 튜닝 상세" closed="true" %}}
-Netflix는 5PB/day를 내려고 세 곳을 갈아엎었다 `Ⓥ`: 유사 로그 수백만 개를 하나로 collapse하는 **fingerprinting**, JDBC 배치 인서트를 **커스텀 native 프로토콜 인코딩**으로 교체, 태그 쿼리에 **LowCardinality** 적용(창시자 Alexey Milovidov 제안). Cloudflare는 반대로 오케스트레이션을 얇게 가져가 "북미 DC 연결을 끊어 용량 1/3을 제거해도 유럽 클러스터가 부하를 자동 인수"하는 회복력을 보였고 `✓`, 그럼에도 2026년 빌링 파이프라인이 **쿼리 플래닝 단계의 락 경합**으로 느려진 장애를 겪었다(안티패턴 §9).
+Netflix는 5PB/day를 내려고 세 곳을 갈아엎었습니다 `Ⓥ`: 유사 로그 수백만 개를 하나로 collapse하는 **fingerprinting**, JDBC 배치 인서트를 **커스텀 native 프로토콜 인코딩**으로 교체, 태그 쿼리에 **LowCardinality** 적용(창시자 Alexey Milovidov 제안). Cloudflare는 반대로 오케스트레이션을 얇게 가져가 "북미 DC 연결을 끊어 용량 1/3을 제거해도 유럽 클러스터가 부하를 자동 인수"하는 회복력을 보였고 `✓`, 그럼에도 2026년 빌링 파이프라인이 **쿼리 플래닝 단계의 락 경합**으로 느려진 장애를 겪었다(안티패턴 §9).
 {{% /details %}}
 
 ## 'K8s + operator + 로컬 NVMe' — 실증은 어디까지인가
@@ -144,7 +144,7 @@ Datadog 고비용의 구조적 원인(고카디널리티 과금 전가, custom m
 ### 반복 등장하는 성공 패턴
 
 1. **배치·async 인서트가 절대 원칙** — 모든 대규모 사례가 Kafka 버퍼 + 대형 native 배치.
-2. **수직 확장 우선, 샤딩은 나중** — CH는 대형 단일 노드(수백 코어/TB RAM)에서 강하다. 조기 수평 확장은 비용·복잡도만 는다(대개 replica 2개면 충분).
+2. **수직 확장 우선, 샤딩은 나중** — CH는 대형 단일 노드(수백 코어/TB RAM)에서 강합니다. 조기 수평 확장은 비용·복잡도만 늡니다(대개 replica 2개면 충분).
 3. **hot(로컬 NVMe) + cold(S3) tiering** — 성능·비용 균형의 표준. SharedMergeTree(Cloud 전용)로 storage-compute 분리가 신흥 표준이나 self-host에선 불가.
 4. **LowCardinality + 필터순 ORDER BY + ZSTD** — 압축·쿼리 성능의 3종 세트.
 5. **쿼리 게이트웨이/거버넌스** — Trip.com(SQL 파싱·QPS 제한·대형 스캔 차단), Uber(QueryBridge). 대규모에선 쿼리 남용 통제가 필수.
@@ -175,9 +175,9 @@ Datadog 고비용의 구조적 원인(고카디널리티 과금 전가, custom m
 
 이 챕터의 사례 근거는 로깅 챕터가 유보한 게이트(**RUM 대체 + 범용 분석 + 인력 보유**)를 통과했다고 가정한 뒤에만 발동합니다. 그 전제 위에서 프로덕션 사례가 주는 실무 함의는 다음과 같습니다.
 
-- **"K8s + operator"는 안심하고 채택할 수 있다** — eBay·Anthropic·Trip.com·ClickHouse 자신이 검증한 패턴이다. operator는 Altinity로 통일한다([Altinity operator]({{< relref "03-operator.md" >}})).
-- **"로컬 NVMe만으로 대규모"의 순수 실증은 없다.** eBay는 스토리지 형태를 공개하지 않았고(귀속 오류 주의), 대규모 K8s 사례는 오브젝트 스토리지 백킹으로 수렴한다. 스토리지 성능을 하드 요구로 두더라도 **로컬 NVMe hot + S3 cold**(또는 write-through 캐시) 하이브리드가 소규모 인력의 노드 소실·재수화 대응에 유리하다([스토리지 설계]({{< relref "02-storage-local-nvme.md" >}})).
-- **로깅 챕터의 경계는 그대로 유지한다** — 로그 hot 경로는 여전히 VictoriaLogs, 메트릭은 VictoriaMetrics다. CH self-host는 통합 저장소 야심이 아니라 RUM·트레이스 등 신호가 실제로 한 팀에 모일 때 얹는 결정이며, 이때도 로그 전면 이전은 별도 명분이 필요하입니다.
-- **비용 주장은 액면가로 믿지 않는다.** "10~50배"는 벤더 인프라 기준 수치이므로 운영 TCO를 가산해 재평가한다([Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})).
+- **"K8s + operator"는 안심하고 채택할 수 있다** — eBay·Anthropic·Trip.com·ClickHouse 자신이 검증한 패턴입니다. operator는 Altinity로 통일합니다([Altinity operator]({{< relref "03-operator.md" >}})).
+- **"로컬 NVMe만으로 대규모"의 순수 실증은 없습니다.** eBay는 스토리지 형태를 공개하지 않았고(귀속 오류 주의), 대규모 K8s 사례는 오브젝트 스토리지 백킹으로 수렴합니다. 스토리지 성능을 하드 요구로 두더라도 **로컬 NVMe hot + S3 cold**(또는 write-through 캐시) 하이브리드가 소규모 인력의 노드 소실·재수화 대응에 유리합니다([스토리지 설계]({{< relref "02-storage-local-nvme.md" >}})).
+- **로깅 챕터의 경계는 그대로 유지한다** — 로그 hot 경로는 여전히 VictoriaLogs, 메트릭은 VictoriaMetrics다. CH self-host는 통합 저장소 야심이 아니라 RUM·트레이스 등 신호가 실제로 한 팀에 모일 때 얹는 결정이며, 이때도 로그 전면 이전은 별도 명분이 필요합니다.
+- **비용 주장은 액면가로 믿지 않습니다.** "10~50배"는 벤더 인프라 기준 수치이므로 운영 TCO를 가산해 재평가합니다([Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})).
 
 두 챕터는 **모순 없이 양립합니다** — 로깅 챕터는 "채택 여부(로그 관점)"에서 보류, 이 챕터는 "채택했다면 어떻게(RUM+분석 관점)"에서 사례를 큐레이션합니다. 게이트를 못 넘으면 로깅 챕터 판단이 우선입니다. 근거 URL은 [출처]({{< relref "10-sources.md" >}}). 시점 기준 2026-07.

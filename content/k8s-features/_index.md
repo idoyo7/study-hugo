@@ -28,20 +28,20 @@ GA(stable) 딱지가 보증하는 범위는 "API가 안 바뀐다"까지입니�
 
 ## 문서 지도
 
-- **[01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}})** · k8s 1.35 GA — 파드 재시작 없이 CPU/메모리를 바꾼다. 구현 코드가 실제로 하는 일, 열린 버그, 케이스별 득실.
-- **[02 CPU Throttling]({{< relref "02-cpu-throttling.md" >}})** · 모든 k8s · CFS — limit을 다 쓰지도 않았는데 잘린다. CPU wait이 APM 지연으로 번지는 경로, 다중코어에서 더 잘리는 이유, limit 제거와 CPU Manager.
-- **[03 CPU Burst]({{< relref "03-cpu-burst.md" >}})** · 커널 5.14+ · k8s WIP — CPU limit을 지키면서 불필요한 throttling만 걷어낸다. 누적 상한 불변의 증명, 이웃 간섭의 정량화, k8s 표면 부재.
+- **[01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}})** · k8s 1.35 GA — 파드 재시작 없이 CPU/메모리를 바꿉니다. 구현 코드가 실제로 하는 일, 열린 버그, 케이스별 득실.
+- **[02 CPU Throttling]({{< relref "02-cpu-throttling.md" >}})** · 모든 k8s · CFS — limit을 다 쓰지도 않았는데 잘립니다. CPU wait이 APM 지연으로 번지는 경로, 다중코어에서 더 잘리는 이유, limit 제거와 CPU Manager.
+- **[03 CPU Burst]({{< relref "03-cpu-burst.md" >}})** · 커널 5.14+ · k8s WIP — CPU limit을 지키면서 불필요한 throttling만 걷어냅니다. 누적 상한 불변의 증명, 이웃 간섭의 정량화, k8s 표면 부재.
 - **[04 Node Problem Detector]({{< relref "04-node-problem-detector.md" >}})** · 모든 k8s · DaemonSet 애드온 — 노드 문제를 탐지해 NodeCondition·Event로 보고합니다. 조치는 remedy system 몫입니다. EKS엔 `eks-node-monitoring-agent` + node auto repair라는 관리형 대안이 있습니다.
-- **[05 DaemonSet 미기동 노드 격리]({{< relref "05-daemonset-gap-isolation.md" >}})** · 모든 k8s — DS가 안 뜬 노드에도 워크로드는 내려앉는다. 노드별 갭 탐지, cordon이 DS를 못 막는 이유, startup taint(선제)와 탐지→taint(반응) 두 전략.
-- **[06 Python GIL × CPU Limit]({{< relref "06-python-gil-cfs" >}})** · 모든 k8s · CPython — "1코어 런타임"은 왜 잘리는가. quota는 코어당 지분이 아니라 시간 예산 풀입니다. 그래서 limit ≥ 1코어인 GIL 프로세스는 잘릴 수 없다 — 잘린다면 워커 다중화·네이티브 스레드풀·서브코어 limit·free-threading 넷 중 하나입니다.
+- **[05 DaemonSet 미기동 노드 격리]({{< relref "05-daemonset-gap-isolation.md" >}})** · 모든 k8s — DS가 안 뜬 노드에도 워크로드는 내려앉습니다. 노드별 갭 탐지, cordon이 DS를 못 막는 이유, startup taint(선제)와 탐지→taint(반응) 두 전략.
+- **[06 Python GIL × CPU Limit]({{< relref "06-python-gil-cfs" >}})** · 모든 k8s · CPython — "1코어 런타임"은 왜 잘리는가. quota는 코어당 지분이 아니라 시간 예산 풀입니다. 그래서 limit ≥ 1코어인 GIL 프로세스는 잘릴 수 없습니다 — 잘린다면 워커 다중화·네이티브 스레드풀·서브코어 limit·free-threading 넷 중 하나입니다.
 
 이 챕터는 **쿠버네티스 코어 기능과 SIG가 관리하는 코어 인접 컴포넌트**를 다룹니다. 생태계 컴포넌트 중 성격이 같은 주제는 자매 챕터 [Karpenter]({{< relref "../karpenter/_index.md" >}})가 소유합니다. 공식 문서는 "가장 싼 인스턴스를 고른다"까지만 말하고 멈춥니다. 그 자리에서 정렬·절단·부등식이 실제로 무엇을 하는지 소스로 내려가는 이야기입니다.
 
 ## 공통 핵심
 
-- **GA는 시작점이지 종착점이 아니다.** in-place resize도 GA 시점에 메모리 축소의 OOM 방지가 best-effort로 남았다. 관련 이슈가 열려 있다. → [01]({{< relref "01-inplace-pod-resize.md" >}})
-- **커널에 있다고 쓸 수 있는 게 아니다.** CPU Burst는 5.14에 들어갔지만 Pod spec으로 켜는 표면이 없다. 노드를 직접 만지거나 벤더 annotation에 기대야 한다. → [03]({{< relref "03-cpu-burst.md" >}})
-- **지표는 겹쳐 읽어야 보인다.** CPU 사용률만 보면 "여유로운데 잘리는" 상태가 아예 관측되지 않는다. 그래프에 안 나타나는 것과 문제가 없는 것은 다르다. → [02]({{< relref "02-cpu-throttling.md" >}})
+- **GA는 시작점이지 종착점이 아닙니다.** in-place resize도 GA 시점에 메모리 축소의 OOM 방지가 best-effort로 남았습니다. 관련 이슈가 열려 있습니다. → [01]({{< relref "01-inplace-pod-resize.md" >}})
+- **커널에 있다고 쓸 수 있는 게 아닙니다.** CPU Burst는 5.14에 들어갔지만 Pod spec으로 켜는 표면이 없습니다. 노드를 직접 만지거나 벤더 annotation에 기대야 합니다. → [03]({{< relref "03-cpu-burst.md" >}})
+- **지표는 겹쳐 읽어야 보입니다.** CPU 사용률만 보면 "여유로운데 잘리는" 상태가 아예 관측되지 않습니다. 그래프에 안 나타나는 것과 문제가 없는 것은 다릅니다. → [02]({{< relref "02-cpu-throttling.md" >}})
 - **기능의 전제를 먼저 확인합니다.** cgroup 버전은 맞는가, 컨테이너 런타임 버전은 충분한가, 언어 런타임(JVM 힙 같은)이 커널 레벨 변경을 인지하는가. 전제가 안 맞으면 기능은 켜져도 효과가 없습니다.
 - **케이스별로 갈립니다.** 같은 기능이 stateful 워크로드에는 구원이고 JVM 힙에는 반쪽입니다. "좋은 기능인가"가 아니라 "**우리 어떤 워크로드에** 좋은가"로 묻습니다.
-- **선언한 것과 실행되는 것은 다르다.** NodePool에 인스턴스 타입을 나열해도 무엇이 뜰지는 그 목록이 아니라 정렬·절단·할당 전략이 정한다. 의도를 매니페스트에 적었다고 의도대로 도는 게 아니다. → [Karpenter]({{< relref "../karpenter/_index.md" >}})
+- **선언한 것과 실행되는 것은 다릅니다.** NodePool에 인스턴스 타입을 나열해도 무엇이 뜰지는 그 목록이 아니라 정렬·절단·할당 전략이 정합니다. 의도를 매니페스트에 적었다고 의도대로 도는 게 아닙니다. → [Karpenter]({{< relref "../karpenter/_index.md" >}})

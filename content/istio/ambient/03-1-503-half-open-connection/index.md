@@ -224,7 +224,7 @@ retry_on: reset,connect-failure,refused-stream,...
 retry 확대는 **멱등성을 전제로 합니다.** `reset`은 "요청이 업스트림에 전달되었는지 알 수 없는" 상태를 포함하므로 비멱등 API(결제·주문 생성 등)에 무차별로 걸면 중복 처리가 납니다. 적용 전에 대상 라우트의 API 멱등성을 확인해야 합니다. 이 함정은 사이드카 모드에서 retry를 넓힐 때와 동일합니다 — [05 장애 이야기]({{< relref "../../05-incident-intermittent-5xx.md" >}}) 참고.
 {{< /callout >}}
 
-(배경 보충: waypoint의 retry 정책을 표준 CRD 밖에서 손대야 할 때 쓰는 수단이 `EnvoyFilter`다 — [08 EnvoyFilter]({{< relref "../../08-envoyfilter-extension.md" >}}).)
+(배경 보충: waypoint의 retry 정책을 표준 CRD 밖에서 손대야 할 때 쓰는 수단이 `EnvoyFilter`입니다 — [08 EnvoyFilter]({{< relref "../../08-envoyfilter-extension.md" >}}).)
 
 ### 6.3 같이 검토했으나 보조 수단으로 판단한 것들
 

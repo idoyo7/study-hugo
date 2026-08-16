@@ -208,7 +208,7 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 
 - resize는 **`resize` 서브리소스로만** 가능하고 **cpu·memory 값 변경만** 허용됩니다. spec은 즉시 바뀌지만 반영은 비동기라 완료 판정은 `observedGeneration` + **컨디션 두 개의 부재**로 해야 합니다.
 - 수락은 **requests 합 기준**입니다. 실제 CPU가 놀아도 Deferred가 될 수 있고 **Infeasible은 spec을 고치기 전까지 영원히 재평가되지 않습니다.**
-- **늘리는 방향은 무위험, 줄이는 방향만 위험하입니다.** 메모리 축소는 TOCTOU 레이스(#135670)를 안고 있고, CPU 축소의 대가인 스로틀은 사용률이 아니라 `throttled_periods`에만 보입니다. `RestartContainer`는 크래시와 구분되지 않는 재시작입니다.
+- **늘리는 방향은 무위험, 줄이는 방향만 위험합니다.** 메모리 축소는 TOCTOU 레이스(#135670)를 안고 있고, CPU 축소의 대가인 스로틀은 사용률이 아니라 `throttled_periods`에만 보입니다. `RestartContainer`는 크래시와 구분되지 않는 재시작입니다.
 - **커널에 반영됐다 ≠ 런타임이 압니다.** 소수점 CPU limit은 `GOMAXPROCS`(올림)와 quota(정확값)가 어긋나고 Downward API로 주입된 환경변수는 resize로 갱신되지 않습니다. CPU limit은 정수 코어로 두는 편이 낫습니다.
 - 결국 **케이스가 전부다.** 재시작이 비싼 stateful·기동 부스트·장기 배치에는 확실한 득이고 JVM 힙·VPA 자동화·static CPU manager 노드에는 아직 아니다.
 

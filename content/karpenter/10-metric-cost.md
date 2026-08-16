@@ -8,16 +8,16 @@ weight: 10
 {{< callout type="info" >}}
 **한눈에**
 - 비용은 **메트릭 60개가 만드는 게 아니라 시리즈 수가 만듭니다.** 60개 중 **파드 단위 6개**가 대부분을 차지합니다. 그 6개만 유일하게 **배포마다 전량 churn**합니다.
-- **Datadog은 OpenMetrics로 긁은 것을 전부 custom metric으로 셉니다.** 공식 문서 표현이 *"all metrics retrieved by the generic Prometheus check are considered custom metrics"* 다. 아무 설정 없이 붙이면 청구가 튑니다.
+- **Datadog은 OpenMetrics로 긁은 것을 전부 custom metric으로 셉니다.** 공식 문서 표현이 *"all metrics retrieved by the generic Prometheus check are considered custom metrics"* 입니다. 아무 설정 없이 붙이면 청구가 튑니다.
 - **OpenMetrics 체크에는 `max_returned_metrics` 기본 2000 상한이 있습니다.** 대규모 클러스터에서는 이 선에서 **조용히 잘린다** — 없는 메트릭과 잘린 메트릭이 구분되지 않습니다.
 - VM에서는 청구가 아니라 **`indexdb` 팽창**이 비용입니다. 시리즈 총수가 같아도 churn이 크면 인덱스가 계속 자랍니다.
 - **Prometheus의 보호 장치는 전부 기본 꺼져 있다** — `sample_limit`·`label_limit`·`target_limit` 기본값이 모두 `0`(무제한)입니다.
 - 파드 6종을 버려도 잃는 게 거의 없습니다. 파드 단위 상태는 **kube-state-metrics가 이미 더 잘 냅니다.**
 - **켜기 전에 잽니다.** 엔드포인트를 직접 긁으면 백엔드에 아무것도 넣지 않고 시리즈 수를 셀 수 있다(§5.1). 붙였다가 줄이는 순서는 Datadog에서 그 달 청구가 이미 발생한 뒤입니다.
-- **drop보다 keep이 낫다.** 업스트림이 메트릭을 추가하면 blocklist는 그것을 자동으로 통과시킨다(§4.1).
+- **drop보다 keep이 낫습니다.** 업스트림이 메트릭을 추가하면 blocklist는 그것을 자동으로 통과시킵니다(§4.1).
 {{< /callout >}}
 
-> **왜 이 문서인가.** [09]({{< relref "09-metrics-logs-events.md" >}})가 "무엇이 나오나"라면 여기는 **"무엇을 저장할 것인가"** 다 — 60개를 다 긁는 것 자체는 문제가 아니고 비용이 백엔드마다 다른 이름으로 나타나는 게 주제입니다. 카디널리티 폭발의 **원리**는 [VictoriaMetrics / 카디널리티]({{< relref "../monitoring/victoriametrics/practice/01-cardinality.md" >}})가 소유합니다. 여기서는 그 결과만 다룹니다.
+> **왜 이 문서인가.** [09]({{< relref "09-metrics-logs-events.md" >}})가 "무엇이 나오나"라면 여기는 **"무엇을 저장할 것인가"** 입니다 — 60개를 다 긁는 것 자체는 문제가 아니고 비용이 백엔드마다 다른 이름으로 나타나는 게 주제입니다. 카디널리티 폭발의 **원리**는 [VictoriaMetrics / 카디널리티]({{< relref "../monitoring/victoriametrics/practice/01-cardinality.md" >}})가 소유합니다. 여기서는 그 결과만 다룹니다.
 
 ## 1. 비용을 만드는 축은 넷이다
 
@@ -188,7 +188,7 @@ metricRelabelConfigs:
 
 - 파드 단위 상태는 **kube-state-metrics가 이미 더 잘 낸다**(대체재는 §4.5).
 - `nodepool`·`capacity_type` 라벨은 **노드 단위로도 얻는다**(§4.5).
-- ALPHA 3종은 SLO에 못 쓴다 — Help의 *"this calculated from a point in memory, not by the pod creation timestamp"* 대로 재시작 시 기준점이 리셋된다([09 §4.5]({{< relref "09-metrics-logs-events.md" >}})).
+- ALPHA 3종은 SLO에 못 씁니다 — Help의 *"this calculated from a point in memory, not by the pod creation timestamp"* 대로 재시작 시 기준점이 리셋됩니다([09 §4.5]({{< relref "09-metrics-logs-events.md" >}})).
 
 ### 4.3 남기는 것
 
@@ -297,7 +297,7 @@ sum(increase(vm_new_timeseries_created_total[24h]))                        # chu
 
 메트릭 목록·라벨은 [09 §8]({{< relref "09-metrics-logs-events.md" >}})의 근거를 그대로 쓴다(`kubernetes-sigs/karpenter` v1.14.0-6-gac7a021e). 추가로:
 
-- `resource_type` 축이 노드의 실제 `ResourceList`에서 나온다 — `pkg/controllers/metrics/node/controller.go`의 `getNodeLabelsWithResourceType`
+- `resource_type` 축이 노드의 실제 `ResourceList`에서 나옵니다 — `pkg/controllers/metrics/node/controller.go`의 `getNodeLabelsWithResourceType`
 - 메트릭 포트 기본값 8080 — `pkg/operator/options/options.go:114`
 - **Datadog** custom metric 정의·과금 단위·무료 분량 — [Custom Metrics](https://docs.datadoghq.com/metrics/custom_metrics/), [Custom Metrics Billing](https://docs.datadoghq.com/account_management/billing/custom_metrics/)
 - **Datadog** OpenMetrics 수집분이 custom metric이라는 문장과 `max_returned_metrics` 기본 2000 — [Kubernetes Prometheus and OpenMetrics metrics collection](https://docs.datadoghq.com/containers/kubernetes/prometheus/)

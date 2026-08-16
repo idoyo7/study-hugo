@@ -56,7 +56,7 @@ operator 간 마이그레이션(수동 STS→Altinity, Altinity↔공식)은 PVC
 수동 STS로는 이 하나하나를 직접 구현해야 합니다.
 {{% /details %}}
 
-- **공식 operator를 지금 안 쓰는 이유**: 설계는 현대적이지만 `v1alpha1`은 하위호환을 보장하지 않는다. 범용·미션크리티컬 CH를 알파 API에 얹는 것은 이르다 `✓`. 다만 ClickStack 표준 Helm 경로를 그대로 따르면 **자동으로 이 공식 operator를 쓰게 된다**(아래 §공존 문제).
+- **공식 operator를 지금 안 쓰는 이유**: 설계는 현대적이지만 `v1alpha1`은 하위호환을 보장하지 않는다. 범용·미션크리티컬 CH를 알파 API에 얹는 것은 이릅니다 `✓`. 다만 ClickStack 표준 Helm 경로를 그대로 따르면 **자동으로 이 공식 operator를 쓰게 된다**(아래 §공존 문제).
 - **KubeBlocks/KubeDB** 같은 범용 DB operator도 존재하나(각각 addon·상용 라이선스), CH 전용 성숙도·트랙레코드에서 Altinity를 대체할 근거가 약해 이 결정에서는 제외 `≈`.
 
 ## operator "2종 공존" 문제와 해법
@@ -77,11 +77,11 @@ operator 간 마이그레이션(수동 STS→Altinity, Altinity↔공식)은 PVC
 
 로컬 NVMe hot 티어를 쓰는 스토리지 전략의 상세는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})에서 다룹니다. operator 관점에서 핵심은 **"노드=데이터" 결합이 강해진다**는 점입니다.
 
-- **operator는 local을 포함한 모든 StorageClass를 지원한다.** operator는 `volumeClaimTemplates`로부터 PVC를 생성할 뿐이고, 노드 유실 시 복구 절차는 STS+PVC 삭제 → `kubectl patch chi`로 `taskID`를 바꿔 reconcile 트리거 → operator가 STS/PVC를 재생성하고 스키마를 전파하는 흐름이다(Altinity 메인테이너 문서화 답변, issue #1859). 로컬 볼륨 프로비저너는 topolvm/open-local/csi-driver-host-path 등을 쓴다 `✓`.
+- **operator는 local을 포함한 모든 StorageClass를 지원한다.** operator는 `volumeClaimTemplates`로부터 PVC를 생성할 뿐이고, 노드 유실 시 복구 절차는 STS+PVC 삭제 → `kubectl patch chi`로 `taskID`를 바꿔 reconcile 트리거 → operator가 STS/PVC를 재생성하고 스키마를 전파하는 흐름이다(Altinity 메인테이너 문서화 답변, issue #1859). 로컬 볼륨 프로비저너는 topolvm/open-local/csi-driver-host-path 등을 씁니다 `✓`.
 - **local PV는 파드를 특정 노드에 못박는다(node affinity).** 그 노드가 사라지면 파드는 새 PV/노드가 준비될 때까지 Pending이고, 데이터는 다른 replica로부터 **복제로 재수화(rehydrate)** 해야 한다(재수화 시간 ≈ 데이터량 / 네트워크·머지 속도) `≈`.
-- **데이터 무손실 보장 지점.** ReplicatedMergeTree 쓰기는 모든 replica가 아니라 Keeper 로그의 ack만 요구하므로, 한 replica가 reschedule 중이어도 데이터 자체는 유실되지 않는다. 단 뒤처진 replica가 따라잡기 전까지 쿼럼/로드밸런싱 쿼리는 **stale 결과**가 가능하다 `✓`.
+- **데이터 무손실 보장 지점.** ReplicatedMergeTree 쓰기는 모든 replica가 아니라 Keeper 로그의 ack만 요구하므로, 한 replica가 reschedule 중이어도 데이터 자체는 유실되지 않는다. 단 뒤처진 replica가 따라잡기 전까지 쿼럼/로드밸런싱 쿼리는 **stale 결과**가 가능합니다 `✓`.
 - **필수 전제**: **replica ≥ 2(shard당)** — 단일 replica면 노드 유실 = 데이터 유실. `podDistribution` **anti-affinity(`topologyKey: kubernetes.io/hostname`)** 로 같은 shard의 두 replica가 한 노드에 co-locate되는 것을 막는다(안 하면 그 노드 장애 시 shard 전체 장애). **PDB `maxUnavailable: 1` per shard** + drain 전 replica lag 확인 `✓`.
-- **노드 교체 = 대규모 재수화 이벤트.** 노드당 데이터량이 크면 재수화가 오래 걸리고 그동안 가용성·성능이 저하된다. 콜드 데이터는 S3 tiered storage로 빼서 로컬 NVMe에는 핫 데이터만 두는 설계로 노드당 데이터량을 줄인다 `≈`.
+- **노드 교체 = 대규모 재수화 이벤트.** 노드당 데이터량이 크면 재수화가 오래 걸리고 그동안 가용성·성능이 저하됩니다. 콜드 데이터는 S3 tiered storage로 빼서 로컬 NVMe에는 핫 데이터만 두는 설계로 노드당 데이터량을 줄인다 `≈`.
 
 ## Keeper는 CHK로 3노드 분리 배포
 

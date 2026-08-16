@@ -7,9 +7,9 @@ weight: 3
 
 {{< callout type="info" >}}
 **한눈에**
-- **argocd(워크로드 spoke)**: chart 7.5.2(앱 v2.12) → **chart 10.1.4(앱 v3.4.5)**. 현행 2.12는 애초에 목표 k8s **1.35** tested 목록 밖이고 3.4가 정확히 v1.32~1.35를 커버하므로 bump가 사실상 필수다 — 최대 breaking 구간은 앱 **2.14→3.0**(logs RBAC 강제, 리소스 추적 label→annotation)입니다 `✓`
+- **argocd(워크로드 spoke)**: chart 7.5.2(앱 v2.12) → **chart 10.1.4(앱 v3.4.5)**. 현행 2.12는 애초에 목표 k8s **1.35** tested 목록 밖이고 3.4가 정확히 v1.32~1.35를 커버하므로 bump가 사실상 필수입니다 — 최대 breaking 구간은 앱 **2.14→3.0**(logs RBAC 강제, 리소스 추적 label→annotation)입니다 `✓`
 - **argo-rollouts**: chart 2.37.2(앱 v1.7.1) → **chart 2.41.1(앱 v1.9.1)**. k8s 지원 매트릭스가 없는 tolerant 컴포넌트라 하드 블로커는 아니지만 **CVE-2026-35469(HIGH, 원격 DoS)** 수정판이라 강력 권장입니다 `✓`
-- 두 컴포넌트는 finance에서 배포 구조가 다르다 — **argocd는 독립 upstream 차트**라 `yo-charts` 리워크가 필요 없고, **argo-rollouts는 umbrella 서브차트**라 `cluster-bootstrap-v2` umbrella의 `Chart.yaml` dependency를 고쳐야 합니다 `✓`
+- 두 컴포넌트는 finance에서 배포 구조가 다릅니다 — **argocd는 독립 upstream 차트**라 `yo-charts` 리워크가 필요 없고, **argo-rollouts는 umbrella 서브차트**라 `cluster-bootstrap-v2` umbrella의 `Chart.yaml` dependency를 고쳐야 합니다 `✓`
 - argo-rollouts는 istio canary 트래픽 라우팅만 쓴다(ALB rollout trafficRouting은 finance 템플릿에 없음) — v1.9.0의 istio DestinationRule/weight 순서 변화가 직접 관련됩니다 `✓`
 {{< /callout >}}
 
@@ -27,7 +27,7 @@ CRD apiVersion(`argoproj.io/v1alpha1`)은 그대로입니다. 다만 Application
 
 breaking이 가장 몰린 구간은 앱 **2.14→3.0**입니다.
 
-- **logs RBAC 강제 기본화** — 이와 함께 `server.rbac.log.enforce.enable` 플래그 자체가 제거된다. finance는 이미 대부분 역할에 `logs, get` 그랜트가 있지만 `role:devops`에는 이 그랜트가 없어 순수 devops 사용자가 로그 접근을 잃을 수 있다(단 sre 계정은 developers 역할을 경유해 유지된다).
+- **logs RBAC 강제 기본화** — 이와 함께 `server.rbac.log.enforce.enable` 플래그 자체가 제거된다. finance는 이미 대부분 역할에 `logs, get` 그랜트가 있지만 `role:devops`에는 이 그랜트가 없어 순수 devops 사용자가 로그 접근을 잃을 수 있습니다(단 sre 계정은 developers 역할을 경유해 유지됩니다).
 - **Application 하위 리소스 fine-grained RBAC 강화** — `update`/`delete`가 더 이상 관리 리소스에 자동 상속되지 않습니다. UI에서 관리 리소스를 직접 삭제/수정하는 운영 방식을 쓴다면 레거시 동작 복원 플래그를 명시해야 합니다.
 - **리소스 추적 기본이 label에서 annotation으로** — `ApplyOutOfSyncOnly=true`를 쓰는 앱은 orphan 위험이 있으나 finance는 이 syncOption을 쓰지 않습니다.
 
@@ -39,7 +39,7 @@ breaking이 가장 몰린 구간은 앱 **2.14→3.0**입니다.
 
 1. **사전** — ECR 이미지 미러에 argocd v3.4.5·dex v2.45.0·redis 7.2 계열·haproxy 태그가 존재하는지 확인합니다. 신규 클러스터는 API endpoint가 바뀌므로 허브의 cluster secret과 정적 SA bearerToken도 재발급해야 합니다.
 2. **values 정정** — `server.rbac.log.enforce.enable` 제거, `role:devops`에 `logs, get` 그랜트 추가 검토, `server.rbac.disableApplicationFineGrainedRBACInheritance: 'false'`로 레거시 상속 유지 여부 결정, `global.networkPolicy.create: false` 명시(istio 병존 대응).
-3. **revision 핀 변경** — chart targetRevision을 10.1.4로 올린다. spoke argocd Application의 syncOptions에 `ServerSideApply=true`를 추가한다(대형 ApplicationSet CRD 대응, 앱 3.3+ 요건).
+3. **revision 핀 변경** — chart targetRevision을 10.1.4로 올립니다. spoke argocd Application의 syncOptions에 `ServerSideApply=true`를 추가합니다(대형 ApplicationSet CRD 대응, 앱 3.3+ 요건).
 
 ### 검증·롤백
 
@@ -75,14 +75,14 @@ argo-rollouts는 1.36으로 갈 경우 **서드파티 차단 6종** 중 하나�
 
 Rollout CRD apiVersion(`argoproj.io/v1alpha1`)은 전 구간 변경이 없습니다. 공식 릴리스노트에도 "breaking change" 명시 항목은 없지만 finance의 canary + istio + analysis 사용 패턴에 영향 가능한 동작 변화가 v1.9.0에 몰려 있습니다.
 
-- **Pod metadata가 항상 reconcile**되도록 바뀝니다. canary/stable 임시 라벨을 관리하는 방식이 달라지므로 커스텀 ephemeral metadata를 붙이는 경우 검증이 필요하입니다.
+- **Pod metadata가 항상 reconcile**되도록 바뀝니다. canary/stable 임시 라벨을 관리하는 방식이 달라지므로 커스텀 ephemeral metadata를 붙이는 경우 검증이 필요합니다.
 - **istio DestinationRule/weight 순서가 바뀐다** — `ReplicaSetReferenced`가 DestinationRule을 제대로 확인하도록 바뀝니다. 롤백 시에는 DestinationRule 업데이트가 `SetWeight`보다 먼저 수행되고 신규 canary에서는 weight 설정이 hash 할당보다 먼저 이뤄집니다. finance의 canary 서브셋 전환 순서가 영향받을 수 있어 스테이징 canary 검증이 필수입니다.
 
 ### 적용 절차
 
 1. **umbrella 차트 리워크** — `cluster-bootstrap-v2`의 `Chart.yaml`에서 argo-rollouts dependency 버전을 2.41.1로 교체합니다. 실배포 umbrella와 워킹트리 버전이 다를 수 있으므로 **실배포 baseline에서 argo-rollouts 핀만 올린 최소 diff 버전**을 새로 끊는 것을 권장합니다. 같은 `Chart.yaml`에 핀된 다른 서브차트(external-secrets·aws-load-balancer-controller·metrics-server)가 의도치 않게 함께 재렌더되는 것을 피하기 위해서입니다.
 2. **targetRevision 핀** — app-of-apps의 umbrella targetRevision을 새로 퍼블리시한 버전으로 교체합니다.
-3. **values** — argo-rollouts 서브차트 values는 공식 릴리스노트에 스키마 파괴 변경이 없어 그대로 유지 가능하다(스테이징에서 `helm template` diff로 검증 권장). 서비스 Rollout values(canary/blueGreen/analysis/istio trafficRouting)도 변경 불필요하입니다.
+3. **values** — argo-rollouts 서브차트 values는 공식 릴리스노트에 스키마 파괴 변경이 없어 그대로 유지 가능하다(스테이징에서 `helm template` diff로 검증 권장). 서비스 Rollout values(canary/blueGreen/analysis/istio trafficRouting)도 변경 불필요합니다.
 4. staging 먼저 → 검증 → 통과 후 prod에 동일 절차를 적용합니다.
 
 ### 검증·롤백

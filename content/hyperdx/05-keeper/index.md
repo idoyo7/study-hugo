@@ -7,12 +7,12 @@ weight: 5
 
 HyperDX 스택의 ClickHouse는 self-host이므로 `ReplicatedMergeTree`가 강제되고, 복제를 조정할 계층으로 **ClickHouse Keeper**가 반드시 붙습니다. 우리는 이 Keeper를 표준 ClickStack 차트의 공식 operator(KeeperCluster CRD)가 아니라 **Altinity CHK(`ClickHouseKeeperInstallation`)로 분리 운영**합니다 — 그 배치·gp3 영속 볼륨·정족수 매니페스트·업그레이드는 이미 clickhouse 카테고리가 깊게 다뤘으므로 여기서 반복하지 않고 [스토리지 · 로컬 NVMe]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})(Keeper gp3 영속·내구성 3종세트), [operator 배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})(정족수 산술·`insert_quorum` 주입·쓰기 내구성 노브), [Altinity operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})(CHK 롤링 업그레이드), 그리고 같은 카테고리의 [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}})으로 위임합니다.
 
-이 페이지가 새로 더하는 각도는 하나다: **"Keeper는 Kafka 같은 개념이지만, ClickHouse가 죽어도 큐잉되는 데이터가 아니다"** 를 정확히 해부합니다. 무엇을 저장하고 무엇을 저장하지 않는지, in-flight INSERT가 어디서 유실되는지, 그리고 신뢰 ingest를 만드는 것이 Keeper가 아니라 **클라이언트 재시도 + 멱등 + (필요 시) 앞단 실제 큐**임을 우리 RUM 워크로드 기준으로 정리합니다.
+이 페이지가 새로 더하는 각도는 하나입니다: **"Keeper는 Kafka 같은 개념이지만, ClickHouse가 죽어도 큐잉되는 데이터가 아니다"** 를 정확히 해부합니다. 무엇을 저장하고 무엇을 저장하지 않는지, in-flight INSERT가 어디서 유실되는지, 그리고 신뢰 ingest를 만드는 것이 Keeper가 아니라 **클라이언트 재시도 + 멱등 + (필요 시) 앞단 실제 큐**임을 우리 RUM 워크로드 기준으로 정리합니다.
 
 {{< callout type="info" >}}
 **한눈에**
 - Keeper는 **ZooKeeper의 ClickHouse판**(NuRaft/Raft 합의)이지 **Kafka의 ClickHouse판이 아니다**. 조정 메타데이터(복제 로그·part 참조·DDL 큐·dedup 체크섬·ephemeral 락)만 담고 **사용자 이벤트 데이터는 담지 않는다** `✓`.
-- INSERT는 **클라이언트 → CH 서버로 직접** 간다. 동기면 파트로 디스크 기록, `async_insert`면 **서버 메모리 버퍼(휘발)**에 잠깐 머문다. **커밋·복제 전에 서버가 죽으면 그 데이터는 어디에도 큐잉되지 않고 유실**된다 — Keeper가 붙잡아 두지 않는다 `✓`.
+- INSERT는 **클라이언트 → CH 서버로 직접** 갑니다. 동기면 파트로 디스크 기록, `async_insert`면 **서버 메모리 버퍼(휘발)**에 잠깐 머뭅니다. **커밋·복제 전에 서버가 죽으면 그 데이터는 어디에도 큐잉되지 않고 유실**됩니다 — Keeper가 붙잡아 두지 않습니다 `✓`.
 - Keeper 안의 "큐"(DDL task_queue·replica queue·replication log)는 **메타데이터 큐**지 이벤트 데이터 큐가 아니다. "이미 디스크에 쓰인 파트를 가져가라"는 **지시**를 복원할 뿐, 아직 파트가 안 된 수신 중 이벤트를 복원하지 못한다 `✓`.
 - 유실 방어는 CH 내부에서 **`insert_quorum` + 블록 dedup + 클라이언트 재시도**(at-least-once → 사실상 exactly-once)까지, 다운타임/버스트 흡수는 **CH 앞단의 실제 큐**(OTel Collector persistent queue / Kafka)가 담당합니다.
 {{< /callout >}}
@@ -43,8 +43,8 @@ Keeper는 znode 트리(작은 키-값)로 **복제·분산 실행의 조정 상�
 여기서 반드시 붙잡을 사실 세 가지입니다.
 
 - **데이터는 replica 간 직접 전송됩니다** `✓`. 공식 복제 문서 원문은 *"During replication, only the source data to insert is transferred over the network"* — Keeper는 "누가 무엇을 가졌나"의 **포인터·지시**만 갖고, 파트 바이트는 replica가 서로 직접 fetch합니다.
-- **SELECT은 Keeper를 타지 않는다** `✓`(*"ZooKeeper is not used in SELECT queries"*). 조회 경로에 Keeper가 없다 → Keeper는 **쓰기·조정 경로의 SPOF**지 읽기 병목이 아니다.
-- **INSERT 1건당 Keeper에 약 10개 엔트리**가 추가된다(근사치) `✓/≈`. 즉 Keeper 부하는 데이터 GB가 아니라 **INSERT·파트 생성 빈도에 비례**합니다. 작은 INSERT를 남발해 파트가 폭증하면 디스크보다 Keeper가 먼저 비명을 지른다 — 배칭이 Keeper 건강에도 직결됩니다.
+- **SELECT은 Keeper를 타지 않습니다** `✓`(*"ZooKeeper is not used in SELECT queries"*). 조회 경로에 Keeper가 없습니다 → Keeper는 **쓰기·조정 경로의 SPOF**지 읽기 병목이 아닙니다.
+- **INSERT 1건당 Keeper에 약 10개 엔트리**가 추가됩니다(근사치) `✓/≈`. 즉 Keeper 부하는 데이터 GB가 아니라 **INSERT·파트 생성 빈도에 비례**합니다. 작은 INSERT를 남발해 파트가 폭증하면 디스크보다 Keeper가 먼저 비명을 지릅니다 — 배칭이 Keeper 건강에도 직결됩니다.
 
 Keeper가 저장하지 **않는** 것을 못박아 둔다: ❌ 테이블의 행·파트 바이트(디스크에 있고 replica 직송), ❌ **아직 커밋 안 된 in-flight INSERT 버퍼**(§큐가 아니다의 핵심), ❌ 쿼리 결과·캐시(SELECT 경로 밖).
 
@@ -74,7 +74,7 @@ Keeper가 저장하지 **않는** 것을 못박아 둔다: ❌ 테이블의 행�
 {{< seq src="_seq/ch-가-죽으면-in.json" />}}
 
 - INSERT는 **클라이언트 → CH 서버로 직접** 가고, 파트로 디스크에 동기 기록되거나(기본), `async_insert`면 **서버 메모리 버퍼(휘발)**에 잠깐 머문다 `✓`.
-- **커밋·복제 전에 서버가 죽으면** 그 데이터는 유실된다. Keeper는 ingest를 버퍼링하지 않으므로, "CH가 죽어도 Keeper가 데이터를 붙잡고 있다가 재개"하는 일은 **없다** `✓`.
+- **커밋·복제 전에 서버가 죽으면** 그 데이터는 유실됩니다. Keeper는 ingest를 버퍼링하지 않으므로, "CH가 죽어도 Keeper가 데이터를 붙잡고 있다가 재개"하는 일은 **없습니다** `✓`.
 - Keeper의 DDL 큐·복제 로그가 살아남아도 그것은 "이미 디스크에 쓰인 파트를 다른 replica가 가져가라"는 **지시**를 복원할 뿐, **아직 파트가 안 된 수신 중 이벤트**를 복원하지 못한다 `✓`.
 
 {{< callout type="error" >}}

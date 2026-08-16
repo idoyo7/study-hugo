@@ -8,7 +8,7 @@ weight: 10
 {{< callout type="info" >}}
 **한눈에**
 - 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})는 사이드카를 아예 거치지 않은 팀의 기록이라 **버리고 오는 쪽의 비용**이 빠져 있습니다. 이 문서가 그 칸을 우리 01~09에 되물어 채웁니다.
-- 가장 확실하게 무효가 되는 자산은 **EnvoyFilter**(08)다. ztunnel은 Envoy가 아니고, waypoint는 Envoy지만 EnvoyFilter가 공식 미지원·비권장입니다.
+- 가장 확실하게 무효가 되는 자산은 **EnvoyFilter**(08)입니다. ztunnel은 Envoy가 아니고, waypoint는 Envoy지만 EnvoyFilter가 공식 미지원·비권장입니다.
 - 02의 가장 큰 레버였던 `Sidecar` 리소스는 waypoint의 destination 지향 스코프로 **대체**됩니다. 레버가 사라지는 게 아니라 손잡이 모양이 바뀝니다.
 - 06의 대시보드는 메트릭 **이름은 살고 `reporter` 라벨이 갈립니다.** waypoint가 없는 구간에서는 HTTP 메트릭 자체가 나오지 않습니다.
 - **L7 정책이 걸린 워크로드에는 무중단 마이그레이션 경로가 없다**고 공식 가이드가 명시합니다. 이 문장 하나가 전환 대상 선정 기준을 거의 다 정합니다.
@@ -51,7 +51,7 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 - `kubectl get envoyfilter -A`로 전수 목록을 뽑고 각각을 세 갈래로 분류한다 — (a) 사실은 표준 CRD로 되는 것, (b) WasmPlugin 또는 TrafficExtension으로 옮길 수 있는 것, (c) 옮길 데가 없는 것.
 - 08의 플래그십 사례인 레이트 리밋이 현재로선 (c)에 들어갈 공산이 큽니다. (c)로 판정된 워크로드는 **waypoint 뒤로 옮기지 못하거나, 사이드카로 남겨야 합니다.** 이행 계획의 첫 제약이 여기서 나옵니다.
 - WasmPlugin이 Alpha라는 등급을 우리 프로덕션 기준으로 받아들일 수 있는지. 1.30 기준으로 TrafficExtension이 권장 경로로 병존하므로, 지금 WasmPlugin으로 옮기면 두 번 옮기게 될 가능성을 감수하는 것입니다.
-- 우리 EnvoyFilter 중 istiod가 만든 설정을 패치하던 것들은, Ambient에서 같은 결과가 **정식 경로로 이미 조립되어 내려오는지** 먼저 확인한다 — 채널팀이 [02 Envoy config 해부]({{< relref "ambient/02-envoy-config-anatomy.md" >}})에서 뜯어본 것이 그 조립 결과물입니다.
+- 우리 EnvoyFilter 중 istiod가 만든 설정을 패치하던 것들은, Ambient에서 같은 결과가 **정식 경로로 이미 조립되어 내려오는지** 먼저 확인합니다 — 채널팀이 [02 Envoy config 해부]({{< relref "ambient/02-envoy-config-anatomy.md" >}})에서 뜯어본 것이 그 조립 결과물입니다.
 
 **열린 질문.**
 
@@ -64,10 +64,10 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 **무엇이 바뀌나.** [02]({{< relref "02-istiod-control-plane.md" >}})의 결론은 "CPU 증설은 응급 처치이고, 진짜 해법은 `Sidecar` 리소스로 설정 범위를 좁히는 것"이었습니다. Ambient는 그 레버를 없애는 대신 기본 스코프 자체를 좁힙니다.
 
-- 기본값에서 프록시는 메시 전체 설정을 받는다 → ztunnel은 Envoy의 Cluster/Listener 타입을 쓰지 않고 `Address`·`Authorization` 두 커스텀 xDS 리소스만 받는다. (확인됨)
+- 기본값에서 프록시는 메시 전체 설정을 받는다 → ztunnel은 Envoy의 Cluster/Listener 타입을 쓰지 않고 `Address`·`Authorization` 두 커스텀 xDS 리소스만 받습니다. (확인됨)
 - 프록시당 설정 크기가 push 비용의 한 항 → 커스텀 타입이 Envoy 타입 대비 크기·할당·CPU에서 "10x edge"라고 설계 문서가 명시. (확인됨)
-- `Sidecar` 리소스로 범위를 좁힌다 → waypoint는 namespace 또는 service·pod 단위로 공유되어 스코프가 자연히 좁다. (확인됨)
-- `Sidecar` 리소스가 데이터 플레인 전체에 적용된다 → ztunnel에는 구조적으로 적용될 수 없다 **(추론)** — 공식 `Sidecar` CRD 레퍼런스는 ambient·ztunnel·waypoint를 한 번도 언급하지 않는다. (부분 확인)
+- `Sidecar` 리소스로 범위를 좁힌다 → waypoint는 namespace 또는 service·pod 단위로 공유되어 스코프가 자연히 좁습니다. (확인됨)
+- `Sidecar` 리소스가 데이터 플레인 전체에 적용됩니다 → ztunnel에는 구조적으로 적용될 수 없습니다 **(추론)** — 공식 `Sidecar` CRD 레퍼런스는 ambient·ztunnel·waypoint를 한 번도 언급하지 않습니다. (부분 확인)
 
 공식 블로그가 가장 근접하게 한 진술은 "오늘날 사용자가 `exportTo`나 `Sidecar` API를 조심스럽게 써서 얻는 개선을 ambient 모드에서는 더 이상 필요로 하지 않는다"는 것입니다. 이건 "적용되지 않는다"는 금지 규정이 아니라 "필요 없어진다"는 취지입니다. 우리에게는 이 구분이 실무적으로 중요합니다 — 남겨둔 `Sidecar` 리소스가 무해한지 유해한지가 여기서 갈리는데, 그 답이 공식 문서에 없습니다.
 
@@ -89,17 +89,17 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 **무엇이 바뀌나.** [09]({{< relref "09-istiod-scaling-connections.md" >}})의 핵심은 "커넥션 하나의 무게는 고정이 아니다"와 "재분배는 없다" 두 가지였습니다. Ambient는 앞쪽을 흔들고 뒤쪽은 그대로 둡니다.
 
 - 프록시 수 = 파드 수 → ztunnel은 노드당 1개("한 노드를 공유하는 어떤 파드든 대신해 L4 데이터 플레인을 구현한다"), waypoint는 namespace·service 단위 공유. (확인됨)
-- xDS 커넥션 수도 파드 수 비례 → 노드 수 + waypoint 수 비례 **(추론)** — 토폴로지는 확인되나 "커넥션 수"라는 표현으로 비교한 공식 문장은 없다. (부분 확인)
+- xDS 커넥션 수도 파드 수 비례 → 노드 수 + waypoint 수 비례 **(추론)** — 토폴로지는 확인되나 "커넥션 수"라는 표현으로 비교한 공식 문장은 없습니다. (부분 확인)
 - 커넥션당 단가 = 클러스터 config 크기 → ztunnel은 단순화된 리소스 셋을 받아 "성능이 개선된다"고 공식 문서가 명시. (확인됨)
-- 장수 gRPC라 재분배되지 않는다 → 성질 자체는 그대로 — ztunnel도 xDS API로 istiod와 통신한다. (확인됨)
+- 장수 gRPC라 재분배되지 않습니다 → 성질 자체는 그대로 — ztunnel도 xDS API로 istiod와 통신합니다. (확인됨)
 - `keepaliveMaxServerConnectionAge`가 유일한 재분배 손잡이 → 커넥션 총량과 단가가 함께 줄면 이 손잡이의 필요 강도가 달라진다 **(추론)**. (추론)
 - GOMAXPROCS·CFS 사슬(§8) → istiod 쪽 문제라 그대로 유효. (무효 아님)
 
 **우리가 심사할 것.**
 
-- 09에서 우리가 세운 임계값은 전부 "커넥션 수 × 커넥션당 config 크기"라는 곱 위에 있었다. 두 항이 동시에 줄면 **KEDA 트리거와 keepalive 주기를 다시 계산**해야 한다. 특히 15분 keepalive가 계속 필요한지.
+- 09에서 우리가 세운 임계값은 전부 "커넥션 수 × 커넥션당 config 크기"라는 곱 위에 있었습니다. 두 항이 동시에 줄면 **KEDA 트리거와 keepalive 주기를 다시 계산**해야 한다. 특히 15분 keepalive가 계속 필요한지.
 - 혼재 기간에는 istiod가 사이드카용 Envoy xDS와 ztunnel용 커스텀 xDS를 동시에 계산한다. `pilot_xds` 하나로 두 종류를 세는 오토스케일링은 **단가가 다른 것을 같은 단위로 세는** 구조가 된다. 카운터를 프록시 종류별로 쪼갤 수 있는지 확인할 것.
-- ztunnel이 DaemonSet이라는 사실은 09의 keepalive 손잡이와 [03-3 업그레이드 런북]({{< relref "ambient/03-3-ambient-upgrade-in-place.md" >}})의 node pool blue-green이 같은 일(강제 재연결)을 한다는 뜻입니다. 두 개가 겹치는 창을 피하는 운영 규칙이 필요하입니다.
+- ztunnel이 DaemonSet이라는 사실은 09의 keepalive 손잡이와 [03-3 업그레이드 런북]({{< relref "ambient/03-3-ambient-upgrade-in-place.md" >}})의 node pool blue-green이 같은 일(강제 재연결)을 한다는 뜻입니다. 두 개가 겹치는 창을 피하는 운영 규칙이 필요합니다.
 - 09가 다룬 "재분배 없음"의 반대편 증상 — 한 번 끊긴 스트림이 스스로 낫지 않는 문제 — 은 채널팀이 [03-4 507과 istiod disconnected]({{< relref "ambient/03-4-507-istiod-disconnected.md" >}})에서 탐지 문제로 만났다. 우리 readinessProbe·알럿을 그 기준으로 다시 볼 것.
 
 **열린 질문.**
@@ -123,7 +123,7 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 **트레이싱**
 - 사이드카 모드(06): 사이드카가 스팬 생성(헤더 전파는 앱 몫)
-- ztunnel만 있을 때: L7 기능이 없어 waypoint가 필요하입니다
+- ztunnel만 있을 때: L7 기능이 없어 waypoint가 필요합니다
 - waypoint가 있을 때: 참여
 
 **액세스 로그**
@@ -142,7 +142,7 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 - 우리 대시보드·알럿 중 `istio_requests_total` 계열에 의존하는 것을 전수로 뽑습니다. 그 목록이 곧 **waypoint를 세워야 하는 서비스 목록**입니다. 06이 "공짜"라 부른 것에 이제 배치 비용이 붙습니다.
 - `reporter="destination"` 또는 `reporter="source"`로 필터하는 쿼리를 전수 검사합니다. waypoint가 보고하는 트래픽을 **놓치거나 이중 계산**할 수 있고, 공식 문서·대시보드가 아직 이 값에 맞춰 갱신되지 않았습니다.
-- 06이 경고한 카디널리티 예산을 다시 계산한다. `reporter` 값이 하나 늘고 프록시 종류가 둘로 갈리면 시계열 수가 어떻게 변하는지.
+- 06이 경고한 카디널리티 예산을 다시 계산합니다. `reporter` 값이 하나 늘고 프록시 종류가 둘로 갈리면 시계열 수가 어떻게 변하는지.
 - 로그 파이프라인의 파서. ztunnel의 연결 단위 로그는 Envoy access log 포맷이 아니므로 [로깅 챕터]({{< relref "../logging/_index.md" >}}) 쪽 수집·파싱 규칙이 수정 대상입니다.
 - 채널팀이 [03-1 503과 Half-open Connection]({{< relref "ambient/03-1-503-half-open-connection.md" >}})에서 겪은 것처럼, 게이트웨이 로그에 `via_upstream`만 남고 실제 원인은 waypoint 로그에 있는 상황이 생긴다. 05의 hop 좁히기 순서를 그 전제로 다시 쓸 것.
 
@@ -161,7 +161,7 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·
 - **rewrite·리다이렉트** (07: VirtualService) → HTTPRoute로 옮길지 VirtualService(Alpha)로 버틸지. **같은 서비스에 둘을 섞지 말 것**.
 - **헤더 조작** (07: VirtualService) → 위와 동일.
 - **CORS·타임아웃·재시도** (07: VirtualService) → 위와 동일.
-- **트래픽 분할(subset)** (07: DestinationRule subset + VirtualService) → HTTPRoute의 `backendRefs`가 subset을 가리킬 수 없다. subset별 Service를 새로 만들 것인지 결정 **(메인테이너 커뮤니티 답변 근거, 등급 한 단계 낮음)**.
+- **트래픽 분할(subset)** (07: DestinationRule subset + VirtualService) → HTTPRoute의 `backendRefs`가 subset을 가리킬 수 없습니다. subset별 Service를 새로 만들 것인지 결정 **(메인테이너 커뮤니티 답변 근거, 등급 한 단계 낮음)**.
 - **커넥션 풀·아웃라이어** (07: DestinationRule) → 1.23+ waypoint 정식 지원. 이 열은 그대로 삽니다.
 - **IP·워크로드 인가** (07: AuthorizationPolicy) → L4 속성만 쓰면 selector 그대로 ztunnel이 집행.
 - **JWT 인증** (07: RequestAuthentication + AuthorizationPolicy) → L7이므로 waypoint 필요, `targetRef`로 부착.
@@ -172,7 +172,7 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·
 **우리가 심사할 것.**
 
 - AuthorizationPolicy 전수 목록에서 L7 속성(경로, 메서드, 헤더 등)을 매치하는 것을 먼저 골라냅니다. 이 목록이 자동 DENY 위험군이자 waypoint 필수 목록입니다.
-- 07의 표에서 VirtualService에 몰려 있던 항목들을 HTTPRoute로 옮길지 결정한다. 부분 이전은 위험하다 — 같은 서비스에 두 API를 섞으면 undefined behavior다.
+- 07의 표에서 VirtualService에 몰려 있던 항목들을 HTTPRoute로 옮길지 결정한다. 부분 이전은 위험합니다 — 같은 서비스에 두 API를 섞으면 undefined behavior입니다.
 - subset 기반 카나리·트래픽 분할을 쓰는 서비스 목록. subset별 Service 신설이 필요하면 GitOps 리포지토리 구조([04]({{< relref "04-config-as-code.md" >}}))도 함께 바뀝니다.
 
 **열린 질문.**
@@ -185,13 +185,13 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·
 
 **무엇이 바뀝니다.** [03]({{< relref "03-gateway-node-isolation.md" >}})의 격리는 공간의 격리였습니다 — taint/toleration과 nodeSelector로 전용 노드를 만들고 워크로드를 못 오게 합니다. Ambient는 여기에 **반드시 와야 하는 DaemonSet**과 **시간의 격리**를 추가합니다.
 
-- ztunnel Helm 차트의 기본 tolerations는 `{effect: NoSchedule, operator: Exists}`, `{key: CriticalAddonsOnly, operator: Exists}`, `{effect: NoExecute, operator: Exists}`다. key 없는 `Exists`는 해당 effect의 모든 taint에 매치되므로, **우리가 03에서 게이트웨이 전용 노드에 건 taint에도 ztunnel은 기본 설정만으로 이미 스케줄됩니다.** 이건 격리 정책과의 충돌이 아니라 전제의 변화다 — 막는 게 아니라 빠진 노드가 없는지 확인하는 일이 됩니다.
+- ztunnel Helm 차트의 기본 tolerations는 `{effect: NoSchedule, operator: Exists}`, `{key: CriticalAddonsOnly, operator: Exists}`, `{effect: NoExecute, operator: Exists}`다. key 없는 `Exists`는 해당 effect의 모든 taint에 매치되므로, **우리가 03에서 게이트웨이 전용 노드에 건 taint에도 ztunnel은 기본 설정만으로 이미 스케줄됩니다.** 이건 격리 정책과의 충돌이 아니라 전제의 변화입니다 — 막는 게 아니라 빠진 노드가 없는지 확인하는 일이 됩니다.
 - waypoint는 Gateway 리소스(`gatewayClassName: istio-waypoint`)로 배포됩니다. Gateway API 공통 메커니즘인 `spec.infrastructure.parametersRef`로 ConfigMap을 참조하면 생성되는 Deployment·Service·ServiceAccount·HPA·PDB를 커스터마이즈할 수 있고, GatewayClass 레벨에서 클래스 전체 기본값도 줄 수 있습니다. 우선순위는 builtin < GatewayClass < Gateway. 다만 **이 메커니즘이 waypoint에도 그대로 적용된다는 명시적 문장은 공식 문서에서 찾지 못했다** — waypoint 전용 문서는 "독립적으로 설치·업그레이드·스케일되며 istiod가 자동 관리한다"고만 적습니다.
 - 장애 단위가 커집니다. 채널팀 기준으로 ztunnel은 노드 전체, waypoint는 namespace 전체입니다. 03이 "관문은 전역 급소라 격리한다"고 한 논리가 **waypoint에 그대로 적용된다** — waypoint는 namespace 단위 급소입니다.
 
 **우리가 심사할 것.**
 
-- 03에서 만든 게이트웨이 전용 노드 그룹에 ztunnel이 실제로 뜨는지 확인합니다. 안 뜨면 그 노드의 파드는 [03-2 partially enrolled]({{< relref "ambient/03-2-partially-enrolled-untaint-controller.md" >}}) 상태가 된다 — Running이고 Ready인데 메시 밖입니다.
+- 03에서 만든 게이트웨이 전용 노드 그룹에 ztunnel이 실제로 뜨는지 확인합니다. 안 뜨면 그 노드의 파드는 [03-2 partially enrolled]({{< relref "ambient/03-2-partially-enrolled-untaint-controller.md" >}}) 상태가 됩니다 — Running이고 Ready인데 메시 밖입니다.
 - waypoint를 어디에 둘 것인가. 03의 원칙(전역 급소는 전용 노드로, AZ 분산, 안티어피니티, PDB)을 waypoint에 그대로 적용할지, 아니면 istiod 자동 관리에 맡길지.
 - waypoint의 HPA·PDB·리소스를 03의 게이트웨이 수준으로 맞출 수 있는지 실제 클러스터에서 확인합니다. 공식 문서 근거가 약하므로 문서가 아니라 실험으로 확인해야 하는 항목입니다.
 - 시간 축의 격리를 추가합니다. untaint controller(`pilot.taint.enabled=true`)로 노드가 준비될 때까지 워크로드 스케줄을 미루는 것이 03의 공간 격리와 짝을 이룹니다.
@@ -217,7 +217,7 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·
 
 **우리가 심사할 것.**
 
-- **첫 대상 네임스페이스 선정 기준**을 앞 절들의 결과로 만든다 — EnvoyFilter가 안 걸렸고(08 절), L7 AuthorizationPolicy가 없고(07 절), HTTP 대시보드 의존이 낮은(06 절) 곳. 세 조건 중 두 번째가 "무중단 경로 없음"에 직접 걸리므로 가장 무겁습니다.
+- **첫 대상 네임스페이스 선정 기준**을 앞 절들의 결과로 만듭니다 — EnvoyFilter가 안 걸렸고(08 절), L7 AuthorizationPolicy가 없고(07 절), HTTP 대시보드 의존이 낮은(06 절) 곳. 세 조건 중 두 번째가 "무중단 경로 없음"에 직접 걸리므로 가장 무겁습니다.
 - **전환 창 산정.** 사이드카 제거는 rollout restart를 요구하고, 그 롤아웃 자체가 [02]({{< relref "02-istiod-control-plane.md" >}})가 말한 istiod push 이벤트입니다. 한 번에 몇 네임스페이스를 돌릴지는 [09]({{< relref "09-istiod-scaling-connections.md" >}})의 커넥션 산수와 같은 문제입니다.
 - **롤백 리허설.** 라벨 재부착 + rollout restart로 파드가 2/2로 돌아오고 트래픽이 정상인지를 스테이징에서 먼저 돌려 봅니다. 롤백 경로가 문서화되어 있다는 것과 우리 환경에서 동작한다는 것은 다른 얘기입니다.
 - **혼재 기간의 정책 배치.** 클라이언트가 사이드카이고 서버가 ambient + waypoint인 조합에서는 L7 정책이 기대대로 걸리지 않는다. 인가를 어느 계층에 둘지 조합별로 정리할 것.

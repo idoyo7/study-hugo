@@ -8,7 +8,7 @@ aliases: ["/monitoring/victoriametrics/04-storage-and-compression/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- 지표는 **Time Series**(이름+레이블, 거의 불변)와 **Sample**(timestamp+value, 계속 쌓임)로 분리 저장된다 — IndexDB/DataDB 정규화의 근거.
+- 지표는 **Time Series**(이름+레이블, 거의 불변)와 **Sample**(timestamp+value, 계속 쌓임)로 분리 저장됩니다 — IndexDB/DataDB 정규화의 근거.
 - 저장 경로: 로우 파싱 → Canonical Name 정규화 → **TSID 변환**(캐시 hit=빠른 경로, miss=New TSID 발급=카디널리티 폭발 원인) → 압축 → 파티션(인메모리→Small→Big, Merge Multiplier로 비슷한 크기끼리 합침).
 - 압축 비결은 **Gorilla 계열 차분 인코딩**: Gauge→Delta, Counter→Delta-of-Delta(단조증가값이 압축에 극단적으로 유리) + ZigZag/Varint로 바이트 절약. 네이버 실운영 실측 **0.92바이트/데이터포인트**(원래 16바이트 대비 ~17배 압축).
 - retention은 기본 1개월, IndexDB는 단건 삭제 비용을 피하려 **3단계(Current/Previous/Next) 로테이션**으로 통째로 드롭합니다.
@@ -53,7 +53,7 @@ vmstorage는 vminsert로부터 지표를 받아 **월별 파티션 단위로 저
 저장 전 모든 로우는 **TSID(64bit 정수, 시계열의 내부 ID)** 로 바뀝니다. 변환은 두 단계입니다.
 
 1. 들어온 로우를 **Canonical Name으로 정규화**합니다. 레이블 순서가 달라도 집합이 같으면 같은 형태가 되도록 정렬한 뒤, 그 정규화된 이름을 **64bit TSID**로 변환합니다.
-2. 매번 정규화하는 것은 비싸므로 **TSID 캐시**(인메모리 매핑)를 둔다. 동일한 이름이 다시 들어오면 캐시에서 곧바로 TSID를 꺼낸다 — **빠른 경로**.
+2. 매번 정규화하는 것은 비싸므로 **TSID 캐시**(인메모리 매핑)를 둡니다. 동일한 이름이 다시 들어오면 캐시에서 곧바로 TSID를 꺼냅니다 — **빠른 경로**.
 
 캐시에 없으면(캐시미스) IndexDB(디스크 인덱스, prefix별로 엔트리 정리)를 조회하고, 거기에도 없으면 **처음 보는 시계열로 판단해 New TSID를 발급**합니다 — 위 흐름의 miss 경로입니다.
 
@@ -117,7 +117,7 @@ vmstorage 내부의 데이터는 **인메모리 파트 → Small 파티션 → B
 
 ### Retention — 기본 1개월, watcher, Big 파티션 경계 문제
 
-- 데이터 보존 기간. **기본값 1개월**, 최소 하루부터 최대 100년까지 설정 가능하입니다.
+- 데이터 보존 기간. **기본값 1개월**, 최소 하루부터 최대 100년까지 설정 가능합니다.
 - **Retention Watcher**가 **매분** 실행되어 오래된 파티션·파트를 삭제합니다.
 - 주의: **파티션 내에 보존 기간 안에 든 샘플이 하나라도 있으면 그 파트 전체가 유지됩니다.** Small 파티션은 경계에 맞게 깔끔히 삭제되지만, **Big 파티션은 보존 경계에 걸치면 통째로 들고 있어야** 합니다. 그래서 Big 파티션은 retention이 정확히 맞아떨어지지 않을 수 있습니다.
 

@@ -102,7 +102,7 @@ RUM/Datadog 탈출을 **rip-and-replace가 아니라 dual-write/dual-instrument 
 따라서 로깅 챕터의 결정을 이 로드맵이 뒤집지 않습니다:
 
 - **로그는 VictoriaLogs다(D 결정 유지).** 위 Sprint 3의 "로그 이관"은 *Datadog에서 빠져나오는 신호를 어디로 보낼지*의 문제이지, 로깅 챕터가 고른 [VictoriaLogs]({{< relref "../logging/03-victorialogs.md" >}})를 ClickHouse로 갈아치우라는 뜻이 아닙니다. volatile한 istio access log 경로에는 여전히 단일 바이너리 VictoriaLogs가 더 가볍습니다.
-- **통합 저장소(ClickHouse)는 earn-it-last다.** 이 로드맵이 CH self-host를 밀 수 있는 유일한 이유는 전제 ②·③ 때문이다 — CH가 **RUM/범용 분석 용도로 이미 정당화**되어 들어오는 경우에 한해, 관측성 데이터를 그 위에 얹는 것이 한계비용이 낮습니다. CH가 순수 로그 저장만을 위해 새로 도입되는 상황이라면 로깅 챕터의 "self-hosted CH를 1차 채택안으로 밀지 않는다"가 그대로 유효하입니다.
+- **통합 저장소(ClickHouse)는 earn-it-last다.** 이 로드맵이 CH self-host를 밀 수 있는 유일한 이유는 전제 ②·③ 때문이다 — CH가 **RUM/범용 분석 용도로 이미 정당화**되어 들어오는 경우에 한해, 관측성 데이터를 그 위에 얹는 것이 한계비용이 낮습니다. CH가 순수 로그 저장만을 위해 새로 도입되는 상황이라면 로깅 챕터의 "self-hosted CH를 1차 채택안으로 밀지 않는다"가 그대로 유효합니다.
 - **오너십이 최종 관문입니다.** 우리는 PLG 방치 이력이 있는 소규모 플랫폼 팀입니다. 전제 ③(전담 오너)이 **명시적 오너 + 런북 + 정기 리뷰**로 못 박히지 않으면, R1(접근통제 공백)·R4(NVMe lifecycle)가 그대로 폭탄이 됩니다. 그 경우 self-host CH 대신 Managed(ClickHouse Cloud / Altinity.Cloud) 견적과 반드시 비교하고, RUM은 웹 코어만 HyperDX로 떼어내되 나머지는 Datadog 잔류가 현실적입니다.
 
 **착수 전 필수 확인**(RUM 도메인 공통): Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 측정합니다 — 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택(CH+MongoDB)만 늘립니다. 도메인 큰 그림은 [RUM 내재화]({{< relref "_index.md" >}}) 참고합니다.

@@ -14,10 +14,10 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- 채널팀은 2025년 3월부터 11월까지 약 8개월에 걸쳐 Istio를 프로덕션에 도입하면서 성숙한 Sidecar mode를 건너뛰고 2024년 말 Istio 1.24에서 GA된 **Ambient mode를 첫 도입 대상으로 골랐다**.
-- 결정의 무게추는 **약 4,000개 파드**였습니다. 전부 사이드카를 붙이면 idle 상태에서만 수십~수백 vCPU와 **약 240Gi 메모리**가 순수하게 프록시로 나갑니다. ztunnel은 노드당 1개, waypoint는 namespace·service 단위라 증가폭이 훨씬 완만하입니다.
+- 채널팀은 2025년 3월부터 11월까지 약 8개월에 걸쳐 Istio를 프로덕션에 도입하면서 성숙한 Sidecar mode를 건너뛰고 2024년 말 Istio 1.24에서 GA된 **Ambient mode를 첫 도입 대상으로 골랐습니다**.
+- 결정의 무게추는 **약 4,000개 파드**였습니다. 전부 사이드카를 붙이면 idle 상태에서만 수십~수백 vCPU와 **약 240Gi 메모리**가 순수하게 프록시로 나갑니다. ztunnel은 노드당 1개, waypoint는 namespace·service 단위라 증가폭이 훨씬 완만합니다.
 - 컨트롤 플레인 쪽 이유는 **polynomial scaling problem**입니다. 사이드카 모드는 모든 사이드카가 메시 안 다른 모든 destination을 알아야 해서 설정 변경 하나가 파드 수만큼 전파되지만, Ambient는 전파 대상이 ztunnel과 waypoint로 줄어듭니다.
-- 대가는 **SPoF**다. 사이드카는 장애 범위가 파드 하나였지만 ztunnel은 노드 전체, waypoint는 namespace 전체입니다. 거기에 HBONE·hop 증가로 디버깅이 어려워지고 GA 직후라 프로덕션 검증 사례가 적습니다.
+- 대가는 **SPoF**입니다. 사이드카는 장애 범위가 파드 하나였지만 ztunnel은 노드 전체, waypoint는 namespace 전체입니다. 거기에 HBONE·hop 증가로 디버깅이 어려워지고 GA 직후라 프로덕션 검증 사례가 적습니다.
 - Ambient의 동작은 **istio-cni가 파드 네트워크 네임스페이스에 넣는 iptables 규칙**과 15001 · 15006 · 15008 세 포트로 요약됩니다. "in-pod ztunnel"이라는 이름과 달리 ztunnel은 노드 DaemonSet이고 파드 안에 있는 것은 그 DaemonSet이 붙는 localhost socket입니다.
 {{< /callout >}}
 
@@ -99,7 +99,7 @@ Gateway API 자체는 Sidecar mode에서도 쓸 수 있습니다. 다만 **Ambie
 
 - **장애 영향 범위 확대**: Sidecar mode에서는 프록시가 파드와 lifecycle을 같이 해 장애 범위가 각 파드에 그칩니다. Ambient는 ztunnel(노드 단위)과 waypoint(namespace·service 단위)에 의존하므로 장애 시 노드 전체 혹은 namespace 전체로 영향이 번집니다. **Sidecar mode에는 없던 SPoF(Single Point of Failure)가 생깁니다.**
 - **디버깅 난이도 증가**: ztunnel · waypoint · HBONE 같은 새 개념을 익혀야 하고 프록시와 hop이 늘어난 만큼 문제 원인 추적이 까다롭습니다.
-- **낮은 성숙도**: GA 직후라 프로덕션에서 검증된 사례가 적었고 Sidecar mode와 기존 Istio API(예: VirtualService)에 비해 덜 성숙하입니다.
+- **낮은 성숙도**: GA 직후라 프로덕션에서 검증된 사례가 적었고 Sidecar mode와 기존 Istio API(예: VirtualService)에 비해 덜 성숙합니다.
 
 ### 팀 내 의사결정
 

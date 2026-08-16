@@ -310,7 +310,7 @@ Kubernetes 파트에서 실측이 뒷받침하는 조언은 사실상 **CPU limi
 아래는 이 문서가 확인하지 못했거나 1차 문서와 어긋나는 지점입니다. 인용할 때 그대로 밝혀십시오.
 
 - "1,000노드 부근에서 cluster bus CPU 1~2%"(05:38)의 1차 출처를 찾지 못했습니다. cluster-spec에도 1-billion-rps 블로그에도 없습니다. 슬라이드-only 주장으로 취급하라.
-- 발표자가 언급한 2025년 선행 발표(02:49 "we did a similar talk last year")를 찾지 못했습니다. kccnceu2025 전 일정, 양 발표자의 valkey.io 저자 페이지, YouTube/CNCF 검색을 모두 훑었으나 일치하는 것이 없었습니다. KubeCon NA 2025(Atlanta)는 확인하지 않았고 남은 후보로 가장 유력하입니다.
+- 발표자가 언급한 2025년 선행 발표(02:49 "we did a similar talk last year")를 찾지 못했습니다. kccnceu2025 전 일정, 양 발표자의 valkey.io 저자 페이지, YouTube/CNCF 검색을 모두 훑었으나 일치하는 것이 없었습니다. KubeCon NA 2025(Atlanta)는 확인하지 않았고 남은 후보로 가장 유력합니다.
 - `CLUSTER SHARDS`의 `availability-zone` 필드 시점이 어긋납니다. [명령 문서](https://valkey.io/commands/cluster-shards/)는 노드 수준 `availability-zone` 필드가 9.1.0에서 추가됐다고 적는데, [AZ affinity 블로그](https://valkey.io/blog/az-affinity-strategy/)는 서버 `availability-zone` 설정이 Valkey 8에 들어왔다고 적습니다. 설정과 응답 필드가 서로 다른 릴리스에 들어온 것으로 보이지만 이 문서는 그 관계를 확정하지 못했습니다.
 - 슬라이드의 `CLUSTER SLOTS` 응답이 명령 문서와 어긋납니다. 슬라이드 13~16의 `CLUSTER SLOTS` 응답에는 `hostname`과 `availability-zone`이 들어 있는데, `CLUSTER SHARDS` 문서는 레거시 `CLUSTER SLOTS`가 이 둘을 같은 방식으로 싣지 않는다고 적습니다. 슬라이드가 설명하려고 손본 응답인지 문서가 뒤처진 것인지 확인하지 못했습니다.
 - 재접속 폭풍 콜스택은 슬라이드 이미지에서 읽었습니다. 전사에도 슬라이드 텍스트 추출본에도 이 심볼들은 없습니다. 이미지 판독 결과이므로 정확한 심볼명이 중요하면 원본 PPTX의 해당 flame graph를 직접 보라.

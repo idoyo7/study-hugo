@@ -8,13 +8,13 @@ weight: 14
 {{< callout type="info" >}}
 **한눈에**
 - 고르는 대상은 기능이 아니라 **배치**다 — 재시도·타임아웃·mTLS·관측이라는 공통 관심사를 앱 안에 둘 것인가, 앱 밖 프록시에 둘 것인가, 그 프록시를 파드마다 둘 것인가 노드마다 둘 것인가.
-- 후보는 넷(라이브러리 · 게이트웨이만 · 사이드카 메시 · ambient)이고 넷을 가르는 축도 넷이다: **커버 범위 · 언어 의존 · 업그레이드 결합 · 운영 비용**.
+- 후보는 넷(라이브러리 · 게이트웨이만 · 사이드카 메시 · ambient)이고 넷을 가르는 축도 넷입니다: **커버 범위 · 언어 의존 · 업그레이드 결합 · 운영 비용**.
 - 메시가 이기는 조건은 서비스 수 × 언어 수가 크고 정책을 일괄로 바꿔야 할 때입니다. 우리 챕터에서 그 증거는 [06]·[07]·[05]에 실물로 남아 있습니다.
 - 청구서에는 공식 수치가 있다 — 벤치마크 조건에서 사이드카 하나가 **약 0.20 vCPU · 60 MB**, 그리고 데이터 경로에 프록시가 붙는 만큼의 지연.
 - 메시는 재시도·서킷브레이커까지 대신해주지만 **폴백은 앱 몫**입니다. 이 경계는 공식 문서가 직접 명시합니다.
 {{< /callout >}}
 
-> **이 문서의 자리.** [01 메시 기초]({{< relref "01-mesh-basics.md" >}})가 답한 질문은 메시가 **구조적으로 무엇이고 그 대가가 무엇인지**였다 — 두 개의 플레인, iptables 가로채기, 네 가지 비용. 그건 메커니즘입니다. 이 문서가 다루는 것은 그 앞에 오는 질문이다: **같은 문제를 푸는 다른 방법들과 비교했을 때 메시가 이기는 조건은 무엇이고, 지는 조건은 무엇인가.** 01과 겹치는 서술은 링크로 넘기고 여기서는 판단에 필요한 것만 봅니다.
+> **이 문서의 자리.** [01 메시 기초]({{< relref "01-mesh-basics.md" >}})가 답한 질문은 메시가 **구조적으로 무엇이고 그 대가가 무엇인지**였습니다 — 두 개의 플레인, iptables 가로채기, 네 가지 비용. 그건 메커니즘입니다. 이 문서가 다루는 것은 그 앞에 오는 질문입니다: **같은 문제를 푸는 다른 방법들과 비교했을 때 메시가 이기는 조건은 무엇이고, 지는 조건은 무엇인가.** 01과 겹치는 서술은 링크로 넘기고 여기서는 판단에 필요한 것만 봅니다.
 
 > 관련 문서: [01 메시 기초]({{< relref "01-mesh-basics.md" >}}) · [06 관측성]({{< relref "06-observability-points.md" >}}) · [07 nginx에서 Istio로]({{< relref "07-from-nginx-to-istio.md" >}}) · [10 Ambient 이행 심사]({{< relref "10-ambient-migration-questions.md" >}}) · [Ambient 도입기]({{< relref "ambient/_index.md" >}}) · Envoy 쪽 부품 설명은 [12 Envoy가 할 수 있는 것]({{< relref "12-envoy-capabilities.md" >}})·[13 Istio는 Envoy를 어떻게 조립하나]({{< relref "13-istio-envoy-assembly.md" >}})
 
@@ -31,7 +31,7 @@ istio.io의 정의도 방향이 같습니다 — *"A service mesh is an infrastr
 가장 먼저 떠오르는 대안은 공용 라이브러리입니다. Envoy 공식 문서는 이 비교를 정면으로 프레이밍한 드문 1차 자료인데, 지적하는 마찰은 둘입니다.
 
 - **언어마다 따로 유지해야 합니다.** Java·C++·Go·PHP·Python 각각의 커뮤니케이션 라이브러리를 별도로 만들고 별도로 올려야 합니다.
-- **업그레이드가 앱 배포에 결합된다.** Envoy를 "각 애플리케이션과 나란히 도는 자체 완결형(self-contained) 프로세스"로 제시하는 이유가 여기다 — 언어와 무관한 운용, 그리고 애플리케이션과 분리된 업그레이드.
+- **업그레이드가 앱 배포에 결합됩니다.** Envoy를 "각 애플리케이션과 나란히 도는 자체 완결형(self-contained) 프로세스"로 제시하는 이유가 여기입니다 — 언어와 무관한 운용, 그리고 애플리케이션과 분리된 업그레이드.
 
 istio.io 쪽은 같은 결론에 다른 각도로 닿습니다. 아키텍처 문서는 사이드카 프록시 모델의 효용을 **재설계나 코드 재작성 없이 기존 배포에 기능을 얹을 수 있다**는 취지로 적습니다. 다만 "라이브러리 대비"라는 명시적 비교 프레이밍은 Envoy 문서 쪽에서만 확인되고 istio.io 문서 트리에서는 찾지 못했습니다.
 
@@ -101,7 +101,7 @@ istio.io 쪽은 같은 결론에 다른 각도로 닿습니다. 아키텍처 문
 공식 문서의 자기 정의(§1)는 **주장**이지 증거가 아닙니다. 우리가 실제로 얻은 것이 무엇인지는 우리 문서에 남아 있으므로 이점 목록 대신 증거의 위치로 적습니다.
 
 - **관측성이 앱 무수정으로 나온다** — [06]({{< relref "06-observability-points.md" >}}) — 서비스마다 제각각이던 지표가 동일 스키마로 통일됐고, `response_flags`·`connection_security_policy` 같은 **표준 라벨 차원**이 생겼습니다. 대시보드를 서비스별로 새로 짜지 않습니다.
-- **설정이 선언적 리소스로 정리된다** — [07]({{< relref "07-from-nginx-to-istio.md" >}}) — `nginx.conf` 한 파일의 절차적 설정이 관심사별 CRD로 나뉘었다. 얻은 것은 분리, 잃은 것은 "이 동작이 어디서 정의됐나"의 국소성.
+- **설정이 선언적 리소스로 정리된다** — [07]({{< relref "07-from-nginx-to-istio.md" >}}) — `nginx.conf` 한 파일의 절차적 설정이 관심사별 CRD로 나뉘었습니다. 얻은 것은 분리, 잃은 것은 "이 동작이 어디서 정의됐나"의 국소성.
 - **장애를 층으로 갈라 볼 수 있다** — [05]({{< relref "05-incident-intermittent-5xx.md" >}}) — 간헐적 5xx의 홉을 가른 나침반이 Envoy response flag였습니다. 앱 로그만 있었다면 "앱은 멀쩡한데 클라이언트는 실패"에서 조사가 멈춥니다.
 - **mTLS를 코드 변경 없이 전면 적용** — [01]({{< relref "01-mesh-basics.md" >}}) + [06]({{< relref "06-observability-points.md" >}}) — 적용은 [01]의 자동 mTLS, **커버리지 측정**은 [06]의 `connection_security_policy="none"` 한 줄. istio.io도 mTLS 암호화·정책 관리·접근 제어를 메시가 제공하는 통제 항목으로 명시합니다.
 
@@ -138,7 +138,7 @@ Istio 공식 Performance and Scalability 문서가 벤치마크 수치를 직접
 가장 자주 과대평가되는 칸입니다. Istio 공식 트래픽 관리 개념 문서가 경계를 직접 긋습니다. 실패 복구 기능은 애플리케이션에 *"completely transparent"* 하지만 그 실패를 다루는 책임까지 가져가지는 않습니다.
 
 {{< callout type="important" >}}
-공식 문서 원문: *"While Istio failure recovery features improve the reliability and availability of services in the mesh, applications must handle the failure or errors and take appropriate fallback actions."* 로드밸런싱 풀의 인스턴스가 전부 실패하면 Envoy는 HTTP 503을 반환하고 **그 503에 대한 폴백 로직은 애플리케이션이 구현해야 한다.** → [소스](#소스)
+공식 문서 원문: *"While Istio failure recovery features improve the reliability and availability of services in the mesh, applications must handle the failure or errors and take appropriate fallback actions."* 로드밸런싱 풀의 인스턴스가 전부 실패하면 Envoy는 HTTP 503을 반환하고 **그 503에 대한 폴백 로직은 애플리케이션이 구현해야 합니다.** → [소스](#소스)
 {{< /callout >}}
 
 즉 메시가 앱 밖으로 빼주는 것은 **네트워크 수준 복원력**(재시도·타임아웃·서킷브레이킹)이고 **비즈니스 수준 폴백**은 못 가져갑니다. 라이브러리를 걷어냈다고 앱이 네트워크 실패를 몰라도 되지는 않습니다. 라이브러리 대비 절감폭을 계산할 때 이 칸을 빼먹으면 이득이 과대 계상됩니다.
@@ -182,7 +182,7 @@ Istio 공식 Performance and Scalability 문서가 벤치마크 수치를 직접
 
 - Istio 공식 문서 — **What is a service mesh?** (메시의 자기 정의: zero-trust 보안 · 관측성 · 고급 트래픽 관리를 코드 수정 없이, mTLS·정책 관리·접근 제어 포함): <https://istio.io/latest/about/service-mesh/>
 - Envoy 공식 문서 — **What is Envoy** (언어별 커뮤니케이션 라이브러리 유지 문제, self-contained 프로세스로서의 사이드카 논거, "The network should be transparent to applications" 철학, 분산 아키텍처 문제의 두 뿌리): <https://www.envoyproxy.io/docs/envoy/latest/intro/what_is_envoy>
-- Istio 공식 문서 — **Performance and Scalability** (사이드카 0.20 vCPU/60MB · waypoint 0.25 vCPU/60MB · ztunnel 0.06 vCPU/12MB, 배포 모드별 P90/P99 지연 벤치마크, configuration scoping 권고): <https://istio.io/latest/docs/ops/deployment/performance-and-scalability/> — **문서 내 벤치마크는 Istio 1.24 기준으로 명시돼 있다.** 인용 시점의 최신 안정 릴리스와 다를 수 있으므로 도입 검토에 쓸 때는 해당 버전 문서를 다시 확인할 것.
+- Istio 공식 문서 — **Performance and Scalability** (사이드카 0.20 vCPU/60MB · waypoint 0.25 vCPU/60MB · ztunnel 0.06 vCPU/12MB, 배포 모드별 P90/P99 지연 벤치마크, configuration scoping 권고): <https://istio.io/latest/docs/ops/deployment/performance-and-scalability/> — **문서 내 벤치마크는 Istio 1.24 기준으로 명시돼 있습니다.** 인용 시점의 최신 안정 릴리스와 다를 수 있으므로 도입 검토에 쓸 때는 해당 버전 문서를 다시 확인할 것.
 - Istio 공식 문서 — **Traffic Management** (실패 복구는 앱에 투명하지만 폴백은 앱 책임, 풀 전체 실패 시 Envoy가 503 반환): <https://istio.io/latest/docs/concepts/traffic-management/>
 - Istio 공식 문서 — **Deployment Architecture** (사이드카 프록시 모델을 기존 배포에 코드 재작성 없이 적용): <https://istio.io/latest/docs/ops/deployment/architecture/>
 - 채널코퍼레이션 기술 블로그 원문 목록은 [Ambient 도입기]({{< relref "ambient/_index.md" >}})의 참조 블록에 있습니다.

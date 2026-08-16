@@ -38,9 +38,9 @@ MongoDB의 백그라운드 TTL 모니터(~60초 주기)가 이 인덱스를 근�
 
 [HyperDX 심층 분석의 배포 6모드]({{< relref "01-hyperdx-deep-dive.md" >}})와 정합적으로, MongoDB의 실제 형태는 배포 경로마다 다릅니다.
 
-- **docker-compose**: `mongo:5.0.32-focal` 컨테이너가 **무인증**으로 뜬다 — `db` 서비스에 환경변수 블록 자체가 없고, 앱은 credential-free URI(`mongodb://db:27017/hyperdx`)로 접속합니다 `✓`. 다만 호스트 포트 27017은 **기본적으로 노출되지 않는다** — `ports` 매핑이 주석 처리돼 있어 내부 docker 네트워크 전용입니다. 위험은 사용자가 그 주석을 의도적으로 해제할 때만 발생하며, compose 파일 자체에 "포트를 열면 강한 인증·방화벽 규칙 없이는 무단 접근 위험이 있다"는 경고가 인라인으로 박혀 있습니다 `✓`. "docker-compose가 기본으로 MongoDB 포트를 노출한다"는 통념은 이번 검증에서 기각됐습니다.
-- **Helm (Kubernetes)**: MongoDB Community Operator(MCK)가 `MongoDBCommunity` CR(`type: ReplicaSet`)로 관리한다. SCRAM 인증이 기본 활성화돼 있고, `hyperdx` 전용 앱 유저가 `hyperdx` DB에 dbOwner, `admin` DB에 clusterMonitor 권한을 갖는다 `✓`. 다만 **기본값은 `members: 1`** — 즉 단일 멤버 ReplicaSet이며, 진짜 HA(멀티노드)를 얻으려면 `mongodb.spec.members`를 수동으로 3 이상으로 올려야 한다 `✓`. "Helm 차트 기본이 이미 multi-node HA replica set"이라는 주장은 이번 검증에서 3-vote 전원 기각됐다 — 반대로 인용하면 안 된다. 기본 비밀번호(`hyperdx`)도 그대로 쓰면 안 되는 placeholder다 `✓`.
-- **HyperDX Only 모드**: ClickHouse는 자체 운영하고 HyperDX만 얹는 경로에서도 MongoDB는 여전히 필수다 — `MONGO_URI`로 외부 MongoDB 인스턴스를 직접 공급해야 하며, `docker run -e MONGO_URI=...` 형태로 기동합니다 `✓`. [심층 분석의 HyperDX Only 절]({{< relref "01-hyperdx-deep-dive.md" >}})에서 짚었듯 "CH만 자체 운영하면 메타스토어가 사라진다"는 오해는 성립하지 않습니다.
+- **docker-compose**: `mongo:5.0.32-focal` 컨테이너가 **무인증**으로 뜹니다 — `db` 서비스에 환경변수 블록 자체가 없고, 앱은 credential-free URI(`mongodb://db:27017/hyperdx`)로 접속합니다 `✓`. 다만 호스트 포트 27017은 **기본적으로 노출되지 않는다** — `ports` 매핑이 주석 처리돼 있어 내부 docker 네트워크 전용입니다. 위험은 사용자가 그 주석을 의도적으로 해제할 때만 발생하며, compose 파일 자체에 "포트를 열면 강한 인증·방화벽 규칙 없이는 무단 접근 위험이 있다"는 경고가 인라인으로 박혀 있습니다 `✓`. "docker-compose가 기본으로 MongoDB 포트를 노출한다"는 통념은 이번 검증에서 기각됐습니다.
+- **Helm (Kubernetes)**: MongoDB Community Operator(MCK)가 `MongoDBCommunity` CR(`type: ReplicaSet`)로 관리합니다. SCRAM 인증이 기본 활성화돼 있고, `hyperdx` 전용 앱 유저가 `hyperdx` DB에 dbOwner, `admin` DB에 clusterMonitor 권한을 갖습니다 `✓`. 다만 **기본값은 `members: 1`** — 즉 단일 멤버 ReplicaSet이며, 진짜 HA(멀티노드)를 얻으려면 `mongodb.spec.members`를 수동으로 3 이상으로 올려야 합니다 `✓`. "Helm 차트 기본이 이미 multi-node HA replica set"이라는 주장은 이번 검증에서 3-vote 전원 기각됐습니다 — 반대로 인용하면 안 됩니다. 기본 비밀번호(`hyperdx`)도 그대로 쓰면 안 되는 placeholder입니다 `✓`.
+- **HyperDX Only 모드**: ClickHouse는 자체 운영하고 HyperDX만 얹는 경로에서도 MongoDB는 여전히 필수입니다 — `MONGO_URI`로 외부 MongoDB 인스턴스를 직접 공급해야 하며, `docker run -e MONGO_URI=...` 형태로 기동합니다 `✓`. [심층 분석의 HyperDX Only 절]({{< relref "01-hyperdx-deep-dive.md" >}})에서 짚었듯 "CH만 자체 운영하면 메타스토어가 사라진다"는 오해는 성립하지 않습니다.
 
 ## 공식 운영 가이드의 공백
 

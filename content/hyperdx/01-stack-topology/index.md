@@ -7,9 +7,9 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- ClickStack은 **HyperDX(app+api) · OTel Collector · ClickHouse · MongoDB** 4컴포넌트를 **2개 Helm 차트**(`clickstack-operators` → `clickstack`)로 얹는다. 차트 기본은 모든 스테이트풀 컴포넌트가 **단일 인스턴스(PoC용)** 이지 HA가 아니다 `✓`.
-- **operator 분기(중요)**: 표준 차트가 딸려오는 ClickHouse operator는 **ClickHouse Inc. 공식 operator**(`ClickHouseCluster`/`KeeperCluster` CRD)다. 우리는 이걸 그대로 쓰지 않고 `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 **'HyperDX Only'**)로 CH/Keeper를 **Altinity CHI/CHK로 분리 운영**한다 → {{< relref "04-operator-topology-downtime.md" >}}.
-- **RUM 인제스트 경로에 MongoDB는 없습니다.** 브라우저 → OTLP/HTTP `:4318` → Collector → ClickHouse. MongoDB는 UI에서 대시보드/알럿/소스를 만들 때만 쓰인다 — 이게 "MongoDB를 아주 작게 돌려도 되는" 구조적 근거입니다.
+- ClickStack은 **HyperDX(app+api) · OTel Collector · ClickHouse · MongoDB** 4컴포넌트를 **2개 Helm 차트**(`clickstack-operators` → `clickstack`)로 얹습니다. 차트 기본은 모든 스테이트풀 컴포넌트가 **단일 인스턴스(PoC용)** 이지 HA가 아닙니다 `✓`.
+- **operator 분기(중요)**: 표준 차트가 딸려오는 ClickHouse operator는 **ClickHouse Inc. 공식 operator**(`ClickHouseCluster`/`KeeperCluster` CRD)입니다. 우리는 이걸 그대로 쓰지 않고 `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 **'HyperDX Only'**)로 CH/Keeper를 **Altinity CHI/CHK로 분리 운영**합니다 → {{< relref "04-operator-topology-downtime.md" >}}.
+- **RUM 인제스트 경로에 MongoDB는 없습니다.** 브라우저 → OTLP/HTTP `:4318` → Collector → ClickHouse. MongoDB는 UI에서 대시보드/알럿/소스를 만들 때만 쓰입니다 — 이게 "MongoDB를 아주 작게 돌려도 되는" 구조적 근거입니다.
 - **MongoDB 최소 배포 형상**: 메타데이터 전용이라 단일 멤버 실효 바닥 **~0.4 vCPU / 0.75~1.25Gi / gp3 10Gi**. 다만 prod는 `members:3`(≈1.2 vCPU/3Gi, 값싼 보험)에 SCRAM + `mongodump` CronJob이 실전 권고입니다.
 {{< /callout >}}
 
@@ -54,7 +54,7 @@ hyperdx:
 
 CH/Keeper 자체(CHI/CHK CR)는 이 차트 values가 아니라 **별도 매니페스트**로 관리합니다 — 필드·다운타임 시나리오는 위 04가, 변경·스케일·롤링 업그레이드·복구 운영은 {{< relref "../../clickhouse/05-altinity-operations.md" >}}가 기준 문서입니다. MongoDB `MongoDBCommunity` CR 전문(`members:3`·SCRAM·WiredTiger 캐시 고정)은 §6.3이 소유합니다. 정확한 values 키 경로(예: `otel-collector.replicaCount` vs 중첩된 `deployment.replicas`)는 차트 버전마다 달라질 수 있어 배포 시 `helm show values clickstack/clickstack`로 재확인합니다 `?`.
 
-> 왜 표준 차트를 안 쓰나: 공식 operator를 쓰면 우리 클러스터에 CH operator 2종(공식 + Altinity)이 공존하게 되고, 범용분석용으로 이미 운영 중인 Altinity CH와 관측성용 CH의 운영 표면이 갈라진다. `enabled:false`로 CH를 하나의 Altinity 운영 체계로 일원화하는 편이 운영 부담이 낮다 `≈`.
+> 왜 표준 차트를 안 쓰나: 공식 operator를 쓰면 우리 클러스터에 CH operator 2종(공식 + Altinity)이 공존하게 되고, 범용분석용으로 이미 운영 중인 Altinity CH와 관측성용 CH의 운영 표면이 갈라집니다. `enabled:false`로 CH를 하나의 Altinity 운영 체계로 일원화하는 편이 운영 부담이 낮습니다 `≈`.
 >
 > 배포 모드를 부르는 이름 — 'HyperDX Only'와 공식·업계 표현의 대응 — 은 [챕터 대문의 배포 모드 각주]({{< relref "_index.md" >}})가 정본이므로 여기서 되풀이하지 않습니다.
 
@@ -73,8 +73,8 @@ CH/Keeper 자체(CHI/CHK CR)는 이 차트 values가 아니라 **별도 매니�
 ² 8123=HTTP, 9000=native, 9009=interserver.
 ³ **2181**=client, 9444=raft — Altinity CHK 기본값(독립형 Keeper 기본값 9181/9234와 다름).
 
-- HyperDX는 **app(UI) + api(백엔드) 2 프로세스**다. local/all-in-one은 단일 컨테이너에 함께 패키징되지만, Helm에서는 app/api 포트가 분리 노출된다 `✓`.
-- **OpAMP(4320)**: HyperDX api가 OpAMP 서버로 동작해 Collector 파이프라인 설정을 원격 관리합니다. Collector는 `OPAMP_SERVER_URL`로 api의 `/v1/opamp`에 붙습니다 `✓`. TCP 접속은 Collector가 걸지만 그 위로 흐르는 것은 api가 내려보내는 설정이다 — 데이터가 흐르는 방향(Collector→CH)과 **제어가 흐르는 방향(api→Collector)이 반대**라는 점이 이 아키텍처의 특징입니다.
+- HyperDX는 **app(UI) + api(백엔드) 2 프로세스**입니다. local/all-in-one은 단일 컨테이너에 함께 패키징되지만, Helm에서는 app/api 포트가 분리 노출됩니다 `✓`.
+- **OpAMP(4320)**: HyperDX api가 OpAMP 서버로 동작해 Collector 파이프라인 설정을 원격 관리합니다. Collector는 `OPAMP_SERVER_URL`로 api의 `/v1/opamp`에 붙습니다 `✓`. TCP 접속은 Collector가 걸지만 그 위로 흐르는 것은 api가 내려보내는 설정입니다 — 데이터가 흐르는 방향(Collector→CH)과 **제어가 흐르는 방향(api→Collector)이 반대**라는 점이 이 아키텍처의 특징입니다.
 - 커스텀 Collector config는 `CUSTOM_OTELCOL_CONFIG_FILE`로 **베이스에 병합**되며 신규 receiver/processor 추가만 되고 기존 오버라이드는 안 된다(상세는 rum/01 위임). 실무 함의는 하나다: 베이스 파이프라인 자체(기본 `batch`/`memory_limiter` 파라미터 등)를 바꾸려면 OpAMP 병합 경로가 아니라 §1의 Helm values 레벨에서 손을 대야 합니다.
 
 아래는 위 표의 역할·의존 관계를 공식 아키텍처 그림으로 정리한 것입니다.
@@ -94,7 +94,7 @@ CH/Keeper 자체(CHI/CHK CR)는 이 차트 values가 아니라 **별도 매니�
 
 핵심 팩트(집필 시 강조점):
 
-- 브라우저 RUM SDK는 **HyperDX api가 아니라 OTel Collector(4318)로 직접** 텔레메트리를 보낸다 `✓`. 세션 리플레이(rrweb)는 ClickHouse `hyperdx_sessions` 테이블로 적재된다 — "MongoDB에 세션이 저장된다"는 통념은 rum/07에서 이미 기각.
+- 브라우저 RUM SDK는 **HyperDX api가 아니라 OTel Collector(4318)로 직접** 텔레메트리를 보냅니다 `✓`. 세션 리플레이(rrweb)는 ClickHouse `hyperdx_sessions` 테이블로 적재됩니다 — "MongoDB에 세션이 저장된다"는 통념은 rum/07에서 이미 기각.
 - 즉 **RUM 인제스트 경로에 MongoDB는 전혀 없습니다.** MongoDB는 사용자가 UI에서 대시보드/알럿/소스를 만들 때만 쓰입니다. 이것이 MongoDB를 아주 작게 돌려도 되는 구조적 근거입니다.
 - **쓰기 경로(Collector → CH)와 읽기 경로(api → CH)가 분리**됩니다. 인제스트 부하와 쿼리 부하가 같은 CH 클러스터를 공유하므로, 대시보드 쿼리 폭주가 인제스트를 밀어낼 수 있다는 점은 캐파 산정({{< relref "07-capacity-planning.md" >}})에서 다룹니다.
 
@@ -128,11 +128,11 @@ exporters:
   clickhouse: {}   # 저볼륨이면 연결문자열에 async_insert=1 (+wait_for_async_insert=1)
 ```
 
-- Collector의 `sending_queue`는 **기본 인메모리**다. 파드가 죽으면 **in-flight 배치는 소실**된다. 디스크 큐잉을 하려면 `file_storage` extension을 붙여 퍼시스턴트 큐로 만들어야 한다 `✓/≈`. ClickStack 배포판 베이스 config에 `file_storage`가 기본 탑재인지 커스텀 병합으로만 붙는지는 배포 시 실물 config로 확인한다 `?`.
-- 이 유실 지점의 **단일 정본은 {{< relref "05-keeper.md" >}}**다("CH가 죽어도 Keeper가 큐잉하지 않는다"와 **같은 층위** — **인제스트 파이프라인 어디에도 durable queue가 기본 존재하지 않습니다**). 이 페이지 몫은 Collector 쪽 연쇄뿐이다: CH가 잠깐 죽으면 exporter retry → 큐 적체 → `memory_limiter`가 유입 refuse(백프레셔) → 브라우저 SDK 재시도/드롭 순으로 이어지고, 장시간 CH 다운은 RUM 이벤트 유실입니다.
-- **멱등 재시도 안전장치** `✓`: 재시도 INSERT가 동일 데이터·동일 순서면 ClickHouse가 중복을 자동 무시한다 → at-least-once 재시도가 중복 폭증을 만들지 않습니다.
+- Collector의 `sending_queue`는 **기본 인메모리**입니다. 파드가 죽으면 **in-flight 배치는 소실**됩니다. 디스크 큐잉을 하려면 `file_storage` extension을 붙여 퍼시스턴트 큐로 만들어야 합니다 `✓/≈`. ClickStack 배포판 베이스 config에 `file_storage`가 기본 탑재인지 커스텀 병합으로만 붙는지는 배포 시 실물 config로 확인합니다 `?`.
+- 이 유실 지점의 **단일 정본은 {{< relref "05-keeper.md" >}}**입니다("CH가 죽어도 Keeper가 큐잉하지 않는다"와 **같은 층위** — **인제스트 파이프라인 어디에도 durable queue가 기본 존재하지 않습니다**). 이 페이지 몫은 Collector 쪽 연쇄뿐입니다: CH가 잠깐 죽으면 exporter retry → 큐 적체 → `memory_limiter`가 유입 refuse(백프레셔) → 브라우저 SDK 재시도/드롭 순으로 이어지고, 장시간 CH 다운은 RUM 이벤트 유실입니다.
+- **멱등 재시도 안전장치** `✓`: 재시도 INSERT가 동일 데이터·동일 순서면 ClickHouse가 중복을 자동 무시합니다 → at-least-once 재시도가 중복 폭증을 만들지 않습니다.
 
-> 설계 권고(원료): 게이트웨이 **2 replica + `memory_limiter` + `file_storage` 퍼시스턴트 큐(gp3 소량) + async_insert**. RUM 버스트(세션 리플레이는 이벤트가 크고 몰림)를 흡수하는 건 처리량 여유가 아니라 큐 퍼시스턴스 + replica HA다.
+> 설계 권고(원료): 게이트웨이 **2 replica + `memory_limiter` + `file_storage` 퍼시스턴트 큐(gp3 소량) + async_insert**. RUM 버스트(세션 리플레이는 이벤트가 크고 몰림)를 흡수하는 건 처리량 여유가 아니라 큐 퍼시스턴스 + replica HA입니다.
 
 ## 6. MongoDB 최소 규모 배포 (사용자 핵심 질문 — 정면 답)
 
@@ -224,7 +224,7 @@ spec:
 
 - **SCRAM 기본 활성** `✓`: `hyperdx` 앱 유저가 `hyperdx` DB에 dbOwner, `admin` DB에 clusterMonitor. 기본 비번(`hyperdx`)은 placeholder이므로 `clickstack-secret`의 `MONGODB_PASSWORD`로 반드시 교체합니다.
 - **백업 = mongodump 자력** `✓`: **MCK(Community Operator)에는 내장 백업이 없습니다.** Ops Manager 연동 백업·PITR은 Enterprise 전용입니다. 따라서 self-host면 **`mongodump` CronJob → S3**를 직접 짜는 게 표준이다(메타 소용량이라 덤프 수 초·수 MB). EBS snapshot도 대안입니다.
-- **버전 mongo 5.0.32**(Helm values 기준) `✓`: docker-compose(rum/07)도 `mongo:5.0.32-focal`로 동일. MCK operator는 구 `mongodb-kubernetes-operator` → 신 `mongodb/mongodb-kubernetes`(community+enterprise 통합)로 리네임됐다 — ClickStack이 어느 시점 operator/mongod 태그를 고정하는지는 배포 시 확인이 필요하다 `?`.
+- **버전 mongo 5.0.32**(Helm values 기준) `✓`: docker-compose(rum/07)도 `mongo:5.0.32-focal`로 동일. MCK operator는 구 `mongodb-kubernetes-operator` → 신 `mongodb/mongodb-kubernetes`(community+enterprise 통합)로 리네임됐습니다 — ClickStack이 어느 시점 operator/mongod 태그를 고정하는지는 배포 시 확인이 필요합니다 `?`.
 
 {{% details title="외부 관리형(Atlas) 위임 — 백업 공백을 통째로 넘긴다" closed="true" %}}
 HyperDX는 **`MONGO_URI` 하나만** 있으면 되므로 Atlas(SRV 연결문자열)도 그대로 붙습니다 `✓`.

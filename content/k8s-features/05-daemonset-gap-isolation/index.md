@@ -7,8 +7,8 @@ weight: 5
 
 {{< callout type="info" >}}
 **한눈에**
-- DaemonSet 파드를 노드에 바인딩하는 주체는 1.12+에서 **기본 스케줄러**다. DS 컨트롤러가 하는 일은 대상 노드를 가리키는 nodeAffinity를 파드에 심는 것까지입니다. 그래서 DS 파드도 taint·리소스·이미지 같은 일반 스케줄링 실패 모드를 그대로 겪습니다.
-- **cordon은 DS 파드를 막지 못합니다.** DS 컨트롤러가 `node.kubernetes.io/unschedulable:NoSchedule` 톨러레이션을 자동으로 붙이기 때문입니다. 격리 관점에서는 이 동작이 오히려 맞다 — 워크로드 유입만 끊고, 정작 고쳐야 할 DS는 계속 재시도합니다.
+- DaemonSet 파드를 노드에 바인딩하는 주체는 1.12+에서 **기본 스케줄러**입니다. DS 컨트롤러가 하는 일은 대상 노드를 가리키는 nodeAffinity를 파드에 심는 것까지입니다. 그래서 DS 파드도 taint·리소스·이미지 같은 일반 스케줄링 실패 모드를 그대로 겪습니다.
+- **cordon은 DS 파드를 막지 못합니다.** DS 컨트롤러가 `node.kubernetes.io/unschedulable:NoSchedule` 톨러레이션을 자동으로 붙이기 때문입니다. 격리 관점에서는 이 동작이 오히려 맞습니다 — 워크로드 유입만 끊고, 정작 고쳐야 할 DS는 계속 재시도합니다.
 - 노드별 갭은 `kube_daemonset_status_*` 로는 안 보입니다. 이 메트릭들의 라벨은 `daemonset`·`namespace` 뿐이라 "몇 개 부족"까지만 알려줍니다. "어느 노드가 빠졌는지"는 `kube_pod_info` 를 `node` 라벨로 조인해야 나옵니다.
 - 빠른 격리에는 두 전략이 있습니다. **선제**(startup taint로 준비 전까지 기본 격리)는 탐지 시간 자체를 없앱니다. **반응**(탐지 → taint → drain)은 탐지 지연이 곧 장애 시간이 됩니다. 선제를 기본으로 깔고 반응을 백스톱으로 둡니다.
 {{< /callout >}}

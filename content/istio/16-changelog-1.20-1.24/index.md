@@ -8,13 +8,13 @@ weight: 16
 {{< callout type="info" >}}
 **한눈에**
 - 이 구간의 사건은 두 개입니다. **ambient가 alpha → Beta(1.22.0) → GA(1.24.0)로 올라간 것**과 **설치·관리 경로가 강제로 바뀐 것**(in-cluster operator 폐기 1.23.0 → 제거 1.24.0, [#52090](https://github.com/istio/istio/pull/52090)). 전자는 선택이지만 **후자는 선택이 아니다** — sidecar를 유지하는 클러스터도 1.24 이상으로 가려면 그대로 맞습니다.
-- **ambient GA는 sidecar의 폐기 신호가 아니다.** 1.20~1.24 어느 upgrade-notes·change-notes에도 sidecar injection을 deprecated로 표시한 문구가 없고, 최신 스냅샷 문서도 sidecar를 "thoroughly battle-tested"라며 두 개의 main data plane mode 중 하나로 나란히 둔다. 우리 방침(ambient 금지)은 **유효하고, 이 구간 사실만으로는 재검토 트리거도 발생하지 않았다**(§2.4).
-- 제거된 것은 **in-cluster 컨트롤러와 `istio-operator` 차트**이고, `IstioOperator` **API 타입은 1.30.0에도 살아 있다**(`operator/pkg/apis/types.go`, `install.istio.io/v1alpha1`). `istioctl install -f istio.yaml`은 그대로 동작한다 — "IstioOperator가 죽었다"는 요약은 틀렸습니다.
+- **ambient GA는 sidecar의 폐기 신호가 아니다.** 1.20~1.24 어느 upgrade-notes·change-notes에도 sidecar injection을 deprecated로 표시한 문구가 없고, 최신 스냅샷 문서도 sidecar를 "thoroughly battle-tested"라며 두 개의 main data plane mode 중 하나로 나란히 둔다. 우리 방침(ambient 금지)은 **유효하고, 이 구간 사실만으로는 재검토 트리거도 발생하지 않았습니다**(§2.4).
+- 제거된 것은 **in-cluster 컨트롤러와 `istio-operator` 차트**이고, `IstioOperator` **API 타입은 1.30.0에도 살아 있다**(`operator/pkg/apis/types.go`, `install.istio.io/v1alpha1`). `istioctl install -f istio.yaml`은 그대로 동작합니다 — "IstioOperator가 죽었다"는 요약은 틀렸습니다.
 - 1.24.0에서 **CRD가 Helm 템플릿으로 이동**하고 `base.enableCRDTemplates`가 기본 `true`가 된다([#43204](https://github.com/istio/istio/issues/43204)). CRD를 `kubectl apply`나 이전 `helm install`로 넣었다면 **1.24 전에 1회 `kubectl label/annotate`로 Helm 소유권 이관**이 필요하고, ArgoCD가 만든 실제 Helm 릴리스명을 모르면 이 명령을 실행하면 안 됩니다.
 - **sidecar 트래픽 동작을 바꾸는 플래그 7개가 1.24.0에 한꺼번에 들어오고 전부 기본 `true`다**(§5.6) — `ENABLE_INBOUND_RETRY_POLICY`·`EXCLUDE_UNSAFE_503_FROM_DEFAULT_RETRY`·`PILOT_UNIFIED_SIDECAR_SCOPE`·`ENABLE_ENHANCED_DESTINATIONRULE_MERGE`·`PREFER_DESTINATIONRULE_TLS_FOR_EXTERNAL_SERVICES`·`ENABLE_DEFERRED_STATS_CREATION`·`BYPASS_OVERLOAD_MANAGER_FOR_STATIC_LISTENERS`. 이 7개가 정확히 `compatibilityVersion=1.23` 프로파일의 내용입니다.
 - **1.21.0의 TLS 기본값 두 개가 egress를 끊을 수 있습니다.** `ENABLE_AUTO_SNI`와 `VERIFY_CERTIFICATE_AT_CLIENT`가 동시에 `true`가 되면서 `caCertificates` 없는 `DestinationRule` TLS 오리지네이션이 **OS CA로 검증을 시작**합니다. 사설 CA 대상은 그 순간 실패합니다.
 - **istio.io 문서의 플래그명이 실제 env var와 다른 곳이 두 군데입니다.** 1.21 upgrade-notes는 `VERIFY_CERT_AT_CLIENT`라 쓰지만 등록명은 `VERIFY_CERTIFICATE_AT_CLIENT`(`pilot/pkg/features/pilot.go:239`)고, 1.22 upgrade-notes는 `ENHANCED_RESOURCE_SCOPING`이라 쓰지만 실제는 `ENABLE_ENHANCED_RESOURCE_SCOPING`(`experimental.go:182`)입니다. **문서를 복사해 env를 걸면 아무 일도 일어나지 않습니다.**
-- **1.23.0에 공개 upgrade-notes 페이지에 실리지 않은 메트릭 파괴 변경이 있다.** `ENABLE_DELIMITED_STATS_TAG_REGEX`(기본 `true`, [#52271](https://github.com/istio/istio/pull/52271))가 Envoy cluster 메트릭의 `cluster_name`·`http_conn_manager_prefix` 라벨 파싱을 바꾼다. 근거는 릴리스노트 원본 `releasenotes/notes/51761.yaml`의 `upgradeNote`뿐이다 — **대시보드가 조용히 깨지는 종류**다.
+- **1.23.0에 공개 upgrade-notes 페이지에 실리지 않은 메트릭 파괴 변경이 있다.** `ENABLE_DELIMITED_STATS_TAG_REGEX`(기본 `true`, [#52271](https://github.com/istio/istio/pull/52271))가 Envoy cluster 메트릭의 `cluster_name`·`http_conn_manager_prefix` 라벨 파싱을 바꾼다. 근거는 릴리스노트 원본 `releasenotes/notes/51761.yaml`의 `upgradeNote`뿐입니다 — **대시보드가 조용히 깨지는 종류**입니다.
 - **1.22.0의 `v1` 승격은 "추가"이지 "이동"이 아닙니다.** CRD가 `v1`·`v1alpha3`·`v1beta1` 셋을 동시에 served로 제공하고 **storage 버전은 1.22.0에 `v1alpha3`에서 `v1beta1`로 올라가 1.26.0까지 남는다**(1.27.0에서 `v1`로 이동). `v1alpha3`로 쓴 옛 매니페스트는 1.30.0 기준으로도 그대로 apply됩니다.
 - **1.24 계열은 k8s ≤1.31까지다.** 하한 가정(chart tip 1.24.1)이 k8s 1.33 위에서는 지원 대상 밖이라는 뜻이고, 1.24는 2025-06-24에 EOL이라 **compat profile로 버티는 선택지 자체가 이미 없다**.
 {{< /callout >}}
@@ -75,10 +75,10 @@ HBONE 터널이 "ztunnel 사이"에 그려지는 것은 논리적 표현이고, 
 
 공존 자체는 명문으로 지원됩니다. `docs/ambient/overview/index.md`의 tip 블록: *"Pods and workloads using sidecar mode can co-exist within the same mesh as pods that use ambient mode."* 문제는 **경계를 넘는 트래픽의 L7 정책**입니다.
 
-- **ambient 파드 → waypoint 있는 ambient 파드**: 출발지 ztunnel이 waypoint를 경유시킨다. L7 정책 적용 — **정상**.
-- **sidecar 파드 → waypoint 있는 ambient 파드**: **waypoint를 완전히 우회한다.** 출발지가 ambient로 넘어갈 때까지 그 트래픽에는 waypoint의 L7 정책이 적용되지 않는다 — **반쪽**(점진 이행 중 정책 구멍이 생긴다).
+- **ambient 파드 → waypoint 있는 ambient 파드**: 출발지 ztunnel이 waypoint를 경유시킵니다. L7 정책 적용 — **정상**.
+- **sidecar 파드 → waypoint 있는 ambient 파드**: **waypoint를 완전히 우회합니다.** 출발지가 ambient로 넘어갈 때까지 그 트래픽에는 waypoint의 L7 정책이 적용되지 않습니다 — **반쪽**(점진 이행 중 정책 구멍이 생깁니다).
 - **ingress gateway → waypoint 있는 ambient 파드**: 기본적으로 waypoint 우회. `istio.io/ingress-use-waypoint` 라벨로 옵트인 — **반쪽**(라벨을 붙여야 정책이 산다).
-- **메시 밖 파드 → ambient 파드**: ztunnel이 평문도 받는다. peer 신원이 없는 상태로 인가 평가 — 신원을 요구하는 정책을 걸어야 평문이 차단된다 — **주의**.
+- **메시 밖 파드 → ambient 파드**: ztunnel이 평문도 받습니다. peer 신원이 없는 상태로 인가 평가 — 신원을 요구하는 정책을 걸어야 평문이 차단됩니다 — **주의**.
 
 즉 공존은 "둘이 같이 떠 있을 수 있다"까지고, **L7 정책의 적용 범위는 출발지가 어느 모드인지에 달립니다.** 금융 워크로드에서 L7 인가가 요건이면 이 성질이 이행 중간 상태를 그대로 위험 구간으로 만듭니다.
 
@@ -92,7 +92,7 @@ ambient가 아예 안 되는 것도 명시돼 있습니다(`docs/ambient/migrate
 
 **타당합니다.** 근거는 세 갈래입니다.
 
-- **sidecar가 폐기 트랙인가** — **아니다.** 1.20~1.24 upgrade-notes·change-notes 어디에도 sidecar injection을 deprecated로 표시한 문구가 없다. 최신 스냅샷 `docs/overview/dataplane-modes/index.md`는 sidecar를 "built on the sidecar pattern from its first release in 2017 … well understood and thoroughly battle-tested"로 서술하고 두 모드를 나란히 비교한다. → 유지가 "레거시에 남는 것"이 아니다.
+- **sidecar가 폐기 트랙인가** — **아닙니다.** 1.20~1.24 upgrade-notes·change-notes 어디에도 sidecar injection을 deprecated로 표시한 문구가 없습니다. 최신 스냅샷 `docs/overview/dataplane-modes/index.md`는 sidecar를 "built on the sidecar pattern from its first release in 2017 … well understood and thoroughly battle-tested"로 서술하고 두 모드를 나란히 비교한다. → 유지가 "레거시에 남는 것"이 아니다.
 - **sidecar 경로에 투자가 계속되나** — **계속된다.** 1.20 `startupProbe` 기본화, 1.21 바이너리 ~10MB 축소, 1.23 인바운드 리트라이 프리뷰 → 1.24 기본 활성, 1.24 per-pod native sidecar 제어. → 유지가 성능·안정성에서 손해 보는 방향이 아니다.
 - **ambient가 우리 요건을 받을 수 있나** — **하드 블로커·L7 우회 문제가 남아 있다**(§2.3). 특히 `EnvoyFilter` 미지원과 `VirtualService` Alpha는 [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})·기존 `VirtualService` 자산과 정면으로 부딪힙니다. → 금융 요건과 무관하게라도 전환 비용이 큽니다.
 
@@ -104,7 +104,7 @@ ambient가 아예 안 되는 것도 명시돼 있습니다(`docs/ambient/migrate
 
 "IstioOperator가 없어졌다"는 흔한 요약이 세 개의 다른 사건을 뭉갠 결과입니다. 정확히는 이렇습니다.
 
-- **1.21.0** — 무엇이 끊겼나: `istioctl install`/`helm install`이 만들던 **`installed-state` `IstioOperator` 인스턴스** 제거. 두 명령은 더 이상 `IstioOperator` CRD를 설치하지 않는다. 남는 것: in-cluster operator 자체는 무관하고 그대로 동작 — 문서가 "이것은 `istioctl install`에만 영향"이라고 명시. 근거: 1.21 change-notes:309.
+- **1.21.0** — 무엇이 끊겼나: `istioctl install`/`helm install`이 만들던 **`installed-state` `IstioOperator` 인스턴스** 제거. 두 명령은 더 이상 `IstioOperator` CRD를 설치하지 않습니다. 남는 것: in-cluster operator 자체는 무관하고 그대로 동작 — 문서가 "이것은 `istioctl install`에만 영향"이라고 명시. 근거: 1.21 change-notes:309.
 - **1.23.0** — 무엇이 끊겼나: **공식 deprecate.** "fewer than 10% of our user base … will need to migrate … in order to upgrade to Istio 1.24 or above". 남는 것: 1.23.x에서는 계속 동작. 단 **1.24 이상으로는 못 올라간다**. 근거: 1.23 공지 "Deprecating the in-cluster Operator"; 폐기 블로그.
 - **1.24.0** — 무엇이 끊겼나: **완전 제거.** `manifests/charts/istio-operator/`가 19개 파일 → 0개(`crd-operator.yaml` 포함), `istioctl/cmd/root.go`에서 `OperatorCmd` 삭제. 남는 것: Helm, `istioctl install`. 근거: commit [c2b027c4e0](https://github.com/istio/istio/pull/52090), `git tag --contains` → 최초 포함 `1.24.0`.
 
@@ -303,7 +303,7 @@ Envoy cluster 메트릭은 `.`을 메트릭 네임스페이스 구분자로 쓰�
 
 각 플래그의 기본값·위치, 도입 PR, 무엇이 바뀌나, sidecar 유지 클러스터의 영향은 이렇습니다.
 
-- **`ENABLE_INBOUND_RETRY_POLICY`**(`true` · `pilot.go:237`, [#52055](https://github.com/istio/istio/pull/52055)) — **서버 사이드카**에서, 앱이 아직 처리하지 않은 요청이 커넥션 재사용 중 리셋되면 자동 재시도. 종래 리트라이는 클라이언트 사이드카 전용이었다. 영향: **대개 이롭다** — 흔한 503 원인(백엔드가 닫는 keep-alive 커넥션 재사용)을 서버 쪽에서 흡수한다. [05 간헐적 응답 이상]({{< relref "05-incident-intermittent-5xx.md" >}})이 추적한 실패 모드와 같은 계열.
+- **`ENABLE_INBOUND_RETRY_POLICY`**(`true` · `pilot.go:237`, [#52055](https://github.com/istio/istio/pull/52055)) — **서버 사이드카**에서, 앱이 아직 처리하지 않은 요청이 커넥션 재사용 중 리셋되면 자동 재시도. 종래 리트라이는 클라이언트 사이드카 전용이었습니다. 영향: **대개 이롭다** — 흔한 503 원인(백엔드가 닫는 keep-alive 커넥션 재사용)을 서버 쪽에서 흡수한다. [05 간헐적 응답 이상]({{< relref "05-incident-intermittent-5xx.md" >}})이 추적한 실패 모드와 같은 계열.
 - **`EXCLUDE_UNSAFE_503_FROM_DEFAULT_RETRY`**(`true` · `pilot.go:240`, [#52111](https://github.com/istio/istio/pull/52111)) — **기본 재시도 정책에서 503 재시도를 제외.** 원래 위 실패 모드를 덮으려 넣었던 것인데 non-idempotent 요청에 위험하다고 판단. 영향: **주의.** 503이 자동 재시도로 가려지고 있었다면 **클라이언트에 503이 더 많이 노출됩니다.** 안전성과 성공률이 맞바꿔집니다.
 - **`PILOT_UNIFIED_SIDECAR_SCOPE`**(`true` · `experimental.go:208`, [#51776](https://github.com/istio/istio/pull/51776)) — `Sidecar` 리소스 유무에 따라 갈리던 충돌 해소 규칙 통일(아래 별도 설명). 영향: **직접 영향.** `Sidecar` CR을 쓰거나 동일 hostname 중복 정의가 있으면 라우팅 대상이 바뀔 수 있습니다.
 - **`ENABLE_ENHANCED_DESTINATIONRULE_MERGE`**(`true` · `experimental.go:204`, [#52636](https://github.com/istio/istio/pull/52636)) — `exportTo`가 다른 동일 호스트 `DestinationRule`을 **더 이상 병합하지 않습니다**. 영향: 동일 host에 `exportTo`를 달리 준 DR이 중복 정의돼 있으면 적용 결과가 달라집니다.
@@ -348,7 +348,7 @@ helm upgrade istiod istio/istiod -n istio-system \
 - **`istio.io/gateway-name` 라벨 제거** — 내용: 1.21.0에서 `gateway.networking.k8s.io/gateway-name`으로 바뀌며 병기됐던 구 라벨이 1.24.0에서 제거. 우리가 할 일: Grafana 쿼리·정책 셀렉터·스크립트에서 구 라벨 grep. **1.21~1.23 사이에 갱신하지 않은 채 1.24로 오면 여기서 끊깁니다.**
 - **Helm values 11개 제거** — 내용: `pilot.{configNamespace,configSource,enableProtocolSniffingForOutbound,enableProtocolSniffingForInbound,useMCP}`, `global.{autoscalingV2API,configRootNamespace,defaultConfigVisibilitySettings,useMCP}`, `sidecarInjectorWebhook.{objectSelector,useLegacySelectors}` ([#51987](https://github.com/istio/istio/issues/51987)). 별도로 `istiod` 차트의 `istio_cni` values 제거([#52645](https://github.com/istio/istio/issues/52645), 1.22에서 [#49290](https://github.com/istio/istio/issues/49290)으로 폐기 예고). 우리가 할 일: values.yaml에서 위 키 grep. change-notes가 "had been without effect and in some cases long-deprecated"라고 밝혔듯 **이미 무효였던 값이 많지만, 제거 후에도 에러가 아니라 무시**라 죽은 설정이 남습니다.
 - **`sidecar.istio.io/enableCoreDump`·`--log_rotate_*` 제거** — 내용: 코어덤프 어노테이션과 레거시 로그 로테이션 플래그 삭제. 우리가 할 일: 각각 `samples/proxy-coredump` 방식과 외부 로그 로테이션 도구로 이관([logging 챕터]({{< relref "../../logging/_index.md" >}})의 수집 경로와 함께 결정).
-- **`1.20` compat profile 제거** — 내용: `ENABLE_EXTERNAL_NAME_ALIAS`·`PERSIST_OLDEST_FIRST_HEURISTIC_FOR_VIRTUAL_SERVICE_HOST_MATCHING`·`VERIFY_CERTIFICATE_AT_CLIENT`는 **플래그 자체가 삭제**되고 `ENABLE_AUTO_SNI`만 남았다. 우리가 할 일: 1.20 동작에 의존했다면 되돌릴 방법이 없다. §5.2·§5.3의 적응이 끝났는지 확인.
+- **`1.20` compat profile 제거** — 내용: `ENABLE_EXTERNAL_NAME_ALIAS`·`PERSIST_OLDEST_FIRST_HEURISTIC_FOR_VIRTUAL_SERVICE_HOST_MATCHING`·`VERIFY_CERTIFICATE_AT_CLIENT`는 **플래그 자체가 삭제**되고 `ENABLE_AUTO_SNI`만 남았습니다. 우리가 할 일: 1.20 동작에 의존했다면 되돌릴 방법이 없습니다. §5.2·§5.3의 적응이 끝났는지 확인.
 
 ### 5.8 native sidecar는 이 구간이 아니다
 
@@ -378,7 +378,7 @@ helm upgrade istiod istio/istiod -n istio-system \
 
 - **전체 공통 경고**: *"Upgrading across **more than two** minor versions (e.g., `1.6.x` to `1.9.x`) in one step is not officially tested or recommended."* — 출처: `docs/setup/upgrade/_index.md`.
 - **revision 기반(canary)**: *"jumping across **two** minor versions is supported (e.g. upgrading directly from version `1.15` to `1.17`)."* — 출처: `docs/setup/upgrade/canary/index.md`.
-- **in-place**: *"The installed Istio version is **no more than one minor version less** than the upgrade version."* — 중간 마이너를 전부 순서대로 거쳐야 한다. 다운그레이드도 1마이너 이내. `--revision`으로 설치한 것은 `istioctl upgrade`로 못 올린다. 출처: `docs/setup/upgrade/in-place/index.md`.
+- **in-place**: *"The installed Istio version is **no more than one minor version less** than the upgrade version."* — 중간 마이너를 전부 순서대로 거쳐야 합니다. 다운그레이드도 1마이너 이내. `--revision`으로 설치한 것은 `istioctl upgrade`로 못 올립니다. 출처: `docs/setup/upgrade/in-place/index.md`.
 
 즉 **1.24 → 1.30(6마이너)은 어느 방식으로도 단일 스텝이 아닙니다.** 공식 지원 안에서 가장 짧은 경로는 canary로 2마이너씩 뛰는 것 — 1.24 → 1.26 → 1.28 → 1.30, 3홉. in-place면 6홉 전부입니다. 컨트롤/데이터 플레인 스큐는 "컨트롤 플레인이 데이터 플레인보다 **한 버전 앞설 수 있고, 반대는 안 된다**"가 규칙이며, revision을 쓰면 스큐 자체를 없앨 수 있습니다.
 

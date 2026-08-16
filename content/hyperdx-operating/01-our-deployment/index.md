@@ -11,9 +11,9 @@ aliases: ["/hyperdx/11-our-rum-ingest/", "/hyperdx-operating/01-architecture/", 
 
 - **구성**: **자체 개발 RUM 컨버터** + ClickStack(HyperDX Only) + **Altinity operator**(ClickHouse·Keeper) `✓`.
 - **두 인제스트 경로가 ClickHouse에서 합류한다** — ① RUM(브라우저 SDK·Mobile RUM)은 자체 컨버터를 통해 **ClickHouse에 직접 적재**(Datadog Agent의 RUM 전송 방식을 참조해 구현), ② 표준 텔레메트리는 OTel Collector가 적재. **컨버터와 Collector는 서로 직접 호출하지 않는다** `✓`.
-- **실행 단위는 표준 조립 5개, 우리 실제 6개** — 차이는 자체 RUM 컨버터 하나다(§2) `✓`.
-- **HA 설계 목표**: ClickHouse **RF2(2 AZ) + `insert_quorum`**, Keeper **3노드 정족수(client 2181)**, MongoDB **`members:3`**. 이 수치는 **prod 목표**이고 `≈`, 현재 실제 배포는 stage 축소판이다 `✓`.
-- **지금 stage는 EBS gp3 단일 티어**라 사실상 블록 온리 형상이다 — 그 형상 자체의 손익·튜닝은 [블록 온리 튜닝]({{< relref "../../hyperdx/08-block-only-tuning.md" >}})이 기준 문서다 `✓`.
+- **실행 단위는 표준 조립 5개, 우리 실제 6개** — 차이는 자체 RUM 컨버터 하나입니다(§2) `✓`.
+- **HA 설계 목표**: ClickHouse **RF2(2 AZ) + `insert_quorum`**, Keeper **3노드 정족수(client 2181)**, MongoDB **`members:3`**. 이 수치는 **prod 목표**이고 `≈`, 현재 실제 배포는 stage 축소판입니다 `✓`.
+- **지금 stage는 EBS gp3 단일 티어**라 사실상 블록 온리 형상입니다 — 그 형상 자체의 손익·튜닝은 [블록 온리 튜닝]({{< relref "../../hyperdx/08-block-only-tuning.md" >}})이 기준 문서입니다 `✓`.
 {{< /callout >}}
 
 {{< callout type="warning" >}}
@@ -64,8 +64,8 @@ aliases: ["/hyperdx/11-our-rum-ingest/", "/hyperdx-operating/01-architecture/", 
 | Keeper(CHK) | StatefulSet | Altinity operator | gp3(메타·소량) `✓` | 스테이트풀 `✓` |
 | MongoDB | ReplicaSet | MCK 또는 Atlas | gp3 10Gi `≈` | 스테이트풀(소량) `✓` |
 
-- **RUM 컨버터(자체 개발)** — 브라우저 SDK와 Mobile RUM이 보내는 RUM 데이터를 받아 **ClickHouse에 직접 적재**합니다 `✓`. Datadog Agent가 RUM 데이터를 전송하는 방식을 참조해 구현했고, **OTel Collector를 거치지 않는 별도 인제스트 경로**다. 표준 ClickStack엔 없는 우리 추가 컴포넌트입니다.
-- **OTel Collector** — 표준 OTLP 텔레메트리(로그·트레이스·메트릭)를 받아 ClickHouse로 export하는 인제스트 게이트웨이 `✓`. RUM 경로(컨버터)와 독립이며 서로 직접 호출하지 않습니다. **큐: 현재 stage는 인메모리 큐만 쓴다** `✓` — `file_storage` 퍼시스턴트 큐는 prod 목표이며 `≈`, 미구성 상태에선 재시작 시 in-flight가 유실될 수 있습니다.
+- **RUM 컨버터(자체 개발)** — 브라우저 SDK와 Mobile RUM이 보내는 RUM 데이터를 받아 **ClickHouse에 직접 적재**합니다 `✓`. Datadog Agent가 RUM 데이터를 전송하는 방식을 참조해 구현했고, **OTel Collector를 거치지 않는 별도 인제스트 경로**입니다. 표준 ClickStack엔 없는 우리 추가 컴포넌트입니다.
+- **OTel Collector** — 표준 OTLP 텔레메트리(로그·트레이스·메트릭)를 받아 ClickHouse로 export하는 인제스트 게이트웨이 `✓`. RUM 경로(컨버터)와 독립이며 서로 직접 호출하지 않습니다. **큐: 현재 stage는 인메모리 큐만 씁니다** `✓` — `file_storage` 퍼시스턴트 큐는 prod 목표이며 `≈`, 미구성 상태에선 재시작 시 in-flight가 유실될 수 있습니다.
 - **HyperDX (app·api·OpAMP)** — **단일 Deployment/파드**에서 조회 UI(app)·백엔드 api(쿼리 오케스트레이션·알럿 평가)·OpAMP 서버를 `concurrently`로 함께 기동한다 `✓`. 2 프로세스지만 **배포·스케일 노브는 하나**다(replicas 하나로 함께 확장). 무상태(메타=MongoDB, 텔레메트리=ClickHouse). 웹 데이터 경로는 일부 커스터마이즈했다 `✓`.
 - **ClickHouse (Altinity CHI)** — 두 경로가 적재하는 텔레메트리 저장소(`otel_logs`/`traces`/`otel_metrics_*` + `hyperdx_sessions`, DB `default`) `✓`. 우리는 쓰기(`otelcollector`, rw)·읽기(`app`, ro) 유저를 분리한다 `✓` — 읽기 계정이 readonly로 충분한 이유와 그럼에도 변경 권한이 필요한 4개 설정은 [스택 토폴로지]({{< relref "../../hyperdx/01-stack-topology.md" >}}) §2가 소유한다. 1 shard × RF2 설계(values 기준 replica 2; stage Phase 1은 1) `✓`.
 - **ClickHouse Keeper (Altinity CHK)** — replica 복제 조정. 이벤트 데이터는 보관하지 않고 쓰기 정족수만 좌우한다 `✓`. **클라이언트 포트 2181**(Altinity CHK 관례; 독립형 Keeper 기본값 9181이 아니다) `✓`, raft는 operator 기본 9444 `✓`.

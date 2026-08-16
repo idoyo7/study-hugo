@@ -58,13 +58,13 @@ VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스입�
 
 ## 읽는 순서
 
-- **처음이라면** 기본 개념 01 → 02 → 03 → 04 → 05 순으로 큰 그림을 잡고 컴포넌트별 내부 동작을 따라간다. 원본이 궁금하면 06 소스맵.
+- **처음이라면** 기본 개념 01 → 02 → 03 → 04 → 05 순으로 큰 그림을 잡고 컴포넌트별 내부 동작을 따라갑니다. 원본이 궁금하면 06 소스맵.
 - **운영자·설계자라면** 잘 쓰는 방법 01(카디널리티) → 02(초대규모 운영)가 실무 직결입니다. 다만 02의 무중단 전략(랑데부 역순 추가)은 기본 개념 03의 랑데부 해싱·복제 원리를 먼저 이해해야 와닿습니다.
 - **우리 환경을 파악하려면** 우리의 운영 01(스택 구성) → 02 → 03 → 04.
 
 ## 공통 핵심
 
-- **압축이 곧 TSDB의 본질이다.** Time Series와 Sample을 분리(IndexDB/DataDB)하고 Gauge엔 Delta·Counter엔 Delta-of-Delta를 얹어 극단적 압축을 얻는다. → [기본 개념 04]({{< relref "concepts/04-storage-and-compression.md" >}})
-- **각 컴포넌트는 역할이 명확하다.** 수집(vmagent)·라우팅(vminsert)·저장(vmstorage)·쿼리(vmselect). → [기본 개념 02]({{< relref "concepts/02-architecture.md" >}})~[05]({{< relref "concepts/05-query-and-ops-components.md" >}})
-- **카디널리티는 설계 단계에서 결정된다.** 자주 바뀌는 값은 레이블이 아니라 로그·트레이스로. → [잘 쓰는 방법 01]({{< relref "practice/01-cardinality.md" >}})
-- **내부 동작 이해가 곧 무장애 운영 능력이다.** 랑데부 해싱과 복제 순환을 알아야 역순 추가·vmbackup 전환 전략이 나온다. → [잘 쓰는 방법 02]({{< relref "practice/02-operations-at-scale.md" >}})
+- **압축이 곧 TSDB의 본질이다.** Time Series와 Sample을 분리(IndexDB/DataDB)하고 Gauge엔 Delta·Counter엔 Delta-of-Delta를 얹어 극단적 압축을 얻습니다. → [기본 개념 04]({{< relref "concepts/04-storage-and-compression.md" >}})
+- **각 컴포넌트는 역할이 명확합니다.** 수집(vmagent)·라우팅(vminsert)·저장(vmstorage)·쿼리(vmselect). → [기본 개념 02]({{< relref "concepts/02-architecture.md" >}})~[05]({{< relref "concepts/05-query-and-ops-components.md" >}})
+- **카디널리티는 설계 단계에서 결정됩니다.** 자주 바뀌는 값은 레이블이 아니라 로그·트레이스로. → [잘 쓰는 방법 01]({{< relref "practice/01-cardinality.md" >}})
+- **내부 동작 이해가 곧 무장애 운영 능력입니다.** 랑데부 해싱과 복제 순환을 알아야 역순 추가·vmbackup 전환 전략이 나옵니다. → [잘 쓰는 방법 02]({{< relref "practice/02-operations-at-scale.md" >}})

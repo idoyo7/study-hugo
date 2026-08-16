@@ -8,9 +8,9 @@ weight: 12
 {{< callout type="info" >}}
 **한눈에**
 - Envoy는 앱에 링크되는 라이브러리가 아니라 **앱 옆에서 따로 도는 프로세스**다. 그래서 언어를 가리지 않습니다. 공식 홈페이지의 자기 정의가 "universal data plane"입니다.
-- 코어는 L3/L4 프록시 + 꽂아 넣는 필터 체인이고 HTTP는 그 위에 얹힌 **L7 필터 레이어**다. 모델은 listener → 필터 체인 → route → cluster → endpoint 하나로 끝납니다.
+- 코어는 L3/L4 프록시 + 꽂아 넣는 필터 체인이고 HTTP는 그 위에 얹힌 **L7 필터 레이어**입니다. 모델은 listener → 필터 체인 → route → cluster → endpoint 하나로 끝납니다.
 - 재시도·서킷 브레이킹·아웃라이어 감지·헬스체크·로드밸런싱은 **전부 Envoy가 이미 갖고 있는 기능**입니다. Istio CRD는 그 스위치를 밖으로 꺼낸 창구입니다.
-- 관측성 세 축도 Envoy가 생산한다. 특히 트레이싱에서 Envoy는 헤더만 넘기는 게 아니라 **스팬을 직접 만들어 수집기로 보낸다**.
+- 관측성 세 축도 Envoy가 생산합니다. 특히 트레이싱에서 Envoy는 헤더만 넘기는 게 아니라 **스팬을 직접 만들어 수집기로 보냅니다**.
 - **xDS는 Envoy 프로젝트가 정의한 API**이고 istiod는 그 관리 서버 구현 중 하나입니다.
 {{< /callout >}}
 
@@ -26,8 +26,8 @@ weight: 12
 
 기능의 층은 둘로 나뉩니다.
 
-- **코어는 L3/L4다.** "At its core, Envoy is an L3/L4 network proxy. A pluggable filter chain mechanism allows filters to be written to perform different TCP/UDP proxy tasks." 확장 모델이 코어 정의에 이미 들어 있다는 점을 기억해 두자 — 6절에서 다시 나옵니다.
-- **HTTP는 그 위의 레이어다.** "HTTP is such a critical component of modern application architectures that Envoy supports an additional HTTP L7 filter layer."
+- **코어는 L3/L4입니다.** "At its core, Envoy is an L3/L4 network proxy. A pluggable filter chain mechanism allows filters to be written to perform different TCP/UDP proxy tasks." 확장 모델이 코어 정의에 이미 들어 있다는 점을 기억해 둡니다 — 6절에서 다시 나옵니다.
+- **HTTP는 그 위의 레이어입니다.** "HTTP is such a critical component of modern application architectures that Envoy supports an additional HTTP L7 filter layer."
 
 같은 소개 문서가 다른 자리에서는 Envoy를 "an L7 proxy and communication bus designed for large modern service oriented architectures"라고도 부릅니다. 둘 다 공식 표현이고 서로 어긋나지 않습니다 — 앞은 구현 구조(L3/L4 코어 + L7 레이어), 뒤는 실제 쓰임새를 말한 것입니다.
 
@@ -72,10 +72,10 @@ HTTP 필터는 스트림마다 실행되고 그중 **router 필터가 목적지�
 
 아래는 전부 Envoy가 자체적으로 갖춘 기능입니다. Istio가 없어도 이 스위치들은 존재합니다.
 
-- **재시도** (route) — `x-envoy-retry-on`으로 조건을 고른다: `5xx`, `gateway-error`, `reset`, `connect-failure`, `retriable-4xx`, `refused-stream` 등.
+- **재시도** (route) — `x-envoy-retry-on`으로 조건을 고릅니다: `5xx`, `gateway-error`, `reset`, `connect-failure`, `retriable-4xx`, `refused-stream` 등.
 - **재시도 예산(retry budget)** (cluster) — 재시도 폭주를 막는 클러스터 레벨 가드레일. route의 최대 재시도 횟수와는 **별개 장치**.
 - **타임아웃** (route) — 요청이 무한정 매달리지 않게 끊습니다.
-- **서킷 브레이킹** (cluster) — 업스트림 클러스터별·priority별로 임계치를 센다: 최대 커넥션, 최대 대기 요청, 최대 요청, 최대 활성 재시도, 최대 동시 커넥션 풀.
+- **서킷 브레이킹** (cluster) — 업스트림 클러스터별·priority별로 임계치를 셉니다: 최대 커넥션, 최대 대기 요청, 최대 요청, 최대 활성 재시도, 최대 동시 커넥션 풀.
 - **아웃라이어 감지** (cluster) — "a form of passive health checking". 연속 5xx, 연속 게이트웨이 오류(502/503/504), 연속 local-origin 실패, 성공률·실패율 통계 이상치로 엔드포인트를 축출. `x-envoy-degraded` 헤더로 degraded 표시도 합니다.
 - **능동 헬스체크** (cluster) — 업스트림 클러스터별로 설정. HTTP·gRPC·L3/L4(TCP 바이트 버퍼 에코)·Redis·Thrift 프로토콜 체크를 지원.
 
@@ -141,7 +141,7 @@ Envoy 자신의 xDS 문서는 이렇게 시작합니다 — "Envoy discovers its
 두 가지가 읽힙니다.
 
 - **xDS는 Envoy 프로젝트가 정의한 스펙**입니다. 규격에 맞는 관리 서버라면 무엇이든 Envoy에 설정을 공급할 수 있습니다. Envoy 문서는 특정 컨트롤 플레인 이름을 부르지 않고 클라이언트 대 관리 서버라는 일반형으로만 서술합니다.
-- **관리 서버가 필수도 아니다.** 같은 문장이 파일시스템을 먼저 든다. xDS를 쓴다는 것과 컨트롤 플레인이 붙어 있다는 것은 같은 말이 아니다.
+- **관리 서버가 필수도 아닙니다.** 같은 문장이 파일시스템을 먼저 듭니다. xDS를 쓴다는 것과 컨트롤 플레인이 붙어 있다는 것은 같은 말이 아닙니다.
 
 Istio 쪽 서술도 이 방향과 맞습니다. istio.io 1.5 릴리스 노트는 컨트롤 플레인 비용을 이야기하며 이들을 "Envoy xDS APIs"라고 부릅니다 — Istio가 정의한 규격이 아니라 **Envoy의 API를 istiod가 서빙한다**는 표현입니다.
 
@@ -163,7 +163,7 @@ Istio 쪽 서술도 이 방향과 맞습니다. istio.io 1.5 릴리스 노트는
 **밖의 서비스에 물어보는 쪽.**
 
 - **`ext_authz`** — "calls an external gRPC or HTTP service to determine whether an incoming HTTP request is authorized". 거부 시 **403**.
-- **`rate_limit`** — route나 virtual host에 매칭되는 설정이 있으면 서비스를 호출한다. 초과 시 **429**(설정 가능).
+- **`rate_limit`** — route나 virtual host에 매칭되는 설정이 있으면 서비스를 호출합니다. 초과 시 **429**(설정 가능).
 
 두 부류의 차이가 곧 운영 비용의 차이입니다. 안에서 도는 쪽은 요청 경로에 CPU를 더하고 밖에 묻는 쪽은 요청마다 왕복 지연과 **외부 서비스라는 장애 지점**을 더합니다. `failure_mode_deny`가 설정 항목으로 존재한다는 사실 자체가, 그 외부 서비스가 죽었을 때 통과시킬지 막을지를 미리 정해 두라는 요구입니다.
 
@@ -200,4 +200,4 @@ Istio 쪽 서술도 이 방향과 맞습니다. istio.io 1.5 릴리스 노트는
 - Envoy 공식 문서 — **Hot restart** (코드·설정 리로드, drain 중 기존 커넥션 유지): <https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/operations/hot_restart>
 - Envoy 공식 문서 — **Lua / Wasm / ext_authz / rate limit 필터**: <https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/lua_filter> · <https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter> · <https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/ext_authz_filter> · <https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/rate_limit_filter>
 - Envoy 공식 커뮤니티 페이지 — Envoy를 쓰는 메시·게이트웨이 목록: <https://www.envoyproxy.io/community>
-- 확인 상태 메모: ① 액세스 로그 전용 아키텍처 개요 페이지는 확인 시점에 404였고 HCM 문서로만 간접 확인했다. ② 5절의 "Envoy xDS APIs" 문구는 istio.io 1.5 릴리스 노트(<https://istio.io/latest/news/releases/1.5.x/>)의 검색 요약으로 얻은 것으로, 해당 페이지 원문을 직접 다시 확인하는 편이 좋다. ③ 재시도 예산의 정의는 서킷 브레이킹 문서에서 요약된 서술이며 한 문장 인용이 아니다. ④ HTTP/3 상태는 최신(1.40.0-dev) 트리 기준이므로 배포 버전으로 다시 확인할 것.
+- 확인 상태 메모: ① 액세스 로그 전용 아키텍처 개요 페이지는 확인 시점에 404였고 HCM 문서로만 간접 확인했습니다. ② 5절의 "Envoy xDS APIs" 문구는 istio.io 1.5 릴리스 노트(<https://istio.io/latest/news/releases/1.5.x/>)의 검색 요약으로 얻은 것으로, 해당 페이지 원문을 직접 다시 확인하는 편이 좋습니다. ③ 재시도 예산의 정의는 서킷 브레이킹 문서에서 요약된 서술이며 한 문장 인용이 아닙니다. ④ HTTP/3 상태는 최신(1.40.0-dev) 트리 기준이므로 배포 버전으로 다시 확인할 것.

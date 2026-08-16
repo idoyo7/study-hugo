@@ -73,7 +73,7 @@ spec:
 
 - **배타 커버**: 접미사 regex 2규칙이 서로 배타적으로 전체를 덮습니다. `by/without` 미지정 → 입력 시리즈별 라벨 보존, 시간축 집계만 수행합니다. match된 raw는 집계 산출물로 **치환**되므로 아카이브에 raw가 유출되지 않습니다.
 - **히스토그램(classic)**: `_bucket`은 per-bucket 카운터라 `total`이 정확히 맞고 `le`가 보존돼 `histogram_quantile(rate(..._bucket[10m]))`이 아카이브에서 그대로 동작한다(5m 입도).
-- **쿼리 보존**: `keep_metric_names` 덕에 기존 대시보드·vmalert 쿼리가 **datasource 전환만으로** 동작합니다. 아카이브도 VM이므로 MetricsQL이 그대로 유지된다 — MetricsQL/PromQL·vmselect는 VM 챕터 [05 쿼리·운영 컴포넌트]({{< relref "../victoriametrics/concepts/05-query-and-ops-components.md" >}}) 참조. 이로써 미확인 MetricsQL 의존도 리스크가 자동 소멸합니다.
+- **쿼리 보존**: `keep_metric_names` 덕에 기존 대시보드·vmalert 쿼리가 **datasource 전환만으로** 동작합니다. 아카이브도 VM이므로 MetricsQL이 그대로 유지됩니다 — MetricsQL/PromQL·vmselect는 VM 챕터 [05 쿼리·운영 컴포넌트]({{< relref "../victoriametrics/concepts/05-query-and-ops-components.md" >}}) 참조. 이로써 미확인 MetricsQL 의존도 리스크가 자동 소멸합니다.
 
 ## 비용
 

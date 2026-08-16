@@ -28,11 +28,11 @@ VictoriaMetrics 패밀리의 로그 전용 저장소로, 단일 static Go 바이
 
 ## 약점 · 한계
 
-- **쿼리 가능한 오브젝트 스토리지 티어가 없다(headline gap).** 현재 local-disk-only다. native S3/GCS backend는 로드맵(issue #48)에 있으나 WIP이고 확정 일정이 없으며, native hot/warm/cold tiering도 downsampling도 없다 — partition detach/attach + snapshot을 이용한 DIY tiering만 가능하입니다. 따라서 보존 기간 전체가 붙은 block storage(EBS/NVMe) 위에 놓이고, OpenSearch UltraWarm 같은 값싼 티어가 방정식에서 빠집니다. 완충 요인은 tiny footprint + 고압축이라 절대 스토리지 지출은 오히려 낮을 수 있다는 점 — 다만 이질적 마이크로서비스 로그의 실제 압축률은 40–80x best case보다 훨씬 낮으므로 자체 로그로 PoC 검증이 필요하입니다.
+- **쿼리 가능한 오브젝트 스토리지 티어가 없다(headline gap).** 현재 local-disk-only다. native S3/GCS backend는 로드맵(issue #48)에 있으나 WIP이고 확정 일정이 없으며, native hot/warm/cold tiering도 downsampling도 없다 — partition detach/attach + snapshot을 이용한 DIY tiering만 가능합니다. 따라서 보존 기간 전체가 붙은 block storage(EBS/NVMe) 위에 놓이고, OpenSearch UltraWarm 같은 값싼 티어가 방정식에서 빠집니다. 완충 요인은 tiny footprint + 고압축이라 절대 스토리지 지출은 오히려 낮을 수 있다는 점 — 다만 이질적 마이크로서비스 로그의 실제 압축률은 40–80x best case보다 훨씬 낮으므로 자체 로그로 PoC 검증이 필요합니다.
 - **클러스터 내 복제(HA)가 없습니다.** vlinsert는 shard만 하고 replicate하지 않습니다. vlstorage 노드가 죽으면 해당 쿼리는 partial result / 502를 반환한다(availability보다 consistency). 진짜 HA = 독립 클러스터를 2벌 이상 돌리고 vlagent로 ingestion을 mirror + vmauth/LB로 쿼리를 라우팅 → 스토리지 비용이 대략 2배가 된다(issue #1281). 단일 카피의 durability는 여전히 EBS/PD 내부 복제에 의존합니다.
 - **백업 tooling이 아직 얇다.** 전용 `vlbackup`/backup-manager가 없다(잘 다듬어진 `vmbackup`은 metrics 전용). 백업 = filesystem snapshot + rclone/restic 또는 볼륨 스냅샷 수준이다. roadmap(issue #123)에 있으나 미제공.
 - **LogsQL은 proprietary.** LogQL(Loki)도 ES DSL/Lucene도 아닙니다. Loki/OpenSearch에서 옮기면 저장된 쿼리 · 대시보드 · alert를 전부 재작성해야 합니다.
-- **성숙도 · 레퍼런스가 얇습니다.** 클러스터 모드는 ~1년으로 젊고, 대규모 named public production 레퍼런스가 적다(공개 case study는 Airwallex 하나). ES/OpenSearch는 물론 Loki보다도 배울 peer와 공개 post-mortem이 적고, 대규모 독립 벤치도 부재하입니다.
+- **성숙도 · 레퍼런스가 얇습니다.** 클러스터 모드는 ~1년으로 젊고, 대규모 named public production 레퍼런스가 적다(공개 case study는 Airwallex 하나). ES/OpenSearch는 물론 Loki보다도 배울 peer와 공개 post-mortem이 적고, 대규모 독립 벤치도 부재합니다.
 - **기타 제약.** 일부 기능은 Enterprise-only(vlagent Kafka 수집, 테넌트별 stats/quota 등)라 완전 OSS 배포는 조금 더 DIY다. 트레이스 · RUM 기능은 없다(로그 전용). Grafana datasource도 Loki/ES 것보다 젊어 "Explore Logs"급 no-query UI parity는 아직 없습니다.
 
 ## 적합 / 부적합

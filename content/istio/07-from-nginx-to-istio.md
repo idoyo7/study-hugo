@@ -9,7 +9,7 @@ weight: 7
 **한눈에**
 - nginx가 **한 파일에 절차적**으로 하던 걸, Istio는 **관심사별 CRD에 선언적**으로 나눕니다.
 - rewrite·헤더·CORS·타임아웃은 **VirtualService**로, TLS·수신 포트는 **Gateway**로 모입니다.
-- 인가는 성격별로 갈린다: IP/워크로드는 **AuthorizationPolicy**, JWT는 **RequestAuthentication**+AuthorizationPolicy, `auth_request`류 외부 인가는 **ext_authz(CUSTOM)**.
+- 인가는 성격별로 갈립니다: IP/워크로드는 **AuthorizationPolicy**, JWT는 **RequestAuthentication**+AuthorizationPolicy, `auth_request`류 외부 인가는 **ext_authz(CUSTOM)**.
 - 표준 CRD로 안 되는 레이트 리밋·저수준 조작은 [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})로 넘어갑니다.
 {{< /callout >}}
 
@@ -59,7 +59,7 @@ spec:
 ```
 
 - `match`가 `uri.{exact,prefix,regex}`, `headers`, `method`, `queryParams`를 받아 nginx의 다양한 `location` 매칭을 대체합니다.
-- prefix 매칭에 `rewrite.uri`를 주면 접두어가 치환된다. Host 헤더는 `rewrite.authority`로 바꾼다(nginx `proxy_set_header Host`).
+- prefix 매칭에 `rewrite.uri`를 주면 접두어가 치환됩니다. Host 헤더는 `rewrite.authority`로 바꿉니다(nginx `proxy_set_header Host`).
 
 ## 헤더 조작
 
@@ -102,7 +102,7 @@ spec:
 ```
 
 - `from.source`로 **누가**(principals·namespaces·ipBlocks/remoteIpBlocks)를, `to.operation`으로 **무엇을**(paths·methods·hosts), `when`으로 조건을 겁니다.
-- IP 기반은 주의가 필요하입니다. 클라이언트 실제 IP를 보려면 `remoteIpBlocks`(X-Forwarded-For 기반)와 게이트웨이의 XFF/externalTrafficPolicy 설정이 맞물려야 합니다.
+- IP 기반은 주의가 필요합니다. 클라이언트 실제 IP를 보려면 `remoteIpBlocks`(X-Forwarded-For 기반)와 게이트웨이의 XFF/externalTrafficPolicy 설정이 맞물려야 합니다.
 
 ### 인증 — JWT (auth_basic/JWT 검증)
 
@@ -178,4 +178,4 @@ nginx에서 손으로 CORS 헤더를 붙이던 대목도 선언적으로 바뀝�
 
 - nginx가 **한 파일에 절차적**으로 하던 것을, Istio는 **관심사별 CRD에 선언적**으로 나눕니다. 강력하지만 설정이 흩어지므로 GitOps가 전제가 됩니다.
 - rewrite·헤더·CORS·타임아웃은 **VirtualService** 하나에, TLS·수신은 **Gateway**에 모입니다.
-- 인가는 성격별로 갈린다: IP/워크로드는 **AuthorizationPolicy**, JWT는 **RequestAuthentication**과의 조합, `auth_request`류 외부 인가는 **ext_authz(CUSTOM)**. 표준 CRD로 안 되는 레이트 리밋·커스텀 조작은 [08]({{< relref "08-envoyfilter-extension.md" >}})로 넘어갑니다.
+- 인가는 성격별로 갈립니다: IP/워크로드는 **AuthorizationPolicy**, JWT는 **RequestAuthentication**과의 조합, `auth_request`류 외부 인가는 **ext_authz(CUSTOM)**. 표준 CRD로 안 되는 레이트 리밋·커스텀 조작은 [08]({{< relref "08-envoyfilter-extension.md" >}})로 넘어갑니다.

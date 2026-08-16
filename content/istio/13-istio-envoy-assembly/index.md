@@ -7,11 +7,11 @@ weight: 13
 
 {{< callout type="info" >}}
 **한눈에**
-- `proxyv2`에는 바이너리가 둘 들어 있고(Envoy · pilot-agent), 그 Envoy조차 upstream 그대로가 아니다 — istio/proxy가 확장을 함께 컴파일해 만든 빌드입니다.
+- `proxyv2`에는 바이너리가 둘 들어 있고(Envoy · pilot-agent), 그 Envoy조차 upstream 그대로가 아닙니다 — istio/proxy가 확장을 함께 컴파일해 만든 빌드입니다.
 - `istio_requests_total`과 `source_*`/`destination_*` 라벨은 컨트롤 플레인이 아니라 **프록시 안에 컴파일된 확장**이 만듭니다. Mixer가 사라졌다는 말의 실질이 이것입니다.
-- CRD는 xDS 리소스로 번역된다 — VirtualService→route, DestinationRule→cluster, Gateway→listener. 번역 결과는 추측하지 말고 `istioctl proxy-config`로 봅니다.
+- CRD는 xDS 리소스로 번역됩니다 — VirtualService→route, DestinationRule→cluster, Gateway→listener. 번역 결과는 추측하지 말고 `istioctl proxy-config`로 봅니다.
 - Istio 빌드는 Envoy의 **특정 커밋에 pin**됩니다. 사이드카 업그레이드가 곧 Envoy 업그레이드이고, 그 버전은 릴리스 노트가 아니라 파드에 물어봐야 압니다.
-- 이미지에 박힌 내장 확장과 CRD로 얹는 사용자 확장([08]({{< relref "08-envoyfilter-extension.md" >}}))은 **바꾸는 방법이 다르다**. 전자는 이미지 교체로만, 후자는 설정으로.
+- 이미지에 박힌 내장 확장과 CRD로 얹는 사용자 확장([08]({{< relref "08-envoyfilter-extension.md" >}}))은 **바꾸는 방법이 다릅니다**. 전자는 이미지 교체로만, 후자는 설정으로.
 {{< /callout >}}
 
 "Istio는 Envoy를 쓴다"는 문장은 어디에나 있지만, '쓴다'가 무엇인지는 잘 안 적혀 있습니다. [12]({{< relref "12-envoy-capabilities.md" >}})가 Envoy 자체의 능력을 훑었다면, 이 문서는 그 위에 Istio가 무엇을 더 얹었는지를 봅니다. 답은 두 층입니다. **아래층은 컴파일 시점** — Istio는 upstream Envoy 바이너리를 받아 쓰는 게 아니라 자기 확장을 넣어 다시 빌드합니다. **위층은 런타임** — istiod가 CRD를 Envoy 설정으로 번역해 xDS로 내려보냅니다.
@@ -153,7 +153,7 @@ kubectl exec <pod> -c istio-proxy -- pilot-agent request GET server_info
 
 ## 이 문서에서 가져갈 것
 
-- Istio가 Envoy를 "쓴다"는 것은 **커밋을 pin해서 자기 확장과 함께 다시 빌드한다**는 뜻이다. proxyv2는 그 결과물과 pilot-agent를 한 이미지에 담은 것이고, 엔트리포인트는 pilot-agent다.
+- Istio가 Envoy를 "쓴다"는 것은 **커밋을 pin해서 자기 확장과 함께 다시 빌드한다**는 뜻입니다. proxyv2는 그 결과물과 pilot-agent를 한 이미지에 담은 것이고, 엔트리포인트는 pilot-agent입니다.
 - 표준 메트릭과 그 `source_*`/`destination_*` 라벨은 **프록시 안의 확장**이 만듭니다. 라벨을 채우는 재료는 mTLS 위에서 교환되는 피어 메타데이터이므로, mTLS가 없으면 라벨도 없습니다.
 - CRD는 xDS 리소스로 번역됩니다. 반영 여부를 묻는 가장 짧은 답은 `istioctl proxy-config route|cluster|listener`이고, `DestinationRule`은 [12]({{< relref "12-envoy-capabilities.md" >}})의 기능들을 켜는 cluster 쪽 스위치입니다.
 - **사이드카 업그레이드는 Envoy 업그레이드입니다.** 실제 버전은 릴리스 노트가 아니라 `pilot-agent request GET server_info`로 파드에 물어봅니다.
@@ -170,4 +170,4 @@ kubectl exec <pod> -c istio-proxy -- pilot-agent request GET server_info
 - Istio 공식 레퍼런스 — **Telemetry API** ("Telemetry defines how telemetry (metrics, logs and traces) is generated for workloads within a mesh"): <https://istio.io/latest/docs/reference/config/telemetry/>
 - Istio 공식 문서 — **Proxy debug (What Envoy version is Istio using?)** (`pilot-agent request GET server_info`): <https://istio.io/latest/docs/ops/diagnostic-tools/proxy-cmd/#what-envoy-version-is-istio-using>
 - istio/istio 이슈 **#43140** (릴리스 노트에 Envoy 버전을 싣는 대신 진단 문서로 안내하기로 한 경위): <https://github.com/istio/istio/issues/43140>
-- Istio 공식 문서 — **Security (concepts)** (SDS로 인증서 전달, 사이드카 간 mutual TLS 핸드셰이크 — transport socket이라는 용어는 istio.io가 쓰지 않는다): <https://istio.io/latest/docs/concepts/security/>
+- Istio 공식 문서 — **Security (concepts)** (SDS로 인증서 전달, 사이드카 간 mutual TLS 핸드셰이크 — transport socket이라는 용어는 istio.io가 쓰지 않습니다): <https://istio.io/latest/docs/concepts/security/>

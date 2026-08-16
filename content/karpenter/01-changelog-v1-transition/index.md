@@ -7,10 +7,10 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- v1beta1→v1을 "필드 이름이 바뀐 일"로 읽으면 사고가 난다. changelog에서 위험한 절은 **Behavior Changes**이고 그중 둘은 **옵트아웃이 없다** — drift는 Stable 승격과 함께 feature gate가 삭제됐고([core#1311](https://github.com/kubernetes-sigs/karpenter/pull/1311)), expiration은 forceful로 되돌아갔다([core#1333](https://github.com/kubernetes-sigs/karpenter/pull/1333)).
+- v1beta1→v1을 "필드 이름이 바뀐 일"로 읽으면 사고가 납니다. changelog에서 위험한 절은 **Behavior Changes**이고 그중 둘은 **옵트아웃이 없습니다** — drift는 Stable 승격과 함께 feature gate가 삭제됐고([core#1311](https://github.com/kubernetes-sigs/karpenter/pull/1311)), expiration은 forceful로 되돌아갔습니다([core#1333](https://github.com/kubernetes-sigs/karpenter/pull/1333)).
 - **forceful expiration이 무시하는 건 PodDisruptionBudget(PDB)이 아니다.** 무시하는 것은 "대체 노드가 `Initialized`가 될 때까지 드레인을 시작하지 않는다"는 사전 안전장치와 disruption budget이다. `nodeclaim.expiration` 컨트롤러는 후보 평가 없이 NodeClaim을 바로 `Delete`한다(`controllers/nodeclaim/expiration/controller.go:82`).
 - **`consolidateAfter`가 v1에서 필수 필드입니다.** v1beta1의 `WhenUnderutilized`에서는 설정조차 불가능했던 값이라 기존 동작을 유지하려면 `0s`를 명시해야 합니다. `Never`는 그 NodePool의 consolidation을 통째로 끕니다.
-- **`terminationGracePeriod`([core#916](https://github.com/kubernetes-sigs/karpenter/pull/916))가 최종 승자다.** 만료되면 PDB·`do-not-disrupt` 무관하게 남은 파드가 강제 삭제된다. 반대로 TGP를 걸면 drift가 "PDB·`do-not-disrupt` 파드가 있는 노드"까지 후보로 채택한다 — 안전장치를 스스로 꺼주는 대가로 CVE 패치를 밀 수 있게 된다. 노드 최대 수명 = `expireAfter`(기본 `720h`, 상한이지 하한이 아니다) + TGP.
+- **`terminationGracePeriod`([core#916](https://github.com/kubernetes-sigs/karpenter/pull/916))가 최종 승자입니다.** 만료되면 PDB·`do-not-disrupt` 무관하게 남은 파드가 강제 삭제됩니다. 반대로 TGP를 걸면 drift가 "PDB·`do-not-disrupt` 파드가 있는 노드"까지 후보로 채택합니다 — 안전장치를 스스로 꺼주는 대가로 CVE 패치를 밀 수 있게 됩니다. 노드 최대 수명 = `expireAfter`(기본 `720h`, 상한이지 하한이 아닙니다) + TGP.
 - disruption budgets가 `Drifted`/`Underutilized`/`Empty` **reason별로** 나뉘었다([core#991](https://github.com/kubernetes-sigs/karpenter/pull/991), [core#1377](https://github.com/kubernetes-sigs/karpenter/pull/1377)). 삭제된 drift feature gate의 자리를 이것이 메운다 — 업스트림이 제시하는 유일한 drift 통제 수단입니다.
 - **1.1.0이 v1beta1 서빙을 끝냈습니다.** `nodeClassRef.group`/`kind`가 강제 필수가 되고 kubelet 호환 어노테이션이 사라집니다. 같은 릴리스의 Bottlerocket + `instanceStorePolicy: RAID0`은 **v1.22.0 미만 이미지에서 노드가 join하지 못합니다.**
 - **1.2.0의 메트릭 reason 라벨 snake_case 전환은 CI가 못 잡는 조용한 알람 무효화다.** `reason="Drifted"` 쿼리는 에러 없이 결과가 0이 된다. 같은 릴리스에서 `nodeclass.status`·`nodeclass.termination`이 `nodeclass`로 합쳐졌다([aws#7597](https://github.com/aws/karpenter-provider-aws/pull/7597)).
@@ -24,7 +24,7 @@ weight: 1
 
 ## 1. 타임라인 — 0.36에서 1.6까지
 
-이 구간은 **고를 수 있는 기능이 거의 없다.** 대부분 "지나가면 맞는 것"이라 읽는 방식도 "무엇을 켤까"가 아니라 "무엇을 미리 막아둘까"다.
+이 구간은 **고를 수 있는 기능이 거의 없습니다.** 대부분 "지나가면 맞는 것"이라 읽는 방식도 "무엇을 켤까"가 아니라 "무엇을 미리 막아둘까"입니다.
 
 | 버전 | 언제 쓰나 (조건) | 무엇이 가능해졌나 | 대가 |
 |---|---|---|---|

@@ -41,9 +41,9 @@ study-hugo에는 이미 겹치는 주제의 깊은 문서가 있습니다. 이 �
 **배포 모드 이름 — 섞으면 결론이 뒤집힙니다** `✓`
 
 - **"BYOD"는 공식 문서에도 이 레포에도 없는 말입니다.** 어디서 흘러든 표현이든, 아래 셋 중 무엇을 가리키는지 먼저 갈라야 합니다.
-- **공식 표현은 둘**이다 — ClickStack Docker Compose 문서의 **"BYO ClickHouse"**, HyperDX Only 문서의 **"already have a running ClickHouse instance"**. 둘 다 "이미 돌고 있는 CH에 붙인다"는 같은 뜻입니다.
+- **공식 표현은 둘**입니다 — ClickStack Docker Compose 문서의 **"BYO ClickHouse"**, HyperDX Only 문서의 **"already have a running ClickHouse instance"**. 둘 다 "이미 돌고 있는 CH에 붙인다"는 같은 뜻입니다.
 - **우리 표현은 "HyperDX Only"**(`clickhouse.enabled: false`)이고 이 챕터·트랙 전체가 이 표기를 씁니다.
-- **BYOC**(Bring Your Own Cloud)는 **ClickHouse Cloud 상품**이라 완전히 다른 축이다. 이걸 self-host로 착각하면 결론이 반대로 뒤집힌다 — managed와 self-host의 부품 경계는 [managed vs self-host]({{< relref "../clickhouse/01-managed-vs-selfhosted.md" >}}).
+- **BYOC**(Bring Your Own Cloud)는 **ClickHouse Cloud 상품**이라 완전히 다른 축입니다. 이걸 self-host로 착각하면 결론이 반대로 뒤집힙니다 — managed와 self-host의 부품 경계는 [managed vs self-host]({{< relref "../clickhouse/01-managed-vs-selfhosted.md" >}}).
 {{< /callout >}}
 
 ## 핵심 결정 요약
