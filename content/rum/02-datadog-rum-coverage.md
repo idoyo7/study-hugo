@@ -109,7 +109,7 @@ HyperDX.init({
 ```
 
 - **자동 수집**: 콘솔 로그, 세션 리플레이, XHR/Fetch/WebSocket, 예외/에러, PerformanceResourceTiming 기반 리소스 타이밍 `✓`. 기본 인테이크는 `https://in-otel.hyperdx.io`(OTLP HTTP), self-host는 `url` 옵션으로 자체 Collector 지정 `✓` — hyperdx-js `packages/browser/src/index.ts`의 `URL_BASE` 기본값을 `url` 인자로 오버라이드하는 방식으로 소스 코드 수준까지 검증됨 `✓⁽3-0⁾`.
-- **네트워크 캡처 범위**: 기본은 요청 메타만, `advancedNetworkCapture`를 켜면 **헤더·본문 전체**를 캡처한다. 런타임 토글(`enableAdvancedNetworkCapture()`/`disable...`)도 있습니다 `✓`.
+- **네트워크 캡처 범위**: 기본은 요청 메타만, `advancedNetworkCapture`를 켜면 **헤더·본문 전체**를 캡처합니다. 런타임 토글(`enableAdvancedNetworkCapture()`/`disable...`)도 있습니다 `✓`.
 - **세션 리플레이**: rrweb 기반 DOM 이벤트 레코딩(비디오가 아님)으로 DOM 변경·마우스·클릭·스크롤·키입력·콘솔 로그·XHR/Fetch/WebSocket·JS 예외를 캡처해 브라우저에서 재구성합니다 `✓⁽ClickHouse 공식 문서⁾`. ClickStack UI는 우측에 재구성 화면·좌측에 네트워크/콘솔/에러 타임라인을 표시합니다. 특정 요청·에러를 클릭하면 **Trace 탭으로 이동해 백엔드 span·로그까지 추적**됩니다 `✓`. 모든 신호는 두 조인키로 상관됩니다 — **TraceId**(로그↔span), **rum.sessionId**(브라우저 세션↔서버 트레이스) `✓`. 이 replay→trace→log 조인이 대부분의 OSS 경쟁자가 못 따라오는 시그니처 강점입니다.
 - **커스텀 액션/속성 API**: `HyperDX.setGlobalAttributes({ userId, ... })`, `HyperDX.addAction('Form-Completed', { formId })`, `HyperDX.attachToReactErrorBoundary(ErrorBoundary)` `✓`. Datadog의 `addAction`/글로벌 컨텍스트에 대응하므로 커스텀 액션 계측은 이식 가능합니다.
 

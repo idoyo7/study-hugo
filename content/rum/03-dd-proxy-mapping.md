@@ -73,7 +73,7 @@ Datadog browser-sdk에는 인테이크 트래픽을 자체 엔드포인트로 �
 
 - **원래 용도**는 광고차단기 회피·IP 마스킹·규정 준수를 위해 "Datadog으로 보내되 자체 서버를 경유"하는 것입니다. 문자열 형태(SDK `>=4.34.0`, `ddforward` 쿼리 자동 부착)와 함수 형태(SDK `>=5.4.0`, `path`/`parameters`/`subdomain` 수신)가 있습니다 `✓⁽3-0⁾`. 모든 RUM 데이터가 이 경로로 사용자 URL에 POST되며, `ddforward` 쿼리 파라미터 값으로 `/api/v2/rum`·`/api/v2/replay` 등 이벤트 유형을 구분할 수 있습니다 — 즉 프록시가 원시 페이로드를 받으므로 RUM→OTel/ClickHouse 번역이 **기술적으로는** 가능합니다 `✓⁽3-0⁾`.
 - **본문 불변이 설계 전제**다. 프록시 요구사항이 명시적으로 "POST로 포워딩, **본문 변경 금지**(바이너리 그대로), `X-Forwarded-For`로 클라이언트 IP 전달, 민감 헤더 제거"를 요구합니다 `✓`. 즉 SDK는 프록시가 본문(RUM 이벤트)을 **해석·변환하지 않는다**고 가정하며, Datadog 공식 문서는 비-Datadog 백엔드로의 라우팅을 **미지원 대상으로 명시하고 보안 안티패턴으로 규정**합니다 — 실제 공개 번역기 구현체도 조사(2회 검색)에서 확인되지 않았습니다 `✓⁽3-0⁾`.
-- **인테이크 포맷**은 경로 `/api/v2/rum`, 쿼리 `ddsource=browser`, 본문은 **NDJSON(줄바꿈 구분 JSON) + 조건부 압축(deflate/zstd)**이다. 각 라인은 `DataDog/rum-events-format` 스키마의 view/action/resource/error/long_task/session 이벤트입니다(정확한 배치 인코딩은 브라우저 내부 로직) `✓/≈⁽일부⁾`.
+- **인테이크 포맷**은 경로 `/api/v2/rum`, 쿼리 `ddsource=browser`, 본문은 **NDJSON(줄바꿈 구분 JSON) + 조건부 압축(deflate/zstd)**입니다. 각 라인은 `DataDog/rum-events-format` 스키마의 view/action/resource/error/long_task/session 이벤트입니다(정확한 배치 인코딩은 브라우저 내부 로직) `✓/≈⁽일부⁾`.
 - **세션 리플레이**는 별도 경로(멀티파트/세그먼트)이고, 프록시 경유 시 리플레이가 대시보드에서 로드 실패하는 알려진 이슈가 있다 `✓`.
 
 > 함의: `proxy` 옵션은 트래픽을 자체 게이트웨이로 **가로채는 진입점**으로는 완벽하나, 그 뒤 본문을 파싱·변환하는 로직은 전부 자작이어야 합니다. 따라서 이 옵션의 올바른 쓰임새는 변환이 아니라 **과도기 트래픽 통제 — 듀얼 라이트/미러링/차단**입니다. 신규 데이터는 `@hyperdx/browser`로 직접 수집하는 편이 옳습니다.

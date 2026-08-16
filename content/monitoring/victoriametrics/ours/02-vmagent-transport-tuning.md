@@ -7,8 +7,8 @@ weight: 2
 
 {{< callout type="info" >}}
 **한눈에**
-- **`remoteWrite.forceVMProto=true`** — 자동 협상을 없애고 VM native protocol(zstd)로 고정한다. '조용한 snappy 다운그레이드'가 사라지므로 전송량 2~4x 절감을 보장한다. 수신측 vminsert **v1.88+** 필요.
-- **`remoteWriteSettings.maxDiskUsagePerURL`** — 기본값 0(무제한)이라 링크 장애가 길어지면 노드 디스크가 고갈될 수 있다. 상한 도달 시 오래된 블록부터 FIFO drop. 적용값은 stage `1000MiB` / prod `2000MiB`.
+- **`remoteWrite.forceVMProto=true`** — 자동 협상을 없애고 VM native protocol(zstd)로 고정합니다. '조용한 snappy 다운그레이드'가 사라지므로 전송량 2~4x 절감을 보장한다. 수신측 vminsert **v1.88+** 필요.
+- **`remoteWriteSettings.maxDiskUsagePerURL`** — 기본값 0(무제한)이라 링크 장애가 길어지면 노드 디스크가 고갈될 수 있습니다. 상한 도달 시 오래된 블록부터 FIFO drop. 적용값은 stage `1000MiB` / prod `2000MiB`.
 - **대안(미적용) `statefulMode=true`** — 큐를 PVC로 옮기면 유실이 없어집니다. 다만 무상태 원칙의 예외이므로 그 예외를 인정할 때만 택합니다.
 - 적용 순서는 **stage 먼저 → 수일 관찰 → prod**. 적용 후 확인은 [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}).
 {{< /callout >}}

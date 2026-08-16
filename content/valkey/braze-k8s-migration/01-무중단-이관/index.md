@@ -465,7 +465,7 @@ Braze의 이관을 어렵게 만든 건 Redis도 Kubernetes도 아니라 **Clust
 - NLB를 샤드당 뒀는지 클러스터당 뒀는지 확인하지 못했습니다. 슬라이드 33쪽은 한 샤드에 NLB 하나가 붙은 그림이지만 설명 도식일 수 있습니다. §5.1의 LB-hour 추가분 계산이 이 값에 달려 있습니다.
 - 이관 스크립트가 config 동일성을 어떤 범위로 비교했는지 알 수 없습니다. "the config is the same between the two"(15:18)까지만 나옵니다.
 - nodePort 기본 범위는 [Kubernetes 문서](https://kubernetes.io/docs/concepts/services-networking/service/)로 확인했으나 해당 페이지의 `type: NodePort` 절 본문이 fetch에서 온전히 렌더되지 않아 30000–32767 범위는 [포트·프로토콜 레퍼런스](https://kubernetes.io/docs/reference/networking/ports-and-protocols/)로 교차 확인했습니다.
-- §8.1의 판정은 이 문서의 추론이다. "primary 역할이 런타임에 이동하므로 스케줄링 제약으로는 못 잡는다"는 결론은 공식 문서의 개별 사실(anti-affinity가 노드당 1개 · `maxSkew`가 상대값 · `IgnoredDuringExecution` 의미론)을 조합한 것이고 발표자가 이렇게 말한 것은 아니다.
+- §8.1의 판정은 이 문서의 추론입니다. "primary 역할이 런타임에 이동하므로 스케줄링 제약으로는 못 잡는다"는 결론은 공식 문서의 개별 사실(anti-affinity가 노드당 1개 · `maxSkew`가 상대값 · `IgnoredDuringExecution` 의미론)을 조합한 것이고 발표자가 이렇게 말한 것은 아닙니다.
 - 전사 오인식 주의. 자동 자막이 Joe Heyburn을 "Joe Hayburn/Joe Haben", Sidekiq을 "psychic", three-phase를 "a free phase", an NLB를 "no network load balancer", Braze를 "Redis"("at Redis, we use a lot of AZ affinity")로 적습니다. 전사를 그대로 인용하지 마라.
 {{< /callout >}}
 
