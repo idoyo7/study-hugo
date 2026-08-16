@@ -13,9 +13,9 @@ weight: 1
 - **`terminationGracePeriod`([core#916](https://github.com/kubernetes-sigs/karpenter/pull/916))가 최종 승자입니다.** 만료되면 PDB·`do-not-disrupt` 무관하게 남은 파드가 강제 삭제됩니다. 반대로 TGP를 걸면 drift가 "PDB·`do-not-disrupt` 파드가 있는 노드"까지 후보로 채택합니다 — 안전장치를 스스로 꺼주는 대가로 CVE 패치를 밀 수 있게 됩니다. 노드 최대 수명 = `expireAfter`(기본 `720h`, 상한이지 하한이 아닙니다) + TGP.
 - disruption budgets가 `Drifted`/`Underutilized`/`Empty` **reason별로** 나뉘었다([core#991](https://github.com/kubernetes-sigs/karpenter/pull/991), [core#1377](https://github.com/kubernetes-sigs/karpenter/pull/1377)). 삭제된 drift feature gate의 자리를 이것이 메운다 — 업스트림이 제시하는 유일한 drift 통제 수단입니다.
 - **1.1.0이 v1beta1 서빙을 끝냈습니다.** `nodeClassRef.group`/`kind`가 강제 필수가 되고 kubelet 호환 어노테이션이 사라집니다. 같은 릴리스의 Bottlerocket + `instanceStorePolicy: RAID0`은 **v1.22.0 미만 이미지에서 노드가 join하지 못합니다.**
-- **1.2.0의 메트릭 reason 라벨 snake_case 전환은 CI가 못 잡는 조용한 알람 무효화다.** `reason="Drifted"` 쿼리는 에러 없이 결과가 0이 된다. 같은 릴리스에서 `nodeclass.status`·`nodeclass.termination`이 `nodeclass`로 합쳐졌다([aws#7597](https://github.com/aws/karpenter-provider-aws/pull/7597)).
+- **1.2.0의 메트릭 reason 라벨 snake_case 전환은 CI가 못 잡는 조용한 알람 무효화다.** `reason="Drifted"` 쿼리는 에러 없이 결과가 0이 됩니다. 같은 릴리스에서 `nodeclass.status`·`nodeclass.termination`이 `nodeclass`로 합쳐졌다([aws#7597](https://github.com/aws/karpenter-provider-aws/pull/7597)).
 - **1.6.0에서 native On-Demand Capacity Reservation(ODCR)이 beta·기본 활성화됐다**([core#2365](https://github.com/kubernetes-sigs/karpenter/pull/2365)). `open` eligibility ODCR을 `capacityReservationSelectorTerms`에 등재하지 않고 올리면 **예약을 안 쓰면서 요금은 계속 나간다** — 이 구간에서 가장 비싼 회귀입니다.
-- `MinValuesPolicy`(1.6, [core#2299](https://github.com/kubernetes-sigs/karpenter/pull/2299)·[aws#8250](https://github.com/aws/karpenter-provider-aws/pull/8250))는 전역 옵션, 기본 `Strict`다. `minValues` 자체는 v0.35.0([core#963](https://github.com/kubernetes-sigs/karpenter/pull/963))부터 있던 API로 0.36 운영자에게 새 기능이 아니다.
+- `MinValuesPolicy`(1.6, [core#2299](https://github.com/kubernetes-sigs/karpenter/pull/2299)·[aws#8250](https://github.com/aws/karpenter-provider-aws/pull/8250))는 전역 옵션, 기본 `Strict`다. `minValues` 자체는 v0.35.0([core#963](https://github.com/kubernetes-sigs/karpenter/pull/963))부터 있던 API로 0.36 운영자에게 새 기능이 아닙니다.
 {{< /callout >}}
 
 > **왜 이 문서인가.** v1 마이그레이션 가이드 763줄의 절반은 "필드가 어디로 갔다"는 표라 `kubectl apply` 실패로 바로 드러난다. 진짜 위험한 건 **매니페스트가 그대로 통과하는데 클러스터가 다르게 행동하는** 항목이다 — 만료된 노드가 대체 없이 드레인을 시작하고, 끄고 있던 drift가 켜지고, 쓴 적 없는 `consolidateAfter`가 필수가 됩니다.
@@ -148,7 +148,7 @@ expiration은 **budget으로 rate-limit이 안 되고**(`disruption.md:317`) `do
 budgets 자체는 v0.34.0부터 있었고 v1.0에서 `reasons: ["Drifted"|"Underutilized"|"Empty"]`가 추가됐습니다. 계산 규칙은 셋입니다.
 
 - 퍼센트는 `roundup(total × pct) − total_deleting − total_notready`, 정수는 `value − total_deleting − total_notready`. **삭제 중 노드와 NotReady 노드가 예산을 먹는다** — 이미 죽어가는 노드가 많으면 정상 disruption이 통째로 막힙니다.
-- 여러 budget이 active면 **최솟값**이다. 특정 reason의 허용치는 "그 reason을 나열한 budget"과 "reasons를 안 쓴 budget"의 최솟값이다(`designs/disruption-controls-by-reason.md:220-226`).
+- 여러 budget이 active면 **최솟값**입니다. 특정 reason의 허용치는 "그 reason을 나열한 budget"과 "reasons를 안 쓴 budget"의 최솟값이다(`designs/disruption-controls-by-reason.md:220-226`).
 - **자발적 disruption만 막습니다.** drift·emptiness·consolidation이 대상이고 expiration·interruption·node repair는 아닙니다. NodePool 전체를 멈추는 `budgets: [{nodes: "0"}]`도 expiration은 못 막습니다.
 
 §2.1의 세 budget이 실전 패턴입니다 — "유지보수 시간대에는 drift만 허용", "비용 절감(Underutilized)은 야간에만"처럼 reason을 시간축과 곱해서 씁니다.

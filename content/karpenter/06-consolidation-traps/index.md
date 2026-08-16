@@ -279,7 +279,7 @@ disruption:
 - **`karpenter_nodeclaims_disrupted_total{reason="underutilized"}`** — 교체형 consolidation 발생량. 급증하면 §4.2 방어선을 검토. 근거: `disruption/queue.go:167` (`ToSnakeCase`).
 - **`kubectl get events --field-selector reason=InsufficientCapacityError`** — 위 메트릭의 사람이 읽을 수 있는 버전. 어떤 인스턴스 타입이 왜 실패했는지. 근거: `nodeclaim/lifecycle/events.go:28-32`.
 - **로그 `"skipping, nodepool requirements filtered out all instance types"`** — **gen8 풀이 조용히 사라지는 경로.** requirements 조합이 인스턴스 타입을 전부 걸러 냈다. 근거: `scheduler.go:159-166`.
-- **로그 `"ignoring nodepool, not ready"`** — NodeClass 오류로 gen8 풀이 통째로 빠졌다. 이 상태면 weight고 뭐고 없다. 근거: `provisioner.go:277`.
+- **로그 `"ignoring nodepool, not ready"`** — NodeClass 오류로 gen8 풀이 통째로 빠졌다. 이 상태면 weight고 뭐고 없습니다. 근거: `provisioner.go:277`.
 - **로그 `"skipping, awaiting nodeoverlay evaluation"`** — NodeOverlay를 쓴다면 — 게이트를 켠 직후 그 풀이 프로비저닝·disruption 양쪽에서 빠지는 창. 근거: `provisioner.go:295-298`.
 - **NodePool별 노드 수 비율** — 가장 중요한 지표. gen7 비중이 튀면 ICE 지속 또는 §5의 빈패킹이 일어난 것. 근거: `count by (nodepool) (karpenter_nodes_current_lifetime_seconds)` — 이 게이지는 WellKnownLabels(=`nodepool` 포함)를 라벨로 단다(`controllers/metrics/node/controller.go:156`). 코어에 `karpenter_nodes_total` 같은 노드 수 게이지는 없습니다.
 
