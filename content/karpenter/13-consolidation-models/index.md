@@ -28,7 +28,7 @@ consolidation에는 전용 컨트롤러가 없습니다. Disruption Controller �
 | 4 | `MultiNodeConsolidation` | 여러 대를 한 대로 | `Underutilized` | **예** |
 | 5 | `SingleNodeConsolidation` | 한 대씩 | `Underutilized` | **예** |
 
-`consolidationPolicy`를 읽는 것은 **4번과 5번뿐**입니다. 그래서 정책을 `WhenEmpty`로 바꿔도 drift는 그대로 돌고 `Balanced`로 바꿔도 빈 노드는 채점 없이 지워집니다. 이 글의 범위는 1·4·5번입니다. drift가 왜 걸리고 어떻게 되돌리는지는 [consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}})이 소유합니다.
+`consolidationPolicy`를 읽는 것은 **4번과 5번뿐**입니다. 그래서 정책을 `WhenEmpty`로 바꿔도 drift는 그대로 돌고 `Balanced`로 바꿔도 빈 노드는 채점 없이 지워집니다. 이 글의 범위는 1·4·5번입니다. drift가 왜 걸리고 어떻게 되돌리는지는 다루지 않습니다.
 
 2번과 3번은 서로 배타적입니다. `StaticDrift`는 `spec.replicas`가 지정된 NodePool의 노드만, `Drift`는 그렇지 않은 노드만 봅니다.
 
@@ -123,15 +123,17 @@ base `1.0`은 cordon·drain·대체 노드 기동 지연 그 자체의 비용입
 
 `Underutilized`만 안에서 두 단계로 나뉩니다. 둘 다 `SavingsRatio`로 정렬한 **같은 후보 목록을 받아** 시작하고 다른 것은 **그 목록에서 몇 대를 집느냐**뿐입니다.
 
+아래 두 도식은 같은 규칙으로 읽습니다. **집는 순간 비용 합계가 확정되고**(옅은 칸), 파드를 옮기면서 그 값을 치릅니다(진한 칸). 옮기면서 계산하는 값이 아니라 후보를 만들 때 이미 정해진 값입니다.
+
 **SingleNode는 앞에서부터 한 대씩 집어 봅니다.** 그 노드의 파드를 다른 곳으로 옮길 수 있는지 확인하고 실패하면 다음 후보로 내려갑니다. 처음 성공한 노드로 커맨드를 만들고 빠져나옵니다.
 
 {{< mnode variant="single" >}}
 
+한 대만 집으니 비용도 그 노드 몫뿐입니다. 그래서 옮길 파드가 적은 노드가 먼저 통과합니다.
+
 **MultiNode는 앞에서부터 여러 대를 한꺼번에 집습니다.** 묶은 만큼 비용도 합쳐지지만 **한 대씩 봐서는 나오지 않을 조합**이 여기서 나옵니다.
 
 {{< mnode variant="multi" >}}
-
-두 도식 모두 **집는 순간 비용 합계가 확정되고**(옅은 칸), 파드를 옮기면서 그 값을 치릅니다(진한 칸). 옮기면서 계산하는 값이 아니라 후보를 만들 때 이미 정해진 값입니다.
 
 ### 4.1 실행 순서는 설명 순서의 반대다
 
@@ -366,7 +368,7 @@ spec:
     consolidateAfter: 1m
 ```
 
-feature gate가 없습니다. 설계 RFC는 `BalancedConsolidation` 게이트로 옵트인한다고 적었지만 **구현에는 들어가지 않았습니다.** 코어 **v1.14.0이 최초**이고 그 이하 버전에서는 enum에 없어 admission에서 거부됩니다. 도입 시점 판정은 [지금 켤 만한 것과 미룰 것]({{< relref "02-changelog-maturity.md" >}})이 소유합니다.
+feature gate가 없습니다. 설계 RFC는 `BalancedConsolidation` 게이트로 옵트인한다고 적었지만 **구현에는 들어가지 않았습니다.** 코어 **v1.14.0이 최초**이고 그 이하 버전에서는 enum에 없어 admission에서 거부됩니다.
 
 ## 8. 운영자의 개입 수단
 
@@ -411,7 +413,7 @@ feature gate가 없습니다. 설계 RFC는 `BalancedConsolidation` 게이트로
 
 또 하나, **예산 차감은 reason을 가리지 않습니다.** 진행 중인 disruption을 전부 세어 각 reason의 몫에서 빼기 때문에 통합 한 건이 빈 노드 삭제의 예산을 잡아먹을 수 있습니다. 기본 예산은 `10%`라 10노드 풀에서 1입니다.
 
-**막는 방법에 따라 흔적이 다릅니다.** `consolidationPolicy: WhenEmpty`로 막으면 후보 단계에서 탈락해 이벤트가 남지 않습니다. 예산 `0`으로 막으면 후보는 만들어지고 실행만 차단되어 `DisruptionBlocked`가 쌓입니다. **진단 가능성 면에서는 예산 쪽이 낫습니다** — [언제 무엇을 멈출 것인가]({{< relref "08-disruption-budgets.md" >}})가 예산을 진단 1순위에 두는 이유입니다.
+**막는 방법에 따라 흔적이 다릅니다.** `consolidationPolicy: WhenEmpty`로 막으면 후보 단계에서 탈락해 이벤트가 남지 않습니다. 예산 `0`으로 막으면 후보는 만들어지고 실행만 차단되어 `DisruptionBlocked`가 쌓입니다. **진단 가능성 면에서는 예산 쪽이 낫습니다** — 막힌 흔적이 이벤트로 남기 때문입니다.
 
 ## 9. 관측과 문제 해결
 
@@ -465,7 +467,7 @@ sum(rate(karpenter_consolidation_moves_total{decision="rejected"}[30m]))
   / sum(rate(karpenter_consolidation_moves_total[30m]))
 ```
 
-메트릭 전량과 라벨 구성은 [무엇을 봐야 하나]({{< relref "09-metrics-logs-events.md" >}})가 소유합니다.
+메트릭 이름과 라벨 구성은 코어가 내보내는 `karpenter_*` 60여 개 중 일부입니다. 전량은 `pkg/metrics/`와 각 컨트롤러의 `metrics.go`에 정의돼 있습니다.
 
 {{< callout type="warning" >}}
 **가격 조회가 실패하면 `Balanced` 풀의 통합이 조용히 멈출 수 있습니다.** 풀 총비용이 0으로 계산되면 사전 컷은 통과시키지만 최종 심사는 전부 거부합니다. 이벤트가 남지 않으므로 `karpenter_consolidation_score`가 0에 몰려 있는지로 확인해야 합니다.
@@ -482,6 +484,9 @@ sum(rate(karpenter_consolidation_moves_total{decision="rejected"}[30m]))
 ## 11. 코드와 문서 근거
 
 `kubernetes-sigs/karpenter` **v1.14.0** 로컬 체크아웃(`v1.14.0-6-gac7a021e`). 경로는 `pkg/` 기준이고 별도 표기가 없으면 `controllers/disruption/`입니다.
+
+<details>
+<summary>소스 인용 전량 펼치기 — 컨트롤러 루프 · 후보와 비용 · MultiNode/SingleNode · 시뮬레이션 · Balanced</summary>
 
 **컨트롤러 루프**
 
@@ -531,6 +536,8 @@ sum(rate(karpenter_consolidation_moves_total{decision="rejected"}[30m]))
 - 정렬 기준 변경이 모든 정책에 영향 — `consolidation.go:138-149`
 - 메트릭 정의 — `metrics.go:132-150`
 - `Balanced` 도입 — core#2962, 최초 태그 `v1.14.0`
+
+</details>
 
 **확인하지 못한 것**
 
