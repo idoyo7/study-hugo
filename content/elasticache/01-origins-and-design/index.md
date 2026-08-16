@@ -261,7 +261,7 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 
 - **1.1 · 1.2 의 릴리스 일자** `?` — 리포에 `1.0`/`1.1`/`1.2` 태그가 없다(최초 태그 `1.3.6`, 2010-03-18). RESP v1 이 1.2 에서 옵션으로 들어왔다는 사실은 redis.io 프로토콜 스펙에 있으나 일자는 1차 근거로 확정하지 못했습니다.
 - **RDB_VERSION 3·4·5 의 도입 커밋** `?` — 2.4.0 이 리터럴 `REDIS0002`, 2.6.0-rc1 이 이미 `6`. 사이 번호는 2.5.x 개발 라인에서 소비된 것으로 보이나 커밋을 특정하지 않았습니다.
-- **첫 커밋 이전의 이력** `?` — `ed9b544e1` 은 parent 없는 root commit 이지만, 같은 커밋의 `doc/FAQ.html` 이 `Update: redis SVN is able to know how much memory it is using` 라고 쓴다. git 이전에 SVN 작업 이력이 있었음을 시사하는 1차 흔적이고, **그 이력 자체는 이 리포에 없다**.
+- **첫 커밋 이전의 이력** `?` — `ed9b544e1` 은 parent 없는 root commit 이지만, 같은 커밋의 `doc/FAQ.html` 이 `Update: redis SVN is able to know how much memory it is using` 라고 씁니다. git 이전에 SVN 작업 이력이 있었음을 시사하는 1차 흔적이고, **그 이력 자체는 이 리포에 없다**.
 - **6.0 threaded I/O 의 "2배" 주장 조건** `Ⓥ` — 릴리스노트가 `when pipelining cannot be used` 외에 인스턴스 타입·코어 수·값 크기·클라이언트 수·파이프라인 깊이를 밝히지 않습니다. conf 는 벤치마크 시 클라이언트도 `--threads` 로 맞추라고만 안내합니다.
 - **`REDIS_HASH 3` 이 첫 커밋에서 무엇을 위한 예약이었는지** `?` — 정의와 free 경로만 있고 생성 경로가 없습니다. 커밋 메시지("first commit")와 17줄 `TODO` 에 근거가 없습니다.
 

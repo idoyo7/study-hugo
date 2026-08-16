@@ -35,8 +35,8 @@ R2에는 예외가 하나 있습니다. **명령 텍스트의 정본은 메커�
 ## 2. 3부 구성
 
 - **1부 [우리 배포 형상]({{< relref "01-our-deployment.md" >}})** — 자체 RUM 컨버터, 표준 조립 5 실행 단위 대 우리 실제 6, stage/prod 격차 표, 컴포넌트별 실제 HA. R1이 소유하는 사실이 전부 여기 있습니다. 대응 기준 문서: {{< relref "../hyperdx/01-stack-topology.md" >}}·{{< relref "../hyperdx/08-block-only-tuning.md" >}}(stage가 정확히 블록 온리 형상입니다)
-- **2부 [운영 런북]({{< relref "02-runbook.md" >}})** — 증상별 진입, 판별 신호, 절차 순서, 우리 형상 파라미터, stage 리허설. 노드 급사·Keeper 정족수 상실·계획된 변경 세 갈래가 축이다. 대응 기준 문서: {{< relref "../hyperdx/04-operator-topology-downtime.md" >}}·{{< relref "../hyperdx/05-keeper.md" >}}·{{< relref "../hyperdx/06-replication-failover.md" >}}·{{< relref "../hyperdx/09-version-upgrade-compat.md" >}}·{{< relref "../clickhouse/05-altinity-operations.md" >}}
-- **3부 [의사결정 가이드]({{< relref "03-decision-guide.md" >}})** — 7축 결정 매트릭스(기본값·왜 안전/충분·승급 트리거) + 승급 트리거의 관측 지점 + 배포 전 실측 체크리스트 9항목. 승급 판단은 우리 클러스터의 현재 부하를 보는 일이므로 트랙 소관이다. 대응 기준 문서: 축별로 매트릭스 각 행에 개별 링크
+- **2부 [운영 런북]({{< relref "02-runbook.md" >}})** — 증상별 진입, 판별 신호, 절차 순서, 우리 형상 파라미터, stage 리허설. 노드 급사·Keeper 정족수 상실·계획된 변경 세 갈래가 축입니다. 대응 기준 문서: {{< relref "../hyperdx/04-operator-topology-downtime.md" >}}·{{< relref "../hyperdx/05-keeper.md" >}}·{{< relref "../hyperdx/06-replication-failover.md" >}}·{{< relref "../hyperdx/09-version-upgrade-compat.md" >}}·{{< relref "../clickhouse/05-altinity-operations.md" >}}
+- **3부 [의사결정 가이드]({{< relref "03-decision-guide.md" >}})** — 7축 결정 매트릭스(기본값·왜 안전/충분·승급 트리거) + 승급 트리거의 관측 지점 + 배포 전 실측 체크리스트 9항목. 승급 판단은 우리 클러스터의 현재 부하를 보는 일이므로 트랙 소관입니다. 대응 기준 문서: 축별로 매트릭스 각 행에 개별 링크
 
 hot/cold 티어링·용량 산정·컴포넌트별 가용성 종합은 이 트랙이 따로 서술하지 않습니다 — 각각 {{< relref "../hyperdx/02-hot-storage-ebs.md" >}}·{{< relref "../hyperdx/03-s3-cold-tiering.md" >}}·{{< relref "../hyperdx/07-capacity-planning.md" >}}·{{< relref "../hyperdx/04-operator-topology-downtime.md" >}}가 정본이고, 이 트랙은 그 위에서 "우리 형상은 지금 어디쯤인가"와 "언제 올리나"만 붙입니다.
 

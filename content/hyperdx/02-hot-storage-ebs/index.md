@@ -182,7 +182,7 @@ io2 BE가 gp3를 이기는 축은 셋뿐이고, 셋 다 RUM 분석엔 무관합�
 
 EBS-first에서도 "볼륨 내구성 ≠ 데이터 내구성"은 그대로입니다:
 
-- **볼륨 단위**: gp3 99.8~99.9%(AFR ≤0.2%), io2 99.999%. 이건 EBS가 볼륨을 안 잃을 확률이지 우리 데이터 안전이 아니다.
+- **볼륨 단위**: gp3 99.8~99.9%(AFR ≤0.2%), io2 99.999%. 이건 EBS가 볼륨을 안 잃을 확률이지 우리 데이터 안전이 아닙니다.
 - **데이터 내구성/가용성**: **멀티 AZ RF2~3 ReplicatedMergeTree**(SharedMergeTree는 Cloud 전용이라 self-host는 RMT 강제) + **clickhouse-backup → S3**. RF 선택 확률·insert_quorum·쓰기 내구성 노브는 {{< relref "../../clickhouse/04-deployment-playbook.md" >}}가 기준 문서입니다.
 - **비용 관점**: EBS도 RF배수로 사본을 낸다(RF2면 hot EBS도 2벌). "EBS라 싸다"가 아니라 "재수화가 없어 운영이 싸다"가 EBS-first의 논지입니다.
 

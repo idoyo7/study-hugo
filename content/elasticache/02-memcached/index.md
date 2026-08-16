@@ -10,7 +10,7 @@ weight: 2
 - **memcached 는 Redis 의 열등한 과거가 아닙니다.** "캐시는 캐시여야 한다"를 끝까지 밀어서 Redis 가 갖지 못한 성질(한 프로세스로 코어를 먹는 확장, 느린 커맨드가 존재할 수 없는 지연 예측성, 값을 NVMe 로 내리는 용량 확장)을 얻고 자료구조·영속성·복제·다중 키 원자성을 포기했습니다 `Σ`
 - **첫 커밋(2003-05-27)에는 slab allocator 도 자체 해시 테이블도 없었습니다.** `malloc()` + Judy 트라이 + 전역 단일 LRU 였고, slab 은 3일 뒤·자체 해시는 3주 뒤에 **둘 다 파편화 때문에** 들어왔습니다 `✓`
 - **slab allocator 의 대가가 calcification 이고, 그것을 갚는 데 21년이 걸렸습니다.** 문제 인지 2003-06-24, 첫 공식 해법 1.4.11(2012-01-16), 기본값 승격 1.5.0(2017-07-21), 그리고 **1.6.34(2024-12-22)의 mover 전면 재작성이 "페이지를 옮기면 아이템을 잃는다"는 대가 자체를 제거**했습니다 `✓`
-- **LRU 는 HOT/WARM/COLD/TEMP 4단 segmented LRU** 이고 1.5.0 부터 기본이다. Redis 와 근사의 **위치가 반대다** — memcached 는 접근 기록을 스레드별 bump buffer 에 비동기로 쌓고 넘치면 버리며, Redis 는 축출 시점에 표본을 뽑는다(`maxmemory-samples 5`) `✓`
+- **LRU 는 HOT/WARM/COLD/TEMP 4단 segmented LRU** 이고 1.5.0 부터 기본입니다. Redis 와 근사의 **위치가 반대다** — memcached 는 접근 기록을 스레드별 bump buffer 에 비동기로 쌓고 넘치면 버리며, Redis 는 축출 시점에 표본을 뽑는다(`maxmemory-samples 5`) `✓`
 - **워커 스레드 N개가 각자 이벤트 루프를 돌려 read·parse·execute·write 를 끝냅니다.** `-t 16` 한 프로세스가 16코어를 씁니다. Redis 8.10.0 `redis.conf` 는 2026년에도 "Redis is mostly single threaded" 이고 io-threads 는 소켓 읽기·쓰기와 **프로토콜 파싱까지**다 — 커맨드 실행은 메인 스레드입니다 `✓`
 - **그 대가가 원자성입니다.** 보장 단위가 아이템 하나뿐이라 MULTI/EXEC·Lua·다중 키 트랜잭션에 대응할 방법이 원리적으로 없습니다 `✓`
 - **binary protocol 은 1.6.0(2020-03-08)에 공식 deprecated 됐고 후계는 meta 커맨드**입니다. 2026년에 클라이언트를 고를 때 meta 지원 여부가 1순위인 이유는 stampede 방어(`W`/`Z`)와 serve-stale 이 **서버에서 원자적으로** 되는 유일한 경로이기 때문입니다 `✓`
