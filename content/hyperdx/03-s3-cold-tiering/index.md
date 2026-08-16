@@ -291,7 +291,7 @@ metadata:
 
 - **`region` 명시 필수** `≈`: IRSA는 STS regional endpoint 서명이 얽혀 `region` 미지정 시 서명/리다이렉트 오류가 나기 쉽다. disk XML에 `region` + `endpoint` 리전 도메인 둘 다 명시.
 - **`{replica}` 경로 분리 필수** `✓`: `metadata_type=local`은 shared-nothing이라 RF>1에서 replica들이 같은 S3 prefix를 쓰면 blob을 서로 덮어씁니다. operator 예제가 `.../s3_disk/{replica}/`인 이유.
-- **clickhouse-backup의 IRSA self-assume 버그**(#798) `✓`: 백업 도구는 `AWS_ROLE_ARN`이 있으면 자기 자신을 다시 assume 시도하는 이슈가 있었다. 이는 **백업 사이드카** 얘기지 CH 서버 disk와는 별개이나, 같은 클러스터에서 백업도 IRSA로 붙일 때 `AssumeRoleARN` 미설정을 확인.
+- **clickhouse-backup의 IRSA self-assume 버그**(#798) `✓`: 백업 도구는 `AWS_ROLE_ARN`이 있으면 자기 자신을 다시 assume 시도하는 이슈가 있었습니다. 이는 **백업 사이드카** 얘기지 CH 서버 disk와는 별개이나, 같은 클러스터에서 백업도 IRSA로 붙일 때 `AssumeRoleARN` 미설정을 확인.
 - **CH 서버 disk에서 IRSA `use_environment_credentials` 실동작(최소 버전·필수 env·`AWS_EC2_METADATA_DISABLED` 영향)은 스테이징 실측이 필요합니다** — 백업 도구 이슈는 확인됐으나 서버 disk 경로는 미실측입니다. `?`
 
 ### 3.4 S3 Gateway VPC Endpoint — 티어링 절감의 전제조건

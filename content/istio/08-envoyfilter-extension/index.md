@@ -121,7 +121,7 @@ nginx `limit_req`의 대응이 여기입니다. Istio는 레이트 리밋을 표
 
 EnvoyFilter를 쓸 수밖에 없다면 최소한 다음은 지킵니다.
 
-- **좁게 건다.** `workloadSelector`를 반드시 지정해 폭발 반경을 워크로드 하나로 가둔다. 전역 EnvoyFilter는 금물.
+- **좁게 건다.** `workloadSelector`를 반드시 지정해 폭발 반경을 워크로드 하나로 가둡니다. 전역 EnvoyFilter는 금물.
 - **버전에 핀·테스트.** Istio/Envoy 업그레이드 전 스테이징에서 patch가 여전히 붙는지 검증합니다. revision 카나리([04]({{< relref "04-config-as-code.md" >}}))로 먼저 소수에만 태웁니다.
 - **GitOps 리뷰 필수.** 날것의 Envoy 설정일수록 리뷰·감사가 중요하다. 손 apply 절대 금지([04]({{< relref "04-config-as-code.md" >}})).
 - **관측을 붙입니다.** 레이트 리밋 필터도 자체 메트릭(제한된 요청 수 등)을 내므로 [06]({{< relref "06-observability-points.md" >}})의 대시보드에 걸어 실제로 얼마나 막히는지 봅니다.

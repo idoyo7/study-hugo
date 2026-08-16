@@ -13,7 +13,7 @@ HyperDX 스택의 ClickHouse는 self-host이므로 `ReplicatedMergeTree`가 강�
 **한눈에**
 - Keeper는 **ZooKeeper의 ClickHouse판**(NuRaft/Raft 합의)이지 **Kafka의 ClickHouse판이 아니다**. 조정 메타데이터(복제 로그·part 참조·DDL 큐·dedup 체크섬·ephemeral 락)만 담고 **사용자 이벤트 데이터는 담지 않는다** `✓`.
 - INSERT는 **클라이언트 → CH 서버로 직접** 갑니다. 동기면 파트로 디스크 기록, `async_insert`면 **서버 메모리 버퍼(휘발)**에 잠깐 머뭅니다. **커밋·복제 전에 서버가 죽으면 그 데이터는 어디에도 큐잉되지 않고 유실**됩니다 — Keeper가 붙잡아 두지 않습니다 `✓`.
-- Keeper 안의 "큐"(DDL task_queue·replica queue·replication log)는 **메타데이터 큐**지 이벤트 데이터 큐가 아니다. "이미 디스크에 쓰인 파트를 가져가라"는 **지시**를 복원할 뿐, 아직 파트가 안 된 수신 중 이벤트를 복원하지 못한다 `✓`.
+- Keeper 안의 "큐"(DDL task_queue·replica queue·replication log)는 **메타데이터 큐**지 이벤트 데이터 큐가 아닙니다. "이미 디스크에 쓰인 파트를 가져가라"는 **지시**를 복원할 뿐, 아직 파트가 안 된 수신 중 이벤트를 복원하지 못한다 `✓`.
 - 유실 방어는 CH 내부에서 **`insert_quorum` + 블록 dedup + 클라이언트 재시도**(at-least-once → 사실상 exactly-once)까지, 다운타임/버스트 흡수는 **CH 앞단의 실제 큐**(OTel Collector persistent queue / Kafka)가 담당합니다.
 {{< /callout >}}
 
@@ -65,7 +65,7 @@ Keeper가 저장하지 **않는** 것을 못박아 둔다: ❌ 테이블의 행�
 | CH ingest에서 위치 | (선택) CH **앞단** 버퍼·디커플링 | (구) CH 조정 백엔드 | CH 조정 백엔드(기본) |
 | "이벤트 유실 방어" | ✅ 앞단에서 스파이크·다운타임 흡수·재생 | ❌ 이벤트 데이터 안 담음 | ❌ **이벤트 데이터 안 담음** |
 
-한 문장으로: Keeper는 "Kafka의 CH판"이 아니다. Keeper는 **ZooKeeper의 CH판**이고, Kafka가 채우는 자리(ingest 버퍼)는 Keeper가 아니라 **CH 앞단의 실제 큐**가 채운다(아래 유실 방지 설계).
+한 문장으로: Keeper는 "Kafka의 CH판"이 아닙니다. Keeper는 **ZooKeeper의 CH판**이고, Kafka가 채우는 자리(ingest 버퍼)는 Keeper가 아니라 **CH 앞단의 실제 큐**가 채운다(아래 유실 방지 설계).
 
 ### CH가 죽으면 in-flight INSERT는 어디에도 큐잉되지 않는다
 

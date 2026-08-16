@@ -101,7 +101,7 @@ istioctl proxy-config secret <pod>    # 인증서가 제대로 발급됐는지
 
 ## 재발 방지 체크리스트
 
-- **라이프사이클** — `holdApplicationUntilProxyStarts`, preStop `sleep`, `terminationDrainDuration`을 표준 템플릿에 박아둔다. (배포 시점 간헐 5xx의 최대 예방책)
+- **라이프사이클** — `holdApplicationUntilProxyStarts`, preStop `sleep`, `terminationDrainDuration`을 표준 템플릿에 박아둡니다. (배포 시점 간헐 5xx의 최대 예방책)
 - **탄력성** — 적정한 timeout·retry(멱등 요청에 한해), `DestinationRule` outlier detection으로 나쁜 엔드포인트 자동 축출.
 - **컨트롤 플레인 여유** — 수렴 시간을 SLO로 관측([02]({{< relref "02-istiod-control-plane.md" >}})). 배포가 몰리는 시간대에 istiod가 밀리지 않는지 봅니다.
 - **관측 표준화** — 액세스 로그에 `%RESPONSE_FLAGS%`를 반드시 포함하고 `istio_requests_total`을 flag·code로 쪼개는 대시보드를 상시 띄워둡니다. 나침반이 없으면 매번 처음부터 헤맵니다.

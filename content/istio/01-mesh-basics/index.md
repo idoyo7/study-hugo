@@ -69,9 +69,9 @@ Istio(그리고 대부분의 메시)는 두 부분으로 나뉩니다.
 메시는 강력하지만 **공짜가 아닙니다.** 뒤 문서의 사건들은 전부 이 비용을 관리한 기록이므로 여기서 못을 박아둡니다.
 
 1. **데이터 플레인 오버헤드.** 파드마다 Envoy가 붙으니 파드 수만큼 프록시가 뜹니다. 각 프록시가 CPU·메모리를 먹고 요청마다 프록시 홉이 2번 늘어 **꼬리 지연(tail latency)**이 커집니다. → 그래서 [02]({{< relref "02-istiod-control-plane.md" >}})에서 사이드카 리소스를 최적화하고 [03]({{< relref "03-gateway-node-isolation.md" >}})에서 게이트웨이를 격리합니다.
-2. **컨트롤 플레인 부하.** 프록시가 많아지고 설정이 자주 바뀌면 istiod가 각 프록시에 설정을 밀어내는(push) 계산량이 폭증한다. → [02]({{< relref "02-istiod-control-plane.md" >}})의 핵심.
+2. **컨트롤 플레인 부하.** 프록시가 많아지고 설정이 자주 바뀌면 istiod가 각 프록시에 설정을 밀어내는(push) 계산량이 폭증합니다. → [02]({{< relref "02-istiod-control-plane.md" >}})의 핵심.
 3. **설정 복잡도.** VirtualService·DestinationRule·AuthorizationPolicy가 수백 개로 늘면 손으로 관리가 불가능해집니다. → [04]({{< relref "04-config-as-code.md" >}})에서 GitOps로 다스립니다.
-4. **디버깅 난이도.** 요청 경로에 프록시가 껴 있어 장애가 앱인지·프록시인지·컨트롤 플레인인지 층을 갈라 봐야 한다. → [05]({{< relref "05-incident-intermittent-5xx.md" >}})의 트러블슈팅.
+4. **디버깅 난이도.** 요청 경로에 프록시가 껴 있어 장애가 앱인지·프록시인지·컨트롤 플레인인지 층을 갈라 봐야 합니다. → [05]({{< relref "05-incident-intermittent-5xx.md" >}})의 트러블슈팅.
 
 {{% details title="(참고) 사이드카 vs Ambient" closed="true" %}}
 지금까지 설명한 건 **사이드카 모드** — 파드마다 Envoy를 주입하는 전통적 방식입니다. Istio는 이후 **Ambient 모드**(사이드카리스)를 내놨습니다. 노드마다 도는 경량 L4 프록시 `ztunnel`이 mTLS·기본 라우팅을 맡고 L7 기능이 필요할 때만 `waypoint` 프록시를 별도로 띄웁니다.

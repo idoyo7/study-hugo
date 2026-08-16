@@ -156,7 +156,7 @@ Keeper znode **전체 인벤토리**와 "Keeper는 durable queue가 아니다"(C
 
 멀티마스터라 replica 하나가 죽어도 **primary 승격·클러스터 재구성이 없습니다** `✓`. 살아있는 replica가 read와 write를 모두 그대로 계속하고, 죽은 replica가 복구되면 자기 `log_pointer` 이후 밀린 엔트리를 catch-up으로 소비합니다. EBS 전제에선 볼륨이 reattach돼 기존 part가 남아 **델타만** catch-up합니다 — 재수화 아님·reattach 역학 상세는 [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}}) S1~S9(reattach+part-load 실소요와 델타 catch-up 실 fetch량은 아직 `?`, staging 실측).
 
-"failover 절차 없음"이 "아무것도 안 해도 된다"는 뜻은 아니다. 세 단서가 붙는다 `✓`: ① 클라이언트 라우팅은 누군가 해야 하고(아래), ② 쓰기는 Keeper 정족수에 묶이며(아래), ③ 기본 async 쓰기는 ack 직후 그 replica가 죽으면 미복제 part를 잃을 수 있다(insert_quorum으로 좁힘).
+"failover 절차 없음"이 "아무것도 안 해도 된다"는 뜻은 아닙니다. 세 단서가 붙는다 `✓`: ① 클라이언트 라우팅은 누군가 해야 하고(아래), ② 쓰기는 Keeper 정족수에 묶이며(아래), ③ 기본 async 쓰기는 ack 직후 그 replica가 죽으면 미복제 part를 잃을 수 있다(insert_quorum으로 좁힘).
 
 ### 클라이언트 라우팅 — 죽은 replica 회피
 
@@ -164,7 +164,7 @@ failover가 "승격 없음"이어도, 클라이언트가 죽은 replica를 안 �
 
 - **ClickHouse Distributed 테이블 / `remote_servers`**: `load_balancing`(`random`(기본)·`nearest_hostname`·`in_order`·`first_or_random`·`round_robin`)으로 살아있는 replica를 고르고, 연결 실패 시 짧은 타임아웃으로 다음 replica를 시도하는 native connection failover를 제공한다 `✓`. 단 우리는 **1 shard**라 데이터 분산용 Distributed는 사실상 불필요하다 `≈`.
 - **외부 프록시**: HTTP(8123)는 chproxy·HAProxy·nginx 모두 가능(chproxy가 CH 특화). **native TCP(9000)는 프록시가 프로토콜을 몰라** 한 연결을 여러 서버로 못 쪼개므로, 연결 회전·`idle_connection_timeout`·Distributed 프록시 중 하나가 필요하다 `✓`.
-- **Kubernetes Service / HyperDX CH endpoint(우리 기본)**: HyperDX는 operator가 만든 cluster Service(ClusterIP, http 8123 / tcp 9000)로 붙고, readiness probe(`/ping`)가 죽은 replica를 엔드포인트에서 뺀다 `≈`. 이게 사실상 K8s 레벨 failover 라우팅이다. Service readiness 기반 replica 제거 타이밍·native 연결 지속성과의 상호작용은 배포 후 `kubectl get endpoints`로 실측 `?`.
+- **Kubernetes Service / HyperDX CH endpoint(우리 기본)**: HyperDX는 operator가 만든 cluster Service(ClusterIP, http 8123 / tcp 9000)로 붙고, readiness probe(`/ping`)가 죽은 replica를 엔드포인트에서 뺀다 `≈`. 이게 사실상 K8s 레벨 failover 라우팅입니다. Service readiness 기반 replica 제거 타이밍·native 연결 지속성과의 상호작용은 배포 후 `kubectl get endpoints`로 실측 `?`.
 
 ### 시나리오별 가용성 (failover 라우팅 관점)
 
@@ -215,7 +215,7 @@ failover가 "승격 없음"이어도, 클라이언트가 죽은 replica를 안 �
 
 ## 우리 케이스에서는
 
-- **failover 절차는 "없음"이 기본값**: RMT 멀티마스터라 승격이 없고, replica 하나가 죽어도 남은 replica가 read+write를 계속 받는다. 우리가 할 일은 라우팅 계층이 살아있는 replica를 고르게 하는 것뿐 — 1 shard × RF2에서는 **HyperDX → cluster Service(readiness 기반 replica 제거) + HTTP 8123**로 시작하고, chproxy/Distributed 프록시는 사용자별 쿼터나 shard 2+ 같은 실제 요구가 생길 때 얹는다 `≈`.
+- **failover 절차는 "없음"이 기본값**: RMT 멀티마스터라 승격이 없고, replica 하나가 죽어도 남은 replica가 read+write를 계속 받습니다. 우리가 할 일은 라우팅 계층이 살아있는 replica를 고르게 하는 것뿐 — 1 shard × RF2에서는 **HyperDX → cluster Service(readiness 기반 replica 제거) + HTTP 8123**로 시작하고, chproxy/Distributed 프록시는 사용자별 쿼터나 shard 2+ 같은 실제 요구가 생길 때 얹는다 `≈`.
 - **토폴로지**: `shardsCount: 1` × `replicasCount: 2`(RF2) + **anti-affinity(hostname)** + **topologySpread(AZ, DoNotSchedule)** + **PDB(maxUnavailable 1)**. 데이터 노드는 EBS 기반 Graviton **r7g**(로컬 NVMe i7i/i8g는 이 카테고리 기본 아님). CHK **3노드 3 AZ**로 정족수를 사수합니다 — 이 조정 계층이 전체 쓰기 가용성의 SPOF이므로 gp3 영속·CH와 분리 배치가 방어의 전부입니다.
 - **split-brain은 구조적으로 없다**: Raft 정족수가 단일 진실원이라 소수파는 쓰기 불가 — 펜싱 장치가 필요 없다. 대가는 정족수를 잃은 쪽이 그냥 못 쓴다는 것(일관성 우선).
 - **RF2로 시작, RF3는 트리거 기반 승급**: "AZ 1개 소실 중에도 무저하" 또는 "`insert_quorum: 2` 상시"가 요구가 되는 순간에만 RF3. EBS는 노드 급사가 데이터 소실이 아니라 reattach라 RF3를 공격적으로 강제할 이유가 약합니다.
