@@ -43,7 +43,7 @@ GIL은 최적화가 아니라 **인터프리터 내부 상태를 지키는 뮤�
 limit이 quota로 변환되는 산수(quota = limit × period, 기본 100ms)와 "period 간 이월 없음"은 [02 §1]({{< relref "02-cpu-throttling.md" >}})이 다뤘습니다. 이 절이 보는 것은 그 아래층 — **그 quota가 코어에 어떻게 도달하는가**입니다. 커널 문서(sched-bwc.rst)의 한 문장이 구조를 그대로 말해줍니다: "quota is assigned to per-cpu run queues **in slices** as threads in the cgroup become runnable... transferred to cpu-local 'silos' **on a demand basis**."
 
 1. period마다 cgroup의 **전역 풀**에 quota가 충전됩니다.
-2. 각 코어의 런큐는 **그 코어에서 이 cgroup의 스레드가 실행되려 할 때만** 풀에서 슬라이스를 꺼내온다. 단위는 5ms다(`sched_cfs_bandwidth_slice_us`, 기본 5000µs).
+2. 각 코어의 런큐는 **그 코어에서 이 cgroup의 스레드가 실행되려 할 때만** 풀에서 슬라이스를 꺼내옵니다. 단위는 5ms다(`sched_cfs_bandwidth_slice_us`, 기본 5000µs).
 3. 그 코어의 스레드가 전부 잠들면 로컬 잔여분은 **1ms만 남기고** slack 타이머를 통해 풀로 반납된다(`min_cfs_rq_runtime`).
 
 {{< flow src="_flow/2-쿼터는-풀이다.json" />}}
