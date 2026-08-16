@@ -276,10 +276,10 @@ AWS EKS
 
 그 전제 위에서, 이 조사의 권고를 스토리지 주제로 좁히면:
 
-- **인스턴스: i8g 우선.** i7i와 IOPS가 동률이고 ~9% 저렴하며 ClickHouse ARM64 궁합이 좋다. x86 의존 바이너리가 있으면 i7i, 초고밀도가 목적이면 i7ie/i3en.
+- **인스턴스: i8g 우선.** i7i와 IOPS가 동률이고 ~9% 저렴하며 ClickHouse ARM64 궁합이 좋습니다. x86 의존 바이너리가 있으면 i7i, 초고밀도가 목적이면 i7ie/i3en.
 - **성능은 살 수 있습니다.** 원하는 수 GB/s·수십만 IOPS는 EBS로는 물리적으로 불가능하지만 로컬 NVMe로는 스토리지 한계비용 $0에 얻습니다 — "로컬 스토리지를 크게"라는 요구의 물리적 해답은 로컬 NVMe self-host뿐입니다.
 - **내구성은 3종 세트로 산다.** 멀티 AZ replica 2~3 + clickhouse-backup(S3, 주간full·일간incr) + Keeper(gp3 영속). zero-copy replication은 금지.
-- **티어링은 얹되 OpenSearch 경제를 기대하지 않는다.** hot NVMe(짧은 TTL) + S3 cold 2티어 + filesystem cache가 표준이고 gp3는 Keeper용이다. self-host는 shared-nothing이라 UltraWarm식 "S3 단일 사본" 절감이 없어 사본 배수(RF)를 그대로 내며, 티어링은 비용·보존 수단이지 내구성 대체가 아닙니다(우리 도메인 hot 10 + UltraWarm 8과의 구조 대응은 위 §티어링 설계).
+- **티어링은 얹되 OpenSearch 경제를 기대하지 않는다.** hot NVMe(짧은 TTL) + S3 cold 2티어 + filesystem cache가 표준이고 gp3는 Keeper용입니다. self-host는 shared-nothing이라 UltraWarm식 "S3 단일 사본" 절감이 없어 사본 배수(RF)를 그대로 내며, 티어링은 비용·보존 수단이지 내구성 대체가 아닙니다(우리 도메인 hot 10 + UltraWarm 8과의 구조 대응은 위 §티어링 설계).
 - **"크게"의 상한은 재수화가 정한다.** 노드당 데이터량과 replica 수의 균형, shard 확장으로 재수화 시간을 관리하고, TB당 재수화 시간은 스테이징에서 반드시 실측한다 `?`.
 - **Karpenter는 길들여서 쓰거나 고정 ASG로 대체한다.** do-not-disrupt(voluntary만 방지임을 인지) + On-Demand/SP + Spot 데이터 노드 금지 + PDB. 안정성이 최우선이면 고정 ASG.
 

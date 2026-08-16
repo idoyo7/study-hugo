@@ -153,13 +153,13 @@ Altinity operator는 **minor 버전 단계별 업그레이드만 지원**합니�
 
 알려진 업그레이드 함정 두 가지:
 
-- **(a) 이미지+설정 동시 변경 시 crash (v0.24.3, issue #1926).** 이 버전대의 reconcile 순서는 ConfigMap을 새 버전 설정값으로 먼저 갱신한 뒤 `SYSTEM SHUTDOWN`으로 파드를 재기동시킨다. 이미지 업그레이드와 새 설정 변경을 한 reconcile에 같이 넣으면, 파드가 **구 이미지 + 신 ConfigMap** 조합으로 재시작해 인식 못 하는 설정값 때문에 crash할 수 있다(PR #1956에서 순서 수정) `✓`. 교훈: 이미지 업그레이드와 신규 설정 변경은 별도 reconcile로 분리한다. 이 원칙을 넘어서는 공식 가이드가 별도로 확인되지는 않았다 `?`.
-- **(b) 0.27.1 업그레이드 후 감춰졌던 실패가 표면화.** 이전 버전에서는 특정 실패(호스트가 `Replicas=0`인데 CHI는 reconciled로 보고되는 상태)가 조용히 삼켜졌으나, 0.27.1부터는 첫 reconcile에서 이런 CHI가 정확히 `Aborted` 상태로 전환된다. 복구하려면 CHI spec을 재적용(re-apply)해 informer 재reconcile을 트리거한다 `✓`.
+- **(a) 이미지+설정 동시 변경 시 crash (v0.24.3, issue #1926).** 이 버전대의 reconcile 순서는 ConfigMap을 새 버전 설정값으로 먼저 갱신한 뒤 `SYSTEM SHUTDOWN`으로 파드를 재기동시킵니다. 이미지 업그레이드와 새 설정 변경을 한 reconcile에 같이 넣으면, 파드가 **구 이미지 + 신 ConfigMap** 조합으로 재시작해 인식 못 하는 설정값 때문에 crash할 수 있다(PR #1956에서 순서 수정) `✓`. 교훈: 이미지 업그레이드와 신규 설정 변경은 별도 reconcile로 분리합니다. 이 원칙을 넘어서는 공식 가이드가 별도로 확인되지는 않았다 `?`.
+- **(b) 0.27.1 업그레이드 후 감춰졌던 실패가 표면화.** 이전 버전에서는 특정 실패(호스트가 `Replicas=0`인데 CHI는 reconciled로 보고되는 상태)가 조용히 삼켜졌으나, 0.27.1부터는 첫 reconcile에서 이런 CHI가 정확히 `Aborted` 상태로 전환됩니다. 복구하려면 CHI spec을 재적용(re-apply)해 informer 재reconcile을 트리거한다 `✓`.
 
 안전장치 3층(버전순):
 
 - **STS recreate 정책**(0.26.0) — `reconcile.statefulSet.recreate.onUpdateFailure: abort | recreate`: 실패한 StatefulSet 업데이트를 그대로 둘지(abort) 재생성할지(recreate) 선택한다 `✓`.
-- **aborted reconcile 자동 재개**(0.27.0) — `reconcile.recovery.from.aborted.onPodReady`: 실패했던 파드가 다시 Ready가 되면 중단된 reconcile을 자동 재개한다. 단 모든 파드가 Ready인 채로 발생하는 일시적 K8s API 오류는 이 범위 밖이다 `✓`.
+- **aborted reconcile 자동 재개**(0.27.0) — `reconcile.recovery.from.aborted.onPodReady`: 실패했던 파드가 다시 Ready가 되면 중단된 reconcile을 자동 재개합니다. 단 모든 파드가 Ready인 채로 발생하는 일시적 K8s API 오류는 이 범위 밖이다 `✓`.
 - **pre/post SQL 훅**(0.27.0, 실험적) — `HostCreate`/`HostShutdown`/`HostRollout`/`HostDelete` 등 이벤트에 SQL을 주입한다(예: `HostShutdown`에 `SYSTEM STOP REPLICATION QUEUES`). 대상은 `FirstHost`/`AllHosts`/`AllShards`, `failurePolicy: Fail | Ignore` `✓`. 매니페스트 선언 형태는 [배포 플레이북 §reconcile hooks]({{< relref "04-deployment-playbook.md" >}}).
 
 ## Keeper(CHK) 업그레이드
