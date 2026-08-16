@@ -92,7 +92,7 @@ ambient가 아예 안 되는 것도 명시돼 있습니다(`docs/ambient/migrate
 
 **타당합니다.** 근거는 세 갈래입니다.
 
-- **sidecar가 폐기 트랙인가** — **아닙니다.** 1.20~1.24 upgrade-notes·change-notes 어디에도 sidecar injection을 deprecated로 표시한 문구가 없습니다. 최신 스냅샷 `docs/overview/dataplane-modes/index.md`는 sidecar를 "built on the sidecar pattern from its first release in 2017 … well understood and thoroughly battle-tested"로 서술하고 두 모드를 나란히 비교한다. → 유지가 "레거시에 남는 것"이 아니다.
+- **sidecar가 폐기 트랙인가** — **아닙니다.** 1.20~1.24 upgrade-notes·change-notes 어디에도 sidecar injection을 deprecated로 표시한 문구가 없습니다. 최신 스냅샷 `docs/overview/dataplane-modes/index.md`는 sidecar를 "built on the sidecar pattern from its first release in 2017 … well understood and thoroughly battle-tested"로 서술하고 두 모드를 나란히 비교합니다. → 유지가 "레거시에 남는 것"이 아닙니다.
 - **sidecar 경로에 투자가 계속되나** — **계속된다.** 1.20 `startupProbe` 기본화, 1.21 바이너리 ~10MB 축소, 1.23 인바운드 리트라이 프리뷰 → 1.24 기본 활성, 1.24 per-pod native sidecar 제어. → 유지가 성능·안정성에서 손해 보는 방향이 아닙니다.
 - **ambient가 우리 요건을 받을 수 있나** — **하드 블로커·L7 우회 문제가 남아 있다**(§2.3). 특히 `EnvoyFilter` 미지원과 `VirtualService` Alpha는 [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})·기존 `VirtualService` 자산과 정면으로 부딪힙니다. → 금융 요건과 무관하게라도 전환 비용이 큽니다.
 
@@ -299,7 +299,7 @@ Envoy cluster 메트릭은 `.`을 메트릭 네임스페이스 구분자로 쓰�
 
 플래그마다 기본값·위치, 도입 PR, 무엇이 바뀌나, sidecar 유지 클러스터의 영향을 차례로 짚습니다.
 
-- **`ENABLE_INBOUND_RETRY_POLICY`**(`true` · `pilot.go:237`, [#52055](https://github.com/istio/istio/pull/52055)) — **서버 사이드카**에서, 앱이 아직 처리하지 않은 요청이 커넥션 재사용 중 리셋되면 자동 재시도. 종래 리트라이는 클라이언트 사이드카 전용이었습니다. 영향: **대개 이롭다** — 흔한 503 원인(백엔드가 닫는 keep-alive 커넥션 재사용)을 서버 쪽에서 흡수한다. [05 간헐적 응답 이상]({{< relref "05-incident-intermittent-5xx.md" >}})이 추적한 실패 모드와 같은 계열.
+- **`ENABLE_INBOUND_RETRY_POLICY`**(`true` · `pilot.go:237`, [#52055](https://github.com/istio/istio/pull/52055)) — **서버 사이드카**에서, 앱이 아직 처리하지 않은 요청이 커넥션 재사용 중 리셋되면 자동 재시도. 종래 리트라이는 클라이언트 사이드카 전용이었습니다. 영향: **대개 이롭다** — 흔한 503 원인(백엔드가 닫는 keep-alive 커넥션 재사용)을 서버 쪽에서 흡수합니다. [05 간헐적 응답 이상]({{< relref "05-incident-intermittent-5xx.md" >}})이 추적한 실패 모드와 같은 계열.
 - **`EXCLUDE_UNSAFE_503_FROM_DEFAULT_RETRY`**(`true` · `pilot.go:240`, [#52111](https://github.com/istio/istio/pull/52111)) — **기본 재시도 정책에서 503 재시도를 제외.** 원래 위 실패 모드를 덮으려 넣었던 것인데 non-idempotent 요청에 위험하다고 판단. 영향: **주의.** 503이 자동 재시도로 가려지고 있었다면 **클라이언트에 503이 더 많이 노출됩니다.** 안전성과 성공률이 맞바꿔집니다.
 - **`PILOT_UNIFIED_SIDECAR_SCOPE`**(`true` · `experimental.go:208`, [#51776](https://github.com/istio/istio/pull/51776)) — `Sidecar` 리소스 유무에 따라 갈리던 충돌 해소 규칙 통일(아래 별도 설명). 영향: **직접 영향.** `Sidecar` CR을 쓰거나 동일 hostname 중복 정의가 있으면 라우팅 대상이 바뀔 수 있습니다.
 - **`ENABLE_ENHANCED_DESTINATIONRULE_MERGE`**(`true` · `experimental.go:204`, [#52636](https://github.com/istio/istio/pull/52636)) — `exportTo`가 다른 동일 호스트 `DestinationRule`을 **더 이상 병합하지 않습니다**. 영향: 동일 host에 `exportTo`를 달리 준 DR이 중복 정의돼 있으면 적용 결과가 달라집니다.

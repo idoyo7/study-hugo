@@ -179,4 +179,4 @@ TCP 트래픽에서는 이 mTLS 위에 `istio-peer-exchange`라는 ALPN 프로�
 - Istio 공식 문서 — **SPIRE 통합** (SPIFFE ID 포맷 `spiffe://<trust.domain>/ns/<ns>/sa/<sa>`): <https://istio.io/latest/docs/ops/integrations/spire/>
 - Istio 공식 문서 — **Authentication Policy** (자동 mTLS: 클라이언트 프록시가 알아서 mTLS로 보낸다): <https://istio.io/latest/docs/tasks/security/authentication/authn-policy/>
 - Istio 공식 문서 — **Istio CNI plugin** (CNI가 네임스페이스 iptables를 구성한다는 서술까지만): <https://istio.io/latest/docs/setup/additional-setup/cni/>
-- istio-agent 내부 구조(xDS 프록시가 여러 gRPC 스트림을 TCP 커넥션 하나로 모은다)는 istio/istio 소스 주석에서 확인한 것이다: <https://github.com/istio/istio/blob/master/pkg/istio-agent/xds_proxy.go>
+- istio-agent 내부 구조(xDS 프록시가 여러 gRPC 스트림을 TCP 커넥션 하나로 모은다)는 istio/istio 소스 주석에서 확인한 것입니다: <https://github.com/istio/istio/blob/master/pkg/istio-agent/xds_proxy.go>

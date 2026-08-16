@@ -172,7 +172,7 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·
 **우리가 심사할 것.**
 
 - AuthorizationPolicy 전수 목록에서 L7 속성(경로, 메서드, 헤더 등)을 매치하는 것을 먼저 골라냅니다. 이 목록이 자동 DENY 위험군이자 waypoint 필수 목록입니다.
-- 07의 표에서 VirtualService에 몰려 있던 항목들을 HTTPRoute로 옮길지 결정한다. 부분 이전은 위험합니다 — 같은 서비스에 두 API를 섞으면 undefined behavior입니다.
+- 07의 표에서 VirtualService에 몰려 있던 항목들을 HTTPRoute로 옮길지 결정합니다. 부분 이전은 위험합니다 — 같은 서비스에 두 API를 섞으면 undefined behavior입니다.
 - subset 기반 카나리·트래픽 분할을 쓰는 서비스 목록. subset별 Service 신설이 필요하면 GitOps 리포지토리 구조([04]({{< relref "04-config-as-code.md" >}}))도 함께 바뀝니다.
 
 **열린 질문.**

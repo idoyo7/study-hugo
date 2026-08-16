@@ -148,7 +148,7 @@ Job 완료 문제는 Istio 릴리스노트로 추적되지 않습니다. 판정 
 
 같은 결로 확인할 것이 셋 더 있습니다.
 
-- **다른 mutating webhook·컨트롤러.** upgrade-notes 1.27이 직접 경고한다 — *"This can cause compatibility issues with other mutating webhooks or controllers … that expect to modify the `istio-proxy` as a regular container."* `spec.containers[?(@.name=="istio-proxy")]`를 찾는 도구는 `initContainers`도 보게 고쳐야 한다. istio.io의 SPIRE 연동 가이드가 실제로 그렇게 고쳐졌고(`docs/ops/integrations/spire/index.md:217`), **게이트웨이는 예외**로 계속 일반 `containers`입니다(같은 문서 `:218`).
+- **다른 mutating webhook·컨트롤러.** upgrade-notes 1.27이 직접 경고합니다 — *"This can cause compatibility issues with other mutating webhooks or controllers … that expect to modify the `istio-proxy` as a regular container."* `spec.containers[?(@.name=="istio-proxy")]`를 찾는 도구는 `initContainers`도 보게 고쳐야 한다. istio.io의 SPIRE 연동 가이드가 실제로 그렇게 고쳐졌고(`docs/ops/integrations/spire/index.md:217`), **게이트웨이는 예외**로 계속 일반 `containers`입니다(같은 문서 `:218`).
 - **`istioctl kube-inject`의 출력이 웹훅과 달라집니다.** 오프라인 경로는 kube client가 없으면 `nativeSidecar = (EnableNativeSidecars == Enabled)`로 계산한다(`pkg/kube/inject/inject.go:857-864`, `webhook.go:1259-1267`). 즉 **기본값 `auto`에서 `istioctl kube-inject`는 항상 classic을 뱉습니다.** 렌더 결과를 golden 파일로 비교하는 CI가 있으면 클러스터 실제와 어긋납니다.
 - **어노테이션 판정이 오타에 안전하지 않습니다.** 템플릿 `:29`가 어노테이션 값과 문자열 `"false"`를 `ne`로 비교한다 — 소문자 `false` **정확히 그 문자열일 때만** 비활성이고 `"False"`·`"no"`·`"0"`·`"disabled"`는 전부 **활성**으로 읽힙니다. 어노테이션 레퍼런스는 *"Takes precedence over the ENABLE_NATIVE_SIDECARS environment variable"*라고만 적어(`docs/reference/config/annotations/index.html:609`) 값 형식의 엄격함을 알려주지 않습니다.
 
