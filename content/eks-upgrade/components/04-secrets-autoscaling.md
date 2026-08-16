@@ -7,10 +7,10 @@ weight: 4
 
 {{< callout type="info" >}}
 **한눈에**
-- **external-secrets**: 0.9.20 → **2.8.x**. 원 조사는 k8s 1.33 기준으로 진행돼 EOL 판인 0.19.2를 채택안으로 내놓았지만 상위 목표가 1.35로 상향되면서 **2.8.x가 최종 목표**로 바뀌었다 — k8s 1.35를 지원하는 최신 라인이 정확히 여기에 걸리기 때문이다 `✓`
-- **keda**: 2.10.2 → **2.20.1**. 2.10의 지원 창은 v1.24–v1.26이라 애초에 목표 k8s **1.35**를 지원하지 않으므로 bump가 사실상 필수다. 2.20이 정확히 1.35를 상한으로 갖는 라인이다 `✓`
-- 둘 다 **blue-green 신규 클러스터라 마이너 체인 없이 목표 버전으로 직행 설치**한다 `✓`
-- 두 컴포넌트의 리스크 성격은 크게 다르다. external-secrets는 CRD `v1beta1→v1` **전량 재작성**이 필요하고 keda는 CRD apiVersion이 전 구간 불변이라 스키마 이관 부담이 없다 `✓`
+- **external-secrets**: 0.9.20 → **2.8.x**. 원 조사는 k8s 1.33 기준으로 진행돼 EOL 판인 0.19.2를 채택안으로 내놓았지만 상위 목표가 1.35로 상향되면서 **2.8.x가 최종 목표**로 바뀌었다 — k8s 1.35를 지원하는 최신 라인이 정확히 여기에 걸리기 때문입니다 `✓`
+- **keda**: 2.10.2 → **2.20.1**. 2.10의 지원 창은 v1.24–v1.26이라 애초에 목표 k8s **1.35**를 지원하지 않으므로 bump가 사실상 필수입니다. 2.20이 정확히 1.35를 상한으로 갖는 라인입니다 `✓`
+- 둘 다 **blue-green 신규 클러스터라 마이너 체인 없이 목표 버전으로 직행 설치**합니다 `✓`
+- 두 컴포넌트의 리스크 성격은 크게 다릅니다. external-secrets는 CRD `v1beta1→v1` **전량 재작성**이 필요하고 keda는 CRD apiVersion이 전 구간 불변이라 스키마 이관 부담이 없습니다 `✓`
 {{< /callout >}}
 
 ## 1. external-secrets — 0.9.20 → 2.8.x
@@ -25,30 +25,30 @@ weight: 4
 
 CRD 경계는 0.19.2 조사에서 이미 확정된 사실이라 2.8.x에도 그대로 이어집니다.
 
-- **`v1`이 0.16.0에서 stable로 승격**됐고 **`v1beta1`은 0.17.0부터 더 이상 served되지 않는다**. 즉 0.17+ 클러스터에 v1beta1 매니페스트를 apply하면 거부된다 — finance의 모든 ExternalSecret/SecretStore를 v1으로 재작성해야 한다.
-- finance가 쓰는 필드(AWS SecretsManager provider, region, JWT `serviceAccountRef`, `dataFrom.extract`, `secretStoreRef`, `target`, `refreshInterval`)는 v1에서도 그대로 유지된다 — finance 관점에서 v1 전환은 사실상 apiVersion rename에 가깝다.
-- 기존 클러스터를 in-place로 올린다면 v1beta1과 v1이 동시에 served되는 0.16.2를 경유해 CR을 마이그레이션한 뒤 0.17+로 넘어가야 한다. 다만 **finance는 blue-green 신규 green 클러스터라 저장된 v1beta1 오브젝트가 없다** — fresh 설치 + 처음부터 v1 매니페스트로 이 다단계 경로를 우회할 수 있다.
+- **`v1`이 0.16.0에서 stable로 승격**됐고 **`v1beta1`은 0.17.0부터 더 이상 served되지 않습니다**. 즉 0.17+ 클러스터에 v1beta1 매니페스트를 apply하면 거부된다 — finance의 모든 ExternalSecret/SecretStore를 v1으로 재작성해야 합니다.
+- finance가 쓰는 필드(AWS SecretsManager provider, region, JWT `serviceAccountRef`, `dataFrom.extract`, `secretStoreRef`, `target`, `refreshInterval`)는 v1에서도 그대로 유지된다 — finance 관점에서 v1 전환은 사실상 apiVersion rename에 가깝습니다.
+- 기존 클러스터를 in-place로 올린다면 v1beta1과 v1이 동시에 served되는 0.16.2를 경유해 CR을 마이그레이션한 뒤 0.17+로 넘어가야 합니다. 다만 **finance는 blue-green 신규 green 클러스터라 저장된 v1beta1 오브젝트가 없다** — fresh 설치 + 처음부터 v1 매니페스트로 이 다단계 경로를 우회할 수 있습니다.
 
 ### 적용 절차
 
 external-secrets는 `cluster-bootstrap-v2` umbrella의 서브차트입니다. ArgoCD targetRevision 하나만 올려서는 서브차트를 독립적으로 bump할 수 없습니다.
 
 1. **차트 소스** — umbrella `Chart.yaml`의 external-secrets dependency 버전을 목표로 교체하고 umbrella 버전 자체도 bump한다. 번들 템플릿에 남아 있는 `v1beta1` ExternalSecret/SecretStore를 전량 `v1`으로 전환한다(keda-auth 템플릿처럼 현재 비활성인 곳도 정합성을 위해 함께 전환 권장).
-2. **app-of-apps** — umbrella targetRevision을 신규 버전으로 갱신한다. ArgoCD 부트스트랩 매니페스트(SecretStore 1개 + ExternalSecret 다수, argocd 레포 자격증명용)도 v1으로 전환한다. 이 CR들은 ArgoCD가 Git 레포에 접근하는 secret을 만들기 때문에 ESO CRD가 먼저 설치된 뒤에 apply돼야 한다는 순서 제약이 있다.
-3. **워크로드 CR** — 서비스 차트가 렌더하는 SecretStore/ExternalSecret도 v1으로 전환한다.
+2. **app-of-apps** — umbrella targetRevision을 신규 버전으로 갱신합니다. ArgoCD 부트스트랩 매니페스트(SecretStore 1개 + ExternalSecret 다수, argocd 레포 자격증명용)도 v1으로 전환합니다. 이 CR들은 ArgoCD가 Git 레포에 접근하는 secret을 만들기 때문에 ESO CRD가 먼저 설치된 뒤에 apply돼야 한다는 순서 제약이 있습니다.
+3. **워크로드 CR** — 서비스 차트가 렌더하는 SecretStore/ExternalSecret도 v1으로 전환합니다.
 4. **배포 순서** — ESO CRD(v1) + controller/webhook/cert-controller fresh 설치 → cert-controller가 webhook 인증서 준비 완료 확인 → ArgoCD 부트스트랩의 v1 SecretStore/ExternalSecret apply → 워크로드 앱 sync 순이다(전체 클러스터 부트스트랩 순서상의 위치는 [클러스터 부트스트랩]({{< relref "../04-cluster-bootstrap.md" >}}) 참고).
 
 ### 검증·롤백
 
-- [ ] **정책 결정** — 2.8.x가 EOL이 아니라는 전제를 실제 릴리스 시점에 재확인하고 향후 k8s 마이너가 더 올라갈 때의 ESO 후속 bump 경로를 로드맵에 등록한다.
-- [ ] **v1beta1 매니페스트 전량 전환** — 남은 CR이 있으면 apply가 거부되거나 sync가 실패한다.
-- [ ] **green 클러스터가 진짜 fresh인지 확인** — 이미 ESO v1beta1 오브젝트가 존재하면 fresh 우회가 불가능해지고 in-place 마이그레이션 경로가 필요해진다.
-- [ ] **ECR pull-through 캐시 확인** — controller/cert-controller/webhook 3개 이미지 모두 목표 태그로 pull 가능한지, 신규 클러스터의 노드/IRSA cross-account pull 권한을 확인한다.
-- [ ] **선후관계** — ESO CRD/컨트롤러가 ArgoCD repo secret을 만드는 ExternalSecret보다 먼저 sync돼야 부트스트랩이 성립한다.
-- [ ] **ArgoCD drift 방지** — CRD 필드 기본값 주입에 필요한 `ignoreDifferences`(conversionStrategy/decodingStrategy/metadataPolicy)를 제거하지 않는다.
+- [ ] **정책 결정** — 2.8.x가 EOL이 아니라는 전제를 실제 릴리스 시점에 재확인하고 향후 k8s 마이너가 더 올라갈 때의 ESO 후속 bump 경로를 로드맵에 등록합니다.
+- [ ] **v1beta1 매니페스트 전량 전환** — 남은 CR이 있으면 apply가 거부되거나 sync가 실패합니다.
+- [ ] **green 클러스터가 진짜 fresh인지 확인** — 이미 ESO v1beta1 오브젝트가 존재하면 fresh 우회가 불가능해지고 in-place 마이그레이션 경로가 필요해집니다.
+- [ ] **ECR pull-through 캐시 확인** — controller/cert-controller/webhook 3개 이미지 모두 목표 태그로 pull 가능한지, 신규 클러스터의 노드/IRSA cross-account pull 권한을 확인합니다.
+- [ ] **선후관계** — ESO CRD/컨트롤러가 ArgoCD repo secret을 만드는 ExternalSecret보다 먼저 sync돼야 부트스트랩이 성립합니다.
+- [ ] **ArgoCD drift 방지** — CRD 필드 기본값 주입에 필요한 `ignoreDifferences`(conversionStrategy/decodingStrategy/metadataPolicy)를 제거하지 않습니다.
 - [ ] provider는 AWS SecretsManager + JWT뿐이라 PushSecret/ClusterExternalSecret/generators 관련 breaking은 해당 없음(사용 이력 없음).
-- [ ] **배포 후 검증** — CRD가 `v1`만 served(v1beta1 미포함)인지, 모든 CR이 `SecretSynced/Ready=True`인지, 대표 Secret이 실제로 생성됐는지, ArgoCD가 drift 재조정 루프에 빠지지 않는지 확인한다.
-- [ ] **rollback** — umbrella targetRevision을 이전 값으로 되돌린다. fresh 설치라 저장 상태 마이그레이션이 없으므로 되돌림은 무손실이다.
+- [ ] **배포 후 검증** — CRD가 `v1`만 served(v1beta1 미포함)인지, 모든 CR이 `SecretSynced/Ready=True`인지, 대표 Secret이 실제로 생성됐는지, ArgoCD가 drift 재조정 루프에 빠지지 않는지 확인합니다.
+- [ ] **rollback** — umbrella targetRevision을 이전 값으로 되돌립니다. fresh 설치라 저장 상태 마이그레이션이 없으므로 되돌림은 무손실입니다.
 
 ## 2. keda — 2.10.2 → 2.20.1
 
@@ -60,8 +60,8 @@ external-secrets는 `cluster-bootstrap-v2` umbrella의 서브차트입니다. Ar
 
 CRD apiVersion(`keda.sh/v1alpha1`)이 2.x 전 구간에서 불변이라 CRD conversion 이슈는 없습니다. finance가 실제로 쓰는 스칼러는 `cpu`·`memory`·`cron`·`datadog`·`kafka`·`prometheus`·`aws-sqs-queue`입니다. 2.10→2.20 사이에 제거된 스칼러/필드(NATS Streaming, GCP Pub/Sub `subscriptionSize`, Huawei Cloudeye `minMetricValue`, IBM MQ `tls`, Azure 관련 다수)는 전부 이 사용면과 무관합니다. 그래서 finance가 확인해야 할 지점은 두 갈래로 좁혀집니다.
 
-- **CPU/Memory 스칼러의 `metadata.type` 제거**(2.18 부근, 정확한 제거 시점은 공식 소스 간 상충) — finance 차트는 이미 트리거 레벨 `metricType`(신식 포맷)을 쓰므로 렌더 결과에는 영향이 없다. 다만 라이브에 손수 작성한 ScaledObject가 구식 `metadata.type`을 쓰고 있으면 거부될 수 있어 사전 인벤토리가 필요하다.
-- **admission webhook 검증 강화** — 여러 마이너에 걸쳐 fallback 시 명시적 `metricType` 요구, 중복/충돌 scaleTargetRef 거부 같은 규칙이 추가됐다. 기존 SO가 새 검증에 걸릴 수 있으므로 dry-run 선행이 최대 리스크 완화책이다.
+- **CPU/Memory 스칼러의 `metadata.type` 제거**(2.18 부근, 정확한 제거 시점은 공식 소스 간 상충) — finance 차트는 이미 트리거 레벨 `metricType`(신식 포맷)을 쓰므로 렌더 결과에는 영향이 없습니다. 다만 라이브에 손수 작성한 ScaledObject가 구식 `metadata.type`을 쓰고 있으면 거부될 수 있어 사전 인벤토리가 필요하입니다.
+- **admission webhook 검증 강화** — 여러 마이너에 걸쳐 fallback 시 명시적 `metricType` 요구, 중복/충돌 scaleTargetRef 거부 같은 규칙이 추가됐습니다. 기존 SO가 새 검증에 걸릴 수 있으므로 dry-run 선행이 최대 리스크 완화책입니다.
 
 비차단이지만 부채로 이월되는 항목도 있습니다. `aws-eks` podIdentity와 SQS 트리거의 `identityOwner: operator`는 v3에서 제거 예정이라 지금은 deprecation 경고만 뜨고 2.20에서는 정상 동작합니다. finance는 이미 2.10.2를 arm64 노드에서 구동 중이므로 2.20의 멀티아치(amd64/arm64/s390x) 지원은 실증된 것으로 봅니다.
 
@@ -73,14 +73,14 @@ keda는 upstream `kedacore/charts`를 직접 참조하는 **독립 ArgoCD 앱**�
 
 ### 검증·롤백
 
-- [ ] **사전 인벤토리(필수)** — 실제 ScaledObject/ScaledJob/TriggerAuthentication 목록을 확보하고 CPU/Memory 트리거가 구식 `metadata.type`을 쓰는지 감사한다.
+- [ ] **사전 인벤토리(필수)** — 실제 ScaledObject/ScaledJob/TriggerAuthentication 목록을 확보하고 CPU/Memory 트리거가 구식 `metadata.type`을 쓰는지 감사합니다.
 - [ ] **admission webhook dry-run** — 기존 SO 전체를 강화된 검증으로 재확인한다(최대 리스크, 사전 검출 가능).
-- [ ] **이미지 egress** — values에 image override가 없어 `ghcr.io`를 직접 pull한다. 다른 애드온의 ECR 미러 정책과 정합이 맞는지 확인한다.
-- [ ] **arm64 멀티아치** — 목표 태그의 이미지 매니페스트에 linux/arm64가 포함되는지 확인한다.
-- [ ] **IRSA** — keda-operator SA role이 신규 클러스터 OIDC로 wiring됐는지 확인한다.
-- [ ] **metrics 어댑터 충돌** — 클러스터에 다른 `external.metrics.k8s.io` 제공자가 없는지 확인한다.
+- [ ] **이미지 egress** — values에 image override가 없어 `ghcr.io`를 직접 pull합니다. 다른 애드온의 ECR 미러 정책과 정합이 맞는지 확인합니다.
+- [ ] **arm64 멀티아치** — 목표 태그의 이미지 매니페스트에 linux/arm64가 포함되는지 확인합니다.
+- [ ] **IRSA** — keda-operator SA role이 신규 클러스터 OIDC로 wiring됐는지 확인합니다.
+- [ ] **metrics 어댑터 충돌** — 클러스터에 다른 `external.metrics.k8s.io` 제공자가 없는지 확인합니다.
 - [ ] **배포 후 검증** — operator/metrics-apiserver/admission-webhooks 파드가 arm64 노드에 정상 스케줄됐는지, `external.metrics.k8s.io` APIService가 Available인지, 기존 SO를 `--dry-run=server`로 재검증해 강화된 admission webhook을 통과하는지 확인한다. org 실증이 없으므로 **staging-finance-green에서 먼저 검증, prod 직행 금지**.
-- [ ] **rollback** — targetRevision을 2.10.2로 되돌린다. CRD apiVersion이 전 구간 불변이라 되돌림은 무손실이다.
+- [ ] **rollback** — targetRevision을 2.10.2로 되돌립니다. CRD apiVersion이 전 구간 불변이라 되돌림은 무손실입니다.
 
 ## 근거
 

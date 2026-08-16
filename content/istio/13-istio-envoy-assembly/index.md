@@ -7,10 +7,10 @@ weight: 13
 
 {{< callout type="info" >}}
 **한눈에**
-- `proxyv2`에는 바이너리가 둘 들어 있고(Envoy · pilot-agent), 그 Envoy조차 upstream 그대로가 아니다 — istio/proxy가 확장을 함께 컴파일해 만든 빌드다.
-- `istio_requests_total`과 `source_*`/`destination_*` 라벨은 컨트롤 플레인이 아니라 **프록시 안에 컴파일된 확장**이 만든다. Mixer가 사라졌다는 말의 실질이 이것이다.
-- CRD는 xDS 리소스로 번역된다 — VirtualService→route, DestinationRule→cluster, Gateway→listener. 번역 결과는 추측하지 말고 `istioctl proxy-config`로 본다.
-- Istio 빌드는 Envoy의 **특정 커밋에 pin**된다. 사이드카 업그레이드가 곧 Envoy 업그레이드이고, 그 버전은 릴리스 노트가 아니라 파드에 물어봐야 안다.
+- `proxyv2`에는 바이너리가 둘 들어 있고(Envoy · pilot-agent), 그 Envoy조차 upstream 그대로가 아니다 — istio/proxy가 확장을 함께 컴파일해 만든 빌드입니다.
+- `istio_requests_total`과 `source_*`/`destination_*` 라벨은 컨트롤 플레인이 아니라 **프록시 안에 컴파일된 확장**이 만듭니다. Mixer가 사라졌다는 말의 실질이 이것입니다.
+- CRD는 xDS 리소스로 번역된다 — VirtualService→route, DestinationRule→cluster, Gateway→listener. 번역 결과는 추측하지 말고 `istioctl proxy-config`로 봅니다.
+- Istio 빌드는 Envoy의 **특정 커밋에 pin**됩니다. 사이드카 업그레이드가 곧 Envoy 업그레이드이고, 그 버전은 릴리스 노트가 아니라 파드에 물어봐야 압니다.
 - 이미지에 박힌 내장 확장과 CRD로 얹는 사용자 확장([08]({{< relref "08-envoyfilter-extension.md" >}}))은 **바꾸는 방법이 다르다**. 전자는 이미지 교체로만, 후자는 설정으로.
 {{< /callout >}}
 
@@ -60,9 +60,9 @@ istio.io 아키텍처 문서도 같은 말을 한 줄로 합니다 — "Istio us
 
 교환 채널은 계층마다 다릅니다.
 
-- **협상** — mTLS 핸드셰이크에서 `istio-peer-exchange`라는 ALPN 프로토콜을 클라이언트·서버 사이드카가 우선협상한다. 이걸 끄는 스위치(`PILOT_DISABLE_MX_ALPN`)가 Istio 1.20에서 도입됐다.
-- **TCP** — magic byte 뒤에 length-prefixed protobuf payload를 실어 보낸다.
-- **HTTP** — `x-envoy-peer-metadata-id` / `x-envoy-peer-metadata` 헤더로 나른다.
+- **협상** — mTLS 핸드셰이크에서 `istio-peer-exchange`라는 ALPN 프로토콜을 클라이언트·서버 사이드카가 우선협상합니다. 이걸 끄는 스위치(`PILOT_DISABLE_MX_ALPN`)가 Istio 1.20에서 도입됐습니다.
+- **TCP** — magic byte 뒤에 length-prefixed protobuf payload를 실어 보냅니다.
+- **HTTP** — `x-envoy-peer-metadata-id` / `x-envoy-peer-metadata` 헤더로 나릅니다.
 
 {{< seq src="_seq/peer-metadata-exchange-source.json" />}}
 
@@ -121,9 +121,9 @@ istioctl proxy-config listener <pod>.<ns> -o json
 
 1절의 `ENVOY_SHA`가 운영에서 갖는 의미가 이것입니다. istio/proxy가 Envoy를 **커밋 단위로 pin해서** 빌드하므로, Istio 릴리스 하나는 Envoy 커밋 하나에 묶입니다. 결과는 단순합니다.
 
-- 사이드카 이미지 태그를 올리는 것은 Istio 버전만 올리는 게 아니라 **데이터 플레인의 Envoy를 통째로 교체**하는 일이다.
-- 그러니 Envoy 쪽 동작 변화(설정 필드 deprecation, 필터 이름 변경 등)가 컨트롤 플레인 업그레이드가 아니라 **워크로드 재시작 시점에** 나타난다.
-- [08]({{< relref "08-envoyfilter-extension.md" >}})이 "EnvoyFilter는 업그레이드에 깨진다"고 한 근거가 여기다. 날것의 Envoy 설정은 pin된 그 커밋의 스키마에 결합돼 있다.
+- 사이드카 이미지 태그를 올리는 것은 Istio 버전만 올리는 게 아니라 **데이터 플레인의 Envoy를 통째로 교체**하는 일입니다.
+- 그러니 Envoy 쪽 동작 변화(설정 필드 deprecation, 필터 이름 변경 등)가 컨트롤 플레인 업그레이드가 아니라 **워크로드 재시작 시점에** 나타납니다.
+- [08]({{< relref "08-envoyfilter-extension.md" >}})이 "EnvoyFilter는 업그레이드에 깨진다"고 한 근거가 여기입니다. 날것의 Envoy 설정은 pin된 그 커밋의 스키마에 결합돼 있습니다.
 
 그런데 **그 Envoy 버전이 무엇인지를 릴리스 노트에서 찾을 수는 없습니다.** 이 점은 오해하기 쉬우니 분명히 해둡니다. istio/istio 이슈 #43140이 정확히 "릴리스 노트에 Envoy 버전을 적어달라"고 요청했고, 결론은 릴리스 노트가 아니라 **진단 문서에 조회 방법을 추가**하는 쪽이었습니다. 실제로 1.22·1.24·1.30 announcing 페이지 본문에는 Envoy 버전 숫자가 없습니다.
 
@@ -154,9 +154,9 @@ kubectl exec <pod> -c istio-proxy -- pilot-agent request GET server_info
 ## 이 문서에서 가져갈 것
 
 - Istio가 Envoy를 "쓴다"는 것은 **커밋을 pin해서 자기 확장과 함께 다시 빌드한다**는 뜻이다. proxyv2는 그 결과물과 pilot-agent를 한 이미지에 담은 것이고, 엔트리포인트는 pilot-agent다.
-- 표준 메트릭과 그 `source_*`/`destination_*` 라벨은 **프록시 안의 확장**이 만든다. 라벨을 채우는 재료는 mTLS 위에서 교환되는 피어 메타데이터이므로, mTLS가 없으면 라벨도 없다.
-- CRD는 xDS 리소스로 번역된다. 반영 여부를 묻는 가장 짧은 답은 `istioctl proxy-config route|cluster|listener`이고, `DestinationRule`은 [12]({{< relref "12-envoy-capabilities.md" >}})의 기능들을 켜는 cluster 쪽 스위치다.
-- **사이드카 업그레이드는 Envoy 업그레이드다.** 실제 버전은 릴리스 노트가 아니라 `pilot-agent request GET server_info`로 파드에 물어본다.
+- 표준 메트릭과 그 `source_*`/`destination_*` 라벨은 **프록시 안의 확장**이 만듭니다. 라벨을 채우는 재료는 mTLS 위에서 교환되는 피어 메타데이터이므로, mTLS가 없으면 라벨도 없습니다.
+- CRD는 xDS 리소스로 번역됩니다. 반영 여부를 묻는 가장 짧은 답은 `istioctl proxy-config route|cluster|listener`이고, `DestinationRule`은 [12]({{< relref "12-envoy-capabilities.md" >}})의 기능들을 켜는 cluster 쪽 스위치입니다.
+- **사이드카 업그레이드는 Envoy 업그레이드입니다.** 실제 버전은 릴리스 노트가 아니라 `pilot-agent request GET server_info`로 파드에 물어봅니다.
 
 ## 소스
 

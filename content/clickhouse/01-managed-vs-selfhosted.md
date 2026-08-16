@@ -22,10 +22,10 @@ ClickHouse를 어디에 얹을지는 데이터 크기가 아니라 **운영 인�
 전통적 self-host ClickHouse는 쿼리와 스토리지를 한 서버가 함께 지는 shared-nothing 구조입니다. ClickHouse Cloud는 이걸 뒤집어 compute를 **stateless 인스턴스**로, durable 데이터를 전부 **object storage(S3/GCS)**에, 메타데이터를 **ClickHouse Keeper**에 둡니다 `✓`. 이 아키텍처가 **SharedMergeTree** 엔진입니다.
 
 - RMT는 replica마다 데이터 파트 **전체 사본**을 들고 replica 간 직접 통신한다. SharedMergeTree는 replica 간 통신이 없고 모든 조정이 공유 스토리지 + Keeper 경유(asynchronous leaderless)라 scale-up/down·mutation·merge가 빠르고, 테이블당 수백 replica까지 shard 없이 확장된다 `✓`.
-- **핵심 제약**: SharedMergeTree는 proprietary·Cloud 전용이고, self-host의 zero-copy-S3는 **프로덕션에 쓸 수 없다**(데이터 손상 이력 #45346, 22.8부터 default off) `✓`. 단어는 정확히 쓴다 — **폐기된 것이 아니라 `EXPERIMENTAL` 등급으로 살아 있다**: master(26.8 dev) `MergeTreeSettings.cpp`에 설정이 남아 있고 OBSOLETE 목록에 없으며, "deprecated"라 단정한 출처는 Tinybird 자사 블로그다 `Ⓥ`. 2026년에도 신규 회귀(#95597 공유 blob 조기 삭제, #96965 drop 영구 정지)가 보고된다 `✓`. **실무 결론은 폐기와 같지만 표현은 구분한다** `Σ` — 판정 정본은 [스토리지 · zero-copy 금지]({{< relref "02-storage-local-nvme.md" >}})이고 이 페이지는 결론만 인용한다. ClickHouse Cloud의 SharedMergeTree는 공식적으로 이 zero-copy replication의 **프로덕션 후속 아키텍처**로 포지셔닝된다 `✓` — 즉 zero-copy가 실험 등급에 갇힌 자리를 Cloud 전용 엔진이 대신 메운 것이다.
-- 결과적으로 **self-host는 "S3 위 stateless compute"를 다중 라이터 HA 형태로는 재현할 수 없다** `Σ`. 한정어가 붙는 이유가 있다 — **단일 라이터 + 읽기전용 리더 N**은 `plain_rewritable`(24.4/24.5)에 readonly part refresh(25.4, `refresh_parts_interval`·`table_disk`, PR #76467)를 얹어 **실제로 구성 가능하다** `✓`. 다만 그 디스크는 공식 문서가 *"Mutations and replication of tables are not supported"*라고 못박아 RMT와 배타이고, 미해결 회귀도 남아 있다 — 결함 6개와 기각 판정은 [스토리지 · S3 primary의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}})가 소유한다.
+- **핵심 제약**: SharedMergeTree는 proprietary·Cloud 전용이고, self-host의 zero-copy-S3는 **프로덕션에 쓸 수 없다**(데이터 손상 이력 #45346, 22.8부터 default off) `✓`. 단어는 정확히 쓴다 — **폐기된 것이 아니라 `EXPERIMENTAL` 등급으로 살아 있다**: master(26.8 dev) `MergeTreeSettings.cpp`에 설정이 남아 있고 OBSOLETE 목록에 없으며, "deprecated"라 단정한 출처는 Tinybird 자사 블로그입니다 `Ⓥ`. 2026년에도 신규 회귀(#95597 공유 blob 조기 삭제, #96965 drop 영구 정지)가 보고됩니다 `✓`. **실무 결론은 폐기와 같지만 표현은 구분한다** `Σ` — 판정 정본은 [스토리지 · zero-copy 금지]({{< relref "02-storage-local-nvme.md" >}})이고 이 페이지는 결론만 인용합니다. ClickHouse Cloud의 SharedMergeTree는 공식적으로 이 zero-copy replication의 **프로덕션 후속 아키텍처**로 포지셔닝된다 `✓` — 즉 zero-copy가 실험 등급에 갇힌 자리를 Cloud 전용 엔진이 대신 메운 것입니다.
+- 결과적으로 **self-host는 "S3 위 stateless compute"를 다중 라이터 HA 형태로는 재현할 수 없습니다** `Σ`. 한정어가 붙는 이유가 있다 — **단일 라이터 + 읽기전용 리더 N**은 `plain_rewritable`(24.4/24.5)에 readonly part refresh(25.4, `refresh_parts_interval`·`table_disk`, PR #76467)를 얹어 **실제로 구성 가능하입니다** `✓`. 다만 그 디스크는 공식 문서가 *"Mutations and replication of tables are not supported"*라고 못박아 RMT와 배타이고, 미해결 회귀도 남아 있다 — 결함 6개와 기각 판정은 [스토리지 · S3 primary의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}})가 소유합니다.
 - 그 대가가 self-host의 운영 형태를 규정한다 — 스케일아웃 = **리샤딩**이고, RF2를 쓰면 S3 tier에서도 사본이 두 배가 되며, 내구성은 디스크가 아니라 **replica로 직접 확보**해야 한다 `✓`. 로컬 디스크 복제(RMT) + 선택적 S3 cold tier 조합이 정석이다([RMT 내구성 설계]({{< relref "02-storage-local-nvme.md" >}}) 참고).
-- **HyperDX/ClickStack 연동 제약**: ClickStack self-host는 SharedMergeTree를 못 쓰므로 **반드시 RMT** 위에 얹힌다 `✓`. SharedMergeTree 이점(빠른 스케일·리샤딩 불필요)을 원하면 managed 중 **ClickHouse Cloud(BYOC 포함)**만이 제공한다. 로컬 NVMe로 성능을 극대화하는 self-host 전략과 SharedMergeTree는 **동시에 가질 수 없다.**
+- **HyperDX/ClickStack 연동 제약**: ClickStack self-host는 SharedMergeTree를 못 쓰므로 **반드시 RMT** 위에 얹힙니다 `✓`. SharedMergeTree 이점(빠른 스케일·리샤딩 불필요)을 원하면 managed 중 **ClickHouse Cloud(BYOC 포함)**만이 제공합니다. 로컬 NVMe로 성능을 극대화하는 self-host 전략과 SharedMergeTree는 **동시에 가질 수 없습니다.**
 
 ### Cloud가 파는 것은 엔진 하나가 아니다 — 부품 4개 + 유일한 자체 인프라 경로
 
@@ -93,12 +93,12 @@ self-host 총액은 컴포넌트 합입니다. 단가는 `✓`, 조립 총액은
 
 - **데이터 노드**: i8g/i7i 로컬 NVMe. 앵커로 i8g.4xlarge ≈ $1,002/mo, i8g.8xlarge ≈ $2,004/mo(on-demand) `✓`. 사이즈별 요금·IOPS 표는 [로컬 NVMe & 인스턴스]({{< relref "02-storage-local-nvme.md" >}})로 위임. vCPU 사이징 참고치로 ClickStack 가이드는 인제스트 10 MB/s당 1 vCPU, 쿼리는 1 QPS당 + 10 MB/s당 1 vCPU를 제시한다(예: 인제스트+쿼리 100 MB/s → 약 40 vCPU) `Ⓥ`.
 - **Keeper 노드**: 소형 범용(m7g.large ~$0.0714/hr, t4g.medium ~$0.0336/hr) + gp3 소량. 4GB RAM·gp3 영속 디스크면 충분.
-- **S3 cold / 백업**: S3 Standard $0.023/GB-mo(us-east-1) · **$0.025/GB-mo(서울)**, Glacier Instant Retrieval $0.004/GB-mo `✓`. 우리 배포 리전 기준 단가·배수는 [HyperDX · hot 스토리지]({{< relref "../hyperdx/02-hot-storage-ebs.md" >}})가 정본이다.
+- **S3 cold / 백업**: S3 Standard $0.023/GB-mo(us-east-1) · **$0.025/GB-mo(서울)**, Glacier Instant Retrieval $0.004/GB-mo `✓`. 우리 배포 리전 기준 단가·배수는 [HyperDX · hot 스토리지]({{< relref "../hyperdx/02-hot-storage-ebs.md" >}})가 정본입니다.
 - **People TCO**: 월 $1,600~4,800(주 4~8시간 유지보수 × $100~150/hr) `≈`.
 
 원가 동인 셋:
 
-1. **데이터 노드가 총액의 80~90%** → **Savings Plan 적용 여부가 TCO를 좌우**한다.
+1. **데이터 노드가 총액의 80~90%** → **Savings Plan 적용 여부가 TCO를 좌우**합니다.
 2. **replica 수 = 스토리지·컴퓨트 배수**. RMT는 replica마다 전체 사본이라 2 replica면 노드·NVMe 2배. HA 최소 2, 권장 2~3.
 3. **tiering이 절감 열쇠**. hot(NVMe)에는 최근 데이터만 두고 cold는 S3($0.023/GB)로 밀어 노드 수·크기를 줄인다 — 관측성 워크로드에 특히 유효.
 
@@ -115,7 +115,7 @@ self-host 총액은 컴포넌트 합입니다. 단가는 `✓`, 조립 총액은
 읽는 법:
 
 - **~5TB 간헐**: self-host는 "24-7 켜둔 최소 2 replica NVMe 노드"라는 고정비 바닥이 있어 진다. Cloud는 유휴 시 compute $0 → **압승** `≈`.
-- **~20TB 24-7**: 인프라만 보면 self-host(1yr SP $3,221)가 Cloud Scale($3,627)을 근소하게 앞선다. **그러나 people TCO를 더하면 역전**된다 — 여기가 진짜 크로스오버 지대다.
+- **~20TB 24-7**: 인프라만 보면 self-host(1yr SP $3,221)가 Cloud Scale($3,627)을 근소하게 앞섭니다. **그러나 people TCO를 더하면 역전**된다 — 여기가 진짜 크로스오버 지대입니다.
 - **60TB+ 24-7**: Cloud compute는 데이터·동시성이 커질수록 unit-hour가 급증하는 반면 self-host는 노드 고정비 + 저렴한 S3 cold로 완만하게 는다. SP 할인까지 얹으면 self-host가 확연히 싸다 `≈`.
 
 ### 접전 구간(~20TB) 컴포넌트 분해
@@ -134,7 +134,7 @@ self-host 총액은 컴포넌트 합입니다. 단가는 `✓`, 조립 총액은
 | People | +$1,600~4,800 | ~$0 | ~$0 |
 
 - **인프라만 보면 self-host(1yr SP)가 앞서지만, people를 더하면 역전**된다. Improvado의 유사 예시도 10TB에선 Cloud 우위(Cloud $1,580 vs self-host $2,450), 50TB에선 self-host 우위(Cloud $11,240 vs $8,985)로 **20TB가 교차점**임을 뒷받침 `≈`.
-- 갈림의 핵심: 인력을 **새로 뽑아야** 하면 Cloud가 싸고, 인력이 **이미 EKS/관측성을 운영 중**이면 people 증분이 작아 self-host가 인프라 우위 그대로 실현 + 로컬 NVMe 성능까지 얻는다.
+- 갈림의 핵심: 인력을 **새로 뽑아야** 하면 Cloud가 싸고, 인력이 **이미 EKS/관측성을 운영 중**이면 people 증분이 작아 self-host가 인프라 우위 그대로 실현 + 로컬 NVMe 성능까지 얻습니다.
 {{< callout type="error" >}}
 **Spot은 데이터 노드 금지** — 중단 시 노드 종료 → 로컬 NVMe 전소 → replica 재수화. 데이터 노드는 On-Demand/Savings Plan 필수(1yr SP ≈ 40% 절감, 3yr ≈ 55%) `≈`.
 {{< /callout >}}
@@ -143,8 +143,8 @@ self-host 총액은 컴포넌트 합입니다. 단가는 `✓`, 조립 총액은
 
 크로스오버 표에서 배워야 할 건 "몇 TB에서 넘어간다"가 아니라 **무엇이 결정을 가르느냐**입니다.
 
-- **결정적 변수는 people TCO다.** Improvado·Tinybird 모두 팀 규모 inflection을 강조한다 — **팀 <5명이면 Cloud, 전담 DB/인프라 엔지니어를 낀 10명+면 self-host** `✓⁽정성⁾`. 데이터 크기는 부차적이고, self-host의 인프라 절감을 실현하려면 이미 그 인력이 있어야 한다.
-- **성능이 하드 요구면 managed는 애초에 탈락한다.** self-host의 진짜 매력은 절감이 아니라 로컬 NVMe로만 살 수 있는 성능이다. i7i/i8g의 3.75TB Nitro SSD 드라이브 1개는 **random read 600,000 / write 330,000 IOPS**(드라이브 수에 선형) `✓`. 같은 성능을 gp3로 재현하려면 80,000 IOPS 볼륨 8개 + **월 ~$3,380**(IOPS 프로비저닝 $3,080 + 스토리지 $300)가 들고, 그래도 인스턴스 EBS 대역(i7i.8xlarge ≈ 1,250 MB/s)에 막혀 로컬 NVMe의 수 GB/s를 못 낸다 `≈⁽계산⁾`. 로컬 NVMe는 **스토리지 한계비용 $0**(인스턴스 요금에 포함)다. Cloud/BYOC(SharedMergeTree)는 object storage 기반이라 이 극한 성능 자체를 제공하지 않는다.
+- **결정적 변수는 people TCO다.** Improvado·Tinybird 모두 팀 규모 inflection을 강조한다 — **팀 <5명이면 Cloud, 전담 DB/인프라 엔지니어를 낀 10명+면 self-host** `✓⁽정성⁾`. 데이터 크기는 부차적이고, self-host의 인프라 절감을 실현하려면 이미 그 인력이 있어야 합니다.
+- **성능이 하드 요구면 managed는 애초에 탈락합니다.** self-host의 진짜 매력은 절감이 아니라 로컬 NVMe로만 살 수 있는 성능입니다. i7i/i8g의 3.75TB Nitro SSD 드라이브 1개는 **random read 600,000 / write 330,000 IOPS**(드라이브 수에 선형) `✓`. 같은 성능을 gp3로 재현하려면 80,000 IOPS 볼륨 8개 + **월 ~$3,380**(IOPS 프로비저닝 $3,080 + 스토리지 $300)가 들고, 그래도 인스턴스 EBS 대역(i7i.8xlarge ≈ 1,250 MB/s)에 막혀 로컬 NVMe의 수 GB/s를 못 냅니다 `≈⁽계산⁾`. 로컬 NVMe는 **스토리지 한계비용 $0**(인스턴스 요금에 포함)다. Cloud/BYOC(SharedMergeTree)는 object storage 기반이라 이 극한 성능 자체를 제공하지 않습니다.
 - **i8g 우선.** i8g(Graviton4)는 IOPS 스펙이 i7i와 동일하면서 ~9% 저렴하다 `✓`. ClickHouse가 ARM64 바이너리를 제공하고 "클럭보다 코어 수"를 선호하므로 Graviton 궁합도 좋다. x86 전용 의존(사이드카·에이전트 바이너리)이 있을 때만 i7i. 인스턴스 표·내구성 설계는 [로컬 NVMe & 인스턴스]({{< relref "02-storage-local-nvme.md" >}})와 [Altinity operator]({{< relref "03-operator.md" >}}) 참고.
 
 배포 형태 결정 트리:

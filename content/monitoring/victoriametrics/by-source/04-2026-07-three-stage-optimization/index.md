@@ -14,7 +14,7 @@ weight: 4
 
 {{< callout type="info" >}}
 **한눈에**
-- 쿠버네티스 전환이 계속 빨라지며 컨테이너 수가 수백만 개를 넘어섰고, 카디널리티 폭증이 조회·저장·수집 전 구간에서 동시에 문제를 터뜨렸다. 해법은 장비 증설이 아니라 **파이프라인 3개 레이어 각각의 소프트웨어적 최적화**였다.
+- 쿠버네티스 전환이 계속 빨라지며 컨테이너 수가 수백만 개를 넘어섰고, 카디널리티 폭증이 조회·저장·수집 전 구간에서 동시에 문제를 터뜨렸습니다. 해법은 장비 증설이 아니라 **파이프라인 3개 레이어 각각의 소프트웨어적 최적화**였습니다.
 - **조회 레이어**: `vmselect`의 Slow Query → OOM 구조를 `container` 레이블 접두사 기준 36개 쿼리 분할로 풀어, 쿼리 1건당 메모리 점유율 45% → 12%, API 응답 시간 최대 40초 → 7초.
 - **저장 레이어**: IndexDB 3-슬롯(prev/current/next) 로테이션 메커니즘을 분석해 Hot Tier `RetentionPeriod`를 12개월 → 6개월로 축소, 실제 쿼리 로그(99.997%가 1개월 이내 조회)로 서비스 영향 없음을 검증하고 디스크 고갈 위기를 해소.
 - **수집 레이어**: 전체 컨테이너의 90% 이상을 차지하던 비서비스 컨테이너를 수집 대상에서 제외해 수집 컨테이너 수 -91.6%, Active Time Series -63.6%, `vmstorage` Ingestion Rate -64.4%.
@@ -26,9 +26,9 @@ weight: 4
 
 장비 증설 대신 파이프라인을 구간별로 나누어 분석해 다음 세 레이어에서 최적화를 진행했습니다.
 
-- **조회(query) 레이어** — Slow Query가 `vmselect` OOM으로 이어지는 구조를 쿼리 분할 전략으로 개선했다.
-- **저장(storage) 레이어** — `vmstorage`의 저장 구조와 IndexDB 로테이션 메커니즘을 분석해 데이터 기반의 `RetentionPeriod` 정책을 재설계했다.
-- **수집(collection) 레이어** — 수집 대상 대부분을 차지하던 비서비스 컨테이너를 제외해 과도한 메트릭 유입을 앞단에서 통제했다.
+- **조회(query) 레이어** — Slow Query가 `vmselect` OOM으로 이어지는 구조를 쿼리 분할 전략으로 개선했습니다.
+- **저장(storage) 레이어** — `vmstorage`의 저장 구조와 IndexDB 로테이션 메커니즘을 분석해 데이터 기반의 `RetentionPeriod` 정책을 재설계했습니다.
+- **수집(collection) 레이어** — 수집 대상 대부분을 차지하던 비서비스 컨테이너를 제외해 과도한 메트릭 유입을 앞단에서 통제했습니다.
 
 파이프라인 순서로 나타내면 다음과 같습니다.
 
@@ -79,10 +79,10 @@ TSID가 확정되면 해당 TSID의 타임스탬프-값 쌍은 인메모리 버�
 
 {{< flow src="_flow/배경-vmselect-의-단계.json" />}}
 
-1. **쿼리 파싱**: `vmselect`는 쿼리 문자열을 파싱해 함수, 필터, 윈도우를 분리한다. 예를 들어 `rate(http_requests_total{container="search-api"}[5m])`은 함수 `rate`, 필터 `{container="search-api"}`, 윈도우 `5m`으로 분해된다. 파싱 결과는 인메모리에 캐싱되어 동일한 쿼리의 반복 파싱 비용을 줄인다.
-2. **vmstorage 팬아웃**: `vmselect`는 특정 TSID가 어느 `vmstorage`에 저장되어 있는지 알 수 없다. `vminsert`가 [랑데부 해싱]({{< relref "../../concepts/03-ingestion.md" >}})으로 시계열을 분산 배치하지만, 조회 시점의 `vmselect`는 이 매핑 정보를 갖고 있지 않기 때문이다. 쿼리의 필터 조건과 시간 범위(`start`, `end`)를 클러스터의 모든 `vmstorage` 노드에 동시에 전송한다.
-3. **vmstorage의 응답**: `vmstorage`는 IndexDB에서 필터 조건을 만족하는 TSID 집합을 찾아, 이 TSID와 시간 범위를 기준으로 Data 영역의 Part를 순회한다. 쿼리 범위 밖의 Part는 건너뛰고, 매칭되는 데이터 블록만 `vmselect`로 스트리밍한다.
-4. **병합과 반환**: `vmselect`는 각 `vmstorage`에서 받은 데이터 블록을 노드별 인메모리 버퍼에 저장한다. 이후 모든 노드의 결과를 시간순으로 정렬해 병합하고, [Replication에 의해 중복된 데이터포인트가 있으면 제거(deduplication)](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/#replication-and-data-safety)한 뒤 최종 응답을 생성한다.
+1. **쿼리 파싱**: `vmselect`는 쿼리 문자열을 파싱해 함수, 필터, 윈도우를 분리합니다. 예를 들어 `rate(http_requests_total{container="search-api"}[5m])`은 함수 `rate`, 필터 `{container="search-api"}`, 윈도우 `5m`으로 분해됩니다. 파싱 결과는 인메모리에 캐싱되어 동일한 쿼리의 반복 파싱 비용을 줄입니다.
+2. **vmstorage 팬아웃**: `vmselect`는 특정 TSID가 어느 `vmstorage`에 저장되어 있는지 알 수 없습니다. `vminsert`가 [랑데부 해싱]({{< relref "../../concepts/03-ingestion.md" >}})으로 시계열을 분산 배치하지만, 조회 시점의 `vmselect`는 이 매핑 정보를 갖고 있지 않기 때문입니다. 쿼리의 필터 조건과 시간 범위(`start`, `end`)를 클러스터의 모든 `vmstorage` 노드에 동시에 전송합니다.
+3. **vmstorage의 응답**: `vmstorage`는 IndexDB에서 필터 조건을 만족하는 TSID 집합을 찾아, 이 TSID와 시간 범위를 기준으로 Data 영역의 Part를 순회합니다. 쿼리 범위 밖의 Part는 건너뛰고, 매칭되는 데이터 블록만 `vmselect`로 스트리밍합니다.
+4. **병합과 반환**: `vmselect`는 각 `vmstorage`에서 받은 데이터 블록을 노드별 인메모리 버퍼에 저장합니다. 이후 모든 노드의 결과를 시간순으로 정렬해 병합하고, [Replication에 의해 중복된 데이터포인트가 있으면 제거(deduplication)](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/#replication-and-data-safety)한 뒤 최종 응답을 생성합니다.
 
 쿼리 하나의 결과셋 전체는 `vmselect` Pod 한 대의 메모리에 올라갑니다. 매칭되는 시계열이 적을 때는 문제가 되지 않지만, 카디널리티가 커질수록 병합 과정에서 메모리 사용량이 급증합니다. 겪은 OOM도 이 구조에서 비롯되었습니다.
 
@@ -243,4 +243,4 @@ IndexDB 내부 구조 분석과 실제 쿼리 패턴 분석을 근거로 Hot Tie
 
 - **원문**: [VictoriaMetrics 운영기 2편 — 장비 증설 없이 리소스 위기를 해결한 3단계 최적화 전략](https://d2.naver.com/helloworld/5788040) (네이버 D2, 강지훈·이윤석·정솔, NAVER Metric&Monitoring)
 - 작업 저장소 원본 파일: `src_5788040_part2.md`
-- 이 문서는 원문 전체 — 조회 레이어(`vmselect` OOM 해결·쿼리 36분할), 저장 레이어(IndexDB 3-슬롯 로테이션·`RetentionPeriod` 12개월→6개월), 수집 레이어(비서비스 컨테이너 제외) 3단계와 각 단계의 배경·대응·결과, 마치며의 종합 표 — 를 반영했다.
+- 이 문서는 원문 전체 — 조회 레이어(`vmselect` OOM 해결·쿼리 36분할), 저장 레이어(IndexDB 3-슬롯 로테이션·`RetentionPeriod` 12개월→6개월), 수집 레이어(비서비스 컨테이너 제외) 3단계와 각 단계의 배경·대응·결과, 마치며의 종합 표 — 를 반영했습니다.

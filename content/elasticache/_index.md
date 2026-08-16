@@ -95,14 +95,14 @@ cascade:
 ## 문서 지도
 
 - **[01 · 2009 첫 커밋부터 6.2 까지]({{< relref "01-origins-and-design/index.md" >}})** · 설계 연쇄의 출발점 — 값이 자료구조라는 첫 결정이 왜 락을 없애고 단일 스레드를 불렀나, 그 계약을 6.0 threaded I/O 가 정확히 어디까지만 건드렸나(워커는 `writeToClient()`/`readQueryFromClient()` 둘 중 하나뿐이다). 첫 커밋 실측치, MANIFESTO 두 판본, 그리고 **되돌린 유일한 설계인 Virtual Memory**.
-- **[02 · memcached — 같은 문제를 다르게 푼 6년 선배]({{< relref "02-memcached/index.md" >}})** · 대비군이자 독립된 선택지 — slab allocator 의 대가(calcification)를 21년에 걸쳐 갚은 연대기, 4단 segmented LRU, 워커 N개가 각자 이벤트 루프를 돌려 한 프로세스로 N 코어를 먹는 구조, extstore·restartable cache 가 **영속성이 아닌** 이유, meta 프로토콜의 stampede 방어. Redis 와의 구조 대비표가 결론이다.
-- **[03 · 왜 찢어졌나 — Commons Clause 부터 AGPL 복귀까지]({{< relref "03-license-and-fork.md" >}})** · 거버넌스 축의 본문 — 2018·2019·2022 의 변경은 전부 모듈이었고 core 는 커밋 하나로 넘어갔다. RSALv2(금지형)와 SSPLv1(조건형 copyleft)의 조항 원문, 포크 기점 두 개, Valkey 의 1/3 조직 상한·2/3 super-majority, 그리고 **2025-05 에 AGPLv3 가 추가됐는데도 봉합되지 않은 이유**. 마지막 절이 "우리에게 실제로 금지되는 것"의 판정표다.
+- **[02 · memcached — 같은 문제를 다르게 푼 6년 선배]({{< relref "02-memcached/index.md" >}})** · 대비군이자 독립된 선택지 — slab allocator 의 대가(calcification)를 21년에 걸쳐 갚은 연대기, 4단 segmented LRU, 워커 N개가 각자 이벤트 루프를 돌려 한 프로세스로 N 코어를 먹는 구조, extstore·restartable cache 가 **영속성이 아닌** 이유, meta 프로토콜의 stampede 방어. Redis 와의 구조 대비표가 결론입니다.
+- **[03 · 왜 찢어졌나 — Commons Clause 부터 AGPL 복귀까지]({{< relref "03-license-and-fork.md" >}})** · 거버넌스 축의 본문 — 2018·2019·2022 의 변경은 전부 모듈이었고 core 는 커밋 하나로 넘어갔습니다. RSALv2(금지형)와 SSPLv1(조건형 copyleft)의 조항 원문, 포크 기점 두 개, Valkey 의 1/3 조직 상한·2/3 super-majority, 그리고 **2025-05 에 AGPLv3 가 추가됐는데도 봉합되지 않은 이유**. 마지막 절이 "우리에게 실제로 금지되는 것"의 판정표입니다.
 - **[04 · Redis 7.0 → 8.10 — 그리고 9 는 왜 없나]({{< relref "04-redis-7-to-8.md" >}})** · 한쪽 진영의 버전 서사 — 9 의 부재를 전수 확인으로 확정하고, 7.0 의 네 겹 파괴적 변경, 8.0 의 "core 통합"이 실제로는 **빌드 시 clone → `.so` → `loadmodule` 번들**이라는 사실, 8.2~8.10 의 릴리스별 신기능·breaking·**운영자가 할 일**, 짝수 케이던스와 Standard/Extended 지원선(8.x 중 Extended 는 8.2 하나뿐).
 - **[05 · Valkey 8.0 → 9.1 — 엔진이 갈라진 지점]({{< relref "05-valkey-8-to-9/index.md" >}})** · 반대쪽 진영의 버전 서사 — 8.0 의 비동기 I/O 스레딩이 6.0 방식의 튜닝이 아니라 **교체**인 이유, dual channel replication 이 무엇을 고치고 그 아픔을 어디로 옮겼나, 8.1 이 `dict` 를 버리고 얻은 키당 20~30바이트, 9.0 의 RDB 80 이 만든 영구 차단선, 그리고 Redis 8.x 대비 기능 매트릭스와 마이그레이션 사실관계.
 - **[06 · cluster mode — 16384 슬롯이 강제하는 것]({{< relref "06-cluster-mode/index.md" >}})** · 구조 문서 — 프록시를 두지 않기로 한 결정이 왜 smart client 를 필수로 만드나, `MOVED`/`ASK`/`TRYAGAIN` 의 조건이 각각 무엇인가, 16384 가 **gossip 헤더 2048바이트 예산**인 이유, cluster 를 쓰면 잃는 것 표, 11년간 가장 아팠던 슬롯 마이그레이션을 양 진영이 **반대 방향으로** 고친 결과, `cluster_state:ok` 가 거짓 안심을 주는 세 가지 방식.
 - **[07 · AWS 에서 엔드포인트는 어떻게 바뀌나]({{< relref "07-aws-endpoints/index.md" >}})** · 관리형 운영 문서 — CMD/CME/Serverless/MemoryDB 의 엔드포인트 종류와 DNS 로 판별하는 규칙, 모드 전환이 **단방향**이고 `compatible` 이 중간에 끼어 있는 절차, failover 시간을 만드는 것은 엔진이 아니라 **클라이언트 DNS 캐시**라는 사실, TLS 켜기가 설정 토글로 보이지만 실제로는 엔드포인트 마이그레이션인 이유, 관리형이 막는 커맨드와 k8s self-host 대조군.
-- **[08 · 무엇을 고를 것인가]({{< relref "08-choosing.md" >}})** · 판단 문서 — Redis/Valkey/memcached 3자 판단표, managed vs self-host, 8.x 안에서의 버전 선택, 마이그레이션 경로 판정. 근거는 위 일곱 문서가 소유하고 여기서는 결론만 모은다.
-- **[99 · 출처]({{< relref "99-sources.md" >}})** · 위 여덟 문서가 인용한 URL 을 주제별로 모은 목록. 로컬 클론에서 `git show` 로 실측한 태그·커밋도 함께 적었다.
+- **[08 · 무엇을 고를 것인가]({{< relref "08-choosing.md" >}})** · 판단 문서 — Redis/Valkey/memcached 3자 판단표, managed vs self-host, 8.x 안에서의 버전 선택, 마이그레이션 경로 판정. 근거는 위 일곱 문서가 소유하고 여기서는 결론만 모읍니다.
+- **[99 · 출처]({{< relref "99-sources.md" >}})** · 위 여덟 문서가 인용한 URL 을 주제별로 모은 목록. 로컬 클론에서 `git show` 로 실측한 태그·커밋도 함께 적었습니다.
 
 ## 공통 핵심
 
@@ -117,5 +117,5 @@ cascade:
 ## 자매 챕터
 
 - [ClickHouse 운영 → 로컬 NVMe 데이터스토어 벤치마킹]({{< relref "../clickhouse/07-local-nvme-datastore-patterns.md" >}}) — 9개 데이터스토어의 스토리지 전략을 횡단 비교하면서 **Redis/Valkey 는 "RAM 이 1차라 애초에 벤치 대상이 아니다"로 제외**한다. 이 챕터가 왜 디스크 계층 논의로 가지 않는지의 반대편 근거이고, memcached 의 extstore 가 그 예외에 가장 가까운 시도다([02]({{< relref "02-memcached/index.md" >}})).
-- [ClickHouse 운영 → Managed vs Self-hosted]({{< relref "../clickhouse/01-managed-vs-selfhosted.md" >}}) — "인력 보유 여부가 데이터 크기보다 결정적"이라는 판단축은 이 챕터의 [07]({{< relref "07-aws-endpoints/index.md" >}})·[08]({{< relref "08-choosing.md" >}})과 같다. 관리형이 `CONFIG SET`·모듈·슬롯 통제를 막는다는 사실이 self-host 를 고민하게 만드는 실질적 이유라는 점까지 형태가 겹친다.
-- [Istio → EnvoyFilter 확장]({{< relref "../istio/08-envoyfilter-extension/index.md" >}}) — 클러스터 전역 rate limit 을 Envoy 의 외부 Rate Limit Service 로 구현하면 **Redis 가 데이터 평면의 의존 컴포넌트로 들어온다.** 그쪽이 "Redis 를 하나 더 운영하는 비용과 요청당 왕복 지연"을 트레이드오프로 다루는 자리라면, 이쪽은 그 Redis 를 무엇으로 어떻게 굴릴지를 다룬다.
+- [ClickHouse 운영 → Managed vs Self-hosted]({{< relref "../clickhouse/01-managed-vs-selfhosted.md" >}}) — "인력 보유 여부가 데이터 크기보다 결정적"이라는 판단축은 이 챕터의 [07]({{< relref "07-aws-endpoints/index.md" >}})·[08]({{< relref "08-choosing.md" >}})과 같습니다. 관리형이 `CONFIG SET`·모듈·슬롯 통제를 막는다는 사실이 self-host 를 고민하게 만드는 실질적 이유라는 점까지 형태가 겹칩니다.
+- [Istio → EnvoyFilter 확장]({{< relref "../istio/08-envoyfilter-extension/index.md" >}}) — 클러스터 전역 rate limit 을 Envoy 의 외부 Rate Limit Service 로 구현하면 **Redis 가 데이터 평면의 의존 컴포넌트로 들어옵니다.** 그쪽이 "Redis 를 하나 더 운영하는 비용과 요청당 왕복 지연"을 트레이드오프로 다루는 자리라면, 이쪽은 그 Redis 를 무엇으로 어떻게 굴릴지를 다룹니다.

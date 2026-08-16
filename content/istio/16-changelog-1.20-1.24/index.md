@@ -7,23 +7,23 @@ weight: 16
 
 {{< callout type="info" >}}
 **한눈에**
-- 이 구간의 사건은 두 개다. **ambient가 alpha → Beta(1.22.0) → GA(1.24.0)로 올라간 것**과 **설치·관리 경로가 강제로 바뀐 것**(in-cluster operator 폐기 1.23.0 → 제거 1.24.0, [#52090](https://github.com/istio/istio/pull/52090)). 전자는 선택이지만 **후자는 선택이 아니다** — sidecar를 유지하는 클러스터도 1.24 이상으로 가려면 그대로 맞는다.
+- 이 구간의 사건은 두 개입니다. **ambient가 alpha → Beta(1.22.0) → GA(1.24.0)로 올라간 것**과 **설치·관리 경로가 강제로 바뀐 것**(in-cluster operator 폐기 1.23.0 → 제거 1.24.0, [#52090](https://github.com/istio/istio/pull/52090)). 전자는 선택이지만 **후자는 선택이 아니다** — sidecar를 유지하는 클러스터도 1.24 이상으로 가려면 그대로 맞습니다.
 - **ambient GA는 sidecar의 폐기 신호가 아니다.** 1.20~1.24 어느 upgrade-notes·change-notes에도 sidecar injection을 deprecated로 표시한 문구가 없고, 최신 스냅샷 문서도 sidecar를 "thoroughly battle-tested"라며 두 개의 main data plane mode 중 하나로 나란히 둔다. 우리 방침(ambient 금지)은 **유효하고, 이 구간 사실만으로는 재검토 트리거도 발생하지 않았다**(§2.4).
-- 제거된 것은 **in-cluster 컨트롤러와 `istio-operator` 차트**이고, `IstioOperator` **API 타입은 1.30.0에도 살아 있다**(`operator/pkg/apis/types.go`, `install.istio.io/v1alpha1`). `istioctl install -f istio.yaml`은 그대로 동작한다 — "IstioOperator가 죽었다"는 요약은 틀렸다.
-- 1.24.0에서 **CRD가 Helm 템플릿으로 이동**하고 `base.enableCRDTemplates`가 기본 `true`가 된다([#43204](https://github.com/istio/istio/issues/43204)). CRD를 `kubectl apply`나 이전 `helm install`로 넣었다면 **1.24 전에 1회 `kubectl label/annotate`로 Helm 소유권 이관**이 필요하고, ArgoCD가 만든 실제 Helm 릴리스명을 모르면 이 명령을 실행하면 안 된다.
-- **sidecar 트래픽 동작을 바꾸는 플래그 7개가 1.24.0에 한꺼번에 들어오고 전부 기본 `true`다**(§5.6) — `ENABLE_INBOUND_RETRY_POLICY`·`EXCLUDE_UNSAFE_503_FROM_DEFAULT_RETRY`·`PILOT_UNIFIED_SIDECAR_SCOPE`·`ENABLE_ENHANCED_DESTINATIONRULE_MERGE`·`PREFER_DESTINATIONRULE_TLS_FOR_EXTERNAL_SERVICES`·`ENABLE_DEFERRED_STATS_CREATION`·`BYPASS_OVERLOAD_MANAGER_FOR_STATIC_LISTENERS`. 이 7개가 정확히 `compatibilityVersion=1.23` 프로파일의 내용이다.
-- **1.21.0의 TLS 기본값 두 개가 egress를 끊을 수 있다.** `ENABLE_AUTO_SNI`와 `VERIFY_CERTIFICATE_AT_CLIENT`가 동시에 `true`가 되면서 `caCertificates` 없는 `DestinationRule` TLS 오리지네이션이 **OS CA로 검증을 시작**한다. 사설 CA 대상은 그 순간 실패한다.
-- **istio.io 문서의 플래그명이 실제 env var와 다른 곳이 두 군데다.** 1.21 upgrade-notes는 `VERIFY_CERT_AT_CLIENT`라 쓰지만 등록명은 `VERIFY_CERTIFICATE_AT_CLIENT`(`pilot/pkg/features/pilot.go:239`)고, 1.22 upgrade-notes는 `ENHANCED_RESOURCE_SCOPING`이라 쓰지만 실제는 `ENABLE_ENHANCED_RESOURCE_SCOPING`(`experimental.go:182`)이다. **문서를 복사해 env를 걸면 아무 일도 일어나지 않는다.**
+- 제거된 것은 **in-cluster 컨트롤러와 `istio-operator` 차트**이고, `IstioOperator` **API 타입은 1.30.0에도 살아 있다**(`operator/pkg/apis/types.go`, `install.istio.io/v1alpha1`). `istioctl install -f istio.yaml`은 그대로 동작한다 — "IstioOperator가 죽었다"는 요약은 틀렸습니다.
+- 1.24.0에서 **CRD가 Helm 템플릿으로 이동**하고 `base.enableCRDTemplates`가 기본 `true`가 된다([#43204](https://github.com/istio/istio/issues/43204)). CRD를 `kubectl apply`나 이전 `helm install`로 넣었다면 **1.24 전에 1회 `kubectl label/annotate`로 Helm 소유권 이관**이 필요하고, ArgoCD가 만든 실제 Helm 릴리스명을 모르면 이 명령을 실행하면 안 됩니다.
+- **sidecar 트래픽 동작을 바꾸는 플래그 7개가 1.24.0에 한꺼번에 들어오고 전부 기본 `true`다**(§5.6) — `ENABLE_INBOUND_RETRY_POLICY`·`EXCLUDE_UNSAFE_503_FROM_DEFAULT_RETRY`·`PILOT_UNIFIED_SIDECAR_SCOPE`·`ENABLE_ENHANCED_DESTINATIONRULE_MERGE`·`PREFER_DESTINATIONRULE_TLS_FOR_EXTERNAL_SERVICES`·`ENABLE_DEFERRED_STATS_CREATION`·`BYPASS_OVERLOAD_MANAGER_FOR_STATIC_LISTENERS`. 이 7개가 정확히 `compatibilityVersion=1.23` 프로파일의 내용입니다.
+- **1.21.0의 TLS 기본값 두 개가 egress를 끊을 수 있습니다.** `ENABLE_AUTO_SNI`와 `VERIFY_CERTIFICATE_AT_CLIENT`가 동시에 `true`가 되면서 `caCertificates` 없는 `DestinationRule` TLS 오리지네이션이 **OS CA로 검증을 시작**합니다. 사설 CA 대상은 그 순간 실패합니다.
+- **istio.io 문서의 플래그명이 실제 env var와 다른 곳이 두 군데입니다.** 1.21 upgrade-notes는 `VERIFY_CERT_AT_CLIENT`라 쓰지만 등록명은 `VERIFY_CERTIFICATE_AT_CLIENT`(`pilot/pkg/features/pilot.go:239`)고, 1.22 upgrade-notes는 `ENHANCED_RESOURCE_SCOPING`이라 쓰지만 실제는 `ENABLE_ENHANCED_RESOURCE_SCOPING`(`experimental.go:182`)입니다. **문서를 복사해 env를 걸면 아무 일도 일어나지 않습니다.**
 - **1.23.0에 공개 upgrade-notes 페이지에 실리지 않은 메트릭 파괴 변경이 있다.** `ENABLE_DELIMITED_STATS_TAG_REGEX`(기본 `true`, [#52271](https://github.com/istio/istio/pull/52271))가 Envoy cluster 메트릭의 `cluster_name`·`http_conn_manager_prefix` 라벨 파싱을 바꾼다. 근거는 릴리스노트 원본 `releasenotes/notes/51761.yaml`의 `upgradeNote`뿐이다 — **대시보드가 조용히 깨지는 종류**다.
-- **1.22.0의 `v1` 승격은 "추가"이지 "이동"이 아니다.** CRD가 `v1`·`v1alpha3`·`v1beta1` 셋을 동시에 served로 제공하고 **storage 버전은 1.22.0에 `v1alpha3`에서 `v1beta1`로 올라가 1.26.0까지 남는다**(1.27.0에서 `v1`로 이동). `v1alpha3`로 쓴 옛 매니페스트는 1.30.0 기준으로도 그대로 apply된다.
+- **1.22.0의 `v1` 승격은 "추가"이지 "이동"이 아닙니다.** CRD가 `v1`·`v1alpha3`·`v1beta1` 셋을 동시에 served로 제공하고 **storage 버전은 1.22.0에 `v1alpha3`에서 `v1beta1`로 올라가 1.26.0까지 남는다**(1.27.0에서 `v1`로 이동). `v1alpha3`로 쓴 옛 매니페스트는 1.30.0 기준으로도 그대로 apply됩니다.
 - **1.24 계열은 k8s ≤1.31까지다.** 하한 가정(chart tip 1.24.1)이 k8s 1.33 위에서는 지원 대상 밖이라는 뜻이고, 1.24는 2025-06-24에 EOL이라 **compat profile로 버티는 선택지 자체가 이미 없다**.
 {{< /callout >}}
 
-> **왜 이 문서인가.** 1.24를 하한으로 가정하고 1.30.3까지 올리는 계획에서 1.20~1.24는 "이미 지나온 구간"으로 취급되기 쉽다. 그런데 이 구간에는 **지나왔는지 아닌지를 클러스터를 봐야 알 수 있는 항목**이 셋 있다 — in-cluster operator를 쓰고 있는지, CRD의 Helm 소유권 이관을 했는지, 1.21의 TLS 기본값 전환에 egress가 걸렸는지. "1.24가 이미 떠 있다"는 사실만으로는 확인되지 않고, 안 했으면 다음 홉에서 터진다. 이 문서는 5개 마이너를 나열하는 대신 그 종류의 항목에만 지면을 준다.
+> **왜 이 문서인가.** 1.24를 하한으로 가정하고 1.30.3까지 올리는 계획에서 1.20~1.24는 "이미 지나온 구간"으로 취급되기 쉽습니다. 그런데 이 구간에는 **지나왔는지 아닌지를 클러스터를 봐야 알 수 있는 항목**이 셋 있다 — in-cluster operator를 쓰고 있는지, CRD의 Helm 소유권 이관을 했는지, 1.21의 TLS 기본값 전환에 egress가 걸렸는지. "1.24가 이미 떠 있다"는 사실만으로는 확인되지 않고, 안 했으면 다음 홉에서 터집니다. 이 문서는 5개 마이너를 나열하는 대신 그 종류의 항목에만 지면을 줍니다.
 >
-> 근거 기준: 릴리스 공지·upgrade-notes·change-notes는 `istio-io` 클론의 `content/en/news/releases/<v>.x/announcing-<v>/`, 문서 본문은 같은 클론의 `content/en/docs/`(**최신 스냅샷 — 과거 마이너 시점 문서가 아니다**), 코드·차트·CRD 인용은 `istio/istio` full history 클론에서 **해당 태그를 직접 체크아웃해 확인**했다(`git show <tag>:<path>`). 플래그 기본값은 문서가 아니라 `env.Register(...)` 인수를, 도입 마이너는 `git log -S` + `git tag --contains`로 확정했다. 릴리스일은 gh release API 기준이다.
+> 근거 기준: 릴리스 공지·upgrade-notes·change-notes는 `istio-io` 클론의 `content/en/news/releases/<v>.x/announcing-<v>/`, 문서 본문은 같은 클론의 `content/en/docs/`(**최신 스냅샷 — 과거 마이너 시점 문서가 아니다**), 코드·차트·CRD 인용은 `istio/istio` full history 클론에서 **해당 태그를 직접 체크아웃해 확인**했다(`git show <tag>:<path>`). 플래그 기본값은 문서가 아니라 `env.Register(...)` 인수를, 도입 마이너는 `git log -S` + `git tag --contains`로 확정했습니다. 릴리스일은 gh release API 기준입니다.
 
-> 이 챕터의 축은 "버전이 무엇을 바꿨고, 운영에서 무엇을 해야 하나"다. istiod 부하·xDS 커넥션의 **메커니즘**은 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "09-istiod-scaling-connections.md" >}})가, **우리 클러스터의 차트·values·이관 절차·리스크**는 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}})가 소유한다. 1.25 이후 구간(native sidecar 기본화, base·istiod 차트 통합)은 [11 1.25 → 1.30]({{< relref "17-changelog-1.25-1.30.md" >}})이다.
+> 이 챕터의 축은 "버전이 무엇을 바꿨고, 운영에서 무엇을 해야 하나"다. istiod 부하·xDS 커넥션의 **메커니즘**은 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "09-istiod-scaling-connections.md" >}})가, **우리 클러스터의 차트·values·이관 절차·리스크**는 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}})가 소유합니다. 1.25 이후 구간(native sidecar 기본화, base·istiod 차트 통합)은 [11 1.25 → 1.30]({{< relref "17-changelog-1.25-1.30.md" >}})입니다.
 
 ## 1. 타임라인 — 무엇이 언제 들어왔나
 
@@ -49,7 +49,7 @@ Envoy 마이너 버전 대응은 **업스트림 문서에 이 구간이 없습�
 
 ## 2. ambient가 어디까지 왔나
 
-> 이 절은 **어느 버전에서 무엇이 어떤 단계가 됐는가**만 다룬다. "사이드카에서 옮겨간다면 01~09의 결론 중 무엇이 무효가 되나"는 [10 Ambient 이행 심사]({{< relref "10-ambient-migration-questions.md" >}}), 사이드카를 거치지 않은 팀의 프로덕션 기록은 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})가 소유한다.
+> 이 절은 **어느 버전에서 무엇이 어떤 단계가 됐는가**만 다룹니다. "사이드카에서 옮겨간다면 01~09의 결론 중 무엇이 무효가 되나"는 [10 Ambient 이행 심사]({{< relref "10-ambient-migration-questions.md" >}}), 사이드카를 거치지 않은 팀의 프로덕션 기록은 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})가 소유합니다.
 
 ### 2.1 단계 이동 — Beta는 1.22.0, GA는 1.24.0
 
@@ -94,7 +94,7 @@ ambient가 아예 안 되는 것도 명시돼 있습니다(`docs/ambient/migrate
 
 - **sidecar가 폐기 트랙인가** — **아니다.** 1.20~1.24 upgrade-notes·change-notes 어디에도 sidecar injection을 deprecated로 표시한 문구가 없다. 최신 스냅샷 `docs/overview/dataplane-modes/index.md`는 sidecar를 "built on the sidecar pattern from its first release in 2017 … well understood and thoroughly battle-tested"로 서술하고 두 모드를 나란히 비교한다. → 유지가 "레거시에 남는 것"이 아니다.
 - **sidecar 경로에 투자가 계속되나** — **계속된다.** 1.20 `startupProbe` 기본화, 1.21 바이너리 ~10MB 축소, 1.23 인바운드 리트라이 프리뷰 → 1.24 기본 활성, 1.24 per-pod native sidecar 제어. → 유지가 성능·안정성에서 손해 보는 방향이 아니다.
-- **ambient가 우리 요건을 받을 수 있나** — **하드 블로커·L7 우회 문제가 남아 있다**(§2.3). 특히 `EnvoyFilter` 미지원과 `VirtualService` Alpha는 [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})·기존 `VirtualService` 자산과 정면으로 부딪힌다. → 금융 요건과 무관하게라도 전환 비용이 크다.
+- **ambient가 우리 요건을 받을 수 있나** — **하드 블로커·L7 우회 문제가 남아 있다**(§2.3). 특히 `EnvoyFilter` 미지원과 `VirtualService` Alpha는 [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})·기존 `VirtualService` 자산과 정면으로 부딪힙니다. → 금융 요건과 무관하게라도 전환 비용이 큽니다.
 
 **재검토 트리거는 둘뿐입니다.** ① 릴리스 공지·upgrade-notes가 sidecar mode를 **명시적으로 deprecated로 지정**하는 경우입니다. ② `EnvoyFilter`가 waypoint에 지원되고 `VirtualService`의 ambient 지원이 Alpha를 벗어나는 경우 — 즉 §2.3의 "알려진 제약" 두 줄이 해소되는 시점입니다. **"ambient가 GA됐다"는 사실 자체는 트리거가 아닙니다**: GA는 "충분히 검증됐다"는 성숙도 선언이고, sidecar를 없앤다는 선언과는 다른 문장입니다. 이 구간에서는 두 트리거 모두 발생하지 않았습니다.
 
@@ -223,11 +223,11 @@ spec:
 
 업스트림의 방향성은 명문화돼 있습니다 — *"Istio supports the Kubernetes Gateway API and intends to make it the default API for traffic management in the future."*(`content/en/boilerplates/gateway-api-future.md`). 그러나 **강제 전환 데드라인은 명시되지 않았고, classic `Gateway`·`VirtualService`를 deprecated로 지정한 공지는 1.20~1.30 어디에도 없습니다.** 두 API는 공존하고, 한쪽이 "미래의 기본값"으로 지목된 상태입니다.
 
-- **이미 `Gateway`+`VirtualService`로 north-south가 돌고 있다**: **좋음** — 그대로 유지. 폐기 신호가 없고, 전환은 [07 nginx에서 Istio로]({{< relref "07-from-nginx-to-istio.md" >}})급 재작성 비용이다.
+- **이미 `Gateway`+`VirtualService`로 north-south가 돌고 있다**: **좋음** — 그대로 유지. 폐기 신호가 없고, 전환은 [07 nginx에서 Istio로]({{< relref "07-from-nginx-to-istio.md" >}})급 재작성 비용입니다.
 - **신규 north-south 엔드포인트를 새로 판다**: **좋음** — Gateway API(`Gateway`+`HTTPRoute`). 1.22부터 Stable이고 미래의 기본값.
-- **east-west(mesh) 라우팅을 Gateway API로 옮긴다**: **반쪽** — 1.22 이상에서 되지만 `VirtualService` 자산과 규칙이 갈리고, 같은 워크로드에 둘을 섞으면 안 된다.
+- **east-west(mesh) 라우팅을 Gateway API로 옮긴다**: **반쪽** — 1.22 이상에서 되지만 `VirtualService` 자산과 규칙이 갈리고, 같은 워크로드에 둘을 섞으면 안 됩니다.
 - **`EnvoyFilter`로 저수준 패치가 걸려 있다**: **최적** — classic 유지. Gateway API로 옮겨도 [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})의 패치 대상은 그대로 Envoy이고, ambient waypoint로 가면 `EnvoyFilter` 자체가 지원되지 않는다(§2.3).
-- **전면 일괄 전환**: **부적합** — 이득이 "미래 기본값"뿐이고 데드라인이 없다.
+- **전면 일괄 전환**: **부적합** — 이득이 "미래 기본값"뿐이고 데드라인이 없습니다.
 
 ## 5. 버전별 나머지 — 동작이 바뀌는 것을 골라낸다
 
@@ -304,10 +304,10 @@ Envoy cluster 메트릭은 `.`을 메트릭 네임스페이스 구분자로 쓰�
 각 플래그의 기본값·위치, 도입 PR, 무엇이 바뀌나, sidecar 유지 클러스터의 영향은 이렇습니다.
 
 - **`ENABLE_INBOUND_RETRY_POLICY`**(`true` · `pilot.go:237`, [#52055](https://github.com/istio/istio/pull/52055)) — **서버 사이드카**에서, 앱이 아직 처리하지 않은 요청이 커넥션 재사용 중 리셋되면 자동 재시도. 종래 리트라이는 클라이언트 사이드카 전용이었다. 영향: **대개 이롭다** — 흔한 503 원인(백엔드가 닫는 keep-alive 커넥션 재사용)을 서버 쪽에서 흡수한다. [05 간헐적 응답 이상]({{< relref "05-incident-intermittent-5xx.md" >}})이 추적한 실패 모드와 같은 계열.
-- **`EXCLUDE_UNSAFE_503_FROM_DEFAULT_RETRY`**(`true` · `pilot.go:240`, [#52111](https://github.com/istio/istio/pull/52111)) — **기본 재시도 정책에서 503 재시도를 제외.** 원래 위 실패 모드를 덮으려 넣었던 것인데 non-idempotent 요청에 위험하다고 판단. 영향: **주의.** 503이 자동 재시도로 가려지고 있었다면 **클라이언트에 503이 더 많이 노출된다.** 안전성과 성공률이 맞바꿔진다.
-- **`PILOT_UNIFIED_SIDECAR_SCOPE`**(`true` · `experimental.go:208`, [#51776](https://github.com/istio/istio/pull/51776)) — `Sidecar` 리소스 유무에 따라 갈리던 충돌 해소 규칙 통일(아래 별도 설명). 영향: **직접 영향.** `Sidecar` CR을 쓰거나 동일 hostname 중복 정의가 있으면 라우팅 대상이 바뀔 수 있다.
-- **`ENABLE_ENHANCED_DESTINATIONRULE_MERGE`**(`true` · `experimental.go:204`, [#52636](https://github.com/istio/istio/pull/52636)) — `exportTo`가 다른 동일 호스트 `DestinationRule`을 **더 이상 병합하지 않는다**. 영향: 동일 host에 `exportTo`를 달리 준 DR이 중복 정의돼 있으면 적용 결과가 달라진다.
-- **`PREFER_DESTINATIONRULE_TLS_FOR_EXTERNAL_SERVICES`**(`true` · `pilot.go:243`, [#52597](https://github.com/istio/istio/pull/52597)) — mesh-external 호스트에서 `DestinationRule` TLS가 메타데이터 TLS보다 우선. 영향: egress 대상에 TLS DR을 걸어뒀으면 동작이 바뀐다. §5.2와 같은 리소스를 건드린다.
+- **`EXCLUDE_UNSAFE_503_FROM_DEFAULT_RETRY`**(`true` · `pilot.go:240`, [#52111](https://github.com/istio/istio/pull/52111)) — **기본 재시도 정책에서 503 재시도를 제외.** 원래 위 실패 모드를 덮으려 넣었던 것인데 non-idempotent 요청에 위험하다고 판단. 영향: **주의.** 503이 자동 재시도로 가려지고 있었다면 **클라이언트에 503이 더 많이 노출됩니다.** 안전성과 성공률이 맞바꿔집니다.
+- **`PILOT_UNIFIED_SIDECAR_SCOPE`**(`true` · `experimental.go:208`, [#51776](https://github.com/istio/istio/pull/51776)) — `Sidecar` 리소스 유무에 따라 갈리던 충돌 해소 규칙 통일(아래 별도 설명). 영향: **직접 영향.** `Sidecar` CR을 쓰거나 동일 hostname 중복 정의가 있으면 라우팅 대상이 바뀔 수 있습니다.
+- **`ENABLE_ENHANCED_DESTINATIONRULE_MERGE`**(`true` · `experimental.go:204`, [#52636](https://github.com/istio/istio/pull/52636)) — `exportTo`가 다른 동일 호스트 `DestinationRule`을 **더 이상 병합하지 않습니다**. 영향: 동일 host에 `exportTo`를 달리 준 DR이 중복 정의돼 있으면 적용 결과가 달라집니다.
+- **`PREFER_DESTINATIONRULE_TLS_FOR_EXTERNAL_SERVICES`**(`true` · `pilot.go:243`, [#52597](https://github.com/istio/istio/pull/52597)) — mesh-external 호스트에서 `DestinationRule` TLS가 메타데이터 TLS보다 우선. 영향: egress 대상에 TLS DR을 걸어뒀으면 동작이 바뀝니다. §5.2와 같은 리소스를 건드립니다.
 - **`ENABLE_DEFERRED_STATS_CREATION`**(`true` · `experimental.go:194`, [#52654](https://github.com/istio/istio/pull/52654)) — Envoy stats 객체 일부를 지연 초기화(메모리·CPU 절감). 영향: 파드마다 사이드카가 붙는 구성에서 **누적 이득**. `proxyMetadata`로 전달.
 - **`BYPASS_OVERLOAD_MANAGER_FOR_STATIC_LISTENERS`**(`true` · `experimental.go:201`, [#52971](https://github.com/istio/istio/pull/52971)) — static listener에 overload manager 미적용. 영향: 성능 최적화. `proxyMetadata`로 전달.
 
@@ -343,10 +343,10 @@ helm upgrade istiod istio/istiod -n istio-system \
 
 ### 5.7 1.24.0의 나머지 breaking
 
-- **Telemetry CEL 표준화** — 내용: CEL이 커스텀 Wasm 속성 대신 표준 Envoy 속성을 쓴다. `filter_state["wasm.downstream_peer"]` → `filter_state.downstream_peer`, `node` → `xds.node`. 커스텀 Wasm 속성은 완전 수식 필요(`filter_state["wasm.istio_responseClass"]`). 우리가 할 일: `kubectl get telemetry -A -o yaml`에서 `filter_state`·`node.` grep. **기본 제공 메트릭·액세스 로그는 영향 없다**(Istio가 이미 맞춰 배포). 혼합 프록시 환경은 `has(...)` presence 연산자로 양쪽을 받는 식을 쓸 수 있다.
+- **Telemetry CEL 표준화** — 내용: CEL이 커스텀 Wasm 속성 대신 표준 Envoy 속성을 씁니다. `filter_state["wasm.downstream_peer"]` → `filter_state.downstream_peer`, `node` → `xds.node`. 커스텀 Wasm 속성은 완전 수식 필요(`filter_state["wasm.istio_responseClass"]`). 우리가 할 일: `kubectl get telemetry -A -o yaml`에서 `filter_state`·`node.` grep. **기본 제공 메트릭·액세스 로그는 영향 없다**(Istio가 이미 맞춰 배포). 혼합 프록시 환경은 `has(...)` presence 연산자로 양쪽을 받는 식을 쓸 수 있습니다.
 - **`istio-csr` ALPN 호환성** — 내용: 컨트롤 플레인 **내부 gRPC** 검증 강화(사용자 트래픽 아님). cert-manager `istio-csr`이 걸리고 **`v0.12.0`에는 fix가 없다**. 증상은 `"transport: authentication handshake failed: credentials: cannot check peer: missing selected ALPN property"`. 우리가 할 일: 외부 CA로 `istio-csr`을 쓰는지 확인. 쓰면 fix 포함 버전으로 올리거나 `meshConfig.defaultConfig.proxyMetadata.GRPC_ENFORCE_ALPN_ENABLED: "false"`.
-- **`istio.io/gateway-name` 라벨 제거** — 내용: 1.21.0에서 `gateway.networking.k8s.io/gateway-name`으로 바뀌며 병기됐던 구 라벨이 1.24.0에서 제거. 우리가 할 일: Grafana 쿼리·정책 셀렉터·스크립트에서 구 라벨 grep. **1.21~1.23 사이에 갱신하지 않은 채 1.24로 오면 여기서 끊긴다.**
-- **Helm values 11개 제거** — 내용: `pilot.{configNamespace,configSource,enableProtocolSniffingForOutbound,enableProtocolSniffingForInbound,useMCP}`, `global.{autoscalingV2API,configRootNamespace,defaultConfigVisibilitySettings,useMCP}`, `sidecarInjectorWebhook.{objectSelector,useLegacySelectors}` ([#51987](https://github.com/istio/istio/issues/51987)). 별도로 `istiod` 차트의 `istio_cni` values 제거([#52645](https://github.com/istio/istio/issues/52645), 1.22에서 [#49290](https://github.com/istio/istio/issues/49290)으로 폐기 예고). 우리가 할 일: values.yaml에서 위 키 grep. change-notes가 "had been without effect and in some cases long-deprecated"라고 밝혔듯 **이미 무효였던 값이 많지만, 제거 후에도 에러가 아니라 무시**라 죽은 설정이 남는다.
+- **`istio.io/gateway-name` 라벨 제거** — 내용: 1.21.0에서 `gateway.networking.k8s.io/gateway-name`으로 바뀌며 병기됐던 구 라벨이 1.24.0에서 제거. 우리가 할 일: Grafana 쿼리·정책 셀렉터·스크립트에서 구 라벨 grep. **1.21~1.23 사이에 갱신하지 않은 채 1.24로 오면 여기서 끊깁니다.**
+- **Helm values 11개 제거** — 내용: `pilot.{configNamespace,configSource,enableProtocolSniffingForOutbound,enableProtocolSniffingForInbound,useMCP}`, `global.{autoscalingV2API,configRootNamespace,defaultConfigVisibilitySettings,useMCP}`, `sidecarInjectorWebhook.{objectSelector,useLegacySelectors}` ([#51987](https://github.com/istio/istio/issues/51987)). 별도로 `istiod` 차트의 `istio_cni` values 제거([#52645](https://github.com/istio/istio/issues/52645), 1.22에서 [#49290](https://github.com/istio/istio/issues/49290)으로 폐기 예고). 우리가 할 일: values.yaml에서 위 키 grep. change-notes가 "had been without effect and in some cases long-deprecated"라고 밝혔듯 **이미 무효였던 값이 많지만, 제거 후에도 에러가 아니라 무시**라 죽은 설정이 남습니다.
 - **`sidecar.istio.io/enableCoreDump`·`--log_rotate_*` 제거** — 내용: 코어덤프 어노테이션과 레거시 로그 로테이션 플래그 삭제. 우리가 할 일: 각각 `samples/proxy-coredump` 방식과 외부 로그 로테이션 도구로 이관([logging 챕터]({{< relref "../../logging/_index.md" >}})의 수집 경로와 함께 결정).
 - **`1.20` compat profile 제거** — 내용: `ENABLE_EXTERNAL_NAME_ALIAS`·`PERSIST_OLDEST_FIRST_HEURISTIC_FOR_VIRTUAL_SERVICE_HOST_MATCHING`·`VERIFY_CERTIFICATE_AT_CLIENT`는 **플래그 자체가 삭제**되고 `ENABLE_AUTO_SNI`만 남았다. 우리가 할 일: 1.20 동작에 의존했다면 되돌릴 방법이 없다. §5.2·§5.3의 적응이 끝났는지 확인.
 

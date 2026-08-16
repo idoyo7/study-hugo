@@ -7,7 +7,7 @@ cascade:
 
 # 로깅 · 옵저버빌리티 — ES 말고 어떻게 관리할까
 
-> MSA 환경에서 로그·메트릭·RUM을 여러 저장소에 흩뿌리고 있는 팀이, **"이거랑 저거만 있으면 다 될 것 같은"** 최소 조합을 찾아가는 과정에서 검토한 솔루션들을 정리한 챕터다. Elasticsearch(OpenSearch) 기반 EFK 외에 애플리케이션 로깅을 어떤 방식으로 내재화할 수 있는지, 각 솔루션의 성격과 우리 케이스에서의 선택을 다룬다.
+> MSA 환경에서 로그·메트릭·RUM을 여러 저장소에 흩뿌리고 있는 팀이, **"이거랑 저거만 있으면 다 될 것 같은"** 최소 조합을 찾아가는 과정에서 검토한 솔루션들을 정리한 챕터입니다. Elasticsearch(OpenSearch) 기반 EFK 외에 애플리케이션 로깅을 어떤 방식으로 내재화할 수 있는지, 각 솔루션의 성격과 우리 케이스에서의 선택을 다룹니다.
 
 > 자매 챕터: [VictoriaMetrics 지식베이스]({{< relref "../monitoring/victoriametrics/_index.md" >}}) · [메트릭 400일 보관]({{< relref "../monitoring/longterm-retention/_index.md" >}}) — 메트릭 계층은 그쪽에서, 로그·RUM 계층은 이 챕터에서 다룬다. istio 액세스 로그·APM·RUM의 단독 심화는 별도 도메인([Istio]({{< relref "../istio/_index.md" >}}) · [APM]({{< relref "../apm/_index.md" >}}) · [RUM 내재화]({{< relref "../rum/_index.md" >}}))에서 이어질 예정. ClickHouse를 채택하기로 했을 때의 운영 전략(배포·스토리지·operator)은 [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) 도메인에서 다룬다(D4의 채택 여부 판단과 전제가 다르다).
 
@@ -58,4 +58,4 @@ cascade:
 | [ClickHouse vs StarRocks]({{< relref "07-clickhouse-vs-starrocks.md" >}}) | 로그/관측성 한정 정면 비교(8축 요약·판정) |
 | [우리 케이스 · 권장안]({{< relref "08-recommendation.md" >}}) | 최소 조합 아키텍처, 인건비 게이트, 저후회 시퀀싱, 하지 말 것, 결론 |
 
-> **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻한다.
+> **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻합니다.

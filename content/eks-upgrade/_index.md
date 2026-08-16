@@ -35,5 +35,5 @@ finance(금융) 도메인 EKS 클러스터를 신규 blue 클러스터로 갈아
 
 ## 자매 챕터
 
-- [Istio]({{< relref "../istio/_index.md" >}}) — 서비스 메시 운영. 이 챕터의 [components]({{< relref "components/_index.md" >}})가 istio sidecar 이관을 다룬다.
-- [모니터링]({{< relref "../monitoring/_index.md" >}}) — VictoriaMetrics 운영. 이 챕터의 [components]({{< relref "components/_index.md" >}})가 victoria-metrics-k8s-stack 버전업을 다룬다.
+- [Istio]({{< relref "../istio/_index.md" >}}) — 서비스 메시 운영. 이 챕터의 [components]({{< relref "components/_index.md" >}})가 istio sidecar 이관을 다룹니다.
+- [모니터링]({{< relref "../monitoring/_index.md" >}}) — VictoriaMetrics 운영. 이 챕터의 [components]({{< relref "components/_index.md" >}})가 victoria-metrics-k8s-stack 버전업을 다룹니다.

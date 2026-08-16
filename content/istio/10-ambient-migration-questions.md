@@ -7,11 +7,11 @@ weight: 10
 
 {{< callout type="info" >}}
 **한눈에**
-- 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})는 사이드카를 아예 거치지 않은 팀의 기록이라 **버리고 오는 쪽의 비용**이 빠져 있다. 이 문서가 그 칸을 우리 01~09에 되물어 채운다.
-- 가장 확실하게 무효가 되는 자산은 **EnvoyFilter**(08)다. ztunnel은 Envoy가 아니고, waypoint는 Envoy지만 EnvoyFilter가 공식 미지원·비권장이다.
-- 02의 가장 큰 레버였던 `Sidecar` 리소스는 waypoint의 destination 지향 스코프로 **대체**된다. 레버가 사라지는 게 아니라 손잡이 모양이 바뀐다.
-- 06의 대시보드는 메트릭 **이름은 살고 `reporter` 라벨이 갈린다.** waypoint가 없는 구간에서는 HTTP 메트릭 자체가 나오지 않는다.
-- **L7 정책이 걸린 워크로드에는 무중단 마이그레이션 경로가 없다**고 공식 가이드가 명시한다. 이 문장 하나가 전환 대상 선정 기준을 거의 다 정한다.
+- 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})는 사이드카를 아예 거치지 않은 팀의 기록이라 **버리고 오는 쪽의 비용**이 빠져 있습니다. 이 문서가 그 칸을 우리 01~09에 되물어 채웁니다.
+- 가장 확실하게 무효가 되는 자산은 **EnvoyFilter**(08)다. ztunnel은 Envoy가 아니고, waypoint는 Envoy지만 EnvoyFilter가 공식 미지원·비권장입니다.
+- 02의 가장 큰 레버였던 `Sidecar` 리소스는 waypoint의 destination 지향 스코프로 **대체**됩니다. 레버가 사라지는 게 아니라 손잡이 모양이 바뀝니다.
+- 06의 대시보드는 메트릭 **이름은 살고 `reporter` 라벨이 갈립니다.** waypoint가 없는 구간에서는 HTTP 메트릭 자체가 나오지 않습니다.
+- **L7 정책이 걸린 워크로드에는 무중단 마이그레이션 경로가 없다**고 공식 가이드가 명시합니다. 이 문장 하나가 전환 대상 선정 기준을 거의 다 정합니다.
 {{< /callout >}}
 
 이 문서는 우리 01~09(Sidecar mode 운영기)와 하위 섹션 [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})(채널코퍼레이션의 그린필드 도입 기록)를 이미 읽었다고 전제하고, 그 둘 사이에 빠진 칸 하나 — **이미 사이드카를 운영 중인 팀이 Ambient로 넘어갈 때 다시 심사해야 할 것** — 만 다룹니다. 결론을 내리는 문서가 아니라 질문을 세는 문서입니다. 각 절은 `무엇이 바뀌나` → `우리가 심사할 것` → `열린 질문` 순으로 갑니다.
@@ -26,8 +26,8 @@ weight: 10
 
 **EnvoyFilter**
 - 사이드카 모드(08): 최후의 수단으로 사용 가능
-- ztunnel: **적용 불가** — Rust로 새로 쓴 프록시라 Envoy 필터 모델 자체가 없다
-- waypoint: **공식 미지원·비권장** — "제한된 시나리오에서 가능할 수도 있으나 지원되지 않으며 메인테이너가 적극적으로 만류한다"
+- ztunnel: **적용 불가** — Rust로 새로 쓴 프록시라 Envoy 필터 모델 자체가 없습니다
+- waypoint: **공식 미지원·비권장** — "제한된 시나리오에서 가능할 수도 있으나 지원되지 않으며 메인테이너가 적극적으로 만류합니다"
 
 **WasmPlugin**
 - 사이드카 모드(08): 상위 API로 권장
@@ -37,7 +37,7 @@ weight: 10
 **TrafficExtension**
 - 사이드카 모드(08): —
 - ztunnel: 해당 없음
-- waypoint: 1.30에서 도입된 새 1차 확장 메커니즘. 기존 WasmPlugin과 완전 호환이고 1.30에서 강제 마이그레이션은 없다
+- waypoint: 1.30에서 도입된 새 1차 확장 메커니즘. 기존 WasmPlugin과 완전 호환이고 1.30에서 강제 마이그레이션은 없습니다
 
 **local/global rate limit**
 - 사이드카 모드(08): EnvoyFilter (08의 플래그십 사례)
@@ -49,16 +49,16 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 **우리가 심사할 것.**
 
 - `kubectl get envoyfilter -A`로 전수 목록을 뽑고 각각을 세 갈래로 분류한다 — (a) 사실은 표준 CRD로 되는 것, (b) WasmPlugin 또는 TrafficExtension으로 옮길 수 있는 것, (c) 옮길 데가 없는 것.
-- 08의 플래그십 사례인 레이트 리밋이 현재로선 (c)에 들어갈 공산이 크다. (c)로 판정된 워크로드는 **waypoint 뒤로 옮기지 못하거나, 사이드카로 남겨야 한다.** 이행 계획의 첫 제약이 여기서 나온다.
-- WasmPlugin이 Alpha라는 등급을 우리 프로덕션 기준으로 받아들일 수 있는지. 1.30 기준으로 TrafficExtension이 권장 경로로 병존하므로, 지금 WasmPlugin으로 옮기면 두 번 옮기게 될 가능성을 감수하는 것이다.
-- 우리 EnvoyFilter 중 istiod가 만든 설정을 패치하던 것들은, Ambient에서 같은 결과가 **정식 경로로 이미 조립되어 내려오는지** 먼저 확인한다 — 채널팀이 [02 Envoy config 해부]({{< relref "ambient/02-envoy-config-anatomy.md" >}})에서 뜯어본 것이 그 조립 결과물이다.
+- 08의 플래그십 사례인 레이트 리밋이 현재로선 (c)에 들어갈 공산이 큽니다. (c)로 판정된 워크로드는 **waypoint 뒤로 옮기지 못하거나, 사이드카로 남겨야 합니다.** 이행 계획의 첫 제약이 여기서 나옵니다.
+- WasmPlugin이 Alpha라는 등급을 우리 프로덕션 기준으로 받아들일 수 있는지. 1.30 기준으로 TrafficExtension이 권장 경로로 병존하므로, 지금 WasmPlugin으로 옮기면 두 번 옮기게 될 가능성을 감수하는 것입니다.
+- 우리 EnvoyFilter 중 istiod가 만든 설정을 패치하던 것들은, Ambient에서 같은 결과가 **정식 경로로 이미 조립되어 내려오는지** 먼저 확인한다 — 채널팀이 [02 Envoy config 해부]({{< relref "ambient/02-envoy-config-anatomy.md" >}})에서 뜯어본 것이 그 조립 결과물입니다.
 
 **열린 질문.**
 
-- waypoint에서 local/global rate limit을 구성하는 공식 지원 경로(문서화된 EnvoyFilter 예외, WasmPlugin·TrafficExtension 기반 필터, 로드맵)가 있는가. 공식 rate limit 태스크 문서는 EnvoyFilter 전제로만 쓰여 있고 ambient·waypoint를 전혀 언급하지 않는다. 커뮤니티 논의(discussion #55011, issue #54391)는 있으나 공식 근거는 못 찾았다.
-- "제한된 시나리오에서는 EnvoyFilter가 waypoint에 가능할 수도 있다"는 문장이 가리키는 시나리오가 구체적으로 무엇인가. 공식 문서에 세부 설명이 없다.
+- waypoint에서 local/global rate limit을 구성하는 공식 지원 경로(문서화된 EnvoyFilter 예외, WasmPlugin·TrafficExtension 기반 필터, 로드맵)가 있는가. 공식 rate limit 태스크 문서는 EnvoyFilter 전제로만 쓰여 있고 ambient·waypoint를 전혀 언급하지 않습니다. 커뮤니티 논의(discussion #55011, issue #54391)는 있으나 공식 근거는 못 찾았습니다.
+- "제한된 시나리오에서는 EnvoyFilter가 waypoint에 가능할 수도 있다"는 문장이 가리키는 시나리오가 구체적으로 무엇인가. 공식 문서에 세부 설명이 없습니다.
 - TrafficExtension이 Alpha를 벗는 목표 버전, 그리고 EnvoyFilter의 waypoint 공식 지원 로드맵 시점.
-- EnvoyFilter로 삽입하던 Lua 필터의 Ambient 대체 경로는 이번 조사 재료에 없다.
+- EnvoyFilter로 삽입하던 Lua 필터의 Ambient 대체 경로는 이번 조사 재료에 없습니다.
 
 ## 02 · 스코핑 레버 — `Sidecar` 리소스가 사라진 자리
 
@@ -73,15 +73,15 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 **우리가 심사할 것.**
 
-- 02에서 우리가 만들어 관리하던 `Sidecar` 리소스 목록을 뽑고, 각 네임스페이스가 ambient로 넘어갈 때 그 리소스를 지울지 남길지 정한다. 혼재 기간에는 사이드카 워크로드가 남아 있으므로 **두 스코핑 모델을 동시에 운영**하게 된다.
-- 우리가 `Sidecar`로 얻은 설정 범위 축소 효과가 waypoint 기본 스코프로 자동 재현되는지, 아니면 waypoint별로 다시 좁혀야 하는지. 재현된다면 02의 "가장 큰 레버"는 이행과 함께 손이 덜 가는 쪽으로 바뀐다.
+- 02에서 우리가 만들어 관리하던 `Sidecar` 리소스 목록을 뽑고, 각 네임스페이스가 ambient로 넘어갈 때 그 리소스를 지울지 남길지 정합니다. 혼재 기간에는 사이드카 워크로드가 남아 있으므로 **두 스코핑 모델을 동시에 운영**하게 됩니다.
+- 우리가 `Sidecar`로 얻은 설정 범위 축소 효과가 waypoint 기본 스코프로 자동 재현되는지, 아니면 waypoint별로 다시 좁혀야 하는지. 재현된다면 02의 "가장 큰 레버"는 이행과 함께 손이 덜 가는 쪽으로 바뀝니다.
 - 02의 두 번째 레버(디바운스, `discoverySelectors`)는 istiod 쪽 손잡이라 데이터 플레인 모드와 무관해 보이지만, 이번 재료로는 확인하지 못했다. 이행 전에 실제로 확인할 것.
 - 채널팀이 [01 왜 Ambient mode인가]({{< relref "ambient/01-why-ambient-mode.md" >}})에서 든 polynomial scaling problem은 우리 02의 "곱의 세 항"과 같은 얘기를 분모 쪽에서 본 것이다. 우리 클러스터의 세 항 중 어느 항이 실제로 큰지 먼저 재고 넘어갈 것.
 
 **열린 질문.**
 
-- `Sidecar` CRD를 waypoint에 적용하려 하면 무시되는지, 애초에 waypoint가 그 리소스를 조회하지 않는 구조인지 — 명시적 아키텍처 문장을 못 찾았다.
-- 'WDS(Workload Discovery Service)'라는 명칭이 1.30 공식 문서·API 레퍼런스의 공식 용어인지, 커뮤니티·코드베이스에서만 쓰이는 비공식 명칭인지. 공식 문서는 `Address`·`Authorization` 커스텀 xDS 리소스라고만 부른다.
+- `Sidecar` CRD를 waypoint에 적용하려 하면 무시되는지, 애초에 waypoint가 그 리소스를 조회하지 않는 구조인지 — 명시적 아키텍처 문장을 못 찾았습니다.
+- 'WDS(Workload Discovery Service)'라는 명칭이 1.30 공식 문서·API 레퍼런스의 공식 용어인지, 커뮤니티·코드베이스에서만 쓰이는 비공식 명칭인지. 공식 문서는 `Address`·`Authorization` 커스텀 xDS 리소스라고만 부릅니다.
 - 2023년 블로그의 destination 지향 waypoint 서술이 1.30에서도 그대로 유효한지, Gateway API 통합이 깊어지며 세부가 달라졌는지.
 
 ## 09 · 커넥션 산수 — 분모가 바뀌면 우리 계산은 어디까지 살아남나
@@ -99,12 +99,12 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 - 09에서 우리가 세운 임계값은 전부 "커넥션 수 × 커넥션당 config 크기"라는 곱 위에 있었다. 두 항이 동시에 줄면 **KEDA 트리거와 keepalive 주기를 다시 계산**해야 한다. 특히 15분 keepalive가 계속 필요한지.
 - 혼재 기간에는 istiod가 사이드카용 Envoy xDS와 ztunnel용 커스텀 xDS를 동시에 계산한다. `pilot_xds` 하나로 두 종류를 세는 오토스케일링은 **단가가 다른 것을 같은 단위로 세는** 구조가 된다. 카운터를 프록시 종류별로 쪼갤 수 있는지 확인할 것.
-- ztunnel이 DaemonSet이라는 사실은 09의 keepalive 손잡이와 [03-3 업그레이드 런북]({{< relref "ambient/03-3-ambient-upgrade-in-place.md" >}})의 node pool blue-green이 같은 일(강제 재연결)을 한다는 뜻이다. 두 개가 겹치는 창을 피하는 운영 규칙이 필요하다.
+- ztunnel이 DaemonSet이라는 사실은 09의 keepalive 손잡이와 [03-3 업그레이드 런북]({{< relref "ambient/03-3-ambient-upgrade-in-place.md" >}})의 node pool blue-green이 같은 일(강제 재연결)을 한다는 뜻입니다. 두 개가 겹치는 창을 피하는 운영 규칙이 필요하입니다.
 - 09가 다룬 "재분배 없음"의 반대편 증상 — 한 번 끊긴 스트림이 스스로 낫지 않는 문제 — 은 채널팀이 [03-4 507과 istiod disconnected]({{< relref "ambient/03-4-507-istiod-disconnected.md" >}})에서 탐지 문제로 만났다. 우리 readinessProbe·알럿을 그 기준으로 다시 볼 것.
 
 **열린 질문.**
 
-- istiod가 실제로 처리하는 xDS 커넥션·스트림 개수를 sidecar 모드 대비 ambient 모드에서 정량 비교한 공식 벤치마크나 문장이 있는가. Performance and Scalability 문서 쪽에 있을 수 있으나 이번 조사에서는 확인하지 못했다.
+- istiod가 실제로 처리하는 xDS 커넥션·스트림 개수를 sidecar 모드 대비 ambient 모드에서 정량 비교한 공식 벤치마크나 문장이 있는가. Performance and Scalability 문서 쪽에 있을 수 있으나 이번 조사에서는 확인하지 못했습니다.
 - 혼재 기간의 istiod 부하가 두 모드의 단순 합인지, 계산 경로가 갈리며 추가 비용이 붙는지.
 
 ## 06 · 관측성 — 대시보드가 어디까지 살아남나
@@ -113,8 +113,8 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 **HTTP 골든 시그널** (`istio_requests_total` 등)
 - 사이드카 모드(06): 모든 파드에서
-- ztunnel만 있을 때: **나오지 않는다**
-- waypoint가 있을 때: 나온다
+- ztunnel만 있을 때: **나오지 않습니다**
+- waypoint가 있을 때: 나옵니다
 
 **L4 메트릭**
 - 사이드카 모드(06): 함께 나옴
@@ -123,7 +123,7 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 **트레이싱**
 - 사이드카 모드(06): 사이드카가 스팬 생성(헤더 전파는 앱 몫)
-- ztunnel만 있을 때: L7 기능이 없어 waypoint가 필요하다
+- ztunnel만 있을 때: L7 기능이 없어 waypoint가 필요하입니다
 - waypoint가 있을 때: 참여
 
 **액세스 로그**
@@ -140,16 +140,16 @@ ztunnel이 EnvoyFilter를 받을 수 없는 이유는 정책이 아니라 구조
 
 **우리가 심사할 것.**
 
-- 우리 대시보드·알럿 중 `istio_requests_total` 계열에 의존하는 것을 전수로 뽑는다. 그 목록이 곧 **waypoint를 세워야 하는 서비스 목록**이다. 06이 "공짜"라 부른 것에 이제 배치 비용이 붙는다.
-- `reporter="destination"` 또는 `reporter="source"`로 필터하는 쿼리를 전수 검사한다. waypoint가 보고하는 트래픽을 **놓치거나 이중 계산**할 수 있고, 공식 문서·대시보드가 아직 이 값에 맞춰 갱신되지 않았다.
+- 우리 대시보드·알럿 중 `istio_requests_total` 계열에 의존하는 것을 전수로 뽑습니다. 그 목록이 곧 **waypoint를 세워야 하는 서비스 목록**입니다. 06이 "공짜"라 부른 것에 이제 배치 비용이 붙습니다.
+- `reporter="destination"` 또는 `reporter="source"`로 필터하는 쿼리를 전수 검사합니다. waypoint가 보고하는 트래픽을 **놓치거나 이중 계산**할 수 있고, 공식 문서·대시보드가 아직 이 값에 맞춰 갱신되지 않았습니다.
 - 06이 경고한 카디널리티 예산을 다시 계산한다. `reporter` 값이 하나 늘고 프록시 종류가 둘로 갈리면 시계열 수가 어떻게 변하는지.
-- 로그 파이프라인의 파서. ztunnel의 연결 단위 로그는 Envoy access log 포맷이 아니므로 [로깅 챕터]({{< relref "../logging/_index.md" >}}) 쪽 수집·파싱 규칙이 수정 대상이다.
+- 로그 파이프라인의 파서. ztunnel의 연결 단위 로그는 Envoy access log 포맷이 아니므로 [로깅 챕터]({{< relref "../logging/_index.md" >}}) 쪽 수집·파싱 규칙이 수정 대상입니다.
 - 채널팀이 [03-1 503과 Half-open Connection]({{< relref "ambient/03-1-503-half-open-connection.md" >}})에서 겪은 것처럼, 게이트웨이 로그에 `via_upstream`만 남고 실제 원인은 waypoint 로그에 있는 상황이 생긴다. 05의 hop 좁히기 순서를 그 전제로 다시 쓸 것.
 
 **열린 질문.**
 
-- waypoint의 access log를 Telemetry API로 설정하는 절차를 다루는 **ambient 전용 공식 페이지**를 찾지 못했다. 사이드카용 Telemetry API 로그 문서는 ambient·ztunnel·waypoint를 전혀 언급하지 않는다.
-- "ztunnel은 스팬을 생성하지 않는다"는 부정형 문장이 공식 페이지에 그 워딩으로 존재하는지. 확인한 것은 "waypoint가 tracing을 포함한 L7 기능을 제공한다"는 긍정형뿐이다.
+- waypoint의 access log를 Telemetry API로 설정하는 절차를 다루는 **ambient 전용 공식 페이지**를 찾지 못했습니다. 사이드카용 Telemetry API 로그 문서는 ambient·ztunnel·waypoint를 전혀 언급하지 않습니다.
+- "ztunnel은 스팬을 생성하지 않는다"는 부정형 문장이 공식 페이지에 그 워딩으로 존재하는지. 확인한 것은 "waypoint가 tracing을 포함한 L7 기능을 제공한다"는 긍정형뿐입니다.
 - istio/istio#51313의 현재 상태, 그리고 공식 Grafana 대시보드가 waypoint 트래픽을 자동 포함하도록 갱신되었는지.
 
 ## 07 · API 대응표 — 표에 세 번째 열이 붙는다
@@ -162,7 +162,7 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·
 - **헤더 조작** (07: VirtualService) → 위와 동일.
 - **CORS·타임아웃·재시도** (07: VirtualService) → 위와 동일.
 - **트래픽 분할(subset)** (07: DestinationRule subset + VirtualService) → HTTPRoute의 `backendRefs`가 subset을 가리킬 수 없다. subset별 Service를 새로 만들 것인지 결정 **(메인테이너 커뮤니티 답변 근거, 등급 한 단계 낮음)**.
-- **커넥션 풀·아웃라이어** (07: DestinationRule) → 1.23+ waypoint 정식 지원. 이 열은 그대로 산다.
+- **커넥션 풀·아웃라이어** (07: DestinationRule) → 1.23+ waypoint 정식 지원. 이 열은 그대로 삽니다.
 - **IP·워크로드 인가** (07: AuthorizationPolicy) → L4 속성만 쓰면 selector 그대로 ztunnel이 집행.
 - **JWT 인증** (07: RequestAuthentication + AuthorizationPolicy) → L7이므로 waypoint 필요, `targetRef`로 부착.
 - **레이트 리밋** (07: EnvoyFilter(08)) → 08 절 참조 — 공식 경로 미확인.
@@ -171,35 +171,35 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·
 
 **우리가 심사할 것.**
 
-- AuthorizationPolicy 전수 목록에서 L7 속성(경로, 메서드, 헤더 등)을 매치하는 것을 먼저 골라낸다. 이 목록이 자동 DENY 위험군이자 waypoint 필수 목록이다.
+- AuthorizationPolicy 전수 목록에서 L7 속성(경로, 메서드, 헤더 등)을 매치하는 것을 먼저 골라냅니다. 이 목록이 자동 DENY 위험군이자 waypoint 필수 목록입니다.
 - 07의 표에서 VirtualService에 몰려 있던 항목들을 HTTPRoute로 옮길지 결정한다. 부분 이전은 위험하다 — 같은 서비스에 두 API를 섞으면 undefined behavior다.
-- subset 기반 카나리·트래픽 분할을 쓰는 서비스 목록. subset별 Service 신설이 필요하면 GitOps 리포지토리 구조([04]({{< relref "04-config-as-code.md" >}}))도 함께 바뀐다.
+- subset 기반 카나리·트래픽 분할을 쓰는 서비스 목록. subset별 Service 신설이 필요하면 GitOps 리포지토리 구조([04]({{< relref "04-config-as-code.md" >}}))도 함께 바뀝니다.
 
 **열린 질문.**
 
-- 07의 `ext_authz(CUSTOM)` 경로가 waypoint에서 어떻게 되는지는 이번 재료로 확인하지 못했다.
+- 07의 `ext_authz(CUSTOM)` 경로가 waypoint에서 어떻게 되는지는 이번 재료로 확인하지 못했습니다.
 - VirtualService가 Alpha에서 Beta·GA로 승격되는 로드맵이 공식적으로 명시되어 있는지.
-- VirtualService·DestinationRule이 `targetRef` 없이 기존 host 매칭으로 waypoint에 바인딩된다는 것을 공식 문서 원문으로 확인하지 못했다.
+- VirtualService·DestinationRule이 `targetRef` 없이 기존 host 매칭으로 waypoint에 바인딩된다는 것을 공식 문서 원문으로 확인하지 못했습니다.
 
 ## 03 · 격리 원칙 — 폭발 반경 단위가 다시 정의된다
 
 **무엇이 바뀝니다.** [03]({{< relref "03-gateway-node-isolation.md" >}})의 격리는 공간의 격리였습니다 — taint/toleration과 nodeSelector로 전용 노드를 만들고 워크로드를 못 오게 합니다. Ambient는 여기에 **반드시 와야 하는 DaemonSet**과 **시간의 격리**를 추가합니다.
 
-- ztunnel Helm 차트의 기본 tolerations는 `{effect: NoSchedule, operator: Exists}`, `{key: CriticalAddonsOnly, operator: Exists}`, `{effect: NoExecute, operator: Exists}`다. key 없는 `Exists`는 해당 effect의 모든 taint에 매치되므로, **우리가 03에서 게이트웨이 전용 노드에 건 taint에도 ztunnel은 기본 설정만으로 이미 스케줄된다.** 이건 격리 정책과의 충돌이 아니라 전제의 변화다 — 막는 게 아니라 빠진 노드가 없는지 확인하는 일이 된다.
-- waypoint는 Gateway 리소스(`gatewayClassName: istio-waypoint`)로 배포된다. Gateway API 공통 메커니즘인 `spec.infrastructure.parametersRef`로 ConfigMap을 참조하면 생성되는 Deployment·Service·ServiceAccount·HPA·PDB를 커스터마이즈할 수 있고, GatewayClass 레벨에서 클래스 전체 기본값도 줄 수 있다. 우선순위는 builtin < GatewayClass < Gateway. 다만 **이 메커니즘이 waypoint에도 그대로 적용된다는 명시적 문장은 공식 문서에서 찾지 못했다** — waypoint 전용 문서는 "독립적으로 설치·업그레이드·스케일되며 istiod가 자동 관리한다"고만 적는다.
-- 장애 단위가 커진다. 채널팀 기준으로 ztunnel은 노드 전체, waypoint는 namespace 전체다. 03이 "관문은 전역 급소라 격리한다"고 한 논리가 **waypoint에 그대로 적용된다** — waypoint는 namespace 단위 급소다.
+- ztunnel Helm 차트의 기본 tolerations는 `{effect: NoSchedule, operator: Exists}`, `{key: CriticalAddonsOnly, operator: Exists}`, `{effect: NoExecute, operator: Exists}`다. key 없는 `Exists`는 해당 effect의 모든 taint에 매치되므로, **우리가 03에서 게이트웨이 전용 노드에 건 taint에도 ztunnel은 기본 설정만으로 이미 스케줄됩니다.** 이건 격리 정책과의 충돌이 아니라 전제의 변화다 — 막는 게 아니라 빠진 노드가 없는지 확인하는 일이 됩니다.
+- waypoint는 Gateway 리소스(`gatewayClassName: istio-waypoint`)로 배포됩니다. Gateway API 공통 메커니즘인 `spec.infrastructure.parametersRef`로 ConfigMap을 참조하면 생성되는 Deployment·Service·ServiceAccount·HPA·PDB를 커스터마이즈할 수 있고, GatewayClass 레벨에서 클래스 전체 기본값도 줄 수 있습니다. 우선순위는 builtin < GatewayClass < Gateway. 다만 **이 메커니즘이 waypoint에도 그대로 적용된다는 명시적 문장은 공식 문서에서 찾지 못했다** — waypoint 전용 문서는 "독립적으로 설치·업그레이드·스케일되며 istiod가 자동 관리한다"고만 적습니다.
+- 장애 단위가 커집니다. 채널팀 기준으로 ztunnel은 노드 전체, waypoint는 namespace 전체입니다. 03이 "관문은 전역 급소라 격리한다"고 한 논리가 **waypoint에 그대로 적용된다** — waypoint는 namespace 단위 급소입니다.
 
 **우리가 심사할 것.**
 
-- 03에서 만든 게이트웨이 전용 노드 그룹에 ztunnel이 실제로 뜨는지 확인한다. 안 뜨면 그 노드의 파드는 [03-2 partially enrolled]({{< relref "ambient/03-2-partially-enrolled-untaint-controller.md" >}}) 상태가 된다 — Running이고 Ready인데 메시 밖이다.
+- 03에서 만든 게이트웨이 전용 노드 그룹에 ztunnel이 실제로 뜨는지 확인합니다. 안 뜨면 그 노드의 파드는 [03-2 partially enrolled]({{< relref "ambient/03-2-partially-enrolled-untaint-controller.md" >}}) 상태가 된다 — Running이고 Ready인데 메시 밖입니다.
 - waypoint를 어디에 둘 것인가. 03의 원칙(전역 급소는 전용 노드로, AZ 분산, 안티어피니티, PDB)을 waypoint에 그대로 적용할지, 아니면 istiod 자동 관리에 맡길지.
-- waypoint의 HPA·PDB·리소스를 03의 게이트웨이 수준으로 맞출 수 있는지 실제 클러스터에서 확인한다. 공식 문서 근거가 약하므로 문서가 아니라 실험으로 확인해야 하는 항목이다.
-- 시간 축의 격리를 추가한다. untaint controller(`pilot.taint.enabled=true`)로 노드가 준비될 때까지 워크로드 스케줄을 미루는 것이 03의 공간 격리와 짝을 이룬다.
+- waypoint의 HPA·PDB·리소스를 03의 게이트웨이 수준으로 맞출 수 있는지 실제 클러스터에서 확인합니다. 공식 문서 근거가 약하므로 문서가 아니라 실험으로 확인해야 하는 항목입니다.
+- 시간 축의 격리를 추가합니다. untaint controller(`pilot.taint.enabled=true`)로 노드가 준비될 때까지 워크로드 스케줄을 미루는 것이 03의 공간 격리와 짝을 이룹니다.
 
 **열린 질문.**
 
 - waypoint의 nodeSelector·HPA·리소스 커스터마이즈가 waypoint에도 적용된다는 공식 문장이 istio.io에 있는지.
-- ztunnel DaemonSet toleration이 하드코딩되어 values.yaml로 설정 불가라고 주장하는 istio/istio#56086의 현재 상태. 실제 1.30 차트 코드는 이미 `.Values.tolerations`를 지원해 이슈 내용과 어긋난다.
+- ztunnel DaemonSet toleration이 하드코딩되어 values.yaml로 설정 불가라고 주장하는 istio/istio#56086의 현재 상태. 실제 1.30 차트 코드는 이미 `.Values.tolerations`를 지원해 이슈 내용과 어긋납니다.
 
 ## 이행 역학 — 01~09 어디에도 없는 절
 
@@ -209,32 +209,32 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·
 
 - **공식 가이드** — `ambient/migrate/` 아래 문서 세트가 있다. 네임스페이스 단위 6단계 — waypoint 활성화 → `istio.io/dataplane-mode=ambient` 라벨 → 사이드카 주입 라벨 제거 → 파드 재시작 → 구 사이드카 기반 정책 삭제 → 검증.
 - **무중단 여부** — **L7 정책이 걸린 경우 무중단 마이그레이션 경로가 현재 없다**고 공식 가이드가 명시.
-- **혼재** — 같은 메시 안에서 사이드카 파드와 ambient 파드가 east-west로 상호 통신한다. 사이드카가 목적지를 HBONE destination으로 발견하면 HBONE을 쓴다. `ISTIO_META_ENABLE_HBONE=true`가 필요하지만 ambient 프로파일이면 MeshConfig 기본값으로 이미 켜져 있다.
-- **혼재의 구멍** — **사이드카 → waypoint L7 상호운용은 미구현**이다. L3/L4 통신은 되지만 사이드카 클라이언트가 ambient 쪽 waypoint L7 정책을 그대로 타지는 못한다.
+- **혼재** — 같은 메시 안에서 사이드카 파드와 ambient 파드가 east-west로 상호 통신합니다. 사이드카가 목적지를 HBONE destination으로 발견하면 HBONE을 씁니다. `ISTIO_META_ENABLE_HBONE=true`가 필요하지만 ambient 프로파일이면 MeshConfig 기본값으로 이미 켜져 있습니다.
+- **혼재의 구멍** — **사이드카 → waypoint L7 상호운용은 미구현**입니다. L3/L4 통신은 되지만 사이드카 클라이언트가 ambient 쪽 waypoint L7 정책을 그대로 타지는 못합니다.
 - **라벨 우선순위** — 파드 라벨 > 네임스페이스 라벨. 주입 라벨과 ambient 라벨이 동시에 걸리면 지원 대상이 아니고 현재는 사이드카가 우선한다. 판별은 `sidecar.istio.io/status` 어노테이션 유무. 공식 권고는 네임스페이스마다 둘 중 하나만 갖는 것.
-- **재시작 비대칭** — ambient 편입은 재시작이 필요 없다. 반대로 사이드카 제거는 주입 라벨을 지우는 것만으로는 안 되고 **파드가 실제로 재시작돼야** 컨테이너가 빠진다.
+- **재시작 비대칭** — ambient 편입은 재시작이 필요 없습니다. 반대로 사이드카 제거는 주입 라벨을 지우는 것만으로는 안 되고 **파드가 실제로 재시작돼야** 컨테이너가 빠집니다.
 - **롤백** — 3단계(주입 라벨 제거) 이후 롤백은 라벨 재부착. 4단계(재시작) 이후 롤백은 라벨 재부착 + `kubectl rollout restart`, 그리고 파드가 2/2로 뜨는지 확인.
 
 **우리가 심사할 것.**
 
-- **첫 대상 네임스페이스 선정 기준**을 앞 절들의 결과로 만든다 — EnvoyFilter가 안 걸렸고(08 절), L7 AuthorizationPolicy가 없고(07 절), HTTP 대시보드 의존이 낮은(06 절) 곳. 세 조건 중 두 번째가 "무중단 경로 없음"에 직접 걸리므로 가장 무겁다.
-- **전환 창 산정.** 사이드카 제거는 rollout restart를 요구하고, 그 롤아웃 자체가 [02]({{< relref "02-istiod-control-plane.md" >}})가 말한 istiod push 이벤트다. 한 번에 몇 네임스페이스를 돌릴지는 [09]({{< relref "09-istiod-scaling-connections.md" >}})의 커넥션 산수와 같은 문제다.
-- **롤백 리허설.** 라벨 재부착 + rollout restart로 파드가 2/2로 돌아오고 트래픽이 정상인지를 스테이징에서 먼저 돌려 본다. 롤백 경로가 문서화되어 있다는 것과 우리 환경에서 동작한다는 것은 다른 얘기다.
+- **첫 대상 네임스페이스 선정 기준**을 앞 절들의 결과로 만든다 — EnvoyFilter가 안 걸렸고(08 절), L7 AuthorizationPolicy가 없고(07 절), HTTP 대시보드 의존이 낮은(06 절) 곳. 세 조건 중 두 번째가 "무중단 경로 없음"에 직접 걸리므로 가장 무겁습니다.
+- **전환 창 산정.** 사이드카 제거는 rollout restart를 요구하고, 그 롤아웃 자체가 [02]({{< relref "02-istiod-control-plane.md" >}})가 말한 istiod push 이벤트입니다. 한 번에 몇 네임스페이스를 돌릴지는 [09]({{< relref "09-istiod-scaling-connections.md" >}})의 커넥션 산수와 같은 문제입니다.
+- **롤백 리허설.** 라벨 재부착 + rollout restart로 파드가 2/2로 돌아오고 트래픽이 정상인지를 스테이징에서 먼저 돌려 봅니다. 롤백 경로가 문서화되어 있다는 것과 우리 환경에서 동작한다는 것은 다른 얘기입니다.
 - **혼재 기간의 정책 배치.** 클라이언트가 사이드카이고 서버가 ambient + waypoint인 조합에서는 L7 정책이 기대대로 걸리지 않는다. 인가를 어느 계층에 둘지 조합별로 정리할 것.
-- **정책 전수 재해석.** 사이드카 시절 만든 AuthorizationPolicy 중 L7 속성을 가진 것이 selector로 붙어 있으면 ztunnel 집행 대상이 되어 자동 DENY가 된다. 이행 전에 반드시 한 번 훑을 목록이다.
+- **정책 전수 재해석.** 사이드카 시절 만든 AuthorizationPolicy 중 L7 속성을 가진 것이 selector로 붙어 있으면 ztunnel 집행 대상이 되어 자동 DENY가 됩니다. 이행 전에 반드시 한 번 훑을 목록입니다.
 
 **열린 질문.**
 
-- 사이드카 시절 만든 AuthorizationPolicy가 전환 시 자동으로 어느 계층으로 재해석되는지, 그리고 자동 DENY 전환을 사용자에게 경고하는 공식 마이그레이션 문구가 있는지. `ambient/migrate/` 하위를 더 훑어야 한다.
+- 사이드카 시절 만든 AuthorizationPolicy가 전환 시 자동으로 어느 계층으로 재해석되는지, 그리고 자동 DENY 전환을 사용자에게 경고하는 공식 마이그레이션 문구가 있는지. `ambient/migrate/` 하위를 더 훑어야 합니다.
 - 사이드카 → waypoint L7 상호운용 미구현이 2026-07 최신 안정판에서도 여전한지. dataplane-modes 문서의 Unsupported features 목록을 최신 기준으로 재확인할 것.
-- "1.30에서 사이드카 → ambient 마이그레이션 가이드가 신규 도입되었다"는 서술을 릴리스 노트 1차 출처로 재확인하지 못했다.
+- "1.30에서 사이드카 → ambient 마이그레이션 가이드가 신규 도입되었다"는 서술을 릴리스 노트 1차 출처로 재확인하지 못했습니다.
 
 ## 이 문서에서 가져갈 것
 
-- **이행 계획의 첫 입력은 EnvoyFilter 목록과 L7 AuthorizationPolicy 목록이다.** 전자는 옮길 데가 없을 수 있고, 후자는 무중단 경로가 없다고 공식 가이드가 명시한다. 이 두 목록이 전환 순서를 거의 다 정한다.
-- **02와 06의 결론은 무효가 아니라 대체된다.** `Sidecar` 스코핑은 waypoint 기본 스코프로, 공짜 관측성은 "waypoint를 어디에 세울까"라는 배치 결정으로 바뀐다. 09의 GOMAXPROCS·CFS 사슬처럼 istiod 안쪽 얘기는 그대로 살아남는다.
+- **이행 계획의 첫 입력은 EnvoyFilter 목록과 L7 AuthorizationPolicy 목록입니다.** 전자는 옮길 데가 없을 수 있고, 후자는 무중단 경로가 없다고 공식 가이드가 명시합니다. 이 두 목록이 전환 순서를 거의 다 정합니다.
+- **02와 06의 결론은 무효가 아니라 대체됩니다.** `Sidecar` 스코핑은 waypoint 기본 스코프로, 공짜 관측성은 "waypoint를 어디에 세울까"라는 배치 결정으로 바뀝니다. 09의 GOMAXPROCS·CFS 사슬처럼 istiod 안쪽 얘기는 그대로 살아남습니다.
 - **답이 없는 항목이 이 문서의 절반이다.** waypoint의 rate limit 공식 경로, 기존 정책의 자동 재해석, waypoint 배치 커스터마이즈의 공식 근거 — 셋 다 공식 문서에서 확인하지 못했다. 이행 결정을 이 세 항목의 답이 나오기 전에 내리면 안 되는 것인지부터 정할 것.
-- **채널팀 기록은 대조군이지 우리 계획서가 아니다.** [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})의 네 가지 장애는 전부 "프록시가 파드 밖으로 나가서" 생긴 것이고, 그건 우리도 똑같이 받는다. 반면 이 문서의 절들은 "사이드카를 이미 운영했기 때문에" 생기는 비용이라 그쪽 기록에 없다.
+- **채널팀 기록은 대조군이지 우리 계획서가 아닙니다.** [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})의 네 가지 장애는 전부 "프록시가 파드 밖으로 나가서" 생긴 것이고, 그건 우리도 똑같이 받습니다. 반면 이 문서의 절들은 "사이드카를 이미 운영했기 때문에" 생기는 비용이라 그쪽 기록에 없습니다.
 
 ## 소스
 

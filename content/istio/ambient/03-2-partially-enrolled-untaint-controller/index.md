@@ -13,11 +13,11 @@ weight: 4
 
 {{< callout type="info" >}}
 **한눈에**
-- 특정 노드에서 새로 뜬 Pod이 간헐적으로 트래픽을 받지 못했다. Pod phase는 `Running`, readiness probe는 통과, Service 엔드포인트에도 들어가 있었는데 메시 데이터플레인 관점에서는 아직 처리 준비가 안 된 **partially enrolled** 상태였다.
-- Ambient에서 "메시에 참여했다"가 성립하려면 **두 단계**가 모두 끝나야 한다. ① istio-cni가 Pod network namespace에 리다이렉션 규칙을 심는다. ② ztunnel이 그 Pod을 workload로 인식하고 프록시를 준비한다. 하나만 빠져도 쿠버네티스는 정상이라 보고 메시는 처리하지 못한다.
-- 원인은 스케줄링 경합이다. **kube-scheduler는 DaemonSet의 준비 완료를 일반 워크로드 스케줄링의 선행 조건으로 보장하지 않는다.** 새 노드에서는 istio-cni·ztunnel DaemonSet Pod과 워크로드 Pod의 스케줄링이 거의 동시에 진행될 수 있다.
-- 공식 해법은 **untaint controller**다. 새 노드에 `cni.istio.io/not-ready` startup taint를 붙여 워크로드 스케줄링을 막아두고 istio-cni가 Ready가 되면 istiod 안의 컨트롤러가 그 taint를 뗀다.
-- 설정은 `pilot.taint.enabled=true`와 `PILOT_ENABLE_NODE_UNTAINT_CONTROLLERS` **두 개가 다 필요**했다. Istio 1.30부터는 전자를 켜면 후자가 자동 구성된다.
+- 특정 노드에서 새로 뜬 Pod이 간헐적으로 트래픽을 받지 못했습니다. Pod phase는 `Running`, readiness probe는 통과, Service 엔드포인트에도 들어가 있었는데 메시 데이터플레인 관점에서는 아직 처리 준비가 안 된 **partially enrolled** 상태였습니다.
+- Ambient에서 "메시에 참여했다"가 성립하려면 **두 단계**가 모두 끝나야 합니다. ① istio-cni가 Pod network namespace에 리다이렉션 규칙을 심습니다. ② ztunnel이 그 Pod을 workload로 인식하고 프록시를 준비합니다. 하나만 빠져도 쿠버네티스는 정상이라 보고 메시는 처리하지 못합니다.
+- 원인은 스케줄링 경합입니다. **kube-scheduler는 DaemonSet의 준비 완료를 일반 워크로드 스케줄링의 선행 조건으로 보장하지 않습니다.** 새 노드에서는 istio-cni·ztunnel DaemonSet Pod과 워크로드 Pod의 스케줄링이 거의 동시에 진행될 수 있습니다.
+- 공식 해법은 **untaint controller**다. 새 노드에 `cni.istio.io/not-ready` startup taint를 붙여 워크로드 스케줄링을 막아두고 istio-cni가 Ready가 되면 istiod 안의 컨트롤러가 그 taint를 뗍니다.
+- 설정은 `pilot.taint.enabled=true`와 `PILOT_ENABLE_NODE_UNTAINT_CONTROLLERS` **두 개가 다 필요**했습니다. Istio 1.30부터는 전자를 켜면 후자가 자동 구성됩니다.
 {{< /callout >}}
 
 [3-1편]({{< relref "03-1-503-half-open-connection.md" >}})의 503과 half-open connection은 이미 메시 안에 자리 잡은 커넥션이 언제 끊기는지를 다뤘습니다. 이번 편의 대상은 그보다 한 단계 앞입니다 — 애초에 메시에 제대로 들어오지 못한 Pod입니다. 겉으로 드러나는 증상은 똑같이 5xx인데 원인이 놓인 계층이 다릅니다. 앞쪽은 커넥션 타이밍이고 이쪽은 Pod 등록 타이밍입니다.
@@ -187,10 +187,10 @@ pilot:
 
 untaint controller가 없애는 것은 경합의 큰 축 하나입니다. 원문이 정리한 한계는 이렇습니다.
 
-- **untaint-controller가 보장하는 것은 istio-cni의 준비까지다.** ztunnel의 readiness까지 완전히 보장하지는 않는다. 앞서 본 시나리오 2(리다이렉션은 됐지만 ztunnel 연결·ACK 미준비)는 taint만으로 닫히지 않는다.
-- **기존 Pod의 재등록 경로가 남는다.** 이미 노드에 떠 있던 Pod이 다시 등록돼야 하는 상황에는 startup taint가 개입하지 않는다.
-- 리다이렉션 적용 이후의 ztunnel 단절, 그리고 `pending` 상태의 짧은 윈도우는 여전히 존재할 수 있다.
-- **taint는 반드시 인프라 단계에서 설정해야 한다.** 컨트롤러는 제거만 수행한다.
+- **untaint-controller가 보장하는 것은 istio-cni의 준비까지입니다.** ztunnel의 readiness까지 완전히 보장하지는 않습니다. 앞서 본 시나리오 2(리다이렉션은 됐지만 ztunnel 연결·ACK 미준비)는 taint만으로 닫히지 않습니다.
+- **기존 Pod의 재등록 경로가 남습니다.** 이미 노드에 떠 있던 Pod이 다시 등록돼야 하는 상황에는 startup taint가 개입하지 않습니다.
+- 리다이렉션 적용 이후의 ztunnel 단절, 그리고 `pending` 상태의 짧은 윈도우는 여전히 존재할 수 있습니다.
+- **taint는 반드시 인프라 단계에서 설정해야 합니다.** 컨트롤러는 제거만 수행합니다.
 
 원문이 링크한 [ambientmesh.io 운영 가이드](https://ambientmesh.io/docs/operations/untaint-controller/)는 컨트롤러가 실제로 도는지 확인하려면 istiod 로그를 보고 `istioctl admin log`로 untaint 관련 로그 레벨을 올리라고 안내합니다. 이 문단은 원문 본문이 아니라 원문이 인용한 문서의 내용입니다.
 
@@ -211,11 +211,11 @@ untaint controller가 없애는 것은 경합의 큰 축 하나입니다. 원문
 
 ## 이 문서에서 가져갈 것
 
-- **Ambient에서 Pod의 Ready는 메시 준비를 뜻하지 않는다.** `istio.io/dataplane-mode=ambient` 레이블은 의도일 뿐이고 실제 참여는 istio-cni의 netns 리다이렉션 규칙과 ztunnel의 workload 등록이 둘 다 끝나야 성립한다.
-- 등록 상태는 `ambient.istio.io/redirection` annotation으로 판별한다. `enabled`면 captured, `pending`이면 ztunnel이 아직 프록시하지 않는 상태다. annotation이 아예 없는 경우가 더 위험하다 — 트래픽이 실패하지 않고 mTLS·`AuthorizationPolicy`·telemetry를 우회한 채 성공한다.
-- kube-scheduler는 DaemonSet 준비를 워크로드 스케줄링의 선행 조건으로 보장하지 않는다. 노드 프로비저닝이 잦은 환경(오토스케일, 노드 교체)일수록 이 경합에 반복적으로 노출된다.
-- 해법은 사전 차단이다. `cni.istio.io/not-ready` startup taint로 스케줄 자체를 막고 istio-cni Ready 이후 untaint-controller가 taint를 뗀다. 재시도 로직은 존재하지만 재시도 성공 전까지의 구간은 그대로 트래픽 유실이다.
-- 설정은 `pilot.taint.enabled`(권한·네임스페이스)와 `PILOT_ENABLE_NODE_UNTAINT_CONTROLLERS`(컨트롤러 실행) 두 손잡이가 짝이며 Istio 1.30부터는 전자가 후자를 자동 구성한다. taint를 **붙이는 쪽은 인프라(Karpenter NodePool 등)** 이고 컨트롤러는 떼기만 한다.
+- **Ambient에서 Pod의 Ready는 메시 준비를 뜻하지 않습니다.** `istio.io/dataplane-mode=ambient` 레이블은 의도일 뿐이고 실제 참여는 istio-cni의 netns 리다이렉션 규칙과 ztunnel의 workload 등록이 둘 다 끝나야 성립합니다.
+- 등록 상태는 `ambient.istio.io/redirection` annotation으로 판별합니다. `enabled`면 captured, `pending`이면 ztunnel이 아직 프록시하지 않는 상태입니다. annotation이 아예 없는 경우가 더 위험하다 — 트래픽이 실패하지 않고 mTLS·`AuthorizationPolicy`·telemetry를 우회한 채 성공합니다.
+- kube-scheduler는 DaemonSet 준비를 워크로드 스케줄링의 선행 조건으로 보장하지 않습니다. 노드 프로비저닝이 잦은 환경(오토스케일, 노드 교체)일수록 이 경합에 반복적으로 노출됩니다.
+- 해법은 사전 차단입니다. `cni.istio.io/not-ready` startup taint로 스케줄 자체를 막고 istio-cni Ready 이후 untaint-controller가 taint를 뗍니다. 재시도 로직은 존재하지만 재시도 성공 전까지의 구간은 그대로 트래픽 유실입니다.
+- 설정은 `pilot.taint.enabled`(권한·네임스페이스)와 `PILOT_ENABLE_NODE_UNTAINT_CONTROLLERS`(컨트롤러 실행) 두 손잡이가 짝이며 Istio 1.30부터는 전자가 후자를 자동 구성합니다. taint를 **붙이는 쪽은 인프라(Karpenter NodePool 등)** 이고 컨트롤러는 떼기만 합니다.
 
 ## 소스
 
@@ -225,4 +225,4 @@ untaint controller가 없애는 것은 경합의 큰 축 하나입니다. 원문
   - [Untaint controller — ambientmesh.io 운영 가이드](https://ambientmesh.io/docs/operations/untaint-controller/)
   - [Istio 1.30 upgrade notes — untaint controller](https://istio.io/latest/news/releases/1.30.x/announcing-1.30/upgrade-notes/#untaint-controller)
   - [istio/istio.io PR #17190 — untaint-controller 문서 추가](https://github.com/istio/istio.io/pull/17190)
-- 이 문서가 다루지 못한 것: 원문에는 partially enrolled Pod을 찾는 구체적인 `kubectl`/`istioctl` 명령 전문, ztunnel 로그 메시지 원문, 경합 발생 빈도·복구 시간 같은 정량 수치가 실려 있지 않다. 해당 항목은 여기서도 채우지 않았다.
+- 이 문서가 다루지 못한 것: 원문에는 partially enrolled Pod을 찾는 구체적인 `kubectl`/`istioctl` 명령 전문, ztunnel 로그 메시지 원문, 경합 발생 빈도·복구 시간 같은 정량 수치가 실려 있지 않습니다. 해당 항목은 여기서도 채우지 않았습니다.

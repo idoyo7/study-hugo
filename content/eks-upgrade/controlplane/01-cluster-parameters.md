@@ -7,7 +7,7 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- **finance blue를 만들 때 못 박을 것 셋** — `upgradePolicy.supportType = STANDARD`(기본이 EXTENDED다), `deletionProtection = true`, 그리고 `serviceIpv4Cidr`·`ipFamily`·`bootstrapClusterCreatorAdminPermissions`. 뒤 셋은 지금 틀리면 재생성뿐이다.
+- **finance blue를 만들 때 못 박을 것 셋** — `upgradePolicy.supportType = STANDARD`(기본이 EXTENDED다), `deletionProtection = true`, 그리고 `serviceIpv4Cidr`·`ipFamily`·`bootstrapClusterCreatorAdminPermissions`. 뒤 셋은 지금 틀리면 재생성뿐입니다.
 - 최상위 29개 파라미터는 **create-only 8 · 단방향 불가역 6 · day-2 가변 15**로 갈린다(§1).
 - ⚠️ **`upgradePolicy.supportType` 기본값은 `EXTENDED`다.** 명시하지 않으면 표준지원 종료일부터 시간당 $0.60이 자동으로 붙고, 확장지원에 실제로 진입한 뒤에는 STANDARD로 못 돌아온다(§4).
 - **되돌릴 수 없는 문 넷** — `controlPlaneEgressMode`(CUSTOMER_ROUTED 진입), `encryptionConfig`(`DisassociateEncryptionConfig` API가 아예 없다), `authenticationMode`(전진만), `ipFamily`(생성 시 영구 고정)(§2).

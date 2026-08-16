@@ -8,9 +8,9 @@ weight: 5
 {{< callout type="info" >}}
 **한눈에**
 - **ArgoCD 토폴로지는 3-tier**입니다 — 허브가 워크로드 endpoint를 **하드코딩해 push**하는 tier-1과, 워크로드 자체 ArgoCD가 `kubernetes.default.svc`로 도는 tier-3이 완전히 다른 재지정 부담을 집니다.
-- **metrics-server=cluster-bootstrap의 raw manifest, kube-state-metrics=VM 스택 서브차트** — 어떤 ArgoCD 앱 스캔에도 독립 앱으로 안 잡힌다. "누락"으로 오독하기 쉽다.
-- 워크로드 API endpoint가 **8개 매니페스트, 총 19곳**에 하드코딩돼 있어 클러스터를 세울 때마다 전량 교체 + cluster secret 재발급이 필요하다.
-- 부트스트랩은 **Fargate 닭-달걀부터 service 배포까지** 하나의 마스터 순서로 흐른다.
+- **metrics-server=cluster-bootstrap의 raw manifest, kube-state-metrics=VM 스택 서브차트** — 어떤 ArgoCD 앱 스캔에도 독립 앱으로 안 잡힙니다. "누락"으로 오독하기 쉽습니다.
+- 워크로드 API endpoint가 **8개 매니페스트, 총 19곳**에 하드코딩돼 있어 클러스터를 세울 때마다 전량 교체 + cluster secret 재발급이 필요하입니다.
+- 부트스트랩은 **Fargate 닭-달걀부터 service 배포까지** 하나의 마스터 순서로 흐릅니다.
 {{< /callout >}}
 
 [02 클러스터 설정]({{< relref "02-cluster-config.md" >}})이 클러스터가 무엇인지, [03 managed addon]({{< relref "03-managed-addons.md" >}})이 EKS addon을 다뤘다면, 이 페이지는 그것들을 **어떤 순서로 올리고 어떻게 배선하는가**를 모웁니다. 여러 곳에 흩어져 있던 순서·인벤토리·endpoint 재바인딩을 여기서 단일 소유합니다.
@@ -76,12 +76,12 @@ managed nodegroup이 없어 "첫 EC2 노드가 어떻게 생기는가"라는 순
 첫 노드까지 뜬 뒤 애플리케이션 계층은 아래 순서로 배포한다(사내 blue-green 방법론의 wave).
 
 1. **karpenter**
-2. **cluster-bootstrap-v2**(aws-load-balancer-controller → external-secrets → argo-rollouts → metrics-server raw manifest) — 이후 모든 IRSA/Ingress/Secret 동작의 토대. v2는 keda를 포함하지 않으므로 **keda는 독립 앱으로 별도 설치**한다.
-3. **argocd(spoke) + argocd-external-secrets** — 워크로드 자체 ArgoCD가 tier-3를 reconcile하려면 필수. 정적 SA bearerToken/cluster 등록 secret을 신규 발급한다.
+2. **cluster-bootstrap-v2**(aws-load-balancer-controller → external-secrets → argo-rollouts → metrics-server raw manifest) — 이후 모든 IRSA/Ingress/Secret 동작의 토대. v2는 keda를 포함하지 않으므로 **keda는 독립 앱으로 별도 설치**합니다.
+3. **argocd(spoke) + argocd-external-secrets** — 워크로드 자체 ArgoCD가 tier-3를 reconcile하려면 필수. 정적 SA bearerToken/cluster 등록 secret을 신규 발급합니다.
 4. **network**: istio(+kiali) → node-local-dns
 5. **monitoring**: datadog → fluentbit → victoria-metrics(+scrape) → keda
 6. **management**: airflow-operator → eks-rbac → descheduler → virtual-service
-7. **service**: [05 컷오버·롤백]({{< relref "05-cutover-rollback.md" >}})의 배포 순서(API→consumer→batch)를 따른다.
+7. **service**: [05 컷오버·롤백]({{< relref "05-cutover-rollback.md" >}})의 배포 순서(API→consumer→batch)를 따릅니다.
 
 karpenter NodeClass AMI 핀은 목표 마이너로 갱신하지 않으면 신규 노드가 구버전 kubelet으로 생성됩니다. karpenter 컨트롤러는 0.36.2→1.14.0 이관이며 상세는 [components/01]({{< relref "components/01-karpenter.md" >}})이 잇습니다.
 

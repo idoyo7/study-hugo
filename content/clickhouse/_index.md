@@ -58,23 +58,23 @@ ClickHouse를 **어떻게 운영할지**를 다루는 도메인입니다. "채�
 ## 이 챕터 구성 (문서 지도)
 
 - **[Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})** — ClickHouse Cloud / BYOC / ClickHouse Private / Altinity.Cloud Anywhere / Aiven 비교와 TCO 크로스오버 — "인력 보유 여부"가 데이터 크기보다 결정적인 이유. Cloud가 쥔 부품 4개와 라이터 failover 재검토 트리거도 여기.
-- **[스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})** — 네 가지 스토리지 전략 비교, 로컬 NVMe hot + S3 cold 티어링, 휘발성 내구성 3종 세트(멀티 AZ replica·clickhouse-backup·Keeper), zero-copy 금지와 `plain_rewritable` 기각, Karpenter·재수화. 이 챕터의 **스토리지·티어링 정본**이다.
+- **[스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})** — 네 가지 스토리지 전략 비교, 로컬 NVMe hot + S3 cold 티어링, 휘발성 내구성 3종 세트(멀티 AZ replica·clickhouse-backup·Keeper), zero-copy 금지와 `plain_rewritable` 기각, Karpenter·재수화. 이 챕터의 **스토리지·티어링 정본**입니다.
 - **[Altinity operator]({{< relref "03-operator.md" >}})** — Altinity 채택 근거, 채택 손익분기점(replica 2개), operator 2종 공존 문제와 해법(Altinity로 통일 + ClickStack 외부 CH 연결).
 - **[operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})** — 03·02 결정을 "**처음** 서는 클러스터"로 묶는 종합 문서 — CHK/CHI 매니페스트 필드, local PV 5계층, storageManagement·티어링 주입, RF 선택과 쓰기 내구성 노브, 안티패턴·배포 전 체크리스트.
 - **[변경관리·스케일·롤링 업그레이드·복구]({{< relref "05-altinity-operations.md" >}})** — 서고 난 뒤의 변경관리 — 규모별 구성 관점, 스케일 in/out의 함정(자동 리밸런싱 없음·신규 shard 스키마 수동), ClickHouse 버전·operator 자체·Keeper 롤링 업그레이드, 노드 소실 재수화·Keeper 정족수 상실 복구 런북, 백업·모니터링·GitOps 연계.
 - **[프로덕션 운영 사례]({{< relref "06-production-usecases.md" >}})** — K8s + operator + 로컬 NVMe 실증(PostHog 등), Karpenter/재수화 운영 함정과 소규모 팀 운영 가능성.
-- **[로컬 NVMe 데이터스토어 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}})** — 02 결정의 **외부 강화 근거**. ScyllaDB·Kafka·Redpanda·ES/OpenSearch·Aerospike·TiKV·CockroachDB 등 9개 시스템 횡단 비교로 "로컬 NVMe 1차 + 복제 내구성 + S3 티어링"이 업계 표준인지 검증하고, 02에 없던 리스크(재수화 MTTR·cross-AZ 비용)와 node lifecycle 대가를 얹는다.
+- **[로컬 NVMe 데이터스토어 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}})** — 02 결정의 **외부 강화 근거**. ScyllaDB·Kafka·Redpanda·ES/OpenSearch·Aerospike·TiKV·CockroachDB 등 9개 시스템 횡단 비교로 "로컬 NVMe 1차 + 복제 내구성 + S3 티어링"이 업계 표준인지 검증하고, 02에 없던 리스크(재수화 MTTR·cross-AZ 비용)와 node lifecycle 대가를 얹습니다.
 - **[무신사 CDP — self-hosted ClickHouse에서 Cloud로]({{< relref "08-musinsa-cdp.md" >}})** — 노드 결합 스토리지로 스케일 국면까지 밀고 간 국내 CDP 사례 한 건의 상세 기록 — 걸린 것(스토리지 결합·고정 스펙·워크로드 간섭·운영 부담), Cloud 이전 사유, 절감 수치의 이식 한계.
 - **[Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}})** — 파일/테이블/카탈로그/엔진 4층 모델, ClickHouse 의 Iceberg 읽기·쓰기 버전 게이트(25.7~26.7), MergeTree 와의 성능·워크로드 격차, "S3 메인"의 세 갈래 분리와 Antalya 의 위치.
 - **[출처]({{< relref "10-sources.md" >}})** — 이 섹션 근거 URL 모음.
 
 ## 자매 챕터
 
-- [로깅 · 옵저버빌리티 → ClickHouse (self-hosted)]({{< relref "../logging/04-clickhouse.md" >}}) — 로그 내재화 관점에서의 **채택 여부** 판단(강점·약점·적합/부적합). 이 챕터의 how는 그 결정을 뒤집지 않는다.
-- [RUM 내재화 → HyperDX 심층]({{< relref "../rum/01-hyperdx-deep-dive.md" >}}) — ClickHouse를 백엔드로 쓰는 관측성 프론트(HyperDX/ClickStack)의 상세. 이 챕터가 운영하는 CH 위에 올라간다.
+- [로깅 · 옵저버빌리티 → ClickHouse (self-hosted)]({{< relref "../logging/04-clickhouse.md" >}}) — 로그 내재화 관점에서의 **채택 여부** 판단(강점·약점·적합/부적합). 이 챕터의 how는 그 결정을 뒤집지 않습니다.
+- [RUM 내재화 → HyperDX 심층]({{< relref "../rum/01-hyperdx-deep-dive.md" >}}) — ClickHouse를 백엔드로 쓰는 관측성 프론트(HyperDX/ClickStack)의 상세. 이 챕터가 운영하는 CH 위에 올라갑니다.
 
 ## 우리 케이스에서는
 
 로깅 챕터의 D4(**통합 저장소는 earn-it-last**)는 여전히 유효합니다 — 로그만 놓고 self-hosted CH를 1차로 밀지 않습니다. 이 챕터는 그 판단과 모순되지 않으며, **RUM을 Datadog에서 빼내고 범용 분석까지 CH로 흡수하기로 결정한 뒤**에야 의미를 가집니다. 그 결정이 서면, 배포는 EKS self-host(단, 인력·20TB+·성능 요구 세 조건 충족 전제), 스토리지는 로컬 NVMe hot + S3 cold, operator는 Altinity로 통일하고 ClickStack은 외부 CH를 참조하게 하는 것이 조사의 권고입니다. 세 조건 중 하나라도 못 박히지 않으면 managed 견적과 반드시 비교하고, 애초에 채택 자체를 재검토합니다. 시점 기준 2026-08.
 
-> **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻한다.
+> **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻합니다.

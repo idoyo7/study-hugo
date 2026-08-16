@@ -30,7 +30,7 @@ S3 native 저장과 remote_write native 수신으로 매력적으로 보이지�
 
 - **remote_write 수신**: vmagent가 `/api/v1/push`로 그대로 송신할 수 있다(자동 Prometheus proto 다운그레이드, `-remoteWrite.forcePromProto` 명시 권장). out-of-order를 기본 거부(409)하므로 해당 URL에 `-remoteWrite.queues=1`이 필요하다 — 이 레그의 백프레셔·OOM 리스크는 Thanos안과 동일하다([03 Thanos안]({{< relref "03-thanos-s3.md" >}}) 참조).
 - **멀티테넌시**: `X-Scope-OrgID` 헤더가 필요하다(테넌시 비활성화 시 생략 가능).
-- **S3 retention**: `-compactor.blocks-retention-period` 단일 플래그로 잡는다(YAML `limits.compactor_blocks_retention_period`, 테넌트별 오버라이드 가능). **기본값 0 = 무기한**이라 명시하지 않으면 S3가 영원히 쌓인다.
+- **S3 retention**: `-compactor.blocks-retention-period` 단일 플래그로 잡는다(YAML `limits.compactor_blocks_retention_period`, 테넌트별 오버라이드 가능). **기본값 0 = 무기한**이라 명시하지 않으면 S3가 영원히 쌓입니다.
 
 ## 탈락 사유 (검증됨)
 
@@ -85,7 +85,7 @@ VM 자체 벤치마크(2022-09, 벤더 작성, Mimir 2.2 상대)는 실측 사�
 
 - 대규모 **멀티테넌시**(팀별 격리·per-tenant limit)와 Grafana 스택 표준화가 **독립 목표**가 될 때
 - raw 400d S3 + Kafka 운영을 수용할 수 있을 때
-- **그 경우에도** "5m 장기"가 요구로 남아 있으면 여전히 부적합하다 — 다운샘플링 부재는 버전이 바뀌기 전까지 변하지 않는다.
+- **그 경우에도** "5m 장기"가 요구로 남아 있으면 여전히 부적합하다 — 다운샘플링 부재는 버전이 바뀌기 전까지 변하지 않습니다.
 
 ## 출처
 

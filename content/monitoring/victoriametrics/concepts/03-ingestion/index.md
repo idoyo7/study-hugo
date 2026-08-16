@@ -87,7 +87,7 @@ vminsert가 vmstorage에 붙을 때 다음 순서를 밟습니다.
 압축 협의가 연결 초반에 들어간다는 점이 특징입니다. 여기에 **`rpc.disableCompression`** 옵션이 있습니다. 켜면 전송 시 압축을 하지 않습니다.
 
 - **압축 On(기본)**: 대역폭 절약, CPU 소비 증가.
-- **`rpc.disableCompression` On(압축 Off)**: **CPU는 절약되지만 대역폭이 늘어난다.**
+- **`rpc.disableCompression` On(압축 Off)**: **CPU는 절약되지만 대역폭이 늘어납니다.**
 
 즉 네트워크 밴드위스는 충분하고 CPU를 아끼고 싶은 환경이라면 압축을 끄는 트레이드오프가 성립합니다.
 

@@ -7,11 +7,11 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- **웹 RUM 대체 후보로는 사실상 유일**하지만, OSS 접근통제 공백(SSO·RBAC·멀티테넌시·감사로그 전무)이 다중 팀 도입의 결정적 게이트다.
-- 3 코어(ClickHouse·HyperDX·OTel Collector) + **메타데이터 전용 MongoDB가 필수 의존성**으로 붙는다 — 자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only' 모드에서도 사라지지 않는다.
-- 배포 6모드 중 프로덕션 적합은 Managed 또는 Helm뿐이고, 자체 인프라를 지키려면 **HyperDX Only**가 정답 축이다.
+- **웹 RUM 대체 후보로는 사실상 유일**하지만, OSS 접근통제 공백(SSO·RBAC·멀티테넌시·감사로그 전무)이 다중 팀 도입의 결정적 게이트입니다.
+- 3 코어(ClickHouse·HyperDX·OTel Collector) + **메타데이터 전용 MongoDB가 필수 의존성**으로 붙는다 — 자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only' 모드에서도 사라지지 않습니다.
+- 배포 6모드 중 프로덕션 적합은 Managed 또는 Helm뿐이고, 자체 인프라를 지키려면 **HyperDX Only**가 정답 축입니다.
 - 기능 성숙도: 로그검색·트레이스·웹 세션 리플레이는 🟢, 모바일 RUM은 🔴(네이티브 리플레이 없음), 메트릭은 🟡(PromQL 미지원).
-- **RBAC는 Managed(ClickHouse Cloud) 전용으로만 GA**됐고 OSS는 SSO/RBAC/멀티테넌시/감사로그가 전무하다 — self-host를 고수하려면 oauth2-proxy·팀별 인스턴스·row policy를 조합해야 한다.
+- **RBAC는 Managed(ClickHouse Cloud) 전용으로만 GA**됐고 OSS는 SSO/RBAC/멀티테넌시/감사로그가 전무하다 — self-host를 고수하려면 oauth2-proxy·팀별 인스턴스·row policy를 조합해야 합니다.
 {{< /callout >}}
 
 HyperDX/ClickStack을 **"Datadog RUM 대체 + 통합 관측성 플랫폼" 후보로 도입할 때**의 실사(due-diligence) 페이지입니다. "로그 스토어 선택지로서의 요약 판단"은 로깅 챕터의 [HyperDX / ClickStack]({{< relref "../logging/05-hyperdx-clickstack.md" >}})가 이미 다루므로 강점·약점 재나열은 하지 않고, 여기서는 **도입 결정에 필요한 팩트** — 연혁·아키텍처·배포 모드·기능 성숙도·라이선스·거버넌스 갭 — 을 플랫폼 실사 관점으로 심화합니다.
@@ -139,7 +139,7 @@ ClickStack은 신호별 최적화 스키마를 자동 생성합니다(codecs·TT
 | **멀티테넌시** | **없음** — 인스턴스당 단일 팀. multi-tenant는 Cloud 전용 `✓` |
 | **감사로그** | **없음**(전 배포 공통 미출시) `✓` |
 
-- **RBAC는 이미 GA됐으나 OSS로 오지 않았다.** 2026-04-01 RBAC 공지는 **Managed ClickStack(ClickHouse Cloud) 전용**이고, 사용자는 ClickHouse Cloud 조직 레벨에서 관리된다. OSS RBAC 요청 이슈 #1293은 **not planned로 CLOSED** `✓`. → "로드맵 GA를 기다린다"는 전략은 RBAC에 관한 한 **로드맵에 없는 것을 기다리는 것**이다.
+- **RBAC는 이미 GA됐으나 OSS로 오지 않았습니다.** 2026-04-01 RBAC 공지는 **Managed ClickStack(ClickHouse Cloud) 전용**이고, 사용자는 ClickHouse Cloud 조직 레벨에서 관리됩니다. OSS RBAC 요청 이슈 #1293은 **not planned로 CLOSED** `✓`. → "로드맵 GA를 기다린다"는 전략은 RBAC에 관한 한 **로드맵에 없는 것을 기다리는 것**입니다.
 - **감사로그**는 아직 미출시이나, RBAC 선례를 보면 **Cloud 전용 착지 가능성이 높다** `≈`.
 
 {{< callout type="warning" >}}
@@ -174,6 +174,6 @@ oauth2-proxy는 HyperDX 자체 로그인을 못 꺼 이중 로그인이 생기�
 두 챕터는 **양립합니다**. 로그는 여전히 VictoriaLogs에 두고(CH로 옮기라는 게 아님), **모바일 RUM은 Datadog에 잔류**시킵니다. 조사 [권고]는 이 전제 위에서:
 
 - **RUM은 SDK 교체(`@hyperdx/browser`)로 간다.** 프록시 매핑이 아니다 — 웹 세션 리플레이·CWV·프론트↔백엔드 상관을 dual-instrument로 병행 검증한 뒤 컷오버. RUM 대체는 **대규모 프로덕션 레퍼런스가 아직 얇아 PoC 성공을 진입 게이트**로 삼는다 `≈`.
-- **ClickHouse는 HyperDX Only로 붙인다.** ClickStack 내장 CH를 켜지 말고 자체 운영 CH(범용 분석 겸용)에 연결해 operator를 일원화한다. CH 배포·operator 판단은 [ClickHouse 심층]({{< relref "../clickhouse/_index.md" >}})에서 다룬다.
+- **ClickHouse는 HyperDX Only로 붙입니다.** ClickStack 내장 CH를 켜지 말고 자체 운영 CH(범용 분석 겸용)에 연결해 operator를 일원화합니다. CH 배포·operator 판단은 [ClickHouse 심층]({{< relref "../clickhouse/_index.md" >}})에서 다룹니다.
 - **메트릭은 HyperDX로 몰지 않는다.** PromQL 부재·대시보드/알림 미성숙 때문에 메트릭 계층은 VictoriaMetrics + Grafana로 분리 존치한다 `✓`.
-- **최대 리스크는 OSS 접근통제 공백이다.** 다중 팀 광범위 롤아웃을 단일 OSS 인스턴스로 하면 Datadog 대비 거버넌스가 후퇴한다 → 파일럿은 oauth2-proxy 경계 SSO, 중간 롤아웃은 팀별 인스턴스 + row policy, 규제/감사 필수 팀만 Managed로 분리하는 **단계적 하이브리드**로 완화한다.
+- **최대 리스크는 OSS 접근통제 공백입니다.** 다중 팀 광범위 롤아웃을 단일 OSS 인스턴스로 하면 Datadog 대비 거버넌스가 후퇴한다 → 파일럿은 oauth2-proxy 경계 SSO, 중간 롤아웃은 팀별 인스턴스 + row policy, 규제/감사 필수 팀만 Managed로 분리하는 **단계적 하이브리드**로 완화합니다.

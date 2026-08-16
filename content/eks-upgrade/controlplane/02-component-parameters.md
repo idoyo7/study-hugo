@@ -8,7 +8,7 @@ weight: 2
 {{< callout type="info" >}}
 **한눈에**
 - **판정: 실제 후보는 `MostAllocated` 하나**이고 그것도 blue 안정화 이후 별건이다. create 시점에는 4개 전부 기본값으로 둔다(§8).
-- **4개가 열렸고 그중 3개는 추가 과금이 없다.** scoringStrategy·eventTtl·serviceNodePortRange는 **k8s 1.31+** 전 리전에서 무료로 쓸 수 있고, **HPA syncPeriod만 Provisioned Control Plane**(월 증분 **+$1,204.50**)이 전제다.
+- **4개가 열렸고 그중 3개는 추가 과금이 없습니다.** scoringStrategy·eventTtl·serviceNodePortRange는 **k8s 1.31+** 전 리전에서 무료로 쓸 수 있고, **HPA syncPeriod만 Provisioned Control Plane**(월 증분 **+$1,204.50**)이 전제입니다.
 - **완전 개방이 아니라 검증된 범위 안의 개방이다.** 범위 폭(HPA 5초 · eventTtl 축소 방향만 · 스케줄러 전략 2종만)이 그대로 AWS의 책임 경계 선언이다 — 업스트림 kube-controller-manager에는 sync period validation이 **아예 없다**(§2).
 - **karpenter는 이 설정을 읽지 않는다.** karpenter-core v1.14.0 전체에서 scoringStrategy 관련 심볼이 grep 0건이다. 게다가 점수 공식이 각 항을 **그 노드 자신의 allocatable로 나누므로** "노드의 cpu/memory 비율에 맞춰 가중치를 조정한다"는 작업은 애초에 필요하지 않다(§4).
 - **AWS 문서와 실제가 어긋난다.** User Guide는 Terraform을 "coming soon"이라 쓰지만 provider **v6.59.0**(발표 당일)에 이미 들어왔고, eksctl·CDK는 반대로 과대 서술이다(§6).
@@ -16,7 +16,7 @@ weight: 2
 
 2026-08-12, EKS가 관리형 컨트롤 플레인 3개 컴포넌트의 파라미터 4종을 고객 설정 대상으로 열었습니다. 지금까지 kube-scheduler·kube-apiserver·kube-controller-manager 설정은 손댈 수 없는 영역이었습니다. 노드를 채워 써서 컴퓨트 비용을 줄이고 싶어도 관리형 스케줄러의 전략을 바꿀 방법이 없었습니다. [목표버전]({{< relref "../01-target-version.md" >}})에서 확정한 blue의 목표는 **1.35**이고 이 4종의 하한은 **1.31**입니다. blue는 4개를 전부 쓸 수 있는 상태로 태어납니다. 그래서 이 페이지는 **"써야 하나"**를 판정합니다. "쓸 수 있나"는 이미 답이 나와 있습니다. 클러스터 레벨 파라미터와 가변성 3분류는 [레이어 1]({{< relref "01-cluster-parameters.md" >}}), HPA syncPeriod가 요구하는 용량 축은 [Provisioned Control Plane]({{< relref "03-provisioned-control-plane.md" >}}), 이번에도 여전히 닫혀 있는 플래그들은 [레이어 3]({{< relref "04-not-tunable.md" >}})이 다룹니다.
 
-> 이 페이지의 모든 `path:line` 인용은 로컬 클론 기준이다 — 쿠버네티스는 **v1.37 개발 브랜치 커밋 `752b8875`(2026-07-26)**, karpenter-core는 **`ac7a021e`(`v1.14.0-6`, 2026-07-27)**. 1.31~1.36 배포본에서는 줄번호가 다를 수 있다. 다만 네 필드 모두 1.19~1.23 사이에 도입돼 이후 API 계약이 바뀌지 않았으므로 개념·기본값 자체는 안정적이다.
+> 이 페이지의 모든 `path:line` 인용은 로컬 클론 기준이다 — 쿠버네티스는 **v1.37 개발 브랜치 커밋 `752b8875`(2026-07-26)**, karpenter-core는 **`ac7a021e`(`v1.14.0-6`, 2026-07-27)**. 1.31~1.36 배포본에서는 줄번호가 다를 수 있습니다. 다만 네 필드 모두 1.19~1.23 사이에 도입돼 이후 API 계약이 바뀌지 않았으므로 개념·기본값 자체는 안정적입니다.
 
 ## 1. 무엇이 열렸나
 
@@ -117,8 +117,8 @@ karpenter·Auto Mode와의 관계는 AWS가 원론부터 못박습니다. "The s
 
 함정은 여기서 나옵니다.
 
-1. **신규 이벤트에만 적용된다.** 기존 이벤트는 생성 시점 TTL로 만료되므로 스토리지 회수가 점진적이다. 바꾸고 나서 etcd 크기가 즉시 줄지 않는 것이 정상이다.
-2. **삭제된 이벤트는 복구할 수 없다.** 축소는 외부 보존 파이프라인이 **이미 돌고 있다는 전제**에서만 안전하다.
+1. **신규 이벤트에만 적용됩니다.** 기존 이벤트는 생성 시점 TTL로 만료되므로 스토리지 회수가 점진적입니다. 바꾸고 나서 etcd 크기가 즉시 줄지 않는 것이 정상입니다.
+2. **삭제된 이벤트는 복구할 수 없습니다.** 축소는 외부 보존 파이프라인이 **이미 돌고 있다는 전제**에서만 안전하입니다.
 3. **설정한 기간보다 살짝 더 오래 남을 수 있다.** AWS 원문은 이렇다. "Events can persist slightly beyond the configured period ... because of etcd lease renewal that might happen during control plane leader election."
 
 3번은 표현을 그대로 옮겼지만 오픈소스 코드에서 이 메커니즘의 근거는 **확인되지 않았습니다.** 이벤트 TTL 만료는 kube-apiserver → etcd lease 경로로만 구현돼 있습니다(`pkg/registry/core/event/storage/storage.go:36-41` → `staging/.../etcd3/lease_manager.go`). kube-controller-manager의 leader election과는 코드 경로상 연결점이 없습니다. 업스트림에 실재하는 유사 현상은 **lease 재사용 최적화**입니다. 같은 TTL의 이벤트들을 하나의 lease에 묶으려고 `min(60s, TTL의 5%)`를 얹어 lease를 발급하므로(`lease_manager.go:28-29, 85-113`) 개별 이벤트의 실제 삭제가 설정값보다 수십 초 늦어질 수 있습니다. AWS 문구가 관리형 구현의 비공개 디테일을 가리키는 것일 수도 있어 어느 쪽이라 단정하지 않습니다. 실무 결론은 같습니다. eventTtl은 **하드 데드라인이 아닙니다.**
@@ -138,8 +138,8 @@ karpenter·Auto Mode와의 관계는 AWS가 원론부터 못박습니다. "The s
 
 가장 자주 놓치는 함정은 `allocateLoadBalancerNodePorts`입니다.
 
-- `Service.spec.allocateLoadBalancerNodePorts`의 **기본값은 `true`**다. 그래서 LoadBalancer 타입 서비스는 **`target-type: ip`를 쓰더라도** 명시적으로 `false`로 두지 않으면 NodePort를 계속 할당해 슬롯을 소비한다. 트래픽이 그 포트를 타지 않아도 슬롯은 줄어든다.
-- 반대로 NLB instance 모드에서 `false`로 두면 AWS Load Balancer Controller가 **reconcile에 실패한다**(LBC 공식 문서 명시). `ip` 모드에는 해당하지 않는다.
+- `Service.spec.allocateLoadBalancerNodePorts`의 **기본값은 `true`**다. 그래서 LoadBalancer 타입 서비스는 **`target-type: ip`를 쓰더라도** 명시적으로 `false`로 두지 않으면 NodePort를 계속 할당해 슬롯을 소비합니다. 트래픽이 그 포트를 타지 않아도 슬롯은 줄어듭니다.
+- 반대로 NLB instance 모드에서 `false`로 두면 AWS Load Balancer Controller가 **reconcile에 실패한다**(LBC 공식 문서 명시). `ip` 모드에는 해당하지 않습니다.
 
 이 스위치는 "쓰지 않는 포트를 아끼는 최적화"와 "LBC를 깨뜨리는 설정"이 같은 필드에 붙어 있는 구조입니다. 서비스별 target-type을 확인한 뒤에만 만져야 합니다.
 
@@ -227,8 +227,8 @@ karpenter 코어 메인테이너(jonathan-innis)도 2024년 이슈 `kubernetes-s
 
 이 파라미터로는 불가능합니다. 대안의 성격은 서로 다릅니다.
 
-- **karpenter NodePool 설계** — 인스턴스 패밀리 제약 + 워크로드 nodeAffinity로 "어떤 워크로드가 어떤 모양의 노드에 가는가"를 NodePool 경계로 표현한다. 가중치가 아니라 후보 집합 자체를 나누는 접근이다.
-- **자체 스케줄러 배포** — 별도 scheduling profile을 담은 두 번째 스케줄러를 띄우고 파드에 `schedulerName`을 지정한다. 클러스터 내부 우회 수단이므로 [레이어 3]({{< relref "04-not-tunable.md" >}})이 다룬다. §3.1이 언급한 프리엠션 불일치 문제가 여기서 되살아난다는 점을 기억해야 한다.
+- **karpenter NodePool 설계** — 인스턴스 패밀리 제약 + 워크로드 nodeAffinity로 "어떤 워크로드가 어떤 모양의 노드에 가는가"를 NodePool 경계로 표현합니다. 가중치가 아니라 후보 집합 자체를 나누는 접근입니다.
+- **자체 스케줄러 배포** — 별도 scheduling profile을 담은 두 번째 스케줄러를 띄우고 파드에 `schedulerName`을 지정합니다. 클러스터 내부 우회 수단이므로 [레이어 3]({{< relref "04-not-tunable.md" >}})이 다룹니다. §3.1이 언급한 프리엠션 불일치 문제가 여기서 되살아난다는 점을 기억해야 합니다.
 
 ⚠️ **이름 충돌 경고.** karpenter NodePool에도 `weight` 필드가 있습니다. 그것은 **NodePool 선택 우선순위**이고 이 scoring `resources[].weight`와는 **완전히 다른 개념**입니다. 같은 클러스터의 두 YAML에 같은 이름의 필드가 다른 의미로 앉아 있으므로 리뷰에서 반드시 구분해 읽어야 합니다.
 
@@ -438,9 +438,9 @@ getting-started 가이드의 전제조건은 "describe and update Amazon EKS clu
 | ⚠️ **AWS CDK** | "CDK at launch" | **4개 파라미터 미지원** — aws-cdk 저장소 전체 코드 검색 0건. `controlPlaneScalingTier`(Provisioned CP 티어)만 지원(PR #36651 머지 2026-07-29, `aws-cdk-lib` 2.263.0+에서 enum 실물 확인) | L1 `CfnCluster` escape hatch |
 | ACK | "coming soon" | 미확인 | — |
 
-- **Terraform은 문서가 과소평가하고 있다.** "coming soon"을 믿고 awscc 프로바이더 우회나 CloudFormation 스택 경유를 설계하면 헛수고다. 네이티브 지원이 발표 당일부터 있었다.
-- **eksctl과 CDK는 문서가 과대평가하고 있다.** 특히 eksctl은 AWS 1차 문서 두 개가 **정면으로 어긋난다.** User Guide는 "at launch", 같은 날 Containers 블로그는 "planned". 커뮤니티의 오해가 아니라 AWS 공식 자료 간 불일치다. 실물(태그·릴리스)을 확인하면 블로그 쪽이 맞다.
-- 결론: AWS 문서의 툴링 지원 문구는 근거로 쓰지 말고 **provider 릴리스 노트와 GA 태그**를 직접 본다.
+- **Terraform은 문서가 과소평가하고 있습니다.** "coming soon"을 믿고 awscc 프로바이더 우회나 CloudFormation 스택 경유를 설계하면 헛수고입니다. 네이티브 지원이 발표 당일부터 있었습니다.
+- **eksctl과 CDK는 문서가 과대평가하고 있습니다.** 특히 eksctl은 AWS 1차 문서 두 개가 **정면으로 어긋납니다.** User Guide는 "at launch", 같은 날 Containers 블로그는 "planned". 커뮤니티의 오해가 아니라 AWS 공식 자료 간 불일치입니다. 실물(태그·릴리스)을 확인하면 블로그 쪽이 맞습니다.
+- 결론: AWS 문서의 툴링 지원 문구는 근거로 쓰지 말고 **provider 릴리스 노트와 GA 태그**를 직접 봅니다.
 
 이름 표기가 어긋나는 자리도 있습니다.
 

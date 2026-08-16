@@ -7,17 +7,17 @@ weight: 10
 
 {{< callout type="info" >}}
 **한눈에**
-- 비용은 **메트릭 60개가 만드는 게 아니라 시리즈 수가 만든다.** 60개 중 **파드 단위 6개**가 대부분을 차지한다. 그 6개만 유일하게 **배포마다 전량 churn**한다.
-- **Datadog은 OpenMetrics로 긁은 것을 전부 custom metric으로 센다.** 공식 문서 표현이 *"all metrics retrieved by the generic Prometheus check are considered custom metrics"* 다. 아무 설정 없이 붙이면 청구가 튄다.
-- **OpenMetrics 체크에는 `max_returned_metrics` 기본 2000 상한이 있다.** 대규모 클러스터에서는 이 선에서 **조용히 잘린다** — 없는 메트릭과 잘린 메트릭이 구분되지 않는다.
-- VM에서는 청구가 아니라 **`indexdb` 팽창**이 비용이다. 시리즈 총수가 같아도 churn이 크면 인덱스가 계속 자란다.
-- **Prometheus의 보호 장치는 전부 기본 꺼져 있다** — `sample_limit`·`label_limit`·`target_limit` 기본값이 모두 `0`(무제한)이다.
-- 파드 6종을 버려도 잃는 게 거의 없다. 파드 단위 상태는 **kube-state-metrics가 이미 더 잘 낸다.**
-- **켜기 전에 잰다.** 엔드포인트를 직접 긁으면 백엔드에 아무것도 넣지 않고 시리즈 수를 셀 수 있다(§5.1). 붙였다가 줄이는 순서는 Datadog에서 그 달 청구가 이미 발생한 뒤다.
+- 비용은 **메트릭 60개가 만드는 게 아니라 시리즈 수가 만듭니다.** 60개 중 **파드 단위 6개**가 대부분을 차지합니다. 그 6개만 유일하게 **배포마다 전량 churn**합니다.
+- **Datadog은 OpenMetrics로 긁은 것을 전부 custom metric으로 셉니다.** 공식 문서 표현이 *"all metrics retrieved by the generic Prometheus check are considered custom metrics"* 다. 아무 설정 없이 붙이면 청구가 튑니다.
+- **OpenMetrics 체크에는 `max_returned_metrics` 기본 2000 상한이 있습니다.** 대규모 클러스터에서는 이 선에서 **조용히 잘린다** — 없는 메트릭과 잘린 메트릭이 구분되지 않습니다.
+- VM에서는 청구가 아니라 **`indexdb` 팽창**이 비용입니다. 시리즈 총수가 같아도 churn이 크면 인덱스가 계속 자랍니다.
+- **Prometheus의 보호 장치는 전부 기본 꺼져 있다** — `sample_limit`·`label_limit`·`target_limit` 기본값이 모두 `0`(무제한)입니다.
+- 파드 6종을 버려도 잃는 게 거의 없습니다. 파드 단위 상태는 **kube-state-metrics가 이미 더 잘 냅니다.**
+- **켜기 전에 잽니다.** 엔드포인트를 직접 긁으면 백엔드에 아무것도 넣지 않고 시리즈 수를 셀 수 있다(§5.1). 붙였다가 줄이는 순서는 Datadog에서 그 달 청구가 이미 발생한 뒤입니다.
 - **drop보다 keep이 낫다.** 업스트림이 메트릭을 추가하면 blocklist는 그것을 자동으로 통과시킨다(§4.1).
 {{< /callout >}}
 
-> **왜 이 문서인가.** [09]({{< relref "09-metrics-logs-events.md" >}})가 "무엇이 나오나"라면 여기는 **"무엇을 저장할 것인가"** 다 — 60개를 다 긁는 것 자체는 문제가 아니고 비용이 백엔드마다 다른 이름으로 나타나는 게 주제다. 카디널리티 폭발의 **원리**는 [VictoriaMetrics / 카디널리티]({{< relref "../monitoring/victoriametrics/practice/01-cardinality.md" >}})가 소유한다. 여기서는 그 결과만 다룬다.
+> **왜 이 문서인가.** [09]({{< relref "09-metrics-logs-events.md" >}})가 "무엇이 나오나"라면 여기는 **"무엇을 저장할 것인가"** 다 — 60개를 다 긁는 것 자체는 문제가 아니고 비용이 백엔드마다 다른 이름으로 나타나는 게 주제입니다. 카디널리티 폭발의 **원리**는 [VictoriaMetrics / 카디널리티]({{< relref "../monitoring/victoriametrics/practice/01-cardinality.md" >}})가 소유합니다. 여기서는 그 결과만 다룹니다.
 
 ## 1. 비용을 만드는 축은 넷이다
 
@@ -275,11 +275,11 @@ sum(increase(vm_new_timeseries_created_total[24h]))                        # chu
 
 ### 5.3 적용 순서
 
-1. **§5.1로 소스에서 잰다** — 아직 아무 비용도 안 든다
-2. §4의 keep-list를 넣고 수집을 켠다
-3. §5.2로 백엔드에서 재서 예상과 맞는지 확인한다
+1. **§5.1로 소스에서 잰다** — 아직 아무 비용도 안 듭니다
+2. §4의 keep-list를 넣고 수집을 켭니다
+3. §5.2로 백엔드에서 재서 예상과 맞는지 확인합니다
 4. 알림·대시보드가 keep-list 안의 메트릭만 쓰는지 점검한다(§4.5)
-5. 배포가 있는 날 churn을 다시 잰다
+5. 배포가 있는 날 churn을 다시 잽니다
 
 2번을 건너뛰고 켠 다음 줄이는 순서는 Datadog에서 특히 나쁩니다 — **그 달 청구는 이미 발생한 뒤**입니다.
 

@@ -34,13 +34,13 @@ weight: 8
 - **[레이어 1 — 클러스터 파라미터와 가변성 3분류]({{< relref "01-cluster-parameters.md" >}})** · 최상위 29개를 **create-only 8 · 단방향 불가역 6 · day-2 가변 15**로 가르는 마스터 표. Terraform ForceNew 판정, `Update.type` 21종, `upgradePolicy.supportType`의 EXTENDED 기본값 함정, 2026-07에 생긴 버전 롤백(7일 창)과 `--force`의 실제 범위.
 - **[레이어 2 — 2026-08 열린 4종과 karpenter 가중치]({{< relref "02-component-parameters.md" >}})** · `nodeResourcesFit.scoringStrategy`·`eventTtl`·`serviceNodePortRange`·HPA `syncPeriod` 심층. 업스트림 점수 공식, cpu/memory 가중치를 노드 비율에 맞출 수 있는지의 판정, karpenter가 이 설정을 읽지 않는다는 코드 근거, 도구별 지원 현황의 어긋남.
 - **[용량 축 — Provisioned Control Plane 티어와 복귀 제약]({{< relref "03-provisioned-control-plane.md" >}})** · 티어 표 두 구간, 8XL의 비대칭(스케줄링 처리율은 4XL에서 포화), 요금이 기본요금에 더해진다는 계산, Standard 복귀를 막는 두 조건.
-- **[레이어 3 — 닫힌 영역과 클러스터 내부 우회]({{< relref "04-not-tunable.md" >}})** · 닫힌 플래그를 `path:line`으로 열거하고 우회 창구 3개(APF·어드미션·자체 스케줄러)를 짝지운다. 대안이 없는 자리는 없다고 쓴다.
+- **[레이어 3 — 닫힌 영역과 클러스터 내부 우회]({{< relref "04-not-tunable.md" >}})** · 닫힌 플래그를 `path:line`으로 열거하고 우회 창구 3개(APF·어드미션·자체 스케줄러)를 짝지웁니다. 대안이 없는 자리는 없다고 씁니다.
 
 네 페이지가 같은 질문을 층마다 반복합니다 — **언제 정할 수 있나 → 정한 뒤 되돌릴 수 있나 → 되돌릴 수 없으면 무엇을 미리 결정해야 하나**. 사실 기준 시점은 **2026-08-14**이고, 근거는 AWS 1차 문서(User Guide·API Reference·Best Practices·요금 페이지)와 로컬 업스트림 클론입니다. 업스트림 인용의 체크아웃 시점은 각 페이지가 개별로 밝힙니다.
 
 ## 자매 문서
 
-- [클러스터 설정]({{< relref "../02-cluster-config.md" >}}) — 클러스터 껍데기·Fargate 토폴로지·Terraform 리소스. 레이어 1의 파라미터가 실제로 앉는 자리다.
+- [클러스터 설정]({{< relref "../02-cluster-config.md" >}}) — 클러스터 껍데기·Fargate 토폴로지·Terraform 리소스. 레이어 1의 파라미터가 실제로 앉는 자리입니다.
 - [managed addon]({{< relref "../03-managed-addons.md" >}}) — vpc-cni·kube-proxy·coredns·ebs-csi의 설정. **애드온 config는 컨트롤 플레인 파라미터가 아닙니다** — 혼동하기 쉬운 경계라 소유를 나눠 뒀습니다.
-- [목표 버전]({{< relref "../01-target-version.md" >}}) — 1.35 판정과 EOL 캘린더. 레이어 2의 하한이 1.31이라 blue가 4종을 전부 쓸 수 있다는 판정의 근거이고 `supportType` 함정이 걸리는 확장지원 종료일도 여기 있다.
-- [컷오버·롤백]({{< relref "../05-cutover-rollback.md" >}}) — ALB 가중치 전환 기반 롤백 계약. 레이어 1의 버전 롤백(2026-07 신규)이 이 계약과 어떻게 겹치는지 함께 읽어야 한다.
+- [목표 버전]({{< relref "../01-target-version.md" >}}) — 1.35 판정과 EOL 캘린더. 레이어 2의 하한이 1.31이라 blue가 4종을 전부 쓸 수 있다는 판정의 근거이고 `supportType` 함정이 걸리는 확장지원 종료일도 여기 있습니다.
+- [컷오버·롤백]({{< relref "../05-cutover-rollback.md" >}}) — ALB 가중치 전환 기반 롤백 계약. 레이어 1의 버전 롤백(2026-07 신규)이 이 계약과 어떻게 겹치는지 함께 읽어야 합니다.

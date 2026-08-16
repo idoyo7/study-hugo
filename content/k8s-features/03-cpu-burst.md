@@ -9,15 +9,15 @@ aliases:
 
 {{< callout type="info" >}}
 **한눈에**
-- CFS bandwidth control은 **period를 독립 정산하고 안 쓴 quota를 버린다.** 그래서 평균 사용률이 limit의 절반이어도 순간 수요만으로 throttle이 걸린다. 자원이 부족한 게 아니라 **나눠주는 방식**의 문제다.
-- CPU Burst는 이전 period의 미사용분을 buffer에 적립해 뒀다가 빌려 쓰게 한다. **순간 상한만 `Quota + Buffer`로 늘고, 누적 상한 `Σ CPUTime ≤ Quota × N`은 그대로다.** limit을 올려주는 것과 근본적으로 다르다.
-- **평균이 아니라 꼬리가 개선된다.** 발표 실측에서 RT Avg는 30+ms→9.6ms(약 1/3)인데 **P99는 500+ms→27.32ms(약 1/20)**. throttling이 망가뜨리는 건 tail이기 때문이다.
-- 공짜가 아니다. 이웃 컨테이너가 deadline을 놓칠 수 있고 그게 누적되면 unbounded fail이다. 다만 정량화돼 있다 — **평균 CPU 사용률 70% 미만이면 안전**하고 직관과 반대로 **컨테이너 수가 적은 노드가 더 위험**하다.
+- CFS bandwidth control은 **period를 독립 정산하고 안 쓴 quota를 버립니다.** 그래서 평균 사용률이 limit의 절반이어도 순간 수요만으로 throttle이 걸립니다. 자원이 부족한 게 아니라 **나눠주는 방식**의 문제입니다.
+- CPU Burst는 이전 period의 미사용분을 buffer에 적립해 뒀다가 빌려 쓰게 합니다. **순간 상한만 `Quota + Buffer`로 늘고, 누적 상한 `Σ CPUTime ≤ Quota × N`은 그대로입니다.** limit을 올려주는 것과 근본적으로 다릅니다.
+- **평균이 아니라 꼬리가 개선됩니다.** 발표 실측에서 RT Avg는 30+ms→9.6ms(약 1/3)인데 **P99는 500+ms→27.32ms(약 1/20)**. throttling이 망가뜨리는 건 tail이기 때문입니다.
+- 공짜가 아닙니다. 이웃 컨테이너가 deadline을 놓칠 수 있고 그게 누적되면 unbounded fail입니다. 다만 정량화돼 있다 — **평균 CPU 사용률 70% 미만이면 안전**하고 직관과 반대로 **컨테이너 수가 적은 노드가 더 위험**하입니다.
 - `cpu.cfs_burst_us` **기본값 0 = 기존 동작과 완전히 동일.** 커널만 올려도 아무것도 안 바뀐다. 도입 리스크가 낮은 편.
-- ⚠️ **k8s에서 Pod spec으로 켜는 건 아직 안 된다**([#104516](https://github.com/kubernetes/kubernetes/issues/104516)). 현재는 노드에서 cgroup을 직접 만지거나 벤더 annotation을 쓴다.
+- ⚠️ **k8s에서 Pod spec으로 켜는 건 아직 안 된다**([#104516](https://github.com/kubernetes/kubernetes/issues/104516)). 현재는 노드에서 cgroup을 직접 만지거나 벤더 annotation을 씁니다.
 {{< /callout >}}
 
-> **출처**: KubeCon + CloudNativeCon China 2021 — *CPU Burst: Getting Rid of Unnecessary Throttling…* (常怀鑫·丁天琛, Alibaba Cloud 커널팀). 이 글은 발표 내용에 커널 동작과 운영 판단을 덧붙여 재구성했다.
+> **출처**: KubeCon + CloudNativeCon China 2021 — *CPU Burst: Getting Rid of Unnecessary Throttling…* (常怀鑫·丁天琛, Alibaba Cloud 커널팀). 이 글은 발표 내용에 커널 동작과 운영 판단을 덧붙여 재구성했습니다.
 >
 > 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · **이 문서가 푸는 문제를 먼저 진단하는 쪽은 [02 CPU Throttling]({{< relref "02-cpu-throttling.md" >}})** — 증상 관측과 다른 대응책(limit 제거·CPU Manager)이 거기 있다 · 같은 CPU limit 문제의 다른 얼굴은 [istio 09 §8]({{< relref "../istio/09-istiod-scaling-connections.md" >}}) · 리소스를 재시작 없이 바꾸는 쪽은 [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}})
 
@@ -116,7 +116,7 @@ quota 20ms / period 100ms / buffer 20ms일 때:
 
 buffer는 반드시 이전 underrun에서만 납니다. 없는 걸 만들지 않습니다. 그래서 **순간 상한만 느슨해지고 누적 상한은 불변**입니다. limit을 2배 주면 장기 평균도 2배가 되지만 CPU Burst는 장기 평균이 원래 limit 그대로입니다 — 과금 모델과 용량 계획이 안 깨지는 이유가 이것입니다.
 
-> **throttling이 사라지는 게 아니다.** 빌려올 시간이 없으면 여전히 throttle된다(위 표 period 3). CPU Burst는 throttling 제거가 아니라 **불필요한** throttling 제거다.
+> **throttling이 사라지는 게 아닙니다.** 빌려올 시간이 없으면 여전히 throttle된다(위 표 period 3). CPU Burst는 throttling 제거가 아니라 **불필요한** throttling 제거입니다.
 
 ## 5. 인터페이스 — 파일 하나
 
@@ -164,7 +164,7 @@ burst_time  1899843279      # (신규) 누적 burst 사용 시간(ns)
 
 CPU Burst 이전에는 이 전제가 성립했습니다.
 
-> 모든 태스크의 quota 총합 ≤ 100%로 설정하면 → 스케줄링 안정성과 실시간성이 보장된다
+> 모든 태스크의 quota 총합 ≤ 100%로 설정하면 → 스케줄링 안정성과 실시간성이 보장됩니다
 
 task1(50%) + task2(50%)에서 task1에만 buffer 10%를 주면:
 
@@ -186,7 +186,7 @@ task1(50%) + task2(50%)에서 task1에만 buffer 10%를 주면:
 
 ### 결론 — 70% 선, 그리고 직관과 반대인 것
 
-> **평균 CPU 사용률 70% 미만이면 CPU Burst가 이웃에 큰 영향을 주지 않는다.**
+> **평균 CPU 사용률 70% 미만이면 CPU Burst가 이웃에 큰 영향을 주지 않습니다.**
 > (지수분포 수요, 컨테이너 20개, buffer = quota × 1배 기준)
 
 대부분의 프로덕션 노드가 이 조건을 만족합니다. 위험도를 좌우하는 축은 둘입니다.
@@ -224,26 +224,26 @@ task1(50%) + task2(50%)에서 task1에만 buffer 10%를 주면:
 
 커널에는 5.14부터 들어가 있지만 **k8s가 Pod spec으로 노출하지 않습니다** — **여기가 실무의 발목입니다.** 지금 쓰려면 노드에서 cgroup을 직접 만지거나(파드 재생성 시 날아갑니다) 벤더가 붙인 annotation에 의존해야 합니다. 매니지드 클러스터라면 사실상 벤더 지원 여부가 전부입니다.
 
-> [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}})와 대조하면 성격이 뚜렷하다. 그쪽은 **k8s API가 먼저 갖춰지고 커널 반영의 정합성이 숙제**였고, 이쪽은 **커널이 5년 전에 끝났는데 k8s 표면이 없다.**
+> [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}})와 대조하면 성격이 뚜렷하입니다. 그쪽은 **k8s API가 먼저 갖춰지고 커널 반영의 정합성이 숙제**였고, 이쪽은 **커널이 5년 전에 끝났는데 k8s 표면이 없습니다.**
 
 ## 10. 도입 체크리스트
 
 - [ ] 커널 **5.14+** 인가 (또는 Anolis OS 8.2+)
 - [ ] 대상 워크로드의 `nr_throttled / nr_periods` 비율이 실제로 높은가
-- [ ] 그런데 **평균 CPU 사용률은 limit보다 낮은가** — 이 둘이 동시에 참이어야 대상이다
+- [ ] 그런데 **평균 CPU 사용률은 limit보다 낮은가** — 이 둘이 동시에 참이어야 대상입니다
 - [ ] 워크로드가 **bursty**한가 (웹/API, GC 많은 JVM ✅ / 배치·CPU-bound ❌)
 - [ ] 노드 **평균 CPU 사용률 70% 미만**인가
 - [ ] 노드의 **컨테이너 수가 충분한가** (적으면 더 위험)
 - [ ] `cpu.cfs_burst_us`를 **quota와 같은 값**으로 시작
 - [ ] 적용 후 `nr_throttled`(↓) / `nr_bursts`(>0) 재확인
-- [ ] **이웃 컨테이너의 P99**에 악화가 없는지 확인 — 여기가 진짜 검증 지점이다
+- [ ] **이웃 컨테이너의 P99**에 악화가 없는지 확인 — 여기가 진짜 검증 지점입니다
 
 ## 11. 정리
 
 세 문장으로 줄이면 이렇습니다.
 
-1. **불필요한 throttling은 자원 부족이 아니라 period 독립 정산의 부작용이다.** 평균 사용률이 limit보다 낮은데 throttle이 걸리면 그게 증거다.
-2. **CPU Burst는 순간 상한만 늘리고 누적 상한은 건드리지 않는다.** limit을 올리는 것과 혼동하면 안 된다.
-3. **대가는 이웃이 치르지만 정량화돼 있다.** 70% 미만·컨테이너 다수면 안전하고 그 바깥이면 시뮬레이터로 먼저 확인하라.
+1. **불필요한 throttling은 자원 부족이 아니라 period 독립 정산의 부작용입니다.** 평균 사용률이 limit보다 낮은데 throttle이 걸리면 그게 증거입니다.
+2. **CPU Burst는 순간 상한만 늘리고 누적 상한은 건드리지 않습니다.** limit을 올리는 것과 혼동하면 안 됩니다.
+3. **대가는 이웃이 치르지만 정량화돼 있습니다.** 70% 미만·컨테이너 다수면 안전하고 그 바깥이면 시뮬레이터로 먼저 확인하라.
 
 실무에서 지금 당장의 병목은 기술이 아니라 **k8s 표면의 부재**입니다. 커널은 준비돼 있으니 [#104516](https://github.com/kubernetes/kubernetes/issues/104516)의 진행을 지켜보는 게 현재로선 가장 현실적인 대응입니다.

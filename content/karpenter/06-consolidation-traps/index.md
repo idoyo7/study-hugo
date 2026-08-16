@@ -166,7 +166,7 @@ spec:
 
 복귀가 없으니 애초에 내려가지 않게 하려는 발상은 자연스럽습니다. 두 수단 다 **"다운그레이드를 막는" 게 아니라 "consolidation을 끄는" 것**임을 알고 써야 합니다.
 
-- **`budgets:[{reasons:[Underutilized],nodes:"0"}]`** — 교체형 consolidation 전부 skip(`singlenodeconsolidation.go:81-85`, `multinodeconsolidation.go:70-77`); Empty·Drifted는 계속 동작. 잃는 것: gen8 **내부**의 정당한 축소도 같이 죽는다.
+- **`budgets:[{reasons:[Underutilized],nodes:"0"}]`** — 교체형 consolidation 전부 skip(`singlenodeconsolidation.go:81-85`, `multinodeconsolidation.go:70-77`); Empty·Drifted는 계속 동작. 잃는 것: gen8 **내부**의 정당한 축소도 같이 죽습니다.
 - **`consolidationPolicy: WhenEmpty`** — 비어있지 않은 노드는 후보 탈락(`consolidation.go:130-134`); Emptiness Command는 `Replacements`가 없어 삭제만(`emptiness.go:97-100`). 잃는 것: 언더유틸 절감 전부.
 
 크로스 풀 다운그레이드는 gen8이 스케줄에 실패할 때만 일어나므로(§3) 상시 방어선은 대개 과잉입니다 — gen7 비중이 튄 뒤 임시로 거는 용도가 맞습니다.
@@ -197,8 +197,8 @@ err := s.addToNewNodeClaim(ctx, pod)
 
 읽을 지점은 둘입니다.
 
-1. `s.newNodeClaims`는 **이번 시뮬레이션 안에서 방금 만든** NodeClaim들이다. 아직 EC2에 존재하지도 않는다.
-2. 그 목록의 정렬 키는 **weight가 아니라 파드 수 오름차순**이다. 거기 얹는 시도(`addToInflightNode`)가 새 NodeClaim 생성(`addToNewNodeClaim`)보다 **먼저** 온다.
+1. `s.newNodeClaims`는 **이번 시뮬레이션 안에서 방금 만든** NodeClaim들입니다. 아직 EC2에 존재하지도 않습니다.
+2. 그 목록의 정렬 키는 **weight가 아니라 파드 수 오름차순**입니다. 거기 얹는 시도(`addToInflightNode`)가 새 NodeClaim 생성(`addToNewNodeClaim`)보다 **먼저** 옵니다.
 
 `addToNewNodeClaim`의 weight 우선 채택(`scheduler.go:757-761`)은 **세 번째 단계에서만** 도달합니다. 결과적으로 — 파드 100개가 한 배치로 pending → 첫 파드가 gen8 풀에서 오퍼링 없음으로 실패해 gen7 NodeClaim이 하나 생김 → **뒤따르는 99개 파드는 그 gen7 NodeClaim에 빈패킹으로 얹힙니다.** gen8 용량이 그새 회복됐어도 마찬가지입니다 — in-flight NodeClaim이 앞 단계에서 이미 걸립니다.
 
@@ -249,11 +249,11 @@ return reconciler.Result{RequeueAfter: pollingPeriod}, nil                  // �
 
 기존 단일 NodePool에서 세대를 빼는 편집으로 시작하면 안 됩니다. 위 표의 두 번째 행이 바로 그것입니다.
 
-1. **`gen8-primary`(weight 100)와 `gen7-fallback`(weight 10)을 새로 만든다.** 기존 풀의 `requirements`는 **손대지 않는다.**
-2. 새 풀들에 `disruption.budgets`를 먼저 걸어 둔다 — 나중에 걸면 늦다.
+1. **`gen8-primary`(weight 100)와 `gen7-fallback`(weight 10)을 새로 만듭니다.** 기존 풀의 `requirements`는 **손대지 않습니다.**
+2. 새 풀들에 `disruption.budgets`를 먼저 걸어 둔다 — 나중에 걸면 늦습니다.
 3. 기존 풀의 `spec.limits`를 0에 가깝게 낮춰 신규 프로비저닝을 새 풀 쪽으로 유도한다(`limits` 변경은 드리프트가 아니다).
-4. 기존 풀의 노드가 자연 만료·축소로 빠질 때까지 기다리거나 통제된 속도로 drain한다.
-5. 노드가 0이 된 뒤 기존 NodePool을 **삭제**한다. NodePool 삭제는 소유 NodeClaim도 함께 삭제하므로 4번을 건너뛰면 안 된다.
+4. 기존 풀의 노드가 자연 만료·축소로 빠질 때까지 기다리거나 통제된 속도로 drain합니다.
+5. 노드가 0이 된 뒤 기존 NodePool을 **삭제**합니다. NodePool 삭제는 소유 NodeClaim도 함께 삭제하므로 4번을 건너뛰면 안 됩니다.
 
 ```yaml
 # 3~4단계 동안 새 풀 양쪽에 걸어 두는 예산.
@@ -281,7 +281,7 @@ disruption:
 - **로그 `"skipping, nodepool requirements filtered out all instance types"`** — **gen8 풀이 조용히 사라지는 경로.** requirements 조합이 인스턴스 타입을 전부 걸러 냈다. 근거: `scheduler.go:159-166`.
 - **로그 `"ignoring nodepool, not ready"`** — NodeClass 오류로 gen8 풀이 통째로 빠졌다. 이 상태면 weight고 뭐고 없다. 근거: `provisioner.go:277`.
 - **로그 `"skipping, awaiting nodeoverlay evaluation"`** — NodeOverlay를 쓴다면 — 게이트를 켠 직후 그 풀이 프로비저닝·disruption 양쪽에서 빠지는 창. 근거: `provisioner.go:295-298`.
-- **NodePool별 노드 수 비율** — 가장 중요한 지표. gen7 비중이 튀면 ICE 지속 또는 §5의 빈패킹이 일어난 것. 근거: `count by (nodepool) (karpenter_nodes_current_lifetime_seconds)` — 이 게이지는 WellKnownLabels(=`nodepool` 포함)를 라벨로 단다(`controllers/metrics/node/controller.go:156`). 코어에 `karpenter_nodes_total` 같은 노드 수 게이지는 없다.
+- **NodePool별 노드 수 비율** — 가장 중요한 지표. gen7 비중이 튀면 ICE 지속 또는 §5의 빈패킹이 일어난 것. 근거: `count by (nodepool) (karpenter_nodes_current_lifetime_seconds)` — 이 게이지는 WellKnownLabels(=`nodepool` 포함)를 라벨로 단다(`controllers/metrics/node/controller.go:156`). 코어에 `karpenter_nodes_total` 같은 노드 수 게이지는 없습니다.
 
 마지막 항목이 핵심입니다. 앞의 메트릭들은 전부 "사건이 일어난 순간"을 잡지만 이 문서가 다루는 실패는 **사건이 아니라 상태의 표류**입니다. gen7 비중을 시계열로 그려 놓고 "폴백 후 며칠 안에 다시 내려오는가"를 보는 게 §4의 복귀 장치가 작동한다는 유일한 증거입니다.
 

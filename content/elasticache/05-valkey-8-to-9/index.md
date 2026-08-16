@@ -9,7 +9,7 @@ weight: 5
 **한눈에**
 - **Valkey 는 이름만 바꾼 Redis 7.2 가 아니다.** 8.0 에서 네트워크 스레딩(`src/io_threads.c` 신설)과 full sync 프로토콜(`capa dual-channel`)이, 8.1 에서 키 저장 자료구조(`src/hashtable.c` 신설)가 교체됐다. Redis 는 8.10.0 트리에도 `hashtable.c` 가 **없다** — `dict.c` + `no_value=1` 이다 `✓`.
 - **8.0 의 async I/O 스레딩은 6.0 threaded I/O 를 통째로 교체한 결과다.** lock-free ring buffer(잡 2048개 고정) 기반 비동기 잡 큐로 바뀌고, read/parse/write 를 넘어 **poll-wait · command lookup · 메모리 free** 까지 워커로 넘어갔다 `✓`.
-- **그래도 기본값은 `io-threads 1`(비활성)이다.** 8.0/8.1 에서는 `IMMUTABLE_CONFIG` 라 재시작 없이 켤 수도 없고, 런타임 변경은 **9.0 부터**다 `✓`. "올렸는데 안 빨라진다"의 1차 원인이 이것이다.
+- **그래도 기본값은 `io-threads 1`(비활성)입니다.** 8.0/8.1 에서는 `IMMUTABLE_CONFIG` 라 재시작 없이 켤 수도 없고, 런타임 변경은 **9.0 부터**다 `✓`. "올렸는데 안 빨라진다"의 1차 원인이 이것입니다.
 - **dual channel replication 은 기본 `no`** 다(8.0·8.1 모두). Redis 의 대응물 `repl-rdb-channel` 은 기본 on 이고 **와이어 문자열이 달라 서로 붙지 않는다** — Redis primary ↔ Valkey replica 를 섞으면 이 경로는 조용히 레거시 단일 채널로 폴백한다 `✓`.
 - **8.1 은 재시작만으로 키당 20~30바이트를 회수한다.** 64바이트(= 캐시라인 1개) 버킷에 엔트리 7개를 담는 새 hashtable 로 `kvstore` 백엔드를 갈아끼웠다. 설정 변경이 없는 순수 이득이지만 `MEMORY USAGE`·`INFO memory` 절대값이 바뀌므로 알림 임계값 재보정이 필요하다 `✓`.
 - **RDB 포맷은 9.0 에서 영구히 갈라졌다** — `RDB_VERSION 11` → **80**, magic `REDIS0011` → **`VALKEY080`**. 12~79 는 Redis 비-OSS 포맷용으로 **예약해 거부**한다. Redis **7.4 이상에서 만든 RDB·DUMP 페이로드는 Valkey 가 받지 않고, 우회 방법이 없다** `✓`.
@@ -17,9 +17,9 @@ weight: 5
 - **2026-07-21 의 7.2.14 / 8.0.10 / 8.1.9 / 9.0.5 / 9.1.1 동시 릴리스는 보안 릴리스다** — CVE-2026-56684(TLS use-after-free, CVSS 7.5) · CVE-2026-63639(stream PEL use-after-free, CVSS 8.8, **모든 버전 영향**) `✓`.
 {{< /callout >}}
 
-> **왜 이 문서인가.** "Valkey = 리브랜딩된 Redis 7.2" 를 전제로 깔면 튜닝 가이드·모니터링 쿼리·마이그레이션 계획이 전부 어긋난다. 스레드 수를 올려도 안 빨라지고, 빠른 full sync 는 켜지지 않고, Redis 7.4 에서 뜬 RDB 를 올리면 `Can't handle RDB format version 12` 로 거절당한다. 이 문서는 그 어긋남을 **설정 이름·기본값·소스 경로**로 확정한다.
+> **왜 이 문서인가.** "Valkey = 리브랜딩된 Redis 7.2" 를 전제로 깔면 튜닝 가이드·모니터링 쿼리·마이그레이션 계획이 전부 어긋납니다. 스레드 수를 올려도 안 빨라지고, 빠른 full sync 는 켜지지 않고, Redis 7.4 에서 뜬 RDB 를 올리면 `Can't handle RDB format version 12` 로 거절당합니다. 이 문서는 그 어긋남을 **설정 이름·기본값·소스 경로**로 확정합니다.
 
-> 근거 기준: 로컬 blobless 클론 `~/evejuni/valkey`·`~/evejuni/redis` 의 태그별 소스(`git show <tag>:<path>`), 각 릴리스의 `RELEASENOTES-*.txt`, GitHub PR·릴리스·security advisory, valkey.io 공식 문서·블로그. **릴리스일은 GitHub `published_at`** 기준이며 기준일은 2026-08-05 다. 성능 수치는 발행 주체가 프로젝트 자신이므로 전부 `Ⓥ` 로 표기하고 측정 조건을 병기한다.
+> 근거 기준: 로컬 blobless 클론 `~/evejuni/valkey`·`~/evejuni/redis` 의 태그별 소스(`git show <tag>:<path>`), 각 릴리스의 `RELEASENOTES-*.txt`, GitHub PR·릴리스·security advisory, valkey.io 공식 문서·블로그. **릴리스일은 GitHub `published_at`** 기준이며 기준일은 2026-08-05 다. 성능 수치는 발행 주체가 프로젝트 자신이므로 전부 `Ⓥ` 로 표기하고 측정 조건을 병기합니다.
 
 ## 1. 한눈에 — 네 릴리스가 각각 무엇을 갈라놨나
 
@@ -222,11 +222,11 @@ hash 타입도 별도로 최적화됐습니다 — PR #1579 는 hashtable-encode
 
 API 를 일부러 그대로 복사해 클라이언트 호환성을 유지했지만 PR #2089 이 명시한 설계 결정 때문에 동작이 갈립니다 `✓`.
 
-- **lazy expiration 을 도입하지 않았다.** 메모리 회수는 active expiration 에만 의존한다.
-- `HLEN` 은 **실제로 만료된 필드까지 포함**한 필드 수를 반영한다.
-- `HRANDFIELD` 는 negative count 이거나 hash 가 count 보다 훨씬 클 때 **비만료 필드가 남아 있어도 빈 응답**을 줄 수 있다.
-- TTL 이 0 이거나 과거면 즉시 삭제되고 `hdel` 이 아니라 **`hexpired`** keyspace 이벤트가 발행된다.
-- `HSETEX` 를 제외한 만료 관련 커맨드에는 `DENYOOM` 이 없다.
+- **lazy expiration 을 도입하지 않았습니다.** 메모리 회수는 active expiration 에만 의존합니다.
+- `HLEN` 은 **실제로 만료된 필드까지 포함**한 필드 수를 반영합니다.
+- `HRANDFIELD` 는 negative count 이거나 hash 가 count 보다 훨씬 클 때 **비만료 필드가 남아 있어도 빈 응답**을 줄 수 있습니다.
+- TTL 이 0 이거나 과거면 즉시 삭제되고 `hdel` 이 아니라 **`hexpired`** keyspace 이벤트가 발행됩니다.
+- `HSETEX` 를 제외한 만료 관련 커맨드에는 `DENYOOM` 이 없습니다.
 
 메모리 쪽 갭도 열려 있습니다 — 작은 hash 에서 listpack 인코딩을 유지할 수 없어 hashtable 로 강제 전환됩니다(이슈 #2618, 9.2 계획에 "closes the 9.0 HFE gap" 으로 등재) `✓`. **그리고 9.0.2(urgency HIGH)의 버그 수정 17건 중 9건이 HFE 관련입니다** — 9.0.0/9.0.1 에서 필드 TTL 을 프로덕션에 쓰는 것은 위험합니다. 최소 9.0.2, 실무적으로는 9.0.5/9.1.1 입니다 `Σ`.
 
@@ -380,10 +380,10 @@ AWS 환경의 엔진 전환(ElastiCache 의 Redis → Valkey, 엔드포인트가
 ## 10. 근거
 
 - **소스**: 로컬 blobless 클론 `~/evejuni/valkey`·`~/evejuni/redis` 에서 `git show <tag>:<path>` 로 실측. 주요 인용은 `valkey 8.0.0:src/config.c`(`io-threads` 의 `IMMUTABLE_CONFIG`), `valkey 8.1.0:src/hashtable.h:91`·`src/hashtable.c:275-283`(64바이트 버킷 + `static_assert`), `valkey 8.1.0:src/kvstore.h`(`hashtable.h` 로 전환), `valkey 8.1.0:src/replication.c:1141`(`+DUALCHANNELSYNC`)·`:1392`(`capa dual-channel`)·`:2943-2948`(COB 하드 리밋 재사용), `valkey 8.1.0:src/rdb.h:53-59`·`src/rdb.c:3038-3053`·`src/cluster.c:155-179`(foreign 범위 거부), `valkey 8.1.0:src/Makefile:333-352`·`valkey.conf:303-320`(RDMA builtin·experimental 명시), `valkey 9.1.1:src/rdb.h`(RDB 80 주석)·`src/config.c:3320`(`extended-redis-compatibility` 생존)·`:3391`(`io-threads` MODIFIABLE), `redis 8.10.0:src/dict.c`·`src/config.c:3396`(hashtable 없음·io-threads 상한 128).
-- **릴리스노트**: `RELEASENOTES-8.0.0.txt` · `-8.1.0.txt` · `-9.0.0.txt` · `-9.1.0.txt` · `-9.1.1.txt`(Valkey), `RELEASENOTES-8.{0,2,4,6,8,10}.0.txt`(Redis). 기능 유무·breaking 분류·Security fixes 는 **릴리스노트가 정본**이다.
+- **릴리스노트**: `RELEASENOTES-8.0.0.txt` · `-8.1.0.txt` · `-9.0.0.txt` · `-9.1.0.txt` · `-9.1.1.txt`(Valkey), `RELEASENOTES-8.{0,2,4,6,8,10}.0.txt`(Redis). 기능 유무·breaking 분류·Security fixes 는 **릴리스노트가 정본**입니다.
 - **PR 본문**: valkey #60(dual channel) · #477·#1209(RDMA) · #541(키 임베딩) · #758·#763(async I/O·오프로드) · #861(prefetch) · #1185(import-mode) · #1186(hashtable) · #1579(hash 임베딩) · #1604(`rdb-version-check`) · #1671(cluster multi-DB) · #2089·#2422(HFE·RDB bump) · #2309(DB ACL) · #2546(un-deprecate) · #2858(Lua 모듈화) · #3324(I/O 큐 재설계) · #3392·#3397·#3572(revert). redis #13695(I/O threading) · #13732(rdb channel, valkey#60 참조) · #13806(kvobj, Valkey packing 채택 명시) · #14039(`CLUSTER SLOT-STATS`).
 - **날짜**: GitHub 릴리스의 `published_at`. 9.0.0 은 태그 커밋 2025-10-16 과 릴리스 발행 **2025-10-21** 이 다르므로 후자를 쓴다. 7.2 의 지원 기산일 2024-04-16 도 태그 커밋일이 아니다.
-- **CVE**: `gh api repos/valkey-io/valkey/security-advisories`(GHSA-53mc-f3m3-99vh, GHSA-mvcj-73cw-22m4) 및 각 패치 릴리스의 Security fixes 섹션. Redis 발행 GHSA 를 Valkey 가 릴리스노트로만 고지한 케이스가 있어 **두 곳을 대조**했다.
+- **CVE**: `gh api repos/valkey-io/valkey/security-advisories`(GHSA-53mc-f3m3-99vh, GHSA-mvcj-73cw-22m4) 및 각 패치 릴리스의 Security fixes 섹션. Redis 발행 GHSA 를 Valkey 가 릴리스노트로만 고지한 케이스가 있어 **두 곳을 대조**했습니다.
 - **모듈 생태계**: `gh api orgs/valkey-io/repos --paginate` 로 공식 모듈 4개(`valkey-search`/`valkey-json`/`valkey-bloom`/`valkey-ldap`) 확정, 각 리포 소스에서 ASM opt-in 플래그 선언 여부 확인.
-- **공식 문서·블로그**: valkey.io 의 릴리스·지원 정책 페이지, 마이그레이션 문서, 8.0 메모리 효율 / 1M rps / 8.1 GA / 9.0 / 9.1 발표 블로그. 성능 수치는 전부 발행 주체가 Valkey 프로젝트 자신이므로 `Ⓥ` 로 표기하고 측정 조건 없는 값은 인용하지 않거나 `?` 를 붙였다.
-- **URL 전량**은 [99 · 출처]({{< relref "../99-sources.md" >}}) 가 모은다.
+- **공식 문서·블로그**: valkey.io 의 릴리스·지원 정책 페이지, 마이그레이션 문서, 8.0 메모리 효율 / 1M rps / 8.1 GA / 9.0 / 9.1 발표 블로그. 성능 수치는 전부 발행 주체가 Valkey 프로젝트 자신이므로 `Ⓥ` 로 표기하고 측정 조건 없는 값은 인용하지 않거나 `?` 를 붙였습니다.
+- **URL 전량**은 [99 · 출처]({{< relref "../99-sources.md" >}}) 가 모읍니다.

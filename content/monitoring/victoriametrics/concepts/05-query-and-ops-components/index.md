@@ -46,9 +46,9 @@ vmselect 내부에서 쿼리는 3단계 prefix로 풀립니다. [04 저장]({{< 
 
 **파싱과 캐싱**: 먼저 PromQL 문자열을 구조화된 데이터로 파싱합니다. 어떤 함수인지, 필터는 어떻게 걸렸는지, 시간 윈도는 얼마인지를 뽑아냅니다. **이 파싱 결과 자체도 캐싱**해 같은 형태의 쿼리를 매번 다시 파싱하지 않습니다.
 
-1. **Prefix 1** · 태그 → Metric ID — 태그 필터를 IndexDB에 전달해 매칭되는 Metric ID를 식별한다. 인메모리 캐시를 먼저 확인하고, `name`·`method`·`status` 등 **여러 레이블 조건의 교집합**에 해당하는 Metric ID를 모은다.
+1. **Prefix 1** · 태그 → Metric ID — 태그 필터를 IndexDB에 전달해 매칭되는 Metric ID를 식별합니다. 인메모리 캐시를 먼저 확인하고, `name`·`method`·`status` 등 **여러 레이블 조건의 교집합**에 해당하는 Metric ID를 모읍니다.
 2. **Prefix 2** · Metric ID → TSID — 모인 Metric ID를 TSID로 변환한다(예: Metric ID 49가 어떤 TSID인지 조회).
-3. **Prefix 3** · TSID → 값·이름 복원 — TSID로 Value와 Timestamp를 가져오고, 응답에 넣을 **지표 이름과 레이블을 역으로 복원**한다.
+3. **Prefix 3** · TSID → 값·이름 복원 — TSID로 Value와 Timestamp를 가져오고, 응답에 넣을 **지표 이름과 레이블을 역으로 복원**합니다.
 
 결과적으로 `http_requests_total{method="get", status="200"}` 같은 필터가 "그 시계열의 값이 몇이다"로 완성됩니다. 쓰기 시점에 이름 → TSID로 정규화했던 것을, 읽기 시점에 TSID → 이름으로 되돌리는 대칭 구조입니다.
 
@@ -87,7 +87,7 @@ vmselect가 아무리 빨라도, **애초에 읽어야 할 데이터포인트가
 
 이 선계산을 담당하는 것이 Prometheus의 **Recording rules 호환** 툴인 `vmalert`입니다. Recording rule로 정의한 표현식을 주기적으로 평가해 그 결과를 새로운 시계열로 다시 저장합니다. 읽기 부하가 쓰기 시점으로 옮겨 가므로, 무거운 대시보드 쿼리의 응답 시간과 클러스터 부하가 동시에 내려갑니다.
 
-> vmalert가 실제 멀티 클러스터 운영에서 어떤 접근 패턴 부하를 덜어 주는지는 [실전 02 대규모 운영]({{< relref "../../practice/02-operations-at-scale.md" >}})에서 다룬다.
+> vmalert가 실제 멀티 클러스터 운영에서 어떤 접근 패턴 부하를 덜어 주는지는 [실전 02 대규모 운영]({{< relref "../../practice/02-operations-at-scale.md" >}})에서 다룹니다.
 
 ## vmauth — 라우팅 게이트웨이
 
@@ -102,7 +102,7 @@ vmselect가 아무리 빨라도, **애초에 읽어야 할 데이터포인트가
 
 결과적으로 여러 클러스터를 운영해도 사용자와의 커뮤니케이션 비용을 줄이고 내부 유지보수를 용이하게 합니다.
 
-> vmauth를 통한 무중단 클러스터 전환·오경보 대응 등 상세 운영 맥락은 [실전 02 대규모 운영]({{< relref "../../practice/02-operations-at-scale.md" >}})에서 이어진다.
+> vmauth를 통한 무중단 클러스터 전환·오경보 대응 등 상세 운영 맥락은 [실전 02 대규모 운영]({{< relref "../../practice/02-operations-at-scale.md" >}})에서 이어집니다.
 
 ## 출처
 

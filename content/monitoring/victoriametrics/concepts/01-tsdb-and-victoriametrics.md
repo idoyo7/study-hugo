@@ -8,8 +8,8 @@ aliases: ["/monitoring/victoriametrics/01-tsdb-and-victoriametrics/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- 시계열은 "언제 어떤 숫자가 찍혔나"가 이어지는 데이터다. 지표는 **Counter/Gauge/Histogram/Summary** 4타입으로 갈린다. 그중 Counter류 단조증가값이 압축이 가장 잘 된다.
-- "대용량"을 가르는 축은 **시계열 개수**와 **보관 기간** 둘이다. 수백만 개까지는 Prometheus 단일로 충분하지만 수천만~수십억 개부터는 별도 솔루션이 필요하다.
+- 시계열은 "언제 어떤 숫자가 찍혔나"가 이어지는 데이터입니다. 지표는 **Counter/Gauge/Histogram/Summary** 4타입으로 갈립니다. 그중 Counter류 단조증가값이 압축이 가장 잘 됩니다.
+- "대용량"을 가르는 축은 **시계열 개수**와 **보관 기간** 둘입니다. 수백만 개까지는 Prometheus 단일로 충분하지만 수천만~수십억 개부터는 별도 솔루션이 필요하입니다.
 - TSDB 계보: **Prometheus(2012) → Gorilla 압축(2015, Facebook) → Thanos/Cortex(Prometheus 확장)** vs **VictoriaMetrics(완전히 다른 계열)**.
 - VM은 **Prometheus 호환**(PromQL·remote_write 그대로)을 지키면서 자체 벤치마크 기준 **메모리 5배·스토리지 7배** 효율을 주장하는 오픈소스 TSDB다.
 {{< /callout >}}
@@ -89,17 +89,17 @@ rpc_duration_seconds_count 2693
 
 대용량 시계열을 다루는 도구들이 어떤 순서로 등장했는지를 짚으면 VM의 위치가 선명해집니다.
 
-- **2012 · Prometheus 등장.** 모니터링 업계에서 사실상 디팩토 표준에 가까운 도구다. 앞서 본 지표 4타입 분류도 Prometheus 진영에서 왔다.
-- **2015 · Gorilla 압축 알고리즘.** Facebook이 방대한 서버를 모니터링하면서 시계열 데이터를 효율적으로 처리하려고 만든 특화 압축 기술이다. "시계열 데이터를 어떻게 효율적으로 다룰 것인가"라는 아이디어가 이때부터 여러 모니터링 도구로 퍼졌다. Gorilla 계열 압축(Delta / Delta-of-Delta)의 실제 동작은 [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}})에서 다룬다.
-- **그 위의 스케일 문제.** 수천만 개를 넘는 대용량은 Prometheus 하나만으로는 풀리지 않는다. 여기서 갈래가 나뉜다. 널리 쓰이는 것이 **Thanos**와 **Cortex** — 스케일러블한 Prometheus 확장 솔루션이다. 반면 네이버 검색 SRE는 이들과 **완전히 다른 계열인 VM을 택했다.**
+- **2012 · Prometheus 등장.** 모니터링 업계에서 사실상 디팩토 표준에 가까운 도구입니다. 앞서 본 지표 4타입 분류도 Prometheus 진영에서 왔습니다.
+- **2015 · Gorilla 압축 알고리즘.** Facebook이 방대한 서버를 모니터링하면서 시계열 데이터를 효율적으로 처리하려고 만든 특화 압축 기술입니다. "시계열 데이터를 어떻게 효율적으로 다룰 것인가"라는 아이디어가 이때부터 여러 모니터링 도구로 퍼졌습니다. Gorilla 계열 압축(Delta / Delta-of-Delta)의 실제 동작은 [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}})에서 다룹니다.
+- **그 위의 스케일 문제.** 수천만 개를 넘는 대용량은 Prometheus 하나만으로는 풀리지 않습니다. 여기서 갈래가 나뉩니다. 널리 쓰이는 것이 **Thanos**와 **Cortex** — 스케일러블한 Prometheus 확장 솔루션입니다. 반면 네이버 검색 SRE는 이들과 **완전히 다른 계열인 VM을 택했습니다.**
 
 ## VictoriaMetrics의 위치
 
 VM은 대용량 시계열을 정면으로 겨냥한 TSDB다.
 
-- **Apache 2.0 라이선스의 오픈소스 TSDB**이며 **Prometheus와 호환**된다. **PromQL**을 그대로 쓸 수 있다. Prometheus가 쓰는 **`remote_write`** 프로토콜도 그대로 받아들인다. 기존 Prometheus 생태계를 버리지 않고 백엔드만 갈아 끼울 수 있다는 뜻이다.
+- **Apache 2.0 라이선스의 오픈소스 TSDB**이며 **Prometheus와 호환**됩니다. **PromQL**을 그대로 쓸 수 있습니다. Prometheus가 쓰는 **`remote_write`** 프로토콜도 그대로 받아들입니다. 기존 Prometheus 생태계를 버리지 않고 백엔드만 갈아 끼울 수 있다는 뜻입니다.
 - 자체 벤치마크 기준으로 **메모리 5배, 스토리지 7배 더 효율적**이라고 주장한다. 이 효율의 비결은 앞서 본 Time Series/Sample 분리와 Gorilla 계열 압축이다. 실제 운영에서는 데이터포인트당 1바이트 미만까지 줄어든다(상세는 [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}})).
-- **왜 VM인가.** Thanos·Cortex 대비 의존성이 적고 아키텍처가 단순해 운영이 편하다. 압축 효율과 성능도 앞선다. 그래서 대규모 모니터링 시스템의 백엔드로 자리를 잡았다. 네이버 검색 SRE도 하루 수십억 건의 검색 요청, 수만 대의 서버, 수백 개 서비스를 모니터링하는 환경에서 같은 이유로 VM을 택했다.
+- **왜 VM인가.** Thanos·Cortex 대비 의존성이 적고 아키텍처가 단순해 운영이 편하입니다. 압축 효율과 성능도 앞섭니다. 그래서 대규모 모니터링 시스템의 백엔드로 자리를 잡았습니다. 네이버 검색 SRE도 하루 수십억 건의 검색 요청, 수만 대의 서버, 수백 개 서비스를 모니터링하는 환경에서 같은 이유로 VM을 택했습니다.
 
 VM이 이 효율을 어떻게 내는지 — 4개 컴포넌트로 데이터가 흐르는 구조, LSM 트리, IndexDB/DataDB 분리 — 는 [02 아키텍처]({{< relref "02-architecture.md" >}})에서 이어집니다.
 

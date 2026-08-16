@@ -8,8 +8,8 @@ weight: 7
 {{< callout type="info" >}}
 **한눈에**
 - 실전 대결은 **streamAggr**(인제스트 시점 사전 집계, VM 아카이브안) 대 **Thanos compactor downsampling**(사후 집계, Thanos안) — Mimir는 다운샘플링 부재로 즉시 탈락.
-- **저장량 축이 결정적**: Thanos 다운샘플링은 공식 문서상 "공간 절감 없음"(공존 시 ~3x)인 반면, streamAggr는 raw의 **10~30%**로 실제 감소한다.
-- 의미론·자동성은 Thanos가 우위(사후 재계산 가능, 무설계 5-aggregate 보존)지만, 이 건의 조건(5m 허용 확정+비용 최소+신규 스택 회피)에서는 **streamAggr가 대체로 성립**한다.
+- **저장량 축이 결정적**: Thanos 다운샘플링은 공식 문서상 "공간 절감 없음"(공존 시 ~3x)인 반면, streamAggr는 raw의 **10~30%**로 실제 감소합니다.
+- 의미론·자동성은 Thanos가 우위(사후 재계산 가능, 무설계 5-aggregate 보존)지만, 이 건의 조건(5m 허용 확정+비용 최소+신규 스택 회피)에서는 **streamAggr가 대체로 성립**합니다.
 - 판정: **VM 아카이브안** 채택, 단 아카이브 검증 전까지 hot 90d raw retention 축소 금지 — **가역적**(RW#4를 Thanos Receive로 교체하면 언제든 전환).
 {{< /callout >}}
 

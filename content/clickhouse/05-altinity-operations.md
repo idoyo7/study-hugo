@@ -109,7 +109,7 @@ spec:
 
 `layout.shardsCount`를 늘리고 `kubectl apply`로 재적용하면 operator가 새 shard의 StatefulSet/파드를 생성합니다 `✓`. 여기서 반드시 알아야 할 것 두 가지.
 
-- **자동 리밸런싱은 없다.** ClickHouse는 기존 데이터를 새 shard로 자동 재분배하지 않는다. Distributed 테이블은 신규 insert만 전체 shard에 분산할 뿐이고, 과거 데이터는 원래 shard에 그대로 남는다 `✓`. 기존 데이터를 옮기려면 partition detach/attach, `INSERT ... SELECT`, 또는 clickhouse-copier를 수동으로 써야 한다 `✓`. 실무 대응은 셋 중 하나다 — ① **shard weight 편중**(append-only 관측성에 최적, 기존 데이터 이동 불필요), ② `INSERT INTO SELECT` **재수집**(균등 분포가 필요한 범용 분석. 대용량이면 무거움), ③ 파트 수동 이동(대규모엔 비현실적). **초기 shard 수를 넉넉히** 잡아 리샤딩 빈도를 낮추는 게 최선이다.
+- **자동 리밸런싱은 없습니다.** ClickHouse는 기존 데이터를 새 shard로 자동 재분배하지 않습니다. Distributed 테이블은 신규 insert만 전체 shard에 분산할 뿐이고, 과거 데이터는 원래 shard에 그대로 남습니다 `✓`. 기존 데이터를 옮기려면 partition detach/attach, `INSERT ... SELECT`, 또는 clickhouse-copier를 수동으로 써야 합니다 `✓`. 실무 대응은 셋 중 하나다 — ① **shard weight 편중**(append-only 관측성에 최적, 기존 데이터 이동 불필요), ② `INSERT INTO SELECT` **재수집**(균등 분포가 필요한 범용 분석. 대용량이면 무거움), ③ 파트 수동 이동(대규모엔 비현실적). **초기 shard 수를 넉넉히** 잡아 리샤딩 빈도를 낮추는 게 최선입니다.
 - **신규 shard에 스키마가 자동 전파된다고 가정하지 마라.** "새 shard가 원래 shard와 같은 DB/테이블 구성을 자동으로 갖는다"는 주장은 딥리서치 적대검증에서 3-0으로 **기각**됐다 — 일반적인 경우 신규 shard에는 테이블 스키마를 별도로 생성해줘야 한다 `✓⁽기각 근거 반영⁾`. 이는 기존 shard에 **replica**를 추가하는 경우와 다르다 — 혼동하지 말 것.
 
 **replica 추가는 반대로 거의 전자동입니다** `✓`. `replicasCount++` 후 apply하면 operator가 새 host/STS/PVC를 만들고 → **스키마를 자동 전파**하고([operator 선택 페이지]({{< relref "03-operator.md" >}}) 기준 `✓`) → `remote_servers`를 자동 갱신하고 → `reconcile.host.wait.replicas.new: "yes"`로 신규 replica가 따라잡을 때까지 다음 단계를 대기합니다. 함정은 특정 조작 순서에서 스키마 auto-creation이 동작하지 않은 사례(#1500/#1602)입니다 — **스케일은 반드시 CHI를 통해 정해진 순서로** 합니다. 필드 자체의 정의는 [배포 플레이북 §자주 조정하는 CHI 옵션]({{< relref "04-deployment-playbook.md" >}})에 있습니다.
@@ -120,7 +120,7 @@ replica/shard 제거는 scale-out보다 위험이 큽니다.
 
 - **활성(active) replica는 절대 자동으로 drop되지 않는다**(0.25.5 안전장치) — 상세는 [operator 선택 페이지]({{< relref "03-operator.md" >}}) 참조. drop 세부 동작은 `onDelete`/`onLostVolume`/`active` 플래그로 설정 가능하다(0.25.5 changelog) `✓/≈`.
 - **볼륨 재프로비저닝이 필요한 경우**(디스크 손상 등으로 PV를 직접 지워야 할 때), 신뢰할 수 있는 절차로 보고된 것은 두 가지뿐이다 — ① PVC와 StatefulSet을 함께 삭제, ② PV 삭제 후 파드를 재시작해 PV unbind를 강제. 둘 다 operator가 스토리지와 스키마를 정상적으로 재생성한다고 보고됐다 `✓/≈`. 이 순서를 벗어난 임의 조작(예: STS는 그대로 두고 PV만 삭제)은 파드가 ephemeral 스토리지로 뜨거나 스키마가 비어있는 채로 남는 등 race condition을 유발한 사례가 있다 `≈`.
-- **PVC는 `helm uninstall`로 삭제되지 않는다**(데이터 보호) `✓`. EBS 계열에서는 `reclaimPolicy: Retain`이 churn·재생성 시 데이터를 지키는 직접적 의미가 크고(문서 예제는 `Delete`), 로컬 NVMe에서는 데이터가 어차피 노드와 함께 사라지므로 "PVC를 지워도 STS만 재생성되게" 하는 **운영상 보호 용도**로 쓴다 `≈`. 노드를 회수하기 전에 이 값을 반드시 확인한다.
+- **PVC는 `helm uninstall`로 삭제되지 않는다**(데이터 보호) `✓`. EBS 계열에서는 `reclaimPolicy: Retain`이 churn·재생성 시 데이터를 지키는 직접적 의미가 크고(문서 예제는 `Delete`), 로컬 NVMe에서는 데이터가 어차피 노드와 함께 사라지므로 "PVC를 지워도 STS만 재생성되게" 하는 **운영상 보호 용도**로 씁니다 `≈`. 노드를 회수하기 전에 이 값을 반드시 확인합니다.
 
 {{< callout type="warning" >}}
 **미해결 버그 리드**: GitHub 이슈 기반의 미검증 리드에 따르면, replica 제거 시 operator의 정리(cleanup) 로직이 shard의 첫 replica(`*-0`, `shard.FirstHost()`)를 통해 `SYSTEM DROP REPLICA`를 실행하도록 하드코딩돼 있어, 제거 대상이 `*-0`이 아니거나 `*-0` 자신이 마침 복구 중(재수화 중이라 Keeper 메타데이터가 없는 상태)이면 엉뚱한 replica 이름에 DROP 명령이 나가거나 명령 자체가 실패한다는 보고가 있습니다 `≈`. Kubernetes 상 StatefulSet/파드 자체는 정상적으로 정리되므로, 겉보기엔 scale-in이 끝난 것처럼 보여도 ZooKeeper/Keeper에 stale 메타데이터가 남을 수 있다는 뜻입니다. 이 리드는 3-vote 검증을 거치지 않았으므로 실제 영향 범위는 도입 시점에 재확인이 필요합니다.
@@ -128,7 +128,7 @@ replica/shard 제거는 scale-out보다 위험이 큽니다.
 **scale-in 전 체크리스트**:
 1. 제거 대상 replica의 replication lag가 0에 수렴했는지 확인
 2. 제거 대상이 shard의 유일한 온라인 replica가 아닌지 확인
-3. `kubectl apply` 후 ZooKeeper/Keeper 경로(`/clickhouse/{cluster}/tables/...`)에 제거된 replica 흔적이 실제로 정리됐는지 수동 확인(위 미해결 리드 때문에 자동 정리를 100% 신뢰하지 않는다)
+3. `kubectl apply` 후 ZooKeeper/Keeper 경로(`/clickhouse/{cluster}/tables/...`)에 제거된 replica 흔적이 실제로 정리됐는지 수동 확인(위 미해결 리드 때문에 자동 정리를 100% 신뢰하지 않습니다)
 4. 노드 자체를 회수하기 전에 PVC `reclaimPolicy`가 `Retain`인지 재확인
 {{< /callout >}}
 
@@ -138,8 +138,8 @@ replica/shard 제거는 scale-out보다 위험이 큽니다.
 
 1. shard **내부**에서는 replica를 한 번에 하나씩만 처리한다: 해당 replica의 ClickHouse를 shutdown → 새 버전으로 업그레이드 → 재기동 → Keeper 메시지로 시스템 안정을 확인 → 다음 replica로 이동. shard 전체가 동시에 오프라인이 되는 순간이 없어야 한다 `✓`.
 2. shard **간**에는 병렬 업그레이드가 허용된다 — "한 shard의 모든 replica가 동시에 오프라인"이 되지만 않으면, 서로 다른 shard의 replica를 동시에 업그레이드해도 된다 `✓`.
-3. **혼합 버전 호환 창은 약 1년(또는 2 LTS 미만)이다.** 그 이상 벌어진 버전 간에는 mixed-version 상태로 롤링을 진행하지 말고, 다운타임을 감수한 일괄 업그레이드를 하거나 중간 버전을 경유해야 한다 `✓`. **버전 스킵은 금지**이며, 중간 릴리즈 노트를 LTS 징검다리로 순차 확인한다.
-4. 이 순서를 operator가 어떻게 자동화하는지 — 롤링 중 replica를 `remote_servers`에서 완전히 빼는 대신 분산쿼리 우선순위를 낮추는(low-priority) 처리로 트래픽을 차단하는 것 등 — 는 [operator 선택 페이지]({{< relref "03-operator.md" >}})에서 다룬 내용을 그대로 따른다. 두 안전장치가 함께 걸린다: **PDB**(`pdbMaxUnavailable: 1`)가 동시 다운을 막고, `reconcile.host.wait.replicas`가 catch-up 게이팅을 한다. 다만 위 1년/2 LTS 호환 창 자체는 operator가 강제하는 것이 아니라 **운영자가 직접 지켜야 하는 규칙**이다 — operator는 어떻게 순차 롤링할지를 돕지만, 얼마나 버전 차이를 벌려도 되는지는 판단해주지 않는다.
+3. **혼합 버전 호환 창은 약 1년(또는 2 LTS 미만)입니다.** 그 이상 벌어진 버전 간에는 mixed-version 상태로 롤링을 진행하지 말고, 다운타임을 감수한 일괄 업그레이드를 하거나 중간 버전을 경유해야 합니다 `✓`. **버전 스킵은 금지**이며, 중간 릴리즈 노트를 LTS 징검다리로 순차 확인합니다.
+4. 이 순서를 operator가 어떻게 자동화하는지 — 롤링 중 replica를 `remote_servers`에서 완전히 빼는 대신 분산쿼리 우선순위를 낮추는(low-priority) 처리로 트래픽을 차단하는 것 등 — 는 [operator 선택 페이지]({{< relref "03-operator.md" >}})에서 다룬 내용을 그대로 따릅니다. 두 안전장치가 함께 걸린다: **PDB**(`pdbMaxUnavailable: 1`)가 동시 다운을 막고, `reconcile.host.wait.replicas`가 catch-up 게이팅을 합니다. 다만 위 1년/2 LTS 호환 창 자체는 operator가 강제하는 것이 아니라 **운영자가 직접 지켜야 하는 규칙**이다 — operator는 어떻게 순차 롤링할지를 돕지만, 얼마나 버전 차이를 벌려도 되는지는 판단해주지 않습니다.
 
 ## operator 자체 업그레이드 런북
 
@@ -221,9 +221,9 @@ kubectl get pvc -l "clickhouse-keeper.altinity.com/chk=analytics-keeper" -n clic
 배포 시점에 사이드카·PDB·메트릭 엔드포인트를 심는 것은 [배포 플레이북]({{< relref "04-deployment-playbook.md" >}})의 체크리스트지만, 그 뒤로 계속 손이 가는 **운영 연계**는 이 절이 소유합니다. 스케일·업그레이드 이벤트를 관측하는 부분은 이번 딥리서치 라운드에서 전용 검증이 이뤄지지 않았습니다 `?`.
 
 - **백업 — clickhouse-backup 사이드카 → S3** `✓`: 로컬 NVMe는 휘발성이므로 복제 외에 S3 백업이 두 번째 방어선이다. CHI podTemplate에 `altinity/clickhouse-backup` 컨테이너를 CH와 같은 pod에 추가(하드링크 백업), REST API `:7171`, `S3_PATH: backup/shard-{shard}`(operator `{shard}` 매크로로 **shard당 1 백업**), 자격증명은 IRSA. CronJob으로 각 shard 첫 replica에 접속해 `system.backup_actions`에 주간 full + 일간 incremental(`concurrencyPolicy: Forbid`). **incremental 체인은 이전 백업 전체에 의존**하므로 하나라도 손상되면 이후 복구가 불가하고, S3 lifecycle로 base가 Glacier 되면 체인이 붕괴한다 `✓⁽02 문서 기준⁾`(상세는 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})의 내구성 3종 세트). operator가 백업 스케줄링이나 restore 자체를 관리하지는 않으므로, 백업/restore drill은 별도 CronJob 등으로 **직접 소유**해야 한다 `≈`.
-- **PDB** `✓`: operator 자동 생성. `pdbManaged: "yes"`(기본) + `pdbMaxUnavailable: 1`. CHK도 동일 필드로 Keeper 정족수를 보호한다.
+- **PDB** `✓`: operator 자동 생성. `pdbManaged: "yes"`(기본) + `pdbMaxUnavailable: 1`. CHK도 동일 필드로 Keeper 정족수를 보호합니다.
 - **모니터링** `✓`: metrics-exporter `:8888/metrics`(`chi_clickhouse_metric_*`/`_event_*`), CHK `:7000`, 백업 사이드카 `:7171`. 0.27.0에서 노이즈성 per-CPU OS 메트릭이 기본 제외됐다(복구는 `excludeRegexp: []`). operator/CH가 Prometheus 메트릭을 노출한다는 사실 자체는 [operator 선택 페이지]({{< relref "03-operator.md" >}}) 기준 `✓`이지만, 스케일 in/out·롤링 업그레이드 이벤트를 대시보드에서 추적하려면 CHI 리소스 상태(`Completed`/`InProgress`/`Aborted`)를 메트릭이나 이벤트로 **별도 수집**하는 편이 안전하다 `≈` — operator가 이 상태 전이를 Prometheus 메트릭으로 직접 노출하는지는 이번 조사에서 확인하지 못했다 `?`.
-- **ArgoCD `ignoreDifferences`** `✓`: operator가 CR 상태를 계속 갱신하고 일부 필드(예: `resourceFieldRef.divisor`)를 채워 넣어 GitOps 도구가 **영구 OutOfSync diff**를 보이는 이슈가 있었다(#958/#1799, `resourceFieldRef.divisor`는 0.27.1에서 수정) `✓`. ArgoCD `Application.spec.ignoreDifferences`에 `{group: clickhouse.altinity.com, kind: ClickHouseInstallation, jsonPointers: [/status]}`를 넣어 상태 필드를 무시하고, self-heal 사용 시 `syncOptions: [RespectIgnoreDifferences=true]`로 동기화 루프를 막는다. operator는 **0.27.1+를 권장**하고, Altinity가 제공하는 argocd-examples를 참고해 diff/self-heal을 신중히 설정한다.
+- **ArgoCD `ignoreDifferences`** `✓`: operator가 CR 상태를 계속 갱신하고 일부 필드(예: `resourceFieldRef.divisor`)를 채워 넣어 GitOps 도구가 **영구 OutOfSync diff**를 보이는 이슈가 있었다(#958/#1799, `resourceFieldRef.divisor`는 0.27.1에서 수정) `✓`. ArgoCD `Application.spec.ignoreDifferences`에 `{group: clickhouse.altinity.com, kind: ClickHouseInstallation, jsonPointers: [/status]}`를 넣어 상태 필드를 무시하고, self-heal 사용 시 `syncOptions: [RespectIgnoreDifferences=true]`로 동기화 루프를 막습니다. operator는 **0.27.1+를 권장**하고, Altinity가 제공하는 argocd-examples를 참고해 diff/self-heal을 신중히 설정합니다.
 
 {{< callout type="warning" >}}
 **설정은 반드시 CHI `settings`/`files`로만 주입합니다.** operator가 관리하는 설정과 외부에서 주입한 config가 충돌하면 CH 파드가 CrashLoop에 빠집니다 — ArgoCD로 Vault의 `named_collections.xml`을 외부 주입했다가 operator 렌더링과 충돌한 실제 이슈(#1456)가 있습니다 `✓`. 커스텀 `config.xml`은 `configuration.settings`(구조화) 또는 `configuration.files`(원본 XML)로, `users.xml`은 `configuration.users`/`profiles`/`quotas`로 선언하면 operator가 XML로 렌더링해 ConfigMap으로 마운트합니다 `✓`. GitOps로 운영하는 동안 이 규칙이 가장 자주 깨집니다.

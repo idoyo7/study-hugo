@@ -7,7 +7,7 @@ weight: 2
 
 {{< callout type="info" >}}
 **한눈에**
-- 1.7 이후 8개 마이너에서 API breaking은 사실상 없다. 대신 **켜야 비로소 쓸 수 있는 기능**이 라벨·feature gate·신규 CRD·IAM 네 층으로 쌓였다.
+- 1.7 이후 8개 마이너에서 API breaking은 사실상 없습니다. 대신 **켜야 비로소 쓸 수 있는 기능**이 라벨·feature gate·신규 CRD·IAM 네 층으로 쌓였습니다.
 - **flex 배제는 라벨 한 줄이다** — `karpenter.k8s.aws/instance-capability-flex`를 `In ["false"]`로. 단 `DoesNotExist`로 쓰면 **모든 인스턴스 타입이 배제되어 노드가 하나도 안 뜬다**(§2.2).
 - **기존** NodePool에 배제를 추가하면 떠 있는 flex 노드가 전부 `RequirementsDrifted`로 교체된다. "다음부터"가 아니라 "지금 있는 걸 몰아낸다"다.
 - **알람이 조용히 깨진 곳이 둘**(1.7): `karpenter_pods_pods_drained_total` → `karpenter_pods_drained_total`, `disrupted_total`의 reason `liveness` → `registration_timeout`(§3).
@@ -19,7 +19,7 @@ weight: 2
 
 > **왜 이 문서인가.** 릴리스노트는 "무엇이 머지됐냐"까지만 말한다. 필요한 구분은 셋 — ① 켜면 이득인 것, ② 설정·권한·CRD를 건드릴 것, ③ **업그레이드 자체가 노드를 교체하는 것**. 이 문서는 그 셋으로 1.7~1.14를 갈라 판정합니다.
 >
-> v1 전환 자체의 semantics는 [01 v1 전환]({{< relref "01-changelog-v1-transition.md" >}})이, 라벨·연산자 레퍼런스는 [03 키워드 레퍼런스]({{< relref "03-keyword-reference.md" >}})가, 차트·values·ArgoCD 절차는 [eks-upgrade/karpenter]({{< relref "../eks-upgrade/components/01-karpenter.md" >}})가 소유한다.
+> v1 전환 자체의 semantics는 [01 v1 전환]({{< relref "01-changelog-v1-transition.md" >}})이, 라벨·연산자 레퍼런스는 [03 키워드 레퍼런스]({{< relref "03-keyword-reference.md" >}})가, 차트·values·ArgoCD 절차는 [eks-upgrade/karpenter]({{< relref "../eks-upgrade/components/01-karpenter.md" >}})가 소유합니다.
 
 > 근거 기준: 릴리스노트는 두 레포의 **v1.14.0까지**, 코드 인용은 **2026-07-30 기준 main 체크아웃**입니다. 릴리스일은 git 태그 생성일입니다.
 

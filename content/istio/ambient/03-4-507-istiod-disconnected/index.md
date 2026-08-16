@@ -302,7 +302,7 @@ Envoy config 레벨에서 `xds-grpc` cluster나 buffer limit이 실제로 어떻
 - "한 번 Ready였다"와 "지금 연결되어 있다"는 다릅니다. Istio 기본 readinessProbe는 `receivedFirstUpdate` 기반이라 startup 게이트로는 맞지만 사후 단절을 못 잡습니다. 이미 받은 config로 트래픽은 계속 흐르므로 겉보기 정상 상태에서 stale config가 누적됩니다.
 - flapping을 막는 건 `failureThreshold`가 아니라 `successThreshold`입니다. 재연결 루프는 `connected_state`를 0↔1로 진동시키므로, 기본값 1이면 한 번의 우연한 성공으로 Ready에 재진입합니다. 복귀에도 연속 성공을 요구해야 합니다.
 - 메트릭은 켜뒀다고 수집되지 않습니다. `proxyStatsMatcher.inclusionRegexps`는 Prometheus 이름(`envoy_control_plane_connected_state`)이 아니라 Envoy 내부 stat 이름(`control_plane.connected_state`)으로 매칭합니다. 채널팀은 이 설정이 틀려 정작 장애 사후 분석에 메트릭을 쓰지 못했습니다. 알람용 메트릭은 평시에 실제로 나오는지 확인해둬야 합니다.
-- 원인 규명과 탐지 설계는 별개의 결론이 될 수 있다. 채널팀은 DNS root cause를 특정하지 못한 채로 태스크를 "재발 시 빠르게 탐지·완화한다"로 전환했다. 원인을 못 찾았다는 사실을 명시하고 방어선을 세우는 것도 유효한 종료 조건이다.
+- 원인 규명과 탐지 설계는 별개의 결론이 될 수 있습니다. 채널팀은 DNS root cause를 특정하지 못한 채로 태스크를 "재발 시 빠르게 탐지·완화한다"로 전환했습니다. 원인을 못 찾았다는 사실을 명시하고 방어선을 세우는 것도 유효한 종료 조건입니다.
 
 ## 소스
 
@@ -311,4 +311,4 @@ Envoy config 레벨에서 `xds-grpc` cluster나 buffer limit이 실제로 어떻
 - 원문이 인용한 Envoy 문서: [Response code details](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/response_code_details) — `request_payload_exceeded_retry_buffer_limit` 설명의 출처
 - 배경 참고 · Envoy: [Cluster / Listener `per_connection_buffer_limit_bytes`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/cluster.proto) · [HTTP router retry policy](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/router_filter)
 - 배경 참고 · Istio: [MeshConfig `ProxyStatsMatcher`](https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/#ProxyConfig-ProxyStatsMatcher) · [Ambient mode 개요](https://istio.io/latest/docs/ambient/overview/) · [Health checking of Istio services](https://istio.io/latest/docs/ops/configuration/mesh/app-health-check/)
-- 이 문서가 다루지 못한 것: 원문 본문의 그림 5점(정상 streaming 흐름, retry buffer 초과, Envoy·pilot-agent·istiod 연결 구조, 재연결 루프, readiness flapping)은 옮기지 않고 같은 내용을 이 레포의 도식 엔진으로 새로 그렸다 — 배치·표현은 원문과 다르다. `readinessProbe` YAML의 포트 번호와 `exec` 커맨드 전문, 2.1 로그 라인의 타임스탬프는 원문에서 확실히 확보하지 못해 생략했다 — 정확한 값은 원문에서 확인한다.
+- 이 문서가 다루지 못한 것: 원문 본문의 그림 5점(정상 streaming 흐름, retry buffer 초과, Envoy·pilot-agent·istiod 연결 구조, 재연결 루프, readiness flapping)은 옮기지 않고 같은 내용을 이 레포의 도식 엔진으로 새로 그렸다 — 배치·표현은 원문과 다릅니다. `readinessProbe` YAML의 포트 번호와 `exec` 커맨드 전문, 2.1 로그 라인의 타임스탬프는 원문에서 확실히 확보하지 못해 생략했다 — 정확한 값은 원문에서 확인합니다.

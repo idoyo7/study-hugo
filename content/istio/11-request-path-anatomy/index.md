@@ -7,10 +7,10 @@ weight: 11
 
 {{< callout type="info" >}}
 **한눈에**
-- istiod는 요청 경로 위에 없다. 파드 안의 **istio-agent가 부트스트랩·인증서·xDS를 모두 중계**하고, Envoy는 istiod에 직접 연결하지 않는다.
-- 남북 경로에서 클라우드 LB는 L4로만 넘긴다. **요청이 처음 L7이 되는 곳은 게이트웨이 Envoy**이고, 거기서 TLS가 끝나고 `VirtualService` 라우트가 걸린다.
-- 동서 경로는 iptables가 아웃바운드를 `:15001`, 인바운드를 `:15006`으로 꺾는다. 프로토콜을 판별하지 못하면 **평문 TCP로 취급**되어 L7 기능이 통째로 사라진다.
-- **L7 파싱 지점이 곧 메트릭·재시도·라우팅이 생기는 지점**이다. 게이트웨이를 경유하는 메시 내부 호출이면 한 요청에 그 지점이 세 곳 생긴다.
+- istiod는 요청 경로 위에 없습니다. 파드 안의 **istio-agent가 부트스트랩·인증서·xDS를 모두 중계**하고, Envoy는 istiod에 직접 연결하지 않습니다.
+- 남북 경로에서 클라우드 LB는 L4로만 넘깁니다. **요청이 처음 L7이 되는 곳은 게이트웨이 Envoy**이고, 거기서 TLS가 끝나고 `VirtualService` 라우트가 걸립니다.
+- 동서 경로는 iptables가 아웃바운드를 `:15001`, 인바운드를 `:15006`으로 꺾습니다. 프로토콜을 판별하지 못하면 **평문 TCP로 취급**되어 L7 기능이 통째로 사라집니다.
+- **L7 파싱 지점이 곧 메트릭·재시도·라우팅이 생기는 지점**입니다. 게이트웨이를 경유하는 메시 내부 호출이면 한 요청에 그 지점이 세 곳 생깁니다.
 - 게이트웨이와 사이드카는 같은 부품이다 — 같은 Envoy, 같은 istio-agent, 같은 포트 규약.
 {{< /callout >}}
 
@@ -26,9 +26,9 @@ weight: 11
 
 agent가 하는 일은 셋입니다.
 
-- **부트스트랩** — Envoy가 뜨기 전에 설정 파일을 생성해, istiod 주소와 워크로드 identity를 심는다.
-- **인증서** — 개인키와 CSR을 직접 만들어 자신의 credential과 함께 istiod에 보내고, 서명된 인증서를 받아 **UDS 위의 SDS API로** Envoy에 공급한다(소켓 경로 `/var/run/secrets/workload-spiffe-uds/socket`). Envoy는 istiod의 CA와 말을 섞지 않는다.
-- **xDS 중계** — Envoy는 agent가 여는 UDS에 붙고, agent가 그 xDS 요청을 istiod로 프록시한다.
+- **부트스트랩** — Envoy가 뜨기 전에 설정 파일을 생성해, istiod 주소와 워크로드 identity를 심습니다.
+- **인증서** — 개인키와 CSR을 직접 만들어 자신의 credential과 함께 istiod에 보내고, 서명된 인증서를 받아 **UDS 위의 SDS API로** Envoy에 공급한다(소켓 경로 `/var/run/secrets/workload-spiffe-uds/socket`). Envoy는 istiod의 CA와 말을 섞지 않습니다.
+- **xDS 중계** — Envoy는 agent가 여는 UDS에 붙고, agent가 그 xDS 요청을 istiod로 프록시합니다.
 
 {{< seq src="_seq/1-두-평면의-배선-istiod.json" />}}
 
@@ -45,7 +45,7 @@ xDS 종류별로 무엇을 나르는지, 그 push가 왜 istiod CPU가 되는지
 게이트웨이 Envoy가 무엇을 할지는 두 CRD가 나눠 정합니다.
 
 - **`Gateway`** — "어떤 포트를 어떤 프로토콜·호스트·TLS로 받을지". 공식 레퍼런스는 이를 "the properties of the proxy on a given load balancer port"로 서술하고, "Istio will configure the proxy to listen on these ports"라고 못 박는다. 즉 **리스너를 만드는 것**이 `Gateway`다.
-- **`VirtualService`** — `gateways` 필드로 그 `Gateway`에 바인딩되어, 받은 요청을 어디로 보낼지 정한다. 필드 설명 그대로 "The names of gateways and sidecars that should apply these routes"다. 이 필드를 비우면 기본값이 `mesh`라서 **메시의 모든 사이드카에** 규칙이 걸린다 — 게이트웨이용 라우트를 만들면서 `gateways`를 빠뜨리는 것이 전형적인 사고다.
+- **`VirtualService`** — `gateways` 필드로 그 `Gateway`에 바인딩되어, 받은 요청을 어디로 보낼지 정합니다. 필드 설명 그대로 "The names of gateways and sidecars that should apply these routes"다. 이 필드를 비우면 기본값이 `mesh`라서 **메시의 모든 사이드카에** 규칙이 걸린다 — 게이트웨이용 라우트를 만들면서 `gateways`를 빠뜨리는 것이 전형적인 사고입니다.
 
 (Envoy 용어로는 앞이 LDS, 뒤가 RDS입니다. 다만 Istio 문서 자체는 이 두 CRD를 설명할 때 LDS/RDS라는 xDS 이름을 쓰지 않습니다 — 개념 대응일 뿐 문서상의 명칭은 아닙니다.)
 
@@ -115,9 +115,9 @@ TCP 트래픽에서는 이 mTLS 위에 `istio-peer-exchange`라는 ALPN 프로�
 
 여기서 [06]({{< relref "06-observability-points.md" >}})과 [05]({{< relref "05-incident-intermittent-5xx.md" >}})가 이어집니다.
 
-- **같은 요청이 두 번(또는 세 번) 카운트된다.** 대시보드에서 `reporter`를 고정하지 않으면 요청 수가 배로 보인다.
-- **두 리포트가 어긋나는 지점이 곧 홉의 경계다.** `reporter=source`에서는 5xx인데 `reporter=destination`에는 그 요청이 아예 없다면, 요청은 목적지 앱에 닿지도 못한 것이다. 05에서 `response_flags`로 홉을 가르던 작업의 절반은 이 라벨로 시작한다.
-- **L7 파싱이 없는 홉에는 이 지표가 없다.** 3절의 TCP 강등이 관측성 구멍으로 나타나는 경로가 이것이다.
+- **같은 요청이 두 번(또는 세 번) 카운트됩니다.** 대시보드에서 `reporter`를 고정하지 않으면 요청 수가 배로 보입니다.
+- **두 리포트가 어긋나는 지점이 곧 홉의 경계입니다.** `reporter=source`에서는 5xx인데 `reporter=destination`에는 그 요청이 아예 없다면, 요청은 목적지 앱에 닿지도 못한 것입니다. 05에서 `response_flags`로 홉을 가르던 작업의 절반은 이 라벨로 시작합니다.
+- **L7 파싱이 없는 홉에는 이 지표가 없습니다.** 3절의 TCP 강등이 관측성 구멍으로 나타나는 경로가 이것입니다.
 
 ## 5. 포트 지도
 
@@ -158,10 +158,10 @@ TCP 트래픽에서는 이 mTLS 위에 `istio-peer-exchange`라는 ALPN 프로�
 
 ## 이 문서에서 가져갈 것
 
-- 파드 안에는 Envoy만 있는 게 아니다. **istio-agent가 부트스트랩·CSR·SDS·xDS를 전부 중계**하고, Envoy는 istiod에 직접 붙지 않는다. 게이트웨이 파드도 같은 구성이다.
-- 요청이 **처음 HTTP로 해석되는 지점이 곧 기능이 붙는 지점**이다. 남북에서는 게이트웨이 Envoy, 동서에서는 `:15001`의 아웃바운드 리스너다.
-- 그 해석에 실패하면 평문 TCP로 강등되어 라우팅·재시도·HTTP 지표가 함께 사라진다. **`appProtocol` 또는 포트 이름으로 못 박는 것이 관측성 구멍을 막는 가장 싼 방법**이다.
-- `reporter=source`/`destination`은 같은 요청의 두 시선이다. 대시보드에서는 중복 계수의 원인이지만, 장애에서는 홉을 가르는 첫 도구다.
+- 파드 안에는 Envoy만 있는 게 아닙니다. **istio-agent가 부트스트랩·CSR·SDS·xDS를 전부 중계**하고, Envoy는 istiod에 직접 붙지 않습니다. 게이트웨이 파드도 같은 구성입니다.
+- 요청이 **처음 HTTP로 해석되는 지점이 곧 기능이 붙는 지점**입니다. 남북에서는 게이트웨이 Envoy, 동서에서는 `:15001`의 아웃바운드 리스너입니다.
+- 그 해석에 실패하면 평문 TCP로 강등되어 라우팅·재시도·HTTP 지표가 함께 사라집니다. **`appProtocol` 또는 포트 이름으로 못 박는 것이 관측성 구멍을 막는 가장 싼 방법**입니다.
+- `reporter=source`/`destination`은 같은 요청의 두 시선입니다. 대시보드에서는 중복 계수의 원인이지만, 장애에서는 홉을 가르는 첫 도구입니다.
 
 ## 소스
 

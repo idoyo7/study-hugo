@@ -7,17 +7,17 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- **최초 문제는 "캐시가 필요하다"가 아니라 "값이 blob 이면 안 된다"였다.** 첫 커밋에 동봉된 FAQ 가 프로젝트 시작 이유를 한 줄로 적는다 — `In order to scale LLOOGG.`(`redis ed9b544e1:doc/FAQ.html`) 같은 커밋의 `doc/README.html` 은 memcached 와의 차이를 자료형과 영속성 두 축으로만 설명한다 `✓`
-- **첫 커밋(2009-03-22 `ed9b544e1`)은 캐시가 아니었다.** `saveDb()` 가 `.rdb` 로 쓰고 매직 `REDIS0000` 을 박고, `fork()` 기반 BGSAVE 와 `save 900 1 / save 300 10 / save 60 10000` 이 이미 있다 — 그 3줄은 6.0.0 의 기본값과 값까지 동일하다 `✓`
-- **반대로 없던 것이 더 많다** — EXPIRE·hash·sorted set·AOF·epoll·RESP·MULTI·pub/sub·Lua·Cluster·`src/` 전부. 이벤트 루프는 연결 리스트 + `select(2)` 단일 구현이고 응답은 `nil\r\n`·`0\r\n` 같은 **타입 프리픽스 없는 raw 문자열**이다 `✓`
-- **단일 스레드는 성능 최적화가 아니라 API 계약이었다.** "락을 지원하지 않는다, 대신 원자 프리미티브를 준다"가 day-1 문서의 답이고(`ed9b544e1:doc/README.html`), `INCR`·`LPUSH`·`SINTERSTORE` 가 별도 동기화 없이 원자인 이유가 이것뿐이다 `Σ`
-- **MANIFESTO 는 두 판본이다.** v1 은 2011-03-01(`be14f38de`, 7개 항목)이고 스레딩 항목이 없다. **`7 - Threading is not a silver bullet` 은 2019-03-18 v2(`a5af648fd`)에서 추가됐다** — 6.0.0 GA(2020-04-30)보다 약 13개월 앞서, 같은 문단이 `we may explore parallelism only for I/O, which is the low hanging fruit` 라고 예고한다 `✓`
-- **버린 것이 철학을 더 잘 보여준다.** Virtual Memory 는 2.0 에 `vm-enabled` 로 실렸고, 2.4 conf 가 `WARNING! Virtual Memory is deprecated in Redis 2.4` 를 붙였고, **2.6.0 에서 제거**됐다(`Virtual Memory removed (was deprecated in 2.4)`). 그 자리를 MANIFESTO 2번 `Memory storage is #1` 이 대신 지킨다 `✓`
-- **6.0 threaded I/O 는 커맨드를 병렬로 돌리지 않는다.** 워커가 하는 일은 `writeToClient()` 또는 `readQueryFromClient()` 둘 중 하나뿐이고, 커맨드는 배리어 통과 뒤 메인 스레드의 `processCommandAndResetClient()` 가 실행한다. 기본값은 `io-threads 1`(비활성) + `io-threads-do-reads no` 로 둘 다 `IMMUTABLE_CONFIG` 이며, **SSL 이 켜져 있으면 동작하지 않는다** `✓`
-- 6.0 릴리스노트의 "2배" 주장에는 **인스턴스·코어 수·값 크기·클라이언트 수가 없다** — `when pipelining cannot be used` 라는 한정만 있다 `Ⓥ`
+- **최초 문제는 "캐시가 필요하다"가 아니라 "값이 blob 이면 안 된다"였습니다.** 첫 커밋에 동봉된 FAQ 가 프로젝트 시작 이유를 한 줄로 적는다 — `In order to scale LLOOGG.`(`redis ed9b544e1:doc/FAQ.html`) 같은 커밋의 `doc/README.html` 은 memcached 와의 차이를 자료형과 영속성 두 축으로만 설명합니다 `✓`
+- **첫 커밋(2009-03-22 `ed9b544e1`)은 캐시가 아니었습니다.** `saveDb()` 가 `.rdb` 로 쓰고 매직 `REDIS0000` 을 박고, `fork()` 기반 BGSAVE 와 `save 900 1 / save 300 10 / save 60 10000` 이 이미 있다 — 그 3줄은 6.0.0 의 기본값과 값까지 동일하입니다 `✓`
+- **반대로 없던 것이 더 많다** — EXPIRE·hash·sorted set·AOF·epoll·RESP·MULTI·pub/sub·Lua·Cluster·`src/` 전부. 이벤트 루프는 연결 리스트 + `select(2)` 단일 구현이고 응답은 `nil\r\n`·`0\r\n` 같은 **타입 프리픽스 없는 raw 문자열**입니다 `✓`
+- **단일 스레드는 성능 최적화가 아니라 API 계약이었습니다.** "락을 지원하지 않는다, 대신 원자 프리미티브를 준다"가 day-1 문서의 답이고(`ed9b544e1:doc/README.html`), `INCR`·`LPUSH`·`SINTERSTORE` 가 별도 동기화 없이 원자인 이유가 이것뿐입니다 `Σ`
+- **MANIFESTO 는 두 판본입니다.** v1 은 2011-03-01(`be14f38de`, 7개 항목)이고 스레딩 항목이 없습니다. **`7 - Threading is not a silver bullet` 은 2019-03-18 v2(`a5af648fd`)에서 추가됐다** — 6.0.0 GA(2020-04-30)보다 약 13개월 앞서, 같은 문단이 `we may explore parallelism only for I/O, which is the low hanging fruit` 라고 예고합니다 `✓`
+- **버린 것이 철학을 더 잘 보여줍니다.** Virtual Memory 는 2.0 에 `vm-enabled` 로 실렸고, 2.4 conf 가 `WARNING! Virtual Memory is deprecated in Redis 2.4` 를 붙였고, **2.6.0 에서 제거**됐다(`Virtual Memory removed (was deprecated in 2.4)`). 그 자리를 MANIFESTO 2번 `Memory storage is #1` 이 대신 지킵니다 `✓`
+- **6.0 threaded I/O 는 커맨드를 병렬로 돌리지 않습니다.** 워커가 하는 일은 `writeToClient()` 또는 `readQueryFromClient()` 둘 중 하나뿐이고, 커맨드는 배리어 통과 뒤 메인 스레드의 `processCommandAndResetClient()` 가 실행합니다. 기본값은 `io-threads 1`(비활성) + `io-threads-do-reads no` 로 둘 다 `IMMUTABLE_CONFIG` 이며, **SSL 이 켜져 있으면 동작하지 않습니다** `✓`
+- 6.0 릴리스노트의 "2배" 주장에는 **인스턴스·코어 수·값 크기·클라이언트 수가 없다** — `when pipelining cannot be used` 라는 한정만 있습니다 `Ⓥ`
 {{< /callout >}}
 
-> **왜 이 문서인가.** Redis 를 기능 목록으로 읽으면 "왜 이 기능은 이렇게 생겼나"에 답할 수 없다. 이 구간(2009~2021)에서 정해진 것은 기능이 아니라 **제약**이다 — 값이 자료구조라는 결정이 단일 스레드를 불렀다. 단일 스레드가 원자성을 공짜로 줬고 그 대가를 6.0 이 threaded I/O 로 처음 갚기 시작했다. 7.0 이후에 나오는 거의 모든 논쟁(스레딩·메모리 레이아웃·cluster 제약)의 전제가 여기서 굳었다.
+> **왜 이 문서인가.** Redis 를 기능 목록으로 읽으면 "왜 이 기능은 이렇게 생겼나"에 답할 수 없습니다. 이 구간(2009~2021)에서 정해진 것은 기능이 아니라 **제약**이다 — 값이 자료구조라는 결정이 단일 스레드를 불렀습니다. 단일 스레드가 원자성을 공짜로 줬고 그 대가를 6.0 이 threaded I/O 로 처음 갚기 시작했습니다. 7.0 이후에 나오는 거의 모든 논쟁(스레딩·메모리 레이아웃·cluster 제약)의 전제가 여기서 굳었습니다.
 
 > 근거 기준: 로컬 blobless 클론 `~/evejuni/redis`(2026-08-05 fetch)의 `git show`/`for-each-ref`/`cat-file`, 그리고 릴리스노트 원문(2.8.0~6.2.0은 `RELEASENOTES-*.txt`, 2.6 이하는 리포에 커밋된 `00-RELEASENOTES`/`Changelog`). 날짜는 태그 기준이고 **일자만** 인용한다 — 이 구간에서 릴리스노트 헤더·태그 커밋·태그 객체의 *시각*은 몇 시간씩 어긋난다(5.0.0 은 노트 헤더 `13:28:26 CEST` 와 태그 객체 `17:32:28+02:00`, 6.2.0 은 `14:00:00 IST` 와 `23:23:58+02:00`).
 
@@ -254,14 +254,14 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 - **영속성·VM**: `show 2.0.0:redis.conf:198-226`, `show 2.4.0:redis.conf:340-343`, `show 2.6.0:redis.conf`(`vm-` 0건), `show 2.6.0:00-RELEASENOTES:153`. mixed RDB-AOF 는 `show 4.0.0:redis.conf:774-782`, `show 6.0.0:src/config.c:2111`.
 - **RDB_VERSION**: `show <tag>:src/rdb.h | grep RDB_VERSION` (2.6.0 은 `:12`, 2.8.0~6.2.0 은 `:41`). 2.4 이하는 `rdb.c` 의 리터럴 매직.
 - **릴리스노트**: 2.8.0·3.0.0·3.2.0·4.0.0·5.0.0·6.0.0·6.2.0 은 `RELEASENOTES-<tag>.txt` 원문. 2.6 이하는 리포에 커밋된 `show 2.6.0:00-RELEASENOTES`, `show 2.4.0:00-RELEASENOTES`, `show 2.0.0:Changelog`.
-- **날짜 규약**: `git for-each-ref --format='%(refname:short) %(creatordate:iso-strict)' refs/tags/<tag>` 와 `git cat-file -t refs/tags/<tag>`. 2.6.0~6.0.0 = annotated, 6.2.0 이후 = lightweight. 이 구간은 일자 수준에서 세 소스가 일치하므로 **일자만** 인용했다.
-- **URL 은 이 챕터의 [99 · 출처]({{< relref "../99-sources.md" >}})가 모은다.**
+- **날짜 규약**: `git for-each-ref --format='%(refname:short) %(creatordate:iso-strict)' refs/tags/<tag>` 와 `git cat-file -t refs/tags/<tag>`. 2.6.0~6.0.0 = annotated, 6.2.0 이후 = lightweight. 이 구간은 일자 수준에서 세 소스가 일치하므로 **일자만** 인용했습니다.
+- **URL 은 이 챕터의 [99 · 출처]({{< relref "../99-sources.md" >}})가 모읍니다.**
 
 미확인으로 남긴 것:
 
-- **1.1 · 1.2 의 릴리스 일자** `?` — 리포에 `1.0`/`1.1`/`1.2` 태그가 없다(최초 태그 `1.3.6`, 2010-03-18). RESP v1 이 1.2 에서 옵션으로 들어왔다는 사실은 redis.io 프로토콜 스펙에 있으나 일자는 1차 근거로 확정하지 못했다.
-- **RDB_VERSION 3·4·5 의 도입 커밋** `?` — 2.4.0 이 리터럴 `REDIS0002`, 2.6.0-rc1 이 이미 `6`. 사이 번호는 2.5.x 개발 라인에서 소비된 것으로 보이나 커밋을 특정하지 않았다.
+- **1.1 · 1.2 의 릴리스 일자** `?` — 리포에 `1.0`/`1.1`/`1.2` 태그가 없다(최초 태그 `1.3.6`, 2010-03-18). RESP v1 이 1.2 에서 옵션으로 들어왔다는 사실은 redis.io 프로토콜 스펙에 있으나 일자는 1차 근거로 확정하지 못했습니다.
+- **RDB_VERSION 3·4·5 의 도입 커밋** `?` — 2.4.0 이 리터럴 `REDIS0002`, 2.6.0-rc1 이 이미 `6`. 사이 번호는 2.5.x 개발 라인에서 소비된 것으로 보이나 커밋을 특정하지 않았습니다.
 - **첫 커밋 이전의 이력** `?` — `ed9b544e1` 은 parent 없는 root commit 이지만, 같은 커밋의 `doc/FAQ.html` 이 `Update: redis SVN is able to know how much memory it is using` 라고 쓴다. git 이전에 SVN 작업 이력이 있었음을 시사하는 1차 흔적이고, **그 이력 자체는 이 리포에 없다**.
-- **6.0 threaded I/O 의 "2배" 주장 조건** `Ⓥ` — 릴리스노트가 `when pipelining cannot be used` 외에 인스턴스 타입·코어 수·값 크기·클라이언트 수·파이프라인 깊이를 밝히지 않는다. conf 는 벤치마크 시 클라이언트도 `--threads` 로 맞추라고만 안내한다.
-- **`REDIS_HASH 3` 이 첫 커밋에서 무엇을 위한 예약이었는지** `?` — 정의와 free 경로만 있고 생성 경로가 없다. 커밋 메시지("first commit")와 17줄 `TODO` 에 근거가 없다.
+- **6.0 threaded I/O 의 "2배" 주장 조건** `Ⓥ` — 릴리스노트가 `when pipelining cannot be used` 외에 인스턴스 타입·코어 수·값 크기·클라이언트 수·파이프라인 깊이를 밝히지 않습니다. conf 는 벤치마크 시 클라이언트도 `--threads` 로 맞추라고만 안내합니다.
+- **`REDIS_HASH 3` 이 첫 커밋에서 무엇을 위한 예약이었는지** `?` — 정의와 free 경로만 있고 생성 경로가 없습니다. 커밋 메시지("first commit")와 17줄 `TODO` 에 근거가 없습니다.
 

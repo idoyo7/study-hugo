@@ -7,10 +7,10 @@ weight: 3
 
 {{< callout type="info" >}}
 **한눈에**
-- 지표 타입이 쿼리를 결정한다 — **Counter는 `rate`/`increase`**, **Gauge는 순간값·`sum`/`avg_over_time`**, **지연 분포는 `histogram_quantile`**, 그리고 차원을 접는 **`sum by`** 가 실전 4대 패턴이다.
-- VM 계열 클라이언트의 히스토그램은 `le` 대신 **`vmrange` 버킷**을 쓴다(클래식 `le` 히스토그램도 그대로 저장·쿼리된다) — MetricsQL `histogram_quantile`는 `vmrange`를 그대로 받고, Prometheus 형식이 필요하면 **`prometheus_buckets()`** 로 변환한다.
-- **MetricsQL은 PromQL 상위호환**이다 — `rate`/`increase`가 **외삽하지 않고**, range를 생략하면 창을 `max(step, scrape_interval)`로 자동 결정하며, `default_rollup`·`keep_metric_names`·`WITH`·`topk_avg` 등 확장을 더한다.
-- **무거운 쿼리(넓은 시간범위 × 고카디널리티)는 vmselect 메모리를 먹는다** — 차원 축소·recording rule 선계산·캐시로 회피하고, 카디널리티는 **`/api/v1/status/tsdb`** 와 vmui **카디널리티 익스플로러**로 점검한다.
+- 지표 타입이 쿼리를 결정한다 — **Counter는 `rate`/`increase`**, **Gauge는 순간값·`sum`/`avg_over_time`**, **지연 분포는 `histogram_quantile`**, 그리고 차원을 접는 **`sum by`** 가 실전 4대 패턴입니다.
+- VM 계열 클라이언트의 히스토그램은 `le` 대신 **`vmrange` 버킷**을 쓴다(클래식 `le` 히스토그램도 그대로 저장·쿼리된다) — MetricsQL `histogram_quantile`는 `vmrange`를 그대로 받고, Prometheus 형식이 필요하면 **`prometheus_buckets()`** 로 변환합니다.
+- **MetricsQL은 PromQL 상위호환**이다 — `rate`/`increase`가 **외삽하지 않고**, range를 생략하면 창을 `max(step, scrape_interval)`로 자동 결정하며, `default_rollup`·`keep_metric_names`·`WITH`·`topk_avg` 등 확장을 더합니다.
+- **무거운 쿼리(넓은 시간범위 × 고카디널리티)는 vmselect 메모리를 먹는다** — 차원 축소·recording rule 선계산·캐시로 회피하고, 카디널리티는 **`/api/v1/status/tsdb`** 와 vmui **카디널리티 익스플로러**로 점검합니다.
 {{< /callout >}}
 
 앞선 [01 카디널리티]({{< relref "01-cardinality.md" >}})·[02 대규모 운영]({{< relref "02-operations-at-scale.md" >}})이 "무엇을 저장하고 어떻게 운영하는가"였다면, 이 문서는 **저장한 것을 어떻게 꺼내 읽는가** — 즉 쿼리입니다. VM은 **PromQL을 그대로 받으면서**, 그 상위호환인 **MetricsQL**로 확장합니다. 여기서는 지표 타입별 실전 패턴, MetricsQL만의 확장, 무거운 쿼리의 회피, 그리고 카디널리티 점검 쿼리를 정리합니다.
@@ -38,9 +38,9 @@ increase(http_requests_total[5m])
 irate(http_requests_total[1m])
 ```
 
-- `rate()`는 range 벡터 구간의 **초당 평균 증가율**을 낸다. Counter 리셋을 자동 보정하므로 재시작에도 음수가 튀지 않는다.
+- `rate()`는 range 벡터 구간의 **초당 평균 증가율**을 냅니다. Counter 리셋을 자동 보정하므로 재시작에도 음수가 튀지 않습니다.
 - `increase()`는 같은 구간의 **총 증가량**으로, 개념상 `rate() × 구간 길이(초)`다.
-- `irate()`는 구간의 **마지막 두 샘플**만 써 순간 기울기를 낸다. 실시간 급변 감지엔 좋지만 알람에는 과민하다.
+- `irate()`는 구간의 **마지막 두 샘플**만 써 순간 기울기를 냅니다. 실시간 급변 감지엔 좋지만 알람에는 과민하입니다.
 
 ### Gauge — 순간값과 구간 집계
 
@@ -118,9 +118,9 @@ MetricsQL의 `rate`/`increase`는 Prometheus와 결과가 미묘하게 다릅니
 rate(http_requests_total)
 ```
 
-- **외삽 없음**: Prometheus `rate`/`increase`는 창 경계에서 값을 외삽해 실제로 관측되지 않은 소수점 증가량이 나오기도 한다. MetricsQL은 외삽하지 않아 "기대한 값"을 그대로 돌려준다.
-- **창 직전 샘플 고려**: 창 바로 앞의 샘플까지 계산에 넣어, `step < scrape_interval`일 때 생기는 구멍(빈 구간)을 메운다.
-- **range 생략 가능**: 위처럼 `[5m]` 없이 써도 창이 자동으로 잡힌다.
+- **외삽 없음**: Prometheus `rate`/`increase`는 창 경계에서 값을 외삽해 실제로 관측되지 않은 소수점 증가량이 나오기도 합니다. MetricsQL은 외삽하지 않아 "기대한 값"을 그대로 돌려줍니다.
+- **창 직전 샘플 고려**: 창 바로 앞의 샘플까지 계산에 넣어, `step < scrape_interval`일 때 생기는 구멍(빈 구간)을 메웁니다.
+- **range 생략 가능**: 위처럼 `[5m]` 없이 써도 창이 자동으로 잡힙니다.
 
 ### keep_metric_names — 이름 보존
 
@@ -166,15 +166,15 @@ sum by (service) (rate(http_requests_total[5m]))
 
 회피 원칙은 다음과 같습니다.
 
-- **차원을 먼저 접는다.** `sum by (service)`처럼 필요한 레이블만 남기면 반환 시계열이 급감한다. `pod`·`instance` 같은 고카디널리티 레이블을 화면에 굳이 펼치지 않는다.
-- **rollup 창을 조회 step에 맞춘다.** 창이 너무 작으면 데이터가 비고, 너무 크면(`[1d]`, `[7d]`) 매 step마다 방대한 구간을 재계산해 무거워진다.
-- **정규식 매처(`=~`)를 남발하지 않는다.** 정규식 레이블 필터는 인덱스 조회 비용이 크다. 가능하면 정확 매칭(`=`)을 쓴다.
+- **차원을 먼저 접습니다.** `sum by (service)`처럼 필요한 레이블만 남기면 반환 시계열이 급감합니다. `pod`·`instance` 같은 고카디널리티 레이블을 화면에 굳이 펼치지 않습니다.
+- **rollup 창을 조회 step에 맞춥니다.** 창이 너무 작으면 데이터가 비고, 너무 크면(`[1d]`, `[7d]`) 매 step마다 방대한 구간을 재계산해 무거워집니다.
+- **정규식 매처(`=~`)를 남발하지 않습니다.** 정규식 레이블 필터는 인덱스 조회 비용이 큽니다. 가능하면 정확 매칭(`=`)을 씁니다.
 - **무거운 집계는 선계산한다.** 반복되는 무거운 대시보드 쿼리는 vmalert **recording rule**로 미리 계산해 조회 부하를 쓰기 시점으로 옮긴다([개념 05]({{< relref "../concepts/05-query-and-ops-components.md" >}})의 선계산 — 720만 포인트를 1,440개로 줄인 사례).
 
 그리고 vmselect 자체에도 무거운 조회를 완충하는 장치가 있습니다 — 이는 [개념 05]({{< relref "../concepts/05-query-and-ops-components.md" >}})의 메모리 관리 3포인트와 이어집니다.
 
-- **Rollup Result Cache**: 한 번 처리한 쿼리 결과를 캐싱(vmselect 허용 메모리의 12.5%)하되 **최근 5분은 제외**한다. 반복 조회가 많은 대시보드는 이 캐시 덕을 크게 본다.
-- **Query Latency Offset**(`search.latencyOffset`, 기본 30초): 가장 최근 30초를 일부러 뒤로 밀어 수집 지연으로 인한 불안정 데이터를 결과에서 뺀다. 실시간성이 중요하면 0으로 줄이되, 새로고침마다 최신 구간이 들쭉날쭉해지는 것을 감수한다.
+- **Rollup Result Cache**: 한 번 처리한 쿼리 결과를 캐싱(vmselect 허용 메모리의 12.5%)하되 **최근 5분은 제외**합니다. 반복 조회가 많은 대시보드는 이 캐시 덕을 크게 봅니다.
+- **Query Latency Offset**(`search.latencyOffset`, 기본 30초): 가장 최근 30초를 일부러 뒤로 밀어 수집 지연으로 인한 불안정 데이터를 결과에서 뺍니다. 실시간성이 중요하면 0으로 줄이되, 새로고침마다 최신 구간이 들쭉날쭉해지는 것을 감수합니다.
 
 즉 안티패턴 회피는 **① 쿼리 자체를 가볍게(차원 축소·정확 매칭) → ② 선계산으로 부하 이전 → ③ 캐시·오프셋으로 완충** 의 순서로 접근합니다.
 

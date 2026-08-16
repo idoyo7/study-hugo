@@ -29,7 +29,7 @@ Istio Slack의 `#ambient` 채널에도 업그레이드 절차 질문이 종종 �
 
 원문이 정리한 결론은 한 문장입니다.
 
-> Ambient mode 업그레이드는 `istiod → istio-cni → ztunnel` 순서로 진행하되, ztunnel은 일반적인 rolling update보다 **blue-green node pool 방식**으로 접근하는 편이 안전하다.
+> Ambient mode 업그레이드는 `istiod → istio-cni → ztunnel` 순서로 진행하되, ztunnel은 일반적인 rolling update보다 **blue-green node pool 방식**으로 접근하는 편이 안전하입니다.
 
 ## 1. 업그레이드 대상은 세 가지
 
@@ -202,17 +202,17 @@ kubectl drain <blue-node> --ignore-daemonsets --delete-emptydir-data
 
 Ambient mode 업그레이드는 Istio 버전 하나를 올리는 작업이 아니라 성격이 다른 세 컴포넌트를 순서대로 다루는 작업입니다. 원문의 결론 세 줄은 다음과 같습니다.
 
-- `istiod`는 먼저 업그레이드하고 gateway/waypoint 상태를 확인한다.
-- `istio-cni`는 in-place로 업그레이드하되, untaint-controller 및 `ambient.istio.io/redirection: enabled` annotation들을 확인한다.
-- `ztunnel`은 가장 조심해야 하며, 가능하면 blue-green node pool 방식으로 node 단위 migration을 수행한다.
+- `istiod`는 먼저 업그레이드하고 gateway/waypoint 상태를 확인합니다.
+- `istio-cni`는 in-place로 업그레이드하되, untaint-controller 및 `ambient.istio.io/redirection: enabled` annotation들을 확인합니다.
+- `ztunnel`은 가장 조심해야 하며, 가능하면 blue-green node pool 방식으로 node 단위 migration을 수행합니다.
 
 ## 이 문서에서 가져갈 것
 
-- 앱 재시작이 사라진 대신 재시작 대상이 워크로드 Pod에서 노드 위 DaemonSet 두 개로 옮겨 갔다. 그중 ztunnel은 트래픽이 실제로 지나가는 경로다.
-- **데이터 플레인의 배포 단위가 카나리의 단위를 결정한다.** 프록시가 Pod에 있으면 워크로드 카나리가 되고, 노드에 있으면 노드 풀 카나리가 된다. ztunnel을 revision canary로 다루기 어려운 이유는 istiod의 trusted account 설정(`CA_TRUSTED_NODE_ACCOUNTS` / `trustedZtunnelName`)이 이름 하나에 묶여 있기 때문이다.
-- graceful shutdown이 있다고 무중단은 아니다. 30초 유예는 짧은 요청만 지켜 주고 long-lived connection에는 무의미해서, 유예를 늘리는 대신 연결이 끊기는 지점 자체를 우회하는 쪽(node drain)을 택했다.
-- in-place를 허용할지는 실패 모드가 갈랐다. istio-cni rollout 중의 `FailedCreatePodSandBox`는 시끄럽게 실패하고 재시도되는 쪽이라 넘어갈 수 있다. Pod이 redirection 없이 Running으로 떠 버린다면 같은 판단을 내릴 수 없다.
-- blue-green은 끝나는 시점을 운영자가 정하지 못한다. stateful workload와 PDB 때문에 blue node가 오래 남고, 그동안 두 ztunnel 버전과 두 node pool을 동시에 운영해야 한다. 이 병존 기간의 비용을 계획에 넣는다.
+- 앱 재시작이 사라진 대신 재시작 대상이 워크로드 Pod에서 노드 위 DaemonSet 두 개로 옮겨 갔습니다. 그중 ztunnel은 트래픽이 실제로 지나가는 경로입니다.
+- **데이터 플레인의 배포 단위가 카나리의 단위를 결정합니다.** 프록시가 Pod에 있으면 워크로드 카나리가 되고, 노드에 있으면 노드 풀 카나리가 됩니다. ztunnel을 revision canary로 다루기 어려운 이유는 istiod의 trusted account 설정(`CA_TRUSTED_NODE_ACCOUNTS` / `trustedZtunnelName`)이 이름 하나에 묶여 있기 때문입니다.
+- graceful shutdown이 있다고 무중단은 아닙니다. 30초 유예는 짧은 요청만 지켜 주고 long-lived connection에는 무의미해서, 유예를 늘리는 대신 연결이 끊기는 지점 자체를 우회하는 쪽(node drain)을 택했습니다.
+- in-place를 허용할지는 실패 모드가 갈랐습니다. istio-cni rollout 중의 `FailedCreatePodSandBox`는 시끄럽게 실패하고 재시도되는 쪽이라 넘어갈 수 있습니다. Pod이 redirection 없이 Running으로 떠 버린다면 같은 판단을 내릴 수 없습니다.
+- blue-green은 끝나는 시점을 운영자가 정하지 못합니다. stateful workload와 PDB 때문에 blue node가 오래 남고, 그동안 두 ztunnel 버전과 두 node pool을 동시에 운영해야 합니다. 이 병존 기간의 비용을 계획에 넣습니다.
 
 ## 소스
 

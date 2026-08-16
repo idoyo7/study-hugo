@@ -56,7 +56,7 @@ aliases: ["/monitoring/victoriametrics/08-sources/"]
 
 - 도구: **whisper.cpp `large-v3-turbo`** (Metal GPU), 한국어 자동 전사.
 - 모델 파일: 작업 저장소 `evejuni/monitoring/d2-victoriametrics/models/ggml-large-v3-turbo.bin` (약 1.6GB, GitBook 미포함). 재전사가 필요 없으면 삭제해도 무방.
-- **주의**: STT 자동 전사라 고유명사 표기 오류가 있다. 각 문서는 정규 표기로 교정해 반영했다.
+- **주의**: STT 자동 전사라 고유명사 표기 오류가 있습니다. 각 문서는 정규 표기로 교정해 반영했습니다.
   - 예: "빅토리아 매트릭스" → VictoriaMetrics · "VM 에이전트" → vmagent · "아파트 2.0" → Apache 2.0 · "프롬키" → PromQL · "리모트라이트" → remote_write · "고릴라" → Gorilla · "미드" → read.
 
 ## 원본 대사집을 직접 볼 때

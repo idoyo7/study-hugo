@@ -7,10 +7,10 @@ weight: 4
 
 {{< callout type="info" >}}
 **한눈에**
-- NPD는 SIG Node 산하 프로젝트(`kubernetes/node-problem-detector`)다. DaemonSet 또는 standalone 데몬으로 각 노드에서 돌면서 노드 문제를 NodeCondition 또는 Event로 API 서버에 보고한다. kubernetes.io 공식 태스크 문서 *Monitor Node Health*에 수록돼 있다.
-- 문제 데몬은 SystemLogMonitor · SystemStatsMonitor · CustomPluginMonitor · HealthChecker 4종이다. 기본 설정 파일만으로 KernelDeadlock, ReadonlyFilesystem, FrequentKubeletRestart, CorruptDockerOverlay2 등이 탐지된다.
-- NPD는 탐지·보고까지만 수행한다. cordon·drain·교체는 별도 remedy system이 맡는다. README는 Descheduler · mediK8S · MachineHealthCheck 3개를 나열한다.
-- EKS에는 `eks-node-monitoring-agent` 애드온과 node auto repair 조합이 있다. 5개 전용 NodeCondition을 세우고 `Replace`/`Reboot`까지 수행한다. AWS 공식 문서는 NPD와의 관계(대체인지 보완인지)를 서술하지 않는다.
+- NPD는 SIG Node 산하 프로젝트(`kubernetes/node-problem-detector`)다. DaemonSet 또는 standalone 데몬으로 각 노드에서 돌면서 노드 문제를 NodeCondition 또는 Event로 API 서버에 보고합니다. kubernetes.io 공식 태스크 문서 *Monitor Node Health*에 수록돼 있습니다.
+- 문제 데몬은 SystemLogMonitor · SystemStatsMonitor · CustomPluginMonitor · HealthChecker 4종입니다. 기본 설정 파일만으로 KernelDeadlock, ReadonlyFilesystem, FrequentKubeletRestart, CorruptDockerOverlay2 등이 탐지됩니다.
+- NPD는 탐지·보고까지만 수행합니다. cordon·drain·교체는 별도 remedy system이 맡습니다. README는 Descheduler · mediK8S · MachineHealthCheck 3개를 나열합니다.
+- EKS에는 `eks-node-monitoring-agent` 애드온과 node auto repair 조합이 있습니다. 5개 전용 NodeCondition을 세우고 `Replace`/`Reboot`까지 수행합니다. AWS 공식 문서는 NPD와의 관계(대체인지 보완인지)를 서술하지 않습니다.
 {{< /callout >}}
 
 > 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 노드 단위 조치·중단 예산은 [Karpenter]({{< relref "../karpenter/_index.md" >}})
@@ -113,24 +113,24 @@ Karpenter의 Node Repair도 같은 조건 집합을 소비합니다. `NodeRepair
 NPD가 여전히 필요한 경우와 불필요한 경우는 다음과 같습니다.
 
 - 필요: 자체 클러스터(EKS 밖), 애드온이 커버하지 않는 도메인 특화 탐지(사내 에이전트 상태·NTP·특정 커널 로그 패턴), CustomPluginMonitor로 자체 점검 스크립트를 컨디션화해야 하는 경우.
-- 불필요: EKS에서 커널·런타임·스토리지·네트워킹 등 애드온이 이미 커버하는 카테고리만 필요하고 조치까지 관리형에 맡길 수 있는 경우. 이 범위에서는 NPD를 추가해도 조치 주체가 늘지 않는다.
+- 불필요: EKS에서 커널·런타임·스토리지·네트워킹 등 애드온이 이미 커버하는 카테고리만 필요하고 조치까지 관리형에 맡길 수 있는 경우. 이 범위에서는 NPD를 추가해도 조치 주체가 늘지 않습니다.
 
 AWS 공식 문서에서 애드온과 NPD의 관계를 대체 또는 보완으로 규정한 서술은 확인하지 못했습니다. 두 컴포넌트를 동시에 돌릴 때의 권고 사항도 미확인입니다. 병행 배포를 검토한다면 컨디션 이름이 서로 다르다는 점(중복 컨디션은 발생하지 않음)까지만 확정 사실로 두고 나머지는 자체 검증 대상으로 잡습니다.
 
 ## 7. 채택 체크리스트
 
-- 탐지하려는 항목이 EKS 애드온 5개 카테고리 안에 들어오는지 먼저 대조한다. 들어오면 EKS 클러스터에서 NPD의 추가 가치는 커스텀 룰로 좁혀진다.
-- 조치 주체를 함께 정한다. remedy system 없이 NPD만 배포하면 컨디션이 붙은 노드가 그대로 남는다. Descheduler를 쓸 경우 `TaintNodesByCondition` 활성화 여부를 먼저 확인한다.
-- 자체 클러스터에는 NPD + remedy system 조합이 필요하다. Draino는 유지보수가 멈춰 있으므로 mediK8S 또는 MachineHealthCheck 중에서 고른다.
-- 룰 파일의 소유·배포 경로를 정한다. `config/` JSON을 ConfigMap으로 관리한다. 커널·systemd 로그 포맷이 노드 OS에 따라 달라지므로 AMI 변경 시 정규식 매칭을 재검증한다.
-- Prometheus 스크레이프를 쓸지 결정한다. 기본 바인드가 `127.0.0.1:20257`이라 그대로는 외부에서 수집되지 않는다.
-- 리소스 한도는 문서 예시값을 출발점으로 두되 자체 노드의 로그 유입량으로 재측정한다.
+- 탐지하려는 항목이 EKS 애드온 5개 카테고리 안에 들어오는지 먼저 대조합니다. 들어오면 EKS 클러스터에서 NPD의 추가 가치는 커스텀 룰로 좁혀집니다.
+- 조치 주체를 함께 정합니다. remedy system 없이 NPD만 배포하면 컨디션이 붙은 노드가 그대로 남습니다. Descheduler를 쓸 경우 `TaintNodesByCondition` 활성화 여부를 먼저 확인합니다.
+- 자체 클러스터에는 NPD + remedy system 조합이 필요하입니다. Draino는 유지보수가 멈춰 있으므로 mediK8S 또는 MachineHealthCheck 중에서 고릅니다.
+- 룰 파일의 소유·배포 경로를 정합니다. `config/` JSON을 ConfigMap으로 관리합니다. 커널·systemd 로그 포맷이 노드 OS에 따라 달라지므로 AMI 변경 시 정규식 매칭을 재검증합니다.
+- Prometheus 스크레이프를 쓸지 결정합니다. 기본 바인드가 `127.0.0.1:20257`이라 그대로는 외부에서 수집되지 않습니다.
+- 리소스 한도는 문서 예시값을 출발점으로 두되 자체 노드의 로그 유입량으로 재측정합니다.
 
 ## 이 문서에서 가져갈 것
 
-- NPD는 kubelet의 표준 5개 컨디션에 커스텀 컨디션·이벤트를 더하는 보고 계층이다. 탐지 후 조치는 범위 밖이므로 remedy system을 함께 설계해야 완결된다.
-- EKS에서는 `eks-node-monitoring-agent` + node auto repair가 탐지와 조치를 한 번에 관리형으로 제공한다. NPD의 잔여 가치는 애드온이 커버하지 않는 커스텀 룰과 EKS 밖 클러스터다.
-- 프로젝트는 활발히 유지보수 중이다. 확인 시점(2026-07-31) 기준 최신 릴리스는 v1.36.0(2026-07-11)이고 저장소는 archived=false다. 반면 예전에 표준 조합으로 통하던 Draino는 사실상 정지 상태이므로 채택 대상에서 제외한다.
+- NPD는 kubelet의 표준 5개 컨디션에 커스텀 컨디션·이벤트를 더하는 보고 계층입니다. 탐지 후 조치는 범위 밖이므로 remedy system을 함께 설계해야 완결됩니다.
+- EKS에서는 `eks-node-monitoring-agent` + node auto repair가 탐지와 조치를 한 번에 관리형으로 제공합니다. NPD의 잔여 가치는 애드온이 커버하지 않는 커스텀 룰과 EKS 밖 클러스터입니다.
+- 프로젝트는 활발히 유지보수 중입니다. 확인 시점(2026-07-31) 기준 최신 릴리스는 v1.36.0(2026-07-11)이고 저장소는 archived=false다. 반면 예전에 표준 조합으로 통하던 Draino는 사실상 정지 상태이므로 채택 대상에서 제외합니다.
 
 ## 소스
 

@@ -27,6 +27,6 @@ weight: 7
 
 **로그/관측성 한정 판정 = ClickHouse.** 로그 워크로드는 append-only 단일 wide 테이블 needle-search + 고ingest라 MergeTree 홈그라운드이고, StarRocks의 헤드라인 강점(JOIN·고동시성·upsert·레이크하우스)은 이 shape에 거의 무관합니다. 결정타는 검색 축 — 가장 필요한 풀텍스트가 CH는 GA, SR은 (쓸 모드에서) Beta입니다. **StarRocks의 유일한 진짜 승리는 self-host storage-compute 분리**이므로, "S3 위 탄력 오토스케일"이 하드 요구가 아니면 로그 숏리스트에서 빠집니다.
 
-> 정직한 단서 2개: (1) **둘 다 BM25/relevance 스코어링이 없다** — ES식 랭킹 검색이 진짜 필요하면 전용 검색층을 남겨라. (2) 공존한다면 split-brain(CH=관측성 logs+traces+RUM, SR=Iceberg 위 BI/mutable)이 자연스럽고, 공유 S3/Iceberg 레이크가 브릿지가 된다.
+> 정직한 단서 2개: (1) **둘 다 BM25/relevance 스코어링이 없다** — ES식 랭킹 검색이 진짜 필요하면 전용 검색층을 남겨라. (2) 공존한다면 split-brain(CH=관측성 logs+traces+RUM, SR=Iceberg 위 BI/mutable)이 자연스럽고, 공유 S3/Iceberg 레이크가 브릿지가 됩니다.
 
 각 엔진의 단독 평가는 [ClickHouse (self-hosted)]({{< relref "04-clickhouse.md" >}}) · [StarRocks]({{< relref "06-starrocks.md" >}}) 참고.

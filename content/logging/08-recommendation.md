@@ -37,7 +37,7 @@ weight: 8
 [조회]  Grafana 단일 (victorialogs-datasource 공식 플러그인)
 ```
 
-> 메트릭 계층의 400일 장기보관 설계는 [메트릭 400일 보관]({{< relref "../monitoring/longterm-retention/_index.md" >}}) 챕터에서 별도로 다룬다.
+> 메트릭 계층의 400일 장기보관 설계는 [메트릭 400일 보관]({{< relref "../monitoring/longterm-retention/_index.md" >}}) 챕터에서 별도로 다룹니다.
 
 이 구조가 사실상 "2개"로 수렴하는 이유:
 

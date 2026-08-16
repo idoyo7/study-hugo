@@ -9,18 +9,18 @@ weight: 1
 **한눈에**
 - v1beta1→v1을 "필드 이름이 바뀐 일"로 읽으면 사고가 난다. changelog에서 위험한 절은 **Behavior Changes**이고 그중 둘은 **옵트아웃이 없다** — drift는 Stable 승격과 함께 feature gate가 삭제됐고([core#1311](https://github.com/kubernetes-sigs/karpenter/pull/1311)), expiration은 forceful로 되돌아갔다([core#1333](https://github.com/kubernetes-sigs/karpenter/pull/1333)).
 - **forceful expiration이 무시하는 건 PodDisruptionBudget(PDB)이 아니다.** 무시하는 것은 "대체 노드가 `Initialized`가 될 때까지 드레인을 시작하지 않는다"는 사전 안전장치와 disruption budget이다. `nodeclaim.expiration` 컨트롤러는 후보 평가 없이 NodeClaim을 바로 `Delete`한다(`controllers/nodeclaim/expiration/controller.go:82`).
-- **`consolidateAfter`가 v1에서 필수 필드다.** v1beta1의 `WhenUnderutilized`에서는 설정조차 불가능했던 값이라 기존 동작을 유지하려면 `0s`를 명시해야 한다. `Never`는 그 NodePool의 consolidation을 통째로 끈다.
+- **`consolidateAfter`가 v1에서 필수 필드입니다.** v1beta1의 `WhenUnderutilized`에서는 설정조차 불가능했던 값이라 기존 동작을 유지하려면 `0s`를 명시해야 합니다. `Never`는 그 NodePool의 consolidation을 통째로 끕니다.
 - **`terminationGracePeriod`([core#916](https://github.com/kubernetes-sigs/karpenter/pull/916))가 최종 승자다.** 만료되면 PDB·`do-not-disrupt` 무관하게 남은 파드가 강제 삭제된다. 반대로 TGP를 걸면 drift가 "PDB·`do-not-disrupt` 파드가 있는 노드"까지 후보로 채택한다 — 안전장치를 스스로 꺼주는 대가로 CVE 패치를 밀 수 있게 된다. 노드 최대 수명 = `expireAfter`(기본 `720h`, 상한이지 하한이 아니다) + TGP.
-- disruption budgets가 `Drifted`/`Underutilized`/`Empty` **reason별로** 나뉘었다([core#991](https://github.com/kubernetes-sigs/karpenter/pull/991), [core#1377](https://github.com/kubernetes-sigs/karpenter/pull/1377)). 삭제된 drift feature gate의 자리를 이것이 메운다 — 업스트림이 제시하는 유일한 drift 통제 수단이다.
-- **1.1.0이 v1beta1 서빙을 끝냈다.** `nodeClassRef.group`/`kind`가 강제 필수가 되고 kubelet 호환 어노테이션이 사라진다. 같은 릴리스의 Bottlerocket + `instanceStorePolicy: RAID0`은 **v1.22.0 미만 이미지에서 노드가 join하지 못한다.**
+- disruption budgets가 `Drifted`/`Underutilized`/`Empty` **reason별로** 나뉘었다([core#991](https://github.com/kubernetes-sigs/karpenter/pull/991), [core#1377](https://github.com/kubernetes-sigs/karpenter/pull/1377)). 삭제된 drift feature gate의 자리를 이것이 메운다 — 업스트림이 제시하는 유일한 drift 통제 수단입니다.
+- **1.1.0이 v1beta1 서빙을 끝냈습니다.** `nodeClassRef.group`/`kind`가 강제 필수가 되고 kubelet 호환 어노테이션이 사라집니다. 같은 릴리스의 Bottlerocket + `instanceStorePolicy: RAID0`은 **v1.22.0 미만 이미지에서 노드가 join하지 못합니다.**
 - **1.2.0의 메트릭 reason 라벨 snake_case 전환은 CI가 못 잡는 조용한 알람 무효화다.** `reason="Drifted"` 쿼리는 에러 없이 결과가 0이 된다. 같은 릴리스에서 `nodeclass.status`·`nodeclass.termination`이 `nodeclass`로 합쳐졌다([aws#7597](https://github.com/aws/karpenter-provider-aws/pull/7597)).
-- **1.6.0에서 native On-Demand Capacity Reservation(ODCR)이 beta·기본 활성화됐다**([core#2365](https://github.com/kubernetes-sigs/karpenter/pull/2365)). `open` eligibility ODCR을 `capacityReservationSelectorTerms`에 등재하지 않고 올리면 **예약을 안 쓰면서 요금은 계속 나간다** — 이 구간에서 가장 비싼 회귀다.
+- **1.6.0에서 native On-Demand Capacity Reservation(ODCR)이 beta·기본 활성화됐다**([core#2365](https://github.com/kubernetes-sigs/karpenter/pull/2365)). `open` eligibility ODCR을 `capacityReservationSelectorTerms`에 등재하지 않고 올리면 **예약을 안 쓰면서 요금은 계속 나간다** — 이 구간에서 가장 비싼 회귀입니다.
 - `MinValuesPolicy`(1.6, [core#2299](https://github.com/kubernetes-sigs/karpenter/pull/2299)·[aws#8250](https://github.com/aws/karpenter-provider-aws/pull/8250))는 전역 옵션, 기본 `Strict`다. `minValues` 자체는 v0.35.0([core#963](https://github.com/kubernetes-sigs/karpenter/pull/963))부터 있던 API로 0.36 운영자에게 새 기능이 아니다.
 {{< /callout >}}
 
 > **왜 이 문서인가.** v1 마이그레이션 가이드 763줄의 절반은 "필드가 어디로 갔다"는 표라 `kubectl apply` 실패로 바로 드러난다. 진짜 위험한 건 **매니페스트가 그대로 통과하는데 클러스터가 다르게 행동하는** 항목이다 — 만료된 노드가 대체 없이 드레인을 시작하고, 끄고 있던 drift가 켜지고, 쓴 적 없는 `consolidateAfter`가 필수가 됩니다.
 
-> 근거 기준: 릴리스노트는 `aws/karpenter-provider-aws` v0.36.0~v1.14.0 및 `kubernetes-sigs/karpenter` v1.0.0~v1.14.0, 문서·코드·릴리스일은 2026-07-30 기준 두 레포 main 체크아웃과 git 태그다. 줄 번호는 그 시점 스냅샷이다.
+> 근거 기준: 릴리스노트는 `aws/karpenter-provider-aws` v0.36.0~v1.14.0 및 `kubernetes-sigs/karpenter` v1.0.0~v1.14.0, 문서·코드·릴리스일은 2026-07-30 기준 두 레포 main 체크아웃과 git 태그입니다. 줄 번호는 그 시점 스냅샷입니다.
 
 ## 1. 타임라인 — 0.36에서 1.6까지
 
@@ -147,9 +147,9 @@ expiration은 **budget으로 rate-limit이 안 되고**(`disruption.md:317`) `do
 
 budgets 자체는 v0.34.0부터 있었고 v1.0에서 `reasons: ["Drifted"|"Underutilized"|"Empty"]`가 추가됐습니다. 계산 규칙은 셋입니다.
 
-- 퍼센트는 `roundup(total × pct) − total_deleting − total_notready`, 정수는 `value − total_deleting − total_notready`. **삭제 중 노드와 NotReady 노드가 예산을 먹는다** — 이미 죽어가는 노드가 많으면 정상 disruption이 통째로 막힌다.
+- 퍼센트는 `roundup(total × pct) − total_deleting − total_notready`, 정수는 `value − total_deleting − total_notready`. **삭제 중 노드와 NotReady 노드가 예산을 먹는다** — 이미 죽어가는 노드가 많으면 정상 disruption이 통째로 막힙니다.
 - 여러 budget이 active면 **최솟값**이다. 특정 reason의 허용치는 "그 reason을 나열한 budget"과 "reasons를 안 쓴 budget"의 최솟값이다(`designs/disruption-controls-by-reason.md:220-226`).
-- **자발적 disruption만 막는다.** drift·emptiness·consolidation이 대상이고 expiration·interruption·node repair는 아니다. NodePool 전체를 멈추는 `budgets: [{nodes: "0"}]`도 expiration은 못 막는다.
+- **자발적 disruption만 막습니다.** drift·emptiness·consolidation이 대상이고 expiration·interruption·node repair는 아닙니다. NodePool 전체를 멈추는 `budgets: [{nodes: "0"}]`도 expiration은 못 막습니다.
 
 §2.1의 세 budget이 실전 패턴입니다 — "유지보수 시간대에는 drift만 허용", "비용 절감(Underutilized)은 야간에만"처럼 reason을 시간축과 곱해서 씁니다.
 
@@ -158,8 +158,8 @@ budgets 자체는 v0.34.0부터 있었고 v1.0에서 `reasons: ["Drifted"|"Under
 절차상 경계 둘. **`nodeClassRef.group`·`kind` 강제 필수화**(모든 NodePool·NodeClaim에 값이 있는지 사전 확인, `upgrade-guide.md:297`)와 **v1beta1 kubelet 호환 어노테이션 지원 종료**(§2 표의 kubelet 이동이 안 끝난 클러스터는 여기서 막힙니다 — EC2NodeClass 분리 → `nodeClassRef` 변경 → drift가 세트로 옵니다). 운영 체감이 바뀌는 것은 넷입니다.
 
 - **Bottlerocket `instanceStorePolicy: RAID0`** — AL2·AL2023처럼 instance store를 RAID0으로 묶는 userData를 **자동 생성**한다. 이 userData는 **Bottlerocket v1.22.0+에서만 유효**해서 그 미만 이미지에 이 조합을 쓰면 **노드가 클러스터에 join하지 못한다**(`upgrade-guide.md:298-299`)
-- **Neuron 가속기 라벨 값 교정** — `karpenter.k8s.aws/instance-accelerator-name`이 모든 Neuron 가속기에 `inferentia`를 붙이던 것이 `trainium`/`inferentia`/`inferentia2`로 갈린다. `inferentia`를 하드코딩한 셀렉터는 trainium 노드를 못 잡는다
-- **generic operator 메트릭 deprecated** — 접두사 없는 `operator_*`가 node/nodeclaim/nodepool/ec2nodeclass별로 쪼개졌다(`upgrade-guide.md:302`) — 리소스 구분 없이 집계하던 패널이 값을 잃는다
+- **Neuron 가속기 라벨 값 교정** — `karpenter.k8s.aws/instance-accelerator-name`이 모든 Neuron 가속기에 `inferentia`를 붙이던 것이 `trainium`/`inferentia`/`inferentia2`로 갈립니다. `inferentia`를 하드코딩한 셀렉터는 trainium 노드를 못 잡습니다
+- **generic operator 메트릭 deprecated** — 접두사 없는 `operator_*`가 node/nodeclaim/nodepool/ec2nodeclass별로 쪼개졌다(`upgrade-guide.md:302`) — 리소스 구분 없이 집계하던 패널이 값을 잃습니다
 - **내부 `karpenter.k8s.aws/cluster` 태그 제거** — launch template 관리용 내부 태그가 `eks:eks-cluster-name`으로 통합됐다. 이 태그로 비용 할당·SCP를 걸어둔 계정은 확인 필요
 
 Node Auto Repair(`NodeRepair` gate)도 여기서 alpha로 들어왔습니다([core#1793](https://github.com/kubernetes-sigs/karpenter/pull/1793)·[aws#7459](https://github.com/aws/karpenter-provider-aws/pull/7459)). **1.14 기준으로도 여전히 alpha·기본 false입니다**(`reference/settings.md` Feature Gates 표의 Until 칸이 비어 있습니다). 표준 drain·grace period를 **우회**하고 disruption budget도 안 받으므로 켜기 전에 Node Problem Detector(NPD)나 EKS Node Monitoring Agent가 컨디션을 실제로 달아주는지부터 확인합니다 — 에이전트가 없으면 아무 일도 하지 않습니다.

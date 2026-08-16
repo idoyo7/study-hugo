@@ -10,7 +10,7 @@ weight: 3
 - 이 서브섹션은 네이버 D2 사례가 아니라 **우리 환경의 실제 구성·튜닝·기준치·노하우**를 다룹니다.
 - 출발점은 k8s 위 VM operator로 띄운 **stateless vmagent**가 중앙 VM 클러스터의 vminsert로 `remote_write` 하는 구조입니다.
 - Phase 1 튜닝의 두 축: **VM native protocol(zstd) 고정**(`forceVMProto`)과 **디스크 큐 상한 명시**(`maxDiskUsagePerURL`).
-- 개념(concepts)에서 배운 원리와 실전(practice)의 설계 원칙을 **우리 값·우리 임계**로 번역한 계층이다.
+- 개념(concepts)에서 배운 원리와 실전(practice)의 설계 원칙을 **우리 값·우리 임계**로 번역한 계층입니다.
 {{< /callout >}}
 
 concepts는 네이버 D2/DEVIEW 발표를 정독해 VM의 내부 동작을 잡은 계층, practice는 그 위에서 카디널리티·초대규모 운영 같은 설계 원칙을 정리한 계층입니다. 이 서브섹션은 그 원리와 원칙을 **우리 환경의 구체적인 값**으로 옮깁니다. 어떤 리소스로 vmagent를 띄웠고, 무엇을 왜 튜닝했으며, 어떤 메트릭을 어떤 임계로 감시하는지 — "네이버는 이렇게 한다"가 아니라 "우리는 이렇게 운영한다"를 담습니다.

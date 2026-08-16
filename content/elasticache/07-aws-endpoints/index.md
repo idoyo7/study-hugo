@@ -7,20 +7,20 @@ weight: 7
 
 {{< callout type="info" >}}
 **한눈에**
-- **엔드포인트는 접속 주소처럼 보이지만 실제로는 토폴로지의 표현이다.** CMD(cluster mode disabled)는 primary·reader·node 3종을 갖고, CME(cluster mode enabled)는 configuration endpoint **1개뿐**이다. CME 에는 primary/reader endpoint 라는 개념 자체가 없다 `✓` — `DescribeReplicationGroups` 응답에 그 필드가 나오지 않는 것은 문서의 응답 예시로 확인한 것이고 규정 문장은 없다 `≈`
+- **엔드포인트는 접속 주소처럼 보이지만 실제로는 토폴로지의 표현입니다.** CMD(cluster mode disabled)는 primary·reader·node 3종을 갖고, CME(cluster mode enabled)는 configuration endpoint **1개뿐**입니다. CME 에는 primary/reader endpoint 라는 개념 자체가 없다 `✓` — `DescribeReplicationGroups` 응답에 그 필드가 나오지 않는 것은 문서의 응답 예시로 확인한 것이고 규정 문장은 없습니다 `≈`
 - **이름으로 판별할 수 있다.** 이름 안에 `clustercfg` 가 있으면 cluster 프로토콜 전용(CME 또는 MemoryDB), `.ng.0001.` 이면 CMD primary, `.serverless.` 면 Serverless, `.cfg.` 면 Memcached 다 `✓`
-- **모드 전환은 단방향이다.** `disabled → compatible → enabled` 2단계이고 AWS 문서가 *"Reverting this configuration is not possible"* 라고 못박았다. 되돌릴 수 있는 것은 `compatible → disabled` 뿐이다 `✓`
-- **"엔드포인트만 갈아끼우면 된다"가 틀리는 이유는 3종 세트이기 때문이다** — 엔드포인트 문자열 + 클라이언트(cluster 프로토콜 지원) + 애플리케이션의 다중 키 연산(같은 슬롯 강제). 하나라도 빠지면 `CROSSSLOT` 으로 런타임에 터진다 `✓`
-- **엔진 전환은 정반대다.** Redis OSS → Valkey 는 in-place 이고 *"including the endpoint DNS name, will remain unchanged"* 다. 바뀌는 것은 노드 IP 뿐이다 — 모드 전환과 엔진 전환의 리스크를 섞으면 계획서가 통째로 틀린다 `✓`
-- **TLS 켜기는 설정 토글로 보이지만 실은 엔드포인트 마이그레이션이다.** 포트는 6379 그대로이고 **DNS 레코드 형식**이 바뀐다. per-node DNS 이름은 `preferred` 로 넘어가는 시점에 이미 삭제·재생성되고, 구 non-TLS primary/reader 는 `required` 에서 **삭제**된다 `✓`
-- **failover 자체는 몇 초다. 장애 시간을 만드는 것은 클라이언트 DNS 캐시다.** AWS 문서가 JVM `networkaddress.cache.ttl` 을 5~10초로 낮추라고 직접 지시하고, 기본값이면 *"never refresh DNS entries until the JVM is restarted"* 라고 경고한다. security property 라서 `-D` 플래그로는 안 들어간다 `✓`
-- **Serverless 는 클라이언트를 편하게 해주지 않는다.** 항상 cluster mode 로 동작하고 TLS 가 강제이며, Read from Replica 를 쓰지 않아도 **6380 을 열어야** 커넥션 수립이 느려지지 않는다 `✓`
-- **관리형은 `config`·`debug`·`cluster setslot` 을 막는다.** 남는 유일한 설정 경로가 파라미터 그룹이고, 이것이 self-host 를 고민하는 실질적 이유다 `✓`
+- **모드 전환은 단방향입니다.** `disabled → compatible → enabled` 2단계이고 AWS 문서가 *"Reverting this configuration is not possible"* 라고 못박았습니다. 되돌릴 수 있는 것은 `compatible → disabled` 뿐입니다 `✓`
+- **"엔드포인트만 갈아끼우면 된다"가 틀리는 이유는 3종 세트이기 때문이다** — 엔드포인트 문자열 + 클라이언트(cluster 프로토콜 지원) + 애플리케이션의 다중 키 연산(같은 슬롯 강제). 하나라도 빠지면 `CROSSSLOT` 으로 런타임에 터집니다 `✓`
+- **엔진 전환은 정반대입니다.** Redis OSS → Valkey 는 in-place 이고 *"including the endpoint DNS name, will remain unchanged"* 다. 바뀌는 것은 노드 IP 뿐이다 — 모드 전환과 엔진 전환의 리스크를 섞으면 계획서가 통째로 틀립니다 `✓`
+- **TLS 켜기는 설정 토글로 보이지만 실은 엔드포인트 마이그레이션입니다.** 포트는 6379 그대로이고 **DNS 레코드 형식**이 바뀝니다. per-node DNS 이름은 `preferred` 로 넘어가는 시점에 이미 삭제·재생성되고, 구 non-TLS primary/reader 는 `required` 에서 **삭제**됩니다 `✓`
+- **failover 자체는 몇 초입니다. 장애 시간을 만드는 것은 클라이언트 DNS 캐시입니다.** AWS 문서가 JVM `networkaddress.cache.ttl` 을 5~10초로 낮추라고 직접 지시하고, 기본값이면 *"never refresh DNS entries until the JVM is restarted"* 라고 경고합니다. security property 라서 `-D` 플래그로는 안 들어갑니다 `✓`
+- **Serverless 는 클라이언트를 편하게 해주지 않습니다.** 항상 cluster mode 로 동작하고 TLS 가 강제이며, Read from Replica 를 쓰지 않아도 **6380 을 열어야** 커넥션 수립이 느려지지 않습니다 `✓`
+- **관리형은 `config`·`debug`·`cluster setslot` 을 막습니다.** 남는 유일한 설정 경로가 파라미터 그룹이고, 이것이 self-host 를 고민하는 실질적 이유입니다 `✓`
 {{< /callout >}}
 
-> **왜 이 문서인가.** ElastiCache 로 넘어갈 때 가장 흔한 실패는 "주소만 바꾸면 되는 줄 알았다"다. 그런데 ElastiCache 의 엔드포인트는 편의를 위한 별칭이 아니라 **클러스터 토폴로지를 DNS 로 노출한 결과물**이다. 그래서 모드를 바꾸면 주소 구조가 바뀐다. 주소 구조가 바뀌면 클라이언트 라이브러리의 종류가 바뀌고, 클라이언트가 바뀌면 애플리케이션의 다중 키 연산까지 바뀐다. 이 연쇄를 끊어서 보면 어느 단계에서든 사고가 난다. 반대로 이 연쇄를 알면 **엔드포인트 문자열만 보고도 그 앱이 무엇을 해야 하는지 판정**할 수 있다.
+> **왜 이 문서인가.** ElastiCache 로 넘어갈 때 가장 흔한 실패는 "주소만 바꾸면 되는 줄 알았다"다. 그런데 ElastiCache 의 엔드포인트는 편의를 위한 별칭이 아니라 **클러스터 토폴로지를 DNS 로 노출한 결과물**입니다. 그래서 모드를 바꾸면 주소 구조가 바뀝니다. 주소 구조가 바뀌면 클라이언트 라이브러리의 종류가 바뀌고, 클라이언트가 바뀌면 애플리케이션의 다중 키 연산까지 바뀝니다. 이 연쇄를 끊어서 보면 어느 단계에서든 사고가 납니다. 반대로 이 연쇄를 알면 **엔드포인트 문자열만 보고도 그 앱이 무엇을 해야 하는지 판정**할 수 있습니다.
 
-> 근거 기준: AWS 관련 사실은 전량 `docs.aws.amazon.com` · `aws.amazon.com/about-aws/whats-new` 본문을 직접 읽어 인용했고, 확인 시점은 **2026-08-06** 이다. **DNS 패턴은 AWS 문서에 실린 예시만 옮겼다** — 실계정 `aws elasticache describe-*` 로 교차검증하지 않았으므로 문서에 없는 형태는 `?` 로 남겼다 `✓` 자체 운영 대조군(§10)은 로컬 클론 `valkey 9.1.1:valkey.conf` 와 valkey.io 공식 문서를 근거로 한다. cluster 자체의 내부 원리(슬롯·MOVED/ASK·gossip)는 [cluster mode]({{< relref "../06-cluster-mode/index.md" >}})가, 엔진 버전별 기능은 [Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}})·[Valkey 8.0 → 9.1]({{< relref "../05-valkey-8-to-9/index.md" >}})이 소유한다.
+> 근거 기준: AWS 관련 사실은 전량 `docs.aws.amazon.com` · `aws.amazon.com/about-aws/whats-new` 본문을 직접 읽어 인용했고, 확인 시점은 **2026-08-06** 입니다. **DNS 패턴은 AWS 문서에 실린 예시만 옮겼다** — 실계정 `aws elasticache describe-*` 로 교차검증하지 않았으므로 문서에 없는 형태는 `?` 로 남겼다 `✓` 자체 운영 대조군(§10)은 로컬 클론 `valkey 9.1.1:valkey.conf` 와 valkey.io 공식 문서를 근거로 합니다. cluster 자체의 내부 원리(슬롯·MOVED/ASK·gossip)는 [cluster mode]({{< relref "../06-cluster-mode/index.md" >}})가, 엔진 버전별 기능은 [Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}})·[Valkey 8.0 → 9.1]({{< relref "../05-valkey-8-to-9/index.md" >}})이 소유합니다.
 
 ## 1. 엔드포인트 종류 — 배포 형태가 주소 구조를 결정한다
 
@@ -128,7 +128,7 @@ configuration endpoint 는 단일 A 레코드가 아닙니다 — *"The DNS look
 절차는 2단계입니다.
 
 1. **`disabled → compatible`.** *"Compatible mode means the client application can use either protocol to communicate with the cluster."* 이 상태가 되면 `DescribeReplicationGroups` 가 configuration endpoint 를 반환하기 시작한다 — 즉 **새 엔드포인트가 생기고 기존 primary/reader 도 살아 있는 창**이 열린다. 여기서 애플리케이션을 cluster 클라이언트 + config endpoint 로 무중단 이전한다 `✓` 이 상태에는 제약이 있다: *"In compatible mode, other modification operations such as scaling and engine version are not allowed"* 이고 `cacheParameterGroupName` 외의 파라미터도 같은 요청에서 못 바꾼다 `✓` **되돌리려면 여기서 되돌려야 한다** — *"You can also choose to revert back to cluster mode disabled (CMD) from cluster mode compatible and preserve the original configurations."* `✓`
-2. **`compatible → enabled`.** *"Note that the cluster endpoints will change once the cluster mode is changed to enabled. Make sure to update your applications with the new endpoints."* `✓` 이 지점을 넘으면 복귀 경로가 없다.
+2. **`compatible → enabled`.** *"Note that the cluster endpoints will change once the cluster mode is changed to enabled. Make sure to update your applications with the new endpoints."* `✓` 이 지점을 넘으면 복귀 경로가 없습니다.
 
 ### 5.2 문서가 답하지 않는 것 — 런북에 그대로 반영해야 하는 미확정 4건
 
@@ -218,9 +218,9 @@ MemoryDB 는 더 넓습니다 — 위 목록에 **`acl deluser`/`acl load`/`acl 
 그래서 남는 유일한 설정 경로가 **파라미터 그룹**입니다. CMD/CME 도 파라미터 그룹으로 갈리고(`cluster-enabled` = `no`/`yes`), 3.2 시대에는 `default.redis3.2` vs `default.redis3.2.cluster.on` 로 나뉘었습니다 `✓` 위험한 커맨드는 차단이 아니라 **개명**으로 다룹니다 — 5.0.3 이상에서 `rename-commands` 파라미터를 쓰고(알파뉴메릭, 새 이름 최대 20자), 완전 차단은 `ParameterValue='flushall blocked'` 입니다. 변경은 즉시 적용되며 노드 재부팅 없이 클러스터 전체에 전파됩니다 `✓` `appendonly`/`appendfsync` 는 2.8.22 이후 미지원이고 AOF 와 Multi-AZ 는 상호배타입니다 `✓`
 
 **이것이 "왜 굳이 self-host 하나"의 실질적 답입니다.** 셋 중 하나가 걸릴 때 self-host 가 후보가 됩니다 `Σ`
-1. **`CONFIG SET` 이 필요하다** — 런타임 파라미터 실험, 벤치마킹, `maxmemory-policy` 즉시 변경 같은 긴급 대응. 관리형에서는 파라미터 그룹 수정 → 적용 대기 사이클을 타야 한다.
-2. **모듈이 필요하다** — MemoryDB 는 `module` 자체를 막고, ElastiCache 는 AWS 가 고른 것(JSON·벡터 검색)만 준다.
-3. **슬롯을 직접 통제해야 한다** — `cluster setslot`/`addslots` 차단으로 커스텀 슬롯 배치가 불가능하다. ElastiCache 에서 샤드별 키스페이스를 지정할 수 있는 경로는 offline resharding 뿐이다.
+1. **`CONFIG SET` 이 필요하다** — 런타임 파라미터 실험, 벤치마킹, `maxmemory-policy` 즉시 변경 같은 긴급 대응. 관리형에서는 파라미터 그룹 수정 → 적용 대기 사이클을 타야 합니다.
+2. **모듈이 필요하다** — MemoryDB 는 `module` 자체를 막고, ElastiCache 는 AWS 가 고른 것(JSON·벡터 검색)만 줍니다.
+3. **슬롯을 직접 통제해야 한다** — `cluster setslot`/`addslots` 차단으로 커스텀 슬롯 배치가 불가능하입니다. ElastiCache 에서 샤드별 키스페이스를 지정할 수 있는 경로는 offline resharding 뿐입니다.
 
 추가로 `DEBUG`·`SAVE`·`BGSAVE` 차단은 디버깅 방식과 백업 자동화를 바꿉니다 — 스냅샷은 AWS API 로만 만듭니다 `✓` managed 와 self-host 의 최종 판단표는 [무엇을 고를 것인가]({{< relref "../08-choosing.md" >}})가 소유합니다.
 
@@ -249,17 +249,17 @@ MemoryDB 는 더 넓습니다 — 위 목록에 **`acl deluser`/`acl load`/`acl 
 
 ## 11. 근거
 
-- **엔드포인트 종류·DNS 패턴**: `AmazonElastiCache/latest/dg/` 의 `Endpoints.html` · `Replication.Endpoints.html` · `ClientConfig.ReplicationGroup.html` · `AutoFailover.html` · `ReadReplicas.html` · `nodes-connecting.html`, `MemoryDB/latest/devguide/endpoints.html`, 그리고 CLI 레퍼런스 `elasticache/modify-replication-group`. 표의 모든 DNS 문자열은 이 페이지들의 **템플릿 또는 예시 원문**이다.
+- **엔드포인트 종류·DNS 패턴**: `AmazonElastiCache/latest/dg/` 의 `Endpoints.html` · `Replication.Endpoints.html` · `ClientConfig.ReplicationGroup.html` · `AutoFailover.html` · `ReadReplicas.html` · `nodes-connecting.html`, `MemoryDB/latest/devguide/endpoints.html`, 그리고 CLI 레퍼런스 `elasticache/modify-replication-group`. 표의 모든 DNS 문자열은 이 페이지들의 **템플릿 또는 예시 원문**입니다.
 - **모드 전환**: `modify-cluster-mode.html`(Important 박스·전제조건·2단계 절차) · `Replication.Modify.html`, API 레퍼런스 `API_ModifyReplicationGroup` · `API_DescribeReplicationGroups` · `API_ReplicationGroup` · `API_NodeGroup`. §5.2 의 미확정 4건은 이 페이지 전량을 읽고도 답을 찾지 못한 항목이며, 2차 근거로 표시한 것은 AWS Knowledge Center 문서(`repost.aws/knowledge-center/elasticache-update-cme-to-cmd`, AWS OFFICIAL)다.
-- **failover · 클라이언트 설정**: `AutoFailover.html` · `ClientConfig.DNS.html` · `BestPractices.Clients-lettuce.html`. JVM `networkaddress.cache.ttl` 지시와 "JVM 재시작까지 갱신하지 않는다"는 경고, 토폴로지 갱신 4항목·타임아웃 순서 권고가 모두 여기 원문이다.
+- **failover · 클라이언트 설정**: `AutoFailover.html` · `ClientConfig.DNS.html` · `BestPractices.Clients-lettuce.html`. JVM `networkaddress.cache.ttl` 지시와 "JVM 재시작까지 갱신하지 않는다"는 경고, 토폴로지 갱신 4항목·타임아웃 순서 권고가 모두 여기 원문입니다.
 - **스케일링**: `scaling-redis-cluster-mode-enabled.html` · `best-practices-online-resharding.html` · `durability.html`(100 MiBps 한계).
-- **엔진 전환·버전·가격**: `VersionManagement.HowTo.html` · `engine-versions.html`, What's New 게시물 — ElastiCache for Valkey(2024-10-08) · MemoryDB for Valkey(2024-10-08) · 8.0(2024-11-21) · 8.1(2025-07-24) · 벡터 검색(2025-10-13) · 9.0(2026-05-05) · durability GA(2026-06-02) · 9.1(2026-06-23). 가격 수치는 전부 발표문 원문이고 우리가 검증하지 않았다 `Ⓥ`
+- **엔진 전환·버전·가격**: `VersionManagement.HowTo.html` · `engine-versions.html`, What's New 게시물 — ElastiCache for Valkey(2024-10-08) · MemoryDB for Valkey(2024-10-08) · 8.0(2024-11-21) · 8.1(2025-07-24) · 벡터 검색(2025-10-13) · 9.0(2026-05-05) · durability GA(2026-06-02) · 9.1(2026-06-23). 가격 수치는 전부 발표문 원문이고 우리가 검증하지 않았습니다 `Ⓥ`
 - **TLS·인증**: `in-transit-encryption.html` · `connect-tls.html` · `enable-python-best-practices.html`(preferred → required 의 DNS 레코드 처리) · `auth-iam.html`.
 - **차단 커맨드**: `ClientConfig.RestrictedCommands.html` · `memorydb/latest/devguide/restrictedcommands.html` · `engine-versions.html`(3.2.4 의 CLUSTER 커맨드 차단 목록) · `WhatIs.Components.html`.
 - **Serverless**: `wwe-troubleshooting.html`(항상 cluster mode · CROSSLOT) · `ReadReplicas.html`(6379/6380) · `set-up.html`(VPC Endpoint · 두 포트 개방).
 - **MemoryDB 포지셔닝**: `related-services-choose-between-memorydb-and-redis.html`(2026-06 이후의 권고 문장) · `memorydb/latest/devguide/{what-is-memorydb,components,clusters,engine-versions}.html`.
 - **타 클라우드 대조**: `cloud.google.com/memorystore/docs/valkey/cluster-mode-enabled-and-disabled`, `learn.microsoft.com/azure/redis/architecture`.
 - **자체 운영 대조군**: `valkey 9.1.1:valkey.conf:2088-2134`(`cluster-announce-*` 주석 전문, 로컬 blobless 클론 `~/evejuni/valkey` 에서 `git show` 로 실측), `valkey.io/topics/cluster-tutorial`(NAT 미지원·bus 포트 +10000).
-- **확인하지 못한 것**: (a) 실계정 `aws elasticache describe-*` 로 DNS 패턴을 교차검증하지 않았다 — 표의 모든 문자열은 문서 예시다. (b) CME configuration endpoint 의 prefix 형(`clustercfg.<name>.…`) 예시는 ElastiCache 문서에 없다(MemoryDB 문서에만 있다). (c) TLS 켠 CMD primary 의 접두사가 `master.` 인지 `primary.` 인지 문서 간 불일치가 있고, TLS 켠 reader 의 접두사는 어느 문서에도 없다. (d) `compatible` 상태의 API 응답 예시, `enabled` 후 구 엔드포인트의 삭제 여부·시점, config endpoint 이름의 동일성은 전부 문서에 없다. (e) MemoryDB 의 Valkey 8/9 지원 여부와 Serverless 의 9.1 추가 여부는 확인하지 못했다. (f) Global Datastore(크로스리전 복제)의 엔드포인트 구조는 이번 범위에서 다루지 못했다.
-- 챕터 전체 URL 목록은 [출처]({{< relref "../99-sources.md" >}})가 모은다.
+- **확인하지 못한 것**: (a) 실계정 `aws elasticache describe-*` 로 DNS 패턴을 교차검증하지 않았다 — 표의 모든 문자열은 문서 예시입니다. (b) CME configuration endpoint 의 prefix 형(`clustercfg.<name>.…`) 예시는 ElastiCache 문서에 없다(MemoryDB 문서에만 있습니다). (c) TLS 켠 CMD primary 의 접두사가 `master.` 인지 `primary.` 인지 문서 간 불일치가 있고, TLS 켠 reader 의 접두사는 어느 문서에도 없습니다. (d) `compatible` 상태의 API 응답 예시, `enabled` 후 구 엔드포인트의 삭제 여부·시점, config endpoint 이름의 동일성은 전부 문서에 없습니다. (e) MemoryDB 의 Valkey 8/9 지원 여부와 Serverless 의 9.1 추가 여부는 확인하지 못했습니다. (f) Global Datastore(크로스리전 복제)의 엔드포인트 구조는 이번 범위에서 다루지 못했습니다.
+- 챕터 전체 URL 목록은 [출처]({{< relref "../99-sources.md" >}})가 모읍니다.
 

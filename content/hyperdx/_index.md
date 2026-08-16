@@ -12,10 +12,10 @@ cascade:
 {{< callout type="info" >}}
 **한눈에** — 핵심 결정 한 장.
 
-- **스택 조립**: ClickStack 표준 2-Helm 차트를 그대로 쓰지 않고 `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 **'HyperDX Only'**)로 붙인다. ClickHouse/Keeper는 **Altinity operator(CHI/CHK)**로 분리 운영, HyperDX·OTel Collector·MongoDB만 차트/operator로 남긴다. `✓`
+- **스택 조립**: ClickStack 표준 2-Helm 차트를 그대로 쓰지 않고 `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 **'HyperDX Only'**)로 붙입니다. ClickHouse/Keeper는 **Altinity operator(CHI/CHK)**로 분리 운영, HyperDX·OTel Collector·MongoDB만 차트/operator로 남깁니다. `✓`
 - **hot 스토리지**: 기본 **gp3 단일 볼륨**(ClickHouse는 throughput-bound라 IOPS를 살 이유가 거의 없음), io2 Block Express는 **필요 시**(극한 IOPS·sub-ms·볼륨 99.999% 요구)만, 로컬 NVMe는 **옵셔널 업그레이드 경로**. `✓/≈`
 - **cold 티어링**: **S3 Standard + cache disk**, 이동은 **시간 기반 TTL `TO VOLUME 'cold'`**(`move_factor`는 안전판) `✓`. 인증은 IRSA — CH 서버 disk가 web-identity 자격증명을 런타임에 실제로 집어드는지는 배포 후 확인 `?`({{< relref "03-s3-cold-tiering.md" >}}).
-- **조정 계층**: **Keeper 3노드**(gp3 영속, 3 AZ). Keeper는 **Kafka식 durable queue가 아니다** — CH가 죽으면 in-flight INSERT는 큐잉되지 않는다. `✓`
+- **조정 계층**: **Keeper 3노드**(gp3 영속, 3 AZ). Keeper는 **Kafka식 durable queue가 아니다** — CH가 죽으면 in-flight INSERT는 큐잉되지 않습니다. `✓`
 - **MongoDB**: 메타데이터 전용이라 **아주 작게** 돌릴 수 있고, prod는 `members:3` 또는 Atlas가 값싼 보험. 실효 바닥 사이징은 {{< relref "01-stack-topology.md" >}}가 정본. `≈`
 - **용량/비용**: **월 0.7TB(on-disk 해석)** 기준 **1 shard × RF2** 로 1년+ 충분. hot·컴퓨트는 지평 무관 고정, 3→12개월 증분은 대부분 싼 S3 cold. prod 월 **~$1.0~1.4K** `≈`(us-east-1 기준, 서울 ~10~15%↑).
 {{< /callout >}}
@@ -40,9 +40,9 @@ study-hugo에는 이미 겹치는 주제의 깊은 문서가 있습니다. 이 �
 {{< callout type="info" >}}
 **배포 모드 이름 — 섞으면 결론이 뒤집힙니다** `✓`
 
-- **"BYOD"는 공식 문서에도 이 레포에도 없는 말이다.** 어디서 흘러든 표현이든, 아래 셋 중 무엇을 가리키는지 먼저 갈라야 한다.
-- **공식 표현은 둘**이다 — ClickStack Docker Compose 문서의 **"BYO ClickHouse"**, HyperDX Only 문서의 **"already have a running ClickHouse instance"**. 둘 다 "이미 돌고 있는 CH에 붙인다"는 같은 뜻이다.
-- **우리 표현은 "HyperDX Only"**(`clickhouse.enabled: false`)이고 이 챕터·트랙 전체가 이 표기를 쓴다.
+- **"BYOD"는 공식 문서에도 이 레포에도 없는 말입니다.** 어디서 흘러든 표현이든, 아래 셋 중 무엇을 가리키는지 먼저 갈라야 합니다.
+- **공식 표현은 둘**이다 — ClickStack Docker Compose 문서의 **"BYO ClickHouse"**, HyperDX Only 문서의 **"already have a running ClickHouse instance"**. 둘 다 "이미 돌고 있는 CH에 붙인다"는 같은 뜻입니다.
+- **우리 표현은 "HyperDX Only"**(`clickhouse.enabled: false`)이고 이 챕터·트랙 전체가 이 표기를 씁니다.
 - **BYOC**(Bring Your Own Cloud)는 **ClickHouse Cloud 상품**이라 완전히 다른 축이다. 이걸 self-host로 착각하면 결론이 반대로 뒤집힌다 — managed와 self-host의 부품 경계는 [managed vs self-host]({{< relref "../clickhouse/01-managed-vs-selfhosted.md" >}}).
 {{< /callout >}}
 
@@ -82,7 +82,7 @@ RUM 인제스트 경로에 **MongoDB는 없습니다** — 브라우저 SDK가 O
 
 ## 이 챕터 구성 (문서 지도)
 
-- **[HyperDX 직접 운영하기]({{< relref "../hyperdx-operating/_index.md" >}})** · 운영 트랙(**3부**, 별도 챕터) — 이 챕터가 표준을 소유한다면 그 트랙은 **우리 클러스터의 현황 → 사건 시 순서 → 승급 판단**을 소유한다: ①{{< relref "../hyperdx-operating/01-our-deployment.md" >}}(우리 배포 형상) ②{{< relref "../hyperdx-operating/02-runbook.md" >}}(운영 런북) ③{{< relref "../hyperdx-operating/03-decision-guide.md" >}}(의사결정 가이드). 버전·수치·용량·요금은 트랙이 재기재하지 않고 아래 기준 문서 01~09·출처 10을 가리킨다.
+- **[HyperDX 직접 운영하기]({{< relref "../hyperdx-operating/_index.md" >}})** · 운영 트랙(**3부**, 별도 챕터) — 이 챕터가 표준을 소유한다면 그 트랙은 **우리 클러스터의 현황 → 사건 시 순서 → 승급 판단**을 소유한다: ①{{< relref "../hyperdx-operating/01-our-deployment.md" >}}(우리 배포 형상) ②{{< relref "../hyperdx-operating/02-runbook.md" >}}(운영 런북) ③{{< relref "../hyperdx-operating/03-decision-guide.md" >}}(의사결정 가이드). 버전·수치·용량·요금은 트랙이 재기재하지 않고 아래 기준 문서 01~09·출처 10을 가리킵니다.
 - **{{< relref "01-stack-topology.md" >}}** · ClickStack 4컴포넌트 배포 토폴로지·데이터 흐름, OTel Collector 배치/사이징, **MongoDB 최소 규모 배포·운영**. 4컴포넌트/배포 6모드는 {{< relref "../rum/01-hyperdx-deep-dive.md" >}}, MongoDB 부하 프로파일은 {{< relref "../rum/07-hyperdx-mongodb.md" >}}에 위임.
 - **{{< relref "02-hot-storage-ebs.md" >}}** · **gp3 vs io2 vs io2 Block Express** 실전 상세, ClickHouse I/O 적합성, 왜 EBS-first, operator StorageClass/VolumeClaimTemplate. 로컬 NVMe 상세·EBS 대역 한계는 {{< relref "../clickhouse/02-storage-local-nvme.md" >}}에 위임.
 - **{{< relref "03-s3-cold-tiering.md" >}}** · **S3 cold worked example**: storage_configuration 전문·TTL MOVE DDL·IRSA·우리 RUM 테이블 튜닝. 티어링≠내구성·zero-copy 금지는 {{< relref "../clickhouse/02-storage-local-nvme.md" >}}에 위임.
@@ -96,8 +96,8 @@ RUM 인제스트 경로에 **MongoDB는 없습니다** — 브라우저 SDK가 O
 
 ## 자매 챕터
 
-- [우리 배포 형상]({{< relref "../hyperdx-operating/01-our-deployment.md" >}}) — **우리 케이스**: 실제 RUM 수집 스택 종합도(자체 RUM 컨버터 포함)·실행 단위 분할·컴포넌트별 HA·stage/prod 격차. 이 챕터가 표준을 다루는 자리에 우리 형상을 섞지 않으려고 운영 트랙으로 옮겼다(R1). 표준 4컴포넌트·가용성·Keeper·복제는 {{< relref "01-stack-topology.md" >}}·{{< relref "04-operator-topology-downtime.md" >}}·{{< relref "05-keeper.md" >}}·{{< relref "06-replication-failover.md" >}}가 소유한다.
-- [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) — ClickHouse 범용 운영 how(operator 선택·로컬 NVMe·배포 플레이북·스케일/롤링). 이 챕터가 relref로 위임하는 대부분의 배경이 여기 있다.
+- [우리 배포 형상]({{< relref "../hyperdx-operating/01-our-deployment.md" >}}) — **우리 케이스**: 실제 RUM 수집 스택 종합도(자체 RUM 컨버터 포함)·실행 단위 분할·컴포넌트별 HA·stage/prod 격차. 이 챕터가 표준을 다루는 자리에 우리 형상을 섞지 않으려고 운영 트랙으로 옮겼다(R1). 표준 4컴포넌트·가용성·Keeper·복제는 {{< relref "01-stack-topology.md" >}}·{{< relref "04-operator-topology-downtime.md" >}}·{{< relref "05-keeper.md" >}}·{{< relref "06-replication-failover.md" >}}가 소유합니다.
+- [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) — ClickHouse 범용 운영 how(operator 선택·로컬 NVMe·배포 플레이북·스케일/롤링). 이 챕터가 relref로 위임하는 대부분의 배경이 여기 있습니다.
 - [RUM 내재화]({{< relref "../rum/_index.md" >}}) — Datadog RUM에서 빠져나오는 why/what(비교·매트릭스·마이그레이션). 이 챕터의 상류.
 - [HyperDX/ClickStack 심층]({{< relref "../rum/01-hyperdx-deep-dive.md" >}}) — HyperDX 4컴포넌트·배포 6모드·HyperDX Only 의존성의 기준 문서.
 - [HyperDX(ClickStack) — 로깅 관점]({{< relref "../logging/05-hyperdx-clickstack.md" >}}) — 로그 내재화 후보로서의 ClickStack 요약 판단.
@@ -108,4 +108,4 @@ RUM 인제스트 경로에 **MongoDB는 없습니다** — 브라우저 SDK가 O
 
 두 가지는 배포 전에 못박아야 하고, 둘 다 지금은 `≈`·`?`입니다. **"월 0.7TB"의 해석(raw ingest냐 on-disk냐)** 과 **세션 리플레이 압축비·구성비·ClickStack 기본 TTL**입니다. 해석 분기가 배포 규모·비용에 어떻게 번지는지, 그리고 무엇을 어떤 쿼리로 실측해 `✓`으로 올리는지는 [용량 산정]({{< relref "07-capacity-planning.md" >}})이 정본입니다 — 이 실측 한 번을 위해 staging을 두는 것이 캐파 관점의 이유입니다. 시점 기준 2026-08.
 
-> **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻한다.
+> **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻합니다.

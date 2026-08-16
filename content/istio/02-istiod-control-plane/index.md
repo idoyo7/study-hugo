@@ -7,15 +7,15 @@ weight: 2
 
 {{< callout type="info" >}}
 **한눈에**
-- istiod 부하 = **프록시 수 × 변경 빈도 × 설정 범위**의 곱. 셋 다 커지면 CPU가 벽을 친다.
+- istiod 부하 = **프록시 수 × 변경 빈도 × 설정 범위**의 곱. 셋 다 커지면 CPU가 벽을 칩니다.
 - 증설 판단은 감이 아니라 지표로: 1순위 `pilot_proxy_convergence_time`(수렴 시간), 그다음 연결 프록시 수·push 폭주·CPU.
 - **CPU 증설은 응급 처치일 뿐** — 진짜 해법은 `Sidecar` 리소스로 각 프록시가 보는 설정 범위를 좁히는 것.
 - 그다음 레버는 디바운스·discoverySelectors 튜닝, 마지막이 수평 스케일(istiod는 stateless).
 {{< /callout >}}
 
-> **그때 무슨 일이 있었나.** 클러스터 규모가 커지고 배포가 잦아지자, 컨트롤 플레인 istiod의 CPU가 주기적으로 치솟았다. 급한 불은 **CPU를 증설**해서 껐지만, 그건 응급 처치였다. 같은 맥락에서 "istio node/pod 리소스 최적화" 과제가 이어졌다 — 프록시 쪽 자원과 istiod가 다루는 설정 범위를 함께 손봐야 근본이 잡히기 때문이다. 이 문서는 **istiod가 CPU를 먹는 메커니즘**, **언제 증설해야 하는지를 알려주는 지표**, 그리고 **증설 말고 진짜 해법**을 정리한다.
+> **그때 무슨 일이 있었나.** 클러스터 규모가 커지고 배포가 잦아지자, 컨트롤 플레인 istiod의 CPU가 주기적으로 치솟았습니다. 급한 불은 **CPU를 증설**해서 껐지만, 그건 응급 처치였습니다. 같은 맥락에서 "istio node/pod 리소스 최적화" 과제가 이어졌다 — 프록시 쪽 자원과 istiod가 다루는 설정 범위를 함께 손봐야 근본이 잡히기 때문입니다. 이 문서는 **istiod가 CPU를 먹는 메커니즘**, **언제 증설해야 하는지를 알려주는 지표**, 그리고 **증설 말고 진짜 해법**을 정리합니다.
 
-> 관련 문서: [01 메시 기초]({{< relref "01-mesh-basics.md" >}}) · [03 데이터 플레인과 게이트웨이]({{< relref "03-gateway-node-isolation.md" >}}) · [05 장애 이야기]({{< relref "05-incident-intermittent-5xx.md" >}}) · [09 istiod 스케일링과 커넥션 재분배]({{< relref "09-istiod-scaling-connections.md" >}}) — 아래 "그다음에 스케일한다"의 함정을 따로 다룬다
+> 관련 문서: [01 메시 기초]({{< relref "01-mesh-basics.md" >}}) · [03 데이터 플레인과 게이트웨이]({{< relref "03-gateway-node-isolation.md" >}}) · [05 장애 이야기]({{< relref "05-incident-intermittent-5xx.md" >}}) · [09 istiod 스케일링과 커넥션 재분배]({{< relref "09-istiod-scaling-connections.md" >}}) — 아래 "그다음에 스케일한다"의 함정을 따로 다룹니다
 
 ## istiod가 실제로 하는 일
 
@@ -55,7 +55,7 @@ push 비용 ≈ (영향받는 프록시 수) × (프록시당 설정 크기) × 
 
 - 파드 하나가 뜨고 질 때마다 → **그 변경과 무관한 프록시까지** 갱신 대상이 될 수 있고,
 - 프록시 수 N이 커지면 → 변경 1건의 fan-out이 N에 비례해 커지며,
-- 배포가 잦으면(잦은 endpoint churn) → push가 초당 수십·수백 건씩 쏟아진다.
+- 배포가 잦으면(잦은 endpoint churn) → push가 초당 수십·수백 건씩 쏟아집니다.
 
 **프록시 수 × 변경 빈도 × 설정 범위** — 이 세 항의 곱이 istiod CPU입니다. 클러스터가 크고 배포가 잦아질수록 세 항이 동시에 커지므로, 어느 순간 CPU가 벽을 칩니다. 우리가 겪은 "주기적 CPU 급등"의 정체가 이것입니다.
 
@@ -108,9 +108,9 @@ spec:
 
 ### 2) 변경 빈도·범위를 다스린다 — 디바운스와 discoverySelector
 
-- **디바운스 튜닝** — `PILOT_DEBOUNCE_AFTER`, `PILOT_DEBOUNCE_MAX`로 변경을 더 모아 처리하면 push 횟수가 준다. 단, 수렴이 늦어지는 트레이드오프가 있으니 수렴 시간 지표를 보며 조정한다.
-- **`discoverySelectors`** — istiod가 아예 감시할 네임스페이스를 제한해, 메시 밖 네임스페이스의 변화가 push를 유발하지 않게 한다.
-- **네임스페이스 격리** — 팀·도메인 단위로 설정 경계를 나눠 fan-out을 국소화한다.
+- **디바운스 튜닝** — `PILOT_DEBOUNCE_AFTER`, `PILOT_DEBOUNCE_MAX`로 변경을 더 모아 처리하면 push 횟수가 줍니다. 단, 수렴이 늦어지는 트레이드오프가 있으니 수렴 시간 지표를 보며 조정합니다.
+- **`discoverySelectors`** — istiod가 아예 감시할 네임스페이스를 제한해, 메시 밖 네임스페이스의 변화가 push를 유발하지 않게 합니다.
+- **네임스페이스 격리** — 팀·도메인 단위로 설정 경계를 나눠 fan-out을 국소화합니다.
 
 ### 3) 그다음에 스케일한다
 
@@ -122,13 +122,13 @@ spec:
 
 ## 이 문서에서 가져갈 것
 
-- istiod의 부하는 **push**에서 나오고, 그 비용은 **프록시 수 × 변경 빈도 × 설정 범위**의 곱이다.
-- 증설 판단은 감이 아니라 지표로 한다. **1순위는 `pilot_proxy_convergence_time`(수렴 시간)**, 그다음 연결 프록시 수·push 폭주·istiod CPU 순으로 원인을 가른다.
-- **CPU 증설은 응급 처치.** 진짜 해법은 `Sidecar` 리소스로 설정 범위를 좁혀 곱의 한 항을 직접 줄이는 것이고, 그다음이 디바운스 튜닝, 마지막이 스케일이다.
+- istiod의 부하는 **push**에서 나오고, 그 비용은 **프록시 수 × 변경 빈도 × 설정 범위**의 곱입니다.
+- 증설 판단은 감이 아니라 지표로 합니다. **1순위는 `pilot_proxy_convergence_time`(수렴 시간)**, 그다음 연결 프록시 수·push 폭주·istiod CPU 순으로 원인을 가릅니다.
+- **CPU 증설은 응급 처치.** 진짜 해법은 `Sidecar` 리소스로 설정 범위를 좁혀 곱의 한 항을 직접 줄이는 것이고, 그다음이 디바운스 튜닝, 마지막이 스케일입니다.
 
 ## 소스
 
 - Istio 공식 문서 — **Performance and Scalability** (istiod 자원 사용, 벤치마크 기준 수치, `Sidecar` 스코핑 권장): <https://istio.io/latest/docs/ops/deployment/performance-and-scalability/>
 - Istio 공식 문서 — **Configuration scoping / Sidecar** (`Sidecar` 리소스로 프록시 설정 범위 제한): <https://istio.io/latest/docs/reference/config/networking/sidecar/>
 - Istio 공식 문서 — **Observing / Debugging the control plane** (istiod `:15014` 메트릭, `pilot_*` 지표): <https://istio.io/latest/docs/ops/diagnostic-tools/>
-- 배포 버전의 istiod `:15014/metrics`를 직접 스크랩해 위 지표들의 실제 값을 확인할 것 — 문서의 수치는 버전·설정에 따라 달라진다.
+- 배포 버전의 istiod `:15014/metrics`를 직접 스크랩해 위 지표들의 실제 값을 확인할 것 — 문서의 수치는 버전·설정에 따라 달라집니다.

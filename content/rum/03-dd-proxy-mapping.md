@@ -7,10 +7,10 @@ weight: 3
 
 {{< callout type="info" >}}
 **한눈에**
-- **프록시는 Agent intake(로그·인프라 메트릭·APM 트레이스)에서만 성립**하고, 브라우저 RUM·세션 리플레이 intake에는 불성립한다 — RUM은 `@hyperdx/browser` SDK 교체가 정답이다.
-- 성립하는 영역조차 `datadogreceiver`가 **전 신호 alpha**라 과도기 무중단 브릿지로만 쓰고 영구 아키텍처로는 부적합하다.
-- dd browser-sdk의 `proxy` 옵션은 트래픽을 우회시키는 진입점일 뿐 **변환용이 아니다** — 본문 불변(바이너리 그대로 포워딩)이 설계 전제다.
-- 변환 계층은 native 대비 **최대 ~200배 CPU**, delta 메트릭 **30~70% 손실**(#44907) 등 fidelity 결함이 실증됐다.
+- **프록시는 Agent intake(로그·인프라 메트릭·APM 트레이스)에서만 성립**하고, 브라우저 RUM·세션 리플레이 intake에는 불성립한다 — RUM은 `@hyperdx/browser` SDK 교체가 정답입니다.
+- 성립하는 영역조차 `datadogreceiver`가 **전 신호 alpha**라 과도기 무중단 브릿지로만 쓰고 영구 아키텍처로는 부적합하입니다.
+- dd browser-sdk의 `proxy` 옵션은 트래픽을 우회시키는 진입점일 뿐 **변환용이 아니다** — 본문 불변(바이너리 그대로 포워딩)이 설계 전제입니다.
+- 변환 계층은 native 대비 **최대 ~200배 CPU**, delta 메트릭 **30~70% 손실**(#44907) 등 fidelity 결함이 실증됐습니다.
 - "dd 인테이크를 ClickHouse/HyperDX로 변환해 프로덕션 운영한다"는 **회사명이 붙은 1차 사례를 찾지 못했다**.
 {{< /callout >}}
 
@@ -63,7 +63,7 @@ Datadog이 직접 유지보수하는 OSS. Agent가 보낸 트래픽을 HTTP로 �
 | traces | alpha | ❌ `clickhouse` sink 미지원, Kafka sink도 트레이스 미통과 |
 
 - **결정적 갭**: Vector `clickhouse` sink는 로그만 받는다. 따라서 Vector로 실현 가능한 것은 **"dd-agent 로그 → ClickHouse"** 뿐이고, traces/metrics를 ClickHouse로 보내려면 Vector가 아니라 datadogreceiver(OTel) 경로여야 한다 `✓`.
-- **버전 함정**: Agent 7.62+가 쓰는 zstd 압축 인테이크를 받으려면 **Vector 0.40.2 이상**이 필요하다 `✓`. 이 버전 정합을 놓치면 최신 Agent 트래픽을 수신하지 못한다.
+- **버전 함정**: Agent 7.62+가 쓰는 zstd 압축 인테이크를 받으려면 **Vector 0.40.2 이상**이 필요하입니다 `✓`. 이 버전 정합을 놓치면 최신 Agent 트래픽을 수신하지 못합니다.
 - **`/api/v2/series` 포맷 불일치**: Datadog Agent가 실제로 보내는 와이어 포맷은 protobuf인데, 공개 Datadog API 문서가 정의하는 JSON 페이로드를 그대로 보내면 422가 반환된다(Agent 와이어=protobuf vs 공개 API=JSON, 동일 경로 상이 포맷) `✓⁽3-0⁾`.
 - Vector 메인테이너는 **2023-04에 `datadog_agent`를 Agent 포맷 이상으로 확장하지 않기로 결정**했고(issue #16121), 네이티브 `opentelemetry`(OTLP) 소스 사용을 권장했다 — 즉 Vector `datadog_agent`는 drop-in Datadog 메트릭 API 인테이크가 아니다 `✓⁽3-0⁾`.
 
@@ -76,7 +76,7 @@ Datadog browser-sdk에는 인테이크 트래픽을 자체 엔드포인트로 �
 - **인테이크 포맷**은 경로 `/api/v2/rum`, 쿼리 `ddsource=browser`, 본문은 **NDJSON(줄바꿈 구분 JSON) + 조건부 압축(deflate/zstd)**이다. 각 라인은 `DataDog/rum-events-format` 스키마의 view/action/resource/error/long_task/session 이벤트다(정확한 배치 인코딩은 브라우저 내부 로직) `✓/≈⁽일부⁾`.
 - **세션 리플레이**는 별도 경로(멀티파트/세그먼트)이고, 프록시 경유 시 리플레이가 대시보드에서 로드 실패하는 알려진 이슈가 있다 `✓`.
 
-> 함의: `proxy` 옵션은 트래픽을 자체 게이트웨이로 **가로채는 진입점**으로는 완벽하나, 그 뒤 본문을 파싱·변환하는 로직은 전부 자작이어야 한다. 따라서 이 옵션의 올바른 쓰임새는 변환이 아니라 **과도기 트래픽 통제 — 듀얼 라이트/미러링/차단**이다. 신규 데이터는 `@hyperdx/browser`로 직접 수집하는 편이 옳다.
+> 함의: `proxy` 옵션은 트래픽을 자체 게이트웨이로 **가로채는 진입점**으로는 완벽하나, 그 뒤 본문을 파싱·변환하는 로직은 전부 자작이어야 합니다. 따라서 이 옵션의 올바른 쓰임새는 변환이 아니라 **과도기 트래픽 통제 — 듀얼 라이트/미러링/차단**입니다. 신규 데이터는 `@hyperdx/browser`로 직접 수집하는 편이 옳습니다.
 
 ## 직접 구현 시 참조 코드 경로
 
@@ -110,13 +110,13 @@ dd 프록시 전용 처리량/CPU/손실률 벤치마크는 공개된 것이 없
 | 대조군: native CH→CH (SysEx, byte-copy) | ~528,000 logs/s/core | 재직렬화 0 `Ⓑ` |
 
 - 파싱·마샬링·포맷 변환을 수반하는 OTel 경로(~2,500/core)는 재직렬화 없는 native 경로(~528k/core) 대비 **최대 약 200배 CPU**를 쓴다 `≈`. dd 프록시는 여기에 (a) zstd 해제, (b) msgpack 디코드, (c) 128-bit trace ID 재구성, (d) temporality 변환을 더 얹으므로 **가장 무거운 쪽**에 위치할 것으로 추정된다 `≈`.
-- Rotel 벤치도 같은 방향을 보인다: 표준 OTel Collector 137.5k spans/s/core vs Rust 기반 Rotel 462.5k spans/s/core(~3.4배) — 개선분의 상당량이 "JSON 문자열 직렬화→바이너리 인코딩" 전환에서 나왔다 `Ⓑ`. 즉 "(역)직렬화 + 포맷 변환"이 파이프라인 CPU의 큰 몫이고, dd 프록시는 거기에 추가 디코드 단계를 더한다.
+- Rotel 벤치도 같은 방향을 보인다: 표준 OTel Collector 137.5k spans/s/core vs Rust 기반 Rotel 462.5k spans/s/core(~3.4배) — 개선분의 상당량이 "JSON 문자열 직렬화→바이너리 인코딩" 전환에서 나왔습니다 `Ⓑ`. 즉 "(역)직렬화 + 포맷 변환"이 파이프라인 CPU의 큰 몫이고, dd 프록시는 거기에 추가 디코드 단계를 더합니다.
 
 ### fidelity 결함 — "붙이면 무손실"이 아니다
 
 - 고카디널리티 **delta Sum 메트릭에서 native Agent 대비 30~70% 데이터 손실**이 보고됐다(COUNT interval=0 vs RATE 처리 차이, contrib #44907). dd↔OTel 메트릭 모델(temporality/type) 불일치가 실데이터 손실로 이어진 실증이다 `✓`.
 - datadogreceiver가 `span.Resource`를 드롭해 dd-java-agent의 **`db.statement`가 조용히 사라진 버그**도 있었다(#23150, 이후 수정). 트레이스 속성 매핑이 신호/SDK 언어별로 깨질 수 있음을 보여준다 `✓`.
-- 결론: 변환은 신호·속성·SDK 언어·메트릭 타입별로 정합성을 **개별 검증**해야 하는 fragile한 계층이다. dual-write 후 속성 단위 diff 검증이 필수다.
+- 결론: 변환은 신호·속성·SDK 언어·메트릭 타입별로 정합성을 **개별 검증**해야 하는 fragile한 계층입니다. dual-write 후 속성 단위 diff 검증이 필수입니다.
 
 ### 프로덕션 전례 부재
 

@@ -8,15 +8,15 @@ aliases: ["/k8s-features/karpenter/04-ice-fallback/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- **폴백은 이미 공짜다.** 8세대가 Insufficient Capacity Error(ICE, AWS 응답 코드 `InsufficientInstanceCapacity`)를 내는 순간 provider-aws가 그 오퍼링을 unavailable로 마킹하고 코어는 `Offerings.Available()`에서 그것을 걸러 다음 루프의 후보에서 자동으로 뺀다. 손으로 만들어야 하는 건 폴백이 아니라 **"평소엔 8세대"라는 상향 강제**뿐이다.
+- **폴백은 이미 공짜입니다.** 8세대가 Insufficient Capacity Error(ICE, AWS 응답 코드 `InsufficientInstanceCapacity`)를 내는 순간 provider-aws가 그 오퍼링을 unavailable로 마킹하고 코어는 `Offerings.Available()`에서 그것을 걸러 다음 루프의 후보에서 자동으로 뺍니다. 손으로 만들어야 하는 건 폴백이 아니라 **"평소엔 8세대"라는 상향 강제**뿐입니다.
 - **코어는 ICE 난 NodeClaim을 지우고 재큐하지 않는다.** `err`를 반환하지도 않으니 controller-runtime 백오프도 안 붙는다. 재시도는 오직 **파드 컨트롤러의 10초 재큐 + 배치창(idle 1s / max 10s)** — 실측 기대치 **대략 11~30초**.
-- **ICE 캐시는 3분이다.** 키는 `<capacityType>:<instanceType>:<zone>`. 함의가 둘: 부족이 지속되면 **3분 주기로 실패 왕복이 반복**된다. 거꾸로 **용량이 회복되면 최대 3분 뒤 8세대가 저절로 부활**한다 — 사람이 할 일은 없다.
-- **가용성 판정 축은 오퍼링 하나가 아니라 셋이다.** `IsUnavailable()`이 보는 것은 오퍼링 캐시 ∨ **capacity-type 전체 차단 캐시** ∨ **전 서브넷 차단 캐시**의 OR다. 서브넷 IP 고갈은 인스턴스 타입과 무관하게 오퍼링을 죽인다.
-- **spot을 섞으면 세대 강제가 무력화된다.** capacity-type 우선순위가 `reserved > spot > on-demand`인데다 spot Fleet은 `price-capacity-optimized`라 **EC2가 용량 깊이로 타입을 고른다.** 세대 선호가 목적이면 on-demand로 한정하라.
+- **ICE 캐시는 3분입니다.** 키는 `<capacityType>:<instanceType>:<zone>`. 함의가 둘: 부족이 지속되면 **3분 주기로 실패 왕복이 반복**됩니다. 거꾸로 **용량이 회복되면 최대 3분 뒤 8세대가 저절로 부활**한다 — 사람이 할 일은 없습니다.
+- **가용성 판정 축은 오퍼링 하나가 아니라 셋입니다.** `IsUnavailable()`이 보는 것은 오퍼링 캐시 ∨ **capacity-type 전체 차단 캐시** ∨ **전 서브넷 차단 캐시**의 OR다. 서브넷 IP 고갈은 인스턴스 타입과 무관하게 오퍼링을 죽입니다.
+- **spot을 섞으면 세대 강제가 무력화됩니다.** capacity-type 우선순위가 `reserved > spot > on-demand`인데다 spot Fleet은 `price-capacity-optimized`라 **EC2가 용량 깊이로 타입을 고릅니다.** 세대 선호가 목적이면 on-demand로 한정하라.
 - **단일 NodePool 안에서 알파 없이 8세대를 1순위로 만드는 길은 On-Demand Capacity Reservation(ODCR)이다.** reserved 오퍼링 가격이 `odPrice / 10,000,000`이라 정렬·절단·Fleet 전부에서 무조건 앞선다. 게이트 `ReservedCapacity`는 **기본 ON(BETA)**.
 {{< /callout >}}
 
-> **전제 확인.** "8세대(c8i/m8i/r8i)가 부족하면 7세대로 폴백하고 싶다"에서 폴백 쪽은 이미 동작한다 — ICE를 오퍼링 가용성으로 환산해 스케줄링에 되먹이는 배선이 코어와 provider-aws에 완비돼 있다. 이 문서는 **그 폴백이 어느 코드에서 몇 초 만에 일어나는지**를 끝까지 내려가, 01~03에서 고른 구성이 ICE 상황에서 어떻게 행동하는지 확정한다.
+> **전제 확인.** "8세대(c8i/m8i/r8i)가 부족하면 7세대로 폴백하고 싶다"에서 폴백 쪽은 이미 동작한다 — ICE를 오퍼링 가용성으로 환산해 스케줄링에 되먹이는 배선이 코어와 provider-aws에 완비돼 있습니다. 이 문서는 **그 폴백이 어느 코드에서 몇 초 만에 일어나는지**를 끝까지 내려가, 01~03에서 고른 구성이 ICE 상황에서 어떻게 행동하는지 확정합니다.
 
 > 자매 문서: [개요]({{< relref "_index.md" >}}) · [04 인스턴스 선택]({{< relref "04-instance-selection.md" >}}) · [05 세대 선호]({{< relref "05-generation-preference.md" >}}) · [06 consolidation 함정]({{< relref "06-consolidation-traps.md" >}}) · [K8s 버전별 신기능]({{< relref "../../k8s-features/_index.md" >}}) · [eks-upgrade 01 Karpenter]({{< relref "../../eks-upgrade/components/01-karpenter.md" >}})
 
@@ -121,18 +121,18 @@ func (u *UnavailableOfferings) IsUnavailable(instanceType ec2types.InstanceType,
 
 차단 범위는 축마다 다릅니다.
 
-- **offeringCache** · (capacity-type, 인스턴스 타입, AZ) 하나만 막는다.
-- **capacityTypeCache** · **해당 capacity-type 전체**를 막는다 — spot이 통째로 3분간 사라진다.
-- **subnetCache** · 그 오퍼링의 **모든** 서브넷이 캐시에 있으면 차단한다. 인스턴스 타입과 무관하다.
+- **offeringCache** · (capacity-type, 인스턴스 타입, AZ) 하나만 막습니다.
+- **capacityTypeCache** · **해당 capacity-type 전체**를 막는다 — spot이 통째로 3분간 사라집니다.
+- **subnetCache** · 그 오퍼링의 **모든** 서브넷이 캐시에 있으면 차단합니다. 인스턴스 타입과 무관하입니다.
 
-> **구버전 주의.** provider-aws `v1.7.0`·`v1.11.3`에서는 세 번째 캐시가 `subnetCache`가 아니라 **`azCache`**다 — 서브넷 IP 고갈 시 `MarkAZUnavailable(zone)`으로 **AZ 전체**가 3분간 차단된다. 배포 버전이 v1.11.x 이하라면 차단 범위를 AZ 단위로 읽어야 한다.
+> **구버전 주의.** provider-aws `v1.7.0`·`v1.11.3`에서는 세 번째 캐시가 `subnetCache`가 아니라 **`azCache`**다 — 서브넷 IP 고갈 시 `MarkAZUnavailable(zone)`으로 **AZ 전체**가 3분간 차단됩니다. 배포 버전이 v1.11.x 이하라면 차단 범위를 AZ 단위로 읽어야 합니다.
 
 헷갈리는 쪽은 늘 세 번째 축입니다. "8세대가 안 뜬다"의 원인이 실제로는 서브넷 IP 고갈일 수 있습니다. 그렇다면 7세대로 폴백해도 똑같이 막힙니다 — 세대 문제가 아니라 VPC 문제입니다.
 
 3분에서 파생되는 운영 함의는 둘입니다.
 
-- **부족이 지속되면 3분 주기로 실패 왕복이 반복된다.** TTL 만료 → 8세대가 다시 후보 → `CreateFleet` → ICE → 삭제 → 재큐. 이벤트 스팸과 `disrupted_total` 증가가 보이면 대부분 이 상태다.
-- **반대로 용량이 회복되면 최대 3분 뒤 8세대가 저절로 부활한다** — 사람 개입 없이. 단 이건 "**앞으로 뜰 노드**가 8세대로 돌아온다"는 뜻이지 **이미 떠 있는 7세대 노드가 8세대로 교체된다는 뜻이 아니다** — 그쪽은 [06]({{< relref "06-consolidation-traps.md" >}})의 주제다. consolidation은 더 싼 방향으로만 움직이므로 자동 복귀 경로가 없다.
+- **부족이 지속되면 3분 주기로 실패 왕복이 반복됩니다.** TTL 만료 → 8세대가 다시 후보 → `CreateFleet` → ICE → 삭제 → 재큐. 이벤트 스팸과 `disrupted_total` 증가가 보이면 대부분 이 상태입니다.
+- **반대로 용량이 회복되면 최대 3분 뒤 8세대가 저절로 부활한다** — 사람 개입 없이. 단 이건 "**앞으로 뜰 노드**가 8세대로 돌아온다"는 뜻이지 **이미 떠 있는 7세대 노드가 8세대로 교체된다는 뜻이 아니다** — 그쪽은 [06]({{< relref "06-consolidation-traps.md" >}})의 주제입니다. consolidation은 더 싼 방향으로만 움직이므로 자동 복귀 경로가 없습니다.
 
 AZ를 하나로 묶는 토폴로지 제약(zone 고정 PVC 등)이 걸려 있으면 첫 함의가 악화됩니다 — 다른 AZ의 8세대가 멀쩡해도 그 AZ에서만 3분마다 반복 실패합니다.
 
@@ -350,11 +350,11 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter \
 
 읽는 법을 정리하면 이렇습니다.
 
-- **`disrupted_total{insufficient_capacity}`가 3분 주기로 계단식 증가** — TTL 만료 → 재시도 → 재실패 루프(§3)가 도는, 8세대 부족 지속 상태다. → 타입 범위를 좁혀 왕복 빈도를 낮추거나 ODCR로 예약을 확보한다.
-- **이벤트는 나는데 `disrupted_total`이 안 오름** — ICE가 아닌 에러가 섞여 `CreateError` 경로를 탄 것이다(§2-b, 서브넷 IP 고갈·런치 템플릿 문제 의심). → NodeClaim `Launched` reason과 §3 `subnetCache`를 확인한다.
-- **④번 로그가 8세대 풀에만 반복** — 오퍼링 전멸로 그 풀이 후보에서 빠진 것 = 폴백 정상 동작. → 7세대 노드 비율만 추적한다.
-- **⑤번 로그** — EC2NodeClass가 Ready가 아니라 풀이 통째로 제외된 것 — ICE와 무관하다. → NodeClass 상태를 먼저 고친다.
-- **NodePool별 노드 수에서 gen7 비중이 튐** — ICE가 지속됐거나 한 번 내려간 뒤 복귀하지 못한 상태다. → [06]({{< relref "06-consolidation-traps.md" >}})의 `expireAfter` 절을 참고한다.
-- **노드가 뜨고 사라지길 반복하는데 `disrupted_total{insufficient_capacity}`는 그대로** — 8세대 풀에서 며칠째 이 패턴이면 ICE가 아니라 §7의 등록 실패일 가능성이 크다. 오퍼링이 마킹되지 않아 메트릭도 이벤트도 오르지 않는 것이 계단식 증가와의 결정적 차이다. → `NodeRegistrationHealthy` 컨디션과 kubelet 조인 로그를 확인한다.
+- **`disrupted_total{insufficient_capacity}`가 3분 주기로 계단식 증가** — TTL 만료 → 재시도 → 재실패 루프(§3)가 도는, 8세대 부족 지속 상태입니다. → 타입 범위를 좁혀 왕복 빈도를 낮추거나 ODCR로 예약을 확보합니다.
+- **이벤트는 나는데 `disrupted_total`이 안 오름** — ICE가 아닌 에러가 섞여 `CreateError` 경로를 탄 것이다(§2-b, 서브넷 IP 고갈·런치 템플릿 문제 의심). → NodeClaim `Launched` reason과 §3 `subnetCache`를 확인합니다.
+- **④번 로그가 8세대 풀에만 반복** — 오퍼링 전멸로 그 풀이 후보에서 빠진 것 = 폴백 정상 동작. → 7세대 노드 비율만 추적합니다.
+- **⑤번 로그** — EC2NodeClass가 Ready가 아니라 풀이 통째로 제외된 것 — ICE와 무관하입니다. → NodeClass 상태를 먼저 고칩니다.
+- **NodePool별 노드 수에서 gen7 비중이 튐** — ICE가 지속됐거나 한 번 내려간 뒤 복귀하지 못한 상태입니다. → [06]({{< relref "06-consolidation-traps.md" >}})의 `expireAfter` 절을 참고합니다.
+- **노드가 뜨고 사라지길 반복하는데 `disrupted_total{insufficient_capacity}`는 그대로** — 8세대 풀에서 며칠째 이 패턴이면 ICE가 아니라 §7의 등록 실패일 가능성이 큽니다. 오퍼링이 마킹되지 않아 메트릭도 이벤트도 오르지 않는 것이 계단식 증가와의 결정적 차입니다. → `NodeRegistrationHealthy` 컨디션과 kubelet 조인 로그를 확인합니다.
 
 마지막 줄이 이 문서와 03을 잇는 지점입니다. **ICE 폴백은 "다음에 뜰 노드"만 바꿉니다.** 3분 뒤 8세대가 후보로 돌아와도 그 사이 떠버린 7세대 노드는 그대로 남습니다. consolidation은 더 싼 방향으로만 움직이므로 스스로 되돌아오지도 않습니다. 폴백이 공짜인 것과 복귀가 공짜인 것은 전혀 다른 얘기입니다.

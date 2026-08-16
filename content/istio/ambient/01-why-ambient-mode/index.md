@@ -15,10 +15,10 @@ weight: 1
 {{< callout type="info" >}}
 **한눈에**
 - 채널팀은 2025년 3월부터 11월까지 약 8개월에 걸쳐 Istio를 프로덕션에 도입하면서 성숙한 Sidecar mode를 건너뛰고 2024년 말 Istio 1.24에서 GA된 **Ambient mode를 첫 도입 대상으로 골랐다**.
-- 결정의 무게추는 **약 4,000개 파드**였다. 전부 사이드카를 붙이면 idle 상태에서만 수십~수백 vCPU와 **약 240Gi 메모리**가 순수하게 프록시로 나간다. ztunnel은 노드당 1개, waypoint는 namespace·service 단위라 증가폭이 훨씬 완만하다.
-- 컨트롤 플레인 쪽 이유는 **polynomial scaling problem**이다. 사이드카 모드는 모든 사이드카가 메시 안 다른 모든 destination을 알아야 해서 설정 변경 하나가 파드 수만큼 전파되지만, Ambient는 전파 대상이 ztunnel과 waypoint로 줄어든다.
-- 대가는 **SPoF**다. 사이드카는 장애 범위가 파드 하나였지만 ztunnel은 노드 전체, waypoint는 namespace 전체다. 거기에 HBONE·hop 증가로 디버깅이 어려워지고 GA 직후라 프로덕션 검증 사례가 적다.
-- Ambient의 동작은 **istio-cni가 파드 네트워크 네임스페이스에 넣는 iptables 규칙**과 15001 · 15006 · 15008 세 포트로 요약된다. "in-pod ztunnel"이라는 이름과 달리 ztunnel은 노드 DaemonSet이고 파드 안에 있는 것은 그 DaemonSet이 붙는 localhost socket이다.
+- 결정의 무게추는 **약 4,000개 파드**였습니다. 전부 사이드카를 붙이면 idle 상태에서만 수십~수백 vCPU와 **약 240Gi 메모리**가 순수하게 프록시로 나갑니다. ztunnel은 노드당 1개, waypoint는 namespace·service 단위라 증가폭이 훨씬 완만하입니다.
+- 컨트롤 플레인 쪽 이유는 **polynomial scaling problem**입니다. 사이드카 모드는 모든 사이드카가 메시 안 다른 모든 destination을 알아야 해서 설정 변경 하나가 파드 수만큼 전파되지만, Ambient는 전파 대상이 ztunnel과 waypoint로 줄어듭니다.
+- 대가는 **SPoF**다. 사이드카는 장애 범위가 파드 하나였지만 ztunnel은 노드 전체, waypoint는 namespace 전체입니다. 거기에 HBONE·hop 증가로 디버깅이 어려워지고 GA 직후라 프로덕션 검증 사례가 적습니다.
+- Ambient의 동작은 **istio-cni가 파드 네트워크 네임스페이스에 넣는 iptables 규칙**과 15001 · 15006 · 15008 세 포트로 요약됩니다. "in-pod ztunnel"이라는 이름과 달리 ztunnel은 노드 DaemonSet이고 파드 안에 있는 것은 그 DaemonSet이 붙는 localhost socket입니다.
 {{< /callout >}}
 
 이 챕터의 [01 서비스 메시와 Istio 기초]({{< relref "../../01-mesh-basics.md" >}})부터 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../../09-istiod-scaling-connections.md" >}})까지는 전부 **Sidecar mode를 전제로 쓰인 문서**입니다. 파드마다 Envoy가 붙고 istiod가 그 프록시 전부에 xDS를 밀어 넣는 구조를 깔고 갑니다. 이 `ambient/` 하위 섹션은 그 전제 자체를 바꾼 팀의 기록입니다.
@@ -97,9 +97,9 @@ Gateway API 자체는 Sidecar mode에서도 쓸 수 있습니다. 다만 **Ambie
 | 디버깅 난이도 증가 | 새 개념과 늘어난 hop 만큼 원인 추적이 까다롭다 |
 | 낮은 성숙도 | GA 직후라 검증 사례가 적고 기존 API보다 덜 성숙하다 |
 
-- **장애 영향 범위 확대**: Sidecar mode에서는 프록시가 파드와 lifecycle을 같이 해 장애 범위가 각 파드에 그친다. Ambient는 ztunnel(노드 단위)과 waypoint(namespace·service 단위)에 의존하므로 장애 시 노드 전체 혹은 namespace 전체로 영향이 번진다. **Sidecar mode에는 없던 SPoF(Single Point of Failure)가 생긴다.**
-- **디버깅 난이도 증가**: ztunnel · waypoint · HBONE 같은 새 개념을 익혀야 하고 프록시와 hop이 늘어난 만큼 문제 원인 추적이 까다롭다.
-- **낮은 성숙도**: GA 직후라 프로덕션에서 검증된 사례가 적었고 Sidecar mode와 기존 Istio API(예: VirtualService)에 비해 덜 성숙하다.
+- **장애 영향 범위 확대**: Sidecar mode에서는 프록시가 파드와 lifecycle을 같이 해 장애 범위가 각 파드에 그칩니다. Ambient는 ztunnel(노드 단위)과 waypoint(namespace·service 단위)에 의존하므로 장애 시 노드 전체 혹은 namespace 전체로 영향이 번집니다. **Sidecar mode에는 없던 SPoF(Single Point of Failure)가 생깁니다.**
+- **디버깅 난이도 증가**: ztunnel · waypoint · HBONE 같은 새 개념을 익혀야 하고 프록시와 hop이 늘어난 만큼 문제 원인 추적이 까다롭습니다.
+- **낮은 성숙도**: GA 직후라 프로덕션에서 검증된 사례가 적었고 Sidecar mode와 기존 Istio API(예: VirtualService)에 비해 덜 성숙하입니다.
 
 ### 팀 내 의사결정
 
@@ -231,11 +231,11 @@ Ambient를 실제로 운영하면서 만난 문제들은 3편 시리즈에 나�
 
 ## 이 문서에서 가져갈 것
 
-- 사이드카 비용은 **프록시 개수가 파드 개수와 1:1로 묶여 있다**는 데서 나온다. ztunnel의 1,000 RPS 기준 CPU 1/3·메모리 1/5보다, 프록시 개수가 파드 개수에서 노드 개수로 바뀌는 쪽이 훨씬 크게 작용한다. 4,000 파드 × 60Mi ≒ 240Gi가 idle에서 그냥 나간다.
-- Ambient는 파드 단위 장애 격리를 **노드·namespace 단위 SPoF**와 맞바꾸는 선택이다. 채널팀의 판단 기준은 "문제 발생 빈도보다 장애 복구 속도"였다. 이 기준에 동의하지 않는 조직에는 같은 결론이 나오지 않는다.
-- "투명한 리다이렉트"는 파드 netns 안의 **iptables 규칙과 세 개의 localhost socket**이다. 인바운드는 source port가 15008인지로 HBONE(15008)과 plaintext(15006)를 가르고 아웃바운드는 전량 15001로 간다. host side가 아니라 파드 안에서 일어난다는 점이 진단의 출발점이다.
-- ztunnel을 우회하면 암호화와 함께 **인가 정책 전체가 빠진다.** ztunnel과 istio-cni가 항상 Running이어야 한다는 요구는 성능이 아니라 보안 요구다. istio-cni 준비 전에 스케줄된 파드(partially enrolled)가 대표적 발생 경로다.
-- HBONE은 **HTTP/2 + HTTP CONNECT + mTLS**의 조립이다. 대신 구간이 암호화되어 `tcpdump`로 안이 안 보이고 destination 측 전체 인터페이스를 캡처해야 한다.
+- 사이드카 비용은 **프록시 개수가 파드 개수와 1:1로 묶여 있다**는 데서 나옵니다. ztunnel의 1,000 RPS 기준 CPU 1/3·메모리 1/5보다, 프록시 개수가 파드 개수에서 노드 개수로 바뀌는 쪽이 훨씬 크게 작용합니다. 4,000 파드 × 60Mi ≒ 240Gi가 idle에서 그냥 나갑니다.
+- Ambient는 파드 단위 장애 격리를 **노드·namespace 단위 SPoF**와 맞바꾸는 선택입니다. 채널팀의 판단 기준은 "문제 발생 빈도보다 장애 복구 속도"였습니다. 이 기준에 동의하지 않는 조직에는 같은 결론이 나오지 않습니다.
+- "투명한 리다이렉트"는 파드 netns 안의 **iptables 규칙과 세 개의 localhost socket**입니다. 인바운드는 source port가 15008인지로 HBONE(15008)과 plaintext(15006)를 가르고 아웃바운드는 전량 15001로 갑니다. host side가 아니라 파드 안에서 일어난다는 점이 진단의 출발점입니다.
+- ztunnel을 우회하면 암호화와 함께 **인가 정책 전체가 빠집니다.** ztunnel과 istio-cni가 항상 Running이어야 한다는 요구는 성능이 아니라 보안 요구입니다. istio-cni 준비 전에 스케줄된 파드(partially enrolled)가 대표적 발생 경로입니다.
+- HBONE은 **HTTP/2 + HTTP CONNECT + mTLS**의 조립입니다. 대신 구간이 암호화되어 `tcpdump`로 안이 안 보이고 destination 측 전체 인터페이스를 캡처해야 합니다.
 
 ## 소스
 

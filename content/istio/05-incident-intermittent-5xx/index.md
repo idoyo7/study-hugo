@@ -9,7 +9,7 @@ weight: 5
 **한눈에**
 - 메시의 5xx는 **어느 홉에서 났느냐**가 전부고, 나침반은 Envoy **response flag**(UH/UF/UC/UO/NR…)다.
 - 추적 순서: **범위 축소 → flag 확인 → 설정 stale 여부(`istioctl proxy-status`) → mTLS → 라이프사이클 레이스 → 커넥션풀**.
-- 간헐적 5xx는 특히 **stale 엔드포인트**와 **배포 시점 라이프사이클 레이스**가 단골 원인이다.
+- 간헐적 5xx는 특히 **stale 엔드포인트**와 **배포 시점 라이프사이클 레이스**가 단골 원인입니다.
 - 예방은 라이프사이클 훅 표준화, outlier detection, 컨트롤 플레인 수렴 관측, `response_flags` 대시보드 상시화.
 {{< /callout >}}
 
@@ -80,9 +80,9 @@ istioctl proxy-config secret <pod>    # 인증서가 제대로 발급됐는지
 
 간헐적 5xx가 **롤링 배포 시점에 몰린다면** 십중팔구 사이드카-앱 시작·종료 순서 문제입니다.
 
-- **시작 레이스** — 앱 컨테이너가 사이드카 Envoy보다 먼저 떠서 트래픽을 받으면, 아직 준비 안 된 프록시 때문에 실패한다. → `holdApplicationUntilProxyStarts: true`로 **프록시가 준비될 때까지 앱을 붙잡는다.**
-- **종료 레이스** — 파드 종료 시 사이드카가 앱보다 먼저 죽으면, 아직 처리 중이던 요청이 UC로 끊긴다. → preStop 훅에 짧은 `sleep`을 두거나 연결이 빠질 때까지 프록시 종료를 늦추고, **`terminationDrainDuration`**·엔드포인트 제거(readiness)를 맞춘다.
-- **엔드포인트 갱신 랙** — 파드가 죽었는데 EDS 갱신이 늦어 UH가 뜬다. → 3번(수렴)과 이어진다. `DestinationRule`의 **outlier detection**으로 문제 엔드포인트를 자동 축출하면 간헐 실패를 데이터 플레인에서 흡수할 수 있다.
+- **시작 레이스** — 앱 컨테이너가 사이드카 Envoy보다 먼저 떠서 트래픽을 받으면, 아직 준비 안 된 프록시 때문에 실패합니다. → `holdApplicationUntilProxyStarts: true`로 **프록시가 준비될 때까지 앱을 붙잡습니다.**
+- **종료 레이스** — 파드 종료 시 사이드카가 앱보다 먼저 죽으면, 아직 처리 중이던 요청이 UC로 끊깁니다. → preStop 훅에 짧은 `sleep`을 두거나 연결이 빠질 때까지 프록시 종료를 늦추고, **`terminationDrainDuration`**·엔드포인트 제거(readiness)를 맞춥니다.
+- **엔드포인트 갱신 랙** — 파드가 죽었는데 EDS 갱신이 늦어 UH가 뜹니다. → 3번(수렴)과 이어집니다. `DestinationRule`의 **outlier detection**으로 문제 엔드포인트를 자동 축출하면 간헐 실패를 데이터 플레인에서 흡수할 수 있습니다.
 
 ### 6) 커넥션풀·서킷브레이커 — UO
 
@@ -103,11 +103,11 @@ istioctl proxy-config secret <pod>    # 인증서가 제대로 발급됐는지
 
 - **라이프사이클** — `holdApplicationUntilProxyStarts`, preStop `sleep`, `terminationDrainDuration`을 표준 템플릿에 박아둔다. (배포 시점 간헐 5xx의 최대 예방책)
 - **탄력성** — 적정한 timeout·retry(멱등 요청에 한해), `DestinationRule` outlier detection으로 나쁜 엔드포인트 자동 축출.
-- **컨트롤 플레인 여유** — 수렴 시간을 SLO로 관측([02]({{< relref "02-istiod-control-plane.md" >}})). 배포가 몰리는 시간대에 istiod가 밀리지 않는지 본다.
-- **관측 표준화** — 액세스 로그에 `%RESPONSE_FLAGS%`를 반드시 포함하고, `istio_requests_total`을 flag·code로 쪼개는 대시보드를 상시 띄워둔다. 나침반이 없으면 매번 처음부터 헤맨다.
+- **컨트롤 플레인 여유** — 수렴 시간을 SLO로 관측([02]({{< relref "02-istiod-control-plane.md" >}})). 배포가 몰리는 시간대에 istiod가 밀리지 않는지 봅니다.
+- **관측 표준화** — 액세스 로그에 `%RESPONSE_FLAGS%`를 반드시 포함하고, `istio_requests_total`을 flag·code로 쪼개는 대시보드를 상시 띄워둡니다. 나침반이 없으면 매번 처음부터 헤맵니다.
 
 ## 이 문서에서 가져갈 것
 
 - 메시의 5xx는 **어느 홉에서 났느냐**가 전부고, 그걸 가르는 나침반이 **Envoy response flag**(UH/UF/UC/UO/NR…)다.
-- 추적은 **범위 축소 → flag 확인 → 설정 stale 여부 → mTLS → 라이프사이클 레이스 → 커넥션풀** 순서. 간헐적 5xx는 특히 **stale 엔드포인트**와 **배포 시점 라이프사이클 레이스**가 단골이다.
-- 예방은 라이프사이클 훅 표준화·탄력성 설정·컨트롤 플레인 수렴 관측·flag 대시보드. 층을 갈라 보는 습관이 메시 장애 대응의 핵심이다.
+- 추적은 **범위 축소 → flag 확인 → 설정 stale 여부 → mTLS → 라이프사이클 레이스 → 커넥션풀** 순서. 간헐적 5xx는 특히 **stale 엔드포인트**와 **배포 시점 라이프사이클 레이스**가 단골입니다.
+- 예방은 라이프사이클 훅 표준화·탄력성 설정·컨트롤 플레인 수렴 관측·flag 대시보드. 층을 갈라 보는 습관이 메시 장애 대응의 핵심입니다.

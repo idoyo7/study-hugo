@@ -7,10 +7,10 @@ weight: 5
 
 {{< callout type="info" >}}
 **한눈에**
-- DaemonSet 파드를 노드에 바인딩하는 주체는 1.12+에서 **기본 스케줄러**다. DS 컨트롤러가 하는 일은 대상 노드를 가리키는 nodeAffinity를 파드에 심는 것까지다. 그래서 DS 파드도 taint·리소스·이미지 같은 일반 스케줄링 실패 모드를 그대로 겪는다.
-- **cordon은 DS 파드를 막지 못한다.** DS 컨트롤러가 `node.kubernetes.io/unschedulable:NoSchedule` 톨러레이션을 자동으로 붙이기 때문이다. 격리 관점에서는 이 동작이 오히려 맞다 — 워크로드 유입만 끊고, 정작 고쳐야 할 DS는 계속 재시도한다.
-- 노드별 갭은 `kube_daemonset_status_*` 로는 안 보인다. 이 메트릭들의 라벨은 `daemonset`·`namespace` 뿐이라 "몇 개 부족"까지만 알려준다. "어느 노드가 빠졌는지"는 `kube_pod_info` 를 `node` 라벨로 조인해야 나온다.
-- 빠른 격리에는 두 전략이 있다. **선제**(startup taint로 준비 전까지 기본 격리)는 탐지 시간 자체를 없앤다. **반응**(탐지 → taint → drain)은 탐지 지연이 곧 장애 시간이 된다. 선제를 기본으로 깔고 반응을 백스톱으로 둔다.
+- DaemonSet 파드를 노드에 바인딩하는 주체는 1.12+에서 **기본 스케줄러**다. DS 컨트롤러가 하는 일은 대상 노드를 가리키는 nodeAffinity를 파드에 심는 것까지입니다. 그래서 DS 파드도 taint·리소스·이미지 같은 일반 스케줄링 실패 모드를 그대로 겪습니다.
+- **cordon은 DS 파드를 막지 못합니다.** DS 컨트롤러가 `node.kubernetes.io/unschedulable:NoSchedule` 톨러레이션을 자동으로 붙이기 때문입니다. 격리 관점에서는 이 동작이 오히려 맞다 — 워크로드 유입만 끊고, 정작 고쳐야 할 DS는 계속 재시도합니다.
+- 노드별 갭은 `kube_daemonset_status_*` 로는 안 보입니다. 이 메트릭들의 라벨은 `daemonset`·`namespace` 뿐이라 "몇 개 부족"까지만 알려줍니다. "어느 노드가 빠졌는지"는 `kube_pod_info` 를 `node` 라벨로 조인해야 나옵니다.
+- 빠른 격리에는 두 전략이 있습니다. **선제**(startup taint로 준비 전까지 기본 격리)는 탐지 시간 자체를 없앱니다. **반응**(탐지 → taint → drain)은 탐지 지연이 곧 장애 시간이 됩니다. 선제를 기본으로 깔고 반응을 백스톱으로 둡니다.
 {{< /callout >}}
 
 > 자매 문서: [04 Node Problem Detector]({{< relref "04-node-problem-detector.md" >}}) — 탐지 계층의 선택지 · [Karpenter]({{< relref "../../karpenter/_index.md" >}}) — 노드 단위 조치와 중단 예산
@@ -91,8 +91,8 @@ DS 컨트롤러가 자동으로 붙이는 톨러레이션은 다음 7개뿐입�
 
 **이 목록 밖의 임의 키는 자동으로 커버되지 않습니다.** 커스텀 NoSchedule taint를 붙이면 DS 파드도 함께 막힙니다("if there is at least one un-ignored taint with effect NoSchedule then Kubernetes will not schedule the pod onto that node"). 그래서 두 가지가 갈립니다.
 
-- 워크로드만 막고 DS는 통과시키고 싶다 → **cordon**(built-in `unschedulable` 키)을 쓴다.
-- 커스텀 taint를 쓰겠다 → 통과시켜야 할 인프라 DS의 Pod template에 **그 taint의 톨러레이션을 직접 넣어야** 한다. 4.1절의 startup taint 패턴이 정확히 이 구조다.
+- 워크로드만 막고 DS는 통과시키고 싶다 → **cordon**(built-in `unschedulable` 키)을 씁니다.
+- 커스텀 taint를 쓰겠다 → 통과시켜야 할 인프라 DS의 Pod template에 **그 taint의 톨러레이션을 직접 넣어야** 합니다. 4.1절의 startup taint 패턴이 정확히 이 구조입니다.
 
 ## 4. 빠른 격리의 두 전략
 
@@ -182,18 +182,18 @@ Karpenter Node Repair의 조치는 강합니다 — "Karpenter will forcefully t
 
 ## 6. 체크리스트
 
-- node-local 인프라 DS를 목록화한다. CNI, 로그·메트릭 에이전트, 메시 데이터플레인, CSI 노드 플러그인 중 **없으면 워크로드가 조용히 깨지는 것**만 골라낸다. 이 목록이 startup taint 키의 목록이 된다.
-- 그 DS들의 Pod template에 자기 startup taint의 톨러레이션과 높은 `priorityClassName` 이 있는지 확인한다. 둘 중 하나만 빠져도 자기 자신이 못 뜬다.
-- startup taint의 **부착 주체**를 명시한다. Karpenter `startupTaints`, 부트스트랩, 설치 자동화 중 무엇인지 문서에 적는다. 제거 주체만 있고 부착 주체가 없는 구성이 가장 흔한 실패다.
-- 노드별 갭 알림을 `kube_pod_info` 조인 기준으로 만든다. `kube_daemonset_status_number_ready` 기반 알림은 대상 노드를 알려주지 않는다.
-- 컨디션 → taint 변환 주체를 정한다. `TaintNodesByCondition` 은 built-in 컨디션만 처리하므로 NPD 커스텀 컨디션은 taint로 자동 변환되지 않는다.
-- 격리 조치의 순서를 정해둔다. cordon(DS는 계속 시도) → 커스텀 NoSchedule(DS까지 차단) → drain → 교체. `tolerationSeconds: 300` 기본값 때문에 자동 축출은 5분 지연이 있다는 점을 SLO에 반영한다.
+- node-local 인프라 DS를 목록화합니다. CNI, 로그·메트릭 에이전트, 메시 데이터플레인, CSI 노드 플러그인 중 **없으면 워크로드가 조용히 깨지는 것**만 골라냅니다. 이 목록이 startup taint 키의 목록이 됩니다.
+- 그 DS들의 Pod template에 자기 startup taint의 톨러레이션과 높은 `priorityClassName` 이 있는지 확인합니다. 둘 중 하나만 빠져도 자기 자신이 못 뜹니다.
+- startup taint의 **부착 주체**를 명시합니다. Karpenter `startupTaints`, 부트스트랩, 설치 자동화 중 무엇인지 문서에 적습니다. 제거 주체만 있고 부착 주체가 없는 구성이 가장 흔한 실패입니다.
+- 노드별 갭 알림을 `kube_pod_info` 조인 기준으로 만듭니다. `kube_daemonset_status_number_ready` 기반 알림은 대상 노드를 알려주지 않습니다.
+- 컨디션 → taint 변환 주체를 정합니다. `TaintNodesByCondition` 은 built-in 컨디션만 처리하므로 NPD 커스텀 컨디션은 taint로 자동 변환되지 않습니다.
+- 격리 조치의 순서를 정해둡니다. cordon(DS는 계속 시도) → 커스텀 NoSchedule(DS까지 차단) → drain → 교체. `tolerationSeconds: 300` 기본값 때문에 자동 축출은 5분 지연이 있다는 점을 SLO에 반영합니다.
 
 ## 이 문서에서 가져갈 것
 
-- DS 파드도 기본 스케줄러가 배치하므로 taint·리소스·이미지·롤아웃 정지 같은 일반 실패 모드를 그대로 겪는다. 그 실패는 워크로드 스케줄링을 막지 않으므로 별도 알림 없이는 노드별 갭이 눈에 띄지 않은 채로 남는다.
-- cordon이 DS를 막지 못하는 것은 격리 관점에서 올바른 동작이다. 자동 톨러레이션 7개의 경계를 알면 "워크로드만 막기"(cordon)와 "DS까지 막기"(커스텀 taint)를 의도적으로 고를 수 있다.
-- 탐지를 아무리 빠르게 만들어도 반응 전략의 하한은 0이 아니다. startup taint로 기본값을 격리로 뒤집으면 탐지 시간이 사라진다. 탐지·자동화는 그 뒤의 백스톱으로 두는 것이 순서다.
+- DS 파드도 기본 스케줄러가 배치하므로 taint·리소스·이미지·롤아웃 정지 같은 일반 실패 모드를 그대로 겪습니다. 그 실패는 워크로드 스케줄링을 막지 않으므로 별도 알림 없이는 노드별 갭이 눈에 띄지 않은 채로 남습니다.
+- cordon이 DS를 막지 못하는 것은 격리 관점에서 올바른 동작입니다. 자동 톨러레이션 7개의 경계를 알면 "워크로드만 막기"(cordon)와 "DS까지 막기"(커스텀 taint)를 의도적으로 고를 수 있습니다.
+- 탐지를 아무리 빠르게 만들어도 반응 전략의 하한은 0이 아닙니다. startup taint로 기본값을 격리로 뒤집으면 탐지 시간이 사라집니다. 탐지·자동화는 그 뒤의 백스톱으로 두는 것이 순서입니다.
 
 ## 소스
 

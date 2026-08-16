@@ -149,7 +149,7 @@ Datadog 고비용의 구조적 원인(고카디널리티 과금 전가, custom m
 4. **LowCardinality + 필터순 ORDER BY + ZSTD** — 압축·쿼리 성능의 3종 세트.
 5. **쿼리 게이트웨이/거버넌스** — Trip.com(SQL 파싱·QPS 제한·대형 스캔 차단), Uber(QueryBridge). 대규모에선 쿼리 남용 통제가 필수.
 6. **복제로 내구성, 오케스트레이션은 최소** — Cloudflare는 "용량 1/3을 빼도 그리 많은 게 잘못되지 않는다"고 표현.
-7. **소규모 팀도 운영 가능** — Anthropic 3명, Character.AI 첫 SRE 1명. 단 **operator + 오브젝트 스토리지 백킹**이 이를 가능케 한 전제였다.
+7. **소규모 팀도 운영 가능** — Anthropic 3명, Character.AI 첫 SRE 1명. 단 **operator + 오브젝트 스토리지 백킹**이 이를 가능케 한 전제였습니다.
 
 ### 안티패턴 (피해야 할 것)
 
@@ -177,7 +177,7 @@ Datadog 고비용의 구조적 원인(고카디널리티 과금 전가, custom m
 
 - **"K8s + operator"는 안심하고 채택할 수 있다** — eBay·Anthropic·Trip.com·ClickHouse 자신이 검증한 패턴이다. operator는 Altinity로 통일한다([Altinity operator]({{< relref "03-operator.md" >}})).
 - **"로컬 NVMe만으로 대규모"의 순수 실증은 없다.** eBay는 스토리지 형태를 공개하지 않았고(귀속 오류 주의), 대규모 K8s 사례는 오브젝트 스토리지 백킹으로 수렴한다. 스토리지 성능을 하드 요구로 두더라도 **로컬 NVMe hot + S3 cold**(또는 write-through 캐시) 하이브리드가 소규모 인력의 노드 소실·재수화 대응에 유리하다([스토리지 설계]({{< relref "02-storage-local-nvme.md" >}})).
-- **로깅 챕터의 경계는 그대로 유지한다** — 로그 hot 경로는 여전히 VictoriaLogs, 메트릭은 VictoriaMetrics다. CH self-host는 통합 저장소 야심이 아니라 RUM·트레이스 등 신호가 실제로 한 팀에 모일 때 얹는 결정이며, 이때도 로그 전면 이전은 별도 명분이 필요하다.
+- **로깅 챕터의 경계는 그대로 유지한다** — 로그 hot 경로는 여전히 VictoriaLogs, 메트릭은 VictoriaMetrics다. CH self-host는 통합 저장소 야심이 아니라 RUM·트레이스 등 신호가 실제로 한 팀에 모일 때 얹는 결정이며, 이때도 로그 전면 이전은 별도 명분이 필요하입니다.
 - **비용 주장은 액면가로 믿지 않는다.** "10~50배"는 벤더 인프라 기준 수치이므로 운영 TCO를 가산해 재평가한다([Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})).
 
 두 챕터는 **모순 없이 양립합니다** — 로깅 챕터는 "채택 여부(로그 관점)"에서 보류, 이 챕터는 "채택했다면 어떻게(RUM+분석 관점)"에서 사례를 큐레이션합니다. 게이트를 못 넘으면 로깅 챕터 판단이 우선입니다. 근거 URL은 [출처]({{< relref "10-sources.md" >}}). 시점 기준 2026-07.

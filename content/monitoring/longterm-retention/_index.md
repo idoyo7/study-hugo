@@ -7,7 +7,7 @@ weight: 2
 
 과거 장애를 다시 파헤치려면 그때 메트릭이 남아 있어야 합니다. 이 챕터는 **메트릭 400일 보관**을 놓고 아키텍처 후보를 비교해 권장안까지 정리합니다. 옵션마다 비용·구성·제약을 같은 축에 올려두고 VM OSS 아카이브안이 이 조건에서 최적인 이유까지 이어서 짚습니다.
 
-> 자매 챕터: [VictoriaMetrics Deep Dive]({{< relref "../victoriametrics/_index.md" >}}) — 이 챕터의 VM 아카이브안이 쓰는 streamAggr·vmsingle·vmbackup·MetricsQL의 내부 동작은 그쪽에서 다룬다.
+> 자매 챕터: [VictoriaMetrics Deep Dive]({{< relref "../victoriametrics/_index.md" >}}) — 이 챕터의 VM 아카이브안이 쓰는 streamAggr·vmsingle·vmbackup·MetricsQL의 내부 동작은 그쪽에서 다룹니다.
 
 ## 전제 (사용자 확정)
 

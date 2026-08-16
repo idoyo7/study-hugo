@@ -8,12 +8,12 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- 간판 수치는 Kubernetes에서 잰 게 아니다. 2,000노드·1B RPS의 서면판인 [valkey.io 블로그](https://valkey.io/blog/1-billion-rps/) 원문에 Kubernetes·pod·StatefulSet·container가 한 번도 나오지 않고, 실험대는 `r7g.2xlarge`(8코어/64GB) 클러스터 + 부하 생성기 `c7g.16xlarge` 750대였다. 발표 시작 13초에 본인들이 "we come from Amazon, which is mostly a **VM based world**"라고 밝힌다.
+- 간판 수치는 Kubernetes에서 잰 게 아닙니다. 2,000노드·1B RPS의 서면판인 [valkey.io 블로그](https://valkey.io/blog/1-billion-rps/) 원문에 Kubernetes·pod·StatefulSet·container가 한 번도 나오지 않고, 실험대는 `r7g.2xlarge`(8코어/64GB) 클러스터 + 부하 생성기 `c7g.16xlarge` 750대였습니다. 발표 시작 13초에 본인들이 "we come from Amazon, which is mostly a **VM based world**"라고 밝힙니다.
 - 그래도 엔진 수정 4건은 인프라와 무관하게 넘어온다. [#654](https://github.com/valkey-io/valkey/pull/654)·[#1018](https://github.com/valkey-io/valkey/pull/1018)·[#2154](https://github.com/valkey-io/valkey/pull/2154)·[#2277](https://github.com/valkey-io/valkey/pull/2277)은 배포 방식이 아니라 cluster bus 코드 안에 들어갔다. 버전만 맞추면 된다 — 각각 8.0 / 8.1 / 9.0 / 9.0.
-- CPU 100% 그래프를 클러스터 전체로 읽으면 틀린다. 슬라이드에서 천장에 붙는 계열은 `engine_cpu_percent_p99`고 같은 차트의 p90·avg는 한 자릿수다(스냅샷 p90 6.2 / avg 5.80). 발표자 노트는 포화 범위를 "atleast 5% of the nodes"(오타는 원문 그대로)라 적는다 — 하한이지 점추정이 아니다. 2,000노드가 전부 탄 게 아니라 최소 100대가 탔다는 뜻이고, 발표는 이 구분을 하지 않는다.
-- Kubernetes 조언 중 실측이 뒷받침하는 건 사실상 하나다 — CPU limit을 걸지 마라. 나머지(StatefulSet, headless service 부트스트랩, IP 직결, AZ 분산)는 전부 경험칙이고 발표에 수치가 붙지 않는다.
-- operator는 아직 도입 대상이 아니다. API가 `v1alpha1`이고 README가 "not ready for production use"라 못박으며 scale-out/in에 Valkey 9.0+를 요구한다. 다만 `spec.shards`는 진짜 최상위 필드라 Q&A의 "shard가 first-class" 주장 자체는 맞다.
-- 2,000노드에서 먼저 부러지는 건 처리량이 아니라 장애 복구다. 정상 상태 gossip 비용은 노드 수에 선형이었고, 터진 곳은 전부 primary를 수백 개씩 한 번에 죽였을 때의 재접속(415~455 kill)·failure report(499 kill)·투표 경로였다.
+- CPU 100% 그래프를 클러스터 전체로 읽으면 틀립니다. 슬라이드에서 천장에 붙는 계열은 `engine_cpu_percent_p99`고 같은 차트의 p90·avg는 한 자릿수다(스냅샷 p90 6.2 / avg 5.80). 발표자 노트는 포화 범위를 "atleast 5% of the nodes"(오타는 원문 그대로)라 적는다 — 하한이지 점추정이 아닙니다. 2,000노드가 전부 탄 게 아니라 최소 100대가 탔다는 뜻이고, 발표는 이 구분을 하지 않습니다.
+- Kubernetes 조언 중 실측이 뒷받침하는 건 사실상 하나다 — CPU limit을 걸지 마라. 나머지(StatefulSet, headless service 부트스트랩, IP 직결, AZ 분산)는 전부 경험칙이고 발표에 수치가 붙지 않습니다.
+- operator는 아직 도입 대상이 아닙니다. API가 `v1alpha1`이고 README가 "not ready for production use"라 못박으며 scale-out/in에 Valkey 9.0+를 요구합니다. 다만 `spec.shards`는 진짜 최상위 필드라 Q&A의 "shard가 first-class" 주장 자체는 맞습니다.
+- 2,000노드에서 먼저 부러지는 건 처리량이 아니라 장애 복구입니다. 정상 상태 gossip 비용은 노드 수에 선형이었고, 터진 곳은 전부 primary를 수백 개씩 한 번에 죽였을 때의 재접속(415~455 kill)·failure report(499 kill)·투표 경로였습니다.
 {{< /callout >}}
 
 왜 이 문서인가. 발표 제목은 *Kubernetes at XL Scale*인데 간판 수치인 2,000노드 / 1B RPS는 EC2에서 나왔습니다. 그래서 이 문서는 발표가 증명한 것(엔진 한계와 그 수정)과 조언에 그친 것(Kubernetes 배치·리소스)을 갈라 놓고, 그중 무엇이 Kubernetes로 전이되는지만 남깁니다. 검증 기준은 발표 전사(942줄), 발표자 노트가 붙은 슬라이드 원본 54장, valkey.io 블로그, 업스트림 PR 4건, `valkey.conf` unstable 브랜치입니다.
@@ -183,9 +183,9 @@ Valkey의 pub/sub은 cluster bus를 그대로 탑니다. 아무 노드에나 pub
 
 이 구분이 왜 중요한가요. 세 가지가 달라집니다.
 
-- 용량 산정이 달라진다. 평균 한 자릿수를 보고 노드를 줄이면 정확히 그 포화 노드들이 먼저 죽는다. 반대로 p99 100%를 보고 전 클러스터를 키우면 대부분의 용량이 논다.
-- 알람 설계가 달라진다. 클러스터 평균 CPU 임계값으로는 이 사고가 안 잡힌다. 잡히는 건 **분위수 알람과 "포화 노드 비율"** 알람이다.
-- 원인 추적이 달라진다. 소수 노드가 탄다는 건 부하가 아니라 토폴로지 비대칭 — 어떤 노드가 유난히 많은 죽은 피어를 붙들고 있었다는 뜻이다.
+- 용량 산정이 달라집니다. 평균 한 자릿수를 보고 노드를 줄이면 정확히 그 포화 노드들이 먼저 죽습니다. 반대로 p99 100%를 보고 전 클러스터를 키우면 대부분의 용량이 놉니다.
+- 알람 설계가 달라집니다. 클러스터 평균 CPU 임계값으로는 이 사고가 안 잡힙니다. 잡히는 건 **분위수 알람과 "포화 노드 비율"** 알람입니다.
+- 원인 추적이 달라집니다. 소수 노드가 탄다는 건 부하가 아니라 토폴로지 비대칭 — 어떤 노드가 유난히 많은 죽은 피어를 붙들고 있었다는 뜻입니다.
 
 **발표는 이 구분을 하지 않습니다.** 스파이크를 클러스터 전체 현상처럼 서술하고 넘어갑니다. 잘못된 서술은 아니지만 그래프를 그대로 옮겨 "2,000노드 클러스터가 CPU 100%를 쳤다"고 인용하면 원 데이터보다 훨씬 센 주장이 됩니다.
 
@@ -309,18 +309,18 @@ Kubernetes 파트에서 실측이 뒷받침하는 조언은 사실상 **CPU limi
 {{< callout type="warning" >}}
 아래는 이 문서가 확인하지 못했거나 1차 문서와 어긋나는 지점입니다. 인용할 때 그대로 밝혀십시오.
 
-- "1,000노드 부근에서 cluster bus CPU 1~2%"(05:38)의 1차 출처를 찾지 못했다. cluster-spec에도 1-billion-rps 블로그에도 없다. 슬라이드-only 주장으로 취급하라.
-- 발표자가 언급한 2025년 선행 발표(02:49 "we did a similar talk last year")를 찾지 못했다. kccnceu2025 전 일정, 양 발표자의 valkey.io 저자 페이지, YouTube/CNCF 검색을 모두 훑었으나 일치하는 것이 없었다. KubeCon NA 2025(Atlanta)는 확인하지 않았고 남은 후보로 가장 유력하다.
-- `CLUSTER SHARDS`의 `availability-zone` 필드 시점이 어긋난다. [명령 문서](https://valkey.io/commands/cluster-shards/)는 노드 수준 `availability-zone` 필드가 9.1.0에서 추가됐다고 적는데, [AZ affinity 블로그](https://valkey.io/blog/az-affinity-strategy/)는 서버 `availability-zone` 설정이 Valkey 8에 들어왔다고 적는다. 설정과 응답 필드가 서로 다른 릴리스에 들어온 것으로 보이지만 이 문서는 그 관계를 확정하지 못했다.
-- 슬라이드의 `CLUSTER SLOTS` 응답이 명령 문서와 어긋난다. 슬라이드 13~16의 `CLUSTER SLOTS` 응답에는 `hostname`과 `availability-zone`이 들어 있는데, `CLUSTER SHARDS` 문서는 레거시 `CLUSTER SLOTS`가 이 둘을 같은 방식으로 싣지 않는다고 적는다. 슬라이드가 설명하려고 손본 응답인지 문서가 뒤처진 것인지 확인하지 못했다.
-- 재접속 폭풍 콜스택은 슬라이드 이미지에서 읽었다. 전사에도 슬라이드 텍스트 추출본에도 이 심볼들은 없다. 이미지 판독 결과이므로 정확한 심볼명이 중요하면 원본 PPTX의 해당 flame graph를 직접 보라.
-- 재접속 폭풍이 태운 노드 규모는 하한만 알 수 있다. 슬라이드 노트의 "atleast 5% of the nodes"는 최소값이고, 실제 포화 노드 비율을 밝힌 자료를 찾지 못했다.
-- Roshan Khatri(#654 작성자)의 소속을 확인하지 못했다. GitHub 프로필에 회사 표기가 없고 1-billion-rps 블로그 저자 목록에도 없다. 나머지 세 명(Sarthak Aggarwal·Seungmin Lee = AWS, Binbin Zhu = Tencent Cloud)은 확인했다.
-- #2154 / #2277 / #1018의 버전 귀속은 GitHub milestone이 아니라 추론이다. 세 PR 모두 milestone 필드가 비어 있어 valkey.io 블로그의 명시적 서술 + 머지일과 9.0.0 GA(2025-10-21)의 시간 관계로 판정했다. #654 → 8.0도 같은 종류의 추론이다.
-- #654의 16바이트는 PR 본문의 구조체 정의에서 합산한 값이다. 최종 머지 커밋을 바이트 단위로 대조하지는 않았다.
-- Pokémon Go / Niantic의 "예측 대비 50배" 이야기(01:15~02:00)를 확인하지 않았다. 슬라이드에 [Google Cloud 블로그 링크](https://cloud.google.com/blog/products/containers-kubernetes/bringing-pokemon-go-to-life-on-google-cloud)가 붙어 있지만 이 문서의 검증 대상이 아니었다.
-- 발표가 참조한 Envoy 관련 Valkey 공식 문서를 찾지 못했다(13:02). 발표자의 경험칙 이상으로 볼 근거가 없다.
-- 전사 오인식 주의. 자동 자막이 Valkey를 "Valkyrie", Madelyn을 "Madeline/Merlin/Marlin", StatefulSet을 "stateless set", etcd를 "CD", RESP를 "the REST protocol", 16384를 "16,000"으로 적는다. 전사를 그대로 인용하지 마라.
+- "1,000노드 부근에서 cluster bus CPU 1~2%"(05:38)의 1차 출처를 찾지 못했습니다. cluster-spec에도 1-billion-rps 블로그에도 없습니다. 슬라이드-only 주장으로 취급하라.
+- 발표자가 언급한 2025년 선행 발표(02:49 "we did a similar talk last year")를 찾지 못했습니다. kccnceu2025 전 일정, 양 발표자의 valkey.io 저자 페이지, YouTube/CNCF 검색을 모두 훑었으나 일치하는 것이 없었습니다. KubeCon NA 2025(Atlanta)는 확인하지 않았고 남은 후보로 가장 유력하입니다.
+- `CLUSTER SHARDS`의 `availability-zone` 필드 시점이 어긋납니다. [명령 문서](https://valkey.io/commands/cluster-shards/)는 노드 수준 `availability-zone` 필드가 9.1.0에서 추가됐다고 적는데, [AZ affinity 블로그](https://valkey.io/blog/az-affinity-strategy/)는 서버 `availability-zone` 설정이 Valkey 8에 들어왔다고 적습니다. 설정과 응답 필드가 서로 다른 릴리스에 들어온 것으로 보이지만 이 문서는 그 관계를 확정하지 못했습니다.
+- 슬라이드의 `CLUSTER SLOTS` 응답이 명령 문서와 어긋납니다. 슬라이드 13~16의 `CLUSTER SLOTS` 응답에는 `hostname`과 `availability-zone`이 들어 있는데, `CLUSTER SHARDS` 문서는 레거시 `CLUSTER SLOTS`가 이 둘을 같은 방식으로 싣지 않는다고 적습니다. 슬라이드가 설명하려고 손본 응답인지 문서가 뒤처진 것인지 확인하지 못했습니다.
+- 재접속 폭풍 콜스택은 슬라이드 이미지에서 읽었습니다. 전사에도 슬라이드 텍스트 추출본에도 이 심볼들은 없습니다. 이미지 판독 결과이므로 정확한 심볼명이 중요하면 원본 PPTX의 해당 flame graph를 직접 보라.
+- 재접속 폭풍이 태운 노드 규모는 하한만 알 수 있습니다. 슬라이드 노트의 "atleast 5% of the nodes"는 최소값이고, 실제 포화 노드 비율을 밝힌 자료를 찾지 못했습니다.
+- Roshan Khatri(#654 작성자)의 소속을 확인하지 못했습니다. GitHub 프로필에 회사 표기가 없고 1-billion-rps 블로그 저자 목록에도 없습니다. 나머지 세 명(Sarthak Aggarwal·Seungmin Lee = AWS, Binbin Zhu = Tencent Cloud)은 확인했습니다.
+- #2154 / #2277 / #1018의 버전 귀속은 GitHub milestone이 아니라 추론입니다. 세 PR 모두 milestone 필드가 비어 있어 valkey.io 블로그의 명시적 서술 + 머지일과 9.0.0 GA(2025-10-21)의 시간 관계로 판정했습니다. #654 → 8.0도 같은 종류의 추론입니다.
+- #654의 16바이트는 PR 본문의 구조체 정의에서 합산한 값입니다. 최종 머지 커밋을 바이트 단위로 대조하지는 않았습니다.
+- Pokémon Go / Niantic의 "예측 대비 50배" 이야기(01:15~02:00)를 확인하지 않았습니다. 슬라이드에 [Google Cloud 블로그 링크](https://cloud.google.com/blog/products/containers-kubernetes/bringing-pokemon-go-to-life-on-google-cloud)가 붙어 있지만 이 문서의 검증 대상이 아니었습니다.
+- 발표가 참조한 Envoy 관련 Valkey 공식 문서를 찾지 못했다(13:02). 발표자의 경험칙 이상으로 볼 근거가 없습니다.
+- 전사 오인식 주의. 자동 자막이 Valkey를 "Valkyrie", Madelyn을 "Madeline/Merlin/Marlin", StatefulSet을 "stateless set", etcd를 "CD", RESP를 "the REST protocol", 16384를 "16,000"으로 적습니다. 전사를 그대로 인용하지 마라.
 {{< /callout >}}
 
 ## 9. 출처

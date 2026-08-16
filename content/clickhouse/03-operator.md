@@ -51,7 +51,7 @@ operator 간 마이그레이션(수동 STS→Altinity, Altinity↔공식)은 PVC
 - ⑤ Prometheus 메트릭 익스포트
 - ⑥ 0.27.0부터 CHI가 CHK를 **이름으로 직접 참조**하고 `async_replication`/`use_xid_64`가 기본 활성화(단 Keeper 25.3+ 필요)
 - ⑦ STS recreate 정책으로 파드 스펙 변경 시 재생성 방식을 제어
-- ⑧ 0.27.0에 실험적 **pre/post SQL 훅**(예: `HostShutdown` 이벤트에 `SYSTEM STOP REPLICATION QUEUES` 실행)이 추가돼 노드 종료 전 복제 큐를 안전하게 멈출 수 있다
+- ⑧ 0.27.0에 실험적 **pre/post SQL 훅**(예: `HostShutdown` 이벤트에 `SYSTEM STOP REPLICATION QUEUES` 실행)이 추가돼 노드 종료 전 복제 큐를 안전하게 멈출 수 있습니다
 
 수동 STS로는 이 하나하나를 직접 구현해야 합니다.
 {{% /details %}}

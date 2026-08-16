@@ -7,14 +7,14 @@ weight: 15
 
 {{< callout type="info" >}}
 **한눈에**
-- 우리 클러스터에 깔린 Istio CRD는 **14개**, 그룹은 **networking · security · telemetry · extensions** 넷이다.
-- 리소스는 혼자 동작하지 않는다. 트래픽 축은 **Gateway → VirtualService → DestinationRule → 엔드포인트**로 이름과 라벨을 타고 이어지고, 사슬이 끊기는 곳이 곧 장애 지점이다.
+- 우리 클러스터에 깔린 Istio CRD는 **14개**, 그룹은 **networking · security · telemetry · extensions** 넷입니다.
+- 리소스는 혼자 동작하지 않습니다. 트래픽 축은 **Gateway → VirtualService → DestinationRule → 엔드포인트**로 이름과 라벨을 타고 이어지고, 사슬이 끊기는 곳이 곧 장애 지점입니다.
 - 보안 축의 함정 둘: **PeerAuthentication(수신)과 DestinationRule `tls`(송신)가 어긋나면 503**, **RequestAuthentication은 토큰 없는 요청을 거부하지 않는다**.
-- `Sidecar`·`ProxyConfig`·`Telemetry`는 트래픽을 바꾸는 게 아니라 **프록시 자체를 조정**하는 부류다.
-- 버전 컬럼이 성숙도를 그대로 보여준다 — 대부분 `v1`인데 **EnvoyFilter만 `v1alpha3`, WasmPlugin은 `v1alpha1`**이다.
+- `Sidecar`·`ProxyConfig`·`Telemetry`는 트래픽을 바꾸는 게 아니라 **프록시 자체를 조정**하는 부류입니다.
+- 버전 컬럼이 성숙도를 그대로 보여준다 — 대부분 `v1`인데 **EnvoyFilter만 `v1alpha3`, WasmPlugin은 `v1alpha1`**입니다.
 {{< /callout >}}
 
-> **왜 이 이야기.** [13]({{< relref "13-istio-envoy-assembly.md" >}})은 4대 리소스가 Envoy 설정으로 번역되는 경로만 다뤘다. 그런데 클러스터에 실제로 깔린 CRD는 14개고, 운영에서 사고가 나는 지점은 리소스 하나의 필드가 아니라 **리소스와 리소스 사이**인 경우가 많다 — VirtualService가 부르는 `subset` 이름이 DestinationRule에 없거나, PeerAuthentication과 DestinationRule의 TLS 모드가 어긋나거나, RequestAuthentication만 걸어 두고 인가를 빠뜨리거나. 이 문서는 14개를 사전처럼 나열하는 대신 **참조 관계의 축**으로 묶는다.
+> **왜 이 이야기.** [13]({{< relref "13-istio-envoy-assembly.md" >}})은 4대 리소스가 Envoy 설정으로 번역되는 경로만 다뤘습니다. 그런데 클러스터에 실제로 깔린 CRD는 14개고, 운영에서 사고가 나는 지점은 리소스 하나의 필드가 아니라 **리소스와 리소스 사이**인 경우가 많다 — VirtualService가 부르는 `subset` 이름이 DestinationRule에 없거나, PeerAuthentication과 DestinationRule의 TLS 모드가 어긋나거나, RequestAuthentication만 걸어 두고 인가를 빠뜨리거나. 이 문서는 14개를 사전처럼 나열하는 대신 **참조 관계의 축**으로 묶습니다.
 
 > 관련 문서: [13 CRD → Envoy 번역표]({{< relref "13-istio-envoy-assembly.md" >}}) · [07 nginx 지시어 → Istio 리소스]({{< relref "07-from-nginx-to-istio.md" >}}) · [08 표준 CRD의 탈출구]({{< relref "08-envoyfilter-extension.md" >}}) · [04 설정을 코드로]({{< relref "04-config-as-code.md" >}})(아래 짝 맞추기를 리뷰에서 잡는 방법)
 
@@ -68,9 +68,9 @@ weight: 15
 
 각 연결 고리를 필드 수준으로 옮기면 이렇게 됩니다.
 
-- **Gateway → VirtualService** (잇는 필드: VirtualService의 `gateways`) — 근거: "The names of gateways and sidecars that should apply these routes". 어긋나면: 게이트웨이에 규칙이 안 걸리거나, 의도치 않게 메시 전체에 걸린다.
-- **VirtualService → DestinationRule** (잇는 필드: `destination.host` + `subset`) — 근거: "The subset must be defined in a corresponding DestinationRule". 어긋나면: 부르는 subset이 정의돼 있지 않으면 그 경로가 성립하지 않는다.
-- **DestinationRule → 엔드포인트** (잇는 필드: subset의 `labels`) — 근거: "Labels apply a filter over the endpoints of a service in the service registry". 어긋나면: 라벨이 안 맞으면 subset이 비어 트래픽이 갈 곳이 없다.
+- **Gateway → VirtualService** (잇는 필드: VirtualService의 `gateways`) — 근거: "The names of gateways and sidecars that should apply these routes". 어긋나면: 게이트웨이에 규칙이 안 걸리거나, 의도치 않게 메시 전체에 걸립니다.
+- **VirtualService → DestinationRule** (잇는 필드: `destination.host` + `subset`) — 근거: "The subset must be defined in a corresponding DestinationRule". 어긋나면: 부르는 subset이 정의돼 있지 않으면 그 경로가 성립하지 않습니다.
+- **DestinationRule → 엔드포인트** (잇는 필드: subset의 `labels`) — 근거: "Labels apply a filter over the endpoints of a service in the service registry". 어긋나면: 라벨이 안 맞으면 subset이 비어 트래픽이 갈 곳이 없습니다.
 
 ### `gateways` 필드의 기본값이 함정인 이유
 
@@ -90,9 +90,9 @@ DestinationRule을 "subset 정의용"으로만 아는 경우가 있는데, 레�
 
 나머지 세 리소스는 라우팅 규칙이 아니라 **라우팅 대상 자체를 늘립니다.**
 
-- **ServiceEntry** — "enables adding additional entries into Istio's internal service registry, so that auto-discovered services in the mesh can access/route to these manually specified services." 외부 API처럼 메시 밖에 있는 서비스도, VM처럼 플랫폼 레지스트리에 없는 내부 서비스도 대상이다. 중요한 건 **등록된 뒤에는 쿠버네티스 서비스와 똑같이 다뤄진다**는 점이다 — 공식 예시가 ServiceEntry 대상에 DestinationRule로 mTLS를 개시하고 VirtualService로 SNI 기반 라우팅을 거는 사례를 보여준다. 즉 위 사슬이 메시 밖 목적지에도 그대로 적용된다.
+- **ServiceEntry** — "enables adding additional entries into Istio's internal service registry, so that auto-discovered services in the mesh can access/route to these manually specified services." 외부 API처럼 메시 밖에 있는 서비스도, VM처럼 플랫폼 레지스트리에 없는 내부 서비스도 대상입니다. 중요한 건 **등록된 뒤에는 쿠버네티스 서비스와 똑같이 다뤄진다**는 점이다 — 공식 예시가 ServiceEntry 대상에 DestinationRule로 mTLS를 개시하고 VirtualService로 SNI 기반 라우팅을 거는 사례를 보여줍니다. 즉 위 사슬이 메시 밖 목적지에도 그대로 적용됩니다.
 - **WorkloadEntry** — "enables operators to describe the properties of a single non-Kubernetes workload such as a VM or a bare metal server as it is onboarded into the mesh."
-- **WorkloadGroup** — 둘의 관계는 공식 문서가 익숙한 비유로 직접 설명한다. "WorkloadGroup enables specifying the properties of a single workload for bootstrap and provides a template for WorkloadEntry, similar to how Deployment specifies properties of workloads via Pod templates." **WorkloadGroup:WorkloadEntry = Deployment:Pod**라는 대응이 레퍼런스에 그대로 있다.
+- **WorkloadGroup** — 둘의 관계는 공식 문서가 익숙한 비유로 직접 설명합니다. "WorkloadGroup enables specifying the properties of a single workload for bootstrap and provides a template for WorkloadEntry, similar to how Deployment specifies properties of workloads via Pod templates." **WorkloadGroup:WorkloadEntry = Deployment:Pod**라는 대응이 레퍼런스에 그대로 있습니다.
 
 우리 클러스터는 EKS 위 파드만 다루므로 이 셋 중 실제로 쓰는 것은 ServiceEntry뿐입니다. 그래도 WorkloadEntry/WorkloadGroup이 깔려 있다는 사실 자체는 의미가 있습니다 — **메시의 경계가 쿠버네티스 경계와 같아야 할 이유가 없다**는 것이 API 수준에서 이미 전제돼 있습니다.
 
@@ -189,8 +189,8 @@ ProxyConfig가 다루는 것은 트래픽이 아니라 프록시 프로세스입
 
 `EnvoyFilter`와 `WasmPlugin`은 [13]({{< relref "13-istio-envoy-assembly.md" >}})이 그린 두 계층 중 **사용자 확장** 쪽입니다. 왜 최후의 수단으로 다뤄야 하는지와 선택 사다리(표준 CRD → 상위 API → EnvoyFilter)는 [08]({{< relref "08-envoyfilter-extension.md" >}})에 이미 있습니다. 여기서는 그 판단에 보탤 사실 둘만 봅니다.
 
-- **EnvoyFilter 충돌은 우선순위 문제가 아니라 미정의 상태다.** 여러 EnvoyFilter가 겹치면 "The behavior is undefined if multiple EnvoyFilter configurations conflict with each other" — [08]이 말한 "업그레이드에 깨진다"보다 한 단계 나쁘다. 순서를 조정해서 피할 수 있는 문제가 아니라는 뜻이다.
-- **WasmPlugin의 `phase`는 3절의 관문을 좌표계로 쓴다.** `AUTHN`("Insert plugin before Istio authentication filters"), `AUTHZ`("before Istio authorization filters and after Istio authentication filters"), `STATS`("before Istio stats filters and after Istio authorization filters"), `UNSPECIFIED_PHASE`("Control plane decides where to insert the plugin. This will generally be at the end of the filter chain, right before the Router."). [08]이 WasmPlugin을 "더 안전한 상위 추상화"로 권한 근거가 여기서 확인된다 — 삽입 위치를 필터 이름이 아니라 보안 관문 이름으로 지정할 수 있다.
+- **EnvoyFilter 충돌은 우선순위 문제가 아니라 미정의 상태입니다.** 여러 EnvoyFilter가 겹치면 "The behavior is undefined if multiple EnvoyFilter configurations conflict with each other" — [08]이 말한 "업그레이드에 깨진다"보다 한 단계 나쁩니다. 순서를 조정해서 피할 수 있는 문제가 아니라는 뜻입니다.
+- **WasmPlugin의 `phase`는 3절의 관문을 좌표계로 씁니다.** `AUTHN`("Insert plugin before Istio authentication filters"), `AUTHZ`("before Istio authorization filters and after Istio authentication filters"), `STATS`("before Istio stats filters and after Istio authorization filters"), `UNSPECIFIED_PHASE`("Control plane decides where to insert the plugin. This will generally be at the end of the filter chain, right before the Router."). [08]이 WasmPlugin을 "더 안전한 상위 추상화"로 권한 근거가 여기서 확인된다 — 삽입 위치를 필터 이름이 아니라 보안 관문 이름으로 지정할 수 있습니다.
 
 다만 WasmPlugin을 "EnvoyFilter를 안 쓰고 필터를 넣는 상위 API"로 소개하는 경우가 많은데, 레퍼런스 페이지 자체는 그렇게 위치 짓지 않습니다. 거기 적힌 것은 "Extend the functionality provided by the Istio proxy through WebAssembly filters"뿐입니다. 그 위치 부여는 [08]({{< relref "08-envoyfilter-extension.md" >}})의 운영 판단이고, 그 순서를 명시한 공식 문장은 이 조사에서는 찾지 못했습니다.
 
@@ -213,11 +213,11 @@ EnvoyFilter가 특히 도드라집니다. 같은 `networking.istio.io` 그룹의
 
 ## 이 문서에서 가져갈 것
 
-- CRD는 독립된 설정 조각이 아니다. 트래픽 축은 **`gateways` 이름 → `host`+`subset` 이름 → 라벨 필터**로 이어지고, 어느 고리가 끊겼는지가 곧 진단 순서다.
-- **mTLS의 수신과 송신은 다른 리소스가 정한다.** PeerAuthentication은 받을 것을, DestinationRule `tls`는 보낼 것을 정하며, 어긋나면 배포 직후 503으로 나타난다. `tls`를 명시하지 않으면 기본값이 `DISABLE`이다.
-- **RequestAuthentication은 토큰을 요구하지 않는다.** 없는 토큰은 통과시키고, 요구하는 것은 AuthorizationPolicy의 몫이다. 그리고 **ALLOW 정책 하나가 그 워크로드의 기본 동작을 deny-by-default로 뒤집는다.**
+- CRD는 독립된 설정 조각이 아닙니다. 트래픽 축은 **`gateways` 이름 → `host`+`subset` 이름 → 라벨 필터**로 이어지고, 어느 고리가 끊겼는지가 곧 진단 순서입니다.
+- **mTLS의 수신과 송신은 다른 리소스가 정합니다.** PeerAuthentication은 받을 것을, DestinationRule `tls`는 보낼 것을 정하며, 어긋나면 배포 직후 503으로 나타납니다. `tls`를 명시하지 않으면 기본값이 `DISABLE`입니다.
+- **RequestAuthentication은 토큰을 요구하지 않습니다.** 없는 토큰은 통과시키고, 요구하는 것은 AuthorizationPolicy의 몫입니다. 그리고 **ALLOW 정책 하나가 그 워크로드의 기본 동작을 deny-by-default로 뒤집습니다.**
 - `Sidecar`·`ProxyConfig`·`Telemetry`는 트래픽이 아니라 프록시를 조정한다. 특히 `Sidecar`의 egress 목록은 **설정 범위 축소이지 트래픽 차단이 아니다.**
-- 버전 컬럼이 업그레이드 리스크의 지도다. **EnvoyFilter만 `v1alpha3`, WasmPlugin은 `v1alpha1`** — API 호환과 그 안의 Envoy 설정 호환은 별개다.
+- 버전 컬럼이 업그레이드 리스크의 지도입니다. **EnvoyFilter만 `v1alpha3`, WasmPlugin은 `v1alpha1`** — API 호환과 그 안의 Envoy 설정 호환은 별개입니다.
 
 ## 소스
 

@@ -14,12 +14,12 @@ HyperDX 스택의 ClickHouse는 self-host이므로 `ReplicatedMergeTree`가 강�
 - Keeper는 **ZooKeeper의 ClickHouse판**(NuRaft/Raft 합의)이지 **Kafka의 ClickHouse판이 아니다**. 조정 메타데이터(복제 로그·part 참조·DDL 큐·dedup 체크섬·ephemeral 락)만 담고 **사용자 이벤트 데이터는 담지 않는다** `✓`.
 - INSERT는 **클라이언트 → CH 서버로 직접** 간다. 동기면 파트로 디스크 기록, `async_insert`면 **서버 메모리 버퍼(휘발)**에 잠깐 머문다. **커밋·복제 전에 서버가 죽으면 그 데이터는 어디에도 큐잉되지 않고 유실**된다 — Keeper가 붙잡아 두지 않는다 `✓`.
 - Keeper 안의 "큐"(DDL task_queue·replica queue·replication log)는 **메타데이터 큐**지 이벤트 데이터 큐가 아니다. "이미 디스크에 쓰인 파트를 가져가라"는 **지시**를 복원할 뿐, 아직 파트가 안 된 수신 중 이벤트를 복원하지 못한다 `✓`.
-- 유실 방어는 CH 내부에서 **`insert_quorum` + 블록 dedup + 클라이언트 재시도**(at-least-once → 사실상 exactly-once)까지, 다운타임/버스트 흡수는 **CH 앞단의 실제 큐**(OTel Collector persistent queue / Kafka)가 담당한다.
+- 유실 방어는 CH 내부에서 **`insert_quorum` + 블록 dedup + 클라이언트 재시도**(at-least-once → 사실상 exactly-once)까지, 다운타임/버스트 흡수는 **CH 앞단의 실제 큐**(OTel Collector persistent queue / Kafka)가 담당합니다.
 {{< /callout >}}
 
 ## Keeper 기초 — 무엇이고, 무엇을 저장하나
 
-> Keeper가 저장하는 znode가 **복제를 어떻게 구동하는지**(`/log` pull 모델·멀티마스터·승격 없는 failover·split-brain 방지)는 [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}})가 기준 문서다. 이 페이지는 Keeper **자체**(무엇을 저장/비저장하나, 왜 큐가 아닌가)에 집중한다.
+> Keeper가 저장하는 znode가 **복제를 어떻게 구동하는지**(`/log` pull 모델·멀티마스터·승격 없는 failover·split-brain 방지)는 [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}})가 기준 문서입니다. 이 페이지는 Keeper **자체**(무엇을 저장/비저장하나, 왜 큐가 아닌가)에 집중합니다.
 
 Keeper는 C++로 작성됐고 **eBay NuRaft**로 Raft 합의를 돌립니다 `✓`. ZAB(write만 linearizable)를 쓰던 ZooKeeper와 달리 **읽기·쓰기 모두 linearizable** 보장을 제공하며(기본 동작은 linearizable writes + non-linearizable reads), 클라이언트 프로토콜이 ZooKeeper와 호환되는 **drop-in 대체**입니다 — 기존 ZK 클라이언트가 그대로 붙습니다 `✓`. 단 스냅샷·로그 포맷과 피어 간(interserver) 프로토콜은 ZooKeeper와 비호환이라, ZK에서 넘어올 때는 별도 변환이 필요합니다 `✓`. Java 런타임이 필요 없어 운영이 가볍습니다 `Ⓥ/✓`.
 
@@ -42,9 +42,9 @@ Keeper는 znode 트리(작은 키-값)로 **복제·분산 실행의 조정 상�
 
 여기서 반드시 붙잡을 사실 세 가지입니다.
 
-- **데이터는 replica 간 직접 전송된다** `✓`. 공식 복제 문서 원문은 *"During replication, only the source data to insert is transferred over the network"* — Keeper는 "누가 무엇을 가졌나"의 **포인터·지시**만 갖고, 파트 바이트는 replica가 서로 직접 fetch한다.
+- **데이터는 replica 간 직접 전송됩니다** `✓`. 공식 복제 문서 원문은 *"During replication, only the source data to insert is transferred over the network"* — Keeper는 "누가 무엇을 가졌나"의 **포인터·지시**만 갖고, 파트 바이트는 replica가 서로 직접 fetch합니다.
 - **SELECT은 Keeper를 타지 않는다** `✓`(*"ZooKeeper is not used in SELECT queries"*). 조회 경로에 Keeper가 없다 → Keeper는 **쓰기·조정 경로의 SPOF**지 읽기 병목이 아니다.
-- **INSERT 1건당 Keeper에 약 10개 엔트리**가 추가된다(근사치) `✓/≈`. 즉 Keeper 부하는 데이터 GB가 아니라 **INSERT·파트 생성 빈도에 비례**한다. 작은 INSERT를 남발해 파트가 폭증하면 디스크보다 Keeper가 먼저 비명을 지른다 — 배칭이 Keeper 건강에도 직결된다.
+- **INSERT 1건당 Keeper에 약 10개 엔트리**가 추가된다(근사치) `✓/≈`. 즉 Keeper 부하는 데이터 GB가 아니라 **INSERT·파트 생성 빈도에 비례**합니다. 작은 INSERT를 남발해 파트가 폭증하면 디스크보다 Keeper가 먼저 비명을 지른다 — 배칭이 Keeper 건강에도 직결됩니다.
 
 Keeper가 저장하지 **않는** 것을 못박아 둔다: ❌ 테이블의 행·파트 바이트(디스크에 있고 replica 직송), ❌ **아직 커밋 안 된 in-flight INSERT 버퍼**(§큐가 아니다의 핵심), ❌ 쿼리 결과·캐시(SELECT 경로 밖).
 
@@ -129,8 +129,8 @@ RUM/관측성 ingest는 작은 이벤트가 대량이라 `async_insert`를 흔�
 ReplicatedMergeTree는 **블록 단위 dedup이 기본 켜짐**이라, 같은 크기·같은 행·같은 순서의 블록은 한 번만 쓰입니다 — 해시섬은 Keeper `/clickhouse/tables/.../blocks/<hash>` znode(파티션별)에 저장됩니다 `✓`. 그래서 CH의 신뢰성 모델은 명시적으로 **"클라이언트가 재시도하고, 서버가 dedup으로 멱등을 보장"** 하는 조합입니다(*"client must retry"*) `✓`. 성립 조건은 다음과 같습니다 `✓`.
 
 1. 재시도 시 **배치 내용·순서가 동일**해야 dedup이 성립한다(블록 해시 기반).
-2. 재시도 사이에 dedup window(1000블록/7일)를 넘는 다른 INSERT가 끼면 dedup이 안 될 수 있다.
-3. `insert_deduplication_token`을 주면 **데이터 해시 대신 토큰이 우선** → 재시도 안전성을 클라이언트가 통제한다.
+2. 재시도 사이에 dedup window(1000블록/7일)를 넘는 다른 INSERT가 끼면 dedup이 안 될 수 있습니다.
+3. `insert_deduplication_token`을 주면 **데이터 해시 대신 토큰이 우선** → 재시도 안전성을 클라이언트가 통제합니다.
 4. **async_insert는 `async_insert_deduplicate=1` 없이는 dedup 안 됨**(위 async 절).
 
 핵심 명제는 이렇습니다: **Keeper는 "유실을 막는 큐"가 아니라 "재시도를 멱등으로 만들어 주는 dedup 저장소"** 입니다. 유실 자체를 막는 것은 (a) 클라이언트가 ack까지 데이터를 쥐고 재시도, (b) 필요하면 `insert_quorum`으로 확정 강도↑, (c) 그래도 부족하면 앞단의 실제 큐입니다.

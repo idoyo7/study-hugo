@@ -8,15 +8,15 @@ aliases: ["/k8s-features/karpenter/01-instance-selection/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- **인스턴스 타입을 확정하는 주체는 Karpenter 스케줄러가 아니다.** 후보 이름 전체를 `node.kubernetes.io/instance-type In [...]` 하나로 묶어 NodeClaim에 실어 보낸다. 타입을 하나로 못 박는 Cluster Autoscaler와 갈리는 지점이 여기다.
-- **최종 선택자는 EC2다.** provider-aws가 CreateFleet을 `Type: instant`, On-Demand 할당 전략 **`lowest-price`** 로 호출한다. "7세대가 싸서 7세대만 뜬다"의 실제 원인은 이 한 줄이다.
-- **"후보 절단(600/60) 때문에 8세대가 잘려 나간다"는 흔한 오해이고 사실이 아니다.** 정렬 키가 *그 타입의 최저 오퍼링 가격*이라 **사이즈에 대해 단조**다. 잘리는 건 세대가 아니라 양 세대의 가장 큰 사이즈들이다.
-- **단일 NodePool 안에는 선호를 표현할 축이 없다.** `requirements` 스키마는 Key/Operator/Values/MinValues 넷뿐이다. `weight`는 NodePool **레벨**에만 존재한다.
-- **`minValues`는 우선순위 손잡이가 아니라 다양성 하한**이다. 세대 선호에 쓸 수 없을 뿐 아니라 7세대를 후보에 붙들어 두는 역효과를 낸다.
-- **파드의 `preferred` nodeAffinity도 대안이 아니다.** Karpenter의 처리 방식은 "가장 무거운 term 하나를 hard requirement로 승격한 뒤 실패하면 벗기는" 것이다 — 파드마다 걸어야 하고 완화 순서상 네 번째다. 벗겨지려면 먼저 스케줄 시뮬레이션이 실패해야 한다.
+- **인스턴스 타입을 확정하는 주체는 Karpenter 스케줄러가 아닙니다.** 후보 이름 전체를 `node.kubernetes.io/instance-type In [...]` 하나로 묶어 NodeClaim에 실어 보냅니다. 타입을 하나로 못 박는 Cluster Autoscaler와 갈리는 지점이 여기입니다.
+- **최종 선택자는 EC2다.** provider-aws가 CreateFleet을 `Type: instant`, On-Demand 할당 전략 **`lowest-price`** 로 호출합니다. "7세대가 싸서 7세대만 뜬다"의 실제 원인은 이 한 줄입니다.
+- **"후보 절단(600/60) 때문에 8세대가 잘려 나간다"는 흔한 오해이고 사실이 아닙니다.** 정렬 키가 *그 타입의 최저 오퍼링 가격*이라 **사이즈에 대해 단조**다. 잘리는 건 세대가 아니라 양 세대의 가장 큰 사이즈들입니다.
+- **단일 NodePool 안에는 선호를 표현할 축이 없습니다.** `requirements` 스키마는 Key/Operator/Values/MinValues 넷뿐입니다. `weight`는 NodePool **레벨**에만 존재합니다.
+- **`minValues`는 우선순위 손잡이가 아니라 다양성 하한**입니다. 세대 선호에 쓸 수 없을 뿐 아니라 7세대를 후보에 붙들어 두는 역효과를 냅니다.
+- **파드의 `preferred` nodeAffinity도 대안이 아닙니다.** Karpenter의 처리 방식은 "가장 무거운 term 하나를 hard requirement로 승격한 뒤 실패하면 벗기는" 것이다 — 파드마다 걸어야 하고 완화 순서상 네 번째입니다. 벗겨지려면 먼저 스케줄 시뮬레이션이 실패해야 합니다.
 {{< /callout >}}
 
-> **왜 이 문서인가.** c8i/m8i/r8i와 c7i/m7i/r7i를 하나의 NodePool에 함께 선언해 두면 "8세대 우선, 없으면 7세대 폴백"을 기대하게 되는데, 실제로는 항상 7세대만 뜬다. 범인은 절단·필터·EC2 중 하나다. 어느 쪽이냐에 따라 대응책이 완전히 갈리므로 "싼 걸 좋아해서"로는 넘어갈 수 없다. 이 문서는 파드가 pending되는 순간부터 EC2가 인스턴스를 띄우는 순간까지 **선택이 실제로 일어나는 지점을 코드로 하나씩 지우고**, 흔한 오해 하나(절단이 세대를 자른다)를 명시적으로 깬다.
+> **왜 이 문서인가.** c8i/m8i/r8i와 c7i/m7i/r7i를 하나의 NodePool에 함께 선언해 두면 "8세대 우선, 없으면 7세대 폴백"을 기대하게 되는데, 실제로는 항상 7세대만 뜹니다. 범인은 절단·필터·EC2 중 하나입니다. 어느 쪽이냐에 따라 대응책이 완전히 갈리므로 "싼 걸 좋아해서"로는 넘어갈 수 없습니다. 이 문서는 파드가 pending되는 순간부터 EC2가 인스턴스를 띄우는 순간까지 **선택이 실제로 일어나는 지점을 코드로 하나씩 지우고**, 흔한 오해 하나(절단이 세대를 자른다)를 명시적으로 깹니다.
 
 > 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}}) · [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}}) · [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) · [K8s 버전별 신기능]({{< relref "../../k8s-features/_index.md" >}})
 
@@ -376,12 +376,12 @@ relaxations := []func(*v1.Pod) *string{
 
 **`instance-generation In ["8"]`을 preferred로 걸면 8세대가 우선 시도되긴 합니다** — 그런데 여섯 군데가 어긋납니다.
 
-- **파드마다** 걸어야 한다 — NodePool 하나로 끝날 문제가 전체 워크로드로 번지고 새 팀의 파드는 자동 누락된다.
-- 최고 가중치 term **하나만** 승격 · `requirements.go:98-100` — zone·arch 선호가 이미 있다면 세대 선호와 자리를 다툰다.
-- 완화 순서 **4번째** · `preferences.go:39-44` — preferred pod affinity/anti-affinity가 먼저 벗겨져 세대 제약까지 라운드가 더 든다.
+- **파드마다** 걸어야 한다 — NodePool 하나로 끝날 문제가 전체 워크로드로 번지고 새 팀의 파드는 자동 누락됩니다.
+- 최고 가중치 term **하나만** 승격 · `requirements.go:98-100` — zone·arch 선호가 이미 있다면 세대 선호와 자리를 다툽니다.
+- 완화 순서 **4번째** · `preferences.go:39-44` — preferred pod affinity/anti-affinity가 먼저 벗겨져 세대 제약까지 라운드가 더 듭니다.
 - 완화 트리거가 **시뮬레이션 실패** · `scheduler.go:543` — 8세대가 아직 unavailable로 안 잡히면 시뮬레이션은 성공하므로 실제 Insufficient Capacity Error(ICE)를 한 번 맞아야 완화된다 → 폴백 지연([07]({{< relref "07-ice-fallback.md" >}})).
-- 토폴로지 요구사항엔 required로 안 잡힘 · [공식 문서](https://karpenter.sh/docs/concepts/scheduling/) — topology spread 워크로드가 의도와 다르게 퍼질 수 있다.
-- 정책 하나로 전부 꺼짐 · `options.go:131` — `PREFERENCE_POLICY=Ignore`면 전 워크로드의 세대 선호가 조용히 사라진다.
+- 토폴로지 요구사항엔 required로 안 잡힘 · [공식 문서](https://karpenter.sh/docs/concepts/scheduling/) — topology spread 워크로드가 의도와 다르게 퍼질 수 있습니다.
+- 정책 하나로 전부 꺼짐 · `options.go:131` — `PREFERENCE_POLICY=Ignore`면 전 워크로드의 세대 선호가 조용히 사라집니다.
 
 ⇒ **파드 preferred는 "특정 워크로드에만 세대 힌트를 주고 싶다"에는 쓸 만하지만, "클러스터 기본 정책으로 8세대를 우선한다"에는 맞지 않는 도구입니다.**
 
@@ -389,20 +389,20 @@ relaxations := []func(*v1.Pod) *string{
 
 "c8i 전용 풀인데 c7i만 뜬다"를 추적할 때는 이 순서로 좁힙니다.
 
-1. **후보에 있나** — `kubectl get nodeclaim <name> -o yaml`의 `instance-type In [...]`에 있는지 본다. 없으면 NodePool `requirements` 자체가 막았다 — `Gte/Lte` hard constraint(§6)나 `minValues` 위반으로 `remaining = nil`(§7)인지 확인한다.
-2. **있는데 안 떴다면 EC2 쪽이다** — `checkODFallback` 경고(§3)는 launch를 막지 않으므로 참고만 하고 다음 단계를 본다.
-3. **`lowest-price`인지 `prioritized`인지** — `karpenter.sh/price-overlay-applied` 어노테이션이 있으면 오버레이 경로([05]({{< relref "05-generation-preference.md" >}})), 없으면 §3의 `lowest-price`가 그대로 이긴다.
-4. **떴다가 사라졌다면** — 절단·필터·CreateFleet이 아니라 [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}})의 교체 로직이다.
+1. **후보에 있나** — `kubectl get nodeclaim <name> -o yaml`의 `instance-type In [...]`에 있는지 봅니다. 없으면 NodePool `requirements` 자체가 막았다 — `Gte/Lte` hard constraint(§6)나 `minValues` 위반으로 `remaining = nil`(§7)인지 확인합니다.
+2. **있는데 안 떴다면 EC2 쪽이다** — `checkODFallback` 경고(§3)는 launch를 막지 않으므로 참고만 하고 다음 단계를 봅니다.
+3. **`lowest-price`인지 `prioritized`인지** — `karpenter.sh/price-overlay-applied` 어노테이션이 있으면 오버레이 경로([05]({{< relref "05-generation-preference.md" >}})), 없으면 §3의 `lowest-price`가 그대로 이깁니다.
+4. **떴다가 사라졌다면** — 절단·필터·CreateFleet이 아니라 [06 consolidation이 되돌리는 것]({{< relref "06-consolidation-traps.md" >}})의 교체 로직입니다.
 
 이 네 갈래가 §4 표의 "가격이 결정하는 두 지점"과 대응합니다 — 나머지 단계는 후보 필터일 뿐 결정자가 아닙니다.
 
 ## 이 문서에서 가져갈 것
 
-- **스케줄러는 타입을 확정하지 않는다** — NodeClaim엔 후보 이름 집합(`instance-type In [...]`)뿐이고 "어느 것"을 정하는 권한은 클라우드 프로바이더로 내려간다.
-- **절단(600/60)은 세대를 자르지 않는다** — 정렬 키가 사이즈에 대해 단조이고 코어 600 절단은 순서까지 소실돼 좁은 NodePool에서는 no-op이다.
+- **스케줄러는 타입을 확정하지 않는다** — NodeClaim엔 후보 이름 집합(`instance-type In [...]`)뿐이고 "어느 것"을 정하는 권한은 클라우드 프로바이더로 내려갑니다.
+- **절단(600/60)은 세대를 자르지 않는다** — 정렬 키가 사이즈에 대해 단조이고 코어 600 절단은 순서까지 소실돼 좁은 NodePool에서는 no-op입니다.
 - **8세대가 지는 곳은 두 군데뿐** — CreateFleet의 `lowest-price`(`instance/types.go:244`)와 consolidation의 `launchPrice < maxPrice`(`scheduling/nodeclaim.go:411-419`).
-- **단일 NodePool엔 선호를 표현할 필드가 없다** — requirements는 Key/Operator/Values/MinValues 넷뿐, `weight`는 NodePool 레벨에만 있다.
-- **잘못 잡은 손잡이 둘** — `minValues`는 다양성 하한이라 오히려 7세대를 붙들고, 파드 `preferred`는 파드 단위 + term 하나 + 완화 4번째 + 실패 후 완화라는 제약을 다 안는다.
+- **단일 NodePool엔 선호를 표현할 필드가 없다** — requirements는 Key/Operator/Values/MinValues 넷뿐, `weight`는 NodePool 레벨에만 있습니다.
+- **잘못 잡은 손잡이 둘** — `minValues`는 다양성 하한이라 오히려 7세대를 붙들고, 파드 `preferred`는 파드 단위 + term 하나 + 완화 4번째 + 실패 후 완화라는 제약을 다 안습니다.
 - ⇒ **선호를 만들려면 NodePool을 쪼개거나 가격을 왜곡해야 한다** — [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}}).
 
 ## 참고 자료

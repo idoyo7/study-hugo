@@ -13,6 +13,6 @@ cascade:
 
 ## 문서 지도
 
-- **[00 두 갈래 — 같은 방, 15분 간격, 정반대 아키텍처]({{< relref "00-두-갈래.md" >}})** · 두 발표 비교 — 어느 질문에 어느 챕터를 펴야 하는지 정한다. 2,000노드 천장은 대부분에게 오지 않고 Sentinel-on-Kubernetes 문제는 첫 주에 온다는 판정이다.
-- **[① 2,000노드 Valkey 클러스터 (AWS)]({{< relref "cluster-xl-scale/_index.md" >}})** · EC2 실측 vs Kubernetes 조언 — 간판 수치의 출처를 밝히고 엔진 수정 4건은 전이되지만 코어 피닝·"2,000노드 실증" 그 자체는 전이되지 않는다고 가른다.
-- **[② Braze Sentinel HA 무중단 이관]({{< relref "braze-k8s-migration/_index.md" >}})** · Kubernetes 프로덕션 2년 — Valkey Cluster를 쓰지 않는 581샤드를 NLB 경유 양방향 replication으로 무중단 이관한 기록. 데이터 손실은 0이었다. 다만 NLB를 상시로 두면 데이터 전송비가 월 $100,000을 넘을 것으로 산정돼 전 클라이언트가 넘어올 때까지 기다렸다가 걷었다.
+- **[00 두 갈래 — 같은 방, 15분 간격, 정반대 아키텍처]({{< relref "00-두-갈래.md" >}})** · 두 발표 비교 — 어느 질문에 어느 챕터를 펴야 하는지 정합니다. 2,000노드 천장은 대부분에게 오지 않고 Sentinel-on-Kubernetes 문제는 첫 주에 온다는 판정입니다.
+- **[① 2,000노드 Valkey 클러스터 (AWS)]({{< relref "cluster-xl-scale/_index.md" >}})** · EC2 실측 vs Kubernetes 조언 — 간판 수치의 출처를 밝히고 엔진 수정 4건은 전이되지만 코어 피닝·"2,000노드 실증" 그 자체는 전이되지 않는다고 가릅니다.
+- **[② Braze Sentinel HA 무중단 이관]({{< relref "braze-k8s-migration/_index.md" >}})** · Kubernetes 프로덕션 2년 — Valkey Cluster를 쓰지 않는 581샤드를 NLB 경유 양방향 replication으로 무중단 이관한 기록. 데이터 손실은 0이었습니다. 다만 NLB를 상시로 두면 데이터 전송비가 월 $100,000을 넘을 것으로 산정돼 전 클라이언트가 넘어올 때까지 기다렸다가 걷었습니다.

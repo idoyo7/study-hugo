@@ -32,10 +32,10 @@ aliases: ["/hyperdx-operating/04-operator-pattern/", "/hyperdx/operating/04-oper
 
 EBS-first라 노드 급사는 데이터 소실이 아닙니다(볼륨이 남습니다). 그래서 복구는 재수화가 아니라 **detach → 같은 AZ 새 노드에 reattach → 델타 catch-up**입니다 — 그 물리 역학과 왜 로컬 NVMe와 다른지는 [operator 토폴로지·다운타임]({{< relref "../hyperdx/04-operator-topology-downtime.md" >}}) §2가 소유합니다. 런북이 지킬 것은 순서입니다.
 
-1. **계획된 교체(drain·consolidation)인지 급사인지 가른다.** 계획된 쪽은 개입이 없다 — PDB가 한 번에 한 replica로 직렬화하고 reattach·catch-up이 자동으로 돈다.
-2. **급사면 "정말 죽었나"를 먼저 확정한다.** 재부팅 중인 노드에 taint를 걸면 RWO 볼륨이 두 곳에 붙어 데이터가 깨진다 `✓`. 이 확인을 건너뛰는 것이 이 절차의 유일한 비가역 실수다.
-3. **확정 후 `out-of-service` taint로 강제 정리한다.** 명령 전문(taint 부여·해제, `--force` 삭제로는 부족한 이유)은 [operator 토폴로지·다운타임]({{< relref "../hyperdx/04-operator-topology-downtime.md" >}}) §5.1이 정본이다.
-4. **복구 후 taint를 되돌린다.** 지우지 않으면 그 노드에 파드가 다시 배치되지 않는다.
+1. **계획된 교체(drain·consolidation)인지 급사인지 가릅니다.** 계획된 쪽은 개입이 없다 — PDB가 한 번에 한 replica로 직렬화하고 reattach·catch-up이 자동으로 돕니다.
+2. **급사면 "정말 죽었나"를 먼저 확정합니다.** 재부팅 중인 노드에 taint를 걸면 RWO 볼륨이 두 곳에 붙어 데이터가 깨집니다 `✓`. 이 확인을 건너뛰는 것이 이 절차의 유일한 비가역 실수입니다.
+3. **확정 후 `out-of-service` taint로 강제 정리합니다.** 명령 전문(taint 부여·해제, `--force` 삭제로는 부족한 이유)은 [operator 토폴로지·다운타임]({{< relref "../hyperdx/04-operator-topology-downtime.md" >}}) §5.1이 정본입니다.
+4. **복구 후 taint를 되돌립니다.** 지우지 않으면 그 노드에 파드가 다시 배치되지 않습니다.
 5. **AZ 하나가 통째로 죽은 경우는 위 절차가 통하지 않는다.** EBS는 AZ-bound라 reattach 자체가 불가하고, 방어는 cross-AZ replica뿐이다 `✓`.
 
 우리 형상에서 이 개입을 자동화할지는 열린 항목입니다 — node-problem-detector 기반 자동 taint는 "정말 죽었나" 오판 위험을 안고 있어, staging 리허설로 도구·타이밍을 검증한 뒤 팀 룰로 못박습니다(§5).
@@ -52,11 +52,11 @@ EBS-first라 노드 급사는 데이터 소실이 아닙니다(볼륨이 남습�
 
 업그레이드 순서:
 
-1. **올리기 전에 되돌릴 자리를 만든다** — 데이터 볼륨 EBS 스냅샷 + `clickhouse-backup` 이중 안전. 명령 전문은 [버전 호환·업그레이드]({{< relref "../hyperdx/09-version-upgrade-compat.md" >}}) §3.3·§4.1이 정본이다.
-2. **차단 경계를 먼저 확인한다.** 온디스크 포맷이 바뀌는 버전 경계를 넘으면 바이너리 롤백이 불가능해진다 — 어느 버전이 어느 하한을 막는지는 §3.2 표가 유일한 출처이고, 이 페이지는 숫자를 재기재하지 않는다.
-3. **replica 단위로 좁힌다.** RF2/RF3면 한 replica씩 스냅샷 → 업그레이드 → 실패 시 그 replica만 복원 → 나머지에서 델타 catch-up이 성립한다 `≈`. stage는 replica 1이라 이 안전망이 없다 — stage 업그레이드는 스냅샷이 유일한 되돌림이다.
-4. **관찰 창(24~48h) 동안 롤백 창을 닫지 않는다** — `OPTIMIZE ... FINAL`과 신규 컬럼 타입 사용을 금지한다 `✓`. `OPTIMIZE FINAL` 한 번이 파트를 새 포맷으로 재작성해 스스로 롤백 창을 닫는다.
-5. **다운그레이드는 없다고 가정한다.** 사고 대응 계획을 스냅샷·백업 복구 중심으로 짠다.
+1. **올리기 전에 되돌릴 자리를 만든다** — 데이터 볼륨 EBS 스냅샷 + `clickhouse-backup` 이중 안전. 명령 전문은 [버전 호환·업그레이드]({{< relref "../hyperdx/09-version-upgrade-compat.md" >}}) §3.3·§4.1이 정본입니다.
+2. **차단 경계를 먼저 확인합니다.** 온디스크 포맷이 바뀌는 버전 경계를 넘으면 바이너리 롤백이 불가능해진다 — 어느 버전이 어느 하한을 막는지는 §3.2 표가 유일한 출처이고, 이 페이지는 숫자를 재기재하지 않습니다.
+3. **replica 단위로 좁힙니다.** RF2/RF3면 한 replica씩 스냅샷 → 업그레이드 → 실패 시 그 replica만 복원 → 나머지에서 델타 catch-up이 성립합니다 `≈`. stage는 replica 1이라 이 안전망이 없다 — stage 업그레이드는 스냅샷이 유일한 되돌림입니다.
+4. **관찰 창(24~48h) 동안 롤백 창을 닫지 않는다** — `OPTIMIZE ... FINAL`과 신규 컬럼 타입 사용을 금지합니다 `✓`. `OPTIMIZE FINAL` 한 번이 파트를 새 포맷으로 재작성해 스스로 롤백 창을 닫습니다.
+5. **다운그레이드는 없다고 가정합니다.** 사고 대응 계획을 스냅샷·백업 복구 중심으로 짭니다.
 
 우리 형상의 직렬화 파라미터는 셋입니다 — CHI 클러스터에 `pdbMaxUnavailable: 1`, 파드 분산에 hostname anti-affinity, AZ에 topologySpread. 이 셋이 자발적 중단(drain·consolidation·롤링)을 "한 번에 한 replica"로 묶습니다. 다만 **PDB는 자발적 중단만 막습니다** — §2의 급사 같은 비자발적 사건은 PDB로 못 막고 RF가 방어합니다 `✓`. 매니페스트 전문·`reconcile.*` 노브는 [operator 토폴로지·다운타임]({{< relref "../hyperdx/04-operator-topology-downtime.md" >}})으로 위임합니다.
 

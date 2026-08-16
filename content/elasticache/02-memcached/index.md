@@ -7,20 +7,20 @@ weight: 2
 
 {{< callout type="info" >}}
 **한눈에**
-- **memcached 는 Redis 의 열등한 과거가 아니다.** "캐시는 캐시여야 한다"를 끝까지 밀어서 Redis 가 갖지 못한 성질(한 프로세스로 코어를 먹는 확장, 느린 커맨드가 존재할 수 없는 지연 예측성, 값을 NVMe 로 내리는 용량 확장)을 얻고 자료구조·영속성·복제·다중 키 원자성을 포기했다 `Σ`
-- **첫 커밋(2003-05-27)에는 slab allocator 도 자체 해시 테이블도 없었다.** `malloc()` + Judy 트라이 + 전역 단일 LRU 였고, slab 은 3일 뒤·자체 해시는 3주 뒤에 **둘 다 파편화 때문에** 들어왔다 `✓`
-- **slab allocator 의 대가가 calcification 이고, 그것을 갚는 데 21년이 걸렸다.** 문제 인지 2003-06-24, 첫 공식 해법 1.4.11(2012-01-16), 기본값 승격 1.5.0(2017-07-21), 그리고 **1.6.34(2024-12-22)의 mover 전면 재작성이 "페이지를 옮기면 아이템을 잃는다"는 대가 자체를 제거**했다 `✓`
+- **memcached 는 Redis 의 열등한 과거가 아닙니다.** "캐시는 캐시여야 한다"를 끝까지 밀어서 Redis 가 갖지 못한 성질(한 프로세스로 코어를 먹는 확장, 느린 커맨드가 존재할 수 없는 지연 예측성, 값을 NVMe 로 내리는 용량 확장)을 얻고 자료구조·영속성·복제·다중 키 원자성을 포기했습니다 `Σ`
+- **첫 커밋(2003-05-27)에는 slab allocator 도 자체 해시 테이블도 없었습니다.** `malloc()` + Judy 트라이 + 전역 단일 LRU 였고, slab 은 3일 뒤·자체 해시는 3주 뒤에 **둘 다 파편화 때문에** 들어왔습니다 `✓`
+- **slab allocator 의 대가가 calcification 이고, 그것을 갚는 데 21년이 걸렸습니다.** 문제 인지 2003-06-24, 첫 공식 해법 1.4.11(2012-01-16), 기본값 승격 1.5.0(2017-07-21), 그리고 **1.6.34(2024-12-22)의 mover 전면 재작성이 "페이지를 옮기면 아이템을 잃는다"는 대가 자체를 제거**했습니다 `✓`
 - **LRU 는 HOT/WARM/COLD/TEMP 4단 segmented LRU** 이고 1.5.0 부터 기본이다. Redis 와 근사의 **위치가 반대다** — memcached 는 접근 기록을 스레드별 bump buffer 에 비동기로 쌓고 넘치면 버리며, Redis 는 축출 시점에 표본을 뽑는다(`maxmemory-samples 5`) `✓`
-- **워커 스레드 N개가 각자 이벤트 루프를 돌려 read·parse·execute·write 를 끝낸다.** `-t 16` 한 프로세스가 16코어를 쓴다. Redis 8.10.0 `redis.conf` 는 2026년에도 "Redis is mostly single threaded" 이고 io-threads 는 소켓 읽기·쓰기와 **프로토콜 파싱까지**다 — 커맨드 실행은 메인 스레드다 `✓`
-- **그 대가가 원자성이다.** 보장 단위가 아이템 하나뿐이라 MULTI/EXEC·Lua·다중 키 트랜잭션에 대응할 방법이 원리적으로 없다 `✓`
-- **binary protocol 은 1.6.0(2020-03-08)에 공식 deprecated 됐고 후계는 meta 커맨드**이다. 2026년에 클라이언트를 고를 때 meta 지원 여부가 1순위인 이유는 stampede 방어(`W`/`Z`)와 serve-stale 이 **서버에서 원자적으로** 되는 유일한 경로이기 때문이다 `✓`
-- **프로젝트는 살아 있지만 기능 개발은 멈춰 있다.** 2026년 릴리스 4개(1.6.42~1.6.45)가 전부 보안·안정화이고 최근 1년의 사용자 노출 신기능은 1.6.40 의 `mg` 조건부 CAS 페치 하나다 `✓`
-- **memcached 와 Redis 를 같은 하드웨어에서 1:1 로 측정한 1차 벤치마크는 없다.** 그래서 이 문서는 "몇 배 빠르다"를 쓰지 않고 구조와 단독 측정치만 쓴다 `?`
+- **워커 스레드 N개가 각자 이벤트 루프를 돌려 read·parse·execute·write 를 끝냅니다.** `-t 16` 한 프로세스가 16코어를 씁니다. Redis 8.10.0 `redis.conf` 는 2026년에도 "Redis is mostly single threaded" 이고 io-threads 는 소켓 읽기·쓰기와 **프로토콜 파싱까지**다 — 커맨드 실행은 메인 스레드입니다 `✓`
+- **그 대가가 원자성입니다.** 보장 단위가 아이템 하나뿐이라 MULTI/EXEC·Lua·다중 키 트랜잭션에 대응할 방법이 원리적으로 없습니다 `✓`
+- **binary protocol 은 1.6.0(2020-03-08)에 공식 deprecated 됐고 후계는 meta 커맨드**입니다. 2026년에 클라이언트를 고를 때 meta 지원 여부가 1순위인 이유는 stampede 방어(`W`/`Z`)와 serve-stale 이 **서버에서 원자적으로** 되는 유일한 경로이기 때문입니다 `✓`
+- **프로젝트는 살아 있지만 기능 개발은 멈춰 있습니다.** 2026년 릴리스 4개(1.6.42~1.6.45)가 전부 보안·안정화이고 최근 1년의 사용자 노출 신기능은 1.6.40 의 `mg` 조건부 CAS 페치 하나입니다 `✓`
+- **memcached 와 Redis 를 같은 하드웨어에서 1:1 로 측정한 1차 벤치마크는 없습니다.** 그래서 이 문서는 "몇 배 빠르다"를 쓰지 않고 구조와 단독 측정치만 씁니다 `?`
 {{< /callout >}}
 
-> **왜 이 문서인가.** memcached 를 "Redis 가 나오기 전에 쓰던 것"으로 읽으면 두 번 틀린다. 하나, memcached 는 2003년에 멈춘 소프트웨어가 아니다 — segmented LRU(1.4.23), SSD 확장(1.5.4), 재시작 생존 캐시(1.5.18), meta 프로토콜(1.6.0), 내장 proxy(1.6.13), slab mover 재작성(1.6.34)이 전부 그 뒤에 들어왔다. 둘, 둘의 차이는 기능 개수가 아니라 **선택한 축**이다. memcached 는 값을 해석하지 않기로 한 대가로 스레드를 열었고, Redis 는 자료구조를 서버에서 실행하기로 한 대가로 실행 스레드를 하나로 묶었다. 이 문서는 그 교환을 소스와 릴리스노트로 확인한다.
+> **왜 이 문서인가.** memcached 를 "Redis 가 나오기 전에 쓰던 것"으로 읽으면 두 번 틀립니다. 하나, memcached 는 2003년에 멈춘 소프트웨어가 아니다 — segmented LRU(1.4.23), SSD 확장(1.5.4), 재시작 생존 캐시(1.5.18), meta 프로토콜(1.6.0), 내장 proxy(1.6.13), slab mover 재작성(1.6.34)이 전부 그 뒤에 들어왔습니다. 둘, 둘의 차이는 기능 개수가 아니라 **선택한 축**입니다. memcached 는 값을 해석하지 않기로 한 대가로 스레드를 열었고, Redis 는 자료구조를 서버에서 실행하기로 한 대가로 실행 스레드를 하나로 묶었습니다. 이 문서는 그 교환을 소스와 릴리스노트로 확인합니다.
 
-> 근거 기준: 로컬 blobless 클론 `~/evejuni/memcached` 태그 **1.6.45(2026-07-09, 최신)** 와 `~/evejuni/redis` 태그 **8.10.0**, GitHub wiki 릴리스노트, `docs.memcached.org`, 기준일 **2026-08-06**. 릴리스일은 1.4.0 이후는 태그 `creatordate`(wiki 릴리스노트와 교차 확인), 1.2.x 이하는 `ChangeLog.txt` 항목이다 — 1.2.x 태그는 git-svn 이관 때 2009-03 에 소급 생성돼 릴리스일 근거가 되지 못한다 `✓`
+> 근거 기준: 로컬 blobless 클론 `~/evejuni/memcached` 태그 **1.6.45(2026-07-09, 최신)** 와 `~/evejuni/redis` 태그 **8.10.0**, GitHub wiki 릴리스노트, `docs.memcached.org`, 기준일 **2026-08-06**. 릴리스일은 1.4.0 이후는 태그 `creatordate`(wiki 릴리스노트와 교차 확인), 1.2.x 이하는 `ChangeLog.txt` 항목이다 — 1.2.x 태그는 git-svn 이관 때 2009-03 에 소급 생성돼 릴리스일 근거가 되지 못합니다 `✓`
 
 ## 1. 2003, LiveJournal — 첫 커밋이 갖고 있지 않았던 것
 
@@ -243,9 +243,9 @@ memcached 에는 복제도 클러스터 버스도 없으므로(§7) 샤딩은 �
 
 - **소스**: 로컬 blobless 클론 `~/evejuni/memcached`(태그 1.6.45) — `items.h:1-7`(4단 LRU 인코딩), `items.c:309-311`(신규 아이템 = HOT), `memcached.h:613-636`(`struct _stritem`, 48/56B), `memcached.c:240`("The famous 1MB upper limit."), `memcached.c:250-253`(LRU 캡·age factor), `memcached.c:258-259`(1.5.0 이 승격한 slab 기본값), `slabs.c:1-7`(slab 정의 주석), `slabs_mover.c`(`move_status` 열거), `slab_automove.c`(윈도우 알고리즘), `thread.c:505-507`(`worker_libevent`), `assoc.c`(점진적 리해시), `sizes.c`, `doc/new_lru.txt`, `doc/protocol.txt`, `doc/storage.txt`, `LICENSE`. 대비군은 `~/evejuni/redis`(태그 8.10.0) — `redis.conf:1221-1240`(축출 정책·approximated randomized)과 `redis.conf:1269`(`maxmemory-samples`), `redis.conf:1381-1383`("mostly single threaded"), `src/config.c`(8.4.0 에 없고 8.6.0 에 있는 `lrm`).
 - **커밋**: `32f382b`(2003-05-27 첫 커밋), `60d7094`(slab 도입), `f6d334e`(Judy 제거), `d72b1a2`(slab reassignment 첫 시도), `5c43b80`(automove 알고리즘), `3f3e137`(1.5.0 기본값 전환), `f593a59`(extstore base), `ee1cfe3`(TLS), `1e14628`(meta), `d22b664`(proxy 초기), `4c56c8d`(1.6.34 mover 재작성), `dbb7a8a`(UDP 기본 off).
-- **릴리스일**: `git for-each-ref --format='%(creatordate:short)'` 로 1.4.0 이후 태그를 직접 확인하고 wiki 릴리스노트와 교차 검증했다. 1.2.x 이하는 `ChangeLog.txt` 항목 기준이다(태그가 2009-03 에 소급 생성됨). `ChangeLog.txt` 는 2009-04-10 에서 끊기므로 1.4 중반 이후 도입 버전은 wiki 릴리스노트 + `git tag --contains` 로 확정했다.
+- **릴리스일**: `git for-each-ref --format='%(creatordate:short)'` 로 1.4.0 이후 태그를 직접 확인하고 wiki 릴리스노트와 교차 검증했습니다. 1.2.x 이하는 `ChangeLog.txt` 항목 기준이다(태그가 2009-03 에 소급 생성됨). `ChangeLog.txt` 는 2009-04-10 에서 끊기므로 1.4 중반 이후 도입 버전은 wiki 릴리스노트 + `git tag --contains` 로 확정했습니다.
 - **문서·발표**: GitHub wiki `ReleaseNotes` 1411 / 150 / 154 / 160 / 1513 / 1518 / 1519 / 1613 / 1623 / 1634 / 1638~1645, `docs.memcached.org` 의 flashstorage · restart · proxy · meta 페이지, memcached.org 블로그 "NVM caching"(2018-06-12), PR #484(meta 제안, 2019-04-30), memcached 메일링리스트 EOL 답변(2020-07-08).
-- **3자 측정**: ScyllaDB "ScyllaDB and Memcached"(2024-10-08) — i4i.4xlarge, memcached 1.6.25, 14 스레드 pin. 벤더 발행물이므로 조건과 함께만 인용했다.
-- **미확인으로 남긴 것**: Redis 의 아이템당 메모리 오버헤드를 memcached 의 48/56B 와 1:1 로 대응시킬 1차 출처 `?` · memcached 와 Redis 를 동일 하드웨어에서 비교한 1차 벤치마크 `?` · proxy 가 "production ready" 로 선언된 버전(`configure.ac` 는 1.6.45 에서도 EXPERIMENTAL) `?` · restartable cache 의 DAX/persistent memory 경로가 Optane PMEM 단종 이후에도 실용적인지 `?` · ElastiCache for Memcached 의 날짜 박힌 EOL 캘린더 `?` · 1.6.42 보안 수정의 CVE 매핑(릴리스노트가 개별 부여하지 않았다) `?`
-- 챕터 전체 URL 목록은 [99 · 출처]({{< relref "../99-sources.md" >}})가 모은다.
+- **3자 측정**: ScyllaDB "ScyllaDB and Memcached"(2024-10-08) — i4i.4xlarge, memcached 1.6.25, 14 스레드 pin. 벤더 발행물이므로 조건과 함께만 인용했습니다.
+- **미확인으로 남긴 것**: Redis 의 아이템당 메모리 오버헤드를 memcached 의 48/56B 와 1:1 로 대응시킬 1차 출처 `?` · memcached 와 Redis 를 동일 하드웨어에서 비교한 1차 벤치마크 `?` · proxy 가 "production ready" 로 선언된 버전(`configure.ac` 는 1.6.45 에서도 EXPERIMENTAL) `?` · restartable cache 의 DAX/persistent memory 경로가 Optane PMEM 단종 이후에도 실용적인지 `?` · ElastiCache for Memcached 의 날짜 박힌 EOL 캘린더 `?` · 1.6.42 보안 수정의 CVE 매핑(릴리스노트가 개별 부여하지 않았습니다) `?`
+- 챕터 전체 URL 목록은 [99 · 출처]({{< relref "../99-sources.md" >}})가 모읍니다.
 

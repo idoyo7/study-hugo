@@ -10,15 +10,15 @@ weight: 4
 - **Redis 에 9 는 없다.** `redis/redis` 에 `9*` 태그가 하나도 없고, 숫자 브랜치는 `8.10` 이 끝이며, 마일스톤 목록에 `9.0` 이 없고, 8.10 GA 이후에도 `unstable` 의 `src/version.h` 는 여전히 `8.9.241` 이다 `✓`. **9.0 계획을 공표한 문서를 찾지 못했다** — 9 를 기다려 업그레이드를 미루는 것은 근거 없는 유예다 `Σ`.
 - **"8.1·8.3·8.5 가 스킵됐다" 는 오해다.** 홀수 마이너는 **프리릴리스 전용 번호**다 — 8.0 의 RC1 은 `7.9.240`, 8.10 의 RC1 은 `8.9.240` 으로 실재한다 `✓`. GA 는 짝수만 나온다(8.0 → 8.2 → 8.4 → 8.6 → 8.8 → 8.10).
 - **8.0 은 기능 릴리스가 아니라 제품 경계의 재편이다.** 이름(Community Edition → Open Source) · 라이선스(AGPLv3 추가) · 번들 구성(Redis Stack 흡수)이 한 릴리스에 겹쳤다 `✓`. 그리고 그 "core 통합" 은 **빌드 시 각 모듈 upstream 을 `git clone` 해 `.so` 로 만들고 `loadmodule` 로 싣는 번들**이다 — 바이너리 내장이 아니다(`redis 8.0.0:modules/common.mk:34`) `✓`.
-- **8.6 이후로 롤백 창이 닫혔다.** RDB_VERSION 이 7.4~8.4 구간 12 로 고정이었다가 8.6=13 · 8.8=14 · 8.10=15 로 매 릴리스 올라간다(`redis 8.10.0:src/rdb.h:21`) `✓`. "가볍게 올려보고 안 되면 내리자" 가 8.6 부터 성립하지 않는다.
-- **Redis 는 "LTS" 라는 말을 쓰지 않는다.** Standard(다음 마이너 후 6개월) / Extended(5년)이고 **8.x 중 Extended 는 8.2 하나뿐**(EOL 2030-09-01)이다. **8.0 은 2026-12-01 에 끝난다** `✓`. 최신인 8.10 은 지원 표에 아직 등재조차 되지 않았다 — 장기 지원을 전제하면 안 된다.
+- **8.6 이후로 롤백 창이 닫혔습니다.** RDB_VERSION 이 7.4~8.4 구간 12 로 고정이었다가 8.6=13 · 8.8=14 · 8.10=15 로 매 릴리스 올라간다(`redis 8.10.0:src/rdb.h:21`) `✓`. "가볍게 올려보고 안 되면 내리자" 가 8.6 부터 성립하지 않습니다.
+- **Redis 는 "LTS" 라는 말을 쓰지 않습니다.** Standard(다음 마이너 후 6개월) / Extended(5년)이고 **8.x 중 Extended 는 8.2 하나뿐**(EOL 2030-09-01)입니다. **8.0 은 2026-12-01 에 끝납니다** `✓`. 최신인 8.10 은 지원 표에 아직 등재조차 되지 않았다 — 장기 지원을 전제하면 안 됩니다.
 - **"87% 빠르다" 는 분포의 최댓값이다.** 정확히는 7.2.5 대비 149개 테스트 중 90개 개선, p50 감소폭 5.4%~87.4%, **중앙값 16.7%** `Ⓥ`. "2배 처리량" 은 **`io-threads=8` + multi-core Intel** 조건이고 기본값은 `io-threads 1` 이다(`redis 8.10.0:src/config.c:3396` — 8.10.0 까지 `IMMUTABLE_CONFIG`) `✓`.
 - **9 를 찾는 사람은 대개 Valkey 를 보고 있다.** Valkey 는 홀수 마이너를 정식 GA 로 쓰고(8.1 · 9.1) 9.0.0 이 2025-10-21 에 나왔다 — Redis 의 짝수 전용 케이던스와 정반대다 `✓`. → [05]({{< relref "05-valkey-8-to-9/index.md" >}})
 {{< /callout >}}
 
-> **왜 이 문서인가.** "7·8·9 에 무엇이 추가되나" 라는 질문은 Redis 쪽에서는 **전제가 하나 틀려 있다.** 9 가 없다는 사실을 모르면 릴리스 표를 아무리 읽어도 "곧 나올 9 를 기다린다" 는 잘못된 결론에 이른다. 그래서 이 문서는 순서를 뒤집는다 — 먼저 9 의 부재를 확증하고 그 다음에 7.0 부터 8.10 까지 실제로 무엇이 들어왔는지, 그중 **운영자가 업그레이드 전에 손을 대야 하는 것**이 무엇인지 본다.
+> **왜 이 문서인가.** "7·8·9 에 무엇이 추가되나" 라는 질문은 Redis 쪽에서는 **전제가 하나 틀려 있습니다.** 9 가 없다는 사실을 모르면 릴리스 표를 아무리 읽어도 "곧 나올 9 를 기다린다" 는 잘못된 결론에 이릅니다. 그래서 이 문서는 순서를 뒤집는다 — 먼저 9 의 부재를 확증하고 그 다음에 7.0 부터 8.10 까지 실제로 무엇이 들어왔는지, 그중 **운영자가 업그레이드 전에 손을 대야 하는 것**이 무엇인지 봅니다.
 
-> 근거 기준: 릴리스일은 GitHub `published_at`(= 태그의 creatordate)이다. 소스 인용은 로컬 blobless 클론 `~/evejuni/redis` 에서 `git show <tag>:<path>` 로 실측한 값이고 릴리스노트는 각 태그의 `00-RELEASENOTES` 원문이다. 확인 시점 **2026-08-05**(최신 GA = 8.10.0, 2026-07-29). 6.2 이하는 [01]({{< relref "01-origins-and-design/index.md" >}}), 라이선스 정치는 [03]({{< relref "03-license-and-fork.md" >}}), cluster 내부는 [06]({{< relref "06-cluster-mode/index.md" >}}) 이 소유한다.
+> 근거 기준: 릴리스일은 GitHub `published_at`(= 태그의 creatordate)입니다. 소스 인용은 로컬 blobless 클론 `~/evejuni/redis` 에서 `git show <tag>:<path>` 로 실측한 값이고 릴리스노트는 각 태그의 `00-RELEASENOTES` 원문입니다. 확인 시점 **2026-08-05**(최신 GA = 8.10.0, 2026-07-29). 6.2 이하는 [01]({{< relref "01-origins-and-design/index.md" >}}), 라이선스 정치는 [03]({{< relref "03-license-and-fork.md" >}}), cluster 내부는 [06]({{< relref "06-cluster-mode/index.md" >}}) 이 소유합니다.
 
 ## 1. 한눈에 — 7.0 부터 8.10 까지
 
@@ -284,7 +284,7 @@ AWS 를 쓰는 경우 한 줄이 더 붙습니다 — **ElastiCache 의 Redis OS
 - **성능 주장의 조건** — `redis.io/blog/redis-8-ga/`(149 테스트·90 커맨드·5.4~87.4%·중앙값 16.7%, io-threads=8 조건, 복제·RQE 벤치 조건) · `redis.io/blog/redis-88-performance-improvements-faster-mget-mset-streams-and-more/`(기준선 8.6, m7i.metal-24xl / m8g, `redis/redis-benchmarks-specification`)
 - **지원 정책·EOL** — `redis.io/docs/latest/operate/oss_and_stack/install/version-mgmt/` · `github.com/redis/redis/discussions/13464`(메인테이너 발언) · `gh api repos/redis/redis/releases`(2026-07-23 일괄 패치 웨이브)
 - **Redis Software 와의 번호 축 구분** — `redis.io/docs/latest/operate/rs/installing-upgrading/product-lifecycle/`
-- **Valkey 대조값** — Valkey 릴리스일·`config.c` 실측·모듈 커버리지는 [05]({{< relref "05-valkey-8-to-9/index.md" >}}) 가 소유하며 이 문서는 대조표에 필요한 최소값만 인용했다
+- **Valkey 대조값** — Valkey 릴리스일·`config.c` 실측·모듈 커버리지는 [05]({{< relref "05-valkey-8-to-9/index.md" >}}) 가 소유하며 이 문서는 대조표에 필요한 최소값만 인용했습니다
 
 미확인으로 남긴 것: **Vector Set 의 GA 시점**(릴리스노트에 선언이 없다) · **`-int` 태그와 `255.255.255` 센티넬의 공식 정의** · **8.10 의 릴리스 타입과 EOL**(version-mgmt 문서 미등재) · **"7.6 을 건너뛰었다" 는 인과**(공식 문장 없음, 2차 출처의 해석) · **Compact hashes 의 실측 메모리 절감률**(릴리스노트가 수치를 제시하지 않는다) · **replication stream 압축의 CPU 비용과 기본 활성 여부**.
 

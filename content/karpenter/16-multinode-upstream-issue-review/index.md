@@ -70,7 +70,7 @@ pairScore(A, B)
 
 현재 upstream이 선호하는 방향은 다음과 같이 정리할 수 있습니다.
 
-> NodePool을 유일한 강제 경계로 고정하기보다, NodePool·architecture·AZ·requirements를 compatibility 신호로 사용해 더 유망한 후보 pair/set을 우선 탐색한다.
+> NodePool을 유일한 강제 경계로 고정하기보다, NodePool·architecture·AZ·requirements를 compatibility 신호로 사용해 더 유망한 후보 pair/set을 우선 탐색합니다.
 
 ### 0.3 네 항목의 관계
 
@@ -225,10 +225,10 @@ maintainer는 binary search가 이상적이지 않다고 인정하면서 이 Iss
 
 그러나 maintainer 피드백은 명확했습니다.
 
-1. root cause는 `#2434`와 같다.
-2. 별도 configuration 없이 Karpenter 후보 선택 알고리즘을 개선해야 한다.
-3. 해결안과 대안 비교는 Issue보다 RFC에서 수행해야 한다.
-4. NodePool 경계만으로는 충분하지 않다. 같은 NodePool 안에도 ARM/x86처럼 함께 consolidate할 수 없는 노드가 존재한다.
+1. root cause는 `#2434`와 같습니다.
+2. 별도 configuration 없이 Karpenter 후보 선택 알고리즘을 개선해야 합니다.
+3. 해결안과 대안 비교는 Issue보다 RFC에서 수행해야 합니다.
+4. NodePool 경계만으로는 충분하지 않습니다. 같은 NodePool 안에도 ARM/x86처럼 함께 consolidate할 수 없는 노드가 존재합니다.
 
 2026-06-08에 위 이유로 닫혔습니다. 그러므로 동일한 `consolidationCoverage` 또는 `consolidationGroup` Feature Issue를 새로 만들면 중복으로 판단될 가능성이 매우 높습니다.
 
@@ -362,10 +362,10 @@ Pool B 독립 탐색:
 
 ### 8.4 피해야 할 주장
 
-- “NodePool별 grouping이 모든 문제를 해결한다.”
-- “AZ까지 나누면 항상 정확하다.”
-- “budget이 있으므로 반드시 그 수만큼 disruption해야 한다.”
-- “새 설정값이 유일한 해결책이다.”
+- “NodePool별 grouping이 모든 문제를 해결합니다.”
+- “AZ까지 나누면 항상 정확하입니다.”
+- “budget이 있으므로 반드시 그 수만큼 disruption해야 합니다.”
+- “새 설정값이 유일한 해결책입니다.”
 
 같은 NodePool 안에서도 architecture, zone-bound volume, taint, capacity type과 pod affinity 때문에 후보끼리 호환되지 않을 수 있습니다. NodePool grouping은 좋은 첫 필터지만 완전한 compatibility partition은 아닙니다.
 
@@ -429,4 +429,4 @@ Karpenter 공식 Feature Lifecycle은 사용자에게 보이는 disruption 동�
 
 가장 중요한 변화는 이것입니다.
 
-> 우리가 새롭게 발견한 고립된 문제가 아니라, upstream이 이미 인정한 MultiNode 후보 탐색 문제에 대해 NodePool budget coverage라는 구체적인 관찰과 검증 가능한 POC를 보유한 상태다.
+> 우리가 새롭게 발견한 고립된 문제가 아니라, upstream이 이미 인정한 MultiNode 후보 탐색 문제에 대해 NodePool budget coverage라는 구체적인 관찰과 검증 가능한 POC를 보유한 상태입니다.

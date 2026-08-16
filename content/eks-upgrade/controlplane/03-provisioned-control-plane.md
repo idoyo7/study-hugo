@@ -7,12 +7,12 @@ weight: 3
 
 {{< callout type="info" >}}
 **한눈에**
-- **finance 판정부터 — 해당 없다.** XL 최소 증분이 월 **+$1,204.50**인데, 이걸 켜서 새로 얻는 파라미터는 HPA `syncPeriod` 하나뿐이고 그 실효는 metrics-server 스크레이프 간격과 scaleDown stabilization이 상한을 건다.
-- **신규 기능이 아니다 — 2025-11-21 GA.** 2026-08-12 발표는 레이어 2 파라미터 개방이고, Provisioned CP는 그 발표에서 **전제조건으로 언급된 9개월 된 기존 기능**이다.
-- 파는 것은 용량 자체가 아니라 **"언제 그 용량이 되는가"**다. Standard는 APF inflight 상한을 600에서 **사후적으로** 최대 2000까지 올리고 Provisioned는 그 점진 증가를 건너뛰고 티어 값을 처음부터 고정 할당한다.
-- **8XL은 "스케줄링이 더 빠른 티어"가 아니다.** 파드 스케줄링 처리율이 4XL에서 **400/s로 포화**하고 8XL도 400/s다. 8XL이 늘리는 것은 API 동시성 2배뿐이다.
-- **Standard 복귀를 막는 조건이 둘인데 서로 다른 문서에 하나씩만 있다** — etcd 8GB 초과와 `horizontalPodAutoscalerSyncPeriod` 비기본값. 한 문서만 읽으면 절반을 놓친다.
-- **티어 수치는 보장 처리량이 아니다.** AWS 표현은 "underlying configuration"이고 APF는 그 위에서 계속 작동한다 — 그래서 티어 선정은 계산이 아니라 측정이다.
+- **finance 판정부터 — 해당 없습니다.** XL 최소 증분이 월 **+$1,204.50**인데, 이걸 켜서 새로 얻는 파라미터는 HPA `syncPeriod` 하나뿐이고 그 실효는 metrics-server 스크레이프 간격과 scaleDown stabilization이 상한을 겁니다.
+- **신규 기능이 아니다 — 2025-11-21 GA.** 2026-08-12 발표는 레이어 2 파라미터 개방이고, Provisioned CP는 그 발표에서 **전제조건으로 언급된 9개월 된 기존 기능**입니다.
+- 파는 것은 용량 자체가 아니라 **"언제 그 용량이 되는가"**다. Standard는 APF inflight 상한을 600에서 **사후적으로** 최대 2000까지 올리고 Provisioned는 그 점진 증가를 건너뛰고 티어 값을 처음부터 고정 할당합니다.
+- **8XL은 "스케줄링이 더 빠른 티어"가 아닙니다.** 파드 스케줄링 처리율이 4XL에서 **400/s로 포화**하고 8XL도 400/s다. 8XL이 늘리는 것은 API 동시성 2배뿐입니다.
+- **Standard 복귀를 막는 조건이 둘인데 서로 다른 문서에 하나씩만 있다** — etcd 8GB 초과와 `horizontalPodAutoscalerSyncPeriod` 비기본값. 한 문서만 읽으면 절반을 놓칩니다.
+- **티어 수치는 보장 처리량이 아닙니다.** AWS 표현은 "underlying configuration"이고 APF는 그 위에서 계속 작동한다 — 그래서 티어 선정은 계산이 아니라 측정입니다.
 {{< /callout >}}
 
 [레이어 1]({{< relref "01-cluster-parameters.md" >}})이 "클러스터에 어떤 값을 넣을 수 있나"를, [레이어 2]({{< relref "02-component-parameters.md" >}})가 "컨트롤 플레인 컴포넌트의 동작을 어디까지 바꿀 수 있나"를 다룹니다. 이 페이지는 축이 다릅니다 — **컨트롤 플레인을 얼마나 크게 사느냐**입니다. 파라미터 하나를 열려면 이 축을 먼저 결정해야 하는 의존이 걸려 있어, 레이어 2의 HPA `syncPeriod`가 이 페이지를 반드시 거치게 만듭니다.
@@ -196,7 +196,7 @@ User Guide에 "Understanding Tier capacity versus actual performance" 섹션이 
 
 공식 절차가 "과할당해서 측정한 뒤 내린다"라는 뜻입니다. 8XL 로드테스트 기간의 요금($14.00/h)을 선정 비용으로 예산에 넣어야 하고, 그 뒤 내리는 전환이 §6.2의 복귀 제약과는 무관하다는 점(티어 간 다운그레이드는 DB 제약이 없다)도 함께 봐야 합니다.
 
-> **2차 해설에 도는 노드·파드 규모 벤치마크 수치는 이 페이지에서 쓰지 않는다.** 해당 수치는 AWS containers 블로그 본문을 요약 도구가 생성한 값이고 원문을 직접 대조하지 못했다. 1차 문서인 User Guide·요금 페이지·API Reference 어디에도 그런 규모 수치는 없다. 티어 선택의 근거로 인용하면 검증되지 않은 숫자에 요금 결정을 걸게 된다.
+> **2차 해설에 도는 노드·파드 규모 벤치마크 수치는 이 페이지에서 쓰지 않습니다.** 해당 수치는 AWS containers 블로그 본문을 요약 도구가 생성한 값이고 원문을 직접 대조하지 못했습니다. 1차 문서인 User Guide·요금 페이지·API Reference 어디에도 그런 규모 수치는 없습니다. 티어 선택의 근거로 인용하면 검증되지 않은 숫자에 요금 결정을 걸게 됩니다.
 
 ## 8. 관측
 
@@ -209,10 +209,10 @@ User Guide에 "Understanding Tier capacity versus actual performance" 섹션이 
 | Cluster DB 크기 | `apiserver_storage_size_bytes` | `etcd_mvcc_db_total_size_in_use_in_bytes` |
 | HPA 적체 | `workqueue_depth{name="horizontalpodautoscaler"}` | — |
 
-- `etcd_mvcc_db_total_size_in_use_in_bytes`는 Prometheus 메트릭으로도 **2026년 하반기 중 전체 EKS 클러스터에 순차 배포 예정**이다. 그 전까지 Prometheus 경로에서는 `apiserver_storage_size_bytes`를 쓴다.
-- `workqueue_depth{name="horizontalpodautoscaler"}`가 **0 근처에 머물면 컨트롤 플레인이 따라가고 있다는 뜻**이다(User Guide: "A workqueue depth that stays at or near zero indicates the control plane is keeping up"). 이 값이 0인데 오토스케일이 느리다고 느껴진다면 병목은 컨트롤 플레인이 아니라 워크로드 쪽이다.
-- **콘솔**: 클러스터 Overview → Monitor cluster → 옵저버빌리티 대시보드 → **Control plane monitoring** 탭 → **Control plane scaling** 섹션에서 티어 대비 사용률을 시각화한다.
-- **현재 티어 확인**: `aws eks describe-cluster --name "$CLUSTER" --query 'cluster.controlPlaneScalingConfig.tier'`. `DescribeCluster` 응답에 `controlPlaneScalingConfig`가 그대로 포함된다.
+- `etcd_mvcc_db_total_size_in_use_in_bytes`는 Prometheus 메트릭으로도 **2026년 하반기 중 전체 EKS 클러스터에 순차 배포 예정**입니다. 그 전까지 Prometheus 경로에서는 `apiserver_storage_size_bytes`를 씁니다.
+- `workqueue_depth{name="horizontalpodautoscaler"}`가 **0 근처에 머물면 컨트롤 플레인이 따라가고 있다는 뜻**이다(User Guide: "A workqueue depth that stays at or near zero indicates the control plane is keeping up"). 이 값이 0인데 오토스케일이 느리다고 느껴진다면 병목은 컨트롤 플레인이 아니라 워크로드 쪽입니다.
+- **콘솔**: 클러스터 Overview → Monitor cluster → 옵저버빌리티 대시보드 → **Control plane monitoring** 탭 → **Control plane scaling** 섹션에서 티어 대비 사용률을 시각화합니다.
+- **현재 티어 확인**: `aws eks describe-cluster --name "$CLUSTER" --query 'cluster.controlPlaneScalingConfig.tier'`. `DescribeCluster` 응답에 `controlPlaneScalingConfig`가 그대로 포함됩니다.
 
 ```bash
 # 현재 티어

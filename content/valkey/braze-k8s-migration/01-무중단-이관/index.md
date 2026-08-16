@@ -8,12 +8,12 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- Braze는 Valkey Cluster를 쓰지 않는다. 앞 세션이 다룬 gossip·16384 슬롯의 단일 거대 클러스터가 아니라, Sentinel이 감시하는 독립 HA 샤드 581개다. 샤딩은 서버가 아니라 클라이언트 코드 안에 박힌 해싱이 한다(04:55~05:34). 두 발표를 같은 토폴로지 이야기로 섞어 읽으면 전부 틀린다.
-- 이관을 어렵게 만든 건 Redis가 아니라 ClusterIP다. Sentinel은 replica를 IP로 추적하는데 파드가 롤되면 IP가 바뀐다 → 파드마다 Service를 붙여 고정 ClusterIP를 얻는다 → 그런데 ClusterIP는 클러스터 밖에서 안 보인다. 남은 EC2 primary가 안쪽 파드를 복제 대상으로 잡을 방법이 사라진다.
-- 해법은 L4를 클러스터 밖으로 빼는 것이다. RESP가 L4 프로토콜이라 [NLB가 라우팅할 수 있고](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html), 서버·sentinel이 `replica-announce-ip`/`announce-ip`로 자기 주소를 NLB 주소라고 거짓말한다. 이 한 수로 무중단과 무손실 롤백이 동시에 성립한다.
-- 이관 중에만 생기는 위험이 둘이다 — NLB 데이터 전송비 월 $100,000 초과 추정치, 그리고 sentinel이 6대로 늘어나며 생기는 split brain. 후자는 7번째 sentinel + quorum 5로 절대 과반을 강제해 막았다.
-- Valkey 이관은 실제로 두 줄이었다. helm `_helpers.tpl`의 flavor 판별 함수와 values의 이미지 두 줄(`redis:7.2.4-alpine` → `valkey/valkey:8.1.1-alpine`). config는 한 줄도 안 고쳤고 350샤드·10클러스터를 6주에 끝냈다.
-- 90%는 최선값 하나다. 슬라이드 26쪽은 "90% p95 latency improvement"만 크게 띄우지만, 발표자 본인이 22:12~23:44에서 전체 평균 p95 15% · p50 5%를 덧붙인다. 90%만 인용하면 발표자가 무대에서 직접 부인한 주장을 하는 셈이 된다.
+- Braze는 Valkey Cluster를 쓰지 않습니다. 앞 세션이 다룬 gossip·16384 슬롯의 단일 거대 클러스터가 아니라, Sentinel이 감시하는 독립 HA 샤드 581개입니다. 샤딩은 서버가 아니라 클라이언트 코드 안에 박힌 해싱이 한다(04:55~05:34). 두 발표를 같은 토폴로지 이야기로 섞어 읽으면 전부 틀립니다.
+- 이관을 어렵게 만든 건 Redis가 아니라 ClusterIP다. Sentinel은 replica를 IP로 추적하는데 파드가 롤되면 IP가 바뀐다 → 파드마다 Service를 붙여 고정 ClusterIP를 얻는다 → 그런데 ClusterIP는 클러스터 밖에서 안 보입니다. 남은 EC2 primary가 안쪽 파드를 복제 대상으로 잡을 방법이 사라집니다.
+- 해법은 L4를 클러스터 밖으로 빼는 것입니다. RESP가 L4 프로토콜이라 [NLB가 라우팅할 수 있고](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html), 서버·sentinel이 `replica-announce-ip`/`announce-ip`로 자기 주소를 NLB 주소라고 거짓말합니다. 이 한 수로 무중단과 무손실 롤백이 동시에 성립합니다.
+- 이관 중에만 생기는 위험이 둘이다 — NLB 데이터 전송비 월 $100,000 초과 추정치, 그리고 sentinel이 6대로 늘어나며 생기는 split brain. 후자는 7번째 sentinel + quorum 5로 절대 과반을 강제해 막았습니다.
+- Valkey 이관은 실제로 두 줄이었습니다. helm `_helpers.tpl`의 flavor 판별 함수와 values의 이미지 두 줄(`redis:7.2.4-alpine` → `valkey/valkey:8.1.1-alpine`). config는 한 줄도 안 고쳤고 350샤드·10클러스터를 6주에 끝냈습니다.
+- 90%는 최선값 하나입니다. 슬라이드 26쪽은 "90% p95 latency improvement"만 크게 띄우지만, 발표자 본인이 22:12~23:44에서 전체 평균 p95 15% · p50 5%를 덧붙입니다. 90%만 인용하면 발표자가 무대에서 직접 부인한 주장을 하는 셈이 됩니다.
 {{< /callout >}}
 
 왜 이 문서인가. 이 발표는 이 도메인에서 Kubernetes 프로덕션 증거가 있는 유일한 소스입니다. 자매 챕터의 AWS 발표는 EC2 벤치마크였고, 이쪽은 2023년 2월부터 2024년 5월까지 실제로 이관해 그 뒤로 2년을 굴린 기록입니다. 이 문서는 발표 내용에 NLB 요금 자체 검산 · Kubernetes 스케줄링 프리미티브 판정 · in-place resize GA 시점 대조 · 회사 수치 원문 확인을 덧붙였고, 발표·슬라이드·1차 문서가 어긋나는 지점을 그대로 적었습니다. 검증 기준: 발표 전사(714줄) · 슬라이드 PDF 34장 · Braze 투자자 공시 · Redis/Valkey Sentinel 공식 문서 · AWS ELB 요금표 · Kubernetes 공식 문서와 KEP-1287.
@@ -99,8 +99,8 @@ Kubernetes에서 파드가 롤되면 파드 IP가 바뀝니다. Sentinel 입장�
 
 Braze의 해법은 두 조각입니다.
 
-1. 파드마다 Service를 하나씩 붙인다. Service의 ClusterIP는 그 Service가 살아 있는 동안 바뀌지 않으므로 파드가 몇 번을 롤아웃해도 주소가 유지된다.
-2. init 컨테이너가 그 ClusterIP를 조회한다. 서버와 sentinel은 자기 자신을 그 주소로 announce한다.
+1. 파드마다 Service를 하나씩 붙입니다. Service의 ClusterIP는 그 Service가 살아 있는 동안 바뀌지 않으므로 파드가 몇 번을 롤아웃해도 주소가 유지됩니다.
+2. init 컨테이너가 그 ClusterIP를 조회합니다. 서버와 sentinel은 자기 자신을 그 주소로 announce합니다.
 
 announce는 발명이 아니라 [문서화된 기능](https://redis.io/docs/latest/operate/oss_and_stack/management/replication/)입니다 — Redis 3.2.2부터 `replica-announce-ip` / `replica-announce-port`로 replica가 임의의 주소 쌍을 강제 광고할 수 있고 Sentinel 쪽에는 `sentinel announce-ip` / `sentinel announce-port`가 대응합니다. [Valkey도 같은 지시어를 그대로 문서화](https://valkey.io/topics/sentinel/)합니다. 원래 NAT·Docker 포트 매핑용으로 만들어진 장치를 Kubernetes 파드 IP 문제에 쓴 것입니다.
 
@@ -118,8 +118,8 @@ announce는 발명이 아니라 [문서화된 기능](https://redis.io/docs/late
 
 요구사항은 둘뿐이었고 둘 다 타협 불가입니다.
 
-- 무중단. Braze는 실시간 메시지 결정·발송이라 다운타임이 곧 메시지 지연이다.
-- 데이터 손실 없는 롤백. Kubernetes 쪽이 마음에 안 들면 EC2로 되돌아갈 수 있어야 하고 그때 Kubernetes에서 쓴 데이터가 사라지면 안 된다.
+- 무중단. Braze는 실시간 메시지 결정·발송이라 다운타임이 곧 메시지 지연입니다.
+- 데이터 손실 없는 롤백. Kubernetes 쪽이 마음에 안 들면 EC2로 되돌아갈 수 있어야 하고 그때 Kubernetes에서 쓴 데이터가 사라지면 안 됩니다.
 
 두 번째가 첫 번째보다 훨씬 까다롭습니다. **되돌아갈 때 손실이 없으려면 EC2 쪽이 Kubernetes 쪽 쓰기를 계속 받고 있어야 하기 때문입니다.**
 
@@ -146,8 +146,8 @@ RESP는 L7 HTTP가 아니라 **평범한 TCP 스트림**입니다. 그러면 [NL
 구성은 세 겹입니다.
 
 - 파드별 Service에 nodePort를 준다: server `31000`, sentinel `31001`. 같은 샤드의 다음 파드가 `31002/31003`, 그다음이 `31004/31005`로 이어진다([기본 nodePort 범위](https://kubernetes.io/docs/concepts/services-networking/service/)가 30000–32767이니 전부 그 안이다).
-- NLB에 리스너를 연다: server `6380`, sentinel `26380`. 타깃 그룹은 클러스터의 전 노드이고 위 nodePort를 향한다. 파드가 어느 노드에 있든 kube-proxy가 알아서 넘겨 주므로 타깃 목록이 파드 스케줄링을 따라다닐 필요가 없다.
-- 서버와 sentinel이 자기 주소를 NLB 주소로 광고한다.
+- NLB에 리스너를 연다: server `6380`, sentinel `26380`. 타깃 그룹은 클러스터의 전 노드이고 위 nodePort를 향합니다. 파드가 어느 노드에 있든 kube-proxy가 알아서 넘겨 주므로 타깃 목록이 파드 스케줄링을 따라다닐 필요가 없습니다.
+- 서버와 sentinel이 자기 주소를 NLB 주소로 광고합니다.
 
 ```conf
 # server.conf
@@ -215,9 +215,9 @@ Prometheus로 실제 read·write·replication 트래픽을 재서 NLB를 상시 
 
 NLCU는 세 차원 중 그 시간에 가장 큰 것으로 청구됩니다. Braze 구성에서 어느 차원이 지배적인지부터 확인하겠습니다.
 
-- 활성 연결로 $100,000를 채우려면 시간당 약 22,800 NLCU가 필요하고, 그건 활성 연결 22억 8천만 개를 뜻한다. 불가능하다.
-- 신규 연결로 채우려면 초당 1,800만 건의 새 연결이다. 역시 불가능하다.
-- 따라서 처리 바이트가 지배한다. 실효 단가는 GB당 약 $0.006이다.
+- 활성 연결로 $100,000를 채우려면 시간당 약 22,800 NLCU가 필요하고, 그건 활성 연결 22억 8천만 개를 뜻합니다. 불가능하입니다.
+- 신규 연결로 채우려면 초당 1,800만 건의 새 연결입니다. 역시 불가능하입니다.
+- 따라서 처리 바이트가 지배합니다. 실효 단가는 GB당 약 $0.006입니다.
 
 이제 역산합니다.
 
@@ -242,10 +242,10 @@ $100,000는 부풀린 숫자가 아닙니다. rate limiting(`INCR`), distributed
 {{< callout type="warning" >}}
 위 검산이 세운 가정을 그대로 밝힙니다. 발표는 payload 크기도, 읽기/쓰기 비율도, NLB를 몇 대 뒀는지도 말하지 않았습니다.
 
-- payload 크기는 미상이다. 위 표는 세 시나리오로 범위만 잡았다.
-- 읽기가 NLB를 통과하는지도 미상이다. 클라이언트가 아직 EC2에 있던 구간에서는 통과하지만, Kubernetes로 넘어간 클라이언트는 통과하지 않는다. 비율을 알 수 없다.
-- 581샤드 전체가 동시에 이관 상태였던 것은 아니다. 발표자의 표현은 "NLB로 데이터를 무기한 흘렸을 때"의 정상 상태 추정이므로 전 샤드 기준으로 읽었지만, 그게 그의 산정 방식이었는지는 확인하지 못했다.
-- replica 개수는 Kubernetes 쪽 2개를 썼다. 이관 중에는 EC2 쪽 replica도 살아 있어 실제 fan-out이 더 클 수 있다.
+- payload 크기는 미상입니다. 위 표는 세 시나리오로 범위만 잡았습니다.
+- 읽기가 NLB를 통과하는지도 미상입니다. 클라이언트가 아직 EC2에 있던 구간에서는 통과하지만, Kubernetes로 넘어간 클라이언트는 통과하지 않습니다. 비율을 알 수 없습니다.
+- 581샤드 전체가 동시에 이관 상태였던 것은 아닙니다. 발표자의 표현은 "NLB로 데이터를 무기한 흘렸을 때"의 정상 상태 추정이므로 전 샤드 기준으로 읽었지만, 그게 그의 산정 방식이었는지는 확인하지 못했습니다.
+- replica 개수는 Kubernetes 쪽 2개를 썼습니다. 이관 중에는 EC2 쪽 replica도 살아 있어 실제 fan-out이 더 클 수 있습니다.
 
 이 검산은 "$100,000가 정확하다"를 증명하지 않습니다. "36M ops/sec 규모에서 그 자릿수가 나오는 게 자연스럽다"까지만 말합니다.
 {{< /callout >}}
@@ -268,8 +268,8 @@ $100,000는 부풀린 숫자가 아닙니다. rate limiting(`INCR`), distributed
 
 해법은 두 수를 같이 두는 것입니다.
 
-1. EC2 쪽에 7번째 Sentinel을 이관 기간에만 띄운다 → 6대의 대칭이 4:3으로 깨진다.
-2. quorum을 5로 올린다 → 4도 3도 통과하지 못한다.
+1. EC2 쪽에 7번째 Sentinel을 이관 기간에만 띄운다 → 6대의 대칭이 4:3으로 깨집니다.
+2. quorum을 5로 올린다 → 4도 3도 통과하지 못합니다.
 
 quorum 5가 왜 특별한지는 산수로 확인됩니다. 7의 단순 과반은 4입니다. Sentinel 문서는 quorum을 과반보다 크게 잡았을 때의 효과를 명시합니다.
 
@@ -455,18 +455,18 @@ Braze의 이관을 어렵게 만든 건 Redis도 Kubernetes도 아니라 **Clust
 {{< callout type="warning" >}}
 아래는 이 문서가 확인하지 못했거나 1차 문서와 어긋나는 지점입니다. 인용할 때 그대로 밝혀야 합니다.
 
-- 월 $100,000는 Braze 내부 추정치이고 산정 방법이 공개되지 않았다. §5.1의 검산은 이 문서가 [공개 ELB 요금표](https://aws.amazon.com/elasticloadbalancing/pricing/)로 자릿수만 맞춰 본 것이고 payload 크기·읽기/쓰기 비율·NLB 대수·이관 동시성은 **전부 이 문서의 가정**이다. 발표는 넷 중 어느 것도 말하지 않는다.
-- 90 / 15 / 5 수치의 데이터셋이 없다. 어떤 type인지, 표본 구간이 얼마인지, 기준선을 어떻게 잡았는지 공개된 자료가 없다. 재현 가능한 벤치마크가 아니라 **보고된 관측값**으로 다뤄야 한다.
-- 581이라는 샤드 수가 현재값인지 확인하지 못했다. 슬라이드 5쪽 수치이고 발표자는 "just this month, we have about 600"이라 말한다. 기준일 표기가 없다.
-- Braze 회사 수치의 기준 시점이 슬라이드 표기와 어긋난다. MAU 69억은 [2024-10-31 기준](https://www.braze.com/resources/articles/2024-how-braze-powered-exceptional-marketing-at-scale)인데 슬라이드는 전 수치를 "As of January 31, 2025"로 묶었고 "over $130M R&D expense in 2024"에 대응하는 [공시치 $133.969M](https://investors.braze.com/news/news-details/2025/Braze-Reports-Fiscal-Year-and-Fourth-Quarter-2025-Results/default.aspx)은 역년 2024가 아니라 FY2025(2024-02~2025-01) 값이다. 액수 자체는 "over $130M"에 부합한다.
-- 이관 전 Sentinel quorum 값을 확인하지 못했다. 발표·슬라이드는 "5로 올렸다"만 말한다. §5.2의 3:3 대칭 split brain은 발표자의 설명을 옮긴 것이고 Sentinel 문서가 요구하는 "majority authorization"과는 계산이 맞지 않는다는 점을 같은 절에 밝혀 뒀다.
-- 발표자의 [Velero 블로그](https://www.braze.com/resources/articles/faster-cheaper-more-dependable-how-braze-uses-velero-to-power-backup-stateful-services-in-kubernetes)는 이관 후 토폴로지를 서술한다. "Each shard is managed by a StatefulSet, which creates three pods"는 **Kubernetes 시대**의 배치이고 EC2 시대는 BGSAVE→S3 백업 흐름만 다룬다. 581샤드 수치도, 클라이언트 해싱 서술도 이 글에는 없다 — 그 둘의 근거는 발표와 슬라이드뿐이다.
-- valkey-operator의 "Cells" 모드는 슬라이드 31쪽에만 있다. 레포 `docs/architecture.md`를 직접 확인했으나 "Cells"도 모드 열거도 없다. repo 문서를 근거로 인용하면 안 된다.
-- NLB를 샤드당 뒀는지 클러스터당 뒀는지 확인하지 못했다. 슬라이드 33쪽은 한 샤드에 NLB 하나가 붙은 그림이지만 설명 도식일 수 있다. §5.1의 LB-hour 추가분 계산이 이 값에 달려 있다.
-- 이관 스크립트가 config 동일성을 어떤 범위로 비교했는지 알 수 없다. "the config is the same between the two"(15:18)까지만 나온다.
-- nodePort 기본 범위는 [Kubernetes 문서](https://kubernetes.io/docs/concepts/services-networking/service/)로 확인했으나 해당 페이지의 `type: NodePort` 절 본문이 fetch에서 온전히 렌더되지 않아 30000–32767 범위는 [포트·프로토콜 레퍼런스](https://kubernetes.io/docs/reference/networking/ports-and-protocols/)로 교차 확인했다.
+- 월 $100,000는 Braze 내부 추정치이고 산정 방법이 공개되지 않았습니다. §5.1의 검산은 이 문서가 [공개 ELB 요금표](https://aws.amazon.com/elasticloadbalancing/pricing/)로 자릿수만 맞춰 본 것이고 payload 크기·읽기/쓰기 비율·NLB 대수·이관 동시성은 **전부 이 문서의 가정**입니다. 발표는 넷 중 어느 것도 말하지 않습니다.
+- 90 / 15 / 5 수치의 데이터셋이 없습니다. 어떤 type인지, 표본 구간이 얼마인지, 기준선을 어떻게 잡았는지 공개된 자료가 없습니다. 재현 가능한 벤치마크가 아니라 **보고된 관측값**으로 다뤄야 합니다.
+- 581이라는 샤드 수가 현재값인지 확인하지 못했습니다. 슬라이드 5쪽 수치이고 발표자는 "just this month, we have about 600"이라 말합니다. 기준일 표기가 없습니다.
+- Braze 회사 수치의 기준 시점이 슬라이드 표기와 어긋납니다. MAU 69억은 [2024-10-31 기준](https://www.braze.com/resources/articles/2024-how-braze-powered-exceptional-marketing-at-scale)인데 슬라이드는 전 수치를 "As of January 31, 2025"로 묶었고 "over $130M R&D expense in 2024"에 대응하는 [공시치 $133.969M](https://investors.braze.com/news/news-details/2025/Braze-Reports-Fiscal-Year-and-Fourth-Quarter-2025-Results/default.aspx)은 역년 2024가 아니라 FY2025(2024-02~2025-01) 값입니다. 액수 자체는 "over $130M"에 부합합니다.
+- 이관 전 Sentinel quorum 값을 확인하지 못했습니다. 발표·슬라이드는 "5로 올렸다"만 말합니다. §5.2의 3:3 대칭 split brain은 발표자의 설명을 옮긴 것이고 Sentinel 문서가 요구하는 "majority authorization"과는 계산이 맞지 않는다는 점을 같은 절에 밝혀 뒀습니다.
+- 발표자의 [Velero 블로그](https://www.braze.com/resources/articles/faster-cheaper-more-dependable-how-braze-uses-velero-to-power-backup-stateful-services-in-kubernetes)는 이관 후 토폴로지를 서술합니다. "Each shard is managed by a StatefulSet, which creates three pods"는 **Kubernetes 시대**의 배치이고 EC2 시대는 BGSAVE→S3 백업 흐름만 다룹니다. 581샤드 수치도, 클라이언트 해싱 서술도 이 글에는 없다 — 그 둘의 근거는 발표와 슬라이드뿐입니다.
+- valkey-operator의 "Cells" 모드는 슬라이드 31쪽에만 있습니다. 레포 `docs/architecture.md`를 직접 확인했으나 "Cells"도 모드 열거도 없습니다. repo 문서를 근거로 인용하면 안 됩니다.
+- NLB를 샤드당 뒀는지 클러스터당 뒀는지 확인하지 못했습니다. 슬라이드 33쪽은 한 샤드에 NLB 하나가 붙은 그림이지만 설명 도식일 수 있습니다. §5.1의 LB-hour 추가분 계산이 이 값에 달려 있습니다.
+- 이관 스크립트가 config 동일성을 어떤 범위로 비교했는지 알 수 없습니다. "the config is the same between the two"(15:18)까지만 나옵니다.
+- nodePort 기본 범위는 [Kubernetes 문서](https://kubernetes.io/docs/concepts/services-networking/service/)로 확인했으나 해당 페이지의 `type: NodePort` 절 본문이 fetch에서 온전히 렌더되지 않아 30000–32767 범위는 [포트·프로토콜 레퍼런스](https://kubernetes.io/docs/reference/networking/ports-and-protocols/)로 교차 확인했습니다.
 - §8.1의 판정은 이 문서의 추론이다. "primary 역할이 런타임에 이동하므로 스케줄링 제약으로는 못 잡는다"는 결론은 공식 문서의 개별 사실(anti-affinity가 노드당 1개 · `maxSkew`가 상대값 · `IgnoredDuringExecution` 의미론)을 조합한 것이고 발표자가 이렇게 말한 것은 아니다.
-- 전사 오인식 주의. 자동 자막이 Joe Heyburn을 "Joe Hayburn/Joe Haben", Sidekiq을 "psychic", three-phase를 "a free phase", an NLB를 "no network load balancer", Braze를 "Redis"("at Redis, we use a lot of AZ affinity")로 적는다. 전사를 그대로 인용하지 마라.
+- 전사 오인식 주의. 자동 자막이 Joe Heyburn을 "Joe Hayburn/Joe Haben", Sidekiq을 "psychic", three-phase를 "a free phase", an NLB를 "no network load balancer", Braze를 "Redis"("at Redis, we use a lot of AZ affinity")로 적습니다. 전사를 그대로 인용하지 마라.
 {{< /callout >}}
 
 ## 11. 출처

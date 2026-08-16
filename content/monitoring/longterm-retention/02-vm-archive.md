@@ -71,9 +71,9 @@ spec:
 
 ### 전 메트릭 커버리지 원리
 
-- **배타 커버**: 접미사 regex 2규칙이 서로 배타적으로 전체를 덮는다. `by/without` 미지정 → 입력 시리즈별 라벨 보존, 시간축 집계만 수행한다. match된 raw는 집계 산출물로 **치환**되므로 아카이브에 raw가 유출되지 않는다.
+- **배타 커버**: 접미사 regex 2규칙이 서로 배타적으로 전체를 덮습니다. `by/without` 미지정 → 입력 시리즈별 라벨 보존, 시간축 집계만 수행합니다. match된 raw는 집계 산출물로 **치환**되므로 아카이브에 raw가 유출되지 않습니다.
 - **히스토그램(classic)**: `_bucket`은 per-bucket 카운터라 `total`이 정확히 맞고 `le`가 보존돼 `histogram_quantile(rate(..._bucket[10m]))`이 아카이브에서 그대로 동작한다(5m 입도).
-- **쿼리 보존**: `keep_metric_names` 덕에 기존 대시보드·vmalert 쿼리가 **datasource 전환만으로** 동작한다. 아카이브도 VM이므로 MetricsQL이 그대로 유지된다 — MetricsQL/PromQL·vmselect는 VM 챕터 [05 쿼리·운영 컴포넌트]({{< relref "../victoriametrics/concepts/05-query-and-ops-components.md" >}}) 참조. 이로써 미확인 MetricsQL 의존도 리스크가 자동 소멸한다.
+- **쿼리 보존**: `keep_metric_names` 덕에 기존 대시보드·vmalert 쿼리가 **datasource 전환만으로** 동작합니다. 아카이브도 VM이므로 MetricsQL이 그대로 유지된다 — MetricsQL/PromQL·vmselect는 VM 챕터 [05 쿼리·운영 컴포넌트]({{< relref "../victoriametrics/concepts/05-query-and-ops-components.md" >}}) 참조. 이로써 미확인 MetricsQL 의존도 리스크가 자동 소멸합니다.
 
 ## 비용
 
@@ -108,8 +108,8 @@ spec:
 **리스크**
 
 - **집계가 인제스트 시점 확정** — "나중에 p99 필요"는 불가. hot 90d raw가 유일한 재계산 원본이므로 검증 전 hot 축소 금지.
-- **streamAggr 상태 = 프로세스 메모리** — 크래시 시 현재 5m 윈도우 유실. `flush_on_shutdown: true`로 완화하며 재조사 용도로는 수용 가능한 수준. 카운터 리셋은 `rate()`가 흡수한다.
-- **접미사 휴리스틱 오분류** — 비표준 카운터가 avg로 집계되면 rate 불가. 드라이런에서 오분류 목록을 추출한 뒤 예외 match 규칙으로 보강한다.
+- **streamAggr 상태 = 프로세스 메모리** — 크래시 시 현재 5m 윈도우 유실. `flush_on_shutdown: true`로 완화하며 재조사 용도로는 수용 가능한 수준. 카운터 리셋은 `rate()`가 흡수합니다.
+- **접미사 휴리스틱 오분류** — 비표준 카운터가 avg로 집계되면 rate 불가. 드라이런에서 오분류 목록을 추출한 뒤 예외 match 규칙으로 보강합니다.
 - **전 메트릭 집계 상태만큼 라우터 vmagent 메모리 증가** — 활성 시리즈 수에 비례한다. 사이징 실측 필요(검증 필요).
 - **RF1(아카이브 이중화 없음)** — vmbackup 주기 백업으로 보완한다. vmbackup/vmrestore·무중단 운영은 VM 챕터 [07 대규모 운영]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}}) 참조.
 

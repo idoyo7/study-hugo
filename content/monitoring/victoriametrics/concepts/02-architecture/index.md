@@ -8,10 +8,10 @@ aliases: ["/monitoring/victoriametrics/02-architecture/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- VM 클러스터는 **vmagent(수집) → vminsert(라우팅·샤딩) → vmstorage(저장, n노드) → vmselect(fanout+merge 쿼리)** 4컴포넌트로 흐른다.
-- **SingleNode**(간편, SPOF)와 **Cluster**(수평확장, `replicationFactor`로 유실 방지) 두 배포 모드 — vminsert/vmselect는 stateless라 k8s에, vmstorage는 stateful이라 물리 장비에 두는 편이 유리하다.
-- 대용량 write/read를 동시에 만족시키는 자료구조가 **LSM 트리**(append로 빠른 write, 정렬 유지로 빠른 read, merge는 백그라운드) — VM의 파티션 구조가 이 구체화다.
-- **IndexDB**(거의 불변, 지표이름+레이블 역색인)와 **DataDB**(TSID → timestamp+value, 계속 쌓임) 분리가 정규화로 압축 효율을 극대화한다.
+- VM 클러스터는 **vmagent(수집) → vminsert(라우팅·샤딩) → vmstorage(저장, n노드) → vmselect(fanout+merge 쿼리)** 4컴포넌트로 흐릅니다.
+- **SingleNode**(간편, SPOF)와 **Cluster**(수평확장, `replicationFactor`로 유실 방지) 두 배포 모드 — vminsert/vmselect는 stateless라 k8s에, vmstorage는 stateful이라 물리 장비에 두는 편이 유리하입니다.
+- 대용량 write/read를 동시에 만족시키는 자료구조가 **LSM 트리**(append로 빠른 write, 정렬 유지로 빠른 read, merge는 백그라운드) — VM의 파티션 구조가 이 구체화입니다.
+- **IndexDB**(거의 불변, 지표이름+레이블 역색인)와 **DataDB**(TSID → timestamp+value, 계속 쌓임) 분리가 정규화로 압축 효율을 극대화합니다.
 {{< /callout >}}
 
 VM 클러스터가 어떤 컴포넌트로 이루어지고 데이터가 어떻게 흐르는지, 그리고 그 밑을 떠받치는 두 가지 핵심 아이디어 — **LSM 트리**와 **IndexDB/DataDB 분리** — 를 정리합니다. 각 컴포넌트의 내부 동작은 뒤 문서에서 하나씩 깊게 파고듭니다.
@@ -39,15 +39,15 @@ VM에는 두 가지 배포 모드가 있습니다. 네이버 검색 SRE도 처�
 
 **SingleNode**
 
-- **구성** — 바이너리 파일 하나로 모든 기능을 제공한다.
-- **장점** — 구축·사용이 간편하다. VM 자체 최적화로 Prometheus보다 빠른 성능을 체감한다.
+- **구성** — 바이너리 파일 하나로 모든 기능을 제공합니다.
+- **장점** — 구축·사용이 간편하입니다. VM 자체 최적화로 Prometheus보다 빠른 성능을 체감합니다.
 - **단점** — 수천만 개 이상으로 늘면 단일 장비로 감당이 안 된다. 단일 장비가 **SPOF**(단일 장애점)다.
 
 **Cluster**
 
-- **구성** — write/read/storage 3역할을 vminsert·vmselect·vmstorage로 분리한다.
-- **장점** — 데이터 규모에 따라 컴포넌트만 추가하면 **손쉬운 수평 확장(scale out)**이 가능하다. Prometheus의 최대 약점인 scale out 한계를 극복한다. `replicationFactor`로 유실을 방지한다.
-- **단점** — 구조가 복잡하고 운영이 어렵다. 의존성은 Thanos·Cortex보다 적은 편이다.
+- **구성** — write/read/storage 3역할을 vminsert·vmselect·vmstorage로 분리합니다.
+- **장점** — 데이터 규모에 따라 컴포넌트만 추가하면 **손쉬운 수평 확장(scale out)**이 가능하입니다. Prometheus의 최대 약점인 scale out 한계를 극복합니다. `replicationFactor`로 유실을 방지합니다.
+- **단점** — 구조가 복잡하고 운영이 어렵습니다. 의존성은 Thanos·Cortex보다 적은 편입니다.
 
 운영 방식은 컴포넌트 성격에 따라 갈립니다. **Stateless** 컴포넌트인 vminsert(write)·vmselect(read)는 Kubernetes에 올려 유연하게 scale out하고, **Stateful** 컴포넌트인 vmstorage는 물리 장비에서 운영하는 편이 이점이 있습니다. 이 구성이 초대규모에서 어떻게 확장되는지는 [실전 02 대규모 운영]({{< relref "../../practice/02-operations-at-scale.md" >}})에서 다룹니다.
 
@@ -57,8 +57,8 @@ VM에는 두 가지 배포 모드가 있습니다. 네이버 검색 SRE도 처�
 
 두 요구는 소박하게 접근하면 서로 충돌합니다.
 
-- **write를 edit(수정) 방식으로 접근하면** 대용량 처리가 어렵다. → 그래서 **append 위주 연산**으로 써서 **상수 시간(O(1))** 안에 처리되게 만든다.
-- **read를 랜덤 액세스로 찾으면** 너무 느리다. → 그래서 **항상 정렬된 상태를 유지**해 **서브리니어 타임**에 조회되게 만든다.
+- **write를 edit(수정) 방식으로 접근하면** 대용량 처리가 어렵습니다. → 그래서 **append 위주 연산**으로 써서 **상수 시간(O(1))** 안에 처리되게 만듭니다.
+- **read를 랜덤 액세스로 찾으면** 너무 느립니다. → 그래서 **항상 정렬된 상태를 유지**해 **서브리니어 타임**에 조회되게 만듭니다.
 
 이 두 특성을 동시에 만족시키는 자료구조가 **LSM 트리**(Log-Structured Merge Tree)입니다. HBase, Cassandra 같은 NoSQL DB도 쓰는 구조입니다. 동작은 다음과 같습니다.
 
@@ -86,8 +86,8 @@ VM에는 두 가지 배포 모드가 있습니다. 네이버 검색 SRE도 처�
 
 동작을 좀 더 보면:
 
-- **DataDB 쪽** — Time Series name마다 **TSID**(Time Series ID)를 하나 발급하고, timestamp+value는 그 TSID에 매칭되는 공간에 차곡차곡 append한다.
-- **IndexDB 쪽** — Time Series name을 레이블 단위로 뜯어 **역색인**(inverted index)을 만든다. 어떤 레이블 값으로 검색하든 원하는 시계열을 빠르게 찾기 위해서다. 처음 보는 시계열이 들어올 때는 역색인을 새로 만드는 **slow insert**가 일어나고, 같은 시계열의 추가 데이터는 TSID만 확인하는 **fast insert**로 처리된다.
+- **DataDB 쪽** — Time Series name마다 **TSID**(Time Series ID)를 하나 발급하고, timestamp+value는 그 TSID에 매칭되는 공간에 차곡차곡 append합니다.
+- **IndexDB 쪽** — Time Series name을 레이블 단위로 뜯어 **역색인**(inverted index)을 만듭니다. 어떤 레이블 값으로 검색하든 원하는 시계열을 빠르게 찾기 위해서입니다. 처음 보는 시계열이 들어올 때는 역색인을 새로 만드는 **slow insert**가 일어나고, 같은 시계열의 추가 데이터는 TSID만 확인하는 **fast insert**로 처리됩니다.
 
 TSID 변환·캐시, 역색인의 상세, New TSID로 인한 카디널리티 폭발은 각각 [04 저장과 압축]({{< relref "04-storage-and-compression.md" >}})과 [실전 01 카디널리티]({{< relref "../../practice/01-cardinality.md" >}})에서 다룹니다.
 

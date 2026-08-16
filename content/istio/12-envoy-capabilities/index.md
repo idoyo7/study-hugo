@@ -7,11 +7,11 @@ weight: 12
 
 {{< callout type="info" >}}
 **한눈에**
-- Envoy는 앱에 링크되는 라이브러리가 아니라 **앱 옆에서 따로 도는 프로세스**다. 그래서 언어를 가리지 않는다. 공식 홈페이지의 자기 정의가 "universal data plane"이다.
-- 코어는 L3/L4 프록시 + 꽂아 넣는 필터 체인이고 HTTP는 그 위에 얹힌 **L7 필터 레이어**다. 모델은 listener → 필터 체인 → route → cluster → endpoint 하나로 끝난다.
-- 재시도·서킷 브레이킹·아웃라이어 감지·헬스체크·로드밸런싱은 **전부 Envoy가 이미 갖고 있는 기능**이다. Istio CRD는 그 스위치를 밖으로 꺼낸 창구다.
+- Envoy는 앱에 링크되는 라이브러리가 아니라 **앱 옆에서 따로 도는 프로세스**다. 그래서 언어를 가리지 않습니다. 공식 홈페이지의 자기 정의가 "universal data plane"입니다.
+- 코어는 L3/L4 프록시 + 꽂아 넣는 필터 체인이고 HTTP는 그 위에 얹힌 **L7 필터 레이어**다. 모델은 listener → 필터 체인 → route → cluster → endpoint 하나로 끝납니다.
+- 재시도·서킷 브레이킹·아웃라이어 감지·헬스체크·로드밸런싱은 **전부 Envoy가 이미 갖고 있는 기능**입니다. Istio CRD는 그 스위치를 밖으로 꺼낸 창구입니다.
 - 관측성 세 축도 Envoy가 생산한다. 특히 트레이싱에서 Envoy는 헤더만 넘기는 게 아니라 **스팬을 직접 만들어 수집기로 보낸다**.
-- **xDS는 Envoy 프로젝트가 정의한 API**이고 istiod는 그 관리 서버 구현 중 하나다.
+- **xDS는 Envoy 프로젝트가 정의한 API**이고 istiod는 그 관리 서버 구현 중 하나입니다.
 {{< /callout >}}
 
 지금까지 이 챕터에서 Envoy는 늘 Istio의 부품이었습니다. [01]({{< relref "01-mesh-basics.md" >}})에서는 파드에 붙는 사이드카였습니다. [02]({{< relref "02-istiod-control-plane.md" >}})에서는 xDS를 받아가는 대상이었고, [08]({{< relref "08-envoyfilter-extension.md" >}})에서는 EnvoyFilter가 패치하는 설정 덩어리였습니다. 이 문서는 그 방향을 뒤집습니다 — **Istio를 걷어낸 Envoy 자체의 기능 카탈로그**, 즉 조립되기 전의 부품이 원래 무엇을 할 수 있는가입니다. 조립 이야기는 [13]({{< relref "13-istio-envoy-assembly.md" >}})으로 넘깁니다.
@@ -26,7 +26,7 @@ weight: 12
 
 기능의 층은 둘로 나뉩니다.
 
-- **코어는 L3/L4다.** "At its core, Envoy is an L3/L4 network proxy. A pluggable filter chain mechanism allows filters to be written to perform different TCP/UDP proxy tasks." 확장 모델이 코어 정의에 이미 들어 있다는 점을 기억해 두자 — 6절에서 다시 나온다.
+- **코어는 L3/L4다.** "At its core, Envoy is an L3/L4 network proxy. A pluggable filter chain mechanism allows filters to be written to perform different TCP/UDP proxy tasks." 확장 모델이 코어 정의에 이미 들어 있다는 점을 기억해 두자 — 6절에서 다시 나옵니다.
 - **HTTP는 그 위의 레이어다.** "HTTP is such a critical component of modern application architectures that Envoy supports an additional HTTP L7 filter layer."
 
 같은 소개 문서가 다른 자리에서는 Envoy를 "an L7 proxy and communication bus designed for large modern service oriented architectures"라고도 부릅니다. 둘 다 공식 표현이고 서로 어긋나지 않습니다 — 앞은 구현 구조(L3/L4 코어 + L7 레이어), 뒤는 실제 쓰임새를 말한 것입니다.
@@ -74,9 +74,9 @@ HTTP 필터는 스트림마다 실행되고 그중 **router 필터가 목적지�
 
 - **재시도** (route) — `x-envoy-retry-on`으로 조건을 고른다: `5xx`, `gateway-error`, `reset`, `connect-failure`, `retriable-4xx`, `refused-stream` 등.
 - **재시도 예산(retry budget)** (cluster) — 재시도 폭주를 막는 클러스터 레벨 가드레일. route의 최대 재시도 횟수와는 **별개 장치**.
-- **타임아웃** (route) — 요청이 무한정 매달리지 않게 끊는다.
+- **타임아웃** (route) — 요청이 무한정 매달리지 않게 끊습니다.
 - **서킷 브레이킹** (cluster) — 업스트림 클러스터별·priority별로 임계치를 센다: 최대 커넥션, 최대 대기 요청, 최대 요청, 최대 활성 재시도, 최대 동시 커넥션 풀.
-- **아웃라이어 감지** (cluster) — "a form of passive health checking". 연속 5xx, 연속 게이트웨이 오류(502/503/504), 연속 local-origin 실패, 성공률·실패율 통계 이상치로 엔드포인트를 축출. `x-envoy-degraded` 헤더로 degraded 표시도 한다.
+- **아웃라이어 감지** (cluster) — "a form of passive health checking". 연속 5xx, 연속 게이트웨이 오류(502/503/504), 연속 local-origin 실패, 성공률·실패율 통계 이상치로 엔드포인트를 축출. `x-envoy-degraded` 헤더로 degraded 표시도 합니다.
 - **능동 헬스체크** (cluster) — 업스트림 클러스터별로 설정. HTTP·gRPC·L3/L4(TCP 바이트 버퍼 에코)·Redis·Thrift 프로토콜 체크를 지원.
 
 마지막 두 항목의 수동/능동 구분은 문서가 직접 대비시켜 놓은 것입니다. **아웃라이어 감지는 실제 트래픽의 응답을 보고 판정**하고 **능동 헬스체크는 별도의 체크 요청을 보냅니다.** 둘은 배타적이지 않고 같은 클러스터에 함께 걸립니다.
@@ -140,7 +140,7 @@ Envoy 자신의 xDS 문서는 이렇게 시작합니다 — "Envoy discovers its
 
 두 가지가 읽힙니다.
 
-- **xDS는 Envoy 프로젝트가 정의한 스펙**이다. 규격에 맞는 관리 서버라면 무엇이든 Envoy에 설정을 공급할 수 있다. Envoy 문서는 특정 컨트롤 플레인 이름을 부르지 않고 클라이언트 대 관리 서버라는 일반형으로만 서술한다.
+- **xDS는 Envoy 프로젝트가 정의한 스펙**입니다. 규격에 맞는 관리 서버라면 무엇이든 Envoy에 설정을 공급할 수 있습니다. Envoy 문서는 특정 컨트롤 플레인 이름을 부르지 않고 클라이언트 대 관리 서버라는 일반형으로만 서술합니다.
 - **관리 서버가 필수도 아니다.** 같은 문장이 파일시스템을 먼저 든다. xDS를 쓴다는 것과 컨트롤 플레인이 붙어 있다는 것은 같은 말이 아니다.
 
 Istio 쪽 서술도 이 방향과 맞습니다. istio.io 1.5 릴리스 노트는 컨트롤 플레인 비용을 이야기하며 이들을 "Envoy xDS APIs"라고 부릅니다 — Istio가 정의한 규격이 아니라 **Envoy의 API를 istiod가 서빙한다**는 표현입니다.
@@ -177,10 +177,10 @@ Istio 쪽 서술도 이 방향과 맞습니다. istio.io 1.5 릴리스 노트는
 
 ## 이 문서에서 가져갈 것
 
-- Envoy는 앱 옆에서 도는 **독립 프로세스**이고 그 때문에 언어를 가리지 않는다. 코어는 L3/L4 프록시 + 필터 체인이며 HTTP는 그 위의 레이어다.
-- 설정을 읽는 문법은 **listener → 필터 체인 → route → cluster → endpoint** 하나다. 재시도가 route에, 서킷 브레이커가 cluster에 있는 이유도 이 순서에서 나온다.
-- 복원력·관측성 기능은 Istio가 만들어 준 것이 아니라 **Envoy가 원래 갖고 있던 것**이다. Istio CRD는 그 스위치를 꺼낸 창구이고 트레이싱에서 Envoy는 스팬을 직접 만든다.
-- **xDS는 Envoy가 정의한 API**이고 istiod는 그 구현 하나다. 같은 부품 위에 다른 컨트롤 플레인이 여럿 서 있다.
+- Envoy는 앱 옆에서 도는 **독립 프로세스**이고 그 때문에 언어를 가리지 않습니다. 코어는 L3/L4 프록시 + 필터 체인이며 HTTP는 그 위의 레이어입니다.
+- 설정을 읽는 문법은 **listener → 필터 체인 → route → cluster → endpoint** 하나입니다. 재시도가 route에, 서킷 브레이커가 cluster에 있는 이유도 이 순서에서 나옵니다.
+- 복원력·관측성 기능은 Istio가 만들어 준 것이 아니라 **Envoy가 원래 갖고 있던 것**입니다. Istio CRD는 그 스위치를 꺼낸 창구이고 트레이싱에서 Envoy는 스팬을 직접 만듭니다.
+- **xDS는 Envoy가 정의한 API**이고 istiod는 그 구현 하나입니다. 같은 부품 위에 다른 컨트롤 플레인이 여럿 서 있습니다.
 
 ## 소스
 

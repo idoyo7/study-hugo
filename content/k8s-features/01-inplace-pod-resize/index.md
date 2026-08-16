@@ -10,10 +10,10 @@ weight: 1
 - 1.27 alpha → 1.33 beta → **1.35 GA**. 파드를 재시작하지 않고 CPU/메모리를 바꾼다. 반드시 **`resize` 서브리소스**로만 통한다. 손댈 수 있는 건 **cpu·memory 값뿐**이다(QoS 변경·항목 제거·GPU는 전부 거부).
 - 수락 판정 기준은 실사용량이 아니라 **"다른 파드들의 requests 합 vs node allocatable"**. 노드가 붐비면 **Deferred**(재시도됨), 정책 위반이면 **Infeasible**(spec을 고치기 전까지 재평가 안 됨).
 - **늘리는 쪽은 사실상 무위험, 줄이는 쪽만 조심.** 메모리 축소에는 kubelet 사용량 체크의 TOCTOU 레이스가 남아 OOM-kill을 보장 방지하지 못한다(#135670, open). CPU 축소는 재시작이 없다는 뜻일 뿐 **스로틀 비용을 낳는데 그건 사용률 그래프에 안 보인다**(`throttled_periods`로 봐야 한다).
-- **케이스가 전부다.** **재시작이 비싼 stateful(DB·캐시·롱커넥션)에 최적**이고 기동 부스트에도 좋다. JVM/Node 힙에는 반쪽(CPU만 in-place), VPA 자동화는 아직 이르고 static CPU manager 노드는 사실상 미지원이다.
+- **케이스가 전부입니다.** **재시작이 비싼 stateful(DB·캐시·롱커넥션)에 최적**이고 기동 부스트에도 좋습니다. JVM/Node 힙에는 반쪽(CPU만 in-place), VPA 자동화는 아직 이르고 static CPU manager 노드는 사실상 미지원입니다.
 {{< /callout >}}
 
-> **왜 6년 걸렸나.** "실행 중인 컨테이너의 cgroup 값만 바꾸면 되는 것 아닌가" 싶지만 이 기능에서는 **스케줄러가 보는 값·kubelet이 약속한 값·커널에 실제 쓰인 값이 서로 다른 순간이 반드시 생긴다.** 그 셋의 정합성에 kubelet 재시작 후의 복구까지 맞추는 데 KEP-1287은 alpha에서 GA까지 6년을 썼다. 그래서 이 문서는 공식 문서에서 멈추지 않고 **kubelet이 실제로 하는 일 · 열린 버그 · 케이스별 득실**까지 내려간다.
+> **왜 6년 걸렸나.** "실행 중인 컨테이너의 cgroup 값만 바꾸면 되는 것 아닌가" 싶지만 이 기능에서는 **스케줄러가 보는 값·kubelet이 약속한 값·커널에 실제 쓰인 값이 서로 다른 순간이 반드시 생깁니다.** 그 셋의 정합성에 kubelet 재시작 후의 복구까지 맞추는 데 KEP-1287은 alpha에서 GA까지 6년을 썼습니다. 그래서 이 문서는 공식 문서에서 멈추지 않고 **kubelet이 실제로 하는 일 · 열린 버그 · 케이스별 득실**까지 내려갑니다.
 
 > 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · CPU limit을 줄인 대가를 다루는 [02 CPU Throttling]({{< relref "02-cpu-throttling.md" >}})과 그걸 커널에서 푸는 [03 CPU Burst]({{< relref "03-cpu-burst.md" >}}) · GOMAXPROCS와 CPU limit의 관계는 [istio 09 §8]({{< relref "../../istio/09-istiod-scaling-connections.md" >}})
 
@@ -83,8 +83,8 @@ Deferred가 여럿이면 4단계로 정렬됩니다: ① 요청을 늘리지 않
 
 메모리 limit **감소**는 커널에 쓰기 전에 kubelet이 현재 사용량을 조회해 `usage >= 새 limit`이면 시도 전체를 실패시킵니다. 함정 둘:
 
-- 이 usage는 cAdvisor 캐시 또는 CRI 스냅샷이라 **체크와 반영 사이에 레이스**가 있다. 통과 후 사용량이 튀면 cgroup v2는 그대로 OOM-kill로 이어진다(cgroup v1은 커널이 쓰기 자체를 거부 — 비대칭). 이게 열린 이슈 #135670의 본체다.
-- 메모리 체크 실패는 **같은 시도에 묶인 CPU 변경까지 통째로** 실패시킨다. "CPU만이라도 먼저"는 없다.
+- 이 usage는 cAdvisor 캐시 또는 CRI 스냅샷이라 **체크와 반영 사이에 레이스**가 있습니다. 통과 후 사용량이 튀면 cgroup v2는 그대로 OOM-kill로 이어진다(cgroup v1은 커널이 쓰기 자체를 거부 — 비대칭). 이게 열린 이슈 #135670의 본체입니다.
+- 메모리 체크 실패는 **같은 시도에 묶인 CPU 변경까지 통째로** 실패시킵니다. "CPU만이라도 먼저"는 없습니다.
 
 반영 도중 CRI 호출이 실패하면 pod-sandbox 레벨은 롤백하지만 **컨테이너 레벨은 롤백 없이 그 자리에서 중단**합니다. pod cgroup은 새 값, 일부 컨테이너는 옛 값인 불일치가 다음 sync까지 남을 수 있고 `PodResizeInProgress`가 `reason: Error`로 이를 알립니다.
 
@@ -146,7 +146,7 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 
 체크포인트 없는 학습 잡, 며칠짜리 배치에게 "메모리 부족 → 재시작해서 큰 값으로"는 진행 전체의 손실입니다. in-place 증가가 이 문제를 정확히 풉니다. 유의점 둘: 노드가 붐비면 Deferred로 기다리는데 이때 스케줄러는 **desired/allocated/actual 중 최댓값**으로 그 노드를 계산하므로 pending resize가 스케줄 가능 공간을 선점합니다. 그리고 batch 우선순위가 낮으면 Deferred 정렬(§3.1)에서도 뒤로 밀립니다 — 급한 증설이 필요한 잡에는 PriorityClass를 챙길 것입니다.
 
-> **④ JVM/Node 힙에 대한 보충.** cgroup limit을 늘려도 이미 뜬 JVM은 힙을 재매핑하지 않는다(`-Xmx`, `MaxRAMPercentage` 모두 시작 시점 값). Node.js의 V8 old space도 같다. 현실적인 전략은 **cpu는 `NotRequired`, memory는 `RestartContainer`** 로 정책을 갈라 CPU는 자유롭게 조정하고 메모리 변경은 "재시작을 각오한 이벤트"로 취급하는 것. 대조적으로 **Go 1.25+는 cgroup CPU limit 변경을 약 30초 주기로 감지해 GOMAXPROCS를 스스로 갱신**한다 — resize와 궁합이 가장 좋은 런타임이다.
+> **④ JVM/Node 힙에 대한 보충.** cgroup limit을 늘려도 이미 뜬 JVM은 힙을 재매핑하지 않는다(`-Xmx`, `MaxRAMPercentage` 모두 시작 시점 값). Node.js의 V8 old space도 같습니다. 현실적인 전략은 **cpu는 `NotRequired`, memory는 `RestartContainer`** 로 정책을 갈라 CPU는 자유롭게 조정하고 메모리 변경은 "재시작을 각오한 이벤트"로 취급하는 것. 대조적으로 **Go 1.25+는 cgroup CPU limit 변경을 약 30초 주기로 감지해 GOMAXPROCS를 스스로 갱신**한다 — resize와 궁합이 가장 좋은 런타임입니다.
 
 ④가 걸리는 이유는 층을 하나 구분하면 분명해집니다. **"커널에 반영됐나"와 "런타임이 그걸 읽었나"는 다른 문제**고, 그 사이에 **"컨테이너 안에서 무슨 값이 보이나"** 라는 층이 하나 더 있습니다. 많은 런타임·도구가 cgroup이 아니라 `/proc/cpuinfo`·`/proc/meminfo`를 읽어 자원을 추정하는데 기본 상태의 컨테이너에서 이 파일들은 **파드 limit이 아니라 노드의 host 값**을 보여줍니다. [LXCFS](https://makgol.com/blog/lxcfs-admission-webhook)를 물리면 이 층이 파드 관점으로 가상화되고 §부록에서 보듯 **resize 직후 `/proc` 값이 실시간으로 따라옵니다.**
 
@@ -172,8 +172,8 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 - [ ] **늘리기부터** — 증가 방향으로 시작하고 메모리 축소 자동화는 #135670이 닫히기 전까지 보수적으로
 - [ ] **완료 판정 로직** — `observedGeneration ≥ generation` + Pending/InProgress 컨디션 부재. Infeasible은 재시도되지 않으니 알람 대상
 - [ ] **restartCount 알람** — `RestartContainer` 정책을 쓴다면 resize로 인한 재시작 오탐을 걸러낼 것
-- [ ] **headroom** — Deferred 판정은 requests 합 기준이다. 노드 여유 없이는 "무중단"이 "무한 대기"가 된다
-- [ ] **CPU 축소 후 검증** — 사용률이 아니라 `throttled_periods / periods`로 본다. 평균은 여유로운데 꼬리만 길어지는 상태가 사용률 그래프에는 안 나온다
+- [ ] **headroom** — Deferred 판정은 requests 합 기준입니다. 노드 여유 없이는 "무중단"이 "무한 대기"가 됩니다
+- [ ] **CPU 축소 후 검증** — 사용률이 아니라 `throttled_periods / periods`로 봅니다. 평균은 여유로운데 꼬리만 길어지는 상태가 사용률 그래프에는 안 나옵니다
 - [ ] **언어 런타임 궁합** — `GOMAXPROCS` 미주입 Go 1.25+ ◎ / Downward API로 주입하는 차트(Istio 등)는 CPU resize가 반쪽 / JVM·Node 메모리는 RestartContainer 전제. CPU limit은 가급적 **정수 코어**로
 
 ## 부록 · 2024년 alpha에서 직접 해본 기록
@@ -206,10 +206,10 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 
 ## 이 문서에서 가져갈 것
 
-- resize는 **`resize` 서브리소스로만** 가능하고 **cpu·memory 값 변경만** 허용된다. spec은 즉시 바뀌지만 반영은 비동기라 완료 판정은 `observedGeneration` + **컨디션 두 개의 부재**로 해야 한다.
-- 수락은 **requests 합 기준**이다. 실제 CPU가 놀아도 Deferred가 될 수 있고 **Infeasible은 spec을 고치기 전까지 영원히 재평가되지 않는다.**
-- **늘리는 방향은 무위험, 줄이는 방향만 위험하다.** 메모리 축소는 TOCTOU 레이스(#135670)를 안고 있고, CPU 축소의 대가인 스로틀은 사용률이 아니라 `throttled_periods`에만 보인다. `RestartContainer`는 크래시와 구분되지 않는 재시작이다.
-- **커널에 반영됐다 ≠ 런타임이 안다.** 소수점 CPU limit은 `GOMAXPROCS`(올림)와 quota(정확값)가 어긋나고 Downward API로 주입된 환경변수는 resize로 갱신되지 않는다. CPU limit은 정수 코어로 두는 편이 낫다.
+- resize는 **`resize` 서브리소스로만** 가능하고 **cpu·memory 값 변경만** 허용됩니다. spec은 즉시 바뀌지만 반영은 비동기라 완료 판정은 `observedGeneration` + **컨디션 두 개의 부재**로 해야 합니다.
+- 수락은 **requests 합 기준**입니다. 실제 CPU가 놀아도 Deferred가 될 수 있고 **Infeasible은 spec을 고치기 전까지 영원히 재평가되지 않습니다.**
+- **늘리는 방향은 무위험, 줄이는 방향만 위험하입니다.** 메모리 축소는 TOCTOU 레이스(#135670)를 안고 있고, CPU 축소의 대가인 스로틀은 사용률이 아니라 `throttled_periods`에만 보입니다. `RestartContainer`는 크래시와 구분되지 않는 재시작입니다.
+- **커널에 반영됐다 ≠ 런타임이 압니다.** 소수점 CPU limit은 `GOMAXPROCS`(올림)와 quota(정확값)가 어긋나고 Downward API로 주입된 환경변수는 resize로 갱신되지 않습니다. CPU limit은 정수 코어로 두는 편이 낫습니다.
 - 결국 **케이스가 전부다.** 재시작이 비싼 stateful·기동 부스트·장기 배치에는 확실한 득이고 JVM 힙·VPA 자동화·static CPU manager 노드에는 아직 아니다.
 
 ## 참고 자료
@@ -220,4 +220,4 @@ beta(1.33) 이전의 stuck 버그들(항상 재시작 #122760, InProgress 고착
 - [CPU를 다 쓰지도 않았는데 스로틀링에 걸렸습니다](https://makgol.com/blog/istiod-cpu-throttling) — CFS quota가 period 단위로 소진되는 구조, `limits.cpu` → `GOMAXPROCS` 배선, CPU Burst. §5의 CPU 축소·런타임 궁합 서술이 여기 기댄다. 같은 주제의 심층판은 [istio 09]({{< relref "../../istio/09-istiod-scaling-connections.md" >}})
 - [lxcfs-admission-webhook](https://makgol.com/blog/lxcfs-admission-webhook) — 컨테이너 안 `/proc`을 파드 관점으로 보이게 하는 admission webhook. §5 ④의 "컨테이너 안에서 보이는 값" 층
 - 동작 서술의 근거 코드: `kubernetes/kubernetes` master(v1.37.0-beta.0+) — `pkg/kubelet/allocation/`(수락 판정·checkpoint), `pkg/kubelet/kuberuntime/`(반영 순서·실패 처리), `pkg/apis/core/validation/`(ValidatePodResize), `pkg/kubelet/status/`(컨디션)
-- 부록의 스크린샷은 2024-02 온프레미스 kubeadm 클러스터에서 직접 테스트한 기록이다
+- 부록의 스크린샷은 2024-02 온프레미스 kubeadm 클러스터에서 직접 테스트한 기록입니다

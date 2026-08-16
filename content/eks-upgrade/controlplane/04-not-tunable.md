@@ -7,12 +7,12 @@ weight: 4
 
 {{< callout type="info" >}}
 **한눈에**
-- **finance 판정: 실제로 부딪히는 닫힌 항목은 셋이다** — HPA 스케일다운 안정화 시간, 감사 정책 파일, etcd 스냅샷. 셋 다 클러스터 내부 우회로만 처리한다.
-- **2026-08에 열린 것은 EKS API 필드 3개 안의 세부 값 4개뿐이다.** `kubeApiServerConfig`는 하위 필드가 `eventTtl`·`serviceNodePortRange` **2개**다. "이제 apiserver 플래그를 만질 수 있다"는 서술은 이 숫자 하나로 반박된다.
-- **열린 값 옆자리가 그대로 닫혀 있다.** HPA는 `--horizontal-pod-autoscaler-sync-period` 하나만 열리고 같은 코드 블록의 downscale-stabilization·tolerance·cpu-initialization-period·initial-readiness-delay 4개는 닫혔다.
+- **finance 판정: 실제로 부딪히는 닫힌 항목은 셋이다** — HPA 스케일다운 안정화 시간, 감사 정책 파일, etcd 스냅샷. 셋 다 클러스터 내부 우회로만 처리합니다.
+- **2026-08에 열린 것은 EKS API 필드 3개 안의 세부 값 4개뿐입니다.** `kubeApiServerConfig`는 하위 필드가 `eventTtl`·`serviceNodePortRange` **2개**다. "이제 apiserver 플래그를 만질 수 있다"는 서술은 이 숫자 하나로 반박됩니다.
+- **열린 값 옆자리가 그대로 닫혀 있습니다.** HPA는 `--horizontal-pod-autoscaler-sync-period` 하나만 열리고 같은 코드 블록의 downscale-stabilization·tolerance·cpu-initialization-period·initial-readiness-delay 4개는 닫혔습니다.
 - **우회 창구는 사실상 3개다** — APF(`FlowSchema`·`PriorityLevelConfiguration`), 어드미션(웹훅·CEL·Kyverno/OPA), 자체 스케줄러 배포 + `schedulerName`. 나머지 대부분은 대안이 **없다**.
 - **etcd는 전 구간 차단**이다. 엔드포인트도, compaction·defrag·quota 튜닝도, 스냅샷도 없다. 백업은 Velero 같은 API 레벨 도구뿐이고 **원자적 시점 복구는 포기해야 한다**.
-- **`--force`는 PDB·어드미션 웹훅을 우회하지 않는다.** EKS 자체 인사이트 검사만 우회하며, 전진 업그레이드 쪽 강제는 2025-03-28 임시 롤백된 뒤 재활성화가 확인되지 않아 현재 실질적으로 거의 무효다.
+- **`--force`는 PDB·어드미션 웹훅을 우회하지 않습니다.** EKS 자체 인사이트 검사만 우회하며, 전진 업그레이드 쪽 강제는 2025-03-28 임시 롤백된 뒤 재활성화가 확인되지 않아 현재 실질적으로 거의 무효입니다.
 {{< /callout >}}
 
 이 페이지는 [레이어 1]({{< relref "01-cluster-parameters.md" >}})의 클러스터 파라미터와 [레이어 2]({{< relref "02-component-parameters.md" >}})의 열린 4종을 전제로 그 **여집합**을 다룹니다. 무엇을 못 하는가, 못 하는 자리를 클러스터 안에서 어떻게 메우는가. 이 페이지의 질문은 이 둘입니다.
@@ -305,13 +305,13 @@ spec:
 ```
 
 - AWS가 `aws-samples/custom-scheduler-eks`로 참조 구현을 공개했다(bin packing 목적, EKS 1.24+ 명시).
-- 같은 문서는 kube-scheduler를 직접 빌드하지 말고 eks-distro 이미지를 쓰라고 권고한다. 버전 정합 관리가 그만큼 까다롭다.
-- ServiceAccount + ClusterRoleBinding을 직접 구성해야 한다. 스케줄러는 파드·노드·PV 전반에 광범위한 권한이 필요하므로 RBAC 범위가 작지 않다.
-- 관리형 스케줄러와 공존한다. `schedulerName`을 지정하지 않은 파드는 계속 EKS 관리형 스케줄러가 처리한다. 그래서 전면 교체 없이 부분 적용으로 갈 수 있다. 반대로 두 스케줄러가 같은 노드 자원을 동시에 바인딩하려는 경쟁 조건은 우리 책임이다.
+- 같은 문서는 kube-scheduler를 직접 빌드하지 말고 eks-distro 이미지를 쓰라고 권고합니다. 버전 정합 관리가 그만큼 까다롭습니다.
+- ServiceAccount + ClusterRoleBinding을 직접 구성해야 합니다. 스케줄러는 파드·노드·PV 전반에 광범위한 권한이 필요하므로 RBAC 범위가 작지 않습니다.
+- 관리형 스케줄러와 공존합니다. `schedulerName`을 지정하지 않은 파드는 계속 EKS 관리형 스케줄러가 처리합니다. 그래서 전면 교체 없이 부분 적용으로 갈 수 있습니다. 반대로 두 스케줄러가 같은 노드 자원을 동시에 바인딩하려는 경쟁 조건은 우리 책임입니다.
 
 ### 7.4 감사·이벤트 보존
 
-- **감사 정책의 세밀도**는 우회할 수 없다. `--audit-policy-file`이 없으니 "어떤 필드까지 기록할지"는 AWS가 정한 그대로다. 우리는 로그 타입을 켜고 나온 것을 반출해 **사후 필터링**한다. `enabled_cluster_log_types`에 `audit`을 넣으면 CloudWatch Logs로 나가고 거기서 Logs Insights·Athena·외부 싱크로 옮겨 질의한다.
+- **감사 정책의 세밀도**는 우회할 수 없습니다. `--audit-policy-file`이 없으니 "어떤 필드까지 기록할지"는 AWS가 정한 그대로입니다. 우리는 로그 타입을 켜고 나온 것을 반출해 **사후 필터링**합니다. `enabled_cluster_log_types`에 `audit`을 넣으면 CloudWatch Logs로 나가고 거기서 Logs Insights·Athena·외부 싱크로 옮겨 질의합니다.
 - **이벤트 보존 기간**은 우회할 수 있다. `eventTtl`은 etcd 안에 얼마나 남기는지만 정한다. Event 오브젝트를 watch해 외부 저장소로 밀어내는 exporter를 두면 TTL을 늘리지 않고도 장기 보존과 장기 질의를 얻는다. 오히려 이쪽이 권장 방향이다. TTL을 늘리면 etcd 크기와 watch 캐시 부담이 함께 늘어나는데 그 둘은 우리가 손댈 수 없는 축이다(§2.1·§5).
 
 ### 7.5 CCM — "제약"이 아니라 "쪼개졌다"

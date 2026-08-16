@@ -104,7 +104,7 @@ IRSA 롤이 addon에 실제로 연결되는지·PVC가 붙는지 검증은 [03 m
 
 `controller.resources` 기본값(0.25 vCPU/256Mi)으로 두면 CPU 기아로 리더 election이 반복 유실되는 사고가 사내에서 실제로 있었습니다 — 반드시 `cpu: 1` / `mem ≥ 1Gi`로 상향합니다.
 
-> karpenter 0.36.2→1.14.0 버전 업그레이드 자체(CRD v1beta1→v1·IAM·배포 절차)는 [컴포넌트별 마이그레이션 — karpenter]({{< relref "components/01-karpenter.md" >}})가 이어받는다.
+> karpenter 0.36.2→1.14.0 버전 업그레이드 자체(CRD v1beta1→v1·IAM·배포 절차)는 [컴포넌트별 마이그레이션 — karpenter]({{< relref "components/01-karpenter.md" >}})가 이어받습니다.
 
 ## 6. 기존 Terraform 자산 실사 — 무엇을 재활용하고 무엇을 버리나
 

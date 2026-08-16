@@ -14,11 +14,11 @@ weight: 2
 
 {{< callout type="info" >}}
 **한눈에**
-- 1편은 "HBONE은 HTTP/2 CONNECT + mTLS"라는 개념 설명에서 멈췄다. 2편은 **실제 Envoy config 덤프를 한 단계씩 따라가며 그 개념이 어떤 필드로 구현되는지** 확인한다.
+- 1편은 "HBONE은 HTTP/2 CONNECT + mTLS"라는 개념 설명에서 멈췄습니다. 2편은 **실제 Envoy config 덤프를 한 단계씩 따라가며 그 개념이 어떤 필드로 구현되는지** 확인합니다.
 - 핵심 발견은 **`outbound|8080||ch-dropwizard-public.channel.svc.cluster.local` 이라는 단 하나의 클러스터가 목적지 상태에 따라 세 갈래로 갈린다**는 것 — out-of-mesh는 Pod IP 평문 직결, in-mesh는 `envoy_internal_address`, waypoint가 붙은 목적지는 Service ClusterIP. 갈림길을 결정하는 건 endpoint 메타데이터와 `transport_socket_match`다.
 - HBONE은 **Envoy 기존 부품 세 개의 조합**이다: 메타데이터를 넘기는 `InternalUpstreamTransport`, CONNECT를 만드는 `tcp_proxy`의 `tunneling_config`, mTLS를 세우는 `UpstreamTlsContext`.
-- 받는 쪽에서 ztunnel은 사이드카가 아닌데도 Pod 안에 있다. istio-cni node agent가 넘겨준 **netns FD로 Pod 네트워크 네임스페이스 안에 직접 listening 소켓(`15001`·`15006`·`15008`)을 만드는** 크로스 네임스페이스 소켓 기법이다.
-- 리다이렉션 무한루프는 **패킷 마크 `0x539`와 커넥션 마크 `0x111`** 두 개로 막는다. 모든 REDIRECT 규칙이 `! --mark 0x539`를 달고 있다.
+- 받는 쪽에서 ztunnel은 사이드카가 아닌데도 Pod 안에 있습니다. istio-cni node agent가 넘겨준 **netns FD로 Pod 네트워크 네임스페이스 안에 직접 listening 소켓(`15001`·`15006`·`15008`)을 만드는** 크로스 네임스페이스 소켓 기법입니다.
+- 리다이렉션 무한루프는 **패킷 마크 `0x539`와 커넥션 마크 `0x111`** 두 개로 막습니다. 모든 REDIRECT 규칙이 `! --mark 0x539`를 달고 있습니다.
 {{< /callout >}}
 
 [01 왜 Istio Ambient mode인가]({{< relref "01-why-ambient-mode.md" >}})가 다룬 범위는 개념까지였습니다. Ambient mode의 구성요소와 동작 원리, HBONE이 HTTP/2 CONNECT와 mTLS의 조합이라는 것, ztunnel이 트래픽을 transparently redirect한다는 것 — 거기까지는 설명했지만, 그것이 어떤 필드로 구현되어 있는지는 남겨뒀습니다. 이 문서는 채널팀이 프로덕션 Gateway의 Envoy config를 직접 덤프해 그 빈칸을 채운 기록입니다.
@@ -195,11 +195,11 @@ REDIRECT 규칙은 전부 `! --mark 0x539`를 달고 있어 ztunnel 발신 패�
 
 ## 이 문서에서 가져갈 것
 
-- 경로 분기는 클러스터가 아니라 **endpoint 메타데이터**에서 일어난다. 클러스터 이름 하나(`outbound|8080||ch-dropwizard-public.channel.svc.cluster.local`) 아래에서 `tunnel: http` 유무와 `transport_socket_match`가 평문 직결·HBONE·waypoint 경유를 가른다. 디버깅할 때는 endpoint 덤프까지 내려가야 한다.
-- HBONE은 기존 Envoy 부품의 조합이다. `InternalUpstreamTransport`(메타데이터) + `tunneling_config`(CONNECT) + `UpstreamTlsContext`(mTLS) + `upstream_port_override: 15008`. 각 부품을 따로 알고 있으면 config 덤프가 읽힌다.
-- waypoint가 붙으면 Gateway의 endpoint는 Pod IP가 아니라 **Service ClusterIP**다. 최종 Pod 선택 책임이 waypoint로 넘어가기 때문에, "Gateway가 어느 Pod로 보냈나"는 Gateway config에서 찾아도 나오지 않는다.
-- "사이드카가 없다"는 **파드에 컨테이너를 추가하지 않는다**는 뜻이다. ztunnel은 netns FD를 받아 Pod 네임스페이스 안에 직접 소켓을 만든다. 파드 안에서 보이는 `15001`·`15006`·`15008` 소켓의 소유자는 노드의 ztunnel DaemonSet이다.
-- 투명 리다이렉션의 난이도는 **루프 방지**에 있다. 패킷 마크 `0x539`로 ztunnel 발신 패킷을 REDIRECT에서 빼고, connmark `0x111`로 커넥션 상태를 기억해 응답 패킷까지 빼야 "투명"해진다. 리다이렉션 기반 인터셉션을 직접 만들 일이 있다면 이 두 겹이 최소 요건이다.
+- 경로 분기는 클러스터가 아니라 **endpoint 메타데이터**에서 일어납니다. 클러스터 이름 하나(`outbound|8080||ch-dropwizard-public.channel.svc.cluster.local`) 아래에서 `tunnel: http` 유무와 `transport_socket_match`가 평문 직결·HBONE·waypoint 경유를 가릅니다. 디버깅할 때는 endpoint 덤프까지 내려가야 합니다.
+- HBONE은 기존 Envoy 부품의 조합입니다. `InternalUpstreamTransport`(메타데이터) + `tunneling_config`(CONNECT) + `UpstreamTlsContext`(mTLS) + `upstream_port_override: 15008`. 각 부품을 따로 알고 있으면 config 덤프가 읽힙니다.
+- waypoint가 붙으면 Gateway의 endpoint는 Pod IP가 아니라 **Service ClusterIP**다. 최종 Pod 선택 책임이 waypoint로 넘어가기 때문에, "Gateway가 어느 Pod로 보냈나"는 Gateway config에서 찾아도 나오지 않습니다.
+- "사이드카가 없다"는 **파드에 컨테이너를 추가하지 않는다**는 뜻입니다. ztunnel은 netns FD를 받아 Pod 네임스페이스 안에 직접 소켓을 만듭니다. 파드 안에서 보이는 `15001`·`15006`·`15008` 소켓의 소유자는 노드의 ztunnel DaemonSet입니다.
+- 투명 리다이렉션의 난이도는 **루프 방지**에 있습니다. 패킷 마크 `0x539`로 ztunnel 발신 패킷을 REDIRECT에서 빼고, connmark `0x111`로 커넥션 상태를 기억해 응답 패킷까지 빼야 "투명"해집니다. 리다이렉션 기반 인터셉션을 직접 만들 일이 있다면 이 두 겹이 최소 요건입니다.
 
 ## 소스
 
@@ -207,4 +207,4 @@ REDIRECT 규칙은 전부 `! --mark 0x539`를 달고 있어 ztunnel 발신 패�
 - [Istio — Ambient mode traffic redirection](https://istio.io/latest/docs/ambient/architecture/traffic-redirection/) · 원문이 iptables 리다이렉션 설명에 인용
 - [Ambient Mesh docs — Configure waypoints: Istio ingress gateway](https://ambientmesh.io/docs/setup/configure-waypoints/#istio-ingress-gateway) · 원문이 Gateway와 waypoint 연동 설명에 인용
 - [istio/istio — `cni/pkg/nodeagent/options.go`](https://github.com/istio/istio/blob/master/cni/pkg/nodeagent/options.go) · 원문이 `169.254.7.127` SNAT IP 상수의 출처로 인용 (44행)
-- 이 문서가 다루지 못한 부분: 원문에 실린 Envoy config 덤프와 iptables 규칙의 **원본 전문**은 옮기지 않았다. 각 필드가 무엇을 하는지는 위에 정리했지만, 규칙 한 줄 단위의 매칭 조건과 순서는 원문에서 직접 확인해야 한다.
+- 이 문서가 다루지 못한 부분: 원문에 실린 Envoy config 덤프와 iptables 규칙의 **원본 전문**은 옮기지 않았습니다. 각 필드가 무엇을 하는지는 위에 정리했지만, 규칙 한 줄 단위의 매칭 조건과 순서는 원문에서 직접 확인해야 합니다.

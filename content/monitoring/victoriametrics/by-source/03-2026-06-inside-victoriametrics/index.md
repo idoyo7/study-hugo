@@ -15,8 +15,8 @@ weight: 3
 {{< callout type="info" >}}
 **한눈에**
 - 이 발표는 데이터가 **들어와서 저장되고 다시 쿼리로 나가기까지의 전 과정**을 6섹션으로 분해한다: ① 아키텍처 오버뷰 ② `vmagent` ③ `vminsert` ④ `vmstorage` ⑤ `vmselect` ⑥ best/worst case.
-- 각 컴포넌트를 한 문장으로 요약하면 `vmagent`는 무엇이든 받아 정제하는 만능 어댑터, `vminsert`는 저장 없이 라우팅하는 수집 게이트웨이, `vmstorage`는 월별 파티션에 저장하는 컴포넌트, `vmselect`는 Fanout으로 던지고 Merge하는 쿼리 엔진이다.
-- 효율의 두 축: 이름·레이블(거의 불변)과 timestamp+value(계속 쌓임)를 **IndexDB/DataDB로 분리**하고, **Gorilla 계열 차분 인코딩**(Gauge→Delta, Counter→Delta-of-Delta)으로 눌러 담는다.
+- 각 컴포넌트를 한 문장으로 요약하면 `vmagent`는 무엇이든 받아 정제하는 만능 어댑터, `vminsert`는 저장 없이 라우팅하는 수집 게이트웨이, `vmstorage`는 월별 파티션에 저장하는 컴포넌트, `vmselect`는 Fanout으로 던지고 Merge하는 쿼리 엔진입니다.
+- 효율의 두 축: 이름·레이블(거의 불변)과 timestamp+value(계속 쌓임)를 **IndexDB/DataDB로 분리**하고, **Gorilla 계열 차분 인코딩**(Gauge→Delta, Counter→Delta-of-Delta)으로 눌러 담습니다.
 - 운영에서 반복해서 등장하는 이름들: 랑데부 해싱, `replicationFactor`, `TSID`, Merge Multiplier, IndexDB 3단계 로테이션, Rollup Result Cache, `search.latencyOffset`, 카디널리티.
 {{< /callout >}}
 
@@ -34,10 +34,10 @@ weight: 3
 
 {{< flow src="_flow/아키텍처-오버뷰.json" />}}
 
-- **`vmagent`** — 타깃에서 지표를 스크랩하고 리레이블·드랍 같은 1차 가공을 한다.
-- **`vminsert`** — 받은 데이터를 N개의 `vmstorage` 노드로 라우팅·샤딩한다.
-- **`vmstorage`** — 실제 저장을 담당한다. 저장은 이 단에서만 일어난다.
-- **`vmselect`** — 쿼리 엔진. 쿼리를 받아 `vmstorage`에서 데이터를 select해 와 merge한 뒤 클라이언트에 응답을 반환한다.
+- **`vmagent`** — 타깃에서 지표를 스크랩하고 리레이블·드랍 같은 1차 가공을 합니다.
+- **`vminsert`** — 받은 데이터를 N개의 `vmstorage` 노드로 라우팅·샤딩합니다.
+- **`vmstorage`** — 실제 저장을 담당합니다. 저장은 이 단에서만 일어납니다.
+- **`vmselect`** — 쿼리 엔진. 쿼리를 받아 `vmstorage`에서 데이터를 select해 와 merge한 뒤 클라이언트에 응답을 반환합니다.
 
 이 4컴포넌트 구조·SingleNode vs Cluster·LSM 트리·IndexDB/DataDB 분리의 배경은 [개념 02 아키텍처]({{< relref "../../concepts/02-architecture.md" >}})가 전담합니다.
 
@@ -88,8 +88,8 @@ weight: 3
 {{% details title="ZigZag + Varint — 음수·바이트 절약" closed="true" %}}
 차분 압축은 `-5, -7, -13` 같은 음수를 낳는데, 음수는 이진 표현상 상위 비트가 켜져 공간을 많이 먹습니다. 그래서 두 단계로 다듭니다.
 
-- **ZigZag 인코딩**: 부호를 없애고 절댓값이 작은 순서대로 양수에 매핑한다(`0, -1, 1, -2, ...` → `0, 1, 2, 3, ...`). 예로 `-5`는 왼쪽 시프트(-10) XOR 산술 우시프트(-1) = 9로 바뀐다. 큰 음수가 작은 양수가 된다.
-- **Varint 인코딩**: 얻은 양수를 **7비트씩** 쪼개 저장한다. 각 바이트의 하위 7비트는 값, 최상위 1비트는 "다음 바이트가 이어진다"는 연속 플래그다. `9`는 한 바이트로 끝나고, `300`처럼 큰 값은 여러 바이트로 이어진다.
+- **ZigZag 인코딩**: 부호를 없애고 절댓값이 작은 순서대로 양수에 매핑한다(`0, -1, 1, -2, ...` → `0, 1, 2, 3, ...`). 예로 `-5`는 왼쪽 시프트(-10) XOR 산술 우시프트(-1) = 9로 바뀝니다. 큰 음수가 작은 양수가 됩니다.
+- **Varint 인코딩**: 얻은 양수를 **7비트씩** 쪼개 저장합니다. 각 바이트의 하위 7비트는 값, 최상위 1비트는 "다음 바이트가 이어진다"는 연속 플래그입니다. `9`는 한 바이트로 끝나고, `300`처럼 큰 값은 여러 바이트로 이어집니다.
 
 `-5`는 최종적으로 `9`로 저장됩니다. 실운영 실측으로 데이터포인트당 0.92바이트까지 줄어드는 수치는 [개념 04 저장·압축]({{< relref "../../concepts/04-storage-and-compression.md" >}})에서 다룹니다.
 {{% /details %}}
@@ -123,7 +123,7 @@ Retention 기간에 도달하면 **Next → Current, Current → Previous, Previ
 
 1. **Prefix 1** · 태그 → Metric ID — 태그 필터를 IndexDB에 전달해 `name`·`method`·`status` 등 여러 조건의 **교집합** Metric ID를 모은다(인메모리 캐시 먼저 확인).
 2. **Prefix 2** · Metric ID → TSID — 모인 Metric ID를 `TSID`로 변환한다(예: Metric ID 49가 어떤 `TSID`인지 조회).
-3. **Prefix 3** · TSID → 값·이름 복원 — `TSID`로 value·timestamp를 가져오고 응답에 넣을 지표 이름·레이블을 역으로 복원한다.
+3. **Prefix 3** · TSID → 값·이름 복원 — `TSID`로 value·timestamp를 가져오고 응답에 넣을 지표 이름·레이블을 역으로 복원합니다.
 
 {{< flow src="_flow/vmselect-fanout-쿼리-엔진.json" />}}
 
@@ -131,9 +131,9 @@ Retention 기간에 도달하면 **Next → Current, Current → Previous, Previ
 
 `vmselect`의 메모리 관리 포인트는 세 가지입니다.
 
-1. **쿼리 시점 Deduplication** — `vmstorage`에서 이미 dedup했지만 `vmselect`에서 한 번 더 한다. `dedup.minScrapeInterval=10s` 같은 옵션으로 동일 timestamp 구간에서 최신 값만 살린다.
-2. **Rollup Result Cache** — 한 번 처리한 쿼리 결과를 캐싱하되 **`vmselect` 허용 메모리의 12.5%만** 쓴다. 그리고 현재 시각 기준 최근 5분 구간은 캐싱에서 제외한다. 최근 5분 데이터는 아직 `vmstorage`에 다 도착하지 않았을 수 있어, 불안정한 결과를 캐시에 넣으면 잘못된 값을 계속 돌려주기 때문이다.
-3. **Query Latency Offset** — `search.latencyOffset` 설정값, **기본 30초**. 쿼리 시 가장 최근 30초 데이터를 일부러 뒤로 밀어 검색한다. 수집 지연으로 인한 불안정 데이터를 피하려는 것으로, 실시간성이 중요하면 0초로 줄일 수 있으나 **같은 그래프가 새로고침마다 다르게 보이는** 것을 감수해야 한다.
+1. **쿼리 시점 Deduplication** — `vmstorage`에서 이미 dedup했지만 `vmselect`에서 한 번 더 합니다. `dedup.minScrapeInterval=10s` 같은 옵션으로 동일 timestamp 구간에서 최신 값만 살립니다.
+2. **Rollup Result Cache** — 한 번 처리한 쿼리 결과를 캐싱하되 **`vmselect` 허용 메모리의 12.5%만** 씁니다. 그리고 현재 시각 기준 최근 5분 구간은 캐싱에서 제외합니다. 최근 5분 데이터는 아직 `vmstorage`에 다 도착하지 않았을 수 있어, 불안정한 결과를 캐시에 넣으면 잘못된 값을 계속 돌려주기 때문입니다.
+3. **Query Latency Offset** — `search.latencyOffset` 설정값, **기본 30초**. 쿼리 시 가장 최근 30초 데이터를 일부러 뒤로 밀어 검색합니다. 수집 지연으로 인한 불안정 데이터를 피하려는 것으로, 실시간성이 중요하면 0초로 줄일 수 있으나 **같은 그래프가 새로고침마다 다르게 보이는** 것을 감수해야 합니다.
 
 3-Prefix 검색의 상세는 [개념 05 쿼리·운영 컴포넌트]({{< relref "../../concepts/05-query-and-ops-components.md" >}})에서 다룹니다. 운영 컴포넌트 `vmalert`(Recording rules 선계산)·`vmauth`(멀티 클러스터 라우팅 게이트웨이)는 이 발표에는 등장하지 않으며, 같은 문서에서 다른 D2 자료를 근거로 별도로 다룹니다.
 
@@ -141,15 +141,15 @@ Retention 기간에 도달하면 **Next → Current, Current → Previous, Previ
 
 마지막 섹션은 운영에서 마주치는 best/worst case, 곧 카디널리티 이야기입니다. 시계열은 그 자체로 하나의 정의이므로 레이블이 단 하나만 달라져도 다른 시계열로 인식됩니다. 발표자가 든 예에서 `pod_name`과 `session_id`는 하이 카디널리티를 유발할 수 있는 대표 레이블입니다. 변경이 잦은 값은 가능하면 레이블에서 제외합니다.
 
-- **pod 이름** — 파드가 재시작될 때마다 이름이 바뀌면 New `TSID`가 쏟아진다. 앞에 서비스 네임이 있으니 `my-order` 같은 **자주 변하지 않는 서비스 네임**으로 대체하면, 파드가 재시작돼도 지표에 영향이 없다.
-- **session ID** — 이런 자주 변경되는 값은 지표로 저장하지 말고 **로그나 트레이스로** 다루는 것이 더 낫다.
+- **pod 이름** — 파드가 재시작될 때마다 이름이 바뀌면 New `TSID`가 쏟아집니다. 앞에 서비스 네임이 있으니 `my-order` 같은 **자주 변하지 않는 서비스 네임**으로 대체하면, 파드가 재시작돼도 지표에 영향이 없습니다.
+- **session ID** — 이런 자주 변경되는 값은 지표로 저장하지 말고 **로그나 트레이스로** 다루는 것이 더 낫습니다.
 
 카디널리티의 원인·측정 지표(churn rate, slow insert rate)·설계 원칙은 [실전 01 카디널리티]({{< relref "../../practice/01-cardinality.md" >}})가 전담합니다.
 
-> 발표자는 자료 대부분을 공식 블로그에서 인용하고 본인 해석을 붙였다고 밝힌다. 정확한 워딩·그림·전체 맥락은 원문 영상과 D2 기사에서 확인한다.
+> 발표자는 자료 대부분을 공식 블로그에서 인용하고 본인 해석을 붙였다고 밝힙니다. 정확한 워딩·그림·전체 맥락은 원문 영상과 D2 기사에서 확인합니다.
 
 ## 출처
 
 - **Inside VictoriaMetrics** (강민구, NAVER Container Platform · D2 발표영상 40:37 · 2026-06-02) — https://d2.naver.com/helloworld/9290861
 - 작업 저장소 원본: `02_대사집_Inside_VictoriaMetrics.md` (whisper.cpp 자동 전사본).
-- 이 문서는 발표영상 전체(00:00~40:37)의 6섹션 구성 — ① 아키텍처 오버뷰(00:55~05:58) ② `vmagent`(06:11~11:00) ③ `vminsert`(11:00~15:38) ④ `vmstorage`(15:58~33:30) ⑤ `vmselect`(33:46~38:50) ⑥ best/worst case(38:50~40:00) — 를 컴포넌트별 지도 형태로 요약하고, 각 컴포넌트의 깊은 세부는 concepts/01~05·practice/01 문서로 넘긴다.
+- 이 문서는 발표영상 전체(00:00~40:37)의 6섹션 구성 — ① 아키텍처 오버뷰(00:55~05:58) ② `vmagent`(06:11~11:00) ③ `vminsert`(11:00~15:38) ④ `vmstorage`(15:58~33:30) ⑤ `vmselect`(33:46~38:50) ⑥ best/worst case(38:50~40:00) — 를 컴포넌트별 지도 형태로 요약하고, 각 컴포넌트의 깊은 세부는 concepts/01~05·practice/01 문서로 넘깁니다.

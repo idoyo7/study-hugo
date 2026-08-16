@@ -7,19 +7,19 @@ weight: 3
 
 {{< callout type="info" >}}
 **한눈에**
-- **2018·2019·2022 의 라이선스 변경은 전부 모듈 얘기다.** RediSearch·RedisGraph·ReJSON·ReBloom·Redis-ML 에 붙은 것이고, core 는 2024-03-20 까지 BSD-3 였다. 회사는 그 사이 세 번 문서로 "core 는 BSD 로 남는다"고 공언했다 `✓`
+- **2018·2019·2022 의 라이선스 변경은 전부 모듈 얘기입니다.** RediSearch·RedisGraph·ReJSON·ReBloom·Redis-ML 에 붙은 것이고, core 는 2024-03-20 까지 BSD-3 였습니다. 회사는 그 사이 세 번 문서로 "core 는 BSD 로 남는다"고 공언했습니다 `✓`
 - **core 가 넘어간 것은 커밋 하나다.** `0b3439692` "Change license from BSD-3 to dual RSALv2+SSPLv1 (#13157)", 2024-03-20 22:38:24Z, author Pieter Cailliau(Redis Inc.). `COPYING` 삭제 + `LICENSE.txt`(733줄) 추가 `✓`
 - **SSPL 단독이 아니라 "RSALv2 또는 SSPLv1" 듀얼**이고 둘의 성격이 정반대다 — RSALv2 는 "서비스로 제공하지 말라"는 **금지형**, SSPLv1 은 "하려면 오케스트레이션 전부를 공개하라"는 **조건형 copyleft** `✓`
-- **포크 기점은 두 개다.** 라이선스적으로는 마지막 BSD 릴리스인 7.2.4(2024-01-09), 코드적으로는 relicense 커밋의 **부모** `e64d91c37`(2024-03-20 20:44:28Z) — 즉 Valkey 는 relicense 1시간 54분 전의 트리를 들고 나갔고 7.2.4 이후 2개월 반치 unstable 을 포함한다 `✓`
-- **"AWS 가 만든 포크"는 절반만 사실이다.** 첫 커밋 저자 Madelyn Olson 은 2020-07-09 에 Redis Core Team 멤버가 됐는데, **Redis Inc. 가 직접 초청해 앉힌 자리**였다. 실제 대비는 "벤더 vs 벤더"가 아니고 **CLA + 단일 소유 vs DCO + LF + TSC 1/3 상한**에 있다 `✓`
+- **포크 기점은 두 개입니다.** 라이선스적으로는 마지막 BSD 릴리스인 7.2.4(2024-01-09), 코드적으로는 relicense 커밋의 **부모** `e64d91c37`(2024-03-20 20:44:28Z) — 즉 Valkey 는 relicense 1시간 54분 전의 트리를 들고 나갔고 7.2.4 이후 2개월 반치 unstable 을 포함합니다 `✓`
+- **"AWS 가 만든 포크"는 절반만 사실입니다.** 첫 커밋 저자 Madelyn Olson 은 2020-07-09 에 Redis Core Team 멤버가 됐는데, **Redis Inc. 가 직접 초청해 앉힌 자리**였습니다. 실제 대비는 "벤더 vs 벤더"가 아니고 **CLA + 단일 소유 vs DCO + LF + TSC 1/3 상한**에 있습니다 `✓`
 - **2025-05 에 Redis 는 AGPLv3 를 추가해 OSI 승인 라이선스로 돌아왔다. 그런데도 Valkey 는 돌아가지 않았다.** 라이선스 옵션이 늘어난 것과 거버넌스가 바뀐 것은 다르다 — CLA 는 그대로이고, AGPL 은 **추가**였을 뿐 RSALv2/SSPLv1 철회가 아니다 `✓`
-- **호환성은 RESP 레벨까지만 참이다.** 커맨드 JSON 기준 Valkey 9.1.0 전용 18개 / Redis 8.10.0 전용 52개. atomic slot migration 처럼 **같은 기능을 다른 커맨드로** 구현한 사례가 이미 있다 `✓`
-- 사내에서 캐시로만 쓴다면 **어느 라이선스에서도 걸리지 않는다**(§7). 걸리는 것은 재배포·외부 제공·그룹사 경계다.
+- **호환성은 RESP 레벨까지만 참입니다.** 커맨드 JSON 기준 Valkey 9.1.0 전용 18개 / Redis 8.10.0 전용 52개. atomic slot migration 처럼 **같은 기능을 다른 커맨드로** 구현한 사례가 이미 있습니다 `✓`
+- 사내에서 캐시로만 쓴다면 **어느 라이선스에서도 걸리지 않는다**(§7). 걸리는 것은 재배포·외부 제공·그룹사 경계입니다.
 {{< /callout >}}
 
-> **왜 이 문서인가.** "Redis 가 라이선스를 바꿨고 AWS 가 포크했다"는 두 줄 요약은 세 곳에서 틀린다 — 무엇이 바뀌었는지(모듈 vs core), 누가 나갔는지(외부인 vs 원 core team), 그리고 왜 안 돌아왔는지다. 마지막 항목이 이 문서의 논지다. **2025-05 에 Redis 가 AGPLv3 를 추가해 OSI 승인 라이선스로 복귀했는데도 Valkey 는 돌아가지 않았다.** 라이선스가 원인이었다면 이 시점에 봉합됐어야 한다. 원인은 라이선스가 아니었다. **단일 벤더가 프로젝트의 라이선스를 일방적으로 바꿀 수 있는 구조**가 원인이었고, 라이선스 변경은 그 구조를 드러낸 방아쇠였다.
+> **왜 이 문서인가.** "Redis 가 라이선스를 바꿨고 AWS 가 포크했다"는 두 줄 요약은 세 곳에서 틀린다 — 무엇이 바뀌었는지(모듈 vs core), 누가 나갔는지(외부인 vs 원 core team), 그리고 왜 안 돌아왔는지입니다. 마지막 항목이 이 문서의 논지입니다. **2025-05 에 Redis 가 AGPLv3 를 추가해 OSI 승인 라이선스로 복귀했는데도 Valkey 는 돌아가지 않았습니다.** 라이선스가 원인이었다면 이 시점에 봉합됐어야 합니다. 원인은 라이선스가 아니었습니다. **단일 벤더가 프로젝트의 라이선스를 일방적으로 바꿀 수 있는 구조**가 원인이었고, 라이선스 변경은 그 구조를 드러낸 방아쇠였습니다.
 
-> 근거 기준: 라이선스 원문·커밋·거버넌스 문서는 `~/evejuni/{redis,valkey}` 로컬 클론의 태그(`redis 7.4.0`·`8.0.0`·`8.10.0`·`7.2.15`, `valkey 9.1.0`) 직접 확인, 회사 발표문·프레스릴리스·배포판 패키지 DB 는 2026-08-05 기준. 시각이 걸린 사건은 **UTC 로 통일**했다.
+> 근거 기준: 라이선스 원문·커밋·거버넌스 문서는 `~/evejuni/{redis,valkey}` 로컬 클론의 태그(`redis 7.4.0`·`8.0.0`·`8.10.0`·`7.2.15`, `valkey 9.1.0`) 직접 확인, 회사 발표문·프레스릴리스·배포판 패키지 DB 는 2026-08-05 기준. 시각이 걸린 사건은 **UTC 로 통일**했습니다.
 
 ## 1. 전사 — 압박의 누적(2018~2021), 그리고 core 는 BSD 였다
 
@@ -195,7 +195,7 @@ AGPLv3 와 SSPLv1 은 겉보기 구조가 같습니다 — 둘 다 "네트워크
 발표문의 논지는 세 겹이었습니다 `✓`
 1. **2024-03 의 목표는 달성됐다** — "This achieved our goal—**AWS and Google now maintain their own fork**—but the change hurt our relationship with the Redis community."
 2. **SSPL 은 오픈소스가 아니다** — "SSPL is not truly open source because the Open Source Initiative clarified it lacks the requisites to be an OSI-approved license."
-3. **antirez 가 돌아왔다** — 복귀 공표는 2024-12-10(회사 발표문은 결정 시점을 "in November of 2024"로 쓴다 `?`), 역할은 part-time evangelist. Vector Sets 를 그가 만들었고 오픈소스로 내보내고 싶어 했다.
+3. **antirez 가 돌아왔다** — 복귀 공표는 2024-12-10(회사 발표문은 결정 시점을 "in November of 2024"로 쓴다 `?`), 역할은 part-time evangelist. Vector Sets 를 그가 만들었고 오픈소스로 내보내고 싶어 했습니다.
 
 Redis 8 GA 블로그는 실무 이유를 하나 더 줍니다 — "We heard from **some customers** that it is easier for them to operate under an OSI-approved license." `✓` antirez 본인의 논지는 조금 다릅니다. 그는 SSPL 이 닫힌 라이선스라고 보지 않지만 "the SSPL, in practical terms, **failed to be accepted by the community**. The OSI wouldn't accept it, nor would the software community regard the SSPL as an open license" 라고 썼습니다 `✓`
 
@@ -317,7 +317,7 @@ Redis 8 GA 블로그는 실무 이유를 하나 더 줍니다 — "We heard from
 
 **측정·계산**
 - 커밋/저자 수는 `git log --format='%ae' --since=… --all | sort -u | wc -l` 로 양쪽 repo 직접 계측. **core repo 만이므로 양 진영 모두 과소평가** — 방향성만 유효
-- 벤더·프로젝트 자체 발행 수치(AWS 가격 인하 발표, valkey.io 참여사·기여자 수)는 `Ⓥ` 로 표시하고 발표 시점을 함께 적었다. 가격 수치 자체는 07 이 소유한다
+- 벤더·프로젝트 자체 발행 수치(AWS 가격 인하 발표, valkey.io 참여사·기여자 수)는 `Ⓥ` 로 표시하고 발표 시점을 함께 적었습니다. 가격 수치 자체는 07 이 소유합니다
 
 **미확인으로 남긴 것** — OSI 도메인의 2024년 Redis 관련 공식 게시물 · LF 프레스릴리스와 valkey.io/topics/history 의 초기 참여사 목록 불일치의 정본 · AWS 할인폭의 2026-08 현재성 · Oracle OCI Cache 의 Valkey 9.x 지원 · Google Memorystore GA 날짜의 1차 근거 · antirez 복귀 "결정" 시점(2024-11)의 1차 근거 · 그룹사 간 제공이 라이선스상 "third parties" 인지의 판정 · Redis Inc. 의 소송 부재
 

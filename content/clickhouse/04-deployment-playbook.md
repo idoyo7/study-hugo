@@ -8,16 +8,16 @@ weight: 4
 {{< callout type="info" >}}
 **한눈에** — Altinity operator + EKS + 로컬 NVMe로 ReplicatedMergeTree 클러스터를 CHK/CHI 필드 수준까지 **처음 세우는** 종합 문서.
 
-- **5계층**(노드 부트스트랩 → local PV provisioner → StorageClass → CHK/CHI 매니페스트 → Pod 스케줄)을 거치며, operator는 [4]~[5]만 담당한다.
+- **5계층**(노드 부트스트랩 → local PV provisioner → StorageClass → CHK/CHI 매니페스트 → Pod 스케줄)을 거치며, operator는 [4]~[5]만 담당합니다.
 - **순서**: operator+CRD 설치 → StorageClass 2종 → CHK(Keeper 3노드, **gp3 영속**) Ready → CHI(shard×replica, **로컬 NVMe** `fast-disks`) → 배치 강제·PDB·백업.
 - **RF2 기본**, "임의 2대 유실에도 무손실"·AZ 소실 생존이 요구면 **RF3**로 승급(§2 'RF 선택').
 - **함정**: `insert_quorum` 계열은 `settings`가 아닌 `profiles`(users.xml)에, 모든 config는 `settings`/`files`/`users`로만 주입, Keeper 데이터는 절대 로컬 NVMe 금지(gp3).
-- **시간축 경계**: 이 페이지는 **배포 시점**의 선언 필드만 소유한다. 서고 난 뒤의 스케일·롤링 업그레이드·노드 소실 재수화·Keeper 정족수 복구·백업/모니터링 연계는 [변경관리·복구]({{< relref "05-altinity-operations.md" >}})가 소유한다.
+- **시간축 경계**: 이 페이지는 **배포 시점**의 선언 필드만 소유합니다. 서고 난 뒤의 스케일·롤링 업그레이드·노드 소실 재수화·Keeper 정족수 복구·백업/모니터링 연계는 [변경관리·복구]({{< relref "05-altinity-operations.md" >}})가 소유합니다.
 {{< /callout >}}
 
 앞의 두 페이지는 각각 "**어느** operator냐"([Altinity operator]({{< relref "03-operator.md" >}}))와 "**어떤** 스토리지 매체냐"([스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}}))를 결정했습니다. 이 페이지는 그 둘을 **하나의 실행 가능한 배포 절차**로 묶는 종합 문서입니다 — "AWS EKS 위에서 Altinity clickhouse-operator로 i7i/i8g 로컬 NVMe를 데이터 디스크 삼아 ReplicatedMergeTree 클러스터를 CHK/CHI 매니페스트 필드 수준까지 **처음** 배포하는 법". 앞 페이지가 **확정한 전제**(Altinity operator, self-host RMT, 로컬 NVMe hot + S3 cold, Keeper는 gp3 영속, i7i/i8g.4xlarge 단일 디스크 단위, `instanceStorePolicy`는 ephemeral이라 PV가 아님)는 재론하지 않고 그 위에 **필드·순서·값**을 얹습니다. 배포가 끝난 뒤의 변경관리·복구는 [Altinity operator 운영]({{< relref "05-altinity-operations.md" >}})으로 넘깁니다 — 같은 규칙을 두 곳에서 서술하지 않기 위한 경계입니다. 개별 필드 근거는 [출처]({{< relref "10-sources.md" >}})의 operator·CRD·local PV 분류로 인용합니다. 시점 기준 2026-07, operator **0.27.1**, CRD `clickhouse.altinity.com/v1` / `clickhouse-keeper.altinity.com/v1`.
 
-> **표기**: `✓` = CRD 원문·공식 예제 YAML·릴리즈노트로 직접 검증. `≈` = 확정 사실에 기반한 설계 판단. `?` = 배포 후 실측·재확인 필요. 검증 못 한 YAML 필드는 `# [미확인]` 주석을 단다.
+> **표기**: `✓` = CRD 원문·공식 예제 YAML·릴리즈노트로 직접 검증. `≈` = 확정 사실에 기반한 설계 판단. `?` = 배포 후 실측·재확인 필요. 검증 못 한 YAML 필드는 `# [미확인]` 주석을 답니다.
 
 ## 배포 청사진 — 5계층과 순서
 
@@ -303,7 +303,7 @@ replica를 2~3벌 두는 것만으로는 부족합니다 — 그 사본들이 **
 
 **storageManagement** `✓`:
 
-- **`provisioner`**(값: `StatefulSet`(기본) | `Operator`) — 로컬 NVMe 권고는 **`StatefulSet`**. `Operator`는 CSI `allowVolumeExpansion` 환경에서 파드 재시작 없이 온라인 확장할 때만 쓰며, 로컬 NVMe는 물리적으로 확장 불가라 이점이 없다.
+- **`provisioner`**(값: `StatefulSet`(기본) | `Operator`) — 로컬 NVMe 권고는 **`StatefulSet`**. `Operator`는 CSI `allowVolumeExpansion` 환경에서 파드 재시작 없이 온라인 확장할 때만 쓰며, 로컬 NVMe는 물리적으로 확장 불가라 이점이 없습니다.
 - **`reclaimPolicy`**(값: `Retain` | `Delete`(기본)) — 로컬 NVMe 권고는 **`Retain`**. STS/CHI 삭제·`helm uninstall`에도 PVC가 잔존해 실수 삭제를 방어한다. `stop: 1`은 Replicas=0으로 만들되 PVC는 intact.
 
 {{< callout type="warning" >}}

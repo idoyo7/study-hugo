@@ -14,11 +14,11 @@ weight: 3
 
 {{< callout type="info" >}}
 **한눈에**
-- 증상은 workload rollout(재시작·배포) 중 간헐적으로 터지는 **503**이었다. public gateway는 `response_code_details: via_upstream`만 남기고 실제 원인 기록은 waypoint의 `upstream_reset_before_response_started{connection_termination}` · `response_flags: UC`에 있었다. 다음 hop인 ztunnel과 istio-cni에는 이상 로그가 없었다.
-- 원인은 IP 겹침이 아니라 **stale connection을 폐기하지 못하는 커넥션 생명주기 관리**였다. waypoint Envoy의 `connect_originate`(ORIGINAL_DST) cluster는 `IP:Port`만을 키로 HBONE 터널을 pool에 보관·재사용하고, ztunnel은 Pod 종료 시 그 터널을 graceful하게 닫지 않는다.
-- pcap이 결정적이었다. 새 Pod가 뜬 직후 **TLS handshake 없이 application data stream이 곧바로 인입**됐고 새 Pod의 network namespace에는 그 TCP connection 상태가 없으니 커널 TCP 스택이 RST로 답했다.
-- 로그·pcap·socket 세 각도가 같은 결론을 가리켰다. Envoy debug 로그에서 ConnectionId 79097이 Phase 1과 Phase 2에 동일하게 등장했고(`using existing fully connected connection`), Pod 삭제 후에도 waypoint 쪽 `:15008` socket이 일정 시간 `ESTABLISHED`로 남아 있었다.
-- 즉시 조치는 **retry 조건을 `reset-before-request`에서 `reset`까지 확장**한 것이다. 채널팀은 이것으로 증상을 해소했지만, 근본 해결은 pool key에 workload identity·Pod UID를 넣는 Istio upstream 개선 영역으로 남겼다.
+- 증상은 workload rollout(재시작·배포) 중 간헐적으로 터지는 **503**이었습니다. public gateway는 `response_code_details: via_upstream`만 남기고 실제 원인 기록은 waypoint의 `upstream_reset_before_response_started{connection_termination}` · `response_flags: UC`에 있었습니다. 다음 hop인 ztunnel과 istio-cni에는 이상 로그가 없었습니다.
+- 원인은 IP 겹침이 아니라 **stale connection을 폐기하지 못하는 커넥션 생명주기 관리**였습니다. waypoint Envoy의 `connect_originate`(ORIGINAL_DST) cluster는 `IP:Port`만을 키로 HBONE 터널을 pool에 보관·재사용하고, ztunnel은 Pod 종료 시 그 터널을 graceful하게 닫지 않습니다.
+- pcap이 결정적이었습니다. 새 Pod가 뜬 직후 **TLS handshake 없이 application data stream이 곧바로 인입**됐고 새 Pod의 network namespace에는 그 TCP connection 상태가 없으니 커널 TCP 스택이 RST로 답했습니다.
+- 로그·pcap·socket 세 각도가 같은 결론을 가리켰습니다. Envoy debug 로그에서 ConnectionId 79097이 Phase 1과 Phase 2에 동일하게 등장했고(`using existing fully connected connection`), Pod 삭제 후에도 waypoint 쪽 `:15008` socket이 일정 시간 `ESTABLISHED`로 남아 있었습니다.
+- 즉시 조치는 **retry 조건을 `reset-before-request`에서 `reset`까지 확장**한 것입니다. 채널팀은 이것으로 증상을 해소했지만, 근본 해결은 pool key에 workload identity·Pod UID를 넣는 Istio upstream 개선 영역으로 남겼습니다.
 {{< /callout >}}
 
 Ambient mode 시리즈 3편은 채널팀이 프로덕션에서 겪은 장애들을 다룹니다. 그중 3-1편은 배포할 때마다 조금씩 새던 503을 추적한 기록입니다. [1편]({{< relref "01-why-ambient-mode.md" >}})이 왜 Ambient로 가는지를, [2편]({{< relref "02-envoy-config-anatomy.md" >}})이 waypoint Envoy config가 어떻게 생겼는지를 다뤘다면, 이 글은 그 config가 런타임에 들고 있는 상태가 장애로 이어진 사례입니다.
@@ -248,11 +248,11 @@ retry 확대는 **멱등성을 전제로 합니다.** `reset`은 "요청이 업�
 
 ## 이 문서에서 가져갈 것
 
-- hop이 늘어난 메시에서 5xx를 볼 때는 `via_upstream`을 남긴 프록시가 아니라, `response_flags`(`UC` 등)와 구체적인 `response_code_details`를 남긴 프록시부터 조사한다. 여기서는 waypoint가 시작점이었다.
-- **커넥션 pool의 키가 곧 장애 반경이다.** `IP:Port`만으로 pool을 구분하면 IP가 재사용되는 순간 다른 워크로드로 가는 커넥션이 섞인다. 키에 workload identity나 인스턴스 고유값(Pod UID)이 들어가야 원천 차단된다. IP 재사용은 증상 트리거일 뿐이라, 이 구분을 놓치면 IPAM만 만지다가 재발한다.
-- 암호화된 구간의 pcap도 쓸모가 있다. 페이로드를 못 읽어도 handshake 유무와 프레임 순서는 보이고 "TLS handshake 없이 data frame이 왔다"는 관찰 하나가 원인을 갈랐다.
-- Pod 생명주기에 걸친 문제는 캡처 범위도 그만큼 넓혀야 한다. `NET_RAW`/`NET_ADMIN` sidecar로 SIGTERM 이후 잔여 패킷까지 잡고 pcap을 클러스터 밖(S3)으로 내보내지 않았다면 증거는 Pod와 함께 사라졌다.
-- retry 확대는 시간을 버는 조치다. 멱등성을 확인한 뒤에만 적용하고, 근본 수정(upstream pool key 개선)이 들어오기 전까지의 임시 조치로 관리한다.
+- hop이 늘어난 메시에서 5xx를 볼 때는 `via_upstream`을 남긴 프록시가 아니라, `response_flags`(`UC` 등)와 구체적인 `response_code_details`를 남긴 프록시부터 조사합니다. 여기서는 waypoint가 시작점이었습니다.
+- **커넥션 pool의 키가 곧 장애 반경입니다.** `IP:Port`만으로 pool을 구분하면 IP가 재사용되는 순간 다른 워크로드로 가는 커넥션이 섞입니다. 키에 workload identity나 인스턴스 고유값(Pod UID)이 들어가야 원천 차단됩니다. IP 재사용은 증상 트리거일 뿐이라, 이 구분을 놓치면 IPAM만 만지다가 재발합니다.
+- 암호화된 구간의 pcap도 쓸모가 있습니다. 페이로드를 못 읽어도 handshake 유무와 프레임 순서는 보이고 "TLS handshake 없이 data frame이 왔다"는 관찰 하나가 원인을 갈랐습니다.
+- Pod 생명주기에 걸친 문제는 캡처 범위도 그만큼 넓혀야 합니다. `NET_RAW`/`NET_ADMIN` sidecar로 SIGTERM 이후 잔여 패킷까지 잡고 pcap을 클러스터 밖(S3)으로 내보내지 않았다면 증거는 Pod와 함께 사라졌습니다.
+- retry 확대는 시간을 버는 조치입니다. 멱등성을 확인한 뒤에만 적용하고, 근본 수정(upstream pool key 개선)이 들어오기 전까지의 임시 조치로 관리합니다.
 
 ## 소스
 

@@ -17,9 +17,9 @@ weight: 6
 - Valkey 에서 **모듈을 하나라도 로드하면 ASM 이 아예 거부된다.** 공식 모듈 4개(search/json/bloom/ldap) 전부가 `VALKEYMODULE_OPTIONS_HANDLE_ATOMIC_SLOT_MIGRATION` 을 선언하지 않는다 `✓`.
 {{< /callout >}}
 
-> **왜 이 문서인가.** cluster mode 를 "샤딩 켜기"로 읽으면 매니페스트는 통과하고 애플리케이션이 나중에 터진다. 실제로 켜지는 것은 **애플리케이션 계약의 변경**이다 — 같이 읽던 키를 같이 읽을 수 없다. standalone 에서 통과한 트랜잭션이 `EXEC` 에서만 실패한다. 모니터링이 보던 `DBSIZE` 가 다른 뜻이 된다. 이 문서가 다루는 것은 그 제약이 **어느 코드에서 어떤 조건으로 발생하는지**, 그리고 11년간 가장 아팠던 슬롯 마이그레이션이 2025년에 어떻게 바뀌었는지다.
+> **왜 이 문서인가.** cluster mode 를 "샤딩 켜기"로 읽으면 매니페스트는 통과하고 애플리케이션이 나중에 터집니다. 실제로 켜지는 것은 **애플리케이션 계약의 변경**이다 — 같이 읽던 키를 같이 읽을 수 없습니다. standalone 에서 통과한 트랜잭션이 `EXEC` 에서만 실패합니다. 모니터링이 보던 `DBSIZE` 가 다른 뜻이 됩니다. 이 문서가 다루는 것은 그 제약이 **어느 코드에서 어떤 조건으로 발생하는지**, 그리고 11년간 가장 아팠던 슬롯 마이그레이션이 2025년에 어떻게 바뀌었는지입니다.
 
-> 근거 기준: 소스는 `valkey 9.1.0`/`9.1.1`, `redis 8.10.0`, `redis 3.0.0` 로컬 클론과 각 릴리스노트다. 릴리스일은 GitHub `published_at` 이고 사건 시각은 UTC 로 통일했다. 기준일 2026-08-06. 줄 번호는 해당 태그 스냅샷이다.
+> 근거 기준: 소스는 `valkey 9.1.0`/`9.1.1`, `redis 8.10.0`, `redis 3.0.0` 로컬 클론과 각 릴리스노트입니다. 릴리스일은 GitHub `published_at` 이고 사건 시각은 UTC 로 통일했습니다. 기준일 2026-08-06. 줄 번호는 해당 태그 스냅샷입니다.
 
 AWS 에서 이 구조가 어떤 엔드포인트로 노출되는지, CMD → CME 전환에서 무엇이 바뀌는지는 이 문서 소유가 아닙니다 → [07 · AWS 엔드포인트]({{< relref "../07-aws-endpoints/index.md" >}}). 버전별 신기능 나열은 [04 · Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}})(Redis)와 [05 · Valkey 8.0 → 9.1]({{< relref "../05-valkey-8-to-9/index.md" >}})(Valkey)가 소유합니다.
 
@@ -334,7 +334,7 @@ cluster bus 부하 자체는 Valkey 9.1.0 이 바이트 단위 지표를 추가�
 
 - 리다이렉트·슬롯 판정: `valkey 9.1.0:src/cluster.c:58-77`(keyHashSlot), `:982-1001`(clusterSlotByCommand), `:1049-1306`(getNodeByQuery), `:1071-1084`(MULTI/EXEC 검증), `:1090-1092`(NO_KEYS 로컬 처리), `:1096-1101`(full-coverage 선검사), `:1268-1290`(ASK/TRYAGAIN), `:1302-1305`(MOVED base case), `:1308-1336`(clusterRedirectClient), `:1593-1600`(askingCommand), `:1738-1822`(clusterscanCommand); `redis 8.10.0:src/cluster.c:1498-1526`, `:1521-1522`; `redis 3.0.0:src/cluster.c`(keyHashSlot·RESTORE-ASKING)
 - 상수·wire format: `valkey 9.1.0:src/cluster.h:9-10`, `:21-29`; `redis 8.10.0:src/cluster.h:32-40`(`CLUSTER_REDIR_TRIMMING`); `valkey 9.1.0:src/cluster_legacy.h:285`, `:303-322`(static_assert 블록)
-- gossip·failover·상태: `valkey 9.1.0:src/cluster_legacy.c:878-880`, `:1500`, `:1554`(cluster port), `:2582-2605`·`:6650-6665`(markNodeAsFailingIfNeeded), `:5195-5230`(clusterPropagatePublish), `:6606-6680`(clusterUpdateState), `:7325-7415`(genClusterInfoString — `cluster_voting_nodes_pfail`/`_fail` 은 `:7367-7370`); `valkey 9.0.0:src/cluster_legacy.c:7002-7005`(그 네 필드의 최초 등장 — `valkey 8.0.0:src/cluster_legacy.c` 에는 `cluster_slots_pfail` 만 있다)
+- gossip·failover·상태: `valkey 9.1.0:src/cluster_legacy.c:878-880`, `:1500`, `:1554`(cluster port), `:2582-2605`·`:6650-6665`(markNodeAsFailingIfNeeded), `:5195-5230`(clusterPropagatePublish), `:6606-6680`(clusterUpdateState), `:7325-7415`(genClusterInfoString — `cluster_voting_nodes_pfail`/`_fail` 은 `:7367-7370`); `valkey 9.0.0:src/cluster_legacy.c:7002-7005`(그 네 필드의 최초 등장 — `valkey 8.0.0:src/cluster_legacy.c` 에는 `cluster_slots_pfail` 만 있습니다)
 - pub/sub: `valkey 9.1.0:src/pubsub.c:288-327`
 - 스크립트: `redis 8.10.0:src/script.c:502-556`; `valkey 9.1.0:src/script.c:237-239`, `:340-343`
 - ASM: `valkey 9.1.0:design-docs/atomic-slot-migration.md`(§3.1 시퀀스, §3.2 와이어, §3.3 롤백, §3.4.1 RDB opcode), `:src/cluster_migrateslots.c:15-41`·`:1050-1110`; `valkey 9.1.1:src/cluster_migrateslots.c:507-510`, `:src/commands/cluster-migrateslots.json`, `:src/config.c:3457`·`:3490`, `:src/valkey-cli.c:2800`·`:4689`; `redis 8.10.0:src/cluster_asm.c:9-42`·`:901-903`·`:925-1000`·`:958-990`, `:src/config.c:3433`·`:3465`·`:3466`·`:3467`
@@ -356,7 +356,7 @@ cluster bus 부하 자체는 Valkey 9.1.0 이 바이트 단위 지표를 추가�
 - Redis Sentinel 문서 — "High availability for non-clustered Redis", 4역할, quorum 의 감지 전용 성격, 비동기 복제 경고
 - valkey.io clients 페이지 · `valkey-io/valkey-glide` · Redis 공식 클라이언트 발표 2건
 - `gh api repos/twitter/twemproxy`, `gh api repos/CodisLabs/codis` (2026-08-06 조회) — 마지막 push 2024-03-29 / 2024-04-15, 양쪽 `archived: false`
-- Valkey ASM 후속 항목의 미출시 확인 — `gh api repos/valkey-io/valkey/issues/{2957,2392,3538}` (2026-08-06 조회) 전부 `state: open`, milestone 없음. 반면 `issues/2755`(valkey-cli ASM) 는 `closed_at: 2025-12-22Z` 로 9.1.0 에 실렸다 `✓`
+- Valkey ASM 후속 항목의 미출시 확인 — `gh api repos/valkey-io/valkey/issues/{2957,2392,3538}` (2026-08-06 조회) 전부 `state: open`, milestone 없음. 반면 `issues/2755`(valkey-cli ASM) 는 `closed_at: 2025-12-22Z` 로 9.1.0 에 실렸습니다 `✓`
 - Valkey 모듈 ASM opt-in 실측 — `valkey-io/{valkey-search,valkey-json,valkey-bloom,valkey-ldap}` 를 `--depth 1` 클론해 `grep -rn 'ATOMIC_SLOT_MIGRATION'` → 전부 0건. 교차 확인 `gh api "search/code?q=…"` 도 0건. 업스트림도 인지 상태(valkey-ldap #73, valkey-search #473, valkey-json #84 open) `✓`
 
 **미확인으로 남긴 것** — 클라이언트 라이브러리의 정확한 cluster 클래스명과 최소 버전 `?` · valkey-glide 의 언어별 버전과 cluster 기능 격차 `?` · 비-cluster 클라이언트의 실패 비율(2/3 은 균등 분배 가정의 산술 추정) `?` · Redis ASM 벤치마크의 독립 재현 `?` · antirez 가 말한 "other design tradeoffs" 의 내용 `?` · `CLUSTER SYNCSLOTS` 페이로드의 두 진영 wire 호환성(혼합 클러스터는 애초에 지원 대상이 아니다) `?` · `cluster-databases` 를 1보다 올렸을 때의 실제 메모리·순회 비용 `?` · 프록시 대안(Envoy Redis proxy 등)이 흡수해주는 제약 범위 `?`

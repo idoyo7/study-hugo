@@ -9,10 +9,10 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- 원래는 허브(ring0-blue)의 CAPA가 크로스계정으로 워크로드 클러스터를 reconcile하고, 버전 SSOT는 CAPI 스펙(`clusterapi.yaml`의 `k8sVersion`)이었다.
-- 그러나 **CAPA는 2025-10-21부터 죽어 있었다** — 워크로드 계정의 크로스계정 롤이 삭제돼 `AssumeRole`이 실패하고 있었다.
-- 롤을 되살려도 CAPA v2.6.1은 addon의 **config-only 변경을 반영하지 않아**(공개 이슈 #4226) addon SSOT로 부적합했다.
-- 결론: 어차피 카펜터 포함 전 컴포넌트를 대점프해야 하므로, in-place 대신 **신규 blue를 Terraform으로** 짓는다.
+- 원래는 허브(ring0-blue)의 CAPA가 크로스계정으로 워크로드 클러스터를 reconcile하고, 버전 SSOT는 CAPI 스펙(`clusterapi.yaml`의 `k8sVersion`)이었습니다.
+- 그러나 **CAPA는 2025-10-21부터 죽어 있었다** — 워크로드 계정의 크로스계정 롤이 삭제돼 `AssumeRole`이 실패하고 있었습니다.
+- 롤을 되살려도 CAPA v2.6.1은 addon의 **config-only 변경을 반영하지 않아**(공개 이슈 #4226) addon SSOT로 부적합했습니다.
+- 결론: 어차피 카펜터 포함 전 컴포넌트를 대점프해야 하므로, in-place 대신 **신규 blue를 Terraform으로** 짓습니다.
 {{< /callout >}}
 
 ## 기존 구조 — 허브-스포크 GitOps + CAPI
