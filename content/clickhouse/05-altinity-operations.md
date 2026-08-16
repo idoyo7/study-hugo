@@ -136,10 +136,10 @@ replica/shard 제거는 scale-out보다 위험이 큽니다.
 
 여기서 말하는 "업그레이드"는 operator 자체가 아니라 **ClickHouse 서버 바이너리 버전**입니다 — 독립된 관심사입니다. 실행 트리거는 podTemplate 이미지 태그를 바꿔 apply하는 것이고, 그다음은 operator가 replica를 하나씩 롤링합니다 `✓`.
 
-1. shard **내부**에서는 replica를 한 번에 하나씩만 처리한다: 해당 replica의 ClickHouse를 shutdown → 새 버전으로 업그레이드 → 재기동 → Keeper 메시지로 시스템 안정을 확인 → 다음 replica로 이동. shard 전체가 동시에 오프라인이 되는 순간이 없어야 한다 `✓`.
+1. shard **내부**에서는 replica를 한 번에 하나씩만 처리합니다: 해당 replica의 ClickHouse를 shutdown → 새 버전으로 업그레이드 → 재기동 → Keeper 메시지로 시스템 안정을 확인 → 다음 replica로 이동. shard 전체가 동시에 오프라인이 되는 순간이 없어야 한다 `✓`.
 2. shard **간**에는 병렬 업그레이드가 허용된다 — "한 shard의 모든 replica가 동시에 오프라인"이 되지만 않으면, 서로 다른 shard의 replica를 동시에 업그레이드해도 된다 `✓`.
 3. **혼합 버전 호환 창은 약 1년(또는 2 LTS 미만)입니다.** 그 이상 벌어진 버전 간에는 mixed-version 상태로 롤링을 진행하지 말고, 다운타임을 감수한 일괄 업그레이드를 하거나 중간 버전을 경유해야 합니다 `✓`. **버전 스킵은 금지**이며, 중간 릴리즈 노트를 LTS 징검다리로 순차 확인합니다.
-4. 이 순서를 operator가 어떻게 자동화하는지 — 롤링 중 replica를 `remote_servers`에서 완전히 빼는 대신 분산쿼리 우선순위를 낮추는(low-priority) 처리로 트래픽을 차단하는 것 등 — 는 [operator 선택 페이지]({{< relref "03-operator.md" >}})에서 다룬 내용을 그대로 따릅니다. 두 안전장치가 함께 걸린다: **PDB**(`pdbMaxUnavailable: 1`)가 동시 다운을 막고, `reconcile.host.wait.replicas`가 catch-up 게이팅을 합니다. 다만 위 1년/2 LTS 호환 창 자체는 operator가 강제하는 것이 아니라 **운영자가 직접 지켜야 하는 규칙**이다 — operator는 어떻게 순차 롤링할지를 돕지만, 얼마나 버전 차이를 벌려도 되는지는 판단해주지 않습니다.
+4. 이 순서를 operator가 어떻게 자동화하는지 — 롤링 중 replica를 `remote_servers`에서 완전히 빼는 대신 분산쿼리 우선순위를 낮추는(low-priority) 처리로 트래픽을 차단하는 것 등 — 는 [operator 선택 페이지]({{< relref "03-operator.md" >}})에서 다룬 내용을 그대로 따릅니다. 두 안전장치가 함께 걸립니다: **PDB**(`pdbMaxUnavailable: 1`)가 동시 다운을 막고, `reconcile.host.wait.replicas`가 catch-up 게이팅을 합니다. 다만 위 1년/2 LTS 호환 창 자체는 operator가 강제하는 것이 아니라 **운영자가 직접 지켜야 하는 규칙**이다 — operator는 어떻게 순차 롤링할지를 돕지만, 얼마나 버전 차이를 벌려도 되는지는 판단해주지 않습니다.
 
 ## operator 자체 업그레이드 런북
 
