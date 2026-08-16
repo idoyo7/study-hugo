@@ -10,11 +10,11 @@ weight: 13
 - `proxyv2`에는 바이너리가 둘 들어 있고(Envoy · pilot-agent), 그 Envoy조차 upstream 그대로가 아닙니다 — istio/proxy가 확장을 함께 컴파일해 만든 빌드입니다.
 - `istio_requests_total`과 `source_*`/`destination_*` 라벨은 컨트롤 플레인이 아니라 **프록시 안에 컴파일된 확장**이 만듭니다. Mixer가 사라졌다는 말의 실질이 이것입니다.
 - CRD는 xDS 리소스로 번역됩니다 — VirtualService→route, DestinationRule→cluster, Gateway→listener. 번역 결과는 추측하지 말고 `istioctl proxy-config`로 봅니다.
-- Istio 빌드는 Envoy의 **특정 커밋에 pin**됩니다. 사이드카 업그레이드가 곧 Envoy 업그레이드이고, 그 버전은 릴리스 노트가 아니라 파드에 물어봐야 압니다.
+- Istio 빌드는 Envoy의 **특정 커밋에 pin**됩니다. 사이드카 업그레이드가 곧 Envoy 업그레이드입니다. 그 버전은 릴리스 노트가 아니라 파드에 물어봐야 압니다.
 - 이미지에 박힌 내장 확장과 CRD로 얹는 사용자 확장([08]({{< relref "08-envoyfilter-extension.md" >}}))은 **바꾸는 방법이 다릅니다**. 전자는 이미지 교체로만, 후자는 설정으로.
 {{< /callout >}}
 
-"Istio는 Envoy를 쓴다"는 문장은 어디에나 있지만, '쓴다'가 무엇인지는 잘 안 적혀 있습니다. [12]({{< relref "12-envoy-capabilities.md" >}})가 Envoy 자체의 능력을 훑었다면, 이 문서는 그 위에 Istio가 무엇을 더 얹었는지를 봅니다. 답은 두 층입니다. **아래층은 컴파일 시점** — Istio는 upstream Envoy 바이너리를 받아 쓰는 게 아니라 자기 확장을 넣어 다시 빌드합니다. **위층은 런타임** — istiod가 CRD를 Envoy 설정으로 번역해 xDS로 내려보냅니다.
+"Istio는 Envoy를 쓴다"는 문장은 어디에나 있지만 '쓴다'가 무엇인지는 잘 안 적혀 있습니다. [12]({{< relref "12-envoy-capabilities.md" >}})가 Envoy 자체의 능력을 훑었다면, 이 문서는 그 위에 Istio가 무엇을 더 얹었는지를 봅니다. 답은 두 층입니다. **아래층은 컴파일 시점** — Istio는 upstream Envoy 바이너리를 받아 쓰는 게 아니라 자기 확장을 넣어 다시 빌드합니다. **위층은 런타임** — istiod가 CRD를 Envoy 설정으로 번역해 xDS로 내려보냅니다.
 
 파드 안에서 그 둘이 어떻게 배선되는지(부트스트랩·SDS·xDS 중계)는 [11]({{< relref "11-request-path-anatomy.md" >}})에 있습니다. 여기서는 배선이 아니라 **부품의 출처**를 다룹니다.
 
@@ -30,13 +30,13 @@ COPY ${TARGETARCH:-amd64}/pilot-agent /usr/local/bin/pilot-agent
 ENTRYPOINT ["/usr/local/bin/pilot-agent"]
 ```
 
-`SIDECAR`가 `envoy`입니다. 즉 이미지는 Envoy와 pilot-agent를 함께 담고, **컨테이너가 뜰 때 실행되는 것은 pilot-agent 쪽**입니다. Envoy는 PID 1이 아니라 agent가 기동하고 관리하는 프로세스입니다. [11]({{< relref "11-request-path-anatomy.md" >}})에서 "Envoy는 istiod에 직접 붙지 않는다"고 한 구조가 이미지 레벨에서부터 이렇게 정해져 있습니다.
+`SIDECAR`가 `envoy`입니다. 이미지는 Envoy와 pilot-agent를 함께 담고 **컨테이너가 뜰 때 실행되는 것은 pilot-agent 쪽**입니다. Envoy는 PID 1이 아니라 agent가 기동하고 관리하는 프로세스입니다. [11]({{< relref "11-request-path-anatomy.md" >}})에서 "Envoy는 istiod에 직접 붙지 않는다"고 한 구조가 이미지 레벨에서부터 이렇게 정해져 있습니다.
 
 그리고 여기 실린 `envoy`가 upstream 바이너리가 아닙니다. istio/proxy 레포의 README가 자기 정의를 이렇게 씁니다.
 
 > The Istio Proxy is a microservice proxy that can be used on the client and server side, and forms a microservice mesh. **It is based on Envoy with the addition of several policy and telemetry extensions.**
 
-istio.io 아키텍처 문서도 같은 말을 한 줄로 합니다 — "Istio uses an extended version of the Envoy proxy." 그 "extended"의 구현이 istio/proxy의 빌드입니다. `WORKSPACE` 파일이 `ENVOY_SHA` / `ENVOY_SHA256`으로 envoyproxy/envoy의 **특정 커밋을 못 박아** 받아오고, 거기에 Istio 확장 소스를 함께 컴파일합니다.
+istio.io 아키텍처 문서도 같은 말을 한 줄로 합니다 — "Istio uses an extended version of the Envoy proxy." 그 "extended"의 구현이 istio/proxy의 빌드입니다. `WORKSPACE` 파일이 `ENVOY_SHA` / `ENVOY_SHA256`으로 envoyproxy/envoy의 **특정 커밋을 못 박아** 받아오고 거기에 Istio 확장 소스를 함께 컴파일합니다.
 
 {{< flow src="_flow/1-proxyv2-해부-컨테이너-하나에.json" />}}
 
@@ -56,9 +56,7 @@ istio.io 아키텍처 문서도 같은 말을 한 줄로 합니다 — "Istio us
 
 ### peer metadata exchange — `source_*` / `destination_*` 라벨의 출처
 
-메트릭에 `destination_workload` 같은 라벨이 붙으려면 프록시가 **상대가 누구인지** 알아야 합니다. 그런데 프록시가 직접 아는 것은 자기 워크로드 정보뿐입니다. 그래서 두 사이드카가 요청 경로 위에서 서로의 메타데이터를 교환합니다.
-
-교환 채널은 계층마다 다릅니다.
+메트릭에 `destination_workload` 같은 라벨이 붙으려면 프록시가 **상대가 누구인지** 알아야 합니다. 그런데 프록시가 직접 아는 것은 자기 워크로드 정보뿐입니다. 그래서 두 사이드카가 요청 경로 위에서 서로의 메타데이터를 교환하고 그 채널은 계층마다 다릅니다.
 
 - **협상** — mTLS 핸드셰이크에서 `istio-peer-exchange`라는 ALPN 프로토콜을 클라이언트·서버 사이드카가 우선협상합니다. 이걸 끄는 스위치(`PILOT_DISABLE_MX_ALPN`)가 Istio 1.20에서 도입됐습니다.
 - **TCP** — magic byte 뒤에 length-prefixed protobuf payload를 실어 보냅니다.
@@ -70,13 +68,13 @@ istio.io 아키텍처 문서도 같은 말을 한 줄로 합니다 — "Istio us
 
 ### telemetry v2 — 메트릭 생성이 프록시 안으로 들어온 것
 
-`envoy.wasm.stats` 필터가 표준 메트릭을 **프록시 안에서** 만듭니다. 이름이 "v2"인 이유는 v1이 따로 있었기 때문입니다. 예전에는 Mixer라는 별도 텔레메트리 컴포넌트가 그 역할을 했고, 그것이 제거되면서 생성 지점이 프록시로 옮겨왔습니다. 운영 관점에서 이 이동의 의미는 하나로 압축됩니다 — **메트릭이 나오는 데 컨트롤 플레인 쪽 컴포넌트가 관여하지 않습니다.** 지표가 안 보이면 istiod가 아니라 그 프록시를 봐야 합니다.
+`envoy.wasm.stats` 필터가 표준 메트릭을 **프록시 안에서** 만듭니다. 이름이 "v2"인 이유는 v1이 따로 있었기 때문입니다. 예전에는 Mixer라는 별도 텔레메트리 컴포넌트가 그 역할을 했고 그것이 제거되면서 생성 지점이 프록시로 옮겨왔습니다. 운영 관점에서 이 이동의 의미는 하나로 압축됩니다 — **메트릭이 나오는 데 컨트롤 플레인 쪽 컴포넌트가 관여하지 않습니다.** 지표가 안 보이면 istiod가 아니라 그 프록시를 봐야 합니다.
 
 {{< callout type="important" >}}
 **Mixer가 제거된 릴리스는 이 문서에서 확정하지 않습니다.** 참고한 자료들이 Istio 1.4와 1.5를 엇갈려 지목합니다. 사내 문서에 버전을 적어야 한다면 istio.io의 해당 릴리스 upgrade/change notes 원문에서 직접 대조할 것. 확실한 것은 제거됐다는 사실과, 지금의 생성 지점이 프록시라는 것뿐입니다.
 {{< /callout >}}
 
-이 확장들이 만드는 것을 **조정하는** 창구는 따로 있습니다. Telemetry API가 그것이고, 레퍼런스의 자기 정의가 정확합니다 — "Telemetry defines how telemetry (metrics, logs and traces) is generated for workloads within a mesh." 워크로드·네임스페이스·메시 전역 계층으로 적용되며, [06]({{< relref "06-observability-points.md" >}})의 카디널리티 정리 작업이 실제로 건드리는 대상이 이 절의 stats 필터입니다.
+이 확장들이 만드는 것을 **조정하는** 창구는 따로 있습니다. Telemetry API가 그것입니다. 레퍼런스의 자기 정의가 정확합니다 — "Telemetry defines how telemetry (metrics, logs and traces) is generated for workloads within a mesh." 워크로드·네임스페이스·메시 전역 계층으로 적용되며 [06]({{< relref "06-observability-points.md" >}})의 카디널리티 정리 작업이 실제로 건드리는 대상이 이 절의 stats 필터입니다.
 
 ## 3. CRD → Envoy 설정 번역표
 
@@ -93,7 +91,7 @@ xDS가 어떤 종류로 나뉘고 그 push가 왜 istiod CPU가 되는지는 [02
 | `Gateway` | **listener** | 받을 포트·프로토콜·호스트·TLS | `istioctl proxy-config listener <pod>` |
 | `PeerAuthentication` | **transport socket** | 인바운드가 mTLS를 요구하는가 | listener·cluster 덤프를 `-o json`으로 |
 
-`istioctl proxy-config`의 서브커맨드 이름이 그대로 `route`·`cluster`·`listener`라는 점이 이 표의 실용적인 근거입니다. Istio가 만드는 설정을 Envoy 쪽 리소스 타입 이름으로 부르는 것이 공식적으로 통용된다는 뜻이고, 그래서 **"이 CRD가 정말 반영됐나"를 묻는 가장 짧은 답은 해당 서브커맨드를 한 번 치는 것**입니다.
+`istioctl proxy-config`의 서브커맨드 이름이 그대로 `route`·`cluster`·`listener`라는 점이 이 표의 실용적인 근거입니다. Istio가 만드는 설정을 Envoy 쪽 리소스 타입 이름으로 부르는 것이 공식적으로 통용된다는 뜻입니다. 그래서 **"이 CRD가 정말 반영됐나"를 묻는 가장 짧은 답은 해당 서브커맨드를 한 번 치는 것**입니다.
 
 ```bash
 # "내 VirtualService가 반영됐나" — 매칭 규칙과 가중치가 route에 있는지
@@ -111,21 +109,21 @@ istioctl proxy-config listener <pod>.<ns> -o json
 
 순서가 곧 진단 순서이기도 합니다. route에 규칙이 없으면 VirtualService가 이 프록시까지 오지 않은 것이고([11]({{< relref "11-request-path-anatomy.md" >}})의 `gateways` 필드 실수가 대표적입니다), route는 맞는데 동작이 다르면 그 다음 층인 cluster를 봅니다.
 
-`DestinationRule`이 특히 [12]({{< relref "12-envoy-capabilities.md" >}})와 직결됩니다. 레퍼런스의 정의는 "DestinationRule defines policies that apply to traffic intended for a service after routing has occurred"이고, 거기서 구성하는 것이 load balancing·connection pool·outlier detection입니다. 즉 12에서 Envoy의 능력으로 소개한 서킷브레이커와 outlier detection은 새로 만들어지는 기능이 아니라 **이미 프록시에 있는 기능을 켜는 스위치**이고, 그 스위치가 `DestinationRule`입니다. 라우팅이 끝난 뒤에 적용된다는 순서까지 정의에 박혀 있습니다 — 어느 cluster로 갈지는 route가 정하고, 그 cluster를 어떻게 다룰지는 DestinationRule이 정합니다.
+`DestinationRule`이 특히 [12]({{< relref "12-envoy-capabilities.md" >}})와 직결됩니다. 레퍼런스의 정의는 "DestinationRule defines policies that apply to traffic intended for a service after routing has occurred"이고 거기서 구성하는 것이 load balancing·connection pool·outlier detection입니다. 즉 12에서 Envoy의 능력으로 소개한 서킷브레이커와 outlier detection은 새로 만들어지는 기능이 아니라 **이미 프록시에 있는 기능을 켜는 스위치**이고 그 스위치가 `DestinationRule`입니다. 라우팅이 끝난 뒤에 적용된다는 순서까지 정의에 박혀 있습니다 — 어느 cluster로 갈지는 route가 정하고 그 cluster를 어떻게 다룰지는 DestinationRule이 정합니다.
 
 {{< callout type="important" >}}
-**이 표의 두 칸은 방증입니다.** ① 'VirtualService→route, DestinationRule→cluster, Gateway→listener'를 1:1로 못 박은 istio.io 문장은 찾지 못했습니다. 개념 문서(architecture · traffic-management · destination-rule)와 `istioctl proxy-config` 서브커맨드 이름을 겹쳐 얻은 대응입니다. ② `PeerAuthentication`이 Envoy의 transport socket으로 번역된다는 것도 마찬가지입니다. 'transport socket'(`envoy.transport_sockets.tls`)은 envoyproxy.io 쪽 용어이고, istio.io는 "Envoy requests the certificate and key from the Istio agent… via the SDS API", "client side Envoy starts a mutual TLS handshake with the server side Envoy"까지만 말합니다. 필드 이름 수준의 연결은 실제 설정 덤프로 확인할 것입니다.
+**이 표의 두 칸은 방증입니다.** ① 'VirtualService→route, DestinationRule→cluster, Gateway→listener'를 1:1로 못 박은 istio.io 문장은 찾지 못했습니다. 개념 문서(architecture · traffic-management · destination-rule)와 `istioctl proxy-config` 서브커맨드 이름을 겹쳐 얻은 대응입니다. ② `PeerAuthentication`이 Envoy의 transport socket으로 번역된다는 것도 마찬가지입니다. 'transport socket'(`envoy.transport_sockets.tls`)은 envoyproxy.io 쪽 용어이고 istio.io는 "Envoy requests the certificate and key from the Istio agent… via the SDS API", "client side Envoy starts a mutual TLS handshake with the server side Envoy"까지만 말합니다. 필드 이름 수준의 연결은 실제 설정 덤프로 확인할 것입니다.
 {{< /callout >}}
 
 ## 4. 버전 결합 — 사이드카 업그레이드가 곧 Envoy 업그레이드
 
-1절의 `ENVOY_SHA`가 운영에서 갖는 의미가 이것입니다. istio/proxy가 Envoy를 **커밋 단위로 pin해서** 빌드하므로, Istio 릴리스 하나는 Envoy 커밋 하나에 묶입니다. 결과는 단순합니다.
+1절의 `ENVOY_SHA`가 운영에서 갖는 의미가 이것입니다. istio/proxy가 Envoy를 **커밋 단위로 pin해서** 빌드하므로 Istio 릴리스 하나는 Envoy 커밋 하나에 묶입니다. 결과는 단순합니다.
 
 - 사이드카 이미지 태그를 올리는 것은 Istio 버전만 올리는 게 아니라 **데이터 플레인의 Envoy를 통째로 교체**하는 일입니다.
 - 그러니 Envoy 쪽 동작 변화(설정 필드 deprecation, 필터 이름 변경 등)가 컨트롤 플레인 업그레이드가 아니라 **워크로드 재시작 시점에** 나타납니다.
 - [08]({{< relref "08-envoyfilter-extension.md" >}})이 "EnvoyFilter는 업그레이드에 깨진다"고 한 근거가 여기입니다. 날것의 Envoy 설정은 pin된 그 커밋의 스키마에 결합돼 있습니다.
 
-그런데 **그 Envoy 버전이 무엇인지를 릴리스 노트에서 찾을 수는 없습니다.** 이 점은 오해하기 쉬우니 분명히 해둡니다. istio/istio 이슈 #43140이 정확히 "릴리스 노트에 Envoy 버전을 적어달라"고 요청했고, 결론은 릴리스 노트가 아니라 **진단 문서에 조회 방법을 추가**하는 쪽이었습니다. 실제로 1.22·1.24·1.30 announcing 페이지 본문에는 Envoy 버전 숫자가 없습니다.
+그런데 **그 Envoy 버전이 무엇인지를 릴리스 노트에서 찾을 수는 없습니다.** 이 점은 오해하기 쉬우니 분명히 해둡니다. istio/istio 이슈 #43140이 정확히 "릴리스 노트에 Envoy 버전을 적어달라"고 요청했고 결론은 릴리스 노트가 아니라 **진단 문서에 조회 방법을 추가**하는 쪽이었습니다. 실제로 1.22·1.24·1.30 announcing 페이지 본문에는 Envoy 버전 숫자가 없습니다.
 
 공식이 안내하는 방법은 돌고 있는 파드에 직접 묻는 것입니다.
 
@@ -147,15 +145,15 @@ kubectl exec <pod> -c istio-proxy -- pilot-agent request GET server_info
 | 조정 창구 | Telemetry API로 동작만 조정 | CRD 자체가 곧 정의 |
 | 신규 추가 | 워크그룹 심사(core API 여부) | 사용자 재량 |
 
-경계는 이렇게 읽으면 됩니다. **내장 확장은 버전의 문제이고, 사용자 확장은 설정의 문제입니다.** 표준 메트릭이 이상하면 되돌릴 레버는 CRD가 아니라 이미지 버전과 Telemetry API 쪽이고, 반대로 EnvoyFilter로 얹은 것이 깨졌다면 원인은 대개 4절의 결합 — 이미지가 바뀌면서 그 아래 Envoy 스키마가 같이 바뀐 것 — 입니다.
+경계는 이렇게 읽으면 됩니다. **내장 확장은 버전의 문제이고, 사용자 확장은 설정의 문제입니다.** 표준 메트릭이 이상하면 되돌릴 레버는 CRD가 아니라 이미지 버전과 Telemetry API 쪽입니다. 반대로 EnvoyFilter로 얹은 것이 깨졌다면 원인은 대개 4절의 결합 — 이미지가 바뀌면서 그 아래 Envoy 스키마가 같이 바뀐 것 — 입니다.
 
-그리고 이 경계가 [08]의 선택 사다리에 한 칸을 더해 줍니다. 표준 CRD → 상위 API → EnvoyFilter라는 순서 앞에, **"이미 프록시 안에 있는 것으로 되는가"**를 먼저 묻는 칸입니다. 관측성 요구의 상당수가 여기서 끝납니다 — 새 필터를 붙일 일이 아니라 이미 도는 stats 필터를 Telemetry API로 조정할 일이기 때문입니다.
+이 경계가 [08]의 선택 사다리에 한 칸을 더해 줍니다. 표준 CRD → 상위 API → EnvoyFilter라는 순서 앞에, **"이미 프록시 안에 있는 것으로 되는가"**를 먼저 묻는 칸입니다. 관측성 요구의 상당수가 여기서 끝납니다 — 새 필터를 붙일 일이 아니라 이미 도는 stats 필터를 Telemetry API로 조정할 일이기 때문입니다.
 
 ## 이 문서에서 가져갈 것
 
-- Istio가 Envoy를 "쓴다"는 것은 **커밋을 pin해서 자기 확장과 함께 다시 빌드한다**는 뜻입니다. proxyv2는 그 결과물과 pilot-agent를 한 이미지에 담은 것이고, 엔트리포인트는 pilot-agent입니다.
-- 표준 메트릭과 그 `source_*`/`destination_*` 라벨은 **프록시 안의 확장**이 만듭니다. 라벨을 채우는 재료는 mTLS 위에서 교환되는 피어 메타데이터이므로, mTLS가 없으면 라벨도 없습니다.
-- CRD는 xDS 리소스로 번역됩니다. 반영 여부를 묻는 가장 짧은 답은 `istioctl proxy-config route|cluster|listener`이고, `DestinationRule`은 [12]({{< relref "12-envoy-capabilities.md" >}})의 기능들을 켜는 cluster 쪽 스위치입니다.
+- Istio가 Envoy를 "쓴다"는 것은 **커밋을 pin해서 자기 확장과 함께 다시 빌드한다**는 뜻입니다. proxyv2는 그 결과물과 pilot-agent를 한 이미지에 담은 것이고 엔트리포인트는 pilot-agent입니다.
+- 표준 메트릭과 그 `source_*`/`destination_*` 라벨은 **프록시 안의 확장**이 만듭니다. 라벨을 채우는 재료는 mTLS 위에서 교환되는 피어 메타데이터이므로 mTLS가 없으면 라벨도 없습니다.
+- CRD는 xDS 리소스로 번역됩니다. 반영 여부를 묻는 가장 짧은 답은 `istioctl proxy-config route|cluster|listener`이고 `DestinationRule`은 [12]({{< relref "12-envoy-capabilities.md" >}})의 기능들을 켜는 cluster 쪽 스위치입니다.
 - **사이드카 업그레이드는 Envoy 업그레이드입니다.** 실제 버전은 릴리스 노트가 아니라 `pilot-agent request GET server_info`로 파드에 물어봅니다.
 
 ## 소스
