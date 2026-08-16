@@ -33,7 +33,7 @@ CRD 경계는 0.19.2 조사에서 이미 확정된 사실이라 2.8.x에도 그�
 
 external-secrets는 `cluster-bootstrap-v2` umbrella의 서브차트입니다. ArgoCD targetRevision 하나만 올려서는 서브차트를 독립적으로 bump할 수 없습니다.
 
-1. **차트 소스** — umbrella `Chart.yaml`의 external-secrets dependency 버전을 목표로 교체하고 umbrella 버전 자체도 bump한다. 번들 템플릿에 남아 있는 `v1beta1` ExternalSecret/SecretStore를 전량 `v1`으로 전환한다(keda-auth 템플릿처럼 현재 비활성인 곳도 정합성을 위해 함께 전환 권장).
+1. **차트 소스** — umbrella `Chart.yaml`의 external-secrets dependency 버전을 목표로 교체하고 umbrella 버전 자체도 bump합니다. 번들 템플릿에 남아 있는 `v1beta1` ExternalSecret/SecretStore를 전량 `v1`으로 전환한다(keda-auth 템플릿처럼 현재 비활성인 곳도 정합성을 위해 함께 전환 권장).
 2. **app-of-apps** — umbrella targetRevision을 신규 버전으로 갱신합니다. ArgoCD 부트스트랩 매니페스트(SecretStore 1개 + ExternalSecret 다수, argocd 레포 자격증명용)도 v1으로 전환합니다. 이 CR들은 ArgoCD가 Git 레포에 접근하는 secret을 만들기 때문에 ESO CRD가 먼저 설치된 뒤에 apply돼야 한다는 순서 제약이 있습니다.
 3. **워크로드 CR** — 서비스 차트가 렌더하는 SecretStore/ExternalSecret도 v1으로 전환합니다.
 4. **배포 순서** — ESO CRD(v1) + controller/webhook/cert-controller fresh 설치 → cert-controller가 webhook 인증서 준비 완료 확인 → ArgoCD 부트스트랩의 v1 SecretStore/ExternalSecret apply → 워크로드 앱 sync 순이다(전체 클러스터 부트스트랩 순서상의 위치는 [클러스터 부트스트랩]({{< relref "../04-cluster-bootstrap.md" >}}) 참고).
@@ -79,7 +79,7 @@ keda는 upstream `kedacore/charts`를 직접 참조하는 **독립 ArgoCD 앱**�
 - [ ] **arm64 멀티아치** — 목표 태그의 이미지 매니페스트에 linux/arm64가 포함되는지 확인합니다.
 - [ ] **IRSA** — keda-operator SA role이 신규 클러스터 OIDC로 wiring됐는지 확인합니다.
 - [ ] **metrics 어댑터 충돌** — 클러스터에 다른 `external.metrics.k8s.io` 제공자가 없는지 확인합니다.
-- [ ] **배포 후 검증** — operator/metrics-apiserver/admission-webhooks 파드가 arm64 노드에 정상 스케줄됐는지, `external.metrics.k8s.io` APIService가 Available인지, 기존 SO를 `--dry-run=server`로 재검증해 강화된 admission webhook을 통과하는지 확인한다. org 실증이 없으므로 **staging-finance-green에서 먼저 검증, prod 직행 금지**.
+- [ ] **배포 후 검증** — operator/metrics-apiserver/admission-webhooks 파드가 arm64 노드에 정상 스케줄됐는지, `external.metrics.k8s.io` APIService가 Available인지, 기존 SO를 `--dry-run=server`로 재검증해 강화된 admission webhook을 통과하는지 확인합니다. org 실증이 없으므로 **staging-finance-green에서 먼저 검증, prod 직행 금지**.
 - [ ] **rollback** — targetRevision을 2.10.2로 되돌립니다. CRD apiVersion이 전 구간 불변이라 되돌림은 무손실입니다.
 
 ## 근거

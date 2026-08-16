@@ -8,7 +8,7 @@ weight: 9
 {{< callout type="info" >}}
 **한눈에** — Iceberg 는 "S3 를 싸게 쓰는 방법"이 아니라 "여러 엔진이 공유하는 개방 테이블을 만드는 방법"이고, 그래서 우리의 "S3 를 메인 스토리지로" 문제의 답이 아니다 `Σ`.
 
-- **층을 나누면 간단하다** — 파일 포맷(Parquet) / 테이블 포맷(Iceberg) / 카탈로그(Glue·REST·Unity·Nessie) / 쿼리 엔진(ClickHouse·Spark·Trino)의 4층이고, Iceberg 는 2층이다. 커밋의 원자성은 3층(카탈로그 포인터 교체)이 만든다 `✓`.
+- **층을 나누면 간단하다** — 파일 포맷(Parquet) / 테이블 포맷(Iceberg) / 카탈로그(Glue·REST·Unity·Nessie) / 쿼리 엔진(ClickHouse·Spark·Trino)의 4층이고, Iceberg 는 2층입니다. 커밋의 원자성은 3층(카탈로그 포인터 교체)이 만든다 `✓`.
 - **ClickHouse 는 이미 읽고 쓴다 — 다만 게이트 뒤에 있다** — INSERT 는 25.7 `✓`, CREATE·ALTER DELETE·DROP TABLE 은 25.8 `✓`, ALTER UPDATE 는 25.9 `✓`, 매니페스트 compaction 은 26.7 에 들어왔고 아직 Experimental `✓`.
 - **성능 격차는 층 차이에서 온다** — ClickBench 콜드 43쿼리 합산 MergeTree 28초 vs Parquet 56초, 개별 쿼리는 최대 약 5배 `Ⓑ`/`Ⓥ`. MergeTree 는 정렬키+sparse index 로 스킵하고 Iceberg 는 파일·row group 통계로 스킵한다 — 해상도가 다르다 `✓`.
 - **관측성 메인 스토리지로는 공식적으로도 비권장** — ClickHouse 저자들이 포인트 조회 지연·JSON 비효율·매니페스트 폭증·커밋 컨텐션·요청 증폭 다섯 가지를 직접 열거하고, 현실 대안으로 "핫=MergeTree, 콜드=오픈 테이블 포맷" 이중 쓰기를 든다 `✓`.

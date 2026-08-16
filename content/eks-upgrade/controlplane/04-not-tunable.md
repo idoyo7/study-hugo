@@ -11,7 +11,7 @@ weight: 4
 - **2026-08에 열린 것은 EKS API 필드 3개 안의 세부 값 4개뿐입니다.** `kubeApiServerConfig`는 하위 필드가 `eventTtl`·`serviceNodePortRange` **2개**다. "이제 apiserver 플래그를 만질 수 있다"는 서술은 이 숫자 하나로 반박됩니다.
 - **열린 값 옆자리가 그대로 닫혀 있습니다.** HPA는 `--horizontal-pod-autoscaler-sync-period` 하나만 열리고 같은 코드 블록의 downscale-stabilization·tolerance·cpu-initialization-period·initial-readiness-delay 4개는 닫혔습니다.
 - **우회 창구는 사실상 3개다** — APF(`FlowSchema`·`PriorityLevelConfiguration`), 어드미션(웹훅·CEL·Kyverno/OPA), 자체 스케줄러 배포 + `schedulerName`. 나머지 대부분은 대안이 **없다**.
-- **etcd는 전 구간 차단**이다. 엔드포인트도, compaction·defrag·quota 튜닝도, 스냅샷도 없다. 백업은 Velero 같은 API 레벨 도구뿐이고 **원자적 시점 복구는 포기해야 한다**.
+- **etcd는 전 구간 차단**입니다. 엔드포인트도, compaction·defrag·quota 튜닝도, 스냅샷도 없습니다. 백업은 Velero 같은 API 레벨 도구뿐이고 **원자적 시점 복구는 포기해야 한다**.
 - **`--force`는 PDB·어드미션 웹훅을 우회하지 않습니다.** EKS 자체 인사이트 검사만 우회하며, 전진 업그레이드 쪽 강제는 2025-03-28 임시 롤백된 뒤 재활성화가 확인되지 않아 현재 실질적으로 거의 무효입니다.
 {{< /callout >}}
 
@@ -312,7 +312,7 @@ spec:
 ### 7.4 감사·이벤트 보존
 
 - **감사 정책의 세밀도**는 우회할 수 없습니다. `--audit-policy-file`이 없으니 "어떤 필드까지 기록할지"는 AWS가 정한 그대로입니다. 우리는 로그 타입을 켜고 나온 것을 반출해 **사후 필터링**합니다. `enabled_cluster_log_types`에 `audit`을 넣으면 CloudWatch Logs로 나가고 거기서 Logs Insights·Athena·외부 싱크로 옮겨 질의합니다.
-- **이벤트 보존 기간**은 우회할 수 있다. `eventTtl`은 etcd 안에 얼마나 남기는지만 정한다. Event 오브젝트를 watch해 외부 저장소로 밀어내는 exporter를 두면 TTL을 늘리지 않고도 장기 보존과 장기 질의를 얻는다. 오히려 이쪽이 권장 방향이다. TTL을 늘리면 etcd 크기와 watch 캐시 부담이 함께 늘어나는데 그 둘은 우리가 손댈 수 없는 축이다(§2.1·§5).
+- **이벤트 보존 기간**은 우회할 수 있습니다. `eventTtl`은 etcd 안에 얼마나 남기는지만 정합니다. Event 오브젝트를 watch해 외부 저장소로 밀어내는 exporter를 두면 TTL을 늘리지 않고도 장기 보존과 장기 질의를 얻는다. 오히려 이쪽이 권장 방향이다. TTL을 늘리면 etcd 크기와 watch 캐시 부담이 함께 늘어나는데 그 둘은 우리가 손댈 수 없는 축이다(§2.1·§5).
 
 ### 7.5 CCM — "제약"이 아니라 "쪼개졌다"
 

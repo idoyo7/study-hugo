@@ -27,7 +27,7 @@ CRD apiVersion(`argoproj.io/v1alpha1`)은 그대로입니다. 다만 Application
 
 breaking이 가장 몰린 구간은 앱 **2.14→3.0**입니다.
 
-- **logs RBAC 강제 기본화** — 이와 함께 `server.rbac.log.enforce.enable` 플래그 자체가 제거된다. finance는 이미 대부분 역할에 `logs, get` 그랜트가 있지만 `role:devops`에는 이 그랜트가 없어 순수 devops 사용자가 로그 접근을 잃을 수 있습니다(단 sre 계정은 developers 역할을 경유해 유지됩니다).
+- **logs RBAC 강제 기본화** — 이와 함께 `server.rbac.log.enforce.enable` 플래그 자체가 제거됩니다. finance는 이미 대부분 역할에 `logs, get` 그랜트가 있지만 `role:devops`에는 이 그랜트가 없어 순수 devops 사용자가 로그 접근을 잃을 수 있습니다(단 sre 계정은 developers 역할을 경유해 유지됩니다).
 - **Application 하위 리소스 fine-grained RBAC 강화** — `update`/`delete`가 더 이상 관리 리소스에 자동 상속되지 않습니다. UI에서 관리 리소스를 직접 삭제/수정하는 운영 방식을 쓴다면 레거시 동작 복원 플래그를 명시해야 합니다.
 - **리소스 추적 기본이 label에서 annotation으로** — `ApplyOutOfSyncOnly=true`를 쓰는 앱은 orphan 위험이 있으나 finance는 이 syncOption을 쓰지 않습니다.
 

@@ -66,7 +66,7 @@ IAM은 정책을 v1 전용으로 다시 만들어야 합니다. v1에서 인스�
 - [ ] **IAM v1 정책 반영** — `eks:eks-cluster-name` 태그 스코핑과 1.7/1.11/1.12에서 추가된 권한이 정책에 들어 있는지 확인합니다.
 - [ ] **disruption budget 사전 검토** — drift가 강제로 켜지므로 AMI·설정 변경 시 대량 노드 교체가 유발될 수 있습니다. `defaultBudgets`를 사전 검토합니다.
 - [ ] **Fargate values 2건 반영** — arm64 required affinity·tolerations 제거와 `cpu=1`/`memory≥1Gi` 명시(§3 Fargate).
-- [ ] **org 차트 appVersion bump** — tip(1.1.0)은 k8s 1.35를 지원하지 않는다. 1.14.0으로 올린다(1.35 하한은 1.9).
+- [ ] **org 차트 appVersion bump** — tip(1.1.0)은 k8s 1.35를 지원하지 않습니다. 1.14.0으로 올린다(1.35 하한은 1.9).
 
 배포 후에는 네 가지를 봅니다.
 
