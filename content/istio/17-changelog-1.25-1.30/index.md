@@ -144,7 +144,7 @@ if hasContainer(pod.Spec.InitContainers, ProxyContainerName) {
 
 Job 완료 문제는 Istio 릴리스노트로 추적되지 않습니다. 판정 주체가 kubelet이기 때문입니다. `restartPolicy: Always` init 컨테이너는 **Job 완료 판정에서 제외**되고 일반 컨테이너가 모두 종료되면 kubelet이 역순으로 sidecar에 SIGTERM을 보냅니다(KEP-753). classic 시절의 우회책이 불필요해집니다. Job 파드의 `sidecar.istio.io/inject: "false"`는 떼도 되지만 **떼면 그 Job이 메시 안으로 들어오므로** 목적지 정책을 먼저 확인해야 합니다. 앱 종료 직전의 `POST localhost:15020/quitquitquit` 관용구는 무해하되 의미를 잃어 정리 대상이고 `EXIT_ON_ZERO_ACTIVE_CONNECTIONS`는 1.25~1.30 구간에 기본값 변경이 없으니 그대로 둡니다.
 
-주의할 것은 **istio.io 문서가 이 갱신을 반영하지 않았다는 점**입니다. `docs/overview/dataplane-modes/index.md:117-119`의 비교표는 지금도 "Support for Kubernetes Jobs: **Complicated by long life of sidecar**"입니다. 1.27 이전 기준이고 1.30 스냅샷까지 고쳐지지 않았습니다 — 문서만 읽고 "sidecar는 Job이 안 됩니다"고 판단하면 안 됩니다.
+주의할 것은 **istio.io 문서가 이 갱신을 반영하지 않았다는 점**입니다. `docs/overview/dataplane-modes/index.md:117-119`의 비교표는 지금도 "Support for Kubernetes Jobs: **Complicated by long life of sidecar**"입니다. 1.27 이전 기준이고 1.30 스냅샷까지 고쳐지지 않았습니다 — 문서만 읽고 "sidecar는 Job이 안 된다"고 판단하면 안 됩니다.
 
 같은 결로 확인할 것이 셋 더 있습니다.
 

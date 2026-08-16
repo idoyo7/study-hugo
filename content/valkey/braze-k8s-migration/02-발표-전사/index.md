@@ -100,7 +100,7 @@ Joe는 목록이 너무 많아 다 못 다룬다며 두 가지만 짚습니다.
 
 첫째는 **NLB 트래픽 비용**입니다. NLB를 거쳐 데이터를 무기한으로 흘려보내면 비용이 얼마나 들지 분석했습니다 — 얼마나 쓰이고, 얼마나 읽히고, 얼마나 replicate되는지, 이 이관 구성에서 붙어 있는 replica 수까지 감안해 Prometheus로 실제 트래픽을 쟀습니다. 결과는 데이터 전송비만으로 **월 $100,000를 넘는** 수준이었습니다. 그래서 NLB를 그대로 상시로 둘 수는 없고 **모든 클라이언트가 Kubernetes로 옮겨갈 때까지 기다렸다가** NLB를 제거하고 내부 ClusterIP로 광고를 전환하기로 했습니다.
 
-둘째는 **Sentinel split brain**입니다. 이관 중에는 EC2 클러스터 레벨의 Sentinel 3대와 파드 레벨의 Sentinel 3대가 동시에 떠 있습니다 — 서로 다른 플랫폼 위에서입니다. 이 둘 사이 연결이 끊기면 양쪽 각각의 3대가 "primary에 접근할 수 없습니다"고 판단해 각자 failover를 결의합니다 — 그러면 한 shard 안에 primary가 둘 생기는 전형적인 split brain이고 이 시나리오는 항상 데이터 손실로 이어집니다. 해법으로 **일곱 번째 Sentinel**을 EC2 쪽에 추가했습니다 — 이관 기간 동안만 떠 있는 임시 Sentinel입니다. 그리고 quorum Sentinel 수를 **5**로 올려 항상 절대 과반의 Sentinel이 동의해야만 primary가 죽었다고 판단하도록 했습니다.
+둘째는 **Sentinel split brain**입니다. 이관 중에는 EC2 클러스터 레벨의 Sentinel 3대와 파드 레벨의 Sentinel 3대가 동시에 떠 있습니다 — 서로 다른 플랫폼 위에서입니다. 이 둘 사이 연결이 끊기면 양쪽 각각의 3대가 "primary에 접근할 수 없다"고 판단해 각자 failover를 결의합니다 — 그러면 한 shard 안에 primary가 둘 생기는 전형적인 split brain이고 이 시나리오는 항상 데이터 손실로 이어집니다. 해법으로 **일곱 번째 Sentinel**을 EC2 쪽에 추가했습니다 — 이관 기간 동안만 떠 있는 임시 Sentinel입니다. 그리고 quorum Sentinel 수를 **5**로 올려 항상 절대 과반의 Sentinel이 동의해야만 primary가 죽었다고 판단하도록 했습니다.
 
 > **슬라이드**: 슬라이드 20의 표가 문제·설명·해법 3열로 이 둘을 정리합니다 — NLB 트래픽 비용은 "Estimated $100,000+ monthly cost on data transfer" → "Wait for all clients to migrate to K8s first". Sentinel split brain 위험은 "6 Sentinels during migration: 3 legacy + 3 K8s" → "Add a fourth EC2 Sentinel during migration (7 total)", "Set quorum: 5 on Sentinel".
 

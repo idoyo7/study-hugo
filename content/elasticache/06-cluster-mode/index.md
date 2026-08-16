@@ -314,7 +314,7 @@ if (reachable_primaries < needed_quorum) { new_state = CLUSTER_FAIL; new_reason 
 | `cluster_current_epoch` | 정상 상태에서 정지 | 계속 오르면 failover·설정 경합 반복 |
 | `total_cluster_links_buffer_limit_exceeded` | `0` | `cluster-link-sendbuf-limit` 에 걸려 링크가 끊긴 것 — 대량 pub/sub 브로드캐스트가 흔한 원인(§5) |
 
-토폴로지 조회 커맨드는 **deprecation 상태가 진영별로 반대입니다.** Redis 는 7.0.0 에서 `CLUSTER SLOTS` 를 deprecate 하고 `CLUSTER SHARDS` 로 대체했으며 **8.10.0 에도 여전히 deprecated** 입니다(`redis 8.10.0:src/commands/cluster-slots.json` 의 `"deprecated_since": "7.0.0"`, `"replaced_by": "CLUSTER SHARDS"`). Valkey 는 7.2.4 까지 deprecated 였다가 **8.0.0 에서 un-deprecate**(#536)하고 9.1.0 에 `availability-zone` 필드까지 추가했습니다(`valkey 8.0.0`/`9.1.0:src/commands/cluster-slots.json` 에 deprecated 표기 없음) `✓`. 즉 "`CLUSTER SLOTS` 는 쓰지 말아야 합니다"는 조언은 Valkey 에서 틀립니다.
+토폴로지 조회 커맨드는 **deprecation 상태가 진영별로 반대입니다.** Redis 는 7.0.0 에서 `CLUSTER SLOTS` 를 deprecate 하고 `CLUSTER SHARDS` 로 대체했으며 **8.10.0 에도 여전히 deprecated** 입니다(`redis 8.10.0:src/commands/cluster-slots.json` 의 `"deprecated_since": "7.0.0"`, `"replaced_by": "CLUSTER SHARDS"`). Valkey 는 7.2.4 까지 deprecated 였다가 **8.0.0 에서 un-deprecate**(#536)하고 9.1.0 에 `availability-zone` 필드까지 추가했습니다(`valkey 8.0.0`/`9.1.0:src/commands/cluster-slots.json` 에 deprecated 표기 없음) `✓`. 즉 "`CLUSTER SLOTS` 는 쓰지 말아야 한다"는 조언은 Valkey 에서 틀립니다.
 
 hot slot 탐지는 `CLUSTER SLOT-STATS` 입니다 — `KEY-COUNT`/`CPU-USEC`/`NETWORK-BYTES-IN`/`OUT`, Redis 8.4+ 는 `MEMORY-BYTES` 추가. Valkey 8.0.0(#20, #351)이 먼저이고 Redis 는 8.2.0 입니다(`redis 8.2.0:src/commands/cluster-slot-stats.json` 의 `"since": "8.2.0"`) `✓`. Redis 8.6 은 `cluster-slot-stats-enabled` 로 수집 항목을 제어합니다(#14719).
 

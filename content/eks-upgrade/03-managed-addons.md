@@ -68,7 +68,7 @@ ebs-csi addon은 IAM 롤(`ebs-csi-controller-sa`)이 반드시 필요한데 fina
 
 ## 5. config 재전달과 conflict resolution
 
-managed addon 갱신에서 자주 놓치는 함정은 "버전만 올리면 config는 유지됩니다"는 가정입니다. 이번 이관은 CAPA를 신뢰할 수 없는 SSOT로 판정했으므로([배경]({{< relref "00-background.md" >}})) create/update-addon CLI를 authoritative로 삼고 **config를 매번 명시 재전달**하는 것을 원칙으로 합니다.
+managed addon 갱신에서 자주 놓치는 함정은 "버전만 올리면 config는 유지된다"는 가정입니다. 이번 이관은 CAPA를 신뢰할 수 없는 SSOT로 판정했으므로([배경]({{< relref "00-background.md" >}})) create/update-addon CLI를 authoritative로 삼고 **config를 매번 명시 재전달**하는 것을 원칙으로 합니다.
 
 - **coredns**: `--configuration-values` 누락 시 affinity·tolerations·topologySpread가 미적용돼 대상 노드 밖으로 스케줄되거나 기본 PDB가 붙습니다. 재전달은 옵션이 아니라 필수.
 - **ebs-csi**: 마찬가지로 `--configuration-values`를 재전달해야 controller 노드 타깃팅이 유지됩니다.

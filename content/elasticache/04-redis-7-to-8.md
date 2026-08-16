@@ -74,7 +74,7 @@ weight: 4
 
 헤드라인 신규 기능이 `WAITAOF` 하나뿐입니다(디스크 fsync 완료까지 블록). 나머지는 최적화와 introspection 입니다 — `CLIENT NO-TOUCH`(LRU/LFU 를 건드리지 않고 커맨드 실행), `CLIENT SETINFO`(lib-name/lib-ver 보고), `CLUSTER MYSHARDID`/Shard ID, `ZRANK`/`ZREVRANK WITHSCORE` `✓`.
 
-**listpack 전환이 여기서 끝납니다.** 7.0 은 Hash/List/Zset 까지였고 **Set 은 7.2** 입니다. 릴리스노트의 "Significant memory optimization for small set type keys (#11290)"·"for large sets (#11595)" 가 그것이고 코드 근거가 더 명확합니다 — `set-max-listpack-entries 128` / `set-max-listpack-value 64` 가 **`redis 7.2.0:redis.conf` 에서 처음 등장합니다**(7.0.0 에는 없습니다) `✓`. "listpack 전환은 7.0 에서 끝났습니다" 는 서술은 절반만 맞습니다.
+**listpack 전환이 여기서 끝납니다.** 7.0 은 Hash/List/Zset 까지였고 **Set 은 7.2** 입니다. 릴리스노트의 "Significant memory optimization for small set type keys (#11290)"·"for large sets (#11595)" 가 그것이고 코드 근거가 더 명확합니다 — `set-max-listpack-entries 128` / `set-max-listpack-value 64` 가 **`redis 7.2.0:redis.conf` 에서 처음 등장합니다**(7.0.0 에는 없습니다) `✓`. "listpack 전환은 7.0 에서 끝났다" 는 서술은 절반만 맞습니다.
 
 **RESP3 는 7.2 에서도, 8.10 에서도 기본이 아닙니다.** 프로토콜 스펙이 "By default, the connection starts in RESP2 mode" 라고 명시하고 RESP3 로 가려면 클라이언트가 `HELLO 3` 로 승격해야 합니다 `✓`. 스펙은 "Future versions of Redis may change the default protocol version" 이라고 미래형으로만 언급합니다. 7 이후 RESP2/RESP3 양쪽에서 모든 core 커맨드를 부를 수 있지만 **응답 타입이 프로토콜에 따라 달라집니다** — 클라이언트 라이브러리를 올릴 때 여기서 사고가 납니다. 관련해서 7.2 에는 동작 변경이 하나 더 있습니다: RESP3 클라이언트가 자기가 구독한 채널에 `PUBLISH` 하면 응답과 메시지 순서가 바뀝니다(#12326) `✓`.
 
@@ -160,7 +160,7 @@ loadmodule ./modules/redistimeseries/redistimeseries.so
 
 혼동 지점도 하나 정리해 둡니다. **Redis 7.8 과 7.22 는 실재합니다 — 다만 OSS 가 아니라 Redis Software(상용)입니다.** Redis Software 는 `Major1.Major2.Minor-Build` 4자리 번호를 쓰고 7.8(2024-11)·7.22(2025-05)가 있으며 Redis Software 8.2.0 은 번들 DB 엔진으로 `6.2, 7.2, 7.4, 8.0, 8.2, 8.4, 8.6` 를 담고 기본값이 8.6 입니다 `✓`. 티켓이나 벤더 문서에서 "Redis 7.8" 을 봤다면 **어느 축의 번호인지 먼저 구분**해야 합니다.
 
-같은 축의 오해로 **Redis Flex / Auto Tiering / RDI 는 OSS 에 없습니다.** 7.x·8.x 릴리스노트 전체를 `flex|tiering|auto-tier|flash` 로 grep 하면 0건이고 `redis 8.10.0:redis.conf` 에도 0건입니다 `✓`. "Redis 8 로 올리면 Flex 로 메모리 비용을 줄일 수 있습니다" 는 판단은 OSS 에서 성립하지 않습니다.
+같은 축의 오해로 **Redis Flex / Auto Tiering / RDI 는 OSS 에 없습니다.** 7.x·8.x 릴리스노트 전체를 `flex|tiering|auto-tier|flash` 로 grep 하면 0건이고 `redis 8.10.0:redis.conf` 에도 0건입니다 `✓`. "Redis 8 로 올리면 Flex 로 메모리 비용을 줄일 수 있다" 는 판단은 OSS 에서 성립하지 않습니다.
 
 ## 6. 8.2 ~ 8.10 — 릴리스별로 무엇이 오고 무엇을 해야 하나
 

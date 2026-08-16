@@ -129,7 +129,7 @@ zero-copy를 금지하면 곧바로 따라오는 질문이 있습니다 — **"�
 
 ## 티어링 설계 — OpenSearch와 같은 구조인가
 
-자연스러운 질문 하나: **"로컬 NVMe를 써도 실데이터는 gp3나 S3로 티어링해야 맞지 않나 — 지금 [OpenSearch]({{< relref "../logging/01-opensearch.md" >}})를 hot 10× i7i.4xlarge + UltraWarm 8노드로 굴리는 것과 같은 구조 아니냐"**. 답은 **절반은 맞고 절반은 위험한 오해**입니다 `✓`. "hot NVMe에 최근 데이터만 짧게, 오래된 데이터는 S3로 티어링"이라는 골격은 정확히 ClickHouse 관측성 표준입니다(공식 플레이북이 *"recent 'hot' data on NVMe … moves data older than 7 days to object storage"*, TTL 예시 `INTERVAL 7 DAY TO VOLUME 'cold'`). 그러나 (a) gp3 중간(warm) 티어는 대체로 불필요하고, (b) UltraWarm과 self-host CH의 S3 티어는 **사본 경제가 정반대**이며, (c) "티어링하면 내구성이 해결됩니다"는 UltraWarm식 사고를 self-host에 그대로 옮기면 데이터를 잃습니다.
+자연스러운 질문 하나: **"로컬 NVMe를 써도 실데이터는 gp3나 S3로 티어링해야 맞지 않나 — 지금 [OpenSearch]({{< relref "../logging/01-opensearch.md" >}})를 hot 10× i7i.4xlarge + UltraWarm 8노드로 굴리는 것과 같은 구조 아니냐"**. 답은 **절반은 맞고 절반은 위험한 오해**입니다 `✓`. "hot NVMe에 최근 데이터만 짧게, 오래된 데이터는 S3로 티어링"이라는 골격은 정확히 ClickHouse 관측성 표준입니다(공식 플레이북이 *"recent 'hot' data on NVMe … moves data older than 7 days to object storage"*, TTL 예시 `INTERVAL 7 DAY TO VOLUME 'cold'`). 그러나 (a) gp3 중간(warm) 티어는 대체로 불필요하고, (b) UltraWarm과 self-host CH의 S3 티어는 **사본 경제가 정반대**이며, (c) "티어링하면 내구성이 해결된다"는 UltraWarm식 사고를 self-host에 그대로 옮기면 데이터를 잃습니다.
 
 ### 구조 대응표
 
