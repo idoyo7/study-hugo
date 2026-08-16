@@ -280,7 +280,7 @@ spec:
 ### 6.3 온라인 볼륨 확장 (allowVolumeExpansion) `✓`
 
 - StorageClass에 `allowVolumeExpansion: true`가 있으면, **PVC의 `resources.requests.storage`를 키우는 것만으로** EBS 볼륨이 온라인 확장된다(EBS Elastic Volumes). ClickHouse 재시작이 필요 없다 `✓`.
-- 이것이 EBS-first의 성장 대응 축이다: 0.7TB/월로 시작해 hot 창이 커지면 볼륨을 다운타임 없이 늘립니다.
+- 이것이 EBS-first의 성장 대응 축입니다: 0.7TB/월로 시작해 hot 창이 커지면 볼륨을 다운타임 없이 늘립니다.
 
 {{< callout type="error" >}}
 **운영 함정 2건** `✓`:

@@ -46,7 +46,7 @@ Keeper는 znode 트리(작은 키-값)로 **복제·분산 실행의 조정 상�
 - **SELECT은 Keeper를 타지 않습니다** `✓`(*"ZooKeeper is not used in SELECT queries"*). 조회 경로에 Keeper가 없습니다 → Keeper는 **쓰기·조정 경로의 SPOF**지 읽기 병목이 아닙니다.
 - **INSERT 1건당 Keeper에 약 10개 엔트리**가 추가됩니다(근사치) `✓/≈`. 즉 Keeper 부하는 데이터 GB가 아니라 **INSERT·파트 생성 빈도에 비례**합니다. 작은 INSERT를 남발해 파트가 폭증하면 디스크보다 Keeper가 먼저 비명을 지릅니다 — 배칭이 Keeper 건강에도 직결됩니다.
 
-Keeper가 저장하지 **않는** 것을 못박아 둔다: ❌ 테이블의 행·파트 바이트(디스크에 있고 replica 직송), ❌ **아직 커밋 안 된 in-flight INSERT 버퍼**(§큐가 아니다의 핵심), ❌ 쿼리 결과·캐시(SELECT 경로 밖).
+Keeper가 저장하지 **않는** 것을 못박아 둡니다: ❌ 테이블의 행·파트 바이트(디스크에 있고 replica 직송), ❌ **아직 커밋 안 된 in-flight INSERT 버퍼**(§큐가 아니다의 핵심), ❌ 쿼리 결과·캐시(SELECT 경로 밖).
 
 {{< flow src="_flow/keeper-가-저장하는-것.json" />}}
 

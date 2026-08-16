@@ -19,7 +19,7 @@ aliases: ["/hyperdx-operating/03-availability/", "/hyperdx/operating/03-availabi
 - 기본 토폴로지: **1 shard × RF2(2 AZ)** + CHK 3노드(3 AZ). 0.7TB/월 규모에서 shard는 부채입니다.
 - EBS 함정 둘: ① **AZ-bound** — 볼륨은 다른 AZ로 못 옮깁니다. AZ 장애는 reattach로 못 풀고 cross-AZ replica만이 방어합니다. ② **ungraceful node death의 무한 Terminating** — StatefulSet+RWO는 자동 복구 안 됨, `out-of-service` taint 개입이 정석.
 - multi-attach로 replica를 대체할 수 없다(CH의 XFS/ext4는 동시 마운트 시 손상).
-- 무손실 방어는 성격이 다른 **두 트랙**으로 갈린다: 트랙1(텔레메트리)=OTel `file_storage` 퍼시스턴트 큐 + RMT 복제(+`insert_quorum`), 트랙2(메타데이터)=MongoDB ReplicaSet + `mongodump`.
+- 무손실 방어는 성격이 다른 **두 트랙**으로 갈립니다: 트랙1(텔레메트리)=OTel `file_storage` 퍼시스턴트 큐 + RMT 복제(+`insert_quorum`), 트랙2(메타데이터)=MongoDB ReplicaSet + `mongodump`.
 - **Keeper는 durable queue가 아니다** — 이벤트 데이터를 보관하지 않고, 트랙1의 **쓰기 가용성**만 좌우한다 `✓`.
 {{< /callout >}}
 

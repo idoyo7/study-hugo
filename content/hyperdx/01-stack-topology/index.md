@@ -100,7 +100,7 @@ CH/Keeper 자체(CHI/CHK CR)는 이 차트 values가 아니라 **별도 매니�
 
 ## 4. 우리 케이스 K8s 배치 (mermaid)
 
-표준 차트가 아니라 §1의 분기를 반영한 실제 청사진이다: ClickHouse/Keeper는 Altinity operator 영역(범용분석 겸용), HyperDX는 `clickhouse.enabled:false`로 HyperDX Only, MongoDB만 MCK(또는 Atlas 위임).
+표준 차트가 아니라 §1의 분기를 반영한 실제 청사진입니다: ClickHouse/Keeper는 Altinity operator 영역(범용분석 겸용), HyperDX는 `clickhouse.enabled:false`로 HyperDX Only, MongoDB만 MCK(또는 Atlas 위임).
 
 {{< flow src="_flow/4-우리-케이스-k8s-배치.json" />}}
 

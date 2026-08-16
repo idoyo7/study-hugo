@@ -97,7 +97,7 @@ ztunnel이 EnvoyFilter를 못 받는 것은 정책이 아니라 구조 때문입
 
 **우리가 심사할 것.**
 
-- 09에서 우리가 세운 임계값은 전부 "커넥션 수 × 커넥션당 config 크기"라는 곱 위에 있었습니다. 두 항이 동시에 줄면 **KEDA 트리거와 keepalive 주기를 다시 계산**해야 한다. 특히 15분 keepalive가 계속 필요한지.
+- 09에서 우리가 세운 임계값은 전부 "커넥션 수 × 커넥션당 config 크기"라는 곱 위에 있었습니다. 두 항이 동시에 줄면 **KEDA 트리거와 keepalive 주기를 다시 계산**해야 합니다. 특히 15분 keepalive가 계속 필요한지.
 - 혼재 기간에는 istiod가 사이드카용 Envoy xDS와 ztunnel용 커스텀 xDS를 동시에 계산합니다. `pilot_xds` 하나로 두 종류를 세는 오토스케일링은 **단가가 다른 것을 같은 단위로 세는** 구조가 됩니다. 카운터를 프록시 종류별로 쪼갤 수 있는지 확인할 것.
 - ztunnel이 DaemonSet이라는 사실은 09의 keepalive 손잡이와 [03-3 업그레이드 런북]({{< relref "ambient/03-3-ambient-upgrade-in-place.md" >}})의 node pool blue-green이 같은 일(강제 재연결)을 한다는 뜻입니다. 두 개가 겹치는 창을 피하는 운영 규칙이 필요합니다.
 - 09가 다룬 "재분배 없음"의 반대편 증상 — 한 번 끊긴 스트림이 스스로 낫지 않는 문제 — 은 채널팀이 [03-4 507과 istiod disconnected]({{< relref "ambient/03-4-507-istiod-disconnected.md" >}})에서 탐지 문제로 만났다. 우리 readinessProbe·알럿을 그 기준으로 다시 볼 것.
