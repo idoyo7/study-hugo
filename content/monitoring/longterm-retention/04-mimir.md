@@ -40,7 +40,7 @@ S3 native 저장과 remote_write native 수신으로 매력적으로 보이지�
 
 - 유지보수자 발언: *"down sampling is not currently supported. I'm not sure if there are plans to work on it"* (56quarters, 2022-05, discussion #1834) / *"downsampling just wasn't a priority for Grafana Labs so far"* (colega, 2024-12)
 - 커뮤니티 설계 제안 PR #5028: **미병합**
-- Mimir 3.0 헤드라인은 **Kafka ingest storage + Mimir Query Engine(MQE, 쿼리 피크 메모리 최대 -92%)** 이지 다운샘플링이 아니다.
+- Mimir 3.0 헤드라인은 **Kafka ingest storage + Mimir Query Engine(MQE, 쿼리 피크 메모리 최대 -92%)** 이지 다운샘플링이 아닙니다.
 - Grafana의 집계 대안 **Adaptive Metrics는 Grafana Cloud 전용**이다(self-hosted 불가).
 
 시나리오 ②(raw 90d + 5m 집계 400d)를 Mimir로 만들 저장-시점 수단이 아예 없다는 뜻입니다. 남는 길은 raw 400d뿐이고 그 순간 경제성은 시나리오 ①(전 구간 raw)로 되돌아갑니다.

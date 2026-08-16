@@ -33,9 +33,9 @@ weight: 4
 ## 약점 · 한계
 
 - **스키마·테이블 설계가 상시 스킬 요구사항이다.** 좋은 `ORDER BY`·partition·codec·TTL·materialized view에는 보상하고, 나쁜 설계에는 낮은 압축과 느린 쿼리로 벌을 줍니다. "JSON을 index하고 시작"하는 OpenSearch와 달리 CH는 의도적 설계와 로그 형태 변화 시 재검토를 요구합니다. 특히 **field와 query pattern을 알 때 빛나며**, unknown/volatile field가 지배적이면 효율이 "may suffer significantly depending on schema."
-- **셀프호스트 운영 부담이 실재한다.** 잦은(때로 breaking) 버전 업그레이드 검증, multi-TB 테이블의 `ALTER`/`INSERT SELECT` backfill, 백업 운영이 사용자 몫이다. 표준 도구 `clickhouse-backup`의 **incremental 체인은 fragile** — incremental restore에 체인의 모든 이전 백업이 필요하고 하나라도 손상되면 복구 불가라 weekly-full + daily-incremental·정기 restore drill을 직접 소유해야 한다. TCO 추정으로 대략 **엔지니어 시간 ~10–20%(~$2–4k/월)** `≈`이며 관리형 이전은 ops를 ~10 hrs/월 줄이는 대신 10 TB에서 비용을 **~3.4x** 올린 사례가 있다 `≈/Ⓥ`.
+- **셀프호스트 운영 부담이 실재한다.** 잦은(때로 breaking) 버전 업그레이드 검증, multi-TB 테이블의 `ALTER`/`INSERT SELECT` backfill, 백업 운영이 사용자 몫입니다. 표준 도구 `clickhouse-backup`의 **incremental 체인은 fragile** — incremental restore에 체인의 모든 이전 백업이 필요하고 하나라도 손상되면 복구 불가라 weekly-full + daily-incremental·정기 restore drill을 직접 소유해야 한다. TCO 추정으로 대략 **엔지니어 시간 ~10–20%(~$2–4k/월)** `≈`이며 관리형 이전은 ops를 ~10 hrs/월 줄이는 대신 10 TB에서 비용을 **~3.4x** 올린 사례가 있다 `≈/Ⓥ`.
 - **진짜 storage-compute 분리는 Cloud 전용이다.** SharedMergeTree는 proprietary·Cloud 전용이고, self-host의 zero-copy-S3는 사실상 폐기됐다(데이터 손상 이력 #39560, 22.8부터 default off, ~2024-04 이후 upstream 기여 거부). 결과적으로 self-host는 shared-nothing이고 **RF2는 S3에서도 사본이 두 배**가 되며 스케일아웃 = 리샤딩이다. OSS 대안인 Altinity **Antalya**(Iceberg/Parquet + stateless swarm)는 유망하나 아직 성숙 중.
-- **EKS stateful 엣지케이스.** EBS는 **AZ 고정**이라 node churn 시 `volume node affinity conflict`가 나 `WaitForFirstConsumer` + per-AZ node group / shard-per-AZ 설계가 필요하고, 로컬 NVMe는 **ephemeral**이라 RF2 + node 손실 시 네트워크 rebuild가 전제된다. PDB `maxUnavailable:1`, topology spread는 필수.
+- **EKS stateful 엣지케이스.** EBS는 **AZ 고정**이라 node churn 시 `volume node affinity conflict`가 나 `WaitForFirstConsumer` + per-AZ node group / shard-per-AZ 설계가 필요하고, 로컬 NVMe는 **ephemeral**이라 RF2 + node 손실 시 네트워크 rebuild가 전제됩니다. PDB `maxUnavailable:1`, topology spread는 필수.
 - **S3 콜드 티어의 숨은 비용.** data가 S3에 있어도 **part metadata는 로컬 디스크**에 남아 desync 시 orphan S3 파일이 생기고(백업 필요), disk cache가 사실상 필수, 콜드 쿼리는 로컬보다 느립니다.
 - **turnkey 로그 UI가 아닙니다.** Kibana/OpenSearch Dashboards에 대응하는 내장 로그 검색 UI가 없다 — Grafana나 [HyperDX / ClickStack]({{< relref "05-hyperdx-clickstack.md" >}})를 별도로 얹어야 합니다.
 
