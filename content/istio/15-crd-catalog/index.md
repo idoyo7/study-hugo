@@ -214,7 +214,7 @@ EnvoyFilter가 특히 도드라집니다. 같은 `networking.istio.io` 그룹의
 - CRD는 독립된 설정 조각이 아닙니다. 트래픽 축은 **`gateways` 이름 → `host`+`subset` 이름 → 라벨 필터**로 이어집니다. 어느 고리가 끊겼는지가 곧 진단 순서입니다.
 - **mTLS의 수신과 송신은 다른 리소스가 정합니다.** PeerAuthentication은 받을 것을, DestinationRule `tls`는 보낼 것을 정하며 어긋나면 배포 직후 503으로 나타납니다. `tls`를 명시하지 않으면 기본값이 `DISABLE`입니다.
 - **RequestAuthentication은 토큰을 요구하지 않습니다.** 없는 토큰은 통과시키고 요구하는 것은 AuthorizationPolicy의 몫입니다. 그리고 **ALLOW 정책 하나가 그 워크로드의 기본 동작을 deny-by-default로 뒤집습니다.**
-- `Sidecar`·`ProxyConfig`·`Telemetry`는 트래픽이 아니라 프록시를 조정한다. 특히 `Sidecar`의 egress 목록은 **설정 범위 축소이지 트래픽 차단이 아니다.**
+- `Sidecar`·`ProxyConfig`·`Telemetry`는 트래픽이 아니라 프록시를 조정합니다. 특히 `Sidecar`의 egress 목록은 **설정 범위 축소이지 트래픽 차단이 아니다.**
 - 버전 컬럼이 업그레이드 리스크의 지도입니다. **EnvoyFilter만 `v1alpha3`, WasmPlugin은 `v1alpha1`** — API 호환과 그 안의 Envoy 설정 호환은 별개입니다.
 
 ## 소스
@@ -234,4 +234,4 @@ EnvoyFilter가 특히 도드라집니다. 같은 `networking.istio.io` 그룹의
 - Istio 공식 레퍼런스 — **WasmPlugin** (`phase`의 AUTHN/AUTHZ/STATS/UNSPECIFIED_PHASE 정의): <https://istio.io/latest/docs/reference/config/proxy_extensions/wasm-plugin/>
 - Istio 공식 문서 — **Mutual TLS configuration**(PeerAuthentication은 accept, DestinationRule은 send) · **Network problems**("If requests… immediately start generating HTTP 503 errors after you applied a DestinationRule"): <https://istio.io/latest/docs/ops/configuration/traffic-management/tls-configuration/> · <https://istio.io/latest/docs/ops/common-problems/network-issues/#tls-configuration-mistakes>
 - Istio 블로그 — **Introducing Istio v1 APIs** (networking/security/telemetry/extension 그룹 분류표. 분리의 설계 근거는 서술되지 않음): <https://istio.io/latest/blog/2024/v1-apis/>
-- 위 버전 컬럼은 **우리 클러스터의 `kubectl get crd` 출력**(설치 후 130일 시점) 기준이다. 업스트림의 최신 승격 상태와 다를 수 있으므로 판단이 필요하면 클러스터에서 다시 확인할 것.
+- 위 버전 컬럼은 **우리 클러스터의 `kubectl get crd` 출력**(설치 후 130일 시점) 기준입니다. 업스트림의 최신 승격 상태와 다를 수 있으므로 판단이 필요하면 클러스터에서 다시 확인할 것.

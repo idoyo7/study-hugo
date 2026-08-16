@@ -8,7 +8,7 @@ weight: 16
 {{< callout type="info" >}}
 **한눈에**
 - 이 구간의 사건은 두 개입니다. **ambient가 alpha → Beta(1.22.0) → GA(1.24.0)로 올라간 것**, 그리고 **설치·관리 경로가 강제로 바뀐 것**(in-cluster operator 폐기 1.23.0 → 제거 1.24.0, [#52090](https://github.com/istio/istio/pull/52090))입니다. 앞의 것은 선택이지만 **뒤의 것은 선택이 아니다** — sidecar를 유지하는 클러스터도 1.24 이상으로 가려면 그대로 맞습니다.
-- **ambient GA는 sidecar의 폐기 신호가 아니다.** 1.20~1.24 어느 upgrade-notes·change-notes에도 sidecar injection을 deprecated로 표시한 문구가 없고 최신 스냅샷 문서도 sidecar를 "thoroughly battle-tested"라며 두 개의 main data plane mode 중 하나로 나란히 둔다. 우리 방침(ambient 금지)은 **유효하고 이 구간 사실만으로는 재검토 트리거도 발생하지 않았습니다**(§2.4).
+- **ambient GA는 sidecar의 폐기 신호가 아니다.** 1.20~1.24 어느 upgrade-notes·change-notes에도 sidecar injection을 deprecated로 표시한 문구가 없고 최신 스냅샷 문서도 sidecar를 "thoroughly battle-tested"라며 두 개의 main data plane mode 중 하나로 나란히 둡니다. 우리 방침(ambient 금지)은 **유효하고 이 구간 사실만으로는 재검토 트리거도 발생하지 않았습니다**(§2.4).
 - 제거된 것은 **in-cluster 컨트롤러와 `istio-operator` 차트**이고 `IstioOperator` **API 타입은 1.30.0에도 살아 있다**(`operator/pkg/apis/types.go`, `install.istio.io/v1alpha1`). `istioctl install -f istio.yaml`도 그대로 동작합니다 — "IstioOperator가 죽었다"는 요약은 틀렸습니다.
 - 1.24.0에서 **CRD가 Helm 템플릿으로 이동**하고 `base.enableCRDTemplates`가 기본 `true`가 된다([#43204](https://github.com/istio/istio/issues/43204)). CRD를 `kubectl apply`나 이전 `helm install`로 넣었다면 **1.24 전에 1회 `kubectl label/annotate`로 Helm 소유권 이관**을 해야 하고 ArgoCD가 만든 실제 Helm 릴리스명을 모르면 이 명령을 실행하면 안 됩니다.
 - **sidecar 트래픽 동작을 바꾸는 플래그 7개가 1.24.0에 한꺼번에 들어오고 전부 기본 `true`다**(§5.6) — `ENABLE_INBOUND_RETRY_POLICY`·`EXCLUDE_UNSAFE_503_FROM_DEFAULT_RETRY`·`PILOT_UNIFIED_SIDECAR_SCOPE`·`ENABLE_ENHANCED_DESTINATIONRULE_MERGE`·`PREFER_DESTINATIONRULE_TLS_FOR_EXTERNAL_SERVICES`·`ENABLE_DEFERRED_STATS_CREATION`·`BYPASS_OVERLOAD_MANAGER_FOR_STATIC_LISTENERS`. 이 7개가 정확히 `compatibilityVersion=1.23` 프로파일의 내용입니다.
@@ -93,7 +93,7 @@ ambient가 아예 안 되는 것도 명시돼 있습니다(`docs/ambient/migrate
 **타당합니다.** 근거는 세 갈래입니다.
 
 - **sidecar가 폐기 트랙인가** — **아닙니다.** 1.20~1.24 upgrade-notes·change-notes 어디에도 sidecar injection을 deprecated로 표시한 문구가 없습니다. 최신 스냅샷 `docs/overview/dataplane-modes/index.md`는 sidecar를 "built on the sidecar pattern from its first release in 2017 … well understood and thoroughly battle-tested"로 서술하고 두 모드를 나란히 비교한다. → 유지가 "레거시에 남는 것"이 아니다.
-- **sidecar 경로에 투자가 계속되나** — **계속된다.** 1.20 `startupProbe` 기본화, 1.21 바이너리 ~10MB 축소, 1.23 인바운드 리트라이 프리뷰 → 1.24 기본 활성, 1.24 per-pod native sidecar 제어. → 유지가 성능·안정성에서 손해 보는 방향이 아니다.
+- **sidecar 경로에 투자가 계속되나** — **계속된다.** 1.20 `startupProbe` 기본화, 1.21 바이너리 ~10MB 축소, 1.23 인바운드 리트라이 프리뷰 → 1.24 기본 활성, 1.24 per-pod native sidecar 제어. → 유지가 성능·안정성에서 손해 보는 방향이 아닙니다.
 - **ambient가 우리 요건을 받을 수 있나** — **하드 블로커·L7 우회 문제가 남아 있다**(§2.3). 특히 `EnvoyFilter` 미지원과 `VirtualService` Alpha는 [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})·기존 `VirtualService` 자산과 정면으로 부딪힙니다. → 금융 요건과 무관하게라도 전환 비용이 큽니다.
 
 **재검토 트리거는 둘뿐입니다.** ① 릴리스 공지·upgrade-notes가 sidecar mode를 **명시적으로 deprecated로 지정**하는 경우입니다. ② `EnvoyFilter`가 waypoint에 지원되고 `VirtualService`의 ambient 지원이 Alpha를 벗어나는 경우 — 즉 §2.3의 "알려진 제약" 두 줄이 해소되는 시점입니다. **"ambient가 GA됐다"는 사실 자체는 트리거가 아닙니다**: GA는 "충분히 검증됐다"는 성숙도 선언이고 sidecar를 없앤다는 선언과는 다른 문장입니다. 이 구간에서는 두 트리거 모두 발생하지 않았습니다.
@@ -356,8 +356,8 @@ helm upgrade istiod istio/istiod -n istio-system \
 
 전제: sidecar 유지·ambient 금지, 목표 1.30.3, 하한 가정 chart tip 1.24.1, 라이브 버전 미확인, ArgoCD로 Helm 차트 렌더링. 절차·차트·values는 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}}) 소유.
 
-- **1.20** — 얻는 것: Gateway API v1.0 전면 지원 + Istio CRD `targetRef`. 사이드카 기동 ~1초 단축. 조심할 것: `startupProbe` 10분 타임아웃 — 기동 느린 워크로드가 종료된다. 우리가 할 조치: 기동 10분 초과 워크로드가 있으면 `startupProbe.failureThreshold` 상향. **없으면 조치 불필요**.
-- **1.21** — 얻는 것: `compatibilityVersion`이라는 완충 장치 자체가 생긴다. 사이드카 이미지 25%↓·파드당 ~5MB RAM↓. 조심할 것: **egress TLS 두 플래그 기본 on** — 사설 CA 대상 연결 끊김. Gateway 라벨 키 교체. Telemetry legacy 필드 4종 무반영. 우리가 할 조치: **`caCertificates` 없는 SIMPLE/MUTUAL DR 전수 조사**(§5.2). 구 Gateway 라벨 grep. `prometheus.configOverride`·`stackdriver.*` 3종 grep 후 `Telemetry` API 이전.
+- **1.20** — 얻는 것: Gateway API v1.0 전면 지원 + Istio CRD `targetRef`. 사이드카 기동 ~1초 단축. 조심할 것: `startupProbe` 10분 타임아웃 — 기동 느린 워크로드가 종료됩니다. 우리가 할 조치: 기동 10분 초과 워크로드가 있으면 `startupProbe.failureThreshold` 상향. **없으면 조치 불필요**.
+- **1.21** — 얻는 것: `compatibilityVersion`이라는 완충 장치 자체가 생깁니다. 사이드카 이미지 25%↓·파드당 ~5MB RAM↓. 조심할 것: **egress TLS 두 플래그 기본 on** — 사설 CA 대상 연결 끊김. Gateway 라벨 키 교체. Telemetry legacy 필드 4종 무반영. 우리가 할 조치: **`caCertificates` 없는 SIMPLE/MUTUAL DR 전수 조사**(§5.2). 구 Gateway 라벨 grep. `prometheus.configOverride`·`stackdriver.*` 3종 grep 후 `Telemetry` API 이전.
 - **1.22** — 얻는 것: Delta xDS(istiod·프록시 부하 감소), Istio API `v1`, Gateway API mesh Stable, `AuthorizationPolicy` path 템플릿. 조심할 것: 암묵적 zipkin 트레이싱 제거. `ServiceEntry resolution: NONE`의 `targetPort` 존중으로 **목적지가 바뀐다**. `discoverySelectors` 스코프가 root-ca 배포까지 좁힌다. 우리가 할 조치: 트레이싱을 `Telemetry` API로 명시 구성했는지 확인. `port ≠ targetPort` `ServiceEntry` grep. `discoverySelectors` 설정 여부 확인(미설정이면 무해).
 - **1.23** — 얻는 것: ambient 개선(미사용). in-cluster operator 폐기 **공지** — 이관 유예가 여기서 시작된다. 조심할 것: **메트릭 라벨 파싱 변경이 공개 upgrade-notes에 없다**(§5.5). 플래그 4종 제거. 우리가 할 조치: **`cluster_name`·`http_conn_manager_prefix` 라벨을 쓰는 Grafana 패널·알람 룰 전수 점검.** operator 사용 여부 확인(§3.2).
 - **1.24** — 얻는 것: ambient GA(미사용), `manifest translate`, CRD를 Helm으로 업그레이드 가능. 조심할 것: **in-cluster operator 제거 — 안 이관하면 여기서 막힌다.** CRD 소유권 이관 1회. **sidecar 동작 7개 기본 on.** k8s 상한 1.31. 우리가 할 조치: ① operator 사용 여부 확인 → 쓰면 Helm/istioctl 이관. ② CRD `label/annotate` 1회(**ArgoCD 릴리스명 확인 선행**). ③ `kubectl get sidecar -A` + 동일 hostname 중복 점검. ④ 503 자동 재시도 의존 워크로드 점검. ⑤ `istio-csr` 사용 여부 확인. ⑥ 커스텀 CEL `Telemetry` grep.
