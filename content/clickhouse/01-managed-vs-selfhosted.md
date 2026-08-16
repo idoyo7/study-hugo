@@ -114,7 +114,7 @@ self-host 총액은 컴포넌트 합입니다. 단가는 `✓`, 조립 총액은
 
 읽는 법:
 
-- **~5TB 간헐**: self-host는 "24-7 켜둔 최소 2 replica NVMe 노드"라는 고정비 바닥이 있어 집니다. Cloud는 유휴 시 compute $0 → **압승** `≈`.
+- **~5TB 간헐**: self-host는 "24-7 켜둔 최소 2 replica NVMe 노드"라는 고정비 바닥 때문에 집니다. Cloud는 유휴 시 compute $0 → **압승** `≈`.
 - **~20TB 24-7**: 인프라만 보면 self-host(1yr SP $3,221)가 Cloud Scale($3,627)을 근소하게 앞섭니다. **그러나 people TCO를 더하면 역전**됩니다 — 여기가 진짜 크로스오버 지대입니다.
 - **60TB+ 24-7**: Cloud compute는 데이터·동시성이 커질수록 unit-hour가 급증하는 반면 self-host는 노드 고정비 + 저렴한 S3 cold로 완만하게 늡니다. SP 할인까지 얹으면 self-host가 확연히 쌉니다 `≈`.
 

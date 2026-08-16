@@ -26,7 +26,7 @@ weight: 12
 
 기능의 층은 둘로 나뉩니다.
 
-- **코어는 L3/L4입니다.** "At its core, Envoy is an L3/L4 network proxy. A pluggable filter chain mechanism allows filters to be written to perform different TCP/UDP proxy tasks." 확장 모델이 코어 정의에 이미 들어 있다는 점을 기억해 둡니다 — 6절에서 다시 나옵니다.
+- **코어는 L3/L4입니다.** "At its core, Envoy is an L3/L4 network proxy. A pluggable filter chain mechanism allows filters to be written to perform different TCP/UDP proxy tasks." 확장 모델이 코어 정의에 이미 들어 있다는 점을 기억해 두세요 — 6절에서 다시 나옵니다.
 - **HTTP는 그 위의 레이어입니다.** "HTTP is such a critical component of modern application architectures that Envoy supports an additional HTTP L7 filter layer."
 
 같은 소개 문서가 다른 자리에서는 Envoy를 "an L7 proxy and communication bus designed for large modern service oriented architectures"라고도 부릅니다. 둘 다 공식 표현이고 서로 어긋나지 않습니다 — 앞은 구현 구조(L3/L4 코어 + L7 레이어), 뒤는 실제 쓰임새를 말한 것입니다.
