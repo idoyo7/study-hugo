@@ -75,8 +75,8 @@ ztunnel이 EnvoyFilter를 못 받는 것은 정책이 아니라 구조 때문입
 
 - 02에서 우리가 만들어 관리하던 `Sidecar` 리소스 목록을 뽑고 각 네임스페이스가 ambient로 넘어갈 때 그 리소스를 지울지 남길지 정합니다. 혼재 기간에는 사이드카 워크로드가 남아 있으므로 **두 스코핑 모델을 동시에 운영**하게 됩니다.
 - 우리가 `Sidecar`로 얻은 설정 범위 축소 효과가 waypoint 기본 스코프로 자동 재현되는지, 아니면 waypoint별로 다시 좁혀야 하는지. 재현된다면 02의 "가장 큰 레버"는 이행과 함께 손이 덜 가는 쪽으로 바뀝니다.
-- 02의 두 번째 레버(디바운스, `discoverySelectors`)는 istiod 쪽 손잡이라 데이터 플레인 모드와 무관해 보이지만 이번 재료로는 확인하지 못했다. 이행 전에 실제로 확인할 것.
-- 채널팀이 [01 왜 Ambient mode인가]({{< relref "ambient/01-why-ambient-mode.md" >}})에서 든 polynomial scaling problem은 우리 02의 "곱의 세 항"과 같은 얘기를 분모 쪽에서 본 것이다. 우리 클러스터의 세 항 중 어느 항이 실제로 큰지 먼저 재고 넘어갈 것.
+- 02의 두 번째 레버(디바운스, `discoverySelectors`)는 istiod 쪽 손잡이라 데이터 플레인 모드와 무관해 보이지만 이번 재료로는 확인하지 못했습니다. 이행 전에 실제로 확인할 것.
+- 채널팀이 [01 왜 Ambient mode인가]({{< relref "ambient/01-why-ambient-mode.md" >}})에서 든 polynomial scaling problem은 우리 02의 "곱의 세 항"과 같은 얘기를 분모 쪽에서 본 것입니다. 우리 클러스터의 세 항 중 어느 항이 실제로 큰지 먼저 재고 넘어갈 것.
 
 **열린 질문.**
 
@@ -98,7 +98,7 @@ ztunnel이 EnvoyFilter를 못 받는 것은 정책이 아니라 구조 때문입
 **우리가 심사할 것.**
 
 - 09에서 우리가 세운 임계값은 전부 "커넥션 수 × 커넥션당 config 크기"라는 곱 위에 있었습니다. 두 항이 동시에 줄면 **KEDA 트리거와 keepalive 주기를 다시 계산**해야 한다. 특히 15분 keepalive가 계속 필요한지.
-- 혼재 기간에는 istiod가 사이드카용 Envoy xDS와 ztunnel용 커스텀 xDS를 동시에 계산한다. `pilot_xds` 하나로 두 종류를 세는 오토스케일링은 **단가가 다른 것을 같은 단위로 세는** 구조가 된다. 카운터를 프록시 종류별로 쪼갤 수 있는지 확인할 것.
+- 혼재 기간에는 istiod가 사이드카용 Envoy xDS와 ztunnel용 커스텀 xDS를 동시에 계산합니다. `pilot_xds` 하나로 두 종류를 세는 오토스케일링은 **단가가 다른 것을 같은 단위로 세는** 구조가 됩니다. 카운터를 프록시 종류별로 쪼갤 수 있는지 확인할 것.
 - ztunnel이 DaemonSet이라는 사실은 09의 keepalive 손잡이와 [03-3 업그레이드 런북]({{< relref "ambient/03-3-ambient-upgrade-in-place.md" >}})의 node pool blue-green이 같은 일(강제 재연결)을 한다는 뜻입니다. 두 개가 겹치는 창을 피하는 운영 규칙이 필요합니다.
 - 09가 다룬 "재분배 없음"의 반대편 증상 — 한 번 끊긴 스트림이 스스로 낫지 않는 문제 — 은 채널팀이 [03-4 507과 istiod disconnected]({{< relref "ambient/03-4-507-istiod-disconnected.md" >}})에서 탐지 문제로 만났다. 우리 readinessProbe·알럿을 그 기준으로 다시 볼 것.
 
@@ -144,7 +144,7 @@ ztunnel이 EnvoyFilter를 못 받는 것은 정책이 아니라 구조 때문입
 - `reporter="destination"` 또는 `reporter="source"`로 필터하는 쿼리를 전수 검사합니다. waypoint가 보고하는 트래픽을 **놓치거나 이중 계산**할 수 있고, 공식 문서·대시보드가 아직 이 값에 맞춰 갱신되지 않았습니다.
 - 06이 경고한 카디널리티 예산을 다시 계산합니다. `reporter` 값이 하나 늘고 프록시 종류가 둘로 갈리면 시계열 수가 어떻게 변하는지.
 - 로그 파이프라인의 파서. ztunnel의 연결 단위 로그는 Envoy access log 포맷이 아니므로 [로깅 챕터]({{< relref "../logging/_index.md" >}}) 쪽 수집·파싱 규칙이 수정 대상입니다.
-- 채널팀이 [03-1 503과 Half-open Connection]({{< relref "ambient/03-1-503-half-open-connection.md" >}})에서 겪은 것처럼, 게이트웨이 로그에 `via_upstream`만 남고 실제 원인은 waypoint 로그에 있는 상황이 생긴다. 05의 hop 좁히기 순서를 그 전제로 다시 쓸 것.
+- 채널팀이 [03-1 503과 Half-open Connection]({{< relref "ambient/03-1-503-half-open-connection.md" >}})에서 겪은 것처럼, 게이트웨이 로그에 `via_upstream`만 남고 실제 원인은 waypoint 로그에 있는 상황이 생깁니다. 05의 hop 좁히기 순서를 그 전제로 다시 쓸 것.
 
 **열린 질문.**
 

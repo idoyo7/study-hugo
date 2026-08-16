@@ -129,5 +129,5 @@ EnvoyFilter를 쓸 수밖에 없다면 최소한 다음은 지킵니다.
 ## 이 문서에서 가져갈 것
 
 - EnvoyFilter는 istiod가 만든 **Envoy 설정을 직접 패치**하는 저수준 탈출구입니다. `applyTo × context × operation`으로 읽습니다.
-- **업그레이드 취약·폭발 반경·리뷰 난이도** 때문에 최후의 수단이다. 선택 사다리 = 표준 CRD → 상위 API(Telemetry/WasmPlugin) → EnvoyFilter.
+- **업그레이드 취약·폭발 반경·리뷰 난이도** 때문에 최후의 수단입니다. 선택 사다리 = 표준 CRD → 상위 API(Telemetry/WasmPlugin) → EnvoyFilter.
 - 대표 용도는 **레이트 리밋**(local=인스턴스별·무의존, global=전역정확·RLS비용)과 **커스텀 로직**(Lua=가벼움, WASM=WasmPlugin으로). 쓴다면 좁게·버전핀·GitOps·관측이 필수입니다.

@@ -212,7 +212,7 @@ RequestRateLimit *rate.Limiter
 - **Delta xDS** (`ISTIO_DELTA_XDS`) · **1.22부터 기본 `true`** — 변경분만 전송해 push 비용↓. 재연결 절감폭은 실측 필요 — 아래 단서 참조.
 - **HPA `behavior`** stabilization window · 차트 지원됨 (#42634 → PR #44425) — 파드 churn 자체를 억제. scaleDown이 느려짐. KEDA는 `advanced.horizontalPodAutoscalerConfig.behavior`로 전달.
 - **사전 스케일링** · Google 공식 권고 — 이벤트 일정을 미리 아는 경우에만. 평시 낭비와 맞바꿈.
-- **ambient / ztunnel** · 구조적 해법 — 커넥션이 **파드당 → 노드당 1개**, ztunnel용 xDS는 L4 전용이라 훨씬 작다. 마이그레이션 비용, L7 기능엔 waypoint 필요.
+- **ambient / ztunnel** · 구조적 해법 — 커넥션이 **파드당 → 노드당 1개**, ztunnel용 xDS는 L4 전용이라 훨씬 작습니다. 마이그레이션 비용, L7 기능엔 waypoint 필요.
 - **리비전 기반 샤딩** · 가능하나 목적 밖 — `istio.io/rev`로 프록시를 리비전별 istiod에 고정. 업그레이드/카나리아용 설계라 **동적 재분배가 아니라 정적 분할**.
 - **클라이언트측 `idle_timeout`** (EnvoyFilter) · 커뮤니티 기법 — 서버 강제 종료 대신 프록시 아웃바운드에 idle timeout을 주입해 재연결 유도. 근거 설명이 없어 **추정 수준**.
 
@@ -385,7 +385,7 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 ### 남는 것 셋
 
 - **평균 사용률은 CPU limit 사이징의 근거가 못 됩니다.** `throttled_periods / periods`를 같이 보지 않으면 "CPU 여유 있는데 왜 느리지"에서 조사가 멈춥니다.
-- **quota가 작을수록 버스트를 못 흡수한다.** 60ms 예산으로는 한 period 안의 짧은 스파이크 하나도 못 넘긴다. 슬라이스 잔류(CPU당 1ms)도 quota가 작을수록 비율로 커진다. **limit을 올리는 것이 둘 다에 듣는 수단**인 이유다(§8).
+- **quota가 작을수록 버스트를 못 흡수한다.** 60ms 예산으로는 한 period 안의 짧은 스파이크 하나도 못 넘긴다. 슬라이스 잔류(CPU당 1ms)도 quota가 작을수록 비율로 커집니다. **limit을 올리는 것이 둘 다에 듣는 수단**인 이유다(§8).
 - **뾰족한 파드는 평균 알럿에 안 걸립니다.** 스로틀 상위 12개 시점의 argmax가 거의 전부 `9jvvj` 한 대였고, 10:48:30에는 CPU 최대가 다른 파드(`7jp9c`)인데 스로틀 최대는 여전히 `9jvvj`였습니다. CPU를 덜 쓰면서 더 잘립니다.
 
 {{< callout type="info" >}}
@@ -528,7 +528,7 @@ resources:
     memory: 2Gi
 ```
 
-`"2"`는 §7에서 버스트 시 단일 P 포화가 보였다는 근거에서 나온 출발점이지 실측으로 확정한 값이 아니다. 조정 후 §7의 네 지표를 다시 떠서 `pilot_xds_push_time` p99가 내려오는지로 검증할 것.
+`"2"`는 §7에서 버스트 시 단일 P 포화가 보였다는 근거에서 나온 출발점이지 실측으로 확정한 값이 아닙니다. 조정 후 §7의 네 지표를 다시 떠서 `pilot_xds_push_time` p99가 내려오는지로 검증할 것.
 
 **메모리도 같이 봅니다.** `GOMEMLIMIT`이 `limits.memory`에서 같은 방식으로 주입되므로, 메모리 limit을 차트 기본 request(2048Mi)보다 낮게 잡으면 Go의 소프트 메모리 상한까지 함께 낮아집니다.
 
@@ -544,7 +544,7 @@ resources:
 - **역산에는 갓 뜬 파드를 빼라**(§7). 초판이 "실효 210m"라는 틀린 결론에 간 이유가 이것입니다. startup 버스트로 잘리는데 1분 rate가 눌러서 제약이 과하게 조여듭니다. 나이 5분 필터를 걸면 상한이 21.5ms → 37.1ms로 벌어집니다.
 - **GOMAXPROCS를 낮춰도 OS 스레드는 안 줄어든다**(§7). GOMAXPROCS=1인데 프로세스 스레드는 17개였습니다. **좌초 표면적은 그대로 떠안고 병렬성만 잃는 조합**입니다.
 - **`GOMAXPROCS`는 설정하는 게 아니라 `limits.cpu`에서 파생된다**(§8). 차트 Downward API + kubelet `math.Ceil` 조합이라 소수점 limit은 항상 어긋나고 `PILOT_PUSH_THROTTLE`까지 그 값에서 파생됩니다. Istio 1.24는 Go 1.22 기반이라 Go 1.25의 컨테이너 인식 런타임도 없습니다.
-- `pilot_xds_pushes`는 에러 카운터다. `pilot_xds_write_timeout`·`pilot_total_xds_rejects`는 존재하지 않는다. 알럿 걸기 전에 `:15014/metrics`를 직접 스크랩해 이름을 확인할 것.
+- `pilot_xds_pushes`는 에러 카운터다. `pilot_xds_write_timeout`·`pilot_total_xds_rejects`는 존재하지 않습니다. 알럿 걸기 전에 `:15014/metrics`를 직접 스크랩해 이름을 확인할 것.
 
 ## 소스
 
