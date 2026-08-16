@@ -16,7 +16,7 @@ weight: 2
 **한눈에**
 - 1편은 "HBONE은 HTTP/2 CONNECT + mTLS"라는 개념 설명에서 멈췄습니다. 2편은 **실제 Envoy config 덤프를 한 단계씩 따라가며 그 개념이 어떤 필드로 구현되는지** 확인합니다.
 - 핵심 발견은 **`outbound|8080||ch-dropwizard-public.channel.svc.cluster.local` 이라는 단 하나의 클러스터가 목적지 상태에 따라 세 갈래로 갈린다**는 것 — out-of-mesh는 Pod IP 평문 직결, in-mesh는 `envoy_internal_address`, waypoint가 붙은 목적지는 Service ClusterIP. 갈림길을 결정하는 건 endpoint 메타데이터와 `transport_socket_match`다.
-- HBONE은 **Envoy 기존 부품 세 개의 조합**이다: 메타데이터를 넘기는 `InternalUpstreamTransport`, CONNECT를 만드는 `tcp_proxy`의 `tunneling_config`, mTLS를 세우는 `UpstreamTlsContext`.
+- HBONE은 **Envoy 기존 부품 세 개의 조합**입니다: 메타데이터를 넘기는 `InternalUpstreamTransport`, CONNECT를 만드는 `tcp_proxy`의 `tunneling_config`, mTLS를 세우는 `UpstreamTlsContext`.
 - 받는 쪽에서 ztunnel은 사이드카가 아닌데도 Pod 안에 있습니다. istio-cni node agent가 넘겨준 **netns FD로 Pod 네트워크 네임스페이스 안에 직접 listening 소켓(`15001`·`15006`·`15008`)을 만드는** 크로스 네임스페이스 소켓 기법입니다.
 - 리다이렉션 무한루프는 **패킷 마크 `0x539`와 커넥션 마크 `0x111`** 두 개로 막습니다. 모든 REDIRECT 규칙이 `! --mark 0x539`를 달고 있습니다.
 {{< /callout >}}

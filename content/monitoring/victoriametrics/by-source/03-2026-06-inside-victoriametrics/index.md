@@ -14,7 +14,7 @@ weight: 3
 
 {{< callout type="info" >}}
 **한눈에**
-- 발표는 데이터가 **들어와서 저장되고 다시 쿼리로 나가기까지의 전 과정**을 6섹션으로 분해한다: ① 아키텍처 오버뷰 ② `vmagent` ③ `vminsert` ④ `vmstorage` ⑤ `vmselect` ⑥ best/worst case.
+- 발표는 데이터가 **들어와서 저장되고 다시 쿼리로 나가기까지의 전 과정**을 6섹션으로 분해합니다: ① 아키텍처 오버뷰 ② `vmagent` ③ `vminsert` ④ `vmstorage` ⑤ `vmselect` ⑥ best/worst case.
 - 컴포넌트를 한 문장으로 줄이면 이렇습니다. `vmagent`는 무엇이든 받아 정제하는 만능 어댑터, `vminsert`는 저장 없이 라우팅하는 수집 게이트웨이, `vmstorage`는 월별 파티션에 저장하는 컴포넌트, `vmselect`는 Fanout으로 던지고 Merge하는 쿼리 엔진입니다.
 - 효율은 두 축에서 나옵니다. 거의 불변인 이름·레이블과 계속 쌓이는 timestamp+value를 **IndexDB/DataDB로 분리**하고 그렇게 나눈 값을 **Gorilla 계열 차분 인코딩**(Gauge→Delta, Counter→Delta-of-Delta)으로 눌러 담습니다.
 - 운영에서 반복해서 등장하는 이름들: 랑데부 해싱, `replicationFactor`, `TSID`, Merge Multiplier, IndexDB 3단계 로테이션, Rollup Result Cache, `search.latencyOffset`, 카디널리티.

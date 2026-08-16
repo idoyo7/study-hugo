@@ -9,7 +9,7 @@ weight: 1
 **한눈에**
 - 1.27 alpha → 1.33 beta → **1.35 GA**. 파드를 재시작하지 않고 CPU/메모리를 바꿉니다. 반드시 **`resize` 서브리소스**로만 통한다. 손댈 수 있는 건 **cpu·memory 값뿐**이다(QoS 변경·항목 제거·GPU는 전부 거부).
 - 수락 판정 기준은 실사용량이 아니라 **"다른 파드들의 requests 합 vs node allocatable"**. 노드가 붐비면 **Deferred**(재시도됨), 정책 위반이면 **Infeasible**(spec을 고치기 전까지 재평가 안 됨).
-- **늘리는 쪽은 사실상 무위험, 줄이는 쪽만 조심.** 메모리 축소에는 kubelet 사용량 체크의 TOCTOU 레이스가 남아 OOM-kill을 보장 방지하지 못한다(#135670, open). CPU 축소는 재시작이 없다는 뜻일 뿐 **스로틀 비용을 낳는데 그건 사용률 그래프에 안 보인다**(`throttled_periods`로 봐야 한다).
+- **늘리는 쪽은 사실상 무위험, 줄이는 쪽만 조심.** 메모리 축소에는 kubelet 사용량 체크의 TOCTOU 레이스가 남아 OOM-kill을 보장 방지하지 못합니다(#135670, open). CPU 축소는 재시작이 없다는 뜻일 뿐 **스로틀 비용을 낳는데 그건 사용률 그래프에 안 보인다**(`throttled_periods`로 봐야 한다).
 - **케이스가 전부입니다.** **재시작이 비싼 stateful(DB·캐시·롱커넥션)에 최적**이고 기동 부스트에도 좋습니다. JVM/Node 힙에는 반쪽(CPU만 in-place), VPA 자동화는 아직 이르고 static CPU manager 노드는 사실상 미지원입니다.
 {{< /callout >}}
 

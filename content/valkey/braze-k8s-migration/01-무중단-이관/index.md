@@ -145,7 +145,7 @@ RESP는 L7 HTTP가 아니라 **평범한 TCP 스트림**입니다. 그러면 [NL
 
 구성은 세 겹입니다.
 
-- 파드별 Service에 nodePort를 준다: server `31000`, sentinel `31001`. 같은 샤드의 다음 파드가 `31002/31003`, 그다음이 `31004/31005`로 이어진다([기본 nodePort 범위](https://kubernetes.io/docs/concepts/services-networking/service/)가 30000–32767이니 전부 그 안이다).
+- 파드별 Service에 nodePort를 줍니다: server `31000`, sentinel `31001`. 같은 샤드의 다음 파드가 `31002/31003`, 그다음이 `31004/31005`로 이어진다([기본 nodePort 범위](https://kubernetes.io/docs/concepts/services-networking/service/)가 30000–32767이니 전부 그 안이다).
 - NLB에 리스너를 연다: server `6380`, sentinel `26380`. 타깃 그룹은 클러스터의 전 노드이고 위 nodePort를 향합니다. 파드가 어느 노드에 있든 kube-proxy가 알아서 넘겨 주므로 타깃 목록이 파드 스케줄링을 따라다닐 필요가 없습니다.
 - 서버와 sentinel이 자기 주소를 NLB 주소로 광고합니다.
 
