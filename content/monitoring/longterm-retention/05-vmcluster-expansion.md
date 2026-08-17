@@ -8,15 +8,15 @@ aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- **단순 확장안** = `retentionPeriod`만 400d로 늘리고 PVC 증설. 신규 컴포넌트·쿼리 변화 0으로 가장 단순하지만 gp3×RF2×raw 30s 과잉으로 4안 중 **최고가**(월 ~$1,642, 헤드룸 시 ~$2,000) — 다른 안의 비용 비교 기준선 역할입니다.
+- **단순 확장안** = `retentionPeriod`만 400d로 늘리고 PVC 증설. 신규 컴포넌트·쿼리 변화 0으로 가장 단순하지만 gp3×RF2×raw 30s 과잉으로 4안 중 **최고가**(월 ~$1,642, 헤드룸 시 ~$2,000) — 다른 안의 비용을 재는 기준선입니다.
 - **확장+Ent**(`-downsampling.period=90d:5m` 한 줄)는 저장비만 ~$497로 단순 확장안의 약 1/3이지만 **Enterprise 라이선스(비공개)**가 필요해 OSS 우선 제약상 참고용.
-- **다운샘플링은 시리즈 수를 줄이지 않습니다**(공식 caveat) — 고카디널리티·고churn 워크로드에서는 저장 절감 효과가 제한적입니다.
+- **다운샘플링은 시리즈 수를 줄이지 않습니다**(공식 caveat) — 고카디널리티·고churn 워크로드에서는 저장 절감 효과가 제한됩니다.
 - 확장+Ent는 **VM 아카이브안 운영이 검증 후에도 부담스러울 때**만 고려하는 대안입니다.
 {{< /callout >}}
 
 갈래는 둘입니다. 현행 VMCluster를 그대로 400d로 늘리는 가장 단순한 길(단순 확장안), 그리고 그 위에 설정 한 줄로 다운샘플을 얹는 Enterprise 경로(확장+Ent)입니다. 앞쪽은 채택 후보라기보다 다른 옵션의 **비용 비교 기준선**이고 뒤쪽은 OSS-우선 제약 때문에 참고용에 머뭅니다.
 
-> 관련 문서: [02 VictoriaMetrics]({{< relref "02-vm-archive.md" >}}), [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
+관련 문서: [02 VictoriaMetrics]({{< relref "02-vm-archive.md" >}}), [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}}), [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})
 
 ## 단순 확장안: `-retentionPeriod=400d` + PVC 증설
 
@@ -28,7 +28,7 @@ aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 - vmstorage PVC `900Gi → ~4.5 TiB/노드` ×4 (gp3 볼륨 한도는 64 TiB라 여유 — 2025-09에 16→64 TiB 상향)
 - 신규 stateful 컴포넌트 **0개**, 신규 기술 학습 **0**, 쿼리 경로(MetricsQL·vmselect) **무변화**
 
-마이그레이션이라 할 작업이 "설정값 하나 + 볼륨 증설"뿐입니다. 이 단순성이 이 안의 유일한 강점입니다.
+마이그레이션이라 할 작업이 "설정값 하나 + 볼륨 증설"뿐입니다. 이 단순함이 이 안의 유일한 강점입니다.
 
 ### 비용
 
@@ -43,11 +43,11 @@ aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 | VM 공식 사이징 반영 시 | **~$2,000/mo 근접** (+1 merge cycle, ×1.25 헤드룸) |
 | 현재($328/mo) 대비 | **약 5배** |
 
-식의 `U`는 80d·RF2 실사용 바이트를 가리킵니다. 위 대입은 프로비저닝 3,600 GiB를 100% 사용한다는 **상한 가정**을 깔고 있어 실제 사용률이 70%라면 모든 수치를 0.7배로 선형 보정합니다. 반대 방향의 보정도 있습니다 — VM 공식 사이징 공식 `(retention + 1 cycle) × 1.25`에 비추면 선형 외삽 쪽이 **하한**입니다. 두 방향을 합치면 실제 청구는 $1,642와 ~$2,000 사이로 봐야 합니다.
+식의 `U`는 80d·RF2 실사용 바이트를 가리킵니다. 위 대입은 프로비저닝 3,600 GiB를 100% 쓴다는 **상한 가정**을 깔고 있어, 실제 사용률이 70%라면 모든 수치를 0.7배로 선형 보정합니다. 반대 방향의 보정도 있습니다 — VM 공식 사이징 공식 `(retention + 1 cycle) × 1.25`에 비추면 선형 외삽 쪽이 **하한**입니다. 두 방향을 합치면 실제 청구는 $1,642와 ~$2,000 사이로 봐야 합니다.
 
 ### 왜 비싼가 (본질)
 
-낭비의 핵심은 90d 이후 데이터에 세 가지가 전부 과잉이라는 데 있습니다.
+90d 이후 데이터에는 세 가지가 전부 과잉이고, 낭비는 여기서 납니다.
 
 | 요인 | 과잉 지점 |
 |---|---|
@@ -55,7 +55,7 @@ aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 | RF2 | 아카이브에 실시간 이중화 불필요 — 백업 사본으로 충분 |
 | raw 30s | >90d 구간은 **5m이면 충분**(사용자 확정) |
 
-결국 비싼 이유는 **gp3 단가 × RF2**의 곱입니다. 이 중 단가 축은 [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}})가, "5m이면 충분한데 왜 raw를 버리는가"라는 해상도 축은 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})이 각각 정면으로 다룹니다. 세 과잉을 `sc1 × RF1 × 5m 집계`로 한꺼번에 걷어낸 것이 VM 아카이브안이고 확장안 대비 약 70%를 절감합니다([02 VM 아카이브]({{< relref "02-vm-archive.md" >}})).
+비싼 이유는 **gp3 단가 × RF2**의 곱입니다. 이 중 단가 축은 [06 스토리지 단가]({{< relref "06-storage-pricing.md" >}})가, "5m이면 충분한데 왜 raw를 버리는가"라는 해상도 축은 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})이 각각 정면으로 다룹니다. 세 과잉을 `sc1 × RF1 × 5m 집계`로 한꺼번에 걷어낸 것이 VM 아카이브안이고 확장안 대비 약 70%를 절감합니다([02 VM 아카이브]({{< relref "02-vm-archive.md" >}})).
 
 ### 언제 단순 확장안을 고르나
 
@@ -68,7 +68,7 @@ aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 
 ## 확장+Ent (참고): VM Enterprise `-downsampling.period`
 
-아키텍처 관점에서 **최단 경로**입니다. 기존 클러스터에 설정 한 줄을 얹으면 vmstorage가 자동으로 다운샘플합니다. 걸림돌은 라이선스 쪽입니다 — Enterprise 라이선스(정가 비공개)가 필요해 OSS-우선 제약상 기본 배제합니다.
+아키텍처로 보면 **최단 경로**입니다. 기존 클러스터에 설정 한 줄을 얹으면 vmstorage가 자동으로 다운샘플합니다. 걸림돌은 라이선스 쪽입니다 — Enterprise 라이선스(정가 비공개)가 필요해 OSS-우선 제약상 기본 배제합니다.
 
 ### 구성
 
@@ -87,8 +87,8 @@ aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 ```
 
 - 저장비 자체는 **~$497/mo**로 단순 확장안($1,642)의 약 1/3
-- **라이선스**: 공개 정가 없음 — 전 채널 contact-sales. 2개월 무료 트라이얼 존재(회사 이메일 필요)
-- **공식 caveat**: 다운샘플링은 **시리즈 수를 줄이지 않습니다** — 고카디널리티·고churn 워크로드에서는 저장 절감 효과가 제한됩니다
+- 라이선스: 공개 정가 없음 — 전 채널 contact-sales. 2개월 무료 트라이얼 존재(회사 이메일 필요)
+- 공식 caveat: 다운샘플링은 **시리즈 수를 줄이지 않습니다** — 고카디널리티·고churn 워크로드에서는 저장 절감 효과가 제한됩니다
 
 $497은 어디까지나 **저장비만**의 수치입니다. 실제 총비용에는 비공개 라이선스가 붙습니다. 그 라이선스가 "VM 아카이브안 대비 추가 저장비 + 운영비 절감"과 수지가 맞는지는 견적 없이 판단할 수 없습니다.
 
@@ -102,7 +102,7 @@ $497은 어디까지나 **저장비만**의 수치입니다. 실제 총비용에
 | `vmbackupmanager` | 백업 스케줄 자동화·보존 관리 | k8s CronJob으로 `vmbackup` 직접 실행 |
 | `-retentionFilter` | 시리즈별 차등 보존 | 없음 — tier 분리로 우회 |
 
-vmbackup/vmrestore 자체는 OSS입니다. Enterprise인 쪽은 **스케줄 자동화 계층(vmbackupmanager)**만이라는 점을 구분해야 합니다(무중단·대규모 운영 상세는 [초대규모 운영과 무중단 전환]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}})). 압축·retention 동작의 엔진 레벨 근거는 [저장과 압축]({{< relref "../victoriametrics/concepts/04-storage-and-compression.md" >}})를 참조합니다.
+vmbackup/vmrestore 자체는 OSS입니다. Enterprise인 쪽은 **스케줄 자동화 계층(vmbackupmanager)**만입니다(무중단·대규모 운영 상세는 [초대규모 운영과 무중단 전환]({{< relref "../victoriametrics/practice/02-operations-at-scale.md" >}})). 압축·retention 동작의 엔진 레벨 근거는 [저장과 압축]({{< relref "../victoriametrics/concepts/04-storage-and-compression.md" >}})를 참조합니다.
 
 ### 언제 확장+Ent를 고르나
 
@@ -125,7 +125,7 @@ vmbackup/vmrestore 자체는 OSS입니다. Enterprise인 쪽은 **스케줄 자�
 | 라이선스 | OSS | Enterprise (contact-sales, 2개월 트라이얼) |
 | 역할 | 다른 옵션의 비용 기준선 | 운영 최소화가 목표일 때의 설정 한 줄 대안 |
 
-시나리오 ②(raw 90d + 전 메트릭 5m) 전체 비용 종합표와 VM아카이브/Thanos/Mimir/확장/확장+Ent 대조는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})이 주인이며 권장안(VM 아카이브) 근거와 "하지 말 것"은 [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})에 있습니다.
+시나리오 ②(raw 90d + 전 메트릭 5m) 전체 비용 종합표와 VM아카이브/Thanos/Mimir/확장/확장+Ent 대조는 [07 핵심논점]({{< relref "07-streamaggr-vs-downsampling.md" >}})이 주인입니다. 권장안(VM 아카이브) 근거와 "하지 말 것"은 [08 권장·하지말것]({{< relref "08-recommendation-and-pitfalls.md" >}})에 있습니다.
 
 ## 출처
 

@@ -7,17 +7,17 @@ weight: 1
 
 {{< callout type="info" >}}
 **한눈에**
-- **finance blue를 만들 때 못 박을 것 셋** — `upgradePolicy.supportType = STANDARD`(기본이 EXTENDED다), `deletionProtection = true`, 그리고 `serviceIpv4Cidr`·`ipFamily`·`bootstrapClusterCreatorAdminPermissions`. 뒤 셋은 지금 틀리면 재생성뿐입니다.
+- finance blue를 만들 때 못 박을 것 셋 — `upgradePolicy.supportType = STANDARD`(기본값이 EXTENDED입니다), `deletionProtection = true`, 그리고 `serviceIpv4Cidr`·`ipFamily`·`bootstrapClusterCreatorAdminPermissions`. 뒤 셋은 지금 틀리면 재생성뿐입니다.
 - 최상위 29개 파라미터는 **create-only 8 · 단방향 불가역 6 · day-2 가변 15**로 갈립니다(§1).
-- ⚠️ **`upgradePolicy.supportType` 기본값은 `EXTENDED`입니다.** 명시하지 않으면 표준지원 종료일부터 시간당 $0.60이 자동으로 붙고, 확장지원에 실제로 진입한 뒤에는 STANDARD로 못 돌아옵니다(§4).
-- **되돌릴 수 없는 문 넷** — `controlPlaneEgressMode`(CUSTOMER_ROUTED 진입), `encryptionConfig`(`DisassociateEncryptionConfig` API가 아예 없습니다), `authenticationMode`(전진만), `ipFamily`(생성 시 영구 고정)(§2).
+- `upgradePolicy.supportType` 기본값은 `EXTENDED`입니다. 명시하지 않으면 표준지원 종료일부터 시간당 $0.60이 자동으로 붙고, 확장지원에 실제로 진입한 뒤에는 STANDARD로 못 돌아옵니다(§4).
+- 되돌릴 수 없는 문 넷 — `controlPlaneEgressMode`(CUSTOMER_ROUTED 진입), `encryptionConfig`(`DisassociateEncryptionConfig` API가 아예 없습니다), `authenticationMode`(전진만), `ipFamily`(생성 시 영구 고정)(§2).
 - Terraform은 되돌리기를 **클러스터 재생성으로 모델링**합니다 — `plan`에 뜨는 `# forces replacement`는 버그가 아니라 안전장치입니다(§3).
-- **버전은 2026-07부터 되돌릴 수 있습니다**(7일 창·마이너 1단계·컨트롤 플레인만). 단 `--force`는 PDB도 어드미션 웹훅도 우회하지 않습니다(§5).
+- 버전은 2026-07부터 되돌릴 수 있습니다(7일 창·마이너 1단계·컨트롤 플레인만). 단 `--force`는 PDB도 어드미션 웹훅도 우회하지 않습니다(§5).
 {{< /callout >}}
 
-판정할 것은 하나뿐입니다. 그 값을 언제 정할 수 있고, 정한 뒤에 되돌릴 수 있는가. 대상은 `CreateCluster`·`UpdateClusterConfig`·`UpdateClusterVersion`이 받는 **클러스터 레벨 최상위 필드**입니다. 2026-08에 새로 열린 컨트롤 플레인 컴포넌트 파라미터의 내부 동작과 튜닝 판단은 [레이어 2]({{< relref "02-component-parameters.md" >}})가, 용량 축인 Provisioned Control Plane 티어는 [용량 축]({{< relref "03-provisioned-control-plane.md" >}})이, 애초에 손댈 수 없는 영역은 [레이어 3]({{< relref "04-not-tunable.md" >}})이 갖습니다.
+이 페이지가 다루는 범위는 `CreateCluster`·`UpdateClusterConfig`·`UpdateClusterVersion`이 받는 **클러스터 레벨 최상위 필드**입니다. 판정하는 것은 하나뿐입니다. 그 값을 언제 정할 수 있고, 정한 뒤에 되돌릴 수 있는가. 2026-08에 새로 열린 컨트롤 플레인 컴포넌트 파라미터의 내부 동작과 튜닝 판단은 [레이어 2]({{< relref "02-component-parameters.md" >}}), 용량 축인 Provisioned Control Plane 티어는 [용량 축]({{< relref "03-provisioned-control-plane.md" >}}), 애초에 손댈 수 없는 영역은 [레이어 3]({{< relref "04-not-tunable.md" >}})이 갖습니다.
 
-사실 기준 시점은 **2026-08-14**입니다. 이 페이지의 모든 `path:line` 인용은 그날 내려받은 terraform-provider-aws `main` 브랜치 스냅샷(`internal/service/eks/cluster.go`, 2582줄)을 가리킵니다. 실제로 쓰는 provider 릴리스에서는 줄번호가 다를 수 있습니다.
+사실 기준 시점은 **2026-08-14**입니다. 이 페이지의 모든 `path:line` 인용은 terraform-provider-aws `main` 브랜치를 그날 내려받은 스냅샷(`internal/service/eks/cluster.go`, 2582줄)을 가리킵니다. 실제로 쓰는 provider 릴리스에서는 줄번호가 다를 수 있습니다.
 
 ## 1. 가변성 3분류 마스터 표
 
@@ -55,9 +55,9 @@ weight: 1
 | `kubeControllerManagerConfig.horizontalPodAutoscalerControllerConfig.horizontalPodAutoscalerSyncPeriod` | `kube_controller_manager_config.horizontal_pod_autoscaler_controller_config.horizontal_pod_autoscaler_sync_period` | mutable, Provisioned 티어 필수 ⚠️ | `15s` | `standard` 티어에서 설정하면 호출이 실패한다 → [레이어 2]({{< relref "02-component-parameters.md" >}}) |
 | `kubeSchedulerConfig.nodeResourcesFit.scoringStrategy` | `kube_scheduler_config.node_resources_fit.scoring_strategy` | mutable | `LeastAllocated`, `resources=[cpu:1, memory:1]` | 이미 스케줄된 파드는 재배치되지 않는다 → [레이어 2]({{< relref "02-component-parameters.md" >}}) |
 
-표에 `UpdateClusterVersion`의 `force`·`rollbackConfig.timeoutMinutes`는 넣지 않았습니다. 클러스터 상태가 아니라 **호출 파라미터**이기 때문입니다. 이 둘은 §5에서 따로 다룹니다.
+`UpdateClusterVersion`의 `force`·`rollbackConfig.timeoutMinutes`는 이 표에 없습니다. 둘 다 클러스터 상태가 아닌 **호출 파라미터**입니다. §5에서 따로 다룹니다.
 
-`DescribeClusterVersions` 응답은 `controlPlaneComponentConfig`(컴포넌트별 `constraints`+`defaultValue`)를 **k8s 버전별로** 돌려주고, `controlPlaneScalingTiers[]` 안에는 `controlPlaneComponentConfigOverrides`라는 필드를 따로 둡니다. 같은 파라미터의 기본값·허용범위가 **버전과 티어에 따라 달라질 수 있는 구조**입니다. 스키마로 확인한 사실이며, 실제로 어떤 값이 티어별로 덮이는지는 확인되지 않았습니다. 위 표의 기본값 열에 유보가 남는 이유가 여기입니다. AWS 문서도 자동화를 짤 때는 이 API를 source of truth로 쓰라고 직접 권합니다.
+`DescribeClusterVersions` 응답은 `controlPlaneComponentConfig`(컴포넌트별 `constraints`+`defaultValue`)를 **k8s 버전별로** 돌려주고 `controlPlaneScalingTiers[]` 안에 `controlPlaneComponentConfigOverrides`라는 필드를 따로 둡니다. 같은 파라미터의 기본값·허용범위가 **버전과 티어에 따라 달라질 수 있는 구조**입니다(스키마로 확인한 사실이며, 실제로 어떤 값이 티어별로 덮이는지는 확인되지 않았습니다). 위 표의 기본값 열에 유보가 남는 이유가 여기입니다. AWS 문서도 자동화를 짤 때는 이 API를 source of truth로 쓰라고 직접 권합니다.
 
 ## 2. 단방향 불가역 — 한 번 열면 닫히지 않는 문
 
@@ -72,9 +72,9 @@ weight: 1
 | 5 | `kubernetesNetworkConfig.ipFamily` | 없음(생성 시 확정) | 불가. 다른 값이 필요하면 새 클러스터를 만들어 워크로드를 옮긴다 | `network_reqs.html` |
 | 6 | `computeConfig.nodeRoleArn` | 미설정 → 설정, 설정 → 해제 | 이미 값이 있는 롤을 **다른 롤로 교체**하는 것만 잠긴다(§3.2) | provider `validateAutoModeComputeConfigCustomizeDiff` |
 
-**`encryptionConfig`는 키 교체 경로도 없습니다.** `UpdateClusterConfig` 요청에 이 필드가 없고 `AssociateEncryptionConfig`는 "아직 암호화가 켜지지 않은 클러스터에 켜는 용도"로만 문서화돼 있습니다. provider 역시 0개→1개일 때만 `AssociateEncryptionConfig`를 호출하니, 이미 설정된 키를 다른 키로 바꾸는 경로는 구현 자체가 없습니다.
+**`encryptionConfig`는 키 교체 경로도 없습니다.** `UpdateClusterConfig` 요청에 이 필드가 없고, `AssociateEncryptionConfig`는 "아직 암호화가 켜지지 않은 클러스터에 켜는 용도"로만 문서화돼 있습니다. provider도 0개→1개일 때만 `AssociateEncryptionConfig`를 호출합니다. 이미 설정된 키를 다른 키로 바꾸는 경로는 구현 자체가 없습니다.
 
-위험은 KMS 쪽에도 있습니다. 연결된 CMK를 **삭제**하면 EKS FAQ 표현대로 클러스터 상태가 "복구 불가능한 수준으로 저하"됩니다. **비활성화**한 경우 AWS는 30일 안에 재활성화하라고 강하게 권하는데, 기술적으로 보장된 데드라인이 아니라 권고 기한입니다. 참고로 k8s 1.28 이상 클러스터는 이 필드와 무관하게 기본 봉투 암호화가 상시 켜져 있어, 이 파라미터는 "AWS 소유 키 대신 우리 CMK를 쓸 것인가"의 선택에 가깝습니다.
+위험은 KMS 쪽에도 있습니다. 연결된 CMK를 **삭제**하면 EKS FAQ 표현대로 클러스터 상태가 "복구 불가능한 수준으로 저하"됩니다. **비활성화**한 경우 AWS는 30일 안에 재활성화하라고 강하게 권합니다(기술적으로 보장된 데드라인이 아니라 권고 기한입니다). 참고로 k8s 1.28 이상 클러스터는 이 필드와 무관하게 기본 봉투 암호화가 상시 켜져 있어, 이 파라미터는 "AWS 소유 키 대신 우리 CMK를 쓸 것인가"의 선택에 가깝습니다.
 
 **`CUSTOMER_ISOLATED`는 판정하지 않습니다.** `controlPlaneEgressMode`의 유효값 열거에는 `AWS_MANAGED | CUSTOMER_ROUTED | CUSTOMER_ISOLATED` 세 개가 실려 있지만, 전용 기능 문서와 Terraform 문서는 앞의 두 개만 설명합니다. 이미 출시된 기능인지 미문서화 예약값인지는 1차 문서로 확인되지 않았습니다.
 
@@ -82,7 +82,7 @@ weight: 1
 
 ## 3. Terraform ForceNew — 어떤 인자를 고치면 클러스터가 재생성되는가
 
-`aws_eks_cluster`는 ForceNew를 두 층으로 나눠 둡니다. **위험한 쪽은 스키마에 안 보이는 아래층**입니다. 프로덕션 사고 1순위가 여기입니다.
+`aws_eks_cluster`의 ForceNew는 두 층으로 나뉩니다. **위험한 쪽은 스키마에 안 보이는 아래층**입니다. 프로덕션 사고 1순위가 여기입니다.
 
 ### 3.1 정적 `ForceNew: true` — 스키마에 고정
 
@@ -100,9 +100,9 @@ weight: 1
 | `outpost_config.0.etcd_instance_type` | `:470` | v6.51.0 신규. 필드 자체는 확인되지만 개별 GA 시점은 1차 문서로 특정되지 않는다 |
 | `outpost_config.0.etcd_placement.0.spread_level` | `:482` | v6.51.0 신규 |
 
-`outpost_config` 블록에는 top-level ForceNew가 없는데, `resourceClusterUpdate`에 이 블록을 다루는 코드 경로가 아예 없습니다. update가 API를 호출하지 않으니 ForceNew 표시가 없는 `outpost_arns`조차 실질적으로 변경할 수 없고, drift만 남거나 빈 diff가 납니다. 스키마 선언과 실제 동작 사이의 간극입니다.
+`outpost_config` 블록에는 top-level ForceNew가 없는데 `resourceClusterUpdate`에 이 블록을 다루는 코드 경로가 아예 없습니다. update가 API를 호출하지 않으니 ForceNew 표시가 없는 `outpost_arns`조차 실질적으로 변경할 수 없습니다. drift만 남거나 빈 diff가 납니다. 스키마 선언과 실제 동작이 여기서 어긋납니다.
 
-`bootstrap_cluster_creator_admin_permissions`를 두고 provider 소스는 "이 값은 AWS API가 반환하지 않는다"는 주석을 유지하며, 값이 없을 때 하위 호환을 위해 로컬 상태에 `true`를 채워 넣습니다. 이 백필이 함정입니다. **이미 존재하는 `aws_eks_cluster`에 `access_config` 블록만 뒤늦게 추가하면**(이 필드는 쓰지 않고) 백필된 기본값과 서버 상태가 어긋나 클러스터 전체 재생성이 계획되는 사례가 보고돼 있습니다(이슈 #38967, 2026-08-14 기준 미해결). 다만 "AWS API가 이 값을 조회로도 돌려주지 않는다"는 단정은 하지 않습니다. API Reference의 `AccessConfigResponse`에는 이 필드가 `DescribeCluster` 응답 항목으로 문서화돼 있어 문서와 provider 구현이 엇갈립니다.
+`bootstrap_cluster_creator_admin_permissions`를 두고 provider 소스는 "이 값은 AWS API가 반환하지 않는다"는 주석을 유지하며, 값이 없으면 하위 호환을 지키려고 로컬 상태에 `true`를 채워 넣습니다. 이 백필이 함정입니다. **이미 존재하는 `aws_eks_cluster`에 `access_config` 블록만 뒤늦게 추가하면**(이 필드는 쓰지 않고) 백필된 기본값과 서버 상태가 어긋나 클러스터 전체 재생성이 계획되는 사례가 보고돼 있습니다(이슈 #38967, 2026-08-14 기준 미해결). 다만 "AWS API가 이 값을 조회로도 돌려주지 않는다"는 단정은 하지 않습니다. API Reference의 `AccessConfigResponse`에는 이 필드가 `DescribeCluster` 응답 항목으로 문서화돼 있어 문서와 provider 구현이 엇갈립니다.
 
 ### 3.2 `CustomizeDiff` 조건부 ForceNew — 스키마에 안 보인다
 
@@ -118,20 +118,20 @@ weight: 1
 
 ## 4. `upgradePolicy.supportType` — 기본값이 EXTENDED다
 
-API Reference(`UpgradePolicyRequest`)는 "The default value is EXTENDED. Use STANDARD to disable extended support."라고 쓰고, User Guide는 "By default, for all new and existing clusters, the upgrade policy is set to EXTENDED, unless specified otherwise"라고 확인합니다. 즉 **아무것도 쓰지 않으면 확장지원이 켜진 클러스터가 만들어집니다.** 값을 STANDARD로 두려면 명시가 필요합니다. 이 페이지에서 비용에 직접 걸리는 유일한 파라미터이자 가장 자주 틀리는 자리입니다.
+API Reference(`UpgradePolicyRequest`)는 "The default value is EXTENDED. Use STANDARD to disable extended support."라고 쓰고 User Guide는 "By default, for all new and existing clusters, the upgrade policy is set to EXTENDED, unless specified otherwise"라고 확인합니다. 즉 **아무것도 쓰지 않으면 확장지원이 켜진 클러스터가 만들어집니다.** 값을 STANDARD로 두려면 직접 써 넣어야 합니다. 표준지원이 끝난 뒤에는 그 기회가 사라집니다. 이 페이지에서 비용에 직접 걸리는 유일한 파라미터이자 가장 자주 틀리는 자리입니다.
 
 | 선택 | 표준지원 기간 중 | 표준지원 종료 시점 | 되돌리기 |
 |---|---|---|---|
 | `EXTENDED`(기본값 방치 포함) | 추가 비용 없음 | **확장지원 자동 진입** — 시간당 $0.60이 기본 클러스터 요금에 가산된다(2024-04-01 시행) | 진입 전까지만 STANDARD로 변경 가능. **진입 후에는 불가** ⚠️ |
 | `STANDARD`(명시) | 추가 비용 없음 | AWS가 컨트롤 플레인을 자동 업그레이드한다 | 표준지원 종료 전이면 언제든 EXTENDED로 전환 가능 |
 
-되돌리기의 잠금은 "EXTENDED로 설정한 순간"에 걸리지 않습니다. "클러스터 버전이 실제로 확장지원 구간에 들어간 뒤"입니다. AWS 문구는 "You cannot disable extended support once it starts. You can only disable extended support for clusters on standard support."입니다. STANDARD 운영을 원한다면 **표준지원 종료일 전에** 값을 박아둬야 하고, 그 날짜를 넘기면 명시 기회가 사라져 유료 구간에 굳습니다.
+되돌리기의 잠금은 "EXTENDED로 설정한 순간"에 걸리지 않습니다. "클러스터 버전이 실제로 확장지원 구간에 들어간 뒤"입니다. AWS 문구는 "You cannot disable extended support once it starts. You can only disable extended support for clusters on standard support."입니다. STANDARD 운영을 원한다면 **표준지원 종료일 전에** 값을 박아둬야 합니다. 그 날짜를 넘기면 유료 구간에 굳습니다.
 
-STANDARD를 골랐을 때 자동 업그레이드로 이동하는 것은 **컨트롤 플레인뿐**입니다. managed node group·self-managed 노드는 이전 버전에 남아 스큐가 벌어집니다. 시점도 예고되지 않습니다("You won't receive any notification before the update"). 여러 마이너를 건너뛰지 않고 그 다음 하나로만 갑니다. 확장지원이 만료돼(총 26개월) 강제로 이동한 클러스터는 §5의 버전 롤백 대상에서도 제외됩니다.
+STANDARD를 골랐을 때 벌어지는 자동 업그레이드에서 이동하는 것은 **컨트롤 플레인뿐**입니다. managed node group·self-managed 노드는 이전 버전에 남아 스큐가 벌어집니다. 시점도 예고되지 않습니다("You won't receive any notification before the update"). 여러 마이너를 건너뛰지 않고 그 다음 하나로만 갑니다. 확장지원이 만료돼(총 26개월) 강제로 이동한 클러스터는 §5의 버전 롤백 대상에서도 제외됩니다.
 
-green은 1.31이고 **확장지원 종료가 2026-11-26**입니다([목표버전]({{< relref "../01-target-version.md" >}})). 이미 확장지원 구간에 있어 green은 이 값을 STANDARD로 되돌릴 수 없습니다. 지금 새로 만드는 blue만 선택권이 남아 있습니다. 롤백과도 맞물립니다. 롤백 대상 버전이 확장지원 버전이면 **먼저** `upgradePolicy`를 EXTENDED로 바꿔야 롤백이 시작되고, 표준지원 버전에서 확장지원 버전으로 되돌리면 확장지원 과금이 즉시 재개됩니다.
+green은 1.31이고 **확장지원 종료가 2026-11-26**입니다([목표버전]({{< relref "../01-target-version.md" >}})). green은 이미 확장지원 구간에 있어 이 값을 STANDARD로 되돌릴 수 없습니다. 지금 새로 만드는 blue만 선택권이 남아 있습니다. 롤백과도 맞물립니다. 롤백 대상 버전이 확장지원 버전이면 **먼저** `upgradePolicy`를 EXTENDED로 바꿔야 롤백이 시작됩니다. 표준지원 버전에서 확장지원 버전으로 되돌리면 확장지원 과금이 즉시 재개됩니다.
 
-기본값이 정확히 언제 STANDARD에서 EXTENDED로 바뀌었는지는 1차 문서로 확인되지 않았습니다. 2024-04 GA 초기에는 STANDARD였다는 커뮤니티 기록이 있지만, 전환 날짜를 못 박은 문서는 찾지 못했습니다. 확정된 것은 현재값이 EXTENDED라는 사실 하나입니다.
+기본값이 정확히 언제 STANDARD에서 EXTENDED로 바뀌었는지는 1차 문서로 확인되지 않았습니다. 2024-04 GA 초기에는 STANDARD였다는 커뮤니티 기록이 있지만 전환 날짜를 못 박은 문서는 찾지 못했습니다. 확정된 것은 현재값이 EXTENDED라는 사실 하나입니다.
 
 ## 5. `version` — 별도 API, 단조 증가, 그리고 7일의 예외
 
@@ -151,7 +151,7 @@ green은 1.31이고 **확장지원 종료가 2026-11-26**입니다([목표버전
 
 데이터 플레인은 따라오지 않습니다. Auto Mode 노드는 자동으로 함께 롤백되지만 managed node group·self-managed·하이브리드 노드·addon 버전은 수동입니다. **Fargate는 롤백 자체가 미지원**입니다(컨트롤 플레인만 내려가면 Fargate 파드가 새 kubelet 버전으로 남아 skew 에러가 납니다. 워크어라운드는 그 파드를 지우고 롤백 후 재배포입니다). finance blue는 CoreDNS·karpenter를 Fargate에 올리는 토폴로지라([클러스터 설정]({{< relref "../02-cluster-config.md" >}})) 이 제약이 그대로 걸립니다.
 
-**`--force`(`force_update_version`)는 PodDisruptionBudget도, 어드미션 웹훅도 우회하지 않습니다.** 우회하는 대상은 EKS 자체의 인사이트(readiness) 검사뿐입니다. 7일 창·생성 시점 버전 확인·순차 롤백 확인·기능 호환성 검사는 우회하지 못하고, Auto Mode에서도 NodePool 디스럽션 버짓·PDB·`do-not-disrupt`는 그대로 존중됩니다. 게다가 **전진 업그레이드의 인사이트 강제 자체가 2025-03-28 임시 롤백**됐습니다. 2026-08-14 기준 User Guide가 그 "temporarily rolled back" 문구를 현재 시제로 유지하고 있어 재활성화가 확인되지 않습니다. 정리하면 지금 전진 업그레이드에서 `--force`는 실질적으로 거의 무효이고 의미를 갖는 자리는 롤백 준비성 인사이트를 우회할 때입니다.
+**`--force`(`force_update_version`)는 PodDisruptionBudget도, 어드미션 웹훅도 우회하지 않습니다.** 우회하는 것은 EKS 자체의 인사이트(readiness) 검사뿐입니다. 7일 창·생성 시점 버전 확인·순차 롤백 확인·기능 호환성 검사는 우회하지 못하고, Auto Mode에서도 NodePool 디스럽션 버짓·PDB·`do-not-disrupt`는 그대로 존중됩니다. 게다가 **전진 업그레이드의 인사이트 강제 자체가 2025-03-28 임시 롤백**됐습니다. 2026-08-14 기준 User Guide가 그 "temporarily rolled back" 문구를 현재 시제로 유지하고 있어 재활성화가 확인되지 않습니다. 지금 전진 업그레이드에서 `--force`는 실질적으로 거의 무효이고, 의미가 남는 자리는 롤백 준비성 인사이트를 우회할 때입니다.
 
 ## 6. `Update.type` 21종 — day-2 가변 집합의 전수 목록
 
@@ -193,15 +193,15 @@ green은 1.31이고 **확장지원 종료가 2026-11-26**입니다([목표버전
 
 ### 7.1 `roleArn` — update 경로가 어디에도 없다
 
-`roleArn`은 `CreateCluster` 요청에만 있습니다. `UpdateClusterConfig` 요청 바디와 그 하위 모든 구조체(`accessConfig`·`computeConfig`·`controlPlaneScalingConfig`·`kubernetesNetworkConfig`·`resourcesVpcConfig`·`upgradePolicy` 등)를 훑어도 이 필드가 없고 `tags`처럼 우회하는 별도 API도 없습니다. **클러스터 실행 역할을 바꾸는 EKS API는 2026-08 기준 존재하지 않습니다.** provider가 `role_arn`에 ForceNew를 건 것은 그 사실의 반영입니다. 롤 네이밍은 생성 전에 확정해야 합니다. create 이후에 롤 이름 규칙을 정비하고 싶어지면 답은 재생성뿐입니다.
+`roleArn`은 `CreateCluster` 요청에만 있습니다. `UpdateClusterConfig` 요청 바디와 그 하위 모든 구조체(`accessConfig`·`computeConfig`·`controlPlaneScalingConfig`·`kubernetesNetworkConfig`·`resourcesVpcConfig`·`upgradePolicy` 등)를 훑어도 이 필드가 없고 `tags`처럼 우회하는 별도 API도 없습니다. **클러스터 실행 역할을 바꾸는 EKS API는 2026-08 기준 존재하지 않습니다.** provider가 `role_arn`에 ForceNew를 건 것도 그래서입니다. 롤 네이밍은 생성 전에 확정해야 합니다. create 이후에 롤 이름 규칙을 정비하고 싶어지면 답은 재생성뿐입니다.
 
 ### 7.2 `tags` — 별도 API를 쓴다
 
-`tags`는 `CreateCluster`에는 있고 `UpdateClusterConfig`에는 없습니다. day-2 변경은 가능하지만 `TagResource`/`UntagResource`라는 **다른 API**를 거칩니다(Terraform은 내부에서 이 경로를 알아서 처리합니다). 최대 50개, key 1~128자, value 256자까지입니다. 다른 리소스로 전파되지도 않습니다. "가변인데 같은 API가 아니다"라는 예외라 자동화에서 종종 빠뜨립니다.
+`tags`는 `CreateCluster`에는 있고 `UpdateClusterConfig`에는 없습니다. day-2 변경은 가능하지만 `TagResource`/`UntagResource`라는 **다른 API**를 거칩니다(Terraform은 내부에서 이 경로를 알아서 처리합니다). 최대 50개, key 1~128자, value 256자까지이고 다른 리소스로 전파되지 않습니다. "가변인데 같은 API가 아니다"라는 예외라 자동화에서 종종 빠뜨립니다.
 
 ### 7.3 private-only 전환 — API가 막는 게 아니라 준비가 문제
 
-`endpointPublicAccess=false` + `endpointPrivateAccess=true`는 User Guide의 엔드포인트 조합표에 **정상 지원 조합으로 등재된 구성**입니다. 이 전환 자체를 API가 거부하지는 않습니다. 실제 락아웃을 만드는 것은 전환이 아니라, 전환 전에 챙겨야 할 것을 빼먹은 운영 실수입니다. 그래서 서술도 "전환을 막아라"가 아니라 **"전환 전에 사설 경로와 권한을 먼저 갖춰라"**가 맞습니다. 갖출 것은 VPC 안에서 API 서버에 닿을 경로(커넥티드 네트워크·bastion·CloudShell 등), 그리고 IAM/RBAC 매핑입니다. 복구 자체는 IAM 권한만 있으면 VPC 밖에서도 `update-cluster-config`로 퍼블릭을 되살릴 수 있습니다.
+`endpointPublicAccess=false` + `endpointPrivateAccess=true`는 User Guide의 엔드포인트 조합표에 **정상 지원 조합으로 등재된 구성**입니다. 이 전환 자체를 API가 거부하지는 않습니다. 실제 락아웃은 전환 **전에** 챙겨야 할 것을 빼먹은 운영 실수에서 옵니다. VPC 안에서 API 서버에 닿을 경로(커넥티드 네트워크·bastion·CloudShell 등), 그리고 IAM/RBAC 매핑입니다. 서술도 "전환을 막아라"가 아니라 **"전환 전에 사설 경로와 권한을 먼저 갖춰라"**가 맞습니다. 복구 자체는 IAM 권한만 있으면 VPC 밖에서도 `update-cluster-config`로 퍼블릭을 되살릴 수 있습니다.
 
 public·private 둘 다 `false`인 조합은 조합표에 아예 등재돼 있지 않은데, API가 이를 명시적으로 거부한다는 문구를 1차 문서에서 직접 확인하지는 못했습니다(표에 없다는 간접 근거뿐입니다). 그리고 private access를 끈 상태에서 `publicAccessCidrs`를 좁힐 때는 노드가 나가는 NAT Gateway EIP를 목록에 반드시 넣어야 합니다 — 빠지면 노드 조인이 실패합니다.
 
@@ -227,10 +227,10 @@ public·private 둘 다 `false`인 조합은 조합표에 아예 등재돼 있�
 
 ## 우리 케이스에서는
 
-finance blue를 Terraform으로 새로 세우는 맥락([클러스터 설정]({{< relref "../02-cluster-config.md" >}}))에서 create 시점에 못 박아야 하는 값은 세 갈래입니다. 첫째, **`upgrade_policy.support_type`을 명시적으로 `STANDARD`로 둡니다.** 기본이 EXTENDED라 비워두면 blue가 1.35 표준지원 종료일(2027-03-27)부터 확장지원 유료 구간에 자동 진입하고, 그 시점을 넘기면 되돌릴 수도 없습니다. green이 1.31 확장지원 구간에서 2026-11-26을 안고 있는 상황을 blue에서 반복할 이유가 없습니다. 다만 STANDARD는 "표준지원이 끝나면 AWS가 컨트롤 플레인을 예고 없이 자동 업그레이드한다"는 뜻이기도 하니, 이관 후 정기 업그레이드 캘린더가 있다는 전제에서 골라야 합니다.
+finance blue를 Terraform으로 새로 세우는 맥락([클러스터 설정]({{< relref "../02-cluster-config.md" >}}))에서 create 시점에 못 박아야 하는 값은 세 갈래입니다. 첫째, **`upgrade_policy.support_type`을 명시적으로 `STANDARD`로 둡니다.** 기본이 EXTENDED라 비워두면 blue가 1.35 표준지원 종료일(2027-03-27)부터 확장지원 유료 구간에 자동 진입합니다. 그 시점을 넘기면 되돌릴 수도 없습니다. green이 1.31 확장지원 구간에서 2026-11-26을 안고 있는 상황을 blue에서 반복할 이유가 없습니다. 다만 STANDARD는 "표준지원이 끝나면 AWS가 컨트롤 플레인을 예고 없이 자동 업그레이드한다"는 뜻이기도 하니, 이관 후 정기 업그레이드 캘린더를 돌린다는 전제에서 골라야 합니다.
 
-둘째, **`deletion_protection = true`를 켭니다.** 네이티브 기능이 존재하므로 `prevent_destroy`에 의존할 이유가 없습니다. 콘솔·CLI 경로까지 막히는 쪽이 blue-green 기간에 두 클러스터가 나란히 떠 있는 구간에서 실수 비용을 줄입니다.
+둘째, **`deletion_protection = true`를 켭니다.** 네이티브 기능이 존재하므로 `prevent_destroy`에 의존할 이유가 없습니다. blue-green 기간에는 두 클러스터가 나란히 떠 있으니, 콘솔·CLI 경로까지 막아두는 편이 실수 비용을 줄입니다.
 
-셋째가 되돌릴 수 없는 몫입니다. `service_ipv4_cidr`·`ip_family`·`bootstrap_cluster_creator_admin_permissions`는 create-only라 지금 틀리면 클러스터 재생성뿐입니다. `role_arn`은 update 경로 자체가 없어 롤 네이밍까지 생성 전에 확정해야 합니다. `authentication_mode`는 02가 정한 `API_AND_CONFIG_MAP`이 이 관점에서도 맞는 선택입니다. `API`로 생성하면 aws-auth 경로를 영구히 못 열게 되므로 되돌릴 여지를 남기는 값이 `API_AND_CONFIG_MAP`입니다. `bootstrap_cluster_creator_admin_permissions`를 02의 판단대로 `false`로 둘 경우에는 순서 제약이 하나 생깁니다. 생성 principal을 access entry로 먼저 등록해두지 않으면 생성 직후 클러스터에 들어갈 주체가 없습니다.
+셋째가 되돌릴 수 없는 몫입니다. `service_ipv4_cidr`·`ip_family`·`bootstrap_cluster_creator_admin_permissions`는 create-only라 지금 틀리면 클러스터 재생성뿐입니다. `role_arn`은 update 경로 자체가 없어 롤 네이밍까지 생성 전에 확정해야 합니다. `authentication_mode`는 02가 정한 `API_AND_CONFIG_MAP`이 이 관점에서도 맞는 선택입니다. `API`로 생성하면 aws-auth 경로를 영구히 못 열게 되므로, 되돌릴 여지를 남기는 값이 `API_AND_CONFIG_MAP`입니다. `bootstrap_cluster_creator_admin_permissions`를 02의 판단대로 `false`로 둘 경우에는 순서 제약이 하나 생깁니다. 생성 principal을 access entry로 먼저 등록해두지 않으면 생성 직후 클러스터에 들어갈 주체가 없습니다.
 
 반대로 지금 결정을 미뤄도 되는 것들도 분명합니다. 엔드포인트 접근·로깅·태그·`deletionProtection`·Provisioned 티어는 전부 day-2 가변입니다. create 시점의 검토 예산은 위의 create-only·불가역 항목에 몰아주는 편이 낫습니다.

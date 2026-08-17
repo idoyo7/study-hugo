@@ -8,21 +8,21 @@ aliases: ["/k8s-features/karpenter/03-consolidation-traps/"]
 
 {{< callout type="info" >}}
 **한눈에**
-- **consolidation의 교체 조건은 가격 부등식 하나뿐입니다.** `launchPrice < candidatePrice` — **strict라 동가격 교체조차 없습니다.** 세대·성능·선호도라는 개념은 disruption 패키지 어디에도 인코딩돼 있지 않습니다.
-- **disruption 패키지는 NodePool weight를 전혀 보지 않습니다.** `grep -rnE 'Spec\.Weight|OrderByWeight' pkg/controllers/disruption/` → **0건**. 크로스 풀 교체는 막히는 게 아니라 코어가 정상 경로로 인지하는 동작입니다.
-- **다만 크로스 풀 다운그레이드는 좁습니다.** 대체안 시뮬레이션도 프로비저닝과 **같은 weight 정렬 스케줄러**를 씁니다. 평상시엔 gen8 풀에서 대체안이 나오고 strict 부등호에 걸려 탈락합니다. **gen8 풀이 스케줄에 실패할 때만** gen7이 이깁니다. 그건 정확히 gen7을 원하는 상황입니다.
-- **한 번 내려가면 consolidation으로는 안 돌아옵니다.** "더 비싼 교체" 분기가 코드에 없습니다. 업스트림 요청도 반려됐습니다(#1829 closed as not planned). **복귀 경로는 `expireAfter`와 drift** — 둘 다 가격 필터 없이 교체하므로 재스케줄 시 weight 100인 gen8이 다시 먼저 평가됩니다.
-- **weight는 "보장"이 아닙니다 — 공식 문서가 명시합니다.** 원인은 "이미 떠 있는 노드"가 아니라 **단일 프로비저닝 루프 내부의 빈패킹**입니다. in-flight NodeClaim을 weight가 아니라 **파드 수 오름차순**으로 정렬합니다. 거기에 얹는 시도가 새 NodeClaim 생성보다 **먼저** 옵니다.
-- **drift는 값 추가엔 침묵하고 값 제거엔 폭발합니다.** requirements 판정이 호환성 기반이라 세대 **추가**는 무해합니다. 풀을 쪼개려고 기존 풀에서 세대를 **제거**하면 RequirementsDrifted 대량 교체가 시작됩니다. **속도 제어 수단은 `disruption.budgets` 하나뿐입니다.**
+- consolidation의 교체 조건은 가격 부등식 하나뿐입니다. `launchPrice < candidatePrice` — strict라 동가격 교체조차 없습니다. 세대·성능·선호도라는 개념은 disruption 패키지 어디에도 인코딩돼 있지 않습니다.
+- disruption 패키지는 NodePool weight를 전혀 보지 않습니다. `grep -rnE 'Spec\.Weight|OrderByWeight' pkg/controllers/disruption/` → 0건. 코어는 크로스 풀 교체를 막지 않고 정상 경로로 인지합니다.
+- 다만 크로스 풀 다운그레이드는 좁습니다. 대체안 시뮬레이션도 프로비저닝과 같은 weight 정렬 스케줄러를 씁니다. 평상시엔 gen8 풀에서 대체안이 나오고 strict 부등호에 걸려 탈락합니다. gen8 풀이 스케줄에 실패할 때만 gen7이 이깁니다. 그건 정확히 gen7을 원하는 상황입니다.
+- 한 번 내려가면 consolidation으로는 안 돌아옵니다. "더 비싼 교체" 분기가 코드에 없습니다. 업스트림 요청도 반려됐습니다(#1829 closed as not planned). 복귀 경로는 `expireAfter`와 drift입니다 — 둘 다 가격 필터 없이 교체하므로 재스케줄 시 weight 100인 gen8이 다시 먼저 평가됩니다.
+- weight는 "보장"이 아닙니다 — 공식 문서가 명시합니다. 원인은 단일 프로비저닝 루프 내부의 빈패킹입니다. "이미 떠 있는 노드" 때문이 아닙니다. in-flight NodeClaim의 정렬 키는 weight가 아니라 파드 수 오름차순입니다. 거기에 얹는 시도가 새 NodeClaim 생성보다 먼저 옵니다.
+- drift는 값 추가엔 침묵하고 값 제거엔 폭발합니다. requirements 판정이 호환성 기반이라 세대 추가는 무해합니다. 풀을 쪼개려고 기존 풀에서 세대를 제거하면 RequirementsDrifted 대량 교체가 시작됩니다. 속도 제어 수단은 `disruption.budgets` 하나뿐입니다.
 {{< /callout >}}
 
-> **왜 이 문서인가.** [05]({{< relref "05-generation-preference.md" >}})의 매니페스트는 적용 순간엔 의도대로 동작한다. 문제는 그 다음이다 — Karpenter의 재계산 루프는 "세대"라는 단어를 모른다. 이 문서는 **며칠~몇 주에 걸쳐 조용히 무너지는 경로**를 코어 소스에서 짚는다. 검증 기준: kubernetes-sigs/karpenter `v1.14.0-6-gac7a021e`(로컬 체크아웃).
+왜 이 문서인가. [05]({{< relref "05-generation-preference.md" >}})의 매니페스트는 적용 순간엔 의도대로 동작합니다. 문제는 그 다음입니다 — Karpenter의 재계산 루프는 "세대"라는 단어를 모릅니다. 이 문서는 며칠~몇 주에 걸쳐 조용히 무너지는 경로를 코어 소스에서 짚습니다. 검증 기준: kubernetes-sigs/karpenter `v1.14.0-6-gac7a021e`(로컬 체크아웃).
 
-> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 가격이 이기는 근거는 [04 인스턴스는 누가 고르는가]({{< relref "04-instance-selection.md" >}}) · 매니페스트는 [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}}) · Insufficient Capacity Error(ICE)와 폴백 타이밍은 [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) · [K8s 버전별 신기능]({{< relref "../../k8s-features/_index.md" >}}) · v1beta1→v1 업그레이드 기록은 [eks-upgrade 01 karpenter]({{< relref "../../eks-upgrade/components/01-karpenter.md" >}})
+자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 가격이 이기는 근거는 [04 인스턴스는 누가 고르는가]({{< relref "04-instance-selection.md" >}}) · 매니페스트는 [05 세대 선호 만들기]({{< relref "05-generation-preference.md" >}}) · Insufficient Capacity Error(ICE)와 폴백 타이밍은 [07 용량이 없을 때]({{< relref "07-ice-fallback.md" >}}) · [K8s 버전별 신기능]({{< relref "../../k8s-features/_index.md" >}}) · v1beta1→v1 업그레이드 기록은 [eks-upgrade 01 karpenter]({{< relref "../../eks-upgrade/components/01-karpenter.md" >}})
 
 ## 1. 교체 판정은 부등식 하나다
 
-consolidation의 교체 판정은 한 줄입니다 — 후보 노드의 현재 가격(`candidatePrice`)을 상한 삼아 시뮬레이션이 뽑은 대체 NodeClaim의 인스턴스 타입 목록을 거릅니다.
+consolidation의 교체 판정은 한 줄입니다 — 후보 노드의 현재 가격(`candidatePrice`)이 상한이고, 시뮬레이션이 뽑은 대체 NodeClaim의 인스턴스 타입 목록을 그 상한으로 거릅니다.
 
 ```go
 // pkg/controllers/disruption/consolidation.go:221
@@ -42,7 +42,7 @@ func (n *NodeClaim) RemoveInstanceTypeOptionsByPriceAndMinValues(reqs scheduling
 }
 ```
 
-부등호가 `<`라는 게 중요합니다. **동가격 교체는 일어나지 않습니다.** 필터 후 목록이 비면 `"Can't replace with a cheaper node"` 이벤트를 남기고 no-op으로 끝납니다(consolidation.go:228-233).
+부등호가 `<`라는 게 중요합니다. 동가격 교체는 일어나지 않습니다. 필터 후 목록이 비면 `"Can't replace with a cheaper node"` 이벤트를 남기고 no-op으로 끝납니다(consolidation.go:228-233).
 
 실제로는 교체를 막는 게이트가 넷 더 있습니다 — 다만 **어느 것도 세대나 선호를 인코딩하지 않습니다.**
 
@@ -61,7 +61,7 @@ multi-node consolidation도 같은 `computeConsolidation`을 탑니다(multinode
 v1.14의 `consolidationPolicy: Balanced`도 해법이 아닙니다 — `ScoreMove`는 절감액·중단 비용 비율만 보므로 7세대가 충분히 싸면 승인됩니다.
 
 {{< callout type="info" >}}
-**`Balanced`(1.14)를 켜도 이 부등식은 그대로입니다.** `RemoveInstanceTypeOptionsByPriceAndMinValues` 호출 지점(`consolidation.go:221`(일반)·`:278`(spot→spot)·`multinodeconsolidation.go:241`) 중 어느 것도 정책 분기 안에 없습니다 — `Balanced`는 그 필터를 통과한 커맨드에 나중에 얹히는 승인 게이트일 뿐입니다(`balanced.go:220-221`). 따라서 "더 싼 쪽" 교체 일부를 **추가로 거부**할 뿐 "더 비싼 쪽" 교체는 만들지 않습니다 — **§4의 복귀 경로 부재는 정책 선택과 무관합니다.** `SavingsFraction <= 0`이면 `Score()`가 0이라 거부됩니다(`disruption/types.go:100-111`).
+**`Balanced`(1.14)를 켜도 이 부등식은 그대로입니다.** `RemoveInstanceTypeOptionsByPriceAndMinValues` 호출 지점(`consolidation.go:221`(일반)·`:278`(spot→spot)·`multinodeconsolidation.go:241`) 중 어느 것도 정책 분기 안에 없습니다 — `Balanced`는 그 필터를 통과한 커맨드에 나중에 얹히는 승인 게이트일 뿐입니다(`balanced.go:220-221`). 따라서 "더 싼 쪽" 교체 일부를 추가로 거부할 뿐 "더 비싼 쪽" 교체는 만들지 않습니다 — **§4의 복귀 경로 부재는 정책 선택과 무관합니다.** `SavingsFraction <= 0`이면 `Score()`가 0이라 거부됩니다(`disruption/types.go:100-111`).
 
 스코어·k=2 근거는 [13 consolidation 처리 흐름]({{< relref "13-consolidation-models.md" >}}) §7.2·§7.7이, 도입 시점 판정은 [02]({{< relref "02-changelog-maturity.md" >}}) §7.2가 소유합니다.
 {{< /callout >}}
@@ -75,7 +75,7 @@ $ grep -rnE 'Spec\.Weight|OrderByWeight' pkg/controllers/disruption/ | grep -v _
 0
 ```
 
-`NodeClaimTemplate`에 `NodePoolWeight` 필드가 있긴 하지만(`nodeclaimtemplate.go:60,71`) 읽는 곳이 없습니다. weight로 저-weight 풀 폴백을 막는 분기는 코드 전체에 하나뿐입니다. 그건 예약 용량 전용입니다.
+`NodeClaimTemplate`에 `NodePoolWeight` 필드가 있긴 하지만(`nodeclaimtemplate.go:60,71`) 읽는 곳이 없습니다. weight로 저-weight 풀 폴백을 막는 분기는 코드 전체에 하나뿐이고, 그건 예약 용량 전용입니다.
 
 ```go
 // pkg/controllers/provisioning/scheduling/scheduler.go:736-751 (요지)
@@ -127,7 +127,7 @@ nct.Labels = lo.Assign(nct.Labels, map[string]string{
 
 ### 4.1 복귀 경로는 가격 필터가 없는 두 트리거뿐
 
-Karpenter에서 노드를 교체하는 트리거는 consolidation 말고도 있습니다. 그중 둘은 가격을 전혀 보지 않습니다. 이 둘이 사실상 유일한 복귀 장치입니다.
+Karpenter에서 노드를 교체하는 트리거는 consolidation 말고도 있습니다. 그중 둘은 가격을 전혀 보지 않고, 이 둘이 사실상 유일한 복귀 장치입니다.
 
 | 트리거 | 가격 필터 | 예산(`disruption.budgets`) | 복귀 장치로서 |
 |---|---|---|---|
@@ -146,9 +146,9 @@ if c.clock.Now().Before(expirationTime) { return reconcile.Result{RequeueAfter: 
 if err := c.kubeClient.Delete(ctx, nodeClaim); err != nil { ... }
 ```
 
-삭제된 노드의 파드는 재-pending됩니다. 그 파드는 **새 프로비저닝 루프**에 들어갑니다. 그 루프는 `OrderByWeight`를 타므로 **weight 100인 gen8 풀이 다시 먼저 평가됩니다.** 용량이 회복돼 있으면 gen8이 이기고 아직 없으면 다시 gen7이 됩니다 — 어느 쪽이든 우리가 원하는 판정입니다.
+삭제된 노드의 파드는 재-pending돼 **새 프로비저닝 루프**에 들어갑니다. 그 루프는 `OrderByWeight`를 타므로 **weight 100인 gen8 풀이 다시 먼저 평가됩니다.** 용량이 회복돼 있으면 gen8이 이기고 아직 없으면 다시 gen7이 됩니다 — 어느 쪽이든 우리가 원하는 판정입니다.
 
-두 가지를 같이 알아야 합니다. 만료는 **`disruption.budgets`를 소비하지 않습니다** — 예산 소비 지점은 disruption 컨트롤러 안에만 있고(`singlenodeconsolidation.go:82`, `multinodeconsolidation.go:70`, `disruption/drift.go:80`) 만료는 그 경로 밖입니다. 삭제 후 드레인은 termination 컨트롤러가 처리하며 PodDisruptionBudget(PDB)은 존중됩니다(`terminator/eviction.go:200-205`). `expireAfter`는 `Spec.Template.Spec` 안에 있어 **나중에 바꾸면 그 자체가 NodePoolDrifted를 유발합니다** — 처음부터 정해 두는 게 낫습니다.
+만료는 **`disruption.budgets`를 소비하지 않습니다** — 예산 소비 지점은 disruption 컨트롤러 안에만 있고(`singlenodeconsolidation.go:82`, `multinodeconsolidation.go:70`, `disruption/drift.go:80`) 만료는 그 경로 밖입니다. 삭제 후 드레인은 termination 컨트롤러가 처리하며 PodDisruptionBudget(PDB)은 존중됩니다(`terminator/eviction.go:200-205`). `expireAfter`는 `Spec.Template.Spec` 안에 있어 **나중에 바꾸면 그 자체가 NodePoolDrifted를 유발합니다** — 처음부터 정해 두는 게 낫습니다.
 
 기본값은 `720h`입니다(`pkg/apis/v1/nodeclaim.go:78`, `+kubebuilder:default:="720h"`). 30일은 폴백 회수 주기로는 너무 깁니다.
 
@@ -166,8 +166,8 @@ spec:
 
 복귀가 없으니 애초에 내려가지 않게 하려는 발상은 자연스럽습니다. 두 수단 다 **"다운그레이드를 막는" 게 아니라 "consolidation을 끄는" 것**임을 알고 써야 합니다.
 
-- **`budgets:[{reasons:[Underutilized],nodes:"0"}]`** — 교체형 consolidation 전부 skip(`singlenodeconsolidation.go:81-85`, `multinodeconsolidation.go:70-77`); Empty·Drifted는 계속 동작. 잃는 것: gen8 **내부**의 정당한 축소도 같이 죽습니다.
-- **`consolidationPolicy: WhenEmpty`** — 비어있지 않은 노드는 후보 탈락(`consolidation.go:130-134`); Emptiness Command는 `Replacements`가 없어 삭제만(`emptiness.go:97-100`). 잃는 것: 언더유틸 절감 전부.
+- `budgets:[{reasons:[Underutilized],nodes:"0"}]` — 교체형 consolidation 전부 skip(`singlenodeconsolidation.go:81-85`, `multinodeconsolidation.go:70-77`); Empty·Drifted는 계속 동작. 잃는 것: gen8 **내부**의 정당한 축소도 같이 죽습니다.
+- `consolidationPolicy: WhenEmpty` — 비어있지 않은 노드는 후보 탈락(`consolidation.go:130-134`); Emptiness Command는 `Replacements`가 없어 삭제만(`emptiness.go:97-100`). 잃는 것: 언더유틸 절감 전부.
 
 크로스 풀 다운그레이드는 gen8이 스케줄에 실패할 때만 일어나므로(§3) 상시 방어선은 대개 과잉입니다 — gen7 비중이 튄 뒤 임시로 거는 용도가 맞습니다.
 
@@ -200,9 +200,9 @@ err := s.addToNewNodeClaim(ctx, pod)
 1. `s.newNodeClaims`는 **이번 시뮬레이션 안에서 방금 만든** NodeClaim들입니다. 아직 EC2에 존재하지도 않습니다.
 2. 그 목록의 정렬 키는 **weight가 아니라 파드 수 오름차순**입니다. 거기 얹는 시도(`addToInflightNode`)가 새 NodeClaim 생성(`addToNewNodeClaim`)보다 **먼저** 옵니다.
 
-`addToNewNodeClaim`의 weight 우선 채택(`scheduler.go:757-761`)은 **세 번째 단계에서만** 도달합니다. 결과적으로 — 파드 100개가 한 배치로 pending → 첫 파드가 gen8 풀에서 오퍼링 없음으로 실패해 gen7 NodeClaim이 하나 생김 → **뒤따르는 99개 파드는 그 gen7 NodeClaim에 빈패킹으로 얹힙니다.** gen8 용량이 그새 회복됐어도 마찬가지입니다 — in-flight NodeClaim이 앞 단계에서 이미 걸립니다.
+`addToNewNodeClaim`의 weight 우선 채택(`scheduler.go:757-761`)은 **세 번째 단계에서만** 도달합니다. 파드 100개가 한 배치로 pending → 첫 파드가 gen8 풀에서 오퍼링 없음으로 실패해 gen7 NodeClaim이 하나 생김 → **뒤따르는 99개 파드는 그 gen7 NodeClaim에 빈패킹으로 얹힙니다.** gen8 용량이 그새 회복됐어도 마찬가지입니다 — in-flight NodeClaim이 앞 단계에서 이미 걸립니다.
 
-실무 함의는 하나입니다. **대규모 스케일아웃 한 번이 gen7 비중을 크게 밀어 올릴 수 있습니다. 그 노드들은 §4의 만료 전까지 그대로 남습니다.** 배치 창은 idle 1초 / 최대 10초입니다(`pkg/operator/options/options.go:129-130`) 한 배치에 들어가는 파드 수가 생각보다 큽니다.
+실무 함의는 하나입니다. **대규모 스케일아웃 한 번이 gen7 비중을 크게 밀어 올릴 수 있습니다. 그 노드들은 §4의 만료 전까지 그대로 남습니다.** 배치 창은 idle 1초 / 최대 10초입니다(`pkg/operator/options/options.go:129-130`). 한 배치에 들어가는 파드 수가 생각보다 큽니다.
 
 ## 6. drift — 값 추가는 침묵, 값 제거는 폭발
 
@@ -243,15 +243,15 @@ return reconciler.Result{RequeueAfter: singleton.RequeueImmediately}, nil   // �
 return reconciler.Result{RequeueAfter: pollingPeriod}, nil                  // 낼 게 없을 때
 ```
 
-즉 "한 번에 하나씩"이 곧 "천천히"를 뜻하지 않습니다. 예산을 안 걸면 전체 노드가 연쇄적으로 교체됩니다.
+"한 번에 하나씩"이 곧 "천천히"를 뜻하지는 않습니다. 예산을 안 걸면 전체 노드가 연쇄적으로 교체됩니다.
 
 ### 6.1 안전한 이행 순서
 
 기존 단일 NodePool에서 세대를 빼는 편집으로 시작하면 안 됩니다. 위 표의 두 번째 행이 바로 그것입니다.
 
 1. **`gen8-primary`(weight 100)와 `gen7-fallback`(weight 10)을 새로 만듭니다.** 기존 풀의 `requirements`는 **손대지 않습니다.**
-2. 새 풀들에 `disruption.budgets`를 먼저 걸어 둔다 — 나중에 걸면 늦습니다.
-3. 기존 풀의 `spec.limits`를 0에 가깝게 낮춰 신규 프로비저닝을 새 풀 쪽으로 유도한다(`limits` 변경은 드리프트가 아니다).
+2. 새 풀들에 `disruption.budgets`를 먼저 걸어 둡니다 — 나중에 걸면 늦습니다.
+3. 기존 풀의 `spec.limits`를 0에 가깝게 낮춰 신규 프로비저닝을 새 풀 쪽으로 유도합니다(`limits` 변경은 드리프트가 아닙니다).
 4. 기존 풀의 노드가 자연 만료·축소로 빠질 때까지 기다리거나 통제된 속도로 drain합니다.
 5. 노드가 0이 된 뒤 기존 NodePool을 **삭제**합니다. NodePool 삭제는 소유 NodeClaim도 함께 삭제하므로 4번을 건너뛰면 안 됩니다.
 
@@ -274,14 +274,14 @@ disruption:
 
 이 문서의 실패 모드는 전부 "조용합니다" — 알람 없이 노드 구성만 서서히 바뀝니다. 최소한 다음은 봐야 합니다.
 
-- **`karpenter_nodeclaims_disrupted_total{reason="insufficient_capacity"}`** — gen8 런치가 ICE로 실패한 횟수. **폴백이 실제로 발생한 지점**. 근거: `nodeclaim/lifecycle/launch.go:93`.
-- **`karpenter_nodeclaims_disrupted_total{reason="expired", nodepool="gen7-fallback"}`** — 복귀 장치(§4.1)가 돌고 있는가. 0이면 `expireAfter`가 안 걸린 것. 근거: `expiration/controller.go:88` (`ExpiredReason = "expired"`).
-- **`karpenter_nodeclaims_disrupted_total{reason="underutilized"}`** — 교체형 consolidation 발생량. 급증하면 §4.2 방어선을 검토. 근거: `disruption/queue.go:167` (`ToSnakeCase`).
-- **`kubectl get events --field-selector reason=InsufficientCapacityError`** — 위 메트릭의 사람이 읽을 수 있는 버전. 어떤 인스턴스 타입이 왜 실패했는지. 근거: `nodeclaim/lifecycle/events.go:28-32`.
-- **로그 `"skipping, nodepool requirements filtered out all instance types"`** — **gen8 풀이 조용히 사라지는 경로.** requirements 조합이 인스턴스 타입을 전부 걸러 냈다. 근거: `scheduler.go:159-166`.
-- **로그 `"ignoring nodepool, not ready"`** — NodeClass 오류로 gen8 풀이 통째로 빠졌다. 이 상태면 weight고 뭐고 없습니다. 근거: `provisioner.go:277`.
-- **로그 `"skipping, awaiting nodeoverlay evaluation"`** — NodeOverlay를 쓴다면 — 게이트를 켠 직후 그 풀이 프로비저닝·disruption 양쪽에서 빠지는 창. 근거: `provisioner.go:295-298`.
-- **NodePool별 노드 수 비율** — 가장 중요한 지표. gen7 비중이 튀면 ICE 지속 또는 §5의 빈패킹이 일어난 것. 근거: `count by (nodepool) (karpenter_nodes_current_lifetime_seconds)` — 이 게이지는 WellKnownLabels(=`nodepool` 포함)를 라벨로 단다(`controllers/metrics/node/controller.go:156`). 코어에 `karpenter_nodes_total` 같은 노드 수 게이지는 없습니다.
+- `karpenter_nodeclaims_disrupted_total{reason="insufficient_capacity"}` — gen8 런치가 ICE로 실패한 횟수. 폴백이 실제로 발생한 지점입니다. 근거: `nodeclaim/lifecycle/launch.go:93`.
+- `karpenter_nodeclaims_disrupted_total{reason="expired", nodepool="gen7-fallback"}` — 복귀 장치(§4.1)가 돌고 있는가. 0이면 `expireAfter`가 안 걸린 것입니다. 근거: `expiration/controller.go:88` (`ExpiredReason = "expired"`).
+- `karpenter_nodeclaims_disrupted_total{reason="underutilized"}` — 교체형 consolidation 발생량. 급증하면 §4.2 방어선을 검토합니다. 근거: `disruption/queue.go:167` (`ToSnakeCase`).
+- `kubectl get events --field-selector reason=InsufficientCapacityError` — 위 메트릭의 사람이 읽을 수 있는 버전. 어떤 인스턴스 타입이 왜 실패했는지. 근거: `nodeclaim/lifecycle/events.go:28-32`.
+- 로그 `"skipping, nodepool requirements filtered out all instance types"` — gen8 풀이 조용히 사라지는 경로입니다. requirements 조합이 인스턴스 타입을 전부 걸러 냈습니다. 근거: `scheduler.go:159-166`.
+- 로그 `"ignoring nodepool, not ready"` — NodeClass 오류로 gen8 풀이 통째로 빠졌습니다. 이 상태면 weight고 뭐고 없습니다. 근거: `provisioner.go:277`.
+- 로그 `"skipping, awaiting nodeoverlay evaluation"` — NodeOverlay를 쓴다면 — 게이트를 켠 직후 그 풀이 프로비저닝·disruption 양쪽에서 빠지는 창. 근거: `provisioner.go:295-298`.
+- NodePool별 노드 수 비율 — 가장 중요한 지표. gen7 비중이 튀면 ICE 지속 또는 §5의 빈패킹이 일어난 것입니다. 근거: `count by (nodepool) (karpenter_nodes_current_lifetime_seconds)` — 이 게이지는 WellKnownLabels(=`nodepool` 포함)를 라벨로 답니다(`controllers/metrics/node/controller.go:156`). 코어에 `karpenter_nodes_total` 같은 노드 수 게이지는 없습니다.
 
 마지막 항목이 핵심입니다. 앞의 메트릭들은 전부 "사건이 일어난 순간"을 잡지만 이 문서가 다루는 실패는 **사건이 아니라 상태의 표류**입니다. gen7 비중을 시계열로 그려 놓고 "폴백 후 며칠 안에 다시 내려오는가"를 보는 게 §4의 복귀 장치가 작동한다는 유일한 증거입니다.
 

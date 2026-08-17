@@ -7,16 +7,16 @@ weight: 2
 
 {{< callout type="info" >}}
 **한눈에**
-- CFS는 CPU limit을 **100ms period로 쪼개서** 줍니다. period는 서로 독립이고 안 쓴 quota는 이월되지 않습니다. 그래서 **"평균 사용률 34% + throttle 31%"** 가 모순 없이 성립한다 — 총량이 남는데 타이밍이 잘립니다.
+- CFS는 CPU limit을 **100ms period로 쪼개서** 줍니다. period는 서로 독립이고 안 쓴 quota는 이월되지 않습니다. 그래서 **"평균 사용률 34% + throttle 31%"** 가 모순 없이 성립합니다 — 총량이 남는데 타이밍이 잘립니다.
 - **사용률 그래프에는 이 상태가 안 보입니다.** 대시보드는 내내 여유로운데 꼬리 지연만 길어집니다. `container_cpu_cfs_throttled_periods_total / …periods_total`을 같이 봐야 처음 보입니다.
 - 잘린 시간은 **CPU wait으로 스레드에 그대로 쌓이고** APM에는 "아무것도 안 하는 구간"으로 찍힙니다. 컨테이너 전체가 동시에 멈추므로 **꼬리(P99)가 평균보다 훨씬 크게 망가집니다.**
-- **코어가 많을수록 더 잘립니다.** quota는 병렬도에 비례해 마르기 때문이다 — 같은 1코어 limit이라도 4코어에서 도는 컨테이너는 period의 ¾을 멈춰 있습니다. 직관과 반대입니다.
-- 대응은 셋 중 하나다: **limit 제거**(가장 효과적이지만 이웃을 노출), **CPU Manager static**(throttle을 구조적으로 없애지만 조건이 빡빡), **[CPU Burst]({{< relref "03-cpu-burst.md" >}})**(타이밍만 푸는 정답에 가깝지만 k8s 표면이 없다).
+- **코어가 많을수록 더 잘립니다.** quota는 병렬도에 비례해 마르기 때문입니다 — 같은 1코어 limit이라도 4코어에서 도는 컨테이너는 period의 ¾을 멈춰 있습니다. 직관과 반대입니다.
+- 대응은 셋 중 하나입니다: **limit 제거**(가장 효과적이지만 이웃을 노출), **CPU Manager static**(throttle을 구조적으로 없애지만 조건이 빡빡), **[CPU Burst]({{< relref "03-cpu-burst.md" >}})**(타이밍만 푸는 정답에 가깝지만 k8s 표면이 없습니다).
 {{< /callout >}}
 
-> **왜 이 문서가 따로 있나.** "CPU를 더 주면 빨라진다"는 직관은 limit이 걸린 컨테이너에서 자주 틀립니다. 총량이 모자란 게 아니라 **쓸 수 있는 타이밍이 잘린** 상태가 있습니다. 이 상태는 **CPU 사용률 그래프에 나타나지 않아서** 몇 시간씩 엉뚱한 곳을 파게 만듭니다. 이 문서는 그 상태가 어떻게 만들어지는지, 어떤 지표를 겹쳐 봐야 보이는지, 대응 선택지가 각각 무엇을 대가로 치르는지를 정리합니다.
+"CPU를 더 주면 빨라진다"는 직관은 limit이 걸린 컨테이너에서 자주 틀립니다. 총량이 모자란 게 아니라 쓸 수 있는 타이밍이 잘린 상태가 있습니다. 이 상태는 CPU 사용률 그래프에 나타나지 않아서 몇 시간씩 엉뚱한 곳을 파게 만듭니다. 그래서 이 문서를 따로 두었습니다. 그 상태가 어떻게 만들어지는지, 어떤 지표를 겹쳐 봐야 보이는지, 대응 선택지가 각각 무엇을 대가로 치르는지를 정리합니다.
 
-> 자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 이 문제를 커널에서 푸는 [03 CPU Burst]({{< relref "03-cpu-burst.md" >}}) · limit을 무중단으로 바꾸는 [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}}) · 실제로 밟은 사례는 [istio 09]({{< relref "../../istio/09-istiod-scaling-connections.md" >}})
+자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 이 문제를 커널에서 푸는 [03 CPU Burst]({{< relref "03-cpu-burst.md" >}}) · limit을 무중단으로 바꾸는 [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}}) · 실제로 밟은 사례는 [istio 09]({{< relref "../../istio/09-istiod-scaling-connections.md" >}})
 
 ## 1. limit은 총량이 아니라 100ms짜리 배급이다
 
@@ -36,7 +36,7 @@ quota(µs) = limits.cpu(milli) × period(µs) ÷ 1000     # period 기본 100000
 
 CPU 30ms가 연속으로 필요한 요청 하나를 보겠습니다. limit이 없으면 30ms에 끝납니다. `0.2` 코어면 quota가 20ms라 20ms를 쓰고 **80ms를 그냥 멈춰 있다가** 다음 period에 남은 10ms를 씁니다 — 같은 일이 **110ms**가 됩니다.
 
-이 컨테이너의 평균 CPU 사용량은 **0.1 코어**, limit(0.2)의 **절반**입니다. 자원이 부족한 게 아니라 나눠주는 방식이 문제인 상태입니다. 커뮤니티에서 오래 굴러온 문제이기도 합니다([#67577](https://github.com/kubernetes/kubernetes/issues/67577), [#51135](https://github.com/kubernetes/kubernetes/issues/51135)).
+이 컨테이너의 평균 CPU 사용량은 **0.1 코어**, limit(0.2)의 **절반**입니다. 자원이 부족한 게 아니라 나눠주는 방식이 문제입니다. 커뮤니티에서 오래 굴러온 문제이기도 합니다([#67577](https://github.com/kubernetes/kubernetes/issues/67577), [#51135](https://github.com/kubernetes/kubernetes/issues/51135)).
 
 ## 2. 그래서 "여유로운데 잘린다"가 성립한다
 
@@ -56,7 +56,7 @@ CPU 30ms가 연속으로 필요한 요청 하나를 보겠습니다. limit이 �
 
 ## 3. 잘린 시간은 어디로 가나 — CPU wait과 APM 지연
 
-throttle은 "느려짐"이 아니라 **정지**입니다. quota가 마르는 순간 그 컨테이너에서 **돌던 스레드가 전부 같이 멈춥니다.** 하나가 느려지는 게 아니라 컨테이너 전체가 다음 period 경계까지 서 있습니다.
+throttle은 "느려짐"이 아니라 **정지**입니다. quota가 마르는 순간 그 컨테이너에서 **돌던 스레드가 전부 같이 멈춥니다.** 하나만 느려지고 끝나지 않습니다. 컨테이너 전체가 다음 period 경계까지 서 있습니다.
 
 멈춘 스레드는 실행 큐에서 대기 상태가 됩니다. 이 시간은 애플리케이션 쪽에서 **CPU를 기다린 시간(CPU wait / run-queue 대기)** 으로 잡힙니다. 그래서 이렇게 번집니다.
 
@@ -68,13 +68,13 @@ APM에서 이게 **특징적인 모양**으로 나타납니다. 느린 트레이
 
 ## 4. 다중코어에서는 더 빨리 마른다
 
-여기가 가장 직관과 어긋나는 지점입니다. **quota는 wall time이 아니라 CPU-time으로 소진됩니다.** 즉 **"동시에 몇 개 코어에서 도느냐"에 비례해서** 마릅니다.
+여기가 가장 직관과 어긋나는 지점입니다. **quota는 wall time이 아니라 CPU-time으로 소진됩니다.** **"동시에 몇 개 코어에서 도느냐"에 비례해서** 마릅니다.
 
 limit이 1코어(quota 100ms/period)일 때, 1코어에서만 돌면 100ms를 꽉 채우고 period가 끝나 안 잘립니다. 그런데 2코어에서 동시에 돌면 50ms 만에, 4코어면 25ms 만에 그 100ms를 태워버립니다.
 
 {{< cfstl variant="threads" >}}
 
-그리고 그 "동시 개수"는 **노드의 코어 수가 받쳐줘야** 나옵니다. 결론이 반직관적입니다 — **같은 limit이라도 코어가 많은 노드에 스케줄될수록 더 잘 잘립니다.** 64코어 노드로 옮겨서 더 느려지는 일이 실제로 일어납니다.
+그 "동시 개수"는 **노드의 코어 수가 받쳐줘야** 나옵니다. 결론은 반직관적입니다 — **같은 limit이라도 코어가 많은 노드에 스케줄될수록 더 잘 잘립니다.** 64코어 노드로 옮겨서 더 느려지는 일이 실제로 일어납니다.
 
 이게 런타임의 병렬도 설정과 맞물리면 증상이 커집니다. 대부분의 런타임이 **노드의 코어 수**를 보고 스레드풀·GC 워커·`GOMAXPROCS`를 잡기 때문입니다.
 
@@ -142,11 +142,11 @@ limit을 올리면 `requests = limits`인 경우 requests도 같이 올라 **노
 
 ### BP ① limit을 제거한다
 
-가장 확실하게 듣습니다. `#67577`의 보고가 유명한데 — ingress controller에서 **limit을 1500m까지 올려도 별로 나아지지 않았는데 아예 없애자 p99·p999가 60ms·100ms에서 ~5ms로** 떨어졌습니다. 평균 CPU는 30m 남짓이었습니다. **limit을 올리는 게 아니라 없애야 풀렸다**는 게 이 문제의 성격을 그대로 보여줍니다.
+가장 확실하게 듣습니다. `#67577`의 보고가 유명한데 — ingress controller에서 **limit을 1500m까지 올려도 별로 나아지지 않았는데 아예 없애자 p99·p999가 60ms·100ms에서 ~5ms로** 떨어졌습니다. 평균 CPU는 30m 남짓이었습니다. **limit을 올리는 게 아니라 없애야 풀렸다**는 대목에 이 문제의 성격이 그대로 드러납니다.
 
-quota가 없으면 CFS는 `cpu.shares`(requests에서 파생)로만 조정합니다. **경합이 없으면 남는 CPU를 자유롭게 쓰고, 경합이 생기면 requests 비율대로 나눕니다.** 평상시 버스트를 흡수하면서 혼잡할 때의 공정성은 유지되는 구조입니다.
+quota가 없으면 CFS는 `cpu.shares`(requests에서 파생)로만 조정합니다. **경합이 없으면 남는 CPU를 자유롭게 쓰고, 경합이 생기면 requests 비율대로 나눕니다.** 평상시 버스트를 흡수하면서 혼잡할 때는 공정하게 나누는 구조입니다.
 
-**그래서 무엇을 잃을까요?** 이웃에 대한 상한이 사라집니다. 폭주하는 파드 하나가 노드의 여유 CPU를 전부 가져갈 수 있습니다. 이건 CPU 총량이 아니라 **다른 파드의 지연**으로 나타납니다. 무엇보다 **`requests`를 제대로 잡아뒀을 때만 성립하는 전략**입니다 — requests가 실제 수요보다 작으면 경합 시 보장받는 몫도 그만큼 작습니다.
+**그래서 무엇을 잃을까요?** 이웃에 걸려 있던 상한이 사라집니다. 폭주하는 파드 하나가 노드의 여유 CPU를 전부 가져갈 수 있습니다. 이건 CPU 총량이 아니라 **다른 파드의 지연**으로 나타납니다. 무엇보다 **`requests`를 제대로 잡아뒀을 때만 성립하는 전략**입니다 — requests가 실제 수요보다 작으면 경합 시 보장받는 몫도 그만큼 작습니다.
 
 ```yaml
 resources:
@@ -171,13 +171,13 @@ resources:
 **Go 워크로드에서 limit을 뺄 때는 `GOMAXPROCS`를 같이 챙깁니다.** Go 1.25+의 컨테이너 인식은 **limit을 보지 requests를 보지 않습니다.** limit을 빼면 노드 전체 코어 수가 `GOMAXPROCS`가 되어 64코어 노드에서 P를 64개 잡습니다. limit을 뺐다면 `GOMAXPROCS`를 requests 기준으로 **명시하는 편이 안전합니다.**
 {{< /callout >}}
 
-노드 전체에서 끄는 방법도 있습니다. kubelet의 `--cpu-cfs-quota=false`는 **그 노드의 모든 컨테이너**에 대해 quota 적용을 끕니다. 파드별로 고를 수 없어 영향 범위가 크니 지연에 민감한 워크로드만 모은 전용 노드풀에 쓰는 게 맞습니다.
+노드 전체에서 끄는 방법도 있습니다. kubelet의 `--cpu-cfs-quota=false`는 **그 노드의 모든 컨테이너**에서 quota 적용을 끕니다. 파드별로 고를 수 없어 영향 범위가 크니 지연에 민감한 워크로드만 모은 전용 노드풀에 쓰는 게 맞습니다.
 
 ### 실제 케이스 — 전용 노드의 Ingress Gateway, CPU만 빼고 메모리는 고정
 
 istiod에서 스로틀을 확인하고 같은 방식으로 Istio Ingress Gateway를 들여다봤더니 여기서도 잘리고 있었습니다. 게이트웨이는 **전용 노드에 격리**해 두는 구성이라([istio 03]({{< relref "../../istio/03-gateway-node-isolation.md" >}})) BP ①의 최대 약점인 "이웃을 노출한다"가 **구조적으로 사라집니다.** 같은 노드에 있는 게 전부 같은 역할의 게이트웨이 파드입니다. 하나가 여유 CPU를 더 가져가는 것은 그 관문의 처리량으로 되돌아옵니다. 그래서 여기서는 CPU limit을 뺐습니다.
 
-원래는 cpu·memory 모두 `requests = limits`인 **Guaranteed** 파드였습니다. **메모리 쪽만 그대로 `requests = limits`로 남겼습니다.** 이 비대칭이 이 케이스의 핵심입니다. 우연이 아니라 두 자원의 성격이 다르기 때문에 옳습니다.
+원래는 cpu·memory 모두 `requests = limits`인 **Guaranteed** 파드였습니다. **메모리 쪽만 그대로 `requests = limits`로 남겼습니다.** 이 비대칭이 이 케이스의 핵심입니다. 두 자원의 성격이 다르기 때문에 이렇게 갈라놓는 게 맞습니다.
 
 | | CPU | 메모리 |
 |---|---|---|
@@ -196,7 +196,7 @@ limit이 없으면 컨테이너가 노드 메모리를 끝까지 먹을 수 있�
 
 가변으로 두면 "평소엔 작게 잡고 필요할 때 limit까지 부푼다"를 기대하게 되는데 메모리에서는 이 기대가 잘 안 맞습니다. **한 번 부푼 메모리는 잘 안 돌아옵니다** — Envoy의 메모리는 커넥션 수와 클러스터·엔드포인트 설정 규모를 따라 늘어납니다. 피크가 지나도 할당자가 OS에 즉시 반납하지 않습니다. 스케줄러는 requests로 노드를 채워놨는데 실제 사용량은 limits 쪽에 가까워지는 **조용한 오버커밋**이 됩니다.
 
-그리고 kubelet이 메모리 압박에서 축출 대상을 고르는 순서를 보면 차이가 분명해집니다. 정렬의 **첫 번째 키는 "사용량이 requests를 초과했는가"라는 불리언**입니다. 그다음이 PriorityClass, 그다음이 절대 사용량입니다.
+kubelet이 메모리 압박에서 축출 대상을 고르는 순서를 보면 차이가 더 분명합니다. 정렬의 **첫 번째 키는 "사용량이 requests를 초과했는가"라는 불리언**입니다. 그다음이 PriorityClass, 그다음이 절대 사용량입니다.
 
 ```
 정렬 키: (requests 초과 여부) → PriorityClass → 절대 메모리 사용량
@@ -225,12 +225,12 @@ requests를 실수요에 맞게 잡아둘수록 이 값이 낮아지고 **노드
 
 축출 순위는 영향이 없습니다. 앞서 본 정렬 키 `(requests 초과 여부 → PriorityClass → 사용량)`에 **QoS 항이 아예 없고** memory `req = limit`을 유지했으므로 초과가 불가능한 상태 그대로입니다. `oom_score_adj`는 실질적 손실입니다. 예를 들어 32Gi 노드에 memory requests 2Gi면 약 **938**로, 거의 반대편 끝입니다. CPU Manager static 자격은 손실이 아닙니다 — 쓰려면 CPU limit을 되살려야 해서 애초에 이 선택의 목적과 양립하지 않습니다.
 
-정리하면 **잃은 건 사실상 `oom_score_adj` 하나**입니다. 그리고 이게 언제 문제가 되는지를 정확히 구분해야 합니다.
+정리하면 **잃은 건 사실상 `oom_score_adj` 하나**입니다. 이게 언제 문제가 되는지는 정확히 구분해야 합니다.
 
 - **컨테이너가 자기 메모리 limit을 넘긴 경우** — 이건 cgroup 레벨 OOM이라 **그 컨테이너만** 죽습니다. `oom_score_adj`와 무관합니다. 강등 전후가 똑같습니다.
 - **노드 전체 메모리가 마른 경우** — 여기서만 커널 OOM killer가 노드의 프로세스들을 `oom_score` 순으로 고릅니다. 예전엔 −997이라 kubelet(−999) 다음으로 안전했는데 지금은 상위 후보 쪽에 서 있습니다.
 
-두 번째 시나리오를 막아주는 게 결국 **`requests = limits`와 정확한 requests**입니다. 모든 게이트웨이 파드가 자기 limit 이상 못 쓰고 스케줄러는 allocatable 안에서만 파드를 넣으므로 requests 합이 정직하면 노드 전체가 마르는 상황 자체가 잘 안 생깁니다. 다만 Guaranteed 시절에는 이게 **공짜로 보장**됐고 지금은 **requests 정확도에 의존**한다는 차이가 있습니다. 안전장치가 사라진 게 아니라 **자동에서 수동으로 바뀐 것**에 가깝습니다.
+두 번째 시나리오를 막아주는 게 결국 **`requests = limits`와 정확한 requests**입니다. 모든 게이트웨이 파드가 자기 limit 이상 못 쓰고 스케줄러는 allocatable 안에서만 파드를 넣으므로 requests 합이 정직하면 노드 전체가 마르는 상황 자체가 잘 안 생깁니다. 다만 Guaranteed 시절에는 이게 **공짜로 보장**됐고 지금은 **requests 정확도에 의존**한다는 차이가 있습니다. 안전장치가 사라지지는 않았고, 자동이던 것이 **수동으로 바뀐 것**에 가깝습니다.
 
 {{< callout type="warning" >}}
 **노드에 CPU Manager static policy가 켜져 있었는지 확인할 것.** 켜져 있었다면 Guaranteed + 정수 CPU인 이 게이트웨이는 **전용 코어를 배정받고 있었고** CPU limit 제거는 그 전용 코어를 반납하고 공유 풀로 돌아간다는 뜻입니다 — 지연 특성이 크게 달라집니다. 다만 §BP ②에서 본 대로 static policy에서는 quota와 cpuset 크기가 같아 **throttle이 성립하지 않으므로** 스로틀이 실제로 관측됐다는 사실 자체가 이 노드가 static policy가 아니었다는(또는 이 컨테이너가 대상이 아니었다는) 정황 증거입니다.
@@ -254,9 +254,9 @@ throttle을 완화하는 게 아니라 **구조적으로 없애는** 접근입�
 
 - **파편화.** 정수 코어만 배정되므로 남는 코어가 놀 수 있습니다. 클러스터 사용률이 떨어집니다.
 - **Guaranteed 강제.** requests = limits를 모든 컨테이너에 걸어야 해서 오버커밋으로 얻던 밀도를 포기합니다.
-- **[01의 in-place resize와 상극이다.]({{< relref "01-inplace-pod-resize.md" >}})** static policy 노드의 Guaranteed 파드는 resize가 admission에서 Infeasible로 거부됩니다. 우회 게이트는 아직 alpha다.
+- **[01의 in-place resize와 상극이다.]({{< relref "01-inplace-pod-resize.md" >}})** static policy 노드의 Guaranteed 파드는 resize가 admission에서 Infeasible로 거부됩니다. 우회 게이트는 아직 alpha입니다.
 - **노드 단위 설정이고 되돌리기가 번거롭습니다.** 정책을 바꾸려면 kubelet을 재시작하고 CPU Manager 상태 파일을 지워야 합니다.
-- 관련해서 스케일다운 시 **바쁜 CPU를 회수해 affinity를 깨는** 리포트도 열려 있다([#131309](https://github.com/kubernetes/kubernetes/issues/131309)).
+- 관련해서 스케일다운 시 **바쁜 CPU를 회수해 affinity를 깨는** 리포트도 열려 있습니다([#131309](https://github.com/kubernetes/kubernetes/issues/131309)).
 
 ⇒ **저지연이 비용보다 명백히 비싼 워크로드에만** 씁니다. 트레이딩·실시간 미디어·NFV처럼 지터 자체가 SLO인 경우입니다. 일반 웹 서비스에는 과합니다. 그쪽은 BP ①이 훨씬 싸게 같은 문제를 풉니다.
 
@@ -280,7 +280,7 @@ throttle을 완화하는 게 아니라 **구조적으로 없애는** 접근입�
 - [ ] **사용률과 겹쳐 본다** — 사용률이 낮은데 스로틀이 높으면 §2의 그 상태입니다
 - [ ] **표본을 정제한다** — 갓 뜬 파드 제외, 짧은 윈도우와 `max_over_time` 병행
 - [ ] **APM과 잇는다** — 스팬 사이의 빈 구간이 스로틀 구간과 시간적으로 겹치는지
-- [ ] **병렬도를 확인한다** — 노드 코어 수, `GOMAXPROCS`/스레드풀 설정. 큰 노드로 옮긴 뒤 나빠졌다면 §4다
+- [ ] **병렬도를 확인한다** — 노드 코어 수, `GOMAXPROCS`/스레드풀 설정. 큰 노드로 옮긴 뒤 나빠졌다면 §4입니다
 - [ ] **CPU limit은 정수 코어로** — 소수점은 런타임(올림)과 커널(정확값)이 항상 어긋납니다
 - [ ] **대응을 고른다** — 온라인 서비스면 limit 제거부터, 지터가 SLO면 CPU Manager, 그 사이면 CPU Burst
 - [ ] **limit을 뺐다면** requests를 실측으로 다시 잡고, Go라면 `GOMAXPROCS`를 명시했는지 확인
@@ -291,16 +291,16 @@ throttle을 완화하는 게 아니라 **구조적으로 없애는** 접근입�
 - `limits.cpu`는 총량이 아니라 **100ms짜리 배급**이고 **period 간 이월이 없습니다.** "평균 사용률 34%인데 period의 31%가 잘린다"가 여기서 나옵니다.
 - **사용률 그래프에는 이 상태가 없습니다.** `throttled_periods / periods`를 겹쳐야 보입니다. 안 보는 것과 없는 것은 다릅니다.
 - 잘린 시간은 **CPU wait으로 쌓여 APM 스팬 사이의 빈 구간**이 됩니다. 컨테이너 전체가 동시에 서므로 평균보다 **꼬리가 훨씬 크게** 망가집니다.
-- **코어가 많을수록 더 잘립니다.** quota는 병렬도에 비례해 마른다 — 큰 노드로 옮겨 느려지는 일이 실제로 있습니다.
+- **코어가 많을수록 더 잘립니다.** quota는 병렬도에 비례해 마릅니다 — 큰 노드로 옮겨 느려지는 일이 실제로 있습니다.
 - 대응은 **무엇을 포기하느냐**의 문제입니다. limit 제거는 이웃 상한을, CPU Manager는 사용률과 유연성을, CPU Burst는 k8s 표면을 포기합니다.
 - **CPU limit과 메모리 limit을 같이 취급하지 말 것.** CPU는 압축 가능해서 빼도 지연만 오가지만 메모리는 상한이 없으면 노드가 죽습니다. **CPU는 빼고 메모리는 `requests = limits`로 고정**하는 비대칭이 전용 노드에서는 가장 안전한 조합입니다.
-- **CPU limit을 빼면 Guaranteed는 포기해야 합니다.** 다만 실제로 잃는 건 `oom_score_adj`(−997 → Burstable 공식) 하나다 — kubelet 축출 정렬에는 **QoS 항이 없어서** memory `req = limit`만 유지하면 순위가 그대로입니다. 노드 전체가 마르는 시나리오를 막아주던 게 자동에서 **requests 정확도에 의존하는 수동**으로 바뀝니다.
+- **CPU limit을 빼면 Guaranteed는 포기해야 합니다.** 다만 실제로 잃는 건 `oom_score_adj`(−997 → Burstable 공식) 하나입니다 — kubelet 축출 정렬에는 **QoS 항이 없어서** memory `req = limit`만 유지하면 순위가 그대로입니다. 노드 전체가 마르는 시나리오를 막아주던 게 자동에서 **requests 정확도에 의존하는 수동**으로 바뀝니다.
 
 ## 참고 자료
 
 - [Linux / CFS Bandwidth Control](https://docs.kernel.org/scheduler/sched-bwc.html) — quota·period·슬라이스와 `cpu.cfs_burst_us`의 1차 소스
 - [kubernetes#67577](https://github.com/kubernetes/kubernetes/issues/67577) — 저사용률 스로틀 보고. limit 제거로 p99가 12~20배 개선된 사례 · [#51135](https://github.com/kubernetes/kubernetes/issues/51135)
 - [Kubernetes / CPU Management Policies](https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/) — static policy의 조건과 정책 옵션
-- [CPU를 다 쓰지도 않았는데 스로틀링에 걸렸습니다](https://makgol.com/blog/istiod-cpu-throttling) — §2의 istiod 실측(0.207코어 / 31%)과 역산이 여기서 나왔다. 더 깊은 판은 [istio 09]({{< relref "../../istio/09-istiod-scaling-connections.md" >}})
+- [CPU를 다 쓰지도 않았는데 스로틀링에 걸렸습니다](https://makgol.com/blog/istiod-cpu-throttling) — §2의 istiod 실측(0.207코어 / 31%)과 역산이 여기서 나왔습니다. 더 깊은 판은 [istio 09]({{< relref "../../istio/09-istiod-scaling-connections.md" >}})
 - [Go 1.25 Release Notes](https://go.dev/doc/go1.25) — 컨테이너 인식 `GOMAXPROCS`, "does not consider the CPU requests option" · [uber-go/automaxprocs](https://github.com/uber-go/automaxprocs)
 - 동작 서술의 근거 코드: `kubernetes/kubernetes` master — `pkg/kubelet/kuberuntime/helpers_linux.go`(`milliCPUToQuota`, 하한 1ms), `kuberuntime_container_linux.go`(`cpuCFSQuota` 분기), `pkg/kubelet/cm/cpumanager/policy_static.go`(Guaranteed·정수 조건), `pkg/kubelet/cm/internal_container_lifecycle_linux.go`(cpuset만 설정하고 quota는 건드리지 않음)

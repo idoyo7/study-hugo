@@ -5,22 +5,22 @@ weight: 8
 
 # 블록 스토리지 온리 — S3 없이 EBS 단일 티어 튜닝
 
-이 카테고리의 나머지 문서는 전부 **S3 cold 티어링을 쓰는 전제**로 쓰였습니다. [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}})가 gp3/io2 스펙·요금·StorageClass·단일 vs 다중을, [S3 콜드 티어링]({{< relref "03-s3-cold-tiering.md" >}})이 `storage_configuration`·TTL MOVE·IRSA·`move_factor`·cache·금지 3종을, [용량 산정]({{< relref "07-capacity-planning.md" >}})이 0.7TB/월 워크로드 모델을, [operator·다운타임]({{< relref "04-operator-topology-downtime.md" >}})이 `storageManagement`·다운타임 프로파일을 기준 문서로 이미 다뤘습니다. 여기서는 그 전제를 뒤집어 **"블록 온리(EBS only, S3 티어링 없음)"** 만의 델타를 판합니다 — 사라지는 것(storage XML·IRSA·cache·`move_factor`)과 새로 짊어지는 것(전량 EBS 상주 → 사이징 배수↑·온라인 확장이 유일 성장 레버·머지/백그라운드 풀 튜닝). 겹치는 것은 복붙하지 않고 relref로 넘깁니다.
+이 카테고리의 나머지 문서는 전부 S3 cold 티어링을 쓴다는 전제로 씌었습니다. [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}})가 gp3/io2 스펙·요금·StorageClass·단일 vs 다중을, [S3 콜드 티어링]({{< relref "03-s3-cold-tiering.md" >}})이 `storage_configuration`·TTL MOVE·IRSA·`move_factor`·cache·금지 3종을, [용량 산정]({{< relref "07-capacity-planning.md" >}})이 0.7TB/월 워크드 모델을, [operator·다운타임]({{< relref "04-operator-topology-downtime.md" >}})이 `storageManagement`·다운타임 프로파일을 이미 기준 문서로 다뤘습니다. 이 페이지는 그 전제를 뒤집어 "블록 온리(EBS only, S3 티어링 없음)"만의 델타를 판합니다 — 무엇이 사라지고(storage XML·IRSA·cache·`move_factor`), 무엇을 새로 짊어지나(전량 EBS 상주 → 사이징 배수↑·온라인 확장이 유일 성장 레버·머지/백그라운드 풀 튜닝). 겹치는 것은 통째로 복붙하지 않고 relref로 넘깁니다.
 
 {{< callout type="info" >}}
 **한눈에**
 
-- **블록 온리 = `storage_policy`를 내장 `default` 하나로만.** cold(S3) 볼륨이 없으니 03이 통째로 주입하던 `config.d/storage_configuration.xml`을 **아예 넣지 않습니다**. 테이블은 기본 `default` 정책·`default` 디스크(=`/var/lib/clickhouse`=gp3 PVC)에 씁니다.
-- **S3와의 관계는 배타가 아니라 "선택"입니다.** 우리 기본 권고는 03(S3 티어링) 유지. 블록 온리는 **짧은 보존(≤90일)·staging·운영 단순성·S3 미접근/규정** 경로에서 고르는 선택지입니다.
-- **TTL은 DELETE-only** — `TO VOLUME 'cold'` MOVE가 사라지고 `... DELETE` 하나만. `ttl_only_drop_parts=1`로 만료 part 통째 드롭(머지 유발 없는 값싼 연산)이라 gp3 대역을 아낍니다.
-- **사이징 델타**: 03에서 S3로 내리던 logs/traces/metrics가 전부 gp3에 상주 → gp3 상주가 [07]({{< relref "07-capacity-planning.md" >}}) hot 대비 **1.6x(3개월)~3.7x(12개월)**. 짧은 보존이면 S3 티어링과 비용 근접, 길어지면 발산(서울 gp3 **$0.0912** vs S3 Standard **$0.025** = **3.65x/GB** `✓`, 단가 정본은 [02 §1.3]({{< relref "02-hot-storage-ebs.md" >}})).
-- **성장 레버는 gp3 온라인 확장 하나** → `storageManagement.provisioner: Operator` + SC `allowVolumeExpansion`으로 무중단 확장. EBS 6h 쿨다운은 **2026-01-15 폐지**(24h당 4회). **#1385 데이터 손실 회귀** 주의.
-- **커지는 상주 데이터**는 머지가 gp3 대역을 지속 점유 → provisioned throughput 상향·`background_pool_size`/ratio·머지 크기 노브·**헤드룸 30~40%**(머지가 여유를 2배 booking). `move_factor`는 이동 볼륨이 없어 죽는 노브.
+- 블록 온리는 `storage_policy`를 내장 `default` 하나로만 둡니다. cold(S3) 볼륨이 없으니 03이 통째로 주입하던 `config.d/storage_configuration.xml`을 아예 넣지 않습니다. 테이블은 기본 `default` 정책·`default` 디스크(=`/var/lib/clickhouse`=gp3 PVC)에 씁니다.
+- S3와 배타 관계는 아니고 둘 중 하나를 고르는 문제입니다. 우리 기본 권고는 03(S3 티어링) 유지이고 블록 온리는 짧은 보존(≤90일)·staging·운영 단순성·S3 미접근/규정 경로에서 고르는 선택지입니다.
+- TTL은 DELETE-only입니다. `TO VOLUME 'cold'` MOVE가 사라지고 `... DELETE` 하나만 남습니다. `ttl_only_drop_parts=1`로 만료 part를 통째로 드롭하고 머지를 유발하지 않는 값싼 연산이라 gp3 대역을 아낍니다.
+- 사이징 델타: 03에서 S3로 내리던 logs/traces/metrics가 전부 gp3에 상주하므로 gp3 상주가 [07]({{< relref "07-capacity-planning.md" >}}) hot 대비 1.6x(3개월)~3.7x(12개월)입니다. 짧은 보존이면 S3 티어링과 비용이 근접하고 길어지면 발산합니다(서울 gp3 $0.0912 vs S3 Standard $0.025 = 3.65x/GB `✓`, 단가 정본은 [02 §1.3]({{< relref "02-hot-storage-ebs.md" >}})).
+- 성장 레버는 gp3 온라인 확장 하나입니다. `storageManagement.provisioner: Operator` + SC `allowVolumeExpansion`으로 무중단 확장하고 EBS 6h 쿨다운은 2026-01-15 폐지됐습니다(24h당 4회). #1385 데이터 손실 회귀는 주의해야 합니다.
+- 상주 데이터가 커지면 머지가 gp3 대역을 계속 점유하니 provisioned throughput 상향·`background_pool_size`/ratio·머지 크기 노브·헤드룸 30~40%로 받습니다(머지가 여유를 2배 booking). `move_factor`는 이동 볼륨이 없어 죽는 노브입니다.
 {{< /callout >}}
 
 ## 1. 무 S3 단일 티어 — 무엇이 사라지나
 
-블록 온리의 본질은 **`storage_policy`를 내장 `default` 하나로만** 두는 것입니다. `default` 디스크는 `/var/lib/clickhouse`(= gp3/io2 PVC)에 매핑되는 내장 디스크라 **별도 선언이 필요 없습니다** — [03]({{< relref "03-s3-cold-tiering.md" >}})이 CHI `files`로 통째로 주입하던 `config.d/storage_configuration.xml`을 **아예 넣지 않아도 되고** 테이블은 기본 `default` 정책·`default` 디스크에 씁니다 `✓`.
+블록 온리는 `storage_policy`를 내장 `default` 하나로만 둡니다. `default` 디스크는 `/var/lib/clickhouse`(= gp3/io2 PVC)에 매핑되는 내장 디스크라 따로 선언할 필요가 없습니다. 그래서 [03]({{< relref "03-s3-cold-tiering.md" >}})이 CHI `files`로 통째로 주입하던 `config.d/storage_configuration.xml`을 아예 넣지 않아도 됩니다 — 테이블은 기본 `default` 정책·`default` 디스크에 씁니다 `✓`.
 
 03(S3 티어링) 대비 사라지는 것들:
 
@@ -36,16 +36,16 @@ weight: 8
 | 금지 3종(S3 lifecycle→Glacier·zero-copy·`prefer_not_to_merge=true`) | **2종 소거** | S3 lifecycle·zero-copy 소거²  |
 | 캐시 미스 지연·cold full-scan이 hot 쿼리 잠식 | **소거** | 모든 데이터가 로컬 gp3 → 균일 저지연 |
 
-¹ EBS의 cache 소비항(150Gi)이 사라져 사이징이 단순해집니다.
-² `prefer_not_to_merge` 함정만 여전(default false 유지).
+¹ EBS의 cache 소비항(150Gi)이 통째로 사라져 사이징이 단순해집니다.
+² `prefer_not_to_merge` 함정만 여전합니다(default false 유지).
 
-**핵심**: 블록 온리는 **운영 표면적이 03보다 현저히 작습니다**. storage XML·IRSA·S3 버킷·lifecycle·cache 튜닝·이동 모니터링이 한꺼번에 빠집니다. 이게 "짧은 보존·소규모·운영 단순성"에서 블록 온리를 고르는 이유입니다(§6). `≈`
+블록 온리는 운영 표면적이 03보다 현저히 작습니다. storage XML·IRSA·S3 버킷·lifecycle·cache 튜닝·이동 모니터링이 통째로 빠집니다. 이게 "짧은 보존·소규모·운영 단순성"에서 블록 온리를 고르는 이유입니다(§6). `≈`
 
 > `move_factor`가 "여유 공간이 `move_factor × 볼륨크기` 아래로 떨어지면 다음 볼륨으로 이동 시작"(기본 0.1)이라는 정의와 그 정정은 [03 §1.3]({{< relref "03-s3-cold-tiering.md" >}})이 기준 문서입니다. 블록 온리에선 이동 대상 볼륨 자체가 없어 이 노브가 죽습니다. `✓`
 
 ### 1.1 CHI storage — `default` only (예제)
 
-03의 CHI는 `files`에 `config.d/storage_configuration.xml`을 주입하고 테이블에 `storage_policy='rum_hot_cold'`를 걸었습니다. 블록 온리는 **그 블록을 통째로 지웁니다** — 남는 것은 gp3 volumeClaimTemplate뿐입니다. gp3 StorageClass·`reclaimPolicy: Retain`·`WaitForFirstConsumer` 기준 문서는 [02 §6]({{< relref "02-hot-storage-ebs.md" >}}).
+03의 CHI는 `files`에 `config.d/storage_configuration.xml`을 주입하고 테이블에 `storage_policy='rum_hot_cold'`를 걸었습니다. 블록 온리는 그 블록을 통째로 지웁니다 — 남는 것은 gp3 volumeClaimTemplate뿐입니다. gp3 StorageClass·`reclaimPolicy: Retain`·`WaitForFirstConsumer` 기준 문서는 [02 §6]({{< relref "02-hot-storage-ebs.md" >}}).
 
 ```yaml
 apiVersion: "clickhouse.altinity.com/v1"
@@ -80,7 +80,7 @@ spec:
 
 ## 2. TTL DELETE-only — MOVE 없는 보존
 
-S3가 없으니 TTL은 `TO VOLUME 'cold'` MOVE 절이 사라지고 **DELETE만** 남습니다. 03이 구분하던 "TTL 창(hot 며칠) vs DELETE 지평"의 두 층이 하나로 접혀 **보존일 = DELETE일** 하나로 단순화됩니다. 지평별 값(90/180/30)은 [03 §4]({{< relref "03-s3-cold-tiering.md" >}})·[07 §6]({{< relref "07-capacity-planning.md" >}})이 기준 문서이고 여기선 **MOVE가 빠진 형태**만 보입니다.
+S3가 없으니 TTL은 `TO VOLUME 'cold'` MOVE 절이 사라지고 DELETE만 남습니다. 03이 구분하던 "TTL 창(hot 며칠) vs DELETE 지평"의 두 층이 하나로 접혀 보존일이 곧 DELETE일이 됩니다. 지평별 값(90/180/30)은 [03 §4]({{< relref "03-s3-cold-tiering.md" >}})·[07 §6]({{< relref "07-capacity-planning.md" >}})이 기준 문서이고, 여기선 MOVE가 빠진 형태만 보입니다.
 
 ```sql
 -- 블록 온리: MOVE 없음, DELETE-only. 보존일 하나로 끝.
@@ -94,23 +94,23 @@ ALTER TABLE default.otel_metrics_summary   MODIFY TTL toDateTime(TimeUnix) + INT
 ALTER TABLE default.hyperdx_sessions       MODIFY TTL TimestampTime + INTERVAL 30 DAY DELETE;  -- sessions는 03에서도 S3 안 감(hot only)
 ```
 
-- **`ttl_only_drop_parts=1`**(ClickStack 관리 테이블 기본): 만료 행을 골라 지우는 대신 **part 전체가 만료돼야 통째 드롭**합니다. 파티션이 `toDate`(일 단위)라 정합적이고 part-drop은 **머지를 유발하지 않는 값싼 연산**입니다 `✓`. → 블록 온리에서 특히 유리: 삭제가 머지 I/O를 안 먹어 gp3 대역을 아낍니다.
-- **`merge_with_ttl_timeout`** 기본 **14400초(4시간)** — "delete TTL 머지를 반복하기 전 최소 지연" `✓`. `ttl_only_drop_parts=1`이면 whole-part drop이라 이 값을 **하향해도 부하가 낮다**(만료 part 드롭 지연을 줄이려면 하향; 트레이드는 TTL 머지 스캔 빈도↑) `✓`.
+- `ttl_only_drop_parts=1`(ClickStack 관리 테이블 기본): 만료 행을 골라 지우는 대신 part 전체가 만료돼야 통째로 드롭합니다. 파티션이 `toDate`(일 단위)라 정합적이고, part-drop은 머지를 유발하지 않는 값싼 연산입니다 `✓`. → 블록 온리에서 특히 유리합니다. 삭제가 머지 I/O를 먹지 않아 gp3 대역을 아낍니다.
+- `merge_with_ttl_timeout` 기본 14400초(4시간) — "delete TTL 머지를 반복하기 전 최소 지연" `✓`. `ttl_only_drop_parts=1`이면 whole-part drop이라 이 값을 하향해도 부하가 낮습니다(만료 part 드롭 지연을 줄이려면 하향; 트레이드는 TTL 머지 스캔 빈도↑) `✓`.
 - `MODIFY TTL`은 이후 머지에서 점진 적용되므로, 이미 쌓인 과거 파티션을 즉시 정리하려면 `MATERIALIZE TTL`(또는 `materialize_ttl_after_modify`)을 저트래픽 창에 돌립니다(기준 절차는 03·07) `✓`.
 
 {{< callout type="warning" >}}
-**정정 재확인** `✓`: ClickStack OSS 기본 TTL은 `${TABLES_TTL}` 단일값(문서상 3일)이며, 위 90/180/30은 우리 권장 오버라이드입니다. 배포 후 `SHOW CREATE TABLE`로 실 스키마를 확인합니다 — 기준 문서는 [03 §4.1]({{< relref "03-s3-cold-tiering.md" >}}).
+정정 재확인 `✓`: ClickStack OSS 기본 TTL은 `${TABLES_TTL}` 단일값(문서상 3일)이며, 위 90/180/30은 우리 권장 오버라이드입니다. 배포 후 `SHOW CREATE TABLE`로 실 스키마를 확인합니다 — 기준 문서는 [03 §4.1]({{< relref "03-s3-cold-tiering.md" >}}).
 {{< /callout >}}
 
 ## 3. 전량 EBS 보존 사이징 델타 (07 대비)
 
-**사이징 기준 문서는 [07]({{< relref "07-capacity-planning.md" >}})입니다.** 여기선 "S3로 내리던 분이 전부 gp3에 상주할 때의 델타"만 산출합니다. 07은 on-disk 해석 B(단일사본, 블렌디드 압축 ~6x)를 1차 모델로 삼습니다.
+사이징 기준 문서는 [07]({{< relref "07-capacity-planning.md" >}})입니다. 여기선 "S3로 내리던 분이 전부 gp3에 상주할 때의 델타"만 산출합니다. 07은 on-disk 해석 B(단일사본, 블렌디드 압축 ~6x)를 1차 모델로 삼습니다.
 
 ### 3.1 무엇이 gp3로 넘어오나
 
-- **리플레이(`hyperdx_sessions`, on-disk를 지배)는 원래 S3에 안 간다**(hot 30일 DELETE). → 블록 온리 전환의 **델타 대상이 아닙니다.** steady-state 단일 그대로.
-- 델타는 **logs/traces(hot 창 이후)·metrics(hot 창 이후)** — 03에서 S3 cold로 내리던 분이 전부 gp3에 상주합니다.
-- 결과: **블록 온리 gp3 상주(단일) = 07의 "누적 on-disk(단일)"** 그 자체. 07이 hot(고정) + cold(S3, 증가)로 쪼개던 것을 블록 온리는 한 덩어리로 gp3에 이고 갑니다.
+- 리플레이(`hyperdx_sessions`, on-disk를 지배)는 원래 S3에 가지 않습니다(hot 30일 DELETE). → 블록 온리 전환의 델타 대상이 아니고 steady-state 단일 그대로입니다.
+- 델타는 logs/traces(hot 창 이후)·metrics(hot 창 이후) — 03에서 S3 cold로 내리던 분이 전부 gp3에 상주합니다.
+- 결과적으로 블록 온리 gp3 상주(단일)가 07의 "누적 on-disk(단일)" 그 자체입니다. 07이 hot(고정) + cold(S3, 증가)로 쪼개던 것을 블록 온리는 한 덩어리로 gp3에 이고 갑니다.
 
 ### 3.2 사이징 표 — 07 hot 고정 vs 블록 온리 gp3 상주 `≈⁽계산 예시⁾`
 
@@ -124,7 +124,7 @@ ALTER TABLE default.hyperdx_sessions       MODIFY TTL TimestampTime + INTERVAL 3
 
 ### 3.3 물리 gp3(×RF2, +40% 머지 헤드룸) — 07은 고정, 블록 온리는 증가 `≈⁽계산 예시⁾`
 
-**산정 기준선은 [07 §4.6]({{< relref "07-capacity-planning.md" >}})입니다** — 아래 금액은 07의 월 비용 산정에 블록 온리 델타를 얹은 파생이므로, 07과 어긋나면 07을 따릅니다. GB 단가 rate 자체의 정본은 [02 §1.3]({{< relref "02-hot-storage-ebs.md" >}})이고 **서울 기준**입니다.
+산정 기준선은 [07 §4.6]({{< relref "07-capacity-planning.md" >}})입니다 — 아래 금액은 07의 월 비용 산정에 블록 온리 델타를 얹은 파생이므로, 07과 어긋나면 07을 따릅니다. GB 단가 rate 자체의 정본은 [02 §1.3]({{< relref "02-hot-storage-ebs.md" >}})이고 서울 기준입니다.
 
 | 지평 | 07 hot gp3 물리(고정) | **블록 온리 gp3 물리(×RF2,+40%)** | gp3 요금(서울 $0.0912/GB, RF2) | (참고) 07 hot gp3+S3 요금(서울) |
 |---|---|---|---|---|
@@ -132,20 +132,20 @@ ALTER TABLE default.hyperdx_sessions       MODIFY TTL TimestampTime + INTERVAL 3
 | 6개월 | ~2.0 TB | 1.45×2×1.4 ≈ **4.06 TB** | ~$370/mo | hot ~$182 + S3 ~$41 ≈ **$223** |
 | 12개월 | ~2.0 TB | 2.35×2×1.4 ≈ **6.58 TB** | ~$600/mo | hot ~$182 + S3 ~$86 ≈ **$268** |
 
-- **비용 개형**: 서울 gp3 **$0.0912/GB** vs S3 Standard(첫 50TB) **$0.025/GB** = **3.65배/GB** `✓`. 블록 온리는 짧은 보존(3개월)에선 S3 티어링과 **근접**(스토리지 델타 +~$54/mo)하지만, 보존이 길어질수록 **발산**(12개월 스토리지 델타 +~$332/mo). 컴퓨트·Keeper·Mongo 고정분은 양쪽 동일. `≈⁽계산 예시⁾`
-- **리전을 바꿔 볼 때**: 위 표는 GB 단가만 갈아끼우면 그대로 재계산됩니다(us-east-1이면 gp3 $0.08 · S3 $0.023, 배수 ~3.5배로 서울과 거의 같습니다). **비율이 유사해 크로스오버 결론(~3개월 / ~6개월+)은 리전을 바꿔도 유지된다** — 서울로 재계산하는 이유는 결론이 아니라 prod 견적에 바로 쓰기 위해서입니다. `≈`
-- **단일 gp3 상한 64 TiB에 한참 여유**: 6.58TB(노드당 ~3.3TB, RF2 2노드)는 gp3 단일 볼륨 상한 아래라 스트라이핑 불필요 — 판정은 [02 §3]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서. `✓`
-- **머지 헤드룸이 더 중요해진다**: 블록 온리는 데이터가 계속 쌓여 볼륨이 차기 쉽습니다. 머지는 여유 공간을 예약(§5)하므로 **30~40% 여유**를 항상 남깁니다([07 §8.1]({{< relref "07-capacity-planning.md" >}})의 헤드룸/경보 기준 계승). S3 탈출구가 없어 **여유 소진 시 대응이 온라인 확장뿐**(§4). `✓/≈`
-- **백업 개형**: cold가 없으니 백업 대상이 gp3 전량. `clickhouse-backup → S3`(별도 버킷)은 여전(리플레이 제외 정책은 07 그대로). `≈`
+- 비용 개형: 서울 gp3 $0.0912/GB vs S3 Standard(첫 50TB) $0.025/GB = 3.65배/GB `✓`. 블록 온리는 짧은 보존(3개월)에선 S3 티어링과 근접하지만(스토리지 델타 +~$54/mo), 보존이 길어질수록 발산합니다(12개월 스토리지 델타 +~$332/mo). 컴퓨트·Keeper·Mongo 고정분은 양쪽 같습니다. `≈⁽계산 예시⁾`
+- 리전을 바꿔 볼 때: 위 표는 GB 단가만 갈아끼우면 그대로 재계산됩니다(us-east-1이면 gp3 $0.08 · S3 $0.023, 배수 ~3.5배로 서울과 거의 같습니다). 비율이 유사해 크로스오버 결론(~3개월 / ~6개월+)은 리전을 바꿔도 유지됩니다. 서울로 재계산하는 이유는 결론 때문이 아니라 prod 견적에 바로 쓰려는 것입니다. `≈`
+- 단일 gp3 상한 64 TiB에는 한참 여유가 있습니다. 6.58TB(노드당 ~3.3TB, RF2 2노드)는 gp3 단일 볼륨 상한 아래라 스트라이핑이 필요 없습니다 — 판정은 [02 §3]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서입니다. `✓`
+- 머지 헤드룸이 더 중요해집니다. 블록 온리는 데이터가 계속 쌓여 볼륨이 차기 쉽습니다. 머지는 여유 공간을 예약(§5)하므로 30~40% 여유를 항상 남깁니다([07 §8.1]({{< relref "07-capacity-planning.md" >}})의 헤드룸/경보 기준 계승). S3 탈출구가 없으니 여유가 소진되면 대응은 온라인 확장뿐입니다(§4). `✓/≈`
+- 백업 개형: cold가 없으니 백업 대상은 gp3 전량입니다. `clickhouse-backup → S3`(별도 버킷)은 여전하고 리플레이 제외 정책은 07 그대로입니다. `≈`
 
 ## 4. operator 볼륨 튜닝 — 온라인 확장이 "유일한 성장 레버"
 
-S3 cold라는 탈출구가 없으니 블록 온리에서 데이터가 늘 때 **대응은 gp3 온라인 확장 하나**입니다(그 외엔 TTL 단축·샤드 추가). 03에선 부수적이던 온라인 확장이 여기서는 **1순위 운영 축**이 됩니다.
+S3 cold라는 탈출구가 없으니, 블록 온리에서 데이터가 늘 때 대응은 gp3 온라인 확장 하나입니다(그 외엔 TTL 단축·샤드 추가). 그래서 03에선 부수적이던 온라인 확장이 블록 온리에선 1순위 운영 축이 됩니다.
 
 {{< callout type="info" >}}
-**소유권** — **볼륨 성장 계열은 이 장이 단독으로 소유합니다**: `storageManagement.provisioner`(StatefulSet vs Operator, §4.1) · EBS Elastic Volumes 수정 한도와 6시간 쿨다운 폐지(§4.2) · issue #1385 PVC 재생성 데이터 손실의 재현 조건과 안전 경로(§4.3) · `allowVolumeExpansion`을 성장 레버로 운용하는 절차(§4.3). 성장이 상시 운영 축이 되는 형상이 여기이기 때문입니다.
+소유권을 정리하면, 볼륨 성장 계열은 이 장이 단독으로 소유합니다: `storageManagement.provisioner`(StatefulSet vs Operator, §4.1) · EBS Elastic Volumes 수정 한도와 6시간 쿨다운 폐지(§4.2) · issue #1385 PVC 재생성 데이터 손실의 재현 조건과 안전 경로(§4.3) · `allowVolumeExpansion`을 성장 레버로 운용하는 절차(§4.3). 성장이 상시 운영 축이 되는 형상이 여기이기 때문입니다.
 
-경계 둘: **SC·volumeClaimTemplate 필드 예제와 #1619(Retain 미준수)는 [02 §6]({{< relref "02-hot-storage-ebs.md" >}})**가, **업그레이드·롤백(EBS 스냅샷 롤백, 확장↔업그레이드 상호작용)은 [09]({{< relref "09-version-upgrade-compat.md" >}})**가 소유합니다. 이 장은 그 둘을 재서술하지 않고 인용합니다.
+경계 둘: SC·volumeClaimTemplate 필드 예제와 #1619(Retain 미준수)는 [02 §6]({{< relref "02-hot-storage-ebs.md" >}})가, 업그레이드·롤백(EBS 스냅샷 롤백, 확장↔업그레이드 상호작용)은 [09]({{< relref "09-version-upgrade-compat.md" >}})가 소유합니다. 이 장은 그 둘을 재서술하지 않고 인용합니다.
 {{< /callout >}}
 
 ### 4.1 storageManagement.provisioner — StatefulSet vs Operator (핵심)
@@ -159,19 +159,19 @@ operator 0.20+의 `spec.defaults.storageManagement.provisioner`가 "PVC를 누�
 
 ¹ STS에서 VolumeClaimTemplate을 제거하고 operator가 PVC를 직접 수정하는 방식. CSI `allowVolumeExpansion` 전제.
 
-- **전환 주의**: 기존 CHI에서 `StatefulSet`→`Operator`로 바꾸면 operator가 기존 STS-생성 PVC를 넘겨받는데 **이 전환 자체가 1회 재시작을 요구**합니다(그래서 기본값이 아님). 처음부터 `Operator`로 시작하는 게 깔끔합니다. `✓`
-- SC에 **`allowVolumeExpansion: true`** 필수. `reclaimPolicy: Retain`(operator 레벨 + SC 레벨 이중)으로 실수 삭제 방어 — 기준 예제는 [02 §6]({{< relref "02-hot-storage-ebs.md" >}}). `✓`
+- 전환 주의: 기존 CHI에서 `StatefulSet`→`Operator`로 바꾸면 operator가 기존 STS-생성 PVC를 넘겨받는데 이 전환 자체가 재시작 1회를 요구합니다(그래서 기본값이 아닙니다). 처음부터 `Operator`로 시작하는 편이 깔끔합니다. `✓`
+- SC에 `allowVolumeExpansion: true`는 필수입니다. `reclaimPolicy: Retain`(operator 레벨 + SC 레벨 이중)으로 실수 삭제를 막습니다 — 기준 예제는 [02 §6]({{< relref "02-hot-storage-ebs.md" >}}). `✓`
 
 ### 4.2 EBS Elastic Volumes — 2026-01-15 6시간 쿨다운 폐지 `✓`
 
-블록 온리의 성장 레버가 온라인 확장인 만큼, EBS 쪽 제약이 중요합니다. **2026-01-15부로 AWS가 Elastic Volumes의 종전 6시간 쿨다운을 폐지**했습니다:
+블록 온리의 성장 레버가 온라인 확장인 만큼, EBS 쪽 제약이 중요합니다. 2026-01-15부로 AWS가 Elastic Volumes의 종전 6시간 쿨다운을 폐지했습니다:
 
-- **이전**: 볼륨 1회 수정 후 **6시간 대기** 필요.
-- **현행(2026-07)**: **롤링 24시간 창당 최대 4회 수정**, 단 직전 수정이 완료돼야 다음 시작 가능 `✓`.
-- **OPTIMIZING 상태 제약은 유지**: 수정 직후 볼륨이 `OPTIMIZING`으로 들어가고 그동안엔 다시 수정 불가(`cannot be modified in modification state OPTIMIZING`). 대형 볼륨은 OPTIMIZING이 수 시간 걸리고 그동안 성능 영향 가능 `✓`.
-- 4회 초과 시 `You've reached the maximum modification rate per volume limit`. gp2/gp3 모두 적용, 리전 제약 명시 없음(도쿄 검증; 서울 `ap-northeast-2`도 동일 가정) `✓/≈`.
+- 이전: 볼륨을 1회 수정하면 6시간 대기가 필요했습니다.
+- 현행(2026-07): 롤링 24시간 창당 최대 4회까지 수정하되 직전 수정이 끝나야 다음을 시작할 수 있습니다 `✓`.
+- OPTIMIZING 상태 제약은 그대로입니다. 수정 직후 볼륨이 `OPTIMIZING`으로 들어가고, 그 동안엔 다시 수정할 수 없습니다(`cannot be modified in modification state OPTIMIZING`). 대형 볼륨은 OPTIMIZING이 수 시간 걸리고 그동안 성능에 영향이 있을 수 있습니다 `✓`.
+- 4회를 넘기면 `You've reached the maximum modification rate per volume limit`. gp2/gp3 모두 적용되고 리전 제약은 명시되지 않았습니다(도쿄 검증; 서울 `ap-northeast-2`도 동일 가정) `✓/≈`.
 
-→ 실무 함의: 블록 온리에서 볼륨을 **여유 있게(예: 목표의 1.3~1.5배) 잡거나, 확장을 하루 4회 이내로 계획**합니다. 잦은 소폭 확장보다 **드문 큰 확장**이 쿨다운·OPTIMIZING 리스크를 줄입니다. `≈`
+→ 실무 함의: 블록 온리에서 볼륨을 여유 있게(예: 목표의 1.3~1.5배) 잡거나, 확장을 하루 4회 이내로 계획합니다. 잦은 소폭 확장보다 드문 큰 확장이 쿨다운·OPTIMIZING 리스크를 줄입니다. `≈`
 
 ### 4.3 확장 절차 & 데이터 손실 함정
 
@@ -183,49 +183,49 @@ operator 0.20+의 `spec.defaults.storageManagement.provisioner`가 "PVC를 누�
 ```
 
 {{< callout type="error" >}}
-**운영 함정** `✓`
+운영 함정 `✓`
 
-1. **issue #1385 — volumeClaimTemplate storage 변경 시 PVC delete/recreate → 데이터 손실.** operator가 템플릿의 storage를 키우면 리사이즈가 아니라 **PVC를 지웠다 다시 만드는** 경로를 타는 회귀가 보고됐습니다(0.22.2 확인). `storageManagement` 미설정 시엔 **무한 delete/recreate 루프**까지 발생. → **안전 경로**: (a) `provisioner: Operator`로 in-place 리사이즈, 또는 (b) **PVC를 직접 편집**(`kubectl patch pvc`)해 템플릿 확장 경로를 우회. 확장 전 **백업 필수 + 스테이징 리허설**. 0.27.1에서의 수정 여부는 릴리스 노트로 확인 `?` — 확인 전까진 무조건 백업/리허설.
-2. **issue #1263** — CHI 재생성 후 PVC 리사이즈 실패, **#457** — AKS 스토리지 rescale 미동작 `✓`.
-3. **issue #1619** — CHI/CHK에 `reclaimPolicy: Retain`을 걸어도 클러스터 삭제 시 볼륨이 지워진 사례. SC 레벨 Retain 이중 방어 — 기준 경고는 [02 §6.3]({{< relref "02-hot-storage-ebs.md" >}}) `✓`.
+1. issue #1385 — volumeClaimTemplate storage를 바꾸면 PVC를 delete/recreate 해서 데이터가 사라집니다. operator가 템플릿의 storage를 키우면 리사이즈가 아니라 PVC를 지웠다 다시 만드는 경로를 타는 회귀가 보고됐습니다(0.22.2 확인). `storageManagement`를 설정하지 않으면 무한 delete/recreate 루프까지 납니다. → 안전 경로: (a) `provisioner: Operator`로 in-place 리사이즈, 또는 (b) PVC를 직접 편집(`kubectl patch pvc`)해 템플릿 확장 경로를 우회. 확장 전 백업과 스테이징 리허설은 필수입니다. 0.27.1에서 고쳐졌는지는 릴리스 노트로 확인합니다 `?` — 확인 전까진 무조건 백업/리허설입니다.
+2. issue #1263 — CHI 재생성 후 PVC 리사이즈 실패, #457 — AKS 스토리지 rescale 미동작 `✓`.
+3. issue #1619 — CHI/CHK에 `reclaimPolicy: Retain`을 걸어도 클러스터 삭제 시 볼륨이 지워진 사례. SC 레벨 Retain 이중 방어 — 기준 경고는 [02 §6.3]({{< relref "02-hot-storage-ebs.md" >}}) `✓`.
 {{< /callout >}}
 
 ### 4.4 단일 대형 gp3 vs 다중 gp3 (위임)
 
-블록 온리라 데이터가 커져도 **단일 gp3(최대 64 TiB)로 충분**하고 인스턴스 EBS 파이프가 총 throughput 천장이라 볼륨을 여러 개 붙여도 이득이 없습니다 — 단일 vs 다중 판정·인스턴스 파이프 상세는 [02 §3]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서. 블록 온리에서도 결론은 동일: **노드당 단일 gp3**. `✓`
+블록 온리라 데이터가 커져도 단일 gp3(최대 64 TiB)로 충분하고, 인스턴스 EBS 파이프가 총 throughput 천장이라 볼륨을 여러 개 붙여도 이득이 없습니다 — 단일 vs 다중 판정·인스턴스 파이프 상세는 [02 §3]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서. 블록 온리에서도 결론은 같습니다: 노드당 단일 gp3. `✓`
 
 ## 5. 커지는 상주 데이터 튜닝 — merge / background pool
 
-블록 온리는 07 대비 gp3 상주 데이터가 1.6~3.7배(§3)라 **머지 부하·part 수·gp3 대역 압박이 더 큽니다.** 여기서 손볼 노브들 — 이 카테고리 어디에도 없던 새 각도입니다.
+블록 온리는 07 대비 gp3 상주 데이터가 1.6~3.7배(§3)라 머지 부하·part 수·gp3 대역 압박이 더 큽니다. 여기서 손볼 노브들 — 이 카테고리 어디에도 없던 새 각도입니다.
 
 ### 5.1 gp3 provisioned IOPS / throughput 상향 시점
 
-- gp3 baseline = **3,000 IOPS / 125 MiB/s(무료)**. ClickHouse는 throughput-bound라 **먼저 오르는 건 throughput**입니다 `✓`(스펙·요금·인스턴스 파이프 천장은 [02]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서).
-- 블록 온리 트리거 `≈`: 상주 데이터↑ → 백그라운드 머지가 대형 순차 read+write로 gp3 대역을 지속 점유 → `system.asynchronous_metrics`·EBS 대역 지표에서 baseline 125 MiB/s를 지속 초과하면 **provisioned throughput을 인스턴스 baseline까지** 상향(예: r7g.2xlarge baseline 312 MB/s에 맞춰 ~300 MiB/s). IOPS는 대개 baseline 3,000으로 충분(인스턴스 EBS IOPS 자체가 먼저 천장).
-- **인스턴스 파이프가 볼륨보다 먼저 천장**이라 볼륨 provisioning보다 **노드 사이즈업(r7g→더 큰 크기/r8g)**이 먼저 효과를 낼 수 있습니다 — 순서는 [02 §1.4]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서.
+- gp3 baseline = 3,000 IOPS / 125 MiB/s(무료). ClickHouse는 throughput-bound라 먼저 오르는 건 throughput입니다 `✓`(스펙·요금·인스턴스 파이프 천장은 [02]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서).
+- 블록 온리 트리거 `≈`: 상주 데이터↑ → 백그라운드 머지가 대형 순차 read+write로 gp3 대역을 지속 점유 → `system.asynchronous_metrics`·EBS 대역 지표에서 baseline 125 MiB/s를 지속 초과하면 provisioned throughput을 인스턴스 baseline까지 올립니다(예: r7g.2xlarge baseline 312 MB/s에 맞춰 ~300 MiB/s). IOPS는 대개 baseline 3,000으로 충분합니다(인스턴스 EBS IOPS 자체가 먼저 천장).
+- 인스턴스 파이프가 볼륨보다 먼저 천장이라, 볼륨 provisioning보다 노드 사이즈업(r7g→더 큰 크기/r8g)이 먼저 효과를 낼 수 있습니다 — 순서는 [02 §1.4]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서.
 
 ### 5.2 background / merge 풀 노브 `✓`
 
-설정명이 길어 4열 표로는 폭 제약을 넘어섭니다. 노브별 불릿으로 풀고 각 항목은 **기본값 → 의미 → 블록 온리 튜닝** 순서로 씁니다.
+4열로는 설정명 자체가 길어 폭 제약을 넘어서므로 노브별 불릿으로 풉니다. 각 항목은 기본값 → 의미 → 블록 온리 튜닝 순서입니다.
 
-- **`background_pool_size`**(기본 **16**) — 백그라운드 머지·뮤테이션 스레드 수. 튜닝: 상주 데이터·머지 백로그↑ 시 상향(beefy 노드는 코어 수에 맞춰 예: 32~36).
-- **`background_merges_mutations_concurrency_ratio`**(기본 **2**) — 동시 머지 = pool_size × ratio(기본 16×2=**32**). 튜닝: 백로그 청산엔 **1로 낮춰** 큰 머지에 스레드 몰아줌. **런타임 상향만 가능, 하향은 재시작**.
-- **`max_bytes_to_merge_at_max_space_in_pool`**(기본 **~150 GB**) — 자원 충분 시 한 머지로 합칠 최대 part 합. 튜닝: 큰 part 위주 백로그면 조정. 너무 크면 단일 머지가 gp3 대역 독점.
-- **`number_of_free_entries_in_pool_to_lower_max_size_of_merge`**(기본 **8**) — 여유 풀 슬롯 < 이 값이면 **최대 머지 크기를 지수적으로 낮춤**(작은 머지 우선). 튜닝: aggressive는 pool_size의 90~95%(예 pool 36→32). 작은 part 적체 방어.
-- **`max_bytes_to_merge_at_min_space_in_pool`**(기본 양수) — 디스크 여유 부족해도 허용하는 최대 머지 크기. 튜닝: `TOO_MANY_PARTS` 방어용. 블록 온리는 여유가 빠듯해질 수 있어 관련성↑.
+- `background_pool_size`(기본 16) — 백그라운드 머지·뮤테이션 스레드 수. 튜닝: 상주 데이터·머지 백로그↑ 시 상향(beefy 노드는 코어 수에 맞춰 예: 32~36).
+- `background_merges_mutations_concurrency_ratio`(기본 2) — 동시 머지 = pool_size × ratio이므로 기본은 16×2=32입니다. 튜닝: 백로그 청산엔 1로 낮춰 큰 머지에 스레드를 몰아줍니다. 런타임 상향만 되고 하향은 재시작입니다.
+- `max_bytes_to_merge_at_max_space_in_pool`(기본 ~150 GB) — 자원 충분 시 한 머지로 합칠 최대 part 합. 튜닝: 큰 part 위주 백로그면 조정합니다. 너무 크면 단일 머지가 gp3 대역을 독점합니다.
+- `number_of_free_entries_in_pool_to_lower_max_size_of_merge`(기본 8) — 여유 풀 슬롯이 이 값보다 적으면 최대 머지 크기를 지수적으로 낮춥니다(작은 머지 우선). 튜닝: aggressive는 pool_size의 90~95%(예 pool 36→32). 작은 part 적체를 막습니다.
+- `max_bytes_to_merge_at_min_space_in_pool`(기본 양수) — 디스크 여유가 부족해도 허용하는 최대 머지 크기. 튜닝: `TOO_MANY_PARTS` 방어용입니다. 블록 온리는 여유가 빠듯해질 수 있어 관련성↑.
 
-- **머지는 디스크 여유를 예약한다 — 합쳐질 part 합의 약 2배**를 booking `✓`. 즉 "여유 공간은 있는데 진행 중 대형 머지가 예약해버려 다른 머지가 못 시작 → 작은 part 누적 → `TOO_MANY_PARTS`" 상황이 블록 온리(꽉 찬 gp3)에서 특히 잘 납니다. → **헤드룸 30~40%는 성능이 아니라 안정성 문제**입니다.
-- **aggressive 튜닝 주의**: "저지연 read/write를 상시 유지해야 하거나 이미 디스크 대역이 병목이면 aggressive 머지는 역효과" `Ⓥ`. 블록 온리 gp3 대역이 빠듯하면 오히려 머지 동시성을 낮춥니다.
-- `move_factor`는 **무의미**(cold 볼륨 없음, §1). 튜닝 대상에서 제외.
+- 머지는 디스크 여유를 예약합니다 — 합쳐질 part 합의 약 2배를 booking합니다 `✓`. 그래서 "여유 공간은 있는데 진행 중 대형 머지가 예약해버려 다른 머지가 못 시작 → 작은 part 누적 → `TOO_MANY_PARTS`" 상황이 블록 온리(꽉 찬 gp3)에서 특히 잘 납니다. → 헤드룸 30~40%는 성능이 아니라 안정성 문제입니다.
+- aggressive 튜닝 주의: "저지연 read/write를 상시 유지해야 하거나 이미 디스크 대역이 병목이면 aggressive 머지는 역효과" `Ⓥ`. 블록 온리 gp3 대역이 빠듯하면 오히려 머지 동시성을 낮춥니다.
+- `move_factor`는 무의미합니다(cold 볼륨 없음, §1). 튜닝 대상에서 뺍니다.
 
 {{% details title="정확한 실효 기본값은 배포 버전에서 확인" closed="true" %}}
-- `max_bytes_to_merge_at_max_space_in_pool`은 ClickHouse docs가 `0`(=컴파일 기본)으로 표기하나 실효 기본은 **~150 GB(161061273600 바이트)**입니다. 정확 상수는 `SELECT * FROM system.merge_tree_settings WHERE name LIKE 'max_bytes_to_merge%'`로 확인 `?`.
-- `parts_to_throw_insert`(파티션당)는 관례 기본 **300**이나 최신 버전에서 상향된 정황 → 배포 버전 `system.merge_tree_settings`로 확정 `?`.
+- `max_bytes_to_merge_at_max_space_in_pool`은 ClickHouse docs가 `0`(=컴파일 기본)으로 표기하나 실효 기본은 ~150 GB(161061273600 바이트)입니다. 정확한 상수는 `SELECT * FROM system.merge_tree_settings WHERE name LIKE 'max_bytes_to_merge%'`로 확인합니다 `?`.
+- `parts_to_throw_insert`(파티션당)는 관례 기본 300이나 최신 버전에서 상향된 정황이 있어 배포 버전 `system.merge_tree_settings`로 확정합니다 `?`.
 {{% /details %}}
 
 ### 5.3 part 적체 방어 (INSERT 스로틀) `✓/?`
 
-- `parts_to_delay_insert` 초과 시 INSERT 인위 지연, `parts_to_throw_insert`(파티션당, 관례 기본 **300**) 초과 시 `TOO_MANY_PARTS` 예외, `max_parts_in_total` 초과 시 INSERT 중단 `✓`.
+- `parts_to_delay_insert` 초과 시 INSERT 인위 지연, `parts_to_throw_insert`(파티션당, 관례 기본 300) 초과 시 `TOO_MANY_PARTS` 예외, `max_parts_in_total` 초과 시 INSERT 중단 `✓`.
 - 블록 온리에서 데이터·파티션이 많아지면 배치/`async_insert` 튜닝으로 part 생성 빈도를 낮춥니다(기준 경보표는 [07 §8.2]({{< relref "07-capacity-planning.md" >}}): 파티션당 active parts >300 조치).
 
 ### 5.4 모니터링 (block-only 관점) `✓`
@@ -251,11 +251,11 @@ FROM system.parts WHERE database='default' AND active
 GROUP BY table, partition, disk_name ORDER BY parts DESC;
 ```
 
-- 블록 온리 헬스 지표 `≈`: (a) `system.disks.used_pct` < 80%, (b) 파티션당 active parts < 300, (c) `system.merges`에 장시간 정체 머지 없음, (d) EBS 대역(baseline 125 MiB/s 지속 초과 시 §5.1). `system.disks`에 `default` 외 디스크가 보이면 블록 온리 전제가 깨진 것(어딘가 storage_configuration이 살아있음).
+- 블록 온리 헬스 지표 `≈`: (a) `system.disks.used_pct` < 80%, (b) 파티션당 active parts < 300, (c) `system.merges`에 장시간 정체 머지 없음, (d) EBS 대역(baseline 125 MiB/s 지속 초과 시 §5.1). `system.disks`에 `default` 외 디스크가 보이면 블록 온리 전제가 깨진 것입니다(어딘가 storage_configuration이 살아 있습니다).
 
 ## 6. 언제 블록 온리 vs S3 티어링 (결정)
 
-블록 온리와 S3 티어링은 **배타가 아니라 선택**입니다. 실제로 03도 sessions는 S3에 안 내리므로 "부분 블록 온리 + 부분 티어링"이고 전량 블록 온리는 그 티어링 대상(logs/traces/metrics)까지 gp3에 두는 극단입니다 `≈`.
+블록 온리와 S3 티어링은 배타가 아니라 선택입니다. 실제로 03도 sessions는 S3에 안 내리므로 "부분 블록 온리 + 부분 티어링"이고, 전량 블록 온리는 그 티어링 대상(logs/traces/metrics)까지 gp3에 두는 극단입니다 `≈`.
 
 | 축 | **블록 온리(EBS only)** | **S3 티어링(03)** |
 |---|---|---|
@@ -268,15 +268,15 @@ GROUP BY table, partition, disk_name ORDER BY parts DESC;
 
 {{< flow src="_flow/6-언제-블록-온리-vs.json" />}}
 
-- **io2 전환 트리거**(>2,000 MiB/s 지속·>80,000 IOPS/vol·볼륨 99.999% 규제)는 [02]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서 — 블록 온리든 티어링이든 RUM 0.7TB/월엔 도달하지 않습니다. `≈`
-- **staging 경로**: staging은 데이터가 작고 보존도 짧아 블록 온리가 자연스럽습니다 — storage XML·IRSA 없이 gp3 하나로 띄우고 prod만 S3 티어링을 얹는 조합도 유효합니다. `≈`
+- io2 전환 트리거(>2,000 MiB/s 지속·>80,000 IOPS/vol·볼륨 99.999% 규제)는 [02]({{< relref "02-hot-storage-ebs.md" >}}) 기준 문서 — 블록 온리든 티어링이든 RUM 0.7TB/월엔 도달하지 않습니다. `≈`
+- staging 경로: staging은 데이터가 작고 보존도 짧아 블록 온리가 자연스럽습니다 — storage XML·IRSA 없이 gp3 하나로 띄우고, prod만 S3 티어링을 얹는 조합도 유효합니다. `≈`
 
 ## 우리 케이스에서는
 
-- **기본 권고는 [S3 티어링(03)]({{< relref "03-s3-cold-tiering.md" >}}) 유지** — 우리 지평이 3~12개월로 열려 있고 보존이 길수록 블록 온리가 발산하기 때문입니다. 단 **"짧은 보존(≤90일) + S3 미접근/규정 + 운영 단순성"** 조건이 겹치면(대표적으로 **staging**) 블록 온리가 정답입니다(§6).
-- 블록 온리로 가면 **`storage_configuration`·IRSA·S3 버킷·cache가 통째로 사라져** 운영 표면적이 03보다 훨씬 작습니다. CHI에는 gp3 volumeClaimTemplate만 남고 테이블은 `default` 정책. TTL은 DELETE-only(`ttl_only_drop_parts=1`로 값싼 whole-part drop), `move_factor`·`prefer_not_to_merge`는 죽는 노브.
-- **비용 트레이드는 명확하다**: 리플레이는 어차피 S3 안 가므로 델타 대상은 logs/traces/metrics뿐. 이들이 gp3에 상주하면 gp3 상주가 [07]({{< relref "07-capacity-planning.md" >}}) hot 대비 **1.6x(3개월)~3.7x(12개월)**, 서울 단가로 스토리지 비용 델타 **+$54~$332/mo**. 3개월이면 S3 티어링과 근접, 1년이면 명백히 비쌉니다. 절대 금액의 기준선은 [07 §4.6]({{< relref "07-capacity-planning.md" >}}), GB 단가 rate는 [02 §1.3]({{< relref "02-hot-storage-ebs.md" >}})이 정본입니다.
-- **성장 레버는 gp3 온라인 확장 하나** → `provisioner: Operator` + `allowVolumeExpansion` SC로 무중단 확장. EBS 6h 쿨다운은 2026-01-15 폐지(24h당 4회, OPTIMIZING 중 불가)라 **여유 있게/드물게 크게** 확장합니다. **#1385 데이터 손실 회귀**(템플릿 확장 시 PVC 재생성)는 Operator in-place 리사이즈 또는 PVC 직접 편집으로 우회 + 백업/스테이징 리허설 필수. **이 볼륨 성장 계열 전체가 이 장의 단독 소유**이고(§4), 02는 SC·volumeClaimTemplate 예제와 #1619를, 09는 업그레이드·롤백을 소유합니다.
-- **커지는 상주 데이터**는 머지가 gp3 대역을 지속 점유하니 (a) throughput 먼저 provision(baseline 125 초과 시), (b) `background_pool_size`/ratio·`max_bytes_to_merge_at_max_space_in_pool`·`number_of_free_entries...`로 머지 동시성·크기 조율, (c) 머지가 여유를 2배 booking하므로 **헤드룸 30~40%를 안정성 요건으로** 지킵니다. `system.disks`/`system.parts`/`system.merges`로 모니터링.
-- **업그레이드 관점** — 블록 온리는 S3 티어 정합 걱정이 없어 업그레이드가 단순합니다. 다만 **업그레이드·롤백 자체(EBS 스냅샷 롤백·`allowVolumeExpansion`↔업그레이드 상호작용)는 [버전·업그레이드 호환성]({{< relref "09-version-upgrade-compat.md" >}})이 소유**하므로 여기서는 "블록 온리라 티어 정합 변수가 하나 줄어든다"는 결론만 남기고 넘깁니다.
-- **이 형상이 지금 우리 stage다.** 이 장은 "블록 온리를 고른다면 무엇을 감당하나"라는 기준 문서이고 우리 클러스터가 실제로 그 형상인지·prod 목표와 어디가 벌어져 있는지는 [우리 배포 형상]({{< relref "../../hyperdx-operating/01-our-deployment.md" >}})이 소유합니다 `✓`. 승급 시점 판단은 [의사결정 가이드]({{< relref "../../hyperdx-operating/03-decision-guide.md" >}})의 cold 축입니다. 시점 기준 2026-08.
+- 기본 권고는 [S3 티어링(03)]({{< relref "03-s3-cold-tiering.md" >}}) 유지입니다 — 우리 지평이 3~12개월로 열려 있고 보존이 길수록 블록 온리가 발산하기 때문입니다. 단 "짧은 보존(≤90일) + S3 미접근/규정 + 운영 단순성" 조건이 겹치면(대표적으로 staging) 블록 온리가 정답입니다(§6).
+- 블록 온리로 가면 `storage_configuration`·IRSA·S3 버킷·cache가 통째로 사라져 운영 표면적이 03보다 훨씬 작습니다. CHI에는 gp3 volumeClaimTemplate만 남고 테이블은 `default` 정책을 씁니다. TTL은 DELETE-only(`ttl_only_drop_parts=1`로 값싼 )이고 `move_factor`·`prefer_not_to_merge`는 죽는 노브입니다.
+- 비용 트레이드는 명확합니다. 리플레이는 어차피 S3에 가지 않으므로 델타 대상은 logs/traces/metrics뿐입니다. 이들이 gp3에 상주하면 gp3 상주가 [07]({{< relref "07-capacity-planning.md" >}}) hot 대비 1.6x(3개월)~3.7x(12개월)이고 서울 단가로 스토리지 비용 델타는 +$54~$332/mo입니다. 3개월이면 S3 티어링과 근접하고 1년이면 명백히 비쌉니다. 절대 금액의 기준선은 [07 §4.6]({{< relref "07-capacity-planning.md" >}}), GB 단가 rate는 [02 §1.3]({{< relref "02-hot-storage-ebs.md" >}})이 정본입니다.
+- 성장 레버는 gp3 온라인 확장 하나입니다 → `provisioner: Operator` + `allowVolumeExpansion` SC로 무중단 확장. EBS 6h 쿨다운은 2026-01-15 폐지(24h당 4회, OPTIMIZING 중 불가)라 여유 있게, 드물게 크게 확장합니다. #1385 데이터 손실 회귀(템플릿 확장 시 PVC 재생성)는 Operator in-place 리사이즈 또는 PVC 직접 편집으로 우회하고 백업/스테이징 리허설이 필수입니다. 이 볼륨 성장 계열 전체를 이 장이 단독으로 소유하고(§4), 02는 SC·volumeClaimTemplate 예제와 #1619를, 09는 업그레이드·롤백을 소유합니다.
+- 상주 데이터가 커지면 머지가 gp3 대역을 지속 점유하니 (a) throughput을 먼저 provision(baseline 125 초과 시), (b) `background_pool_size`/ratio·`max_bytes_to_merge_at_max_space_in_pool`·`number_of_free_entries...`로 머지 동시성·크기 조율, (c) 머지가 여유를 2배 booking하므로 헤드룸 30~40%를 안정성 요건으로 지킵니다. `system.disks`/`system.parts`/`system.merges`로 모니터링합니다.
+- 업그레이드 관점 — 블록 온리는 S3 티어 정합 걱정이 없어 업그레이드가 단순합니다. 다만 업그레이드·롤백 자체(EBS 스냅샷 롤백·`allowVolumeExpansion`↔업그레이드 상호작용)는 [버전·업그레이드 호환성]({{< relref "09-version-upgrade-compat.md" >}})이 소유하므로 여기서는 "블록 온리라 티어 정합 변수가 하나 줄어든다"는 결론만 남기고 넘깁니다.
+- 이 형상이 지금 우리 stage입니다. 이 장은 "블록 온리를 고른다면 무엇을 감당하나"라는 기준 문서이고, 우리 클러스터가 실제로 그 형상인지·prod 목표와 어디가 벌어져 있는지는 [우리 배포 형상]({{< relref "../../hyperdx-operating/01-our-deployment.md" >}})이 소유합니다 `✓`. 승급 시점 판단은 [의사결정 가이드]({{< relref "../../hyperdx-operating/03-decision-guide.md" >}})의 cold 축입니다. 시점 기준 2026-08.

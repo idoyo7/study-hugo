@@ -10,14 +10,14 @@ weight: 9
 - istiod 메모리를 결정하는 것은 커넥션 **수**가 아니라 **커넥션 수 × 클러스터 config 크기**입니다. 커넥션 하나의 단가가 클러스터 규모를 따라 움직입니다.
 - xDS는 **장수 gRPC 스트림**입니다. 스케일아웃해도 이미 맺어진 커넥션은 새 파드로 옮겨가지 않고 **Istio에 능동적 재분배 기능은 없습니다.**
 - 공식이 쥐고 있는 재분배 수단은 `keepaliveMaxServerConnectionAge` 강제 종료 하나입니다. Google Cloud 공식 문서 역시 이 불균형을 인정한 뒤 **레플리카 다중화 + 사전 스케일링**만 권합니다.
-- 주기를 절반으로 줄이면 재연결 레이트는 정확히 2배가 된다(지터는 ±10%라 창을 넓혀줄 뿐입니다). 상쇄하려면 **재연결 1건의 단가** — 곧 커넥션당 config 크기 — 를 깎아야 합니다.
+- 주기를 절반으로 줄이면 재연결 레이트는 정확히 2배가 됩니다(지터는 ±10%라 창을 넓혀줄 뿐입니다). 상쇄하려면 **재연결 1건의 단가** — 곧 커넥션당 config 크기 — 를 깎아야 합니다.
 - `pilot_xds`(연결 수) 기반 오토스케일링은 **공식 권장이 아닙니다.** 공식 차트 HPA의 기본 지표는 CPU 80% 하나뿐입니다.
 - 실측(§7): **커넥션 분포가 가장 험한 순간과 CPU가 가장 험한 순간은 다릅니다.** CoV는 파드가 죽을 때, CPU·push 지연은 커넥션 총량이 늘 때 튑니다. 재분배 지표만으로 CPU 부하를 추정하면 엉뚱한 손잡이를 잡습니다.
-- **`GOMAXPROCS`는 `limits.cpu`가 정한다**(§8). 차트가 Downward API로 주입하고 kubelet이 `math.Ceil`로 올림하므로 **소수점 CPU limit은 quota와 GOMAXPROCS가 항상 어긋난다.** 정수 코어로 걸 것.
-- **주범은 버스트지 슬라이스 좌초가 아니다**(§7). 좌초는 표본의 6.5%에서만 나타나는 2차 요인이었습니다. GOMAXPROCS=1이어도 OS 스레드는 17개라 좌초 표면적은 그대로 떠안으면서 병렬성만 잃는다는 점이 더 큽니다.
+- **`GOMAXPROCS`는 `limits.cpu`가 정합니다**(§8). 차트가 Downward API로 주입하고 kubelet이 `math.Ceil`로 올림하니 **소수점 CPU limit은 quota와 GOMAXPROCS가 항상 어긋납니다.** 정수 코어로 걸 것.
+- **주범은 버스트지 슬라이스 좌초가 아닙니다**(§7). 좌초는 표본의 6.5%에서만 나타나는 2차 요인이었습니다. GOMAXPROCS=1이어도 OS 스레드는 17개라 좌초 표면적은 그대로 떠안으면서 병렬성만 잃는다는 점이 더 큽니다.
 {{< /callout >}}
 
-> **그때 무슨 일이 있었나.** 대규모 이벤트 중 istiod가 20분 사이에 8대 재시작됐습니다. 커넥션 수(`pilot_xds`) 기반 KEDA 스케일링이 이미 걸려 있었고 24대 → 38대 스케일아웃도 정상 동작한 상태였습니다. 원인은 두 겹이었다 — **커넥션 한 개의 무게가 클러스터 규모를 따라 변했고**(0.66 → 1.95 MB/conn), **스케일아웃해도 커넥션이 재분배되지 않아** 기존 파드가 246~294 conn을 혼자 떠안았습니다. 이 문서는 그 두 성질의 근거를 공식 문서·소스코드 수준까지 내려가 정리하고 손잡이별 트레이드오프를 표로 남깁니다.
+> **그때 무슨 일이 있었나.** 대규모 이벤트 중 istiod가 20분 사이에 8대 재시작됐습니다. 커넥션 수(`pilot_xds`) 기반 KEDA 스케일링이 이미 걸려 있었고 24대 → 38대 스케일아웃도 정상 동작한 상태였습니다. 원인은 두 겹이었습니다 — **커넥션 한 개의 무게가 클러스터 규모를 따라 변했고**(0.66 → 1.95 MB/conn), **스케일아웃해도 커넥션이 재분배되지 않아** 기존 파드가 246~294 conn을 혼자 떠안았습니다. 이 문서는 그 두 성질의 근거를 공식 문서·소스코드 수준까지 내려가 정리하고 손잡이별 트레이드오프를 표로 남깁니다.
 
 > 관련 문서: [02 컨트롤 플레인 해부: istiod]({{< relref "02-istiod-control-plane.md" >}}) — push가 CPU를 먹는 메커니즘과 `Sidecar` 스코핑의 기본 · [06 메시가 공짜로 주는 관측성]({{< relref "06-observability-points.md" >}})
 
@@ -25,9 +25,9 @@ weight: 9
 
 ## 1. 커넥션 하나의 무게는 고정이 아니다
 
-istiod는 커넥션마다 "그 proxy에게 줄 클러스터 전체의 뷰"를 계산해 들고 있습니다. 부하가 커넥션 수만으로 결정되지 않는 까닭이 여기에 있습니다.
+istiod는 커넥션마다 "그 proxy에게 줄 클러스터 전체의 뷰"를 계산해 들고 있습니다. 부하가 커넥션 수만으로 결정되지 않는 이유가 여기입니다.
 
-> **istiod 메모리 ∝ 커넥션 수 × 클러스터 config 크기(endpoints)**
+**istiod 메모리 ∝ 커넥션 수 × 클러스터 config 크기(endpoints)**
 
 실측으로 확인한 값입니다. 같은 "커넥션 100개"를 두고도 이벤트 전후로 단가가 3배 벌어졌습니다.
 
@@ -46,7 +46,7 @@ istiod 파드 메모리 ≈ 240MB(base) + 400B × (파드당 커넥션 수 × �
 - 한 달치 후보 메트릭 25개 상관 스윕 결과, istiod 메모리와 같이 움직인 외부 지표는 **클러스터 총 endpoints 수**뿐 (Spearman ρ = 0.92)
 - 경과 시간과는 무관 ⇒ 누수(leak)가 아니라 **순간의 규모** 문제
 
-공식 문서의 서술도 같은 방향입니다. `Performance and Scalability`는 istiod 리소스 사용량이 "배포 변경률·설정 변경률·연결된 proxy 수"에 비례한다고 적습니다.
+공식 문서도 같은 방향으로 적습니다. `Performance and Scalability`는 istiod 리소스 사용량이 "배포 변경률·설정 변경률·연결된 proxy 수"에 비례한다고 적습니다.
 
 **커넥션 수 트리거의 사각지대가 이 성질입니다.** `sum(pilot_xds)/replicas`를 임계로 세우는 순간 "모든 커넥션의 비용은 일정하다"는 전제가 함께 들어오는데, 그 전제가 깨지는 시점이 하필 규모가 가장 큰 날입니다.
 
@@ -58,7 +58,7 @@ istiod 파드 메모리 ≈ 240MB(base) + 400B × (파드당 커넥션 수 × �
 
 ⇒ 스케일아웃은 desired replicas까지만 답하고 **커넥션이 어느 파드로 가는가는 트리거의 관할 밖**입니다.
 
-우리 클러스터만의 사정이 아니라 문서화된 성질입니다. Google Cloud 서비스 메시 트러블슈팅 문서의 원문:
+우리 클러스터만의 사정이 아니고 문서에도 적혀 있는 성질입니다. Google Cloud 서비스 메시 트러블슈팅 문서의 원문:
 
 > Large changes in cluster size might cause a **temporarily unbalanced load, due to the long-lived connections**.
 
@@ -90,9 +90,9 @@ istiod 파드 메모리 ≈ 240MB(base) + 400B × (파드당 커넥션 수 × �
 | `autoscaleMax` | `5` |
 | `cpu.targetAverageUtilization` | `80` |
 
-즉 **공식 지표는 CPU 사용률 하나뿐**이고 커스텀 메트릭 HPA는 사용자가 별도 구성해야 합니다.
+**공식 지표는 CPU 사용률 하나뿐**이고 커스텀 메트릭 HPA는 사용자가 별도 구성해야 합니다.
 
-메트릭의 1차 출처는 문서가 아니라 소스(`pilot/pkg/xds/monitoring.go`)다. 실제 정의된 것들:
+메트릭의 1차 출처는 문서가 아니라 소스(`pilot/pkg/xds/monitoring.go`)입니다. 실제 정의된 것들:
 
 | 메트릭 | Help 문자열 (원문) |
 |---|---|
@@ -204,7 +204,7 @@ RequestRateLimit *rate.Limiter
 | `PILOT_ENABLE_EDS_DEBOUNCE` | `true` | EDS도 디바운스 대상에 포함 |
 
 {{< callout type="info" >}}
-**리미터가 병목인지부터 확인할 것입니다.** 커넥션 3,600개 / 15분 = ~4 conn/s인데, `PILOT_MAX_REQUESTS_PER_SECOND`의 자동 기본값은 2 vCPU 기준으로도 25/s입니다. 이 규모에서 리미터가 재연결을 억제하고 있을 가능성은 낮습니다 — 즉 관측되는 CPU는 **억제되지 않은 실제 작업량**입니다. 리미터를 만지기 전에 `pilot_xds_config_size_bytes`·`pilot_xds_push_time`으로 단가부터 보는 게 순서입니다.
+**리미터가 병목인지부터 확인해야 합니다.** 커넥션 3,600개 / 15분 = ~4 conn/s인데, `PILOT_MAX_REQUESTS_PER_SECOND`의 자동 기본값은 2 vCPU 기준으로도 25/s입니다. 이 규모에서 리미터가 재연결을 억제하고 있을 가능성은 낮습니다 — 곧 관측되는 CPU는 **억제되지 않은 실제 작업량**입니다. 리미터를 만지기 전에 `pilot_xds_config_size_bytes`·`pilot_xds_push_time`으로 단가부터 보는 게 순서입니다.
 {{< /callout >}}
 
 ### 그 밖의 수단
@@ -281,10 +281,10 @@ xDS delta 프로토콜에는 재연결용 `initial_resource_versions` 필드가 
 
 1. **keepalive 15m은 의도대로 작동합니다.** 거의 같은 커넥션 규모(2,900 vs 2,950)에서 정상 재연결이 0.7/s → 1.0/s로 **약 1.5~2배**. 주기를 절반으로 줄인 효과와 맞습니다.
 2. **스케일아웃 수렴이 빨라졌습니다.** 오늘 10:29~11:00에 24 → 34대로 늘리며 CoV 25.9% → 9.8%까지 **17.5분**. 6월엔 같은 일에 **36.5분**이 걸렸습니다.
-3. **커넥션 재분배 관점에서는 파드 교체가 가장 격했다.** 09:29~09:44 버킷의 합계는 이론치의 2.6배, 6월 16:45~17:00 버킷은 4.1배.
+3. **커넥션 재분배 관점에서는 파드 교체가 가장 격했습니다.** 09:29~09:44 버킷의 합계는 이론치의 2.6배, 6월 16:45~17:00 버킷은 4.1배.
 
 {{< callout type="info" >}}
-**측정 방법의 한계 — 정상 재연결 수치는 하한입니다.** 파드별 증가분의 합으로 셌기 때문에 15초 스텝 안에서 끊기고 다시 붙은 것이 상쇄되면 잡히지 않습니다. 실측 1.0/s는 이론치(2,900/900s = 3.2/s)의 0.3배인데 이 격차의 상당 부분은 측정 방식 탓입니다. **절대값이 아니라 6월 대비 상대 비교로만 읽을 것입니다.**
+**측정 방법의 한계 — 정상 재연결 수치는 하한입니다.** 파드별 증가분의 합으로 셌기 때문에 15초 스텝 안에서 끊기고 다시 붙은 것이 상쇄되면 잡히지 않습니다. 실측 1.0/s는 이론치(2,900/900s = 3.2/s)의 0.3배인데 이 격차의 상당 부분은 측정 방식 탓입니다. **절대값이 아니라 6월 대비 상대 비교로만 읽어야 합니다.**
 {{< /callout >}}
 
 ### CPU·스로틀을 붙이니 결론이 뒤집혔다
@@ -361,7 +361,7 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 | 없음 (초판) | 21.5ms | ~215m ← **갓 뜬 파드에 오염됨** |
 | **파드 나이 ≥5분** | **37.1ms** | **~371m** |
 
-그리고 **좌초가 전혀 없다고 가정했을 때**(quota 60ms 그대로) 앞뒤가 안 맞는 표본은 **6.5%뿐**입니다. 나머지 93.5%는 명목 60ms로 설명됩니다.
+**좌초가 전혀 없다고 가정했을 때**(quota 60ms 그대로) 앞뒤가 안 맞는 표본은 **6.5%뿐**입니다. 나머지 93.5%는 명목 60ms로 설명됩니다.
 
 ⇒ 좌초는 **소수 구간에서 얹히는 2차 요인**이지 주범이 아닙니다. 주범은 앞 절의 버스트입니다.
 
@@ -376,8 +376,8 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 {{< callout type="important" >}}
 **GOMAXPROCS=1은 이 상황에서 최악의 조합입니다.**
 
-- **스트랜딩은 그대로 얻는다** — 스레드 17개가 여러 CPU에 흩어지는 건 GOMAXPROCS와 무관합니다.
-- **병렬성은 잃는다** — P가 하나라 CPU-bound 작업(xDS 마샬링·직렬화)은 직렬화됩니다.
+- **스트랜딩은 그대로 얻습니다** — 스레드 17개가 여러 CPU에 흩어지는 건 GOMAXPROCS와 무관합니다.
+- **병렬성은 잃습니다** — P가 하나라 CPU-bound 작업(xDS 마샬링·직렬화)은 직렬화됩니다.
 
 즉 멀티스레드 프로세스의 좌초 표면적은 다 떠안으면서 그 대가로 얻어야 할 병렬 처리량은 못 받습니다. "GOMAXPROCS를 낮췄으니 quota를 천천히 태울 것"이라는 직관은 성립하지 않습니다.
 {{< /callout >}}
@@ -385,7 +385,7 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 ### 남는 것 셋
 
 - **평균 사용률은 CPU limit 사이징의 근거가 못 됩니다.** `throttled_periods / periods`를 같이 보지 않으면 "CPU 여유 있는데 왜 느리지"에서 조사가 멈춥니다.
-- **quota가 작을수록 버스트를 못 흡수한다.** 60ms 예산으로는 한 period 안의 짧은 스파이크 하나도 못 넘긴다. 슬라이스 잔류(CPU당 1ms)도 quota가 작을수록 비율로 커집니다. **limit을 올리는 것이 둘 다에 듣는 수단**인 이유다(§8).
+- **quota가 작을수록 버스트를 못 흡수합니다.** 60ms 예산으로는 한 period 안의 짧은 스파이크 하나도 못 넘깁니다. 슬라이스 잔류(CPU당 1ms)도 quota가 작을수록 비율로 커집니다. **limit을 올리는 것이 둘 다에 듣는 수단**인 이유입니다(§8).
 - **뾰족한 파드는 평균 알럿에 안 걸립니다.** 스로틀 상위 12개 시점의 argmax가 거의 전부 `9jvvj` 한 대였고, 10:48:30에는 CPU 최대가 다른 파드(`7jp9c`)인데 스로틀 최대는 여전히 `9jvvj`였습니다. CPU를 덜 쓰면서 더 잘립니다.
 
 {{< callout type="info" >}}
@@ -409,7 +409,7 @@ sum(rate(container_cpu_cfs_periods_total{container="discovery"}[1m])) by (pod)
 
 ### 차트가 Downward API로 주입한다
 
-Istio 1.19부터 istiod Deployment 템플릿에 하드코딩돼 있다(1.24.1 `deployment.yaml` 197-205행).
+Istio 1.19부터 istiod Deployment 템플릿에 하드코딩돼 있습니다(1.24.1 `deployment.yaml` 197-205행).
 
 ```yaml
 - name: GOMEMLIMIT
@@ -436,7 +436,7 @@ func convertResourceCPUToString(cpu *resource.Quantity, divisor resource.Quantit
 }
 ```
 
-**`math.Ceil`이다.** `ceil(600/1000) = 1` ⇒ `GOMAXPROCS=1`.
+**`math.Ceil`입니다.** `ceil(600/1000) = 1` ⇒ `GOMAXPROCS=1`.
 
 {{< callout type="important" >}}
 **소수점 CPU limit은 이 배선에서 항상 어긋납니다.**
@@ -461,14 +461,14 @@ procs := runtime.GOMAXPROCS(0)
 return min(15+5*procs, 100)
 ```
 
-그리고 push는 프록시별 goroutine으로 병렬 디스패치된다(`pilot/pkg/xds/discovery.go`의 `doSendPushes`, 세마포어 크기 = `features.PushThrottle`).
+push는 프록시별 goroutine으로 병렬 디스패치됩니다(`pilot/pkg/xds/discovery.go`의 `doSendPushes`, 세마포어 크기 = `features.PushThrottle`).
 
 {{< callout type="info" >}}
 **슬롯 20개가 잘못된 값은 아닙니다 — 동시성과 병렬성은 다릅니다.**
 
 push 한 건은 `[설정 조립·마샬링·TLS]`(CPU-bound, P 필요) + `[스트림에 쓰고 네트워크 대기]`(I/O-bound, P 불필요)로 나뉩니다. 뒤쪽이 대부분이고 Go에서 I/O 대기는 P를 점유하지 않으므로, **1코어에서 goroutine 20개가 떠 있는 것 자체는 정상**입니다. 식의 기본값 15도 I/O 겹치기용 바닥값이고 코어당 +5가 병렬성 몫입니다.
 
-문제는 **CPU-bound 구간이 P 하나에 직렬화**되고 그 P마저 quota에서 잘린다는 것입니다. 20이 많은 게 아니라 20건이 만드는 CPU 수요를 받아낼 자리가 없습니다.
+**CPU-bound 구간이 P 하나에 직렬화**되고 그 P마저 quota에서 잘리는 게 문제입니다. 20이 많은 게 아닙니다. 20건이 만드는 CPU 수요를 받아낼 자리가 없습니다.
 {{< /callout >}}
 
 §7에서 `pilot_xds_push_time` p99가 79배 뛴 게 이 구조와 정합합니다. 다만 istiod에는 xDS 응답 캐시가 있어 스코프가 같은 프록시끼리는 마샬링을 재사용하므로, **실제 CPU-bound 비중은 프로파일 없이 단정할 수 없습니다** — 소스 구조에서 나온 추론입니다.
@@ -538,13 +538,13 @@ resources:
 - **Istio에 커넥션 능동 재분배는 없습니다.** `keepaliveMaxServerConnectionAge` 강제 종료가 전부이고 Google 공식 권고도 레플리카 다중화 + 사전 스케일링 두 개뿐입니다.
 - 주기를 절반으로 줄이면 재연결 레이트가 **정확히 2배**가 됩니다. 지터(±10%)는 창을 넓혀줄 뿐 총량을 줄이지 않습니다.
 - CPU를 되돌리는 지렛대는 빈도가 아니라 **단가** 쪽에 있습니다 — `Sidecar`·`exportTo`·`discoverySelectors`로 커넥션당 config 크기를 깎는 것.
-- **재분배 지표와 CPU 지표는 다른 순간에 튄다**(§7). CoV는 파드 20대가 죽은 09:40에 146%로 튀었지만, CPU·스로틀·`pilot_xds_push_time`은 커넥션이 3배로 불어난 스케일아웃 구간에서 더 나빴다(push p99 79배). 커넥션 분포만 보고 CPU 부하를 추정하지 말 것.
+- **재분배 지표와 CPU 지표는 다른 순간에 튑니다**(§7). CoV는 파드 20대가 죽은 09:40에 146%로 튀었지만, CPU·스로틀·`pilot_xds_push_time`은 커넥션이 3배로 불어난 스케일아웃 구간에서 더 나빴습니다(push p99 79배). 커넥션 분포만 보고 CPU 부하를 추정하지 말 것.
 - **평균 사용률로 CPU limit을 사이징하지 말 것**(§7). CPU 그래프는 여유로워 보이는데 (파드, 시각) 표본의 **77.2%에서 스로틀이 발생**했고 피크 분율은 30.9%였습니다. `throttled_periods / periods`를 같이 보지 않으면 이 상태는 보이지 않습니다.
-- **quota는 명목대로 다 쓰이지 않을 수 있지만, 규모를 과장하지 말 것**(§7). CFS는 quota를 CPU별 5ms 슬라이스로 넘기는데, 스레드가 잠들면 **1ms만 남기고 반환**된다(kubernetes#67577, 커널 문서의 `min_cfs_rq_runtime`). 표본의 6.5%에서만 명목 60ms로 설명이 안 됐다 — **2차 요인이지 주범이 아니다.**
+- **quota는 명목대로 다 쓰이지 않을 수 있지만, 규모를 과장하지 말 것**(§7). CFS는 quota를 CPU별 5ms 슬라이스로 넘기는데, 스레드가 잠들면 **1ms만 남기고 반환됩니다**(kubernetes#67577, 커널 문서의 `min_cfs_rq_runtime`). 표본의 6.5%에서만 명목 60ms로 설명이 안 됐습니다 — **2차 요인이지 주범이 아닙니다.**
 - **역산에는 갓 뜬 파드를 빼라**(§7). 초판이 "실효 210m"라는 틀린 결론에 간 이유가 이것입니다. startup 버스트로 잘리는데 1분 rate가 눌러서 제약이 과하게 조여듭니다. 나이 5분 필터를 걸면 상한이 21.5ms → 37.1ms로 벌어집니다.
-- **GOMAXPROCS를 낮춰도 OS 스레드는 안 줄어든다**(§7). GOMAXPROCS=1인데 프로세스 스레드는 17개였습니다. **좌초 표면적은 그대로 떠안고 병렬성만 잃는 조합**입니다.
-- **`GOMAXPROCS`는 설정하는 게 아니라 `limits.cpu`에서 파생된다**(§8). 차트 Downward API + kubelet `math.Ceil` 조합이라 소수점 limit은 항상 어긋나고 `PILOT_PUSH_THROTTLE`까지 그 값에서 파생됩니다. Istio 1.24는 Go 1.22 기반이라 Go 1.25의 컨테이너 인식 런타임도 없습니다.
-- `pilot_xds_pushes`는 에러 카운터다. `pilot_xds_write_timeout`·`pilot_total_xds_rejects`는 존재하지 않습니다. 알럿 걸기 전에 `:15014/metrics`를 직접 스크랩해 이름을 확인할 것.
+- **GOMAXPROCS를 낮춰도 OS 스레드는 안 줄어듭니다**(§7). GOMAXPROCS=1인데 프로세스 스레드는 17개였습니다. **좌초 표면적은 그대로 떠안고 병렬성만 잃는 조합**입니다.
+- **`GOMAXPROCS`는 설정하는 게 아니라 `limits.cpu`에서 파생됩니다**(§8). 차트 Downward API + kubelet `math.Ceil` 조합이라 소수점 limit은 항상 어긋나고 `PILOT_PUSH_THROTTLE`까지 그 값에서 파생됩니다. Istio 1.24는 Go 1.22 기반이라 Go 1.25의 컨테이너 인식 런타임도 없습니다.
+- `pilot_xds_pushes`는 에러 카운터입니다. `pilot_xds_write_timeout`·`pilot_total_xds_rejects`는 존재하지 않습니다. 알럿 걸기 전에 `:15014/metrics`를 직접 스크랩해 이름을 확인할 것.
 
 ## 소스
 
@@ -582,4 +582,4 @@ resources:
 - Go 블로그 — **Container-aware GOMAXPROCS** (*"Go always rounds up"*): <https://go.dev/blog/container-aware-gomaxprocs>
 - Linux 커널 문서 — **CFS Bandwidth Control** (quota/period 정의): <https://docs.kernel.org/scheduler/sched-bwc.html>
 - kubernetes/kubernetes#67577 — CFS quota slice 분배로 인한 저사용률 스로틀 보고: <https://github.com/kubernetes/kubernetes/issues/67577>
-- 버전·설정에 따라 기본값이 달라진다. 배포된 istiod의 `:15014/metrics`와 실제 차트 values를 직접 확인할 것.
+- 버전·설정에 따라 기본값이 달라집니다. 배포된 istiod의 `:15014/metrics`와 실제 차트 values를 직접 확인할 것.

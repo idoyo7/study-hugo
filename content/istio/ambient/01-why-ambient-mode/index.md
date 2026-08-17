@@ -7,9 +7,9 @@ weight: 1
 
 {{< callout type="info" >}}
 **참조한 내용정리** · 이 문서는 아래 원문을 읽고 우리 지식베이스 형식으로 재구성한 요약입니다. 원문 자체가 아니며, 정확한 워딩·전체 맥락·그림은 원문에서 확인합니다.
-- **원문**: [Istio 1편: 왜 Istio Ambient mode인가?](https://tech.channel.io/kr/articles/tech-istio-ambient-mode-30cdf79a)
-- **매체 · 게시일**: 채널코퍼레이션 기술 블로그 · 2026-03-20
-- **저자**: Jetty · Dylan (채널코퍼레이션 DevOps팀)
+- 원문: [Istio 1편: 왜 Istio Ambient mode인가?](https://tech.channel.io/kr/articles/tech-istio-ambient-mode-30cdf79a)
+- 매체 · 게시일: 채널코퍼레이션 기술 블로그 · 2026-03-20
+- 저자: Jetty · Dylan (채널코퍼레이션 DevOps팀)
 {{< /callout >}}
 
 {{< callout type="info" >}}
@@ -23,7 +23,7 @@ weight: 1
 
 이 챕터의 [01 서비스 메시와 Istio 기초]({{< relref "../../01-mesh-basics.md" >}})부터 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../../09-istiod-scaling-connections.md" >}})까지는 전부 **Sidecar mode를 전제로 쓰인 문서**입니다. 파드마다 Envoy가 붙고 istiod가 그 프록시 전부에 xDS를 밀어 넣는 구조를 깔고 갑니다. 이 `ambient/` 하위 섹션은 그 전제 자체를 바꾼 팀의 기록입니다.
 
-채널코퍼레이션 DevOps팀은 서비스 메시를 처음 도입하면서 이미 검증된 Sidecar mode 대신 Ambient mode를 택했습니다. 4,000개 파드라는 이미 확정된 규모 앞에서 사이드카의 단가 계산이 맞지 않았기 때문입니다. 여기서 정리하는 것은 그 의사결정의 근거와 결정 이후 팀이 새로 배워야 했던 Ambient의 구성요소(ztunnel · waypoint · istio-cni)와 프로토콜(HBONE), 그리고 트래픽 리다이렉션이 어떻게 걸리는지입니다.
+채널코퍼레이션 DevOps팀은 서비스 메시를 처음 도입하면서 이미 검증된 Sidecar mode 대신 Ambient mode를 택했습니다. 4,000개 파드라는 확정된 규모 앞에서 사이드카의 단가 계산이 맞지 않았기 때문입니다. 이 문서는 그 의사결정의 근거를 정리하고, 결정 이후 팀이 새로 배워야 했던 Ambient의 구성요소(ztunnel · waypoint · istio-cni)와 프로토콜(HBONE), 트래픽 리다이렉션이 걸리는 방식을 함께 다룹니다.
 
 시리즈는 세 편으로 나뉩니다. 1편(이 문서)이 도입 배경과 선택 이유, [2편]({{< relref "02-envoy-config-anatomy.md" >}})이 Envoy config로 들어가는 기술 상세, 3편이 프로덕션 운영 중 만난 문제와 해결입니다.
 
@@ -38,7 +38,7 @@ weight: 1
 
 여기에 덤으로 기대한 것이 Distributed Tracing, Traffic Management, Circuit Breaking, mTLS·상호 인증입니다.
 
-원문이 스스로 인정하듯 **개별 기능만 놓고 보면 서비스 메시가 필수는 아닙니다**. 트레이싱은 라이브러리로, 카나리는 배포 도구로, mTLS는 애플리케이션 레벨로도 어느 정도 됩니다. 다만 이 기능들을 통합적으로 제공하는 레이어에 투자하는 편이 늘어나는 서비스 규모와 인프라 확장성을 감안할 때 장기적으로 맞다고 판단했습니다. 메시가 무엇을 대신 해주고 그 대가가 무엇인지는 [01 서비스 메시와 Istio 기초]({{< relref "../../01-mesh-basics.md" >}})가 다룹니다.
+원문이 스스로 인정하듯 **개별 기능만 놓고 보면 서비스 메시가 필수는 아닙니다**. 트레이싱은 라이브러리로, 카나리는 배포 도구로, mTLS는 애플리케이션 레벨로도 어느 정도 됩니다. 다만 서비스 규모가 늘고 인프라도 계속 커지는 상황을 보면, 이 기능들을 한 레이어에서 묶어 제공하는 쪽에 투자하는 편이 길게 봐서 맞다고 판단했습니다. 메시가 무엇을 대신 해주고 그 대가가 무엇인지는 [01 서비스 메시와 Istio 기초]({{< relref "../../01-mesh-basics.md" >}})가 다룹니다.
 
 ## 2. 왜 Istio였나 — Linkerd와 Cilium을 놓은 이유
 
@@ -50,7 +50,7 @@ Istio 외에 Linkerd와 Cilium도 검토했습니다.
 | Cilium | eBPF 기반 CNI로 알려져 있고, 채널팀은 이미 다른 CNI를 쓰고 있어 메시만을 위해 채택하기엔 부담이었다 |
 | **Istio** | **커뮤니티와 생태계가 가장 크고, 레퍼런스와 자료가 가장 많다** |
 
-Cilium을 뺀 것은 기능 문제가 아니었습니다. 이미 다른 CNI를 쓰고 있었고 서비스 메시를 위해 CNI를 갈아엎는 결정은 메시 도입보다 훨씬 큰 변경입니다.
+Cilium을 뺀 것은 기능 문제가 아니었습니다. 이미 다른 CNI를 쓰고 있었고, 메시 하나 때문에 CNI를 갈아엎는 결정은 메시 도입보다 훨씬 큰 변경입니다.
 
 ## 3. Sidecar를 건너뛴 세 가지 이유
 
@@ -58,7 +58,7 @@ Istio를 고른 뒤 남은 질문은 "Sidecar냐 Ambient냐"였습니다. 채널
 
 ### 3.1 컨트롤 플레인 — polynomial scaling problem
 
-Sidecar mode에서는 **모든 사이드카가 메시 안 다른 모든 destination의 정보를 알고 있어야 합니다.** 그래서 destination 하나의 설정이 바뀌면 그 변경을 모든 사이드카에 전파해야 합니다. 설정의 크기와 전파 대상의 수가 함께 커지면서 부하가 비선형으로 증가합니다. 원문은 이를 **polynomial scaling problem**이라 부릅니다.
+Sidecar mode에서는 **모든 사이드카가 메시 안 다른 모든 destination의 정보를 알아야 합니다.** 그래서 destination 하나의 설정이 바뀌면 그 변경을 모든 사이드카에 전파해야 합니다. 설정의 크기와 전파 대상의 수가 함께 커지면서 부하가 비선형으로 증가합니다. 원문은 이를 **polynomial scaling problem**이라 부릅니다.
 
 Ambient mode에서 전파 대상은 **ztunnel과 waypoint**입니다. ztunnel은 노드당 1개, waypoint는 필요한 namespace·service에만 있으므로 전파 대상 자체가 몇 자릿수 줄어듭니다.
 
@@ -77,9 +77,9 @@ istiod가 CPU를 먹는 메커니즘은 [02 컨트롤 플레인 해부: istiod](
 | Sidecar (Envoy) | idle | 0.05~0.01 vCPU | 60Mi | 채널팀 측정 |
 | Sidecar (Envoy) | 2,000 RPS | 0.8~1.2 vCPU | 300~500Mi | 채널팀 측정 |
 
-같은 1,000 RPS를 처리할 때 **ztunnel의 CPU는 사이드카의 약 1/3, 메모리는 약 1/5**입니다. 그런데 더 큰 차이를 만드는 건 단가가 아니라 **개수**입니다. 4,000개 파드에 모두 사이드카를 붙이면 **idle 상태에서만 수십~수백 vCPU와 약 240Gi 메모리**가 순수하게 프록시에 소모됩니다(60Mi × 4,000 ≒ 240Gi). RPS가 낮은 파드에도 idle 오버헤드는 붙기 때문에 파드가 수천 개 단위면 이 고정비가 지배적이 됩니다.
+같은 1,000 RPS를 처리할 때 **ztunnel의 CPU는 사이드카의 약 1/3, 메모리는 약 1/5**입니다. 그런데 더 큰 차이를 만드는 건 단가가 아니라 **개수**입니다. 4,000개 파드에 모두 사이드카를 붙이면 **idle 상태에서만 수십~수백 vCPU와 약 240Gi 메모리**가 순수하게 프록시에 소모됩니다(60Mi × 4,000 ≒ 240Gi). RPS가 낮은 파드에도 idle 오버헤드는 붙기 때문에 파드가 수천 개 단위면 이 고정비가 전체를 지배합니다.
 
-Ambient mode에서는 ztunnel이 노드당 1개, waypoint가 namespace·service 단위이므로 파드가 늘어도 프록시 수가 같이 늘지 않고 증가폭이 훨씬 완만합니다.
+Ambient mode에서는 ztunnel이 노드당 1개, waypoint가 namespace·service 단위입니다. 파드가 늘어도 프록시 수가 그만큼 늘지 않습니다.
 
 ### 3.3 Kubernetes Gateway API 지원
 
@@ -97,9 +97,9 @@ Gateway API 자체는 Sidecar mode에서도 쓸 수 있습니다. 다만 **Ambie
 | 디버깅 난이도 증가 | 새 개념과 늘어난 hop 만큼 원인 추적이 까다롭다 |
 | 낮은 성숙도 | GA 직후라 검증 사례가 적고 기존 API보다 덜 성숙하다 |
 
-- **장애 영향 범위 확대**: Sidecar mode에서는 프록시가 파드와 lifecycle을 같이 해 장애 범위가 각 파드에 그칩니다. Ambient는 ztunnel(노드 단위)과 waypoint(namespace·service 단위)에 의존하므로 장애 시 노드 전체 혹은 namespace 전체로 영향이 번집니다. **Sidecar mode에는 없던 SPoF(Single Point of Failure)가 생깁니다.**
-- **디버깅 난이도 증가**: ztunnel · waypoint · HBONE 같은 새 개념을 익혀야 하고 프록시와 hop이 늘어난 만큼 문제 원인 추적이 까다롭습니다.
-- **낮은 성숙도**: GA 직후라 프로덕션에서 검증된 사례가 적었고 Sidecar mode와 기존 Istio API(예: VirtualService)에 비해 덜 성숙합니다.
+- Sidecar mode에서는 프록시가 파드와 lifecycle을 같이 해 장애 범위가 각 파드에 그칩니다. Ambient는 ztunnel(노드 단위)과 waypoint(namespace·service 단위)에 의존하므로 장애 시 노드 전체 혹은 namespace 전체로 영향이 번집니다. **Sidecar mode에는 없던 SPoF(Single Point of Failure)가 생깁니다.**
+- ztunnel · waypoint · HBONE 같은 새 개념을 익혀야 하고 프록시와 hop이 늘어난 만큼 문제 원인 추적이 까다롭습니다.
+- GA 직후라 프로덕션에서 검증된 사례가 적었고 Sidecar mode와 기존 Istio API(예: VirtualService)에 비해 덜 성숙합니다.
 
 ### 팀 내 의사결정
 
@@ -111,7 +111,7 @@ Gateway API 자체는 Sidecar mode에서도 쓸 수 있습니다. 다만 **Ambie
 
 > "리소스 측면 제외하고는 Sidecar 장점이 많아 보이는데, 다양한 기능을 사용하지 않을 거면 Ambient. 문제 발생 빈도보다는 장애 복구 속도에 집중해야 함."
 
-세 발언을 관통하는 기준은 **"장애가 안 나는 쪽"이 아니라 "나중에 다시 갈아엎지 않아도 되는 쪽"** 입니다. 채널팀은 Sidecar mode로 도입한 뒤 다시 Ambient로 마이그레이션하는 상황을 피하고 싶었습니다. 팀 내 Istio·Envoy 이해도를 높이며 리서치를 진행하는 쪽으로 Ambient를 택했습니다.
+세 발언을 관통하는 기준은 **"장애가 안 나는 쪽"이 아니라 "나중에 다시 갈아엎지 않아도 되는 쪽"** 입니다. 채널팀은 Sidecar mode로 도입한 뒤 다시 Ambient로 마이그레이션하는 상황을 피하고 싶었습니다. 팀 내 Istio·Envoy 이해도를 높이면서 리서치를 이어 가는 쪽으로 Ambient를 택했습니다.
 
 다만 이 결정이 성립한 전제는 세 번째 발언에 드러난 **"다양한 기능을 다 쓰지는 않는다"** 였습니다. 필요한 것이 L7 가시성과 트래픽 통제 정도라면 Ambient의 기능 공백이 크게 문제되지 않습니다. 반대로 기존 Istio API의 세밀한 기능(예: [EnvoyFilter]({{< relref "../../08-envoyfilter-extension.md" >}}) 기반 확장)에 이미 깊게 의존하는 조직이라면 같은 계산이 나오지 않습니다. 이 단서는 원문에 없는 보충입니다.
 
@@ -138,11 +138,11 @@ Ambient의 데이터 플레인은 **L4와 L7을 두 컴포넌트로 쪼갭니다
 | ztunnel | 노드당 1개 (DaemonSet) | L4 | mTLS 터널(HBONE), 기본 정책 |
 | waypoint proxy | 필요한 namespace·service에만 | L7 | 라우팅, 관측, L7 정책 |
 
-waypoint가 처리하는 L7 정책으로 원문이 명시한 것은 `AuthorizationPolicy` · `RequestAuthentication` · `WasmPlugin` · `Telemetry`입니다. waypoint가 enable되면 waypoint의 범위에 해당하는 트래픽은 모두 waypoint를 거쳐갑니다.
+waypoint가 처리하는 L7 정책으로 원문이 명시한 것은 `AuthorizationPolicy` · `RequestAuthentication` · `WasmPlugin` · `Telemetry`입니다. waypoint를 enable하면 그 범위에 해당하는 트래픽은 모두 waypoint를 거쳐갑니다.
 
 **waypoint는 source·destination 파드와 같은 노드에 있을 필요가 없습니다.** 사이드카가 파드와 같은 네트워크 네임스페이스에 있던 것과 달리 waypoint는 위치가 자유로운 별도 배포입니다. hop이 하나 더 늘고 그 hop은 노드 경계를 넘을 수 있습니다. 디버깅 난이도가 올라가는 이유 중 하나입니다.
 
-L7을 켠 곳에만 두므로 L4 mTLS만 필요한 대다수 워크로드는 waypoint 비용을 내지 않습니다. 사이드카 모드에서 모든 파드가 L7 프록시 기능 전체를 짊어지던 것과 대비됩니다.
+L7을 켠 곳에만 두므로 L4 mTLS만 필요한 대다수 워크로드는 waypoint 비용을 내지 않습니다. 사이드카 모드에서는 모든 파드가 L7 프록시 기능 전체를 짊어졌습니다.
 
 ### 5.3 워크로드의 세 가지 상태
 
@@ -156,7 +156,7 @@ Ambient에서 워크로드가 놓일 수 있는 상태는 세 가지고, 각각 
 
 **메시 미참여(out-mesh)**는 기존 쿠버네티스 네트워크(kube-proxy) 동작 방식과 동일합니다. 서비스 디스커버리를 거쳐 엔드포인트로 직접 연결됩니다.
 
-**메시 참여 · waypoint 없음**에서는 파드에서 나가는 트래픽이 ztunnel로 투명하게 리다이렉트되고 destination이 메시에 포함된 경우 **암호화된 HBONE 채널**로 보내집니다. 들어오는 트래픽도 해당 노드의 ztunnel을 거치며 `AuthorizationPolicy`에 위배되지 않는 한 파드로 전달됩니다.
+**메시 참여 · waypoint 없음**에서는 파드에서 나가는 트래픽이 ztunnel로 투명하게 리다이렉트되고, destination이 메시 안에 있으면 ztunnel이 **암호화된 HBONE 채널**로 실어 보냅니다. 들어오는 트래픽도 해당 노드의 ztunnel을 거치며 `AuthorizationPolicy`에 위배되지 않는 한 파드로 전달됩니다.
 
 **메시 참여 · waypoint 설정**에서는 ztunnel과 destination 사이에 waypoint가 끼어 L7 정책을 적용합니다.
 
@@ -166,7 +166,7 @@ Ambient에서 워크로드가 놓일 수 있는 상태는 세 가지고, 각각 
 
 ## 6. HBONE — 표준 세 개의 조합
 
-HBONE은 **HTTP-Based Overlay Network Environment**의 약자입니다. 원문이 강조하는 요점은 이미 검증된 표준 세 개를 Envoy config로 조립했다는 것입니다.
+HBONE은 **HTTP-Based Overlay Network Environment**의 약자입니다. 원문은 이미 검증된 표준 세 개를 Envoy config로 조립했다는 점을 강조합니다.
 
 | 구성 요소 | 역할 |
 | --- | --- |
@@ -186,7 +186,7 @@ HBONE 터널링과 traffic redirection이 Envoy listener·cluster 수준에서 �
 
 ## 7. Traffic redirection — 15001 · 15006 · 15008
 
-Ambient에서 "투명하게 리다이렉트된다"는 것은 istio-cni가 삽입한 iptables 규칙을 말합니다. **리다이렉트는 모두 파드 네트워크 안에서 이루어지며 host(node) side에서 이루어지지 않습니다.**
+Ambient에서 "투명하게 리다이렉트된다"는 것은 istio-cni가 삽입한 iptables 규칙을 말합니다. **리다이렉트는 모두 파드 네트워크 안에서 일어나고 host(node) side에서는 일어나지 않습니다.**
 
 리다이렉트 규칙은 세 갈래입니다.
 
@@ -196,7 +196,7 @@ Ambient에서 "투명하게 리다이렉트된다"는 것은 istio-cni가 삽입
 | 인바운드 HBONE | source port = 15008 | ztunnel HBONE port **15008** |
 | 아웃바운드(egress) | 파드를 나가는 모든 TCP | ztunnel egress port **15001** |
 
-아웃바운드 트래픽은 egress 처리를 위해 ztunnel의 port 15001로 리다이렉트된 뒤 ztunnel이 HBONE으로 캡슐화해 목적지로 보냅니다.
+아웃바운드 트래픽은 egress 처리를 받도록 ztunnel의 port 15001로 리다이렉트되고, 그다음 ztunnel이 HBONE으로 캡슐화해 목적지로 보냅니다.
 
 인바운드 분기는 **source port**로 갈립니다. 상대 ztunnel이 HBONE으로 보낸 트래픽은 source port가 15008이므로 이 조건 하나로 "이미 메시 안에서 감싸여 온 트래픽"과 "메시 밖에서 온 평문"을 구분합니다.
 
@@ -204,10 +204,10 @@ Ambient에서 "투명하게 리다이렉트된다"는 것은 istio-cni가 삽입
 
 ### 7.1 "in-pod ztunnel"이라는 이름
 
-Istio 공식 문서는 이 구조를 **in-pod ztunnel**이라 부르는데, 이 이름이 ztunnel이 파드 안에 들어 있다는 인상을 줍니다. ztunnel은 워크로드 파드와 별개의 DaemonSet 컨테이너입니다. istio-cni가 iptables에 주입하는 규칙은 ztunnel 컨테이너로 트래픽을 보내는 것이 아니라 **파드의 container network namespace 안에 생성된 TCP socket(localhost의 port 15001 · 15006 · 15008)으로 REDIRECT하는 것**입니다.
+Istio 공식 문서는 이 구조를 **in-pod ztunnel**이라 부르는데, 이 이름이 ztunnel이 파드 안에 들어 있다는 인상을 줍니다. ztunnel은 워크로드 파드와 별개의 DaemonSet 컨테이너입니다. istio-cni가 iptables에 주입하는 규칙은 트래픽을 ztunnel 컨테이너로 보내지 않습니다. **파드의 container network namespace 안에 생성된 TCP socket(localhost의 port 15001 · 15006 · 15008)으로 REDIRECT합니다.**
 
 {{< callout type="important" >}}
-이 구분이 중요한 이유는 진단 방법이 달라지기 때문입니다. 파드 안에서 `localhost:15006`이 잡혀 있는지 확인하는 것과 노드에서 ztunnel 파드가 Running인지 확인하는 것은 **서로 다른 실패를 잡아냅니다.** 둘 다 정상이어야 트래픽이 메시를 탑니다.
+이 구분에 따라 진단 방법이 달라집니다. 파드 안에서 `localhost:15006`이 잡혀 있는지 확인하는 것과 노드에서 ztunnel 파드가 Running인지 확인하는 것은 **서로 다른 실패를 잡아냅니다.** 둘 다 정상이어야 트래픽이 메시를 탑니다.
 {{< /callout >}}
 
 ### 7.2 우회하면 정책도 함께 사라진다
@@ -234,12 +234,12 @@ Ambient를 실제로 운영하면서 만난 문제들은 3편 시리즈에 나�
 - 사이드카 비용은 **프록시 개수가 파드 개수와 1:1로 묶여 있다**는 데서 나옵니다. ztunnel의 1,000 RPS 기준 CPU 1/3·메모리 1/5보다, 프록시 개수가 파드 개수에서 노드 개수로 바뀌는 쪽이 훨씬 크게 작용합니다. 4,000 파드 × 60Mi ≒ 240Gi가 idle에서 그냥 나갑니다.
 - Ambient는 파드 단위 장애 격리를 **노드·namespace 단위 SPoF**와 맞바꾸는 선택입니다. 채널팀의 판단 기준은 "문제 발생 빈도보다 장애 복구 속도"였습니다. 이 기준에 동의하지 않는 조직에는 같은 결론이 나오지 않습니다.
 - "투명한 리다이렉트"는 파드 netns 안의 **iptables 규칙과 세 개의 localhost socket**입니다. 인바운드는 source port가 15008인지로 HBONE(15008)과 plaintext(15006)를 가르고 아웃바운드는 전량 15001로 갑니다. host side가 아니라 파드 안에서 일어난다는 점이 진단의 출발점입니다.
-- ztunnel을 우회하면 암호화와 함께 **인가 정책 전체가 빠집니다.** ztunnel과 istio-cni가 항상 Running이어야 한다는 요구는 성능이 아니라 보안 요구입니다. istio-cni 준비 전에 스케줄된 파드(partially enrolled)가 대표적 발생 경로입니다.
+- ztunnel을 우회하면 암호화와 함께 **인가 정책 전체가 빠집니다.** ztunnel과 istio-cni를 항상 Running으로 유지해야 하는 이유는 성능이 아닙니다. 보안입니다. istio-cni 준비 전에 스케줄된 파드(partially enrolled)가 대표적 발생 경로입니다.
 - HBONE은 **HTTP/2 + HTTP CONNECT + mTLS**의 조립입니다. 대신 구간이 암호화되어 `tcpdump`로 안이 안 보이고 destination 측 전체 인터페이스를 캡처해야 합니다.
 
 ## 소스
 
-- **원문**: [Istio 1편: 왜 Istio Ambient mode인가?](https://tech.channel.io/kr/articles/tech-istio-ambient-mode-30cdf79a) (채널코퍼레이션 기술 블로그, 2026-03-20)
+- 원문: [Istio 1편: 왜 Istio Ambient mode인가?](https://tech.channel.io/kr/articles/tech-istio-ambient-mode-30cdf79a) (채널코퍼레이션 기술 블로그, 2026-03-20)
 - [Istio Ambient Mode Reaches General Availability](https://istio.io/latest/blog/2024/ambient-reaches-ga/) — Istio 1.24 GA 공지
 - [Istio Performance and Scalability](https://istio.io/latest/docs/ops/deployment/performance-and-scalability/) — 사이드카·ztunnel 리소스 기준값
 - [Ambient Mode Architecture](https://istio.io/latest/docs/ambient/architecture/) — 구성요소와 동작 원리

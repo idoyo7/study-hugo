@@ -7,16 +7,16 @@ weight: 2
 
 {{< callout type="info" >}}
 **한눈에**
-- RUM을 하나로 묶어 "대체된다/안 된다"고 답하면 틀립니다 — **4개의 이질적 하위 제품**으로 쪼개야 판정이 섭니다.
-- **RUM-Core**(세션 리플레이+CWV/에러+트레이스 상관) 🟢 즉시(Wave 1) · **RUM-Frustration** 🟡 SQL 사후계산 · **RUM-PA**(퍼널/리텐션) 🔴 자작/PostHog 병행 · **RUM-Mobile** 🔴 OTel+Embrace/OpenReplay.
-- 대체는 **프록시가 아니라 `@hyperdx/browser` SDK 교체**입니다 — `datadogreceiver`는 브라우저 RUM intake(`/api/v2/rum`)를 아예 수신하지 않습니다.
-- 좌절 신호·모바일 리플레이는 **네이티브 프리미티브 부재가 확인됨**(추측 격상 아님) — ClickHouse SQL(`sequenceMatch`/`windowFunnel`) 자작 또는 전용 툴이 필요합니다.
-- **"Datadog RUM을 HyperDX로 대체한 공개 프로덕션 사례"는 찾지 못했습니다** → dual-instrument PoC 성공을 Wave 1 진입 게이트로 명문화합니다.
+- RUM을 하나로 묶어 "대체된다/안 된다"고 답하면 틀립니다 — 4개의 이질적 하위 제품으로 쪼개야 판정이 섭니다.
+- RUM-Core(세션 리플레이+CWV/에러+트레이스 상관) 🟢 즉시(Wave 1) · RUM-Frustration 🟡 SQL 사후계산 · RUM-PA(퍼널/리텐션) 🔴 자작/PostHog 병행 · RUM-Mobile 🔴 OTel+Embrace/OpenReplay.
+- 대체는 프록시가 아니라 `@hyperdx/browser` SDK 교체입니다 — `datadogreceiver`는 브라우저 RUM intake(`/api/v2/rum`)를 아예 수신하지 않습니다.
+- 좌절 신호·모바일 리플레이는 네이티브 프리미티브 부재가 확인됐습니다(추측 격상 아님) — ClickHouse SQL(`sequenceMatch`/`windowFunnel`) 자작 또는 전용 툴이 필요합니다.
+- "Datadog RUM을 HyperDX로 대체한 공개 프로덕션 사례"는 찾지 못했습니다 → dual-instrument PoC 성공을 Wave 1 진입 게이트로 명문화합니다.
 {{< /callout >}}
 
-"coverage가 어디까지 되나"에 답하는 페이지입니다. [HyperDX 심층 실사]({{< relref "01-hyperdx-deep-dive.md" >}})가 연혁·아키텍처·거버넌스 갭이라는 플랫폼 관점을 맡았으니 여기서는 **Datadog RUM의 기능을 하나씩 `@hyperdx/browser`와 대조**해 어디까지 1:1로 넘어오고 어디서 끊기는지를 커버리지 관점으로 확정합니다.
+"coverage가 어디까지 되나"에 답하는 페이지입니다. [HyperDX 심층 실사]({{< relref "01-hyperdx-deep-dive.md" >}})가 플랫폼 관점(연혁·아키텍처·거버넌스 갭)을 다뤘다면, 여기서는 Datadog RUM의 기능을 하나씩 `@hyperdx/browser`와 대조해 어디까지 1:1로 넘어오고 어디서 끊기는지를 확정합니다.
 
-한 줄 결론부터 적습니다. **RUM을 하나로 묶어 "대체된다/안 된다"고 답하면 틀립니다.** RUM은 4개의 이질적 하위 제품이고, **웹 디버깅 코어(세션 리플레이·CWV·에러·트레이스 상관)는 🟢로 즉시 넘어오지만, 좌절 신호는 🟡(자작), 프로덕트 애널리틱스·모바일은 🔴(전용 툴)** 입니다. 이 분해가 [RUM 내재화 결론]({{< relref "_index.md" >}})의 "웹 YES / 모바일 NO"를 커버리지 레벨까지 심화한 형태입니다.
+한 줄 결론: RUM을 하나로 묶어 "대체된다/안 된다"고 답하면 틀립니다. RUM은 4개의 이질적 하위 제품입니다. 웹 디버깅 코어(세션 리플레이·CWV·에러·트레이스 상관)는 🟢로 즉시 넘어오지만 좌절 신호는 🟡(자작), 프로덕트 애널리틱스·모바일은 🔴(전용 툴)입니다. 이 분해는 [RUM 내재화 결론]({{< relref "_index.md" >}})의 "웹 YES / 모바일 NO"를 커버리지 수준에서 다시 쪼갠 것입니다.
 
 ## 대체 대상을 먼저 정의 — Datadog RUM 이벤트 모델
 
@@ -31,7 +31,7 @@ Session (세션)
      └─ Long Task  (메인스레드 50ms+ 블로킹)
 ```
 
-View에는 Core Web Vitals(LCP/FCP/CLS/**INP**/FID)와 navigation timing이, Action에는 좌절 신호(`rage`/`dead`/`error click`)가 붙습니다. 공식 JSON 스키마는 `DataDog/rum-events-format` 레포로 관리됩니다 `✓`. 커버리지의 실체는 이 모델의 각 항목이 `@hyperdx/browser`로 얼마나 넘어오는지입니다.
+View에는 Core Web Vitals(LCP/FCP/CLS/INP/FID)와 navigation timing이, Action에는 좌절 신호(`rage`/`dead`/`error click`)가 붙습니다. 공식 JSON 스키마는 `DataDog/rum-events-format` 레포가 관리합니다 `✓`. 이 모델의 각 항목이 `@hyperdx/browser`로 얼마나 넘어오는지가 커버리지의 실체입니다.
 
 ## 기능 전수 격차 매트릭스 (Datadog RUM ↔ @hyperdx/browser)
 
@@ -55,9 +55,9 @@ View에는 Core Web Vitals(LCP/FCP/CLS/**INP**/FID)와 navigation timing이, Act
 | **데이터 보존·샘플링** | ✅ | OTel SDK 샘플링 + ClickHouse TTL로 자체 통제 `✓` | 유리 |
 | **지리/디바이스 메타** | ✅ | Collector geoip processor + UA 파싱 `✓` | 낮음(파이프라인 구성 필요) |
 
-`tracePropagationTargets`는 정규식 배열입니다. 프론트↔백엔드 트레이스 연결은 리플레이된 세션에서 백엔드 트레이스로 양방향 내비게이션까지 가능합니다 `✓⁽3-0⁾`. Core Web Vitals는 INP·서브파트 정밀도를 재구성해야 하는 손실이 있고 `≈`, 모바일 RUM의 `@hyperdx/otel-react-native`는 ★4에 Zipkin·signalfx를 추종하는 얇은 포크입니다 `✓`. Session Replay는 ClickStack에 리플레이 UI가 내장돼 있고 둘 다 rrweb 계열이라 격차가 낮습니다 `✓`. User Action은 자동 액션 네이밍 품질에 차이가 있으나 전반적으로 격차는 낮습니다 `✓`. 프론트→백엔드 트레이스 연결은 OTel 네이티브라 오히려 Datadog보다 우수합니다.
+`tracePropagationTargets`는 정규식 배열입니다. 프론트↔백엔드 트레이스 연결은 리플레이된 세션에서 백엔드 트레이스로 양방향 내비게이션까지 가능합니다 `✓⁽3-0⁾`. Core Web Vitals는 INP와 서브파트 정밀도를 직접 재구성해야 해서 손실이 있고 `≈`, 모바일 RUM의 `@hyperdx/otel-react-native`는 ★4에 Zipkin·signalfx를 추종하는 얇은 포크입니다 `✓`. Session Replay는 ClickStack에 리플레이 UI가 내장돼 있고 둘 다 rrweb 계열이라 격차가 낮습니다 `✓`. User Action은 자동 액션 네이밍 품질에 차이가 있으나 격차는 낮습니다 `✓`. 프론트→백엔드 트레이스 연결은 OTel 네이티브라 오히려 Datadog보다 우수합니다.
 
-**패턴이 뚜렷합니다.** "디버깅형 RUM"(리플레이·CWV·에러·리소스·트레이스 상관)은 HyperDX가 OTel 네이티브라 대등하거나 우수합니다. 반면 **분석·좌절신호·모바일**은 명확한 격차입니다. 좌절 신호는 초기 조사(문서 02)에서 `?`이었으나 후속 보강조사가 ClickStack 리플레이 UI에 rage/dead/error 필터 프리미티브가 전혀 없음을 확인해 `✓⁽부재⁾`로 마감했습니다 — 근거 없이 격상한 것이 아니라 조사 자체가 확정한 결과입니다.
+패턴이 뚜렷합니다. "디버깅형 RUM"(리플레이·CWV·에러·리소스·트레이스 상관)은 HyperDX가 OTel 네이티브라 대등하거나 우수합니다. 반면 분석·좌절신호·모바일은 격차가 명확합니다. 좌절 신호는 초기 조사(문서 02)에서 `?`이었으나 후속 보강조사가 ClickStack 리플레이 UI에 rage/dead/error 필터 프리미티브가 전혀 없음을 확인해 `✓⁽부재⁾`로 마감했습니다.
 
 ## RUM을 4슬라이스로 분해한 판정표
 
@@ -73,13 +73,13 @@ View에는 Core Web Vitals(LCP/FCP/CLS/**INP**/FID)와 navigation timing이, Act
 | **RUM-Mobile**<br>(모바일 전반+리플레이) | 🔴 별도 트랙 | RN 얇은 포크만(★4) `✓` | OTel-mobile+**Embrace/OpenReplay** |
 | **RUM(전체 합산)** | **🟡** 분할 이관 | 코어는 강, 나머지 3개는 자작/전용툴 | 슬라이스별 상이 |
 
-이 표가 "RUM 전체 🟢 완전"과 "RUM 격차 최대"라는 상반된 인상을 해소합니다. **정확한 진술은 "RUM-Core는 🟢·Wave1이고, 나머지는 별도 트랙"** 입니다. 비용·가치가 가장 큰 슬라이스(세션 단가 과금 대상)가 하필 🟢인 RUM-Core라, 웹 코어만 넘겨도 청구서 절감 효과는 가장 즉각적입니다 `✓`. RUM-Core는 OTel-web으로 CWV/에러/리소스까지 함께 수집하고, SDK 교체는 dual-instrument로 병행 배포한 뒤 컷오버합니다. RUM-PA의 "턴키 없음" 판정은 벤더 비교 자료가 "product analytics에 lighter"라고 직접 명시한 데 근거하며, 여기서 병행 대상으로 꼽은 PostHog는 ClickHouse 기반입니다. RUM-Mobile의 RN 포크는 signalfx를 추종하는 얇은 구현이고 대체 조합에서 성능/에러/트레이스는 OTel-mobile이, 모바일 세션 리플레이는 Embrace/OpenReplay가 담당합니다.
+이 표가 "RUM 전체 🟢 완전"과 "RUM 격차 최대"라는 상반된 인상을 해소합니다. 정확한 진술은 "RUM-Core는 🟢·Wave1이고, 나머지는 별도 트랙"입니다. 비용·가치가 가장 큰 슬라이스(세션 단가 과금 대상)가 하필 🟢인 RUM-Core라, 웹 코어만 넘겨도 청구서 절감이 가장 즉각적입니다 `✓`. RUM-Core는 OTel-web으로 CWV/에러/리소스도 함께 수집하고 SDK 교체는 dual-instrument로 병행 배포한 뒤 컷오버합니다. RUM-PA의 "턴키 없음" 판정은 벤더 비교 자료가 "product analytics에 lighter"라고 직접 명시한 데 근거합니다. 여기서 말하는 PostHog는 ClickHouse 기반입니다. RUM-Mobile의 RN 포크는 signalfx를 추종하는 얇은 구현입니다. OTel-mobile은 성능/에러/트레이스를, Embrace/OpenReplay는 모바일 세션 리플레이를 담당합니다.
 
-**격차 슬라이스의 대체법은 확정돼 있습니다.** 좌절 신호는 Datadog 임계값(rage=1초 내 동일요소 3+클릭, dead=클릭 후 무반응, error=클릭±에러)을 ClickHouse `sequenceMatch`/`windowFunnel`로 규칙화할 수 있고, 퍼널/리텐션도 `windowFunnel`/`retention`이 1급 집계함수로 내장돼 있습니다 `✓`. 즉 **이미 ClickHouse를 운영하는 전제**에서는 격차가 "불가능"이 아니라 "SQL 자작"으로 내려옵니다. 다만 모바일 세션 리플레이만은 OTel 표준에 아직 없어 순수 OTel로는 못 채우고 Embrace/OpenReplay 같은 전용 툴이 필요합니다 `✓`.
+격차 슬라이스의 대체법은 이미 정해뒀습니다. 좌절 신호는 Datadog 임계값(rage=1초 내 동일요소 3+클릭, dead=클릭 후 무반응, error=클릭±에러)을 ClickHouse `sequenceMatch`/`windowFunnel` 규칙으로 옮길 수 있고 퍼널/리텐션도 `windowFunnel`/`retention`이 1급 집계함수로 들어 있습니다 `✓`. 이미 ClickHouse를 운영하는 전제라면 격차는 "불가능"에서 "SQL 자작"으로 내려옵니다. 다만 모바일 세션 리플레이만은 OTel 표준에 아직 없어 순수 OTel로는 못 채우고 Embrace/OpenReplay 같은 전용 툴이 필요합니다 `✓`.
 
 ### 🔴 슬라이스를 메우는 대체 경로 (모바일)
 
-RUM-Mobile은 커버리지 판정상 가장 무거운 🔴이므로 "무엇으로 채우나"를 미리 확정해 둡니다. HyperDX RN 포크에 의존하는 전략은 세우지 않습니다. 경로는 세 개이고 **모바일 세션 리플레이 필요 여부가 갈림길**입니다 `✓/≈`.
+RUM-Mobile은 커버리지 판정상 가장 무거운 🔴이므로, "무엇으로 채우나"를 미리 확정해 둡니다. HyperDX RN 포크에 의존하는 전략은 세우지 않습니다. 세 경로가 있고 모바일 세션 리플레이가 필요한지가 갈림길입니다 `✓/≈`.
 
 | 축 | OTel-mobile 네이티브 | Embrace | OpenReplay |
 |---|:---:|:---:|:---:|
@@ -90,11 +90,11 @@ RUM-Mobile은 커버리지 판정상 가장 무거운 🔴이므로 "무엇으�
 | OTLP→ClickHouse/HyperDX | O(네이티브) | O(OTLP export) | △(자체 CH, 직결 아님) |
 | 권장 상황 | 리플레이 불필요·표준 최우선 | **모바일 리플레이 필수 + OTel 정합** | 완전 OSS·데이터주권 최우선 |
 
-현실적 조합은 **"OTel-mobile로 성능/에러/트레이스를 ClickStack에 통합 + 모바일 세션 리플레이는 Embrace(OTLP 개방) 또는 OpenReplay로 보완"** 하이브리드입니다 `≈`. 프로덕트 애널리틱스 턴키가 별도로 필요하면 ClickHouse 기반 **PostHog**(퍼널/리텐션/경로 + 웹·모바일 리플레이)를 병행합니다 `✓`. 어느 경로든 웹 RUM-Core보다 난이도·리스크가 높아 Wave 1과 반드시 분리합니다.
+현실적 조합은 "OTel-mobile로 성능/에러/트레이스를 ClickStack에 통합 + 모바일 세션 리플레이는 Embrace(OTLP 개방) 또는 OpenReplay로 보완" 하이브리드입니다 `≈`. 프로덕트 애널리틱스 턴키가 별도로 필요하면 ClickHouse 기반 PostHog(퍼널/리텐션/경로 + 웹·모바일 리플레이)를 병행합니다 `✓`. 어느 경로든 웹 RUM-Core보다 난이도·리스크가 높아 Wave 1과 반드시 분리합니다.
 
 ## `@hyperdx/browser` 구현 실체
 
-커버리지가 어디서 나오는지는 SDK 구현을 봐야 압니다. `@hyperdx/browser`는 **Splunk `splunk-otel-js-web`(signalfx)에서 포크된 OTel 기반 브라우저 SDK** 로 추정되며, `@hyperdx/otel-web`(텔레메트리)과 `@hyperdx/otel-web-session-recorder`(rrweb 세션 레코딩) 두 패키지에 의존합니다 `≈`. 밑단은 OTel JS 웹 스택(`sdk-trace-web` + `instrumentation-fetch`/`xml-http-request`/`document-load`/`user-interaction`)입니다.
+커버리지가 어디서 나오는지는 SDK 구현을 봐야 압니다. `@hyperdx/browser`는 Splunk `splunk-otel-js-web`(signalfx)에서 포크된 OTel 기반 브라우저 SDK로 추정되며 `@hyperdx/otel-web`(텔레메트리) + `@hyperdx/otel-web-session-recorder`(rrweb 세션 레코딩) 두 패키지에 의존합니다 `≈`. 밑단은 OTel JS 웹 스택(`sdk-trace-web` + `instrumentation-fetch`/`xml-http-request`/`document-load`/`user-interaction`)입니다.
 
 ```javascript
 HyperDX.init({
@@ -108,16 +108,16 @@ HyperDX.init({
 });
 ```
 
-- **자동 수집**: 콘솔 로그, 세션 리플레이, XHR/Fetch/WebSocket, 예외/에러, PerformanceResourceTiming 기반 리소스 타이밍 `✓`. 기본 인테이크는 `https://in-otel.hyperdx.io`(OTLP HTTP)이고 self-host는 `url` 옵션으로 자체 Collector를 지정합니다 `✓` — hyperdx-js `packages/browser/src/index.ts`의 `URL_BASE` 기본값을 `url` 인자로 오버라이드하는 방식으로 소스 코드 수준까지 검증됨 `✓⁽3-0⁾`.
-- **네트워크 캡처 범위**: 기본은 요청 메타만이고 `advancedNetworkCapture`를 켜면 **헤더·본문 전체**를 캡처합니다. 런타임 토글(`enableAdvancedNetworkCapture()`/`disable...`)도 있습니다 `✓`.
-- **세션 리플레이**: rrweb 기반 DOM 이벤트 레코딩(비디오가 아님)으로 DOM 변경·마우스·클릭·스크롤·키입력·콘솔 로그·XHR/Fetch/WebSocket·JS 예외를 캡처해 브라우저에서 재구성합니다 `✓⁽ClickHouse 공식 문서⁾`. ClickStack UI는 우측에 재구성 화면을, 좌측에 네트워크/콘솔/에러 타임라인을 표시합니다. 특정 요청·에러를 클릭하면 **Trace 탭으로 이동해 백엔드 span·로그까지 추적**됩니다 `✓`. 모든 신호는 두 조인키로 상관됩니다 — **TraceId**(로그↔span), **rum.sessionId**(브라우저 세션↔서버 트레이스) `✓`. 이 replay→trace→log 조인이 대부분의 OSS 경쟁자가 못 따라오는 시그니처 강점입니다.
-- **커스텀 액션/속성 API**: `HyperDX.setGlobalAttributes({ userId, ... })`, `HyperDX.addAction('Form-Completed', { formId })`, `HyperDX.attachToReactErrorBoundary(ErrorBoundary)` `✓`. Datadog의 `addAction`/글로벌 컨텍스트에 대응하므로 커스텀 액션 계측은 이식 가능합니다.
+- 자동 수집: 콘솔 로그, 세션 리플레이, XHR/Fetch/WebSocket, 예외/에러, PerformanceResourceTiming 기반 리소스 타이밍 `✓`. 기본 인테이크는 `https://in-otel.hyperdx.io`(OTLP HTTP)이고 self-host는 `url` 옵션으로 자체 Collector를 지정합니다 `✓` — hyperdx-js `packages/browser/src/index.ts`의 `URL_BASE` 기본값을 `url` 인자로 덮어쓰는 방식이라, 소스 코드 수준까지 확인했습니다 `✓⁽3-0⁾`.
+- 네트워크 캡처 범위: 기본은 요청 메타만이고 `advancedNetworkCapture`를 켜면 헤더·본문 전체를 캡처합니다. 런타임 토글(`enableAdvancedNetworkCapture()`/`disable...`)도 있습니다 `✓`.
+- 세션 리플레이: rrweb 기반 DOM 이벤트 레코딩(비디오가 아님)으로 DOM 변경·마우스·클릭·스크롤·키입력·콘솔 로그·XHR/Fetch/WebSocket·JS 예외를 캡처해 브라우저에서 재구성합니다 `✓⁽ClickHouse 공식 문서⁾`. ClickStack UI는 우측에 재구성 화면·좌측에 네트워크/콘솔/에러 타임라인을 표시합니다. 특정 요청·에러를 클릭하면 Trace 탭으로 넘어가 백엔드 span·로그까지 따라갑니다 `✓`. 모든 신호는 두 조인키로 묶입니다 — TraceId(로그↔span), rum.sessionId(브라우저 세션↔서버 트레이스) `✓`. 이 replay→trace→log 조인이 대부분의 OSS 경쟁자가 못 따라오는 시그니처 강점입니다.
+- 커스텀 액션/속성 API: `HyperDX.setGlobalAttributes({ userId, ... })`, `HyperDX.addAction('Form-Completed', { formId })`, `HyperDX.attachToReactErrorBoundary(ErrorBoundary)` `✓`. Datadog의 `addAction`/글로벌 컨텍스트에 대응하므로 커스텀 액션 계측은 그대로 옮길 수 있습니다.
 
-핵심은 **RUM 대체가 프록시 변환이 아니라 SDK 교체라는 점**입니다 — dd browser-sdk를 걷어내고 위 `init`으로 갈아끼웁니다. `datadogreceiver`는 브라우저 RUM intake(`/api/v2/rum`)를 아예 수신하지 않으므로 프록시 경로는 RUM에 부적합합니다. 이 판단의 근거와 dd browser-sdk `proxy` 옵션의 과도기 활용법은 [dd 프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}})에서 다룹니다.
+RUM 대체는 프록시 변환으로 되지 않고 SDK를 교체해야 합니다 — dd browser-sdk를 걷어내고 이 `init`으로 갈아끼웁니다. `datadogreceiver`는 브라우저 RUM intake(`/api/v2/rum`)를 아예 수신하지 않으므로 프록시 경로는 RUM에 부적합합니다. 이 판단의 근거와 dd browser-sdk `proxy` 옵션의 과도기 활용법은 [dd 프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}})에서 다룹니다.
 
 ## 리스크 — 웹 RUM 대체 프로덕션 전례가 없다
 
-기술 커버리지가 높다는 것과 검증된 전환 사례가 있다는 것은 별개입니다. **"Datadog RUM을 HyperDX로 대체한 공개 프로덕션 사례"는 반복 조사에서도 찾지 못했습니다 `?`.** 근접 사례는 전부 RUM 대체가 아닙니다.
+기술 커버리지가 높다는 것과 검증된 전환 사례가 있다는 것은 별개입니다. "Datadog RUM을 HyperDX로 대체한 공개 프로덕션 사례"는 반복 조사에서도 찾지 못했습니다 `?`. 근접 사례는 전부 RUM 대체가 아닙니다.
 
 | 사례 | 무엇인가 | RUM 대체인가 |
 |---|---|:---:|
@@ -125,19 +125,19 @@ HyperDX.init({
 | Character.AI / Anthropic | ClickStack/ClickHouse 관측성(로그·트레이스) | ✗ (RUM 아님) |
 | HN 후기 | "프로덕션에서 HyperDX 잘 쓴다" | ✗ (RUM 특정 아님) |
 
-전례가 없는 이유는 구조적입니다. ClickStack/HyperDX RUM 자체가 신생(HyperDX 인수 2025-03, ClickStack 출시 2025-05)이라 사례가 축적될 시간이 부족했고, HyperDX RUM이 디버깅형에 강한 대신 PA·모바일이 얕아 **"Datadog RUM 풀 대체 완료"라는 서사가 나오기 어려운 구조**입니다 `≈`.
+전례가 없는 이유는 구조적입니다. ClickStack/HyperDX RUM 자체가 신생(HyperDX 인수 2025-03, ClickStack 출시 2025-05)이라 사례가 쌓일 시간이 없었고 HyperDX RUM이 디버깅형에 강하고 PA·모바일이 얕아 "Datadog RUM 풀 대체 완료"라는 서사가 나오기 어려운 구조입니다 `≈`.
 
 {{< callout type="important" >}}
-**의사결정 함의**: Wave 1(RUM-Core) 리스크를 "낮음"으로만 표기하면 위험합니다. **기술 대등성(높음) ↔ 검증된 전례(없음)를 분리 표기**하고, 대표 웹 페이지에 `@hyperdx/browser`를 **dual-instrument**로 병행 배포해 세션 리플레이·CWV·에러·트레이스 상관을 Datadog과 나란히 검증하는 **자체 PoC 성공을 Wave 1 진입 게이트로 명문화**합니다 `?⁽→ PoC로 마감⁾`. 단계별 실행은 [마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}}) 참조합니다.
+의사결정 함의: Wave 1(RUM-Core) 리스크를 "낮음"으로만 표기하면 위험합니다. 기술 대등성(높음)과 검증된 전례(없음)는 따로 적습니다. 대표 웹 페이지에 `@hyperdx/browser`를 dual-instrument로 병행 배포해 세션 리플레이·CWV·에러·트레이스 상관을 Datadog과 나란히 검증하고 그 PoC 성공을 Wave 1 진입 게이트로 명문화합니다 `?⁽→ PoC로 마감⁾`. 단계별 실행은 [마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}})을 참조합니다.
 {{< /callout >}}
 
 ## 우리 케이스에서는
 
-**전제 차이를 먼저 못 박습니다.** [로깅 챕터]({{< relref "../logging/_index.md" >}})는 **로그 내재화 단독** 관점이라 로그는 [VictoriaLogs]({{< relref "../logging/03-victorialogs.md" >}})로 가고 통합 저장소(D4)는 "earn it last"로 미뤄뒀습니다. 이 조사는 거기에 세 전제를 더합니다 — (1) 목표가 **Datadog RUM 대체**, (2) 관측성 밖 **범용 분석용 ClickHouse를 어차피 운영**, (3) **운영 인력 보유**. 이 전제 위에서만 아래 커버리지 판정이 착수 순서로 성립하며, 로깅 챕터의 결정(로그=VictoriaLogs, 통합 저장소=최후)과는 승격이 아니라 전제 차이로 양립합니다.
+전제 차이를 먼저 못 박습니다. [로깅 챕터]({{< relref "../logging/_index.md" >}})는 로그 내재화 단독 관점이라 로그는 [VictoriaLogs]({{< relref "../logging/03-victorialogs.md" >}})로 가고 통합 저장소(D4)는 "earn it last"로 미뤄뒀습니다. 이 조사는 거기에 세 전제를 더합니다 — (1) 목표가 Datadog RUM 대체, (2) 관측성 밖 범용 분석용 ClickHouse를 어차피 운영, (3) 운영 인력 보유. 이 전제 위에서만 아래 커버리지 판정이 착수 순서로 성립하며 로깅 챕터의 결정(로그=VictoriaLogs, 통합 저장소=최후)과는 승격이 아니라 전제 차이로 양립합니다.
 
-- **RUM은 SDK 교체(`@hyperdx/browser`)로 갑니다.** 프록시 변환이 아닙니다. 웹 RUM-Core(세션 리플레이·CWV·에러·프론트↔백엔드 상관)는 🟢로 즉시 넘어오고, 이 슬라이스가 세션 단가 과금을 회피시켜 절감이 가장 즉각적입니다.
-- **RUM을 하나로 취급하지 않습니다.** 좌절 신호는 이미 운영할 ClickHouse에서 SQL 사후계산(Wave 1.5)으로, 퍼널/리텐션은 `windowFunnel`/`retention` 자작 또는 PostHog 병행(별도 트랙)으로 분리합니다. HyperDX 하나로 다 되기를 기대하지 않습니다.
-- **모바일은 넘기지 않습니다 — [RUM 내재화 결론]({{< relref "_index.md" >}})의 "웹 YES / 모바일 NO"와 정합.** HyperDX 모바일은 RN 얇은 포크뿐이고 네이티브 리플레이가 없어, 모바일은 Datadog 잔류가 현실적입니다. 착수 전 Datadog RUM usage를 **웹/모바일로 분해**해 모바일 비중부터 측정합니다 — 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택만 늘립니다.
-- **전례 부재를 리스크로 명시합니다.** RUM 대체는 공개 프로덕션 레퍼런스가 없는 개척 경로입니다. dual-instrument PoC 성공을 Wave 1 진입의 필수 게이트로 삼습니다.
+- RUM은 SDK 교체(`@hyperdx/browser`)로 갑니다. 프록시 변환이 아닙니다. 웹 RUM-Core(세션 리플레이·CWV·에러·프론트↔백엔드 상관)는 🟢로 즉시 넘어오고 이 슬라이스가 세션 단가 과금에서 빠지면서 절감이 가장 즉각적입니다.
+- RUM을 하나로 취급하지 않습니다. 좌절 신호는 이미 운영할 ClickHouse에서 SQL 사후계산(Wave 1.5), 퍼널/리텐션은 `windowFunnel`/`retention` 자작 또는 PostHog 병행(별도 트랙)으로 분리합니다. HyperDX 하나로 다 되기를 기대하지 않습니다.
+- 모바일은 넘기지 않습니다 — [RUM 내재화 결론]({{< relref "_index.md" >}})의 "웹 YES / 모바일 NO"와 정합. HyperDX 모바일은 RN 얇은 포크뿐이고 네이티브 리플레이가 없어, 모바일은 Datadog 잔류가 현실적입니다. 착수 전 Datadog RUM usage를 웹/모바일로 분해해 모바일 비중부터 측정합니다 — 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택만 늘립니다.
+- 전례 부재를 리스크로 명시합니다. RUM 대체는 공개 프로덕션 레퍼런스가 없는 개척 경로입니다. dual-instrument PoC 성공을 Wave 1 진입의 필수 게이트로 삼습니다.
 
 > 근거 등급은 조사 문서의 판정을 이어받으며 임의 승격하지 않습니다(좌절신호·모바일 리플레이의 `✓⁽부재⁾`는 후속 보강조사가 확정한 것입니다). 시점 기준 조사 2026-07.

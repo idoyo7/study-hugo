@@ -7,22 +7,22 @@ weight: 4
 
 {{< callout type="info" >}}
 **한눈에**
-- HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어**(Logs·Traces·RUM 웹코어·Session Replay)를 커버하지만, 나머지 절반(Security·Synthetics·NPM/DBM·CI·On-Call 등)은 범위 밖 — 전용 OSS 개별 이관 또는 Datadog 잔류.
+- HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어**(Logs·Traces·RUM 웹코어·Session Replay)를 커버하지만 나머지 절반(Security·Synthetics·NPM/DBM·CI·On-Call 등)은 범위 밖 — 전용 OSS 개별 이관 또는 Datadog 잔류.
 - **메트릭 계층은 HyperDX가 아니라 VictoriaMetrics+Grafana**로 분리합니다 — PromQL 부재·ClickHouse SQL 타겟 변환기 자체가 없기 때문.
 - Wave 이관: 1 RUM웹코어 → 2 Logs → 3 APM → 4 Metrics(VM) → 5 나머지 개별. **Wave 4를 HyperDX로 잡으면 공수가 2~4배 팽창**합니다.
-- 절감은 대부분 스토리지 이관에서 나오지만, host high-water mark·custom metrics tax 같은 과금 함정과 인건비 상쇄를 함께 계산해야 합니다.
+- 절감은 대부분 스토리지 이관에서 나오지만 host high-water mark·custom metrics tax 같은 과금 함정과 인건비 상쇄를 함께 계산해야 합니다.
 - **Grafana OnCall OSS는 2026-03-24 아카이브 예정**이므로 On-Call 대안으로 신규 채택하지 않습니다.
 {{< /callout >}}
 
-RUM 하나만 빼와도 Datadog 청구서는 크게 줄지 않습니다. RUM은 진입점이고 실제 절감은 로그·트레이스·메트릭 "스토리지"를 옮길 때 나옵니다. 그래서 이 페이지는 웹 RUM 내재화([RUM 대체 커버리지]({{< relref "02-datadog-rum-coverage.md" >}}))를 넘어 **Datadog 전 제품군을 어디까지, 무엇으로 대체하는가**를 의사결정 관점에서 봅니다.
+RUM 하나만 빼오는 것으로는 Datadog 청구서가 크게 줄지 않습니다. RUM은 진입점이고 실제 절감은 로그·트레이스·메트릭 "스토리지"를 옮길 때 나옵니다. 이 페이지는 웹 RUM 내재화([RUM 대체 커버리지]({{< relref "02-datadog-rum-coverage.md" >}}))를 넘어 **Datadog 전 제품군을 어디까지, 무엇으로 대체하는가**를 의사결정 관점에서 정리합니다.
 
-HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어(Logs·Traces·RUM 웹코어·Session Replay)** 를 단일 ClickHouse 백엔드에서 커버하고 `✓`, 나머지 절반(Security·Synthetics·NPM/NDM·DBM·Profiler·CI·On-Call·Data Streams)은 그 범위 밖이라 전용 OSS로 개별 이관하거나 Datadog에 잔류시킵니다 `✓`. **메트릭 계층은 HyperDX가 아니라 VictoriaMetrics+Grafana로 분리**하는 판단이 이관 실현성을 되살립니다.
+결론부터: HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어(Logs·Traces·RUM 웹코어·Session Replay)** 를 단일 ClickHouse 백엔드에서 커버합니다 `✓`. 나머지 절반(Security·Synthetics·NPM/NDM·DBM·Profiler·CI·On-Call·Data Streams)은 ClickStack 범위 밖이라 전용 OSS로 개별 이관하거나 Datadog에 잔류시킵니다 `✓`. **메트릭 계층을 HyperDX가 아니라 VictoriaMetrics+Grafana로 분리**하는 판단이 이관을 실현 가능한 범위로 되돌립니다.
 
 ## 3분류 대체 매트릭스
 
 판정 범례: 🟢 즉시 대체 가능 · 🟡 조건부 대체(운영·기능 갭) · 🔴 당분간 Datadog 유지 또는 전용 OSS 개별 이관.
 
-"대안이 ClickHouse 백엔드?" 컬럼은 그 대안이 우리가 어차피 운영할 ClickHouse에 지표·이벤트를 흡수시킬 수 있는지를 뜻합니다 — 스택 수렴 여부를 가르는 축입니다.
+"대안이 ClickHouse 백엔드?" 컬럼은 그 대안이 우리가 어차피 운영할 ClickHouse에 지표·이벤트를 흡수할 수 있는지를 뜻합니다 — 스택 수렴 여부를 가르는 축입니다.
 
 - 🟢 **Log Management** · ClickStack/ClickHouse(CH 네이티브) — 최대 절감 영역 `✓`, 계측 교체 거의 불필요 `≈`.
 - 🟢 **APM/분산 트레이싱** · OTel SDK 재계측 + ClickStack(과도기 `datadogreceiver`, CH) — dd-trace↔OTel 개념 1:1, 점진 전환 `✓`.
@@ -41,7 +41,7 @@ HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어(Logs·Traces·
 - 🔴 **Incident/On-Call** · Keep / GoAlert / OneUptime / incident.io(상용, 운영 DB) — **Grafana OnCall OSS는 2026-03-24 아카이브 예정 → 신규 채택 금지** `✓`.
 - 🔴 **Data Streams/Data Jobs** · Kpow / KMinion / Coroot / Spark·Flink OTel(지표만 부분 CH 라우팅) — end-to-end 큐 의존성 자동 매핑 재현 어려움 `≈`.
 
-> 🔴는 "대체 불가"가 아니라 "ClickStack 코어 범위 밖"이라는 뜻입니다. 각 행의 전용 OSS로 대부분 대체되며 상당수는 지표·이벤트를 ClickHouse로 흘려보낼 수 있습니다.
+🔴는 "대체 불가"가 아니라 "ClickStack 코어 범위 밖"이라는 뜻입니다. 각 행의 전용 OSS로 대부분 대체됩니다. 상당수는 지표·이벤트를 ClickHouse로 흘려보낼 수 있습니다.
 
 {{< callout type="warning" >}}
 **Grafana OnCall OSS는 2025-03 유지보수 모드 → 2026-03-24 아카이브 예정**이므로 On-Call 대안으로 신규 채택하지 않습니다 `✓`. Keep·GoAlert·OneUptime 같은 유지되는 프로젝트나 상용(incident.io)으로 갑니다.
@@ -49,26 +49,26 @@ HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어(Logs·Traces·
 
 ## 이관의 지렛대 — datadogreceiver 프록시 매핑
 
-서버사이드 🟢 항목(Logs·APM·서버 Metrics)을 옮길 때 결정적 지렛대는 OpenTelemetry Collector의 `datadogreceiver`입니다. dd-agent/dd-trace가 보내는 traces·metrics·logs를 그대로 수신해 OTLP로 변환하고 ClickHouse/HyperDX로 export합니다 `✓`. 이렇게 하면 애플리케이션 계측을 즉시 걷어내지 않고 **백엔드부터 갈아끼우는 무중단 전환**이 성립합니다. 128-bit trace ID 재구성(기본 on)으로 dd-instrumented 서비스와 OTel 스팬이 같은 트레이스에서 상관됩니다 `✓`.
+서버사이드 🟢 항목(Logs·APM·서버 Metrics)을 옮길 때 결정적 지렛대가 OpenTelemetry Collector의 `datadogreceiver`입니다. dd-agent/dd-trace가 보내는 traces·metrics·logs를 그대로 수신해 OTLP로 변환, ClickHouse/HyperDX로 export합니다 `✓`. 애플리케이션 계측을 즉시 걷어내지 않고 **백엔드부터 갈아끼우는 무중단 전환**이 성립합니다. 128-bit trace ID 재구성(기본 on)으로 dd-instrumented 서비스와 OTel 스팬이 같은 트레이스에서 상관됩니다 `✓`.
 
-한계는 두 가지입니다.
+단 한계가 두 가지 있습니다.
 
-- **브라우저 RUM·세션 리플레이 intake는 수신 대상이 아닙니다** `✓`. 프록시가 유효한 영역은 로그·인프라 메트릭·APM 트레이스에 한정되고 **RUM은 프록시가 아니라 `@hyperdx/browser` SDK 교체**가 정답입니다. dd browser-sdk의 `proxy` 옵션은 변환용이 아니라 과도기 트래픽 통제용일 뿐입니다.
-- **프록시는 다리이지 종착지가 아닙니다** `✓`. `datadogreceiver`는 alpha이고 변환기의 CPU 오버헤드가 native 대비 크며 신호·속성별 fidelity 결함이 보고됩니다 `✓`. 규모를 결정하기 전에 자체 벤치와 속성 단위 diff 검증이 전제이며 장기적으로는 네이티브 OTel 계측으로 이전합니다.
+- **브라우저 RUM·세션 리플레이 intake는 수신 대상이 아닙니다** `✓`. 프록시가 유효한 영역은 로그·인프라 메트릭·APM 트레이스에 한정됩니다. **RUM은 프록시가 아니라 `@hyperdx/browser` SDK 교체**가 정답입니다. dd browser-sdk의 `proxy` 옵션은 과도기 트래픽 통제용일 뿐, 변환에는 쓸 수 없습니다.
+- **프록시는 다리이지 종착지가 아닙니다** `✓`. `datadogreceiver`는 alpha, 변환기의 CPU 오버헤드가 native 대비 크고 신호·속성별 fidelity 결함이 보고됩니다 `✓`. 규모를 결정하기 전에 자체 벤치와 속성 단위 diff 검증을 먼저 거칩니다. 장기적으로는 네이티브 OTel 계측으로 이전합니다.
 
-그래서 프록시는 로그·메트릭의 **단기 무중단 브릿지**로만 쓰고, traces는 OTel 재계측, RUM은 SDK 교체로 갑니다.
+프록시는 로그·메트릭의 **단기 무중단 브릿지**로만 씁니다. traces는 OTel 재계측, RUM은 SDK 교체로 갑니다.
 
 ## 메트릭 계층은 HyperDX가 아니다 — VictoriaMetrics+Grafana+Sloth/Pyrra로 분리
 
-전 제품군 이관에서 가장 흔한 실수가 "ClickHouse로 다 합치자"며 **메트릭·대시보드·모니터·SLO까지 HyperDX로 미는 것**입니다. 이 선택이 이관 비용을 비현실적으로 부풀립니다. 메트릭 계층은 반드시 [VictoriaMetrics 스택]({{< relref "../monitoring/victoriametrics/_index.md" >}})으로 분리 존치합니다. 근거는 세 가지입니다.
+전 제품군 이관에서 가장 흔한 실수가 "ClickHouse로 다 합치자"며 **메트릭·대시보드·모니터·SLO까지 HyperDX로 미는 것**입니다. 이건 이관 비용을 비현실적으로 부풀립니다. 메트릭 계층은 반드시 [VictoriaMetrics 스택]({{< relref "../monitoring/victoriametrics/_index.md" >}})으로 분리 존치합니다. 근거 세 가지.
 
 - **PromQL이 없습니다.** HyperDX 메트릭 대시보드·알림은 ClickHouse SQL + Lucene로 작성하고 PromQL은 로드맵입니다 `✓`. 수백 개 레거시 Datadog monitor를 그대로 옮길 언어 기반이 애초에 다릅니다.
-- **변환기 생태계가 PromQL/Grafana 타겟에만 존재합니다.** Chronosphere·groundcover는 Datadog Query Language → PromQL **AST 결정론적 변환기**(약 90% 자동, 마지막 10% 수작업)를 갖췄고, 대시보드 스키마 변환기(graang, 구조 ~87%)도 Grafana를 향합니다 `✓`. 반면 **ClickHouse SQL 타겟 변환기는 조사 시점 어떤 벤더도 내놓지 않았습니다** — 가장 근접한 SigNoz의 LLM 기반 도구조차 SigNoz 전용이고 HyperDX엔 대응물이 없습니다 `✓/≈`. HyperDX로 메트릭을 몰면 "SQL로 하나씩 수작업 재구축" 경로가 됩니다.
-- **무계측 dual-ship이 VM에서만 자연스럽습니다.** VictoriaMetrics는 Datadog agent / DogStatsD를 네이티브로 수신하고(`/datadog/api/v2/series`), `DD_ADDITIONAL_ENDPOINTS`로 Datadog과 VM에 **동시 전송(dual-ship)** 해 병행 검증 후 컷오버할 수 있습니다 `✓`. 계측을 안 건드리고 백엔드만 갈아끼웁니다.
+- **변환기는 PromQL/Grafana 타겟에만 있습니다.** Chronosphere·groundcover는 Datadog Query Language → PromQL **AST 결정론적 변환기**(약 90% 자동, 마지막 10% 수작업)를 갖췄습니다. 대시보드 스키마 변환기(graang, 구조 ~87%)도 Grafana를 향합니다 `✓`. 반면 **ClickHouse SQL 타겟 변환기는 조사 시점 어떤 벤더도 내놓지 않았습니다** — 가장 근접한 SigNoz의 LLM 기반 도구조차 SigNoz 전용이고 HyperDX엔 대응물이 없습니다 `✓/≈`. HyperDX로 메트릭을 몰면 "SQL로 하나씩 수작업 재구축" 경로가 됩니다.
+- **무계측 dual-ship이 VM에서만 자연스럽습니다.** VictoriaMetrics는 Datadog agent / DogStatsD를 네이티브로 수신(`/datadog/api/v2/series`)하고 `DD_ADDITIONAL_ENDPOINTS`로 Datadog과 VM에 **동시 전송(dual-ship)** → 병행 검증 후 컷오버가 가능합니다 `✓`. 계측을 안 건드리고 백엔드만 갈아끼웁니다.
 
-알림·SLO 성숙도도 VM 축이 앞섭니다. Grafana Alerting은 mute timing/silence/notification policy로 Datadog monitor에 근접하고, SLO는 **Sloth/Pyrra**(Prometheus recording rule + multiwindow-multiburn)로 표준 이관 경로가 있습니다 `✓`. HyperDX/ClickStack 알림은 OSS 자체호스팅에서도 동작하고 `GROUP BY`별 발화·SQL 기반 이상탐지까지 되지만, Alertmanager식 grouping/inhibition/silencing과 네이티브 SLO는 미달·부재입니다 `✓`. (이 알림 성숙도는 2025-11 OSS 패리티·2026-05 SQL 기반 이상탐지 반영 시점 기준 — [로깅 챕터]({{< relref "../logging/05-hyperdx-clickstack.md" >}})의 "알림은 rule당 단일 임계값, anomaly detection 없음" 서술은 그 이전 스냅샷이라 상충처럼 보이나 동일 제품의 다른 시점 서술입니다.)
+알림·SLO 성숙도도 VM 축이 앞섭니다. Grafana Alerting은 mute timing/silence/notification policy로 Datadog monitor에 근접합니다. SLO는 **Sloth/Pyrra**(Prometheus recording rule + multiwindow-multiburn)로 표준 이관 경로가 있습니다 `✓`. HyperDX/ClickStack 알림은 OSS 자체호스팅에서도 동작하고 `GROUP BY`별 발화·SQL 기반 이상탐지까지 됩니다. 다만 Alertmanager식 grouping/inhibition/silencing과 네이티브 SLO는 미달·부재입니다 `✓`. (이 알림 성숙도는 2025-11 OSS 패리티·2026-05 SQL 기반 이상탐지 반영 시점 기준 — [로깅 챕터]({{< relref "../logging/05-hyperdx-clickstack.md" >}})의 "알림은 rule당 단일 임계값, anomaly detection 없음" 서술은 그 이전 스냅샷이라 상충처럼 보이나 동일 제품의 다른 시점 서술입니다.)
 
-**봉합**: Grafana가 ClickHouse datasource로 로그·트레이스도 조회하게 하면 한 화면에서 VM 메트릭 + ClickHouse 로그/트레이스를 함께 봅니다 `≈`. HyperDX가 필요한 상관 딥다이브는 HyperDX에서. 즉 "전 제품군 대체"의 현실적 형태는 단일 백엔드가 아니라 **역할 분담(메트릭=VM+Grafana / 로그·트레이스·RUM=HyperDX·ClickHouse)** 입니다.
+**봉합**: Grafana가 ClickHouse datasource로 로그·트레이스도 조회하게 하면, 한 화면에서 VM 메트릭 + ClickHouse 로그/트레이스를 함께 봅니다 `≈`. HyperDX가 필요한 상관 딥다이브는 HyperDX에서. "전 제품군 대체"의 현실적 형태는 단일 백엔드가 아니라 **역할 분담(메트릭=VM+Grafana / 로그·트레이스·RUM=HyperDX·ClickHouse)** 입니다.
 
 무계측 dual-ship과 프록시 매핑의 서버사이드 상세는 [dd 프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}})에서 다룹니다.
 
@@ -84,9 +84,9 @@ rip-and-replace가 아니라 dual-write/dual-instrument → 병행 검증 → �
 | **4** | Metrics / Infra → VictoriaMetrics + Grafana + Sloth/Pyrra | 무계측 dual-ship으로 병행 검증 후 이관 | 중 |
 | **5** | Security·Synthetics·NPM/NDM·DBM·CI·On-Call·Data Streams | 제품 성격 상이·규제·운영부담 → 개별 이관/잔류 | 상 |
 
-Wave 1의 "리스크 낮음"은 조건부입니다. 공개 전례가 부재하므로 PoC 성공을 진입 게이트로 명문화합니다. Wave 5는 전용 OSS 개별 이관 또는 Datadog 잔류로 나뉩니다.
+Wave 1의 리스크는 낮습니다. 다만 공개 전례가 부재하므로 PoC 성공을 진입 게이트로 명문화한 조건부입니다. Wave 5는 전용 OSS 개별 이관 또는 Datadog 잔류로 나뉩니다.
 
-핵심은 **메트릭(Wave 4)의 목적지가 VM+Grafana여야 한다**는 점입니다. Wave 4를 HyperDX로 잡으면 자동화 부재로 공수가 2~4배로 팽창해 이관 자체가 좌초합니다 `≈`. 목적지를 올바로 잡으면 전 제품군 대체의 병목이던 메트릭·대시보드·모니터·SLO 이관이 풀립니다.
+**메트릭(Wave 4)의 목적지는 VM+Grafana여야 합니다.** Wave 4를 HyperDX로 잡으면 자동화 부재로 공수가 2~4배로 팽창해 이관 자체가 좌초합니다 `≈`. 목적지를 올바로 잡으면 전 제품군 대체의 병목이던 메트릭·대시보드·모니터·SLO 이관이 풀립니다.
 
 ## 비용 함정
 
@@ -101,10 +101,10 @@ Wave 1의 "리스크 낮음"은 조건부입니다. 공개 전례가 부재하�
 | Indexed spans | APM 호스트당 100만 span/월 포함, 초과 시 $1.70/100만 | ClickHouse 스토리지 단가로 흡수 |
 | RUM 세션 단가 | Measure $0.15/1k+Investigate $3/1k+Replay $2.50/1k | HyperDX는 GB 기반(예측성↑) |
 
-Host high-water mark는 오토스케일에 취약한 메커니즘입니다.
+Host high-water mark는 오토스케일에 특히 취약합니다.
 
-- **제품형 기능은 인건비가 절감을 상쇄합니다.** Security·Synthetics·On-Call처럼 "제품"으로 사던 기능을 OSS로 대체하면 라이선스는 줄지만 운영·개발 인건비가 그만큼(또는 그 이상) 늘 수 있습니다 `✓`. TCO에 운영 인력·on-call 비용을 반드시 가산합니다. Shopify는 자체 플랫폼 구축을 시도했으나 담당 팀 감축으로 계획이 불확실해진 **인력 리스크의 반례**입니다 `Ⓥ`.
-- **공개 절감 수치(30~98%)는 출처 편향을 걷어내고 읽습니다.** 상위 20% 소스만 정리해 저가치 로그·메트릭을 드롭하면 30~60% 절감이 흔하고 `Ⓥ`, OpenObserve/SigNoz류 이관에서 60~90% 절감이 인용됩니다 `Ⓥ`. 하지만 구체적 달러 수치(예: "로그 500GB/일 → $12,600/년, 98% 절감")는 확인된 1차 출처에 근거가 없어 조사에서 **미확인/추정으로 강등**됐습니다 `?`. 대체재 벤더(OpenObserve·SigNoz·Parseable) 블로그가 자사에 유리하게 인용한 수치라 그대로 신뢰하지 않습니다. 방향성(90%대 절감 가능)은 여러 자료가 뒷받침하되, 특정 숫자는 자체 벤치로만 확정합니다.
+- **제품형 기능은 인건비가 절감을 상쇄합니다.** Security·Synthetics·On-Call처럼 "제품"으로 사던 기능을 OSS로 대체하면 라이선스는 줄지만 운영·개발 인건비가 그만큼(또는 그 이상) 늘 수 있습니다 `✓`. TCO에 운영 인력·on-call 비용을 반드시 가산합니다. Shopify는 자체 플랫폼 구축을 시도했지만 담당 팀이 감축되면서 계획이 불확실해졌습니다 — **인력 리스크의 반례**입니다 `Ⓥ`.
+- **공개 절감 수치(30~98%)는 출처 편향을 걷어내고 읽습니다.** 상위 20% 소스만 정리해 저가치 로그·메트릭을 드롭하면 30~60% 절감이 흔하고 `Ⓥ`, OpenObserve/SigNoz류 이관에서 60~90% 절감이 인용됩니다 `Ⓥ`. 하지만 구체적 달러 수치(예: "로그 500GB/일 → $12,600/년, 98% 절감")는 확인된 1차 출처에 근거가 없어 조사에서 **미확인/추정으로 강등**됐습니다 `?`. 이 수치들은 대체재 벤더(OpenObserve·SigNoz·Parseable) 블로그가 자사에 유리하게 인용한 것이라 그대로 신뢰하지 않습니다. 방향(90%대 절감 가능)은 여러 자료가 뒷받침하되, 특정 숫자는 자체 벤치로만 확정합니다.
 
 검증된 실제 사례로 감을 잡습니다: Coinbase는 시장 냉각 후 Grafana+Prometheus+ClickHouse로 자체 스택을 구축해 이탈했고 `✓`, ClickHouse 자사는 내부 LogHouse로 Datadog을 대체해 "수백만 달러 절감"(100PB+ 저장) `Ⓥ`, Curve는 이관으로 관측성 비용 40% 절감 `Ⓥ`입니다. 자체 구축 임계선은 통상 **연 $2~5M 벤더 지출**로 봅니다 `≈`.
 
@@ -124,10 +124,10 @@ Host high-water mark는 오토스케일에 취약한 메커니즘입니다.
 
 이 매트릭스의 공격적 "ClickHouse로 코어를 흡수" 그림은 **조사 전제** — RUM 대체가 트리거이고, ClickHouse를 관측성 외 **범용 분석에도 운영**하며, 그럴 **인력을 보유**했다는 전제 — 위에서 성립합니다. 로깅 챕터가 서 있는 결정과는 관점이 다르므로, 승격이 아니라 전제 차이로 양립시킵니다.
 
-- **로깅 챕터 = 로그 내재화 관점**([로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}})): D1은 로그를 **VictoriaLogs**로 보내고(소규모 istio 로그엔 단일 바이너리가 더 가볍습니다), D4는 로그+트레이스+RUM 통합 저장소(ClickHouse)를 **"earn it last"** — 조건이 성숙해야 성립하는 최후 베팅 — 로 미뤄둡니다. 이 조사(RUM 대체 + 범용 분석 + 인력 보유 전제)는 **D4 트리거가 발화한 세계**의 지도입니다. 범용 분석 수요와 전담 오너가 실제로 서 있을 때만 로그를 🟢 즉시 ClickStack로 올리고, 그 전제가 아직 미충족이면 로그는 D1대로 VictoriaLogs에 남고 통합은 최후로 미룹니다.
-- **메트릭 판단은 두 관점이 일치합니다.** 메트릭을 HyperDX가 아니라 VictoriaMetrics+Grafana로 두는 것은 로깅 챕터의 Victoria 패밀리 선호(D1)와 [모니터링 챕터]({{< relref "../monitoring/victoriametrics/_index.md" >}})의 방향과 정합합니다. 여기엔 전제 차이가 없습니다 — 어느 관점에서든 메트릭은 VM 축입니다.
-- **RUM은 D3(웹 YES / 모바일 NO)와 정합.** Wave 1의 RUM 웹코어는 웹 세션 리플레이 한정이고 모바일은 별도 트랙으로 분리합니다. 착수 전 Datadog RUM usage를 웹/모바일로 분해해 모바일 비중부터 측정합니다 — 모바일이 과반이면 Wave 1의 "리스크 낮음"은 성립하지 않습니다.
+- **로깅 챕터 = 로그 내재화 관점**([로깅 · 옵저버빌리티]({{< relref "../logging/_index.md" >}})): D1은 로그를 **VictoriaLogs**로 보내고(소규모 istio 로그엔 단일 바이너리가 더 가볍습니다), D4는 로그+트레이스+RUM 통합 저장소(ClickHouse)를 **"earn it last"** — 조건이 성숙해야 성립하는 최후 베팅 — 로 미뤄둡니다. 이 조사(RUM 대체 + 범용 분석 + 인력 보유 전제) = **D4 트리거가 발화한 세계**의 지도입니다. 범용 분석 수요와 전담 오너가 실제로 서 있을 때만 로그를 🟢 즉시 ClickStack로 올립니다. 그 전제가 아직 미충족이면 로그는 D1대로 VictoriaLogs에 남고 통합은 최후로 미룹니다.
+- **메트릭 판단은 두 관점이 일치합니다.** 메트릭을 HyperDX가 아니라 VictoriaMetrics+Grafana로 두는 것은 로깅 챕터의 Victoria 패밀리 선호(D1), [모니터링 챕터]({{< relref "../monitoring/victoriametrics/_index.md" >}})의 방향과 정합합니다. 여기엔 전제 차이가 없습니다 — 어느 관점에서든 메트릭은 VM 축입니다.
+- **RUM은 D3(웹 YES / 모바일 NO)와 정합.** Wave 1의 RUM 웹코어는 웹 세션 리플레이에 한정됩니다. 모바일은 별도 트랙으로 분리합니다. 착수 전 Datadog RUM usage를 웹/모바일로 분해해 모바일 비중부터 측정합니다 — 모바일이 과반이면 Wave 1의 "리스크 낮음"은 성립하지 않습니다.
 
-이 매트릭스는 "무엇을 무엇으로 대체 가능한가"의 전체 지도이되, **실제 착수 순서는 로깅·모니터링 챕터의 서 있는 결정(로그=VictoriaLogs, 메트릭=VM+Grafana, 통합 저장소=최후)을 우선**합니다. 통합 ClickHouse 축은 범용 분석이라는 D4 트리거가 실제로 발화할 때 이 매트릭스대로 확장합니다. ClickHouse 자체 운영의 managed vs self-host 판단은 [ClickHouse 챕터]({{< relref "../clickhouse/_index.md" >}}) 참조.
+이 페이지의 매트릭스는 "무엇을 무엇으로 대체 가능한가"의 전체 지도이되, **우리의 실제 착수 순서는 로깅·모니터링 챕터의 서 있는 결정(로그=VictoriaLogs, 메트릭=VM+Grafana, 통합 저장소=최후)을 우선**합니다. 통합 ClickHouse 축은 범용 분석이라는 D4 트리거가 실제로 발화할 때 이 매트릭스대로 확장합니다. ClickHouse 자체 운영의 managed vs self-host 판단은 [ClickHouse 챕터]({{< relref "../clickhouse/_index.md" >}}) 참조.
 
-> 근거 등급은 조사 문서의 판정을 이어받으며 임의 승격하지 않습니다. 시점 기준 조사 2026-07.
+근거 등급은 조사 문서의 판정을 이어받으며 임의 승격하지 않습니다. 시점 기준 조사 2026-07.

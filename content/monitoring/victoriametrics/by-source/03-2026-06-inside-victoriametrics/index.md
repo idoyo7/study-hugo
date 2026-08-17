@@ -7,9 +7,9 @@ weight: 3
 
 {{< callout type="info" >}}
 **참조한 내용정리** · 이 문서는 아래 네이버 D2 원문을 읽고 우리 지식베이스 형식으로 재구성한 요약입니다. 원문 자체가 아니며 정확한 워딩·전체 맥락·그림은 원문에서 확인합니다.
-- **원문**: [Inside VictoriaMetrics](https://d2.naver.com/helloworld/9290861)
-- **매체 · 게시일**: D2 발표영상 (40분 37초) · 2026-06-02
-- **저자**: 강민구 (NAVER Container Platform)
+- 원문: [Inside VictoriaMetrics](https://d2.naver.com/helloworld/9290861)
+- 매체 · 게시일: D2 발표영상 (40분 37초) · 2026-06-02
+- 저자: 강민구 (NAVER Container Platform)
 {{< /callout >}}
 
 {{< callout type="info" >}}
@@ -20,9 +20,9 @@ weight: 3
 - 운영에서 반복해서 등장하는 이름들: 랑데부 해싱, `replicationFactor`, `TSID`, Merge Multiplier, IndexDB 3단계 로테이션, Rollup Result Cache, `search.latencyOffset`, 카디널리티.
 {{< /callout >}}
 
-이 문서는 40분짜리 발표영상을 컴포넌트별로 훑는 지도입니다. 발표 자체가 데이터의 흐름을 따라 6개 박스를 하나씩 까 보는 구성이라 순서는 그대로 두고 박스마다 무엇을 하는 컴포넌트인지를 다룹니다. 내부 동작의 깊은 세부는 그 주제를 전담하는 concepts 문서로 넘깁니다.
+이 문서는 40분짜리 발표영상을 컴포넌트별로 훑는 지도입니다. 발표 자체가 데이터 흐름을 따라 6개 박스를 하나씩 까 보는 구성입니다. 순서는 그대로 두고 박스마다 어떤 일을 하는 컴포넌트인지 짚습니다. 내부 동작의 깊은 세부는 그 주제를 전담하는 concepts 문서로 넘깁니다.
 
-> 관련 문서: [개념 01 시계열과 VM]({{< relref "../../concepts/01-tsdb-and-victoriametrics.md" >}}) · [개념 02 아키텍처]({{< relref "../../concepts/02-architecture.md" >}}) · [개념 03 수집]({{< relref "../../concepts/03-ingestion.md" >}}) · [개념 04 저장·압축]({{< relref "../../concepts/04-storage-and-compression.md" >}}) · [개념 05 쿼리·운영 컴포넌트]({{< relref "../../concepts/05-query-and-ops-components.md" >}}) · [실전 01 카디널리티]({{< relref "../../practice/01-cardinality.md" >}})
+관련 문서: [개념 01 시계열과 VM]({{< relref "../../concepts/01-tsdb-and-victoriametrics.md" >}}) · [개념 02 아키텍처]({{< relref "../../concepts/02-architecture.md" >}}) · [개념 03 수집]({{< relref "../../concepts/03-ingestion.md" >}}) · [개념 04 저장·압축]({{< relref "../../concepts/04-storage-and-compression.md" >}}) · [개념 05 쿼리·운영 컴포넌트]({{< relref "../../concepts/05-query-and-ops-components.md" >}}) · [실전 01 카디널리티]({{< relref "../../practice/01-cardinality.md" >}})
 
 ## ① 아키텍처 오버뷰
 
@@ -34,10 +34,10 @@ weight: 3
 
 {{< flow src="_flow/아키텍처-오버뷰.json" />}}
 
-- **`vmagent`** — 타깃에서 지표를 스크랩하고 리레이블·드랍 같은 1차 가공을 맡습니다.
-- **`vminsert`** — 받은 데이터를 N개의 `vmstorage` 노드로 라우팅·샤딩합니다.
-- **`vmstorage`** — 실제 저장을 담당합니다. 저장은 이 단에서만 일어납니다.
-- **`vmselect`** — 쿼리 엔진입니다. 쿼리를 받아 `vmstorage`에서 데이터를 select해 와 merge한 뒤 클라이언트에 응답을 반환합니다.
+- `vmagent` — 타깃에서 지표를 스크랩하고 리레이블·드랍 같은 1차 가공을 맡습니다.
+- `vminsert` — 받은 데이터를 N개의 `vmstorage` 노드로 라우팅·샤딩합니다.
+- `vmstorage` — 실제 저장을 담당합니다. 저장은 이 단에서만 일어납니다.
+- `vmselect` — 쿼리 엔진입니다. 쿼리를 받아 `vmstorage`에서 데이터를 select해 와 merge한 뒤 클라이언트에 응답을 반환합니다.
 
 이 4컴포넌트 구조와 SingleNode vs Cluster, LSM 트리, IndexDB/DataDB 분리의 배경은 [개념 02 아키텍처]({{< relref "../../concepts/02-architecture.md" >}})가 전담합니다.
 
@@ -59,13 +59,13 @@ weight: 3
 7. 리모트 플러시 (실제 전송)
 ```
 
-발표자가 강조한 두 가지. 첫째, **리레이블링이 두 번 걸립니다.** 전 트래픽 공통 룰은 글로벌 단계에서, 특정 리모트에만 걸 룰은 퍼-리모트 단계에서 처리하므로 티어별로 나눌 수 있습니다. 둘째, 인메모리 큐가 가득 차면 자동으로 Persistent Queue(디스크)로 떨어집니다. 덕분에 `vminsert`와의 네트워크 장애나 지연으로 잠시 전송하지 못해도 `vmagent`는 지표를 잃지 않습니다. 운영 관점에서 데이터 유실을 막는 안전장치입니다. 입력 프로토콜·pull/push 예시·7단계·큐 버퍼링의 상세는 [개념 03 수집]({{< relref "../../concepts/03-ingestion.md" >}})에서 다룹니다.
+발표자가 강조한 두 가지. 첫째, **리레이블링이 두 번 걸립니다.** 전 트래픽 공통 룰은 글로벌 단계에서, 특정 리모트에만 걸 룰은 퍼-리모트 단계에서 처리하므로 티어별로 나눌 수 있습니다. 둘째, 인메모리 큐가 가득 차면 자동으로 Persistent Queue(디스크)로 떨어집니다. 덕분에 `vminsert` 쪽 네트워크 장애나 지연으로 잠시 전송하지 못해도 `vmagent`는 지표를 잃지 않습니다. 운영 관점에서 데이터 유실을 막는 안전장치입니다. 입력 프로토콜·pull/push 예시·7단계·큐 버퍼링의 상세는 [개념 03 수집]({{< relref "../../concepts/03-ingestion.md" >}})에서 다룹니다.
 
 ## ③ vminsert — 라우팅하는 수집 게이트웨이
 
 `vminsert`는 인제스천 파이프라인이지만 저장은 하지 않으므로 **`vmstorage` 노드로 라우팅하는 수집 게이트웨이**에 가깝습니다. `vmstorage`에 붙을 때는 TCP 커넥션을 맺은 뒤 **압축 방식을 협의**합니다(예: zstd로 합의). 여기서 `rpc.disableCompression` 옵션이 흥미로운데, 켜면 압축을 안 합니다. CPU는 절약되지만 대역폭이 늘어납니다. 네트워크 밴드위스가 충분하고 CPU를 아끼고 싶으면 이 트레이드오프를 택할 수 있습니다.
 
-수많은 `vmstorage` 중 어디로 보낼지는 **랑데부 해싱**으로 정합니다. 단순 모듈로/해시를 쓰면 노드 추가·삭제 시 거의 모든 시계열이 다른 노드로 옮겨 가 리밸런싱 폭풍이 일어납니다. 랑데부 해싱은 지표가 들어올 때마다 모든 노드에 대해 `hash(지표 이름 + 노드 이름)`으로 점수를 매기고 **가장 높은 노드에만** 보냅니다.
+수많은 `vmstorage` 중 어디로 보낼지는 **랑데부 해싱**으로 정합니다. 단순 모듈로/해시를 쓰면 노드 추가·삭제 시 거의 모든 시계열이 다른 노드로 옮겨 가 리밸런싱 폭풍이 일어납니다. 랑데부 해싱은 지표가 들어올 때마다 모든 노드에 `hash(지표 이름 + 노드 이름)`으로 점수를 매기고 **가장 높은 노드에만** 보냅니다.
 
 ```
 점수 예: node A 0.82 · node B 0.45 · node C 0.91  → 최고점 C로 전송
@@ -77,9 +77,9 @@ weight: 3
 
 ## ④ vmstorage — 저장을 책임지는 컴포넌트
 
-`vmstorage`는 `vminsert`로부터 지표를 받아 **월별 파티션 단위로 저장**하고 `vmselect`의 쿼리에 블록 단위로 응답합니다. 저장 이야기는 지표 하나의 내부 표현에서 출발합니다. 지표는 **Time Series**(지표 이름 + 레이블, 예: `request_total{path="/", code="200"}`)와 **Sample**(Unix timestamp + value, 예: `value=120`)로 나뉩니다. Time Series는 거의 변하지 않고 Sample만 계속 쌓입니다. 그러니 이 둘을 따로 관리하면 압축 효율이 크게 좋아집니다. 이것이 뒤의 **IndexDB / DataDB 분리**의 근거입니다.
+`vmstorage`는 `vminsert`에서 지표를 받아 **월별 파티션 단위로 저장**하고 `vmselect`의 쿼리에 블록 단위로 응답합니다. 저장 이야기는 지표 하나의 내부 표현에서 출발합니다. 지표는 **Time Series**(지표 이름 + 레이블, 예: `request_total{path="/", code="200"}`)와 **Sample**(Unix timestamp + value, 예: `value=120`)로 나뉩니다. Time Series는 거의 변하지 않고 Sample만 계속 쌓입니다. 그러니 이 둘을 따로 관리하면 압축 효율이 크게 좋아집니다. 이것이 뒤의 **IndexDB / DataDB 분리**의 근거입니다.
 
-데이터가 들어와 눕기까지의 경로는 이렇습니다. 블록 단위로 받은 로우 바이트를 **최대 1만 행** 단위의 구조화된 로우로 파싱하고(metric name / value / timestamp), 각 로우를 **`TSID`**(64bit 정수, 시계열의 내부 ID)로 변환한 뒤 샤드로 나눠 큐에 쌓았다가 플러시하며 인메모리 파트로 저장합니다. 이때 Delta / Delta-of-Delta 차분 인코딩이 진행됩니다.
+데이터가 들어와 눕기까지의 경로는 이렇습니다. 블록 단위로 받은 로우 바이트를 **최대 1만 행** 단위의 구조화된 로우로 파싱하고(metric name / value / timestamp), 각 로우를 **`TSID`**(64bit 정수, 시계열의 내부 ID)로 변환한 뒤 샤드로 나눠 큐에 쌓았다가 플러시하며 인메모리 파트로 저장합니다. 이때 Delta / Delta-of-Delta 차분 인코딩을 적용합니다.
 
 `TSID` 변환 자체는 두 단계입니다. 먼저 로우를 **Canonical Name으로 정규화**합니다(레이블 순서가 달라도 같은 시계열이면 같은 형태로 정렬). 그 이름을 64bit `TSID`로 바꿉니다. 매번 정규화하면 비싸므로 **`TSID` 캐시**(인메모리 매핑)를 두고 동일 이름이 다시 오면 캐시에서 바로 꺼내는 **빠른 경로**를 탑니다. 캐시 미스면 디스크 인덱스인 IndexDB(prefix별 엔트리)를 조회하고 거기에도 없으면 **처음 보는 시계열로 판단해 New `TSID`를 발급**합니다. New `TSID`가 마구 발급되는 상황이 곧 **시계열 카디널리티 폭발**입니다(6섹션·[실전 01 카디널리티]({{< relref "../../practice/01-cardinality.md" >}})에서 재등장).
 
@@ -88,8 +88,8 @@ weight: 3
 {{% details title="ZigZag + Varint — 음수·바이트 절약" closed="true" %}}
 차분 압축은 `-5, -7, -13` 같은 음수를 낳습니다. 음수는 이진 표현상 상위 비트가 켜져 공간을 많이 먹으므로 두 단계로 다듬습니다.
 
-- **ZigZag 인코딩**: 부호를 없애고 절댓값이 작은 순서대로 양수에 매핑한다(`0, -1, 1, -2, ...` → `0, 1, 2, 3, ...`). `-5`라면 왼쪽 시프트(-10) XOR 산술 우시프트(-1) = 9가 됩니다. 큰 음수가 작은 양수가 됩니다.
-- **Varint 인코딩**: 그렇게 얻은 양수를 **7비트씩** 쪼개 저장합니다. 각 바이트의 하위 7비트는 값, 최상위 1비트는 "다음 바이트가 이어진다"는 연속 플래그입니다. `9`는 한 바이트로 끝나고, `300`처럼 큰 값은 여러 바이트로 이어집니다.
+- ZigZag 인코딩: 부호를 없애고 절댓값이 작은 순서대로 양수에 매핑합니다(`0, -1, 1, -2, ...` → `0, 1, 2, 3, ...`). `-5`라면 왼쪽 시프트(-10) XOR 산술 우시프트(-1) = 9가 됩니다.
+- Varint 인코딩: 그렇게 얻은 양수를 **7비트씩** 쪼개 저장합니다. 각 바이트의 하위 7비트는 값, 최상위 1비트는 "다음 바이트가 이어진다"는 연속 플래그입니다. `9`는 한 바이트로 끝나고, `300`처럼 큰 값은 여러 바이트로 이어집니다.
 
 결국 `-5`는 `9`로 저장됩니다. 실운영 실측으로 데이터포인트당 0.92바이트까지 줄어드는 수치는 [개념 04 저장·압축]({{< relref "../../concepts/04-storage-and-compression.md" >}})에서 다룹니다.
 {{% /details %}}
@@ -121,9 +121,9 @@ Retention 기간에 도달하면 **Next → Current, Current → Previous, Previ
 
 내부에서 PromQL 한 줄은 **3-Prefix 검색**으로 풀립니다. 먼저 쿼리 문자열을 구조화된 데이터로 파싱합니다(함수·필터·시간 윈도, 이 파싱 결과도 캐싱). 그다음 3단계로 되짚습니다.
 
-1. **Prefix 1** · 태그 → Metric ID — 태그 필터를 IndexDB에 전달해 `name`·`method`·`status` 등 여러 조건의 **교집합** Metric ID를 모은다(인메모리 캐시 먼저 확인).
-2. **Prefix 2** · Metric ID → TSID — 모인 Metric ID를 `TSID`로 변환한다(예: Metric ID 49가 어떤 `TSID`인지 조회).
-3. **Prefix 3** · TSID → 값·이름 복원 — `TSID`로 value·timestamp를 가져오고 응답에 넣을 지표 이름·레이블을 역으로 복원합니다.
+1. Prefix 1 · 태그 → Metric ID — 태그 필터를 IndexDB에 전달해 `name`·`method`·`status` 등 여러 조건의 **교집합** Metric ID를 모읍니다(인메모리 캐시 먼저 확인).
+2. Prefix 2 · Metric ID → TSID — 모인 Metric ID를 `TSID`로 변환합니다(예: Metric ID 49가 어떤 `TSID`인지 조회).
+3. Prefix 3 · TSID → 값·이름 복원 — `TSID`로 value·timestamp를 가져오고 응답에 넣을 지표 이름·레이블을 역으로 복원합니다.
 
 {{< flow src="_flow/vmselect-fanout-쿼리-엔진.json" />}}
 
@@ -131,9 +131,9 @@ Retention 기간에 도달하면 **Next → Current, Current → Previous, Previ
 
 `vmselect`의 메모리 관리 포인트는 세 가지입니다.
 
-1. **쿼리 시점 Deduplication** — `vmstorage`에서 이미 dedup했지만 `vmselect`에서 한 번 더 합니다. `dedup.minScrapeInterval=10s` 같은 옵션으로 동일 timestamp 구간에서 최신 값만 살립니다.
-2. **Rollup Result Cache** — 한 번 처리한 쿼리 결과를 캐싱합니다. 단 **`vmselect` 허용 메모리의 12.5%만** 쓰고 현재 시각 기준 최근 5분 구간은 캐싱에서 제외합니다. 최근 5분 데이터는 아직 `vmstorage`에 다 도착하지 않았을 수 있는데, 그런 불안정한 결과를 캐시에 넣으면 잘못된 값을 계속 돌려주기 때문입니다.
-3. **Query Latency Offset** — `search.latencyOffset` 설정값, **기본 30초**. 쿼리 시 가장 최근 30초 데이터를 일부러 뒤로 밀어 검색합니다. 수집 지연으로 흔들리는 데이터를 피하려는 장치입니다. 실시간성이 중요하면 0초로 줄일 수 있으나 **같은 그래프가 새로고침마다 다르게 보이는** 점을 감수해야 합니다.
+1. 쿼리 시점 Deduplication — `vmstorage`에서 이미 dedup했지만 `vmselect`에서 한 번 더 합니다. `dedup.minScrapeInterval=10s` 같은 옵션으로 동일 timestamp 구간에서 최신 값만 살립니다.
+2. Rollup Result Cache — 한 번 처리한 쿼리 결과를 캐싱합니다. 단 **`vmselect` 허용 메모리의 12.5%만** 쓰고 현재 시각 기준 최근 5분 구간은 캐싱에서 제외합니다. 최근 5분 데이터는 아직 `vmstorage`에 다 도착하지 않았을 수 있는데, 그런 불안정한 결과를 캐시에 넣으면 잘못된 값을 계속 돌려주기 때문입니다.
+3. Query Latency Offset — `search.latencyOffset` 설정값, **기본 30초**. 쿼리 시 가장 최근 30초 데이터를 일부러 뒤로 밀어 검색합니다. 수집 지연으로 흔들리는 데이터를 피하려는 장치입니다. 실시간 반영이 중요하면 0초로 줄일 수 있으나 **같은 그래프가 새로고침마다 다르게 보이는** 점을 감수해야 합니다.
 
 3-Prefix 검색의 상세는 [개념 05 쿼리·운영 컴포넌트]({{< relref "../../concepts/05-query-and-ops-components.md" >}})에서 다룹니다. 운영 컴포넌트 `vmalert`(Recording rules 선계산)·`vmauth`(멀티 클러스터 라우팅 게이트웨이)는 이 발표에는 등장하지 않습니다. 같은 문서에서 다른 D2 자료를 근거로 별도로 다룹니다.
 
@@ -141,15 +141,15 @@ Retention 기간에 도달하면 **Next → Current, Current → Previous, Previ
 
 마지막 섹션은 운영에서 마주치는 best/worst case, 곧 카디널리티 이야기입니다. 시계열은 그 자체로 하나의 정의이므로 레이블이 단 하나만 달라져도 다른 시계열로 인식됩니다. 발표자가 든 예에서 하이 카디널리티를 유발할 수 있는 대표 레이블은 `pod_name`과 `session_id`입니다. 변경이 잦은 값은 가능하면 레이블에서 제외합니다.
 
-- **pod 이름** — 파드가 재시작될 때마다 이름이 바뀌면 New `TSID`가 쏟아집니다. 앞에 서비스 네임이 있으니 `my-order` 같은 **자주 변하지 않는 서비스 네임**으로 대체하면 파드가 재시작돼도 지표에 영향이 없습니다.
-- **session ID** — 이런 자주 변경되는 값은 지표로 저장하지 말고 **로그나 트레이스로** 다루는 편이 낫습니다.
+- pod 이름 — 파드가 재시작될 때마다 이름이 바뀌면 New `TSID`가 쏟아집니다. 앞에 서비스 네임이 있으니 `my-order` 같은 **자주 변하지 않는 서비스 네임**으로 대체하면 파드가 재시작돼도 지표에 영향이 없습니다.
+- session ID — 이런 자주 변경되는 값은 지표로 저장하지 말고 **로그나 트레이스로** 다루는 편이 낫습니다.
 
 카디널리티의 원인·측정 지표(churn rate, slow insert rate)·설계 원칙은 [실전 01 카디널리티]({{< relref "../../practice/01-cardinality.md" >}})가 전담합니다.
 
-> 발표자는 자료 대부분을 공식 블로그에서 인용하고 본인 해석을 붙였다고 밝힙니다. 정확한 워딩·그림·전체 맥락은 원문 영상과 D2 기사에서 확인합니다.
+발표자는 자료 대부분을 공식 블로그에서 인용하고 본인 해석을 붙였다고 밝힙니다. 정확한 워딩·그림·전체 맥락은 원문 영상과 D2 기사에서 확인합니다.
 
 ## 출처
 
-- **Inside VictoriaMetrics** (강민구, NAVER Container Platform · D2 발표영상 40:37 · 2026-06-02) — https://d2.naver.com/helloworld/9290861
+- Inside VictoriaMetrics (강민구, NAVER Container Platform · D2 발표영상 40:37 · 2026-06-02) — https://d2.naver.com/helloworld/9290861
 - 작업 저장소 원본: `02_대사집_Inside_VictoriaMetrics.md` (whisper.cpp 자동 전사본).
 - 이 문서는 발표영상 전체(00:00~40:37)의 6섹션 구성 — ① 아키텍처 오버뷰(00:55~05:58) ② `vmagent`(06:11~11:00) ③ `vminsert`(11:00~15:38) ④ `vmstorage`(15:58~33:30) ⑤ `vmselect`(33:46~38:50) ⑥ best/worst case(38:50~40:00) — 를 컴포넌트별 지도 형태로 요약하고, 각 컴포넌트의 깊은 세부는 concepts/01~05·practice/01 문서로 넘깁니다.
