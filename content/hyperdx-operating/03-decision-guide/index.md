@@ -9,13 +9,13 @@ aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decisi
 {{< callout type="info" >}}
 **한눈에**
 
-- 7축(배포·hot 스토리지·cold 티어링·토폴로지·조정 계층·MongoDB·업그레이드) 각각을 **기본값 + 왜 안전/충분 + 승급 트리거** 한 표로 못박습니다. 뼈대는 HyperDX Only(`clickhouse.enabled:false`)+Altinity CHI/CHK · 단일 gp3 · S3 TTL MOVE · 1 shard × RF2(2 AZ) · Keeper 3노드 · MongoDB 최소 · LTS 핀.
-- 승급은 감이 아니라 **관측된 신호**로만 합니다 — 각 트리거를 "어떤 신호를 어디서 보면 발동인가"(`system.parts`·`system.asynchronous_metrics`·CloudWatch EBS 지표·K8s 메트릭)까지 §2에서 한 단계 내렸습니다.
-- 단 **업그레이드 축엔 승급 방향이 없습니다** — 온디스크 포맷이 바뀐 뒤의 다운그레이드는 "없다고 가정"하고, 유일한 되돌림은 업그레이드 직전 EBS 스냅샷입니다.
-- 배포 전 실측 항목은 전부 `?`입니다 — 원래 4항목(0.7TB 해석·리플레이 압축비·기본 TTL·reattach 실소요)에 IRSA·경로·볼륨 회수 계열 5항목이 합쳐져 **9항목**이 됐고, **staging에서 측정해 `✓`로 승격**하는 것이 staging을 두는 캐파상 이유입니다(§3).
+- 7축(배포·hot 스토리지·cold 티어링·토폴로지·조정 계층·MongoDB·업그레이드)을 **기본값 + 왜 안전/충분 + 승급 트리거** 한 표에 못박습니다. 뼈대는 HyperDX Only(`clickhouse.enabled:false`)+Altinity CHI/CHK · 단일 gp3 · S3 TTL MOVE · 1 shard × RF2(2 AZ) · Keeper 3노드 · MongoDB 최소 · LTS 핀입니다.
+- 승급은 감이 아니라 **관측된 신호**로만 합니다. §2에서 각 트리거를 "어떤 신호를 어디서 보면 발동인가"(`system.parts`·`system.asynchronous_metrics`·CloudWatch EBS 지표·K8s 메트릭)까지 한 단계 내렸습니다.
+- 단 **업그레이드 축엔 승급 방향이 없습니다** — 온디스크 포맷이 바뀐 뒤의 다운그레이드는 "없다고 가정"하고 유일한 되돌림은 업그레이드 직전 EBS 스냅샷입니다.
+- 배포 전 실측 항목은 전부 `?`입니다. 원래 4항목(0.7TB 해석·리플레이 압축비·기본 TTL·reattach 실소요)에 IRSA·경로·볼륨 회수 계열 5항목이 합쳐져 **9항목**이 됐습니다. 이 항목을 **staging에서 측정해 `✓`로 승격**하는 것이 staging을 두는 캐파상 이유입니다(§3).
 {{< /callout >}}
 
-트랙의 다른 두 페이지가 우리 형상의 **현황**([우리 배포 형상]({{< relref "01-our-deployment.md" >}}))과 사건 시 **순서**([운영 런북]({{< relref "02-runbook.md" >}}))를 맡는다면, 이 페이지는 **언제 무엇을 승급하나**를 맡습니다 — 결정 매트릭스 하나로 접고, 매트릭스의 기준 문서는 이 페이지입니다. 각 축의 "왜"의 전개는 챕터 기준 문서로 위임하고, 여기서는 판단에 필요한 최소 근거, 그리고 로드맵 요약에는 없던 한 단계 — **승급 트리거의 관측 지점** — 를 더합니다.
+우리 형상의 **현황**은 [우리 배포 형상]({{< relref "01-our-deployment.md" >}})이, 사건이 났을 때의 **순서**는 [운영 런북]({{< relref "02-runbook.md" >}})이 맡습니다. 이 페이지는 **언제 무엇을 승급하나**를 맡습니다 — 결정 매트릭스 하나로 접고 그 매트릭스의 기준 문서가 이 페이지입니다. 각 축의 "왜"를 펼치는 일은 챕터 기준 문서에 위임하고 여기에 판단에 필요한 최소 근거와 로드맵 요약에는 없던 한 단계 — **승급 트리거의 관측 지점** — 만 얹습니다.
 
 ## 1. 결정 매트릭스 — 기본값·왜 안전/충분·승급 트리거
 
@@ -31,7 +31,7 @@ aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decisi
   - 상세: [hot 스토리지·EBS]({{< relref "../../hyperdx/02-hot-storage-ebs.md" >}})
 - **cold 티어링**
   - 기본값: **S3 TTL MOVE**(또는 **block-only**)
-  - 왜 안전/충분: 긴 보존이 싼 이유는 cold(S3)가 hot(gp3)보다 GB당 훨씬 싸기 때문이고, 리플레이는 30일 캡 `≈`. GB 단가·배수는 [hot 스토리지 · EBS]({{< relref "../../hyperdx/02-hot-storage-ebs.md" >}}) §1.3이 정본
+  - 왜 안전/충분: 긴 보존이 싼 이유는 cold(S3)가 hot(gp3)보다 GB당 훨씬 싸기 때문이고 리플레이는 30일 캡 `≈`. GB 단가·배수는 [hot 스토리지 · EBS]({{< relref "../../hyperdx/02-hot-storage-ebs.md" >}}) §1.3이 정본
   - 승급 트리거: **block-only**: 짧은 보존(≤90일) · S3 미접근/규정 · 운영 단순성(staging)
   - 상세: [S3 티어링]({{< relref "../../hyperdx/03-s3-cold-tiering.md" >}}) · [블록 온리]({{< relref "../../hyperdx/08-block-only-tuning.md" >}})
 - **토폴로지**
@@ -55,10 +55,10 @@ aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decisi
   - 승급 트리거: — (다운그레이드는 "없다고 가정")
   - 상세: [운영 런북]({{< relref "02-runbook.md" >}}) · [버전·업그레이드]({{< relref "../../hyperdx/09-version-upgrade-compat.md" >}})
 
-"왜 안전/충분" 열은 성격이 다른 두 계열이 섞여 있음을 구분해 읽습니다. **안전**의 근거는 장애 방어 메커니즘 — EBS reattach·RF 복제·Keeper 정족수·스냅샷 롤백 — 이고, **충분**의 근거는 규모 여유 — 0.7TB/월의 인제스트 피크 ~8 MB/s가 CPU·I/O 모두에 한참 못 미친다는 사실 — 입니다 `≈`. 승급 트리거도 이 구분을 따릅니다: 안전 계열(RF3·Keeper 5노드)은 **요구사항이 바뀔 때** 발동하고, 충분 계열(io2·shard)은 **관측된 부하가 임계를 넘을 때** 발동합니다. 전자는 지표를 아무리 봐도 안 나오는 트리거라는 점이 §2 표의 "요구사항 신호" 행들이 존재하는 이유입니다.
+"왜 안전/충분" 열은 성격이 다른 두 계열이 섞여 있으니 구분해 읽습니다. **안전**의 근거는 장애 방어 메커니즘 — EBS reattach·RF 복제·Keeper 정족수·스냅샷 롤백 — 이고, **충분**의 근거는 규모 여유, 즉 0.7TB/월의 인제스트 피크 ~8 MB/s가 CPU·I/O 모두에 한참 못 미친다는 사실입니다 `≈`. 승급 트리거도 같은 구분을 따릅니다. 안전 계열(RF3·Keeper 5노드)은 **요구사항이 바뀔 때** 발동하고 충분 계열(io2·shard)은 **관측된 부하가 임계를 넘을 때** 발동합니다. 전자는 지표를 아무리 봐도 안 나오는 트리거입니다. 그래서 §2 표에 "요구사항 신호" 행이 따로 있습니다.
 
 {{< callout type="warning" >}}
-**"—"인 두 축은 되돌림이 없는 축입니다.** 배포(HyperDX Only+Altinity)는 구조 선택이라 승급이 아니라 재설계의 문제고, 업그레이드는 온디스크 파트 포맷이 바뀐 순간 이전 바이너리가 새 파트를 못 읽어 startup에서 죽습니다 `✓` — 어느 변경이 어느 하한을 막는지는 [버전·업그레이드]({{< relref "../../hyperdx/09-version-upgrade-compat.md" >}}) §3.2 표가 **차단 버전의 단일 정본**이고, 이 페이지는 숫자를 재기재하지 않습니다. `compatibility` 서버 설정은 "동작 기본값 회귀 방지"지 롤백이 아닙니다 `✓` — 실질 롤백은 **업그레이드 직전 EBS 스냅샷 + `clickhouse-backup` 이중 안전**뿐입니다([버전·업그레이드]({{< relref "../../hyperdx/09-version-upgrade-compat.md" >}})).
+**"—"인 두 축은 되돌림이 없는 축입니다.** 배포(HyperDX Only+Altinity)는 구조 선택이라 승급이 아니라 재설계의 문제입니다. 업그레이드는 온디스크 파트 포맷이 바뀐 순간 이전 바이너리가 새 파트를 못 읽어 startup에서 죽습니다 `✓`. 어느 변경이 어느 하한을 막는지는 [버전·업그레이드]({{< relref "../../hyperdx/09-version-upgrade-compat.md" >}}) §3.2 표가 **차단 버전의 단일 정본**이고 이 페이지는 숫자를 재기재하지 않습니다. `compatibility` 서버 설정은 "동작 기본값 회귀 방지"지 롤백이 아닙니다 `✓` — 실질 롤백은 **업그레이드 직전 EBS 스냅샷 + `clickhouse-backup` 이중 안전**뿐입니다([버전·업그레이드]({{< relref "../../hyperdx/09-version-upgrade-compat.md" >}})).
 {{< /callout >}}
 
 ## 2. 승급 트리거의 관측 지점 — 무엇을 어디서 보면 발동인가
@@ -90,15 +90,15 @@ aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decisi
   - 관측 지점: CronJob 성공 여부 · 복원 리허설 결과
   - 선행 단계/비고: MCK(Community Operator)에는 **내장 백업이 없다** `✓` — 백업·PITR·멀티AZ를 자력으로 못 메우면 Atlas M10(≈$57/mo `≈`)이 그 공백을 turnkey로 제거한다([스택 토폴로지]({{< relref "../../hyperdx/01-stack-topology.md" >}}))
 
-두 가지를 덧붙입니다. 첫째, **cold 축은 "이동이 실제로 도는가"도 관측 대상**입니다 — TTL MOVE의 동작은 `system.storage_policies`(정책 로드)·`system.disks`(티어 등록)·`system.parts`의 `disk_name`(파트가 어느 티어에 있나)·`system.part_log`(이동 이력) 조회로 확인 가능한 표준 인터페이스입니다 `✓`([S3 티어링]({{< relref "../../hyperdx/03-s3-cold-tiering.md" >}}) 기준 문서). 이동이 멎으면 hot이 차오르며 아래 경보로 이어지므로, cold 축의 일상 헬스는 이 네 뷰가 담당합니다.
+**cold 축은 "이동이 실제로 도는가"도 관측 대상입니다.** TTL MOVE의 동작은 `system.storage_policies`(정책 로드)·`system.disks`(티어 등록)·`system.parts`의 `disk_name`(파트가 어느 티어에 있나)·`system.part_log`(이동 이력) 조회로 확인 가능한 표준 인터페이스입니다 `✓`([S3 티어링]({{< relref "../../hyperdx/03-s3-cold-tiering.md" >}}) 기준 문서). 이동이 멎으면 hot이 차오르며 아래 경보로 이어지므로 cold 축의 일상 헬스는 이 네 뷰가 담당합니다.
 
-둘째, hot gp3의 일상 경보(승급 아닌 운영 대응)는 [용량 산정]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) §8의 기준을 씁니다: 사용률 **70% 경고 / 80% 조치 / 85% 하드실링**, 조치는 gp3 온라인 확장 또는 TTL 단축·cold 이동 가속 `≈` — 디스크가 차면 머지 중단→TOO_MANY_PARTS→인서트 차단으로 이어지므로 hot 볼륨은 항상 30~40% 여유를 남깁니다 `✓/≈`.
+hot gp3의 일상 경보(승급이 아닌 운영 대응)는 [용량 산정]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) §8의 기준을 씁니다. 사용률 **70% 경고 / 80% 조치 / 85% 하드실링**입니다. 조치는 gp3 온라인 확장 또는 TTL 단축·cold 이동 가속입니다 `≈` — 디스크가 차면 머지 중단→TOO_MANY_PARTS→인서트 차단으로 이어지므로 hot 볼륨은 항상 30~40% 여유를 남깁니다 `✓/≈`.
 
 {{< flow src="_flow/2-승급-트리거의-관측-지점.json" />}}
 
 ## 3. 배포 전 실측 체크리스트 — `?` 9항목을 staging에서 `✓`로
 
-아래 9개는 공개 실측이 없거나 문서 간 상충이 있어 전부 `?`(또는 `≈`)입니다. staging에서 측정해 `✓`로 승격합니다. 앞 4개는 캐파·복구 계열이고, 뒤 5개는 cold 티어링을 켜기 전에 확인해야 하는 인증·네트워크 경로·볼륨 회수 계열입니다.
+아래 9개는 공개 실측이 없거나 문서 간 상충이 있어 전부 `?`(또는 `≈`)입니다. staging에서 측정해 `✓`로 승격합니다. 앞 4개가 캐파·복구 계열이고 뒤 5개가 cold 티어링을 켜기 전에 확인해야 하는 인증·네트워크 경로·볼륨 회수 계열입니다.
 
 | # | 실측 항목 | 현재 | 측정 방법 | 승격 후 |
 |---|---|---|---|---|
@@ -112,7 +112,7 @@ aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decisi
 | 8 | part metadata 로컬 소비량(part 수 비례) | `?` | staging cold 이동 후 로컬 잔존분 측정 | `✓` — hot 사이징 반영([S3 티어링]({{< relref "../../hyperdx/03-s3-cold-tiering.md" >}}) §5.1) |
 | 9 | **S3 Gateway VPC Endpoint가 워커 노드 서브넷에 실제로 걸려 있나** | `?` | 아래 확인 명령 — 워커 노드 서브넷의 **라우팅 테이블 ID가 결과에 있어야 한다** | `✓` — 없으면 cold 트래픽이 NAT를 타 절감액이 잠식된다([S3 티어링]({{< relref "../../hyperdx/03-s3-cold-tiering.md" >}}) §3.4가 요금·근거 소유) |
 
-항목 5·6·8은 근거와 설정이 기준 문서에 있고 여기서는 **실측 여부만** 추적합니다 — 문장을 복제하지 않습니다. 항목 7만은 기준 문서에 대응물이 없어 이 표가 유일한 기재 지점입니다.
+항목 5·6·8은 근거와 설정이 기준 문서에 있으니 여기서는 **실측 여부만** 추적합니다 — 문장을 복제하지 않습니다. 항목 7만은 기준 문서에 대응물이 없어 이 표가 유일한 기재 지점입니다.
 
 ```bash
 # 항목 9 — 서울 리전 S3 Gateway Endpoint 존재·연결 라우팅 테이블 확인
@@ -120,7 +120,7 @@ aws ec2 describe-vpc-endpoints --region ap-northeast-2 \
   --filters Name=service-name,Values=com.amazonaws.ap-northeast-2.s3
 ```
 
-항목 1·2는 쿼리 하나로 같이 잡힌다([용량 산정]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) 기준 문서):
+항목 1·2는 쿼리 하나로 같이 잡힙니다([용량 산정]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) 기준 문서):
 
 ```sql
 SELECT table,
@@ -132,16 +132,16 @@ WHERE active AND database = 'default'
 GROUP BY table ORDER BY sum(bytes_on_disk) DESC;
 ```
 
-`ratio`가 시그널별 실제 압축비, `on_disk`의 월 증가분이 해석 확정값입니다. 항목 4의 리허설은 **두 갈래**로 합니다 — graceful(cordon→drain: PDB 준수·자동 reattach)과 ungraceful(강제 종료: StatefulSet+RWO는 자동 복구가 안 되고 `out-of-service` taint 개입이 정석 `✓`). 실소요는 hot 데이터량·파트 수에 좌우되며 아직 실측 전입니다 `?`([운영 런북]({{< relref "02-runbook.md" >}}) §5 · [토폴로지·다운타임]({{< relref "../../hyperdx/04-operator-topology-downtime.md" >}}) §5.1). 여기에 버전 매트릭스 함정 하나를 staging 검증에 얹습니다: 최신 operator가 기본 활성화하는 복제 설정이 Keeper 하한을 밀어올리는데 우리는 CH/Keeper를 LTS로 핀하므로, 그 조합의 실동작 확인이 필요합니다 `?`. **어느 operator 버전이 어느 Keeper 하한을 요구하는지는 [버전·업그레이드]({{< relref "../../hyperdx/09-version-upgrade-compat.md" >}}) §1이 정본입니다** — 이 트랙은 숫자를 재기재하지 않습니다.
+`ratio`가 시그널별 실제 압축비고, `on_disk`의 월 증가분이 해석 확정값입니다. 항목 4의 리허설은 graceful(cordon→drain: PDB 준수·자동 reattach)과 ungraceful(강제 종료: StatefulSet+RWO는 자동 복구가 안 되고 `out-of-service` taint 개입이 정석 `✓`) **두 갈래**로 합니다. 실소요는 hot 데이터량·파트 수에 좌우되며 아직 실측 전입니다 `?`([운영 런북]({{< relref "02-runbook.md" >}}) §5 · [토폴로지·다운타임]({{< relref "../../hyperdx/04-operator-topology-downtime.md" >}}) §5.1). 여기에 버전 매트릭스 함정 하나를 staging 검증에 얹습니다. 최신 operator가 기본 활성화하는 복제 설정이 Keeper 하한을 밀어올리는데 우리는 CH/Keeper를 LTS로 핀하므로 그 조합의 실동작 확인이 필요합니다 `?`. **어느 operator 버전이 어느 Keeper 하한을 요구하는지는 [버전·업그레이드]({{< relref "../../hyperdx/09-version-upgrade-compat.md" >}}) §1이 정본입니다** — 이 트랙은 숫자를 재기재하지 않습니다.
 
-**왜 staging일까요 — 캐파상 이유.** 위 캐파 계열 4항목과 산정 모델의 `≈`(압축비·구성비 65/20/13/2)는 트래픽이 실제로 흘러야만 확정됩니다. staging은 샘플링 5~10% · RF1 · 짧은 TTL(cold 없음)로 극소화해도(~$150~250/mo `≈`) 이 실측이 전부 가능합니다 — 즉 staging의 진짜 역할은 "동작 검증"이 아니라 **실측 캘리브레이션**이고, 이것이 staging을 두는 캐파상 이유입니다([용량 산정]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) §7).
+**왜 staging일까요 — 캐파상 이유.** 위 캐파 계열 4항목과 산정 모델의 `≈`(압축비·구성비 65/20/13/2)는 트래픽이 실제로 흘러야만 확정됩니다. staging은 샘플링 5~10% · RF1 · 짧은 TTL(cold 없음)로 극소화해도(~$150~250/mo `≈`) 이 실측이 전부 가능합니다 — 즉 staging의 진짜 역할은 "동작 검증"이 아니라 **실측 캘리브레이션**이고 이것이 staging을 두는 캐파상 이유입니다([용량 산정]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) §7).
 
 {{% details title="staging 최소 형상 — 실측 캘리브레이션에 필요한 만큼만" closed="true" %}}
-[용량 산정 §7]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) 기준 문서의 요지: **1× r7g.large**(2vCPU/16GB) + **Keeper 1**(단일; 또는 임베디드) + **MongoDB 1-member** + gp3 100~200GB 단일, cold 티어 없음(블록 온리가 자연스럽습니다 — storage XML·IRSA 생략). 세션 샘플링 5~10% 또는 QA 트래픽만으로 월 on-disk ~35~70GB(해석 B) `≈`. 압축비·세션당 바이트·TTL 실스키마·reattach 리허설이 이 형상에서 전부 측정됩니다. RF1·Keeper 1은 HA가 아니므로 staging 한정입니다.
+[용량 산정 §7]({{< relref "../../hyperdx/07-capacity-planning.md" >}}) 기준 문서의 요지입니다. **1× r7g.large**(2vCPU/16GB) + **Keeper 1**(단일; 또는 임베디드) + **MongoDB 1-member** + gp3 100~200GB 단일, cold 티어 없음(블록 온리가 자연스럽습니다 — storage XML·IRSA 생략). 세션 샘플링 5~10% 또는 QA 트래픽만으로 월 on-disk ~35~70GB(해석 B) `≈`. 압축비·세션당 바이트·TTL 실스키마·reattach 리허설이 이 형상에서 전부 측정됩니다. RF1·Keeper 1은 HA가 아니므로 staging 한정입니다.
 {{% /details %}}
 
 ## 우리 케이스에서는
 
-기본값 세트 — **HyperDX Only+Altinity CHI/CHK, 단일 gp3, S3 TTL MOVE(리플레이는 hot 30일 DELETE), 1 shard × RF2(2 AZ), Keeper 3노드(gp3·3 AZ), MongoDB `members:3`, CH/Keeper 24.8 LTS 핀** — 로 시작하고, io2·block-only·RF3·shard·Keeper 5노드·Atlas는 §2의 관측 지점에서 해당 신호가 실제로 잡힐 때만 올립니다. 특히 io2는 gp3 provisioned throughput 상향이라는 선행 단계를 건너뛰고 갈 이유가 없고, RF3는 `insert_quorum:2` 상시 요구와 짝일 때만 의미가 있습니다.
+기본값 세트 — **HyperDX Only+Altinity CHI/CHK, 단일 gp3, S3 TTL MOVE(리플레이는 hot 30일 DELETE), 1 shard × RF2(2 AZ), Keeper 3노드(gp3·3 AZ), MongoDB `members:3`, CH/Keeper 24.8 LTS 핀** — 로 시작합니다. io2·block-only·RF3·shard·Keeper 5노드·Atlas는 §2의 관측 지점에서 해당 신호가 실제로 잡힐 때만 올립니다. 특히 io2는 gp3 provisioned throughput 상향이라는 선행 단계를 건너뛰고 갈 이유가 없습니다. RF3는 `insert_quorum:2` 상시 요구와 짝일 때만 의미가 있습니다.
 
-착수 1번 작업은 §3의 9개 `?`를 staging에서 `✓`로 승격하는 것입니다 — 0.7TB 해석 하나가 배포 규모·비용을 2~3배 가르므로, 이 실측 전의 모든 산정은 밴드로만 다룹니다. 그리고 업그레이드 축만은 승급이 아니라 **불가역**의 축임을 기억합니다: 올리기 전 EBS 스냅샷이 유일한 되돌림이므로, 매트릭스의 다른 축과 달리 "일단 올리고 관측"이 성립하지 않습니다. 시점 기준 2026-08.
+착수 1번 작업은 §3의 9개 `?`를 staging에서 `✓`로 승격하는 것입니다 — 0.7TB 해석 하나가 배포 규모·비용을 2~3배 가르므로 이 실측 전의 모든 산정은 밴드로만 다룹니다. 그리고 업그레이드 축만은 승급이 아니라 **불가역**의 축임을 기억합니다. 올리기 전 EBS 스냅샷이 유일한 되돌림이므로, 매트릭스의 다른 축과 달리 "일단 올리고 관측"이 성립하지 않습니다. 시점 기준 2026-08.

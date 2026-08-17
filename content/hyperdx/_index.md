@@ -7,22 +7,22 @@ cascade:
 
 # HyperDX 내재화 — 실전 배포 청사진
 
-[RUM 내재화]({{< relref "../rum/_index.md" >}})가 "왜·무엇으로 Datadog RUM에서 빠져나오나"를, [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}})이 "ClickHouse를 채택했다면 범용으로 어떻게 운영하나(how)"를 다뤘다면, 이 챕터는 그 사이를 잇는 **실전 운용 케이스**입니다 — HyperDX ClickStack을 **우리의 실제 RUM 워크로드**로 K8s(EKS)에 실제로 얹고, 실제 장애를 견디게 하고, 실제 용량을 산정하는 청사진. 전제를 아주 구체적으로 못박습니다: **RUM-only**(세션 리플레이·로그·트레이스·Web Vitals), **staging→prod 승급**, **EBS(gp3/io2)-first** 스토리지(로컬 NVMe는 옵셔널), 그리고 **prod 세션 샘플링 100% = 월 0.7TB** 규모입니다. 이론·의사결정이 아니라 매니페스트·DDL·다운타임 타임라인·달러 산식을 노출하는 것이 이 챕터의 성격입니다.
+[RUM 내재화]({{< relref "../rum/_index.md" >}})가 "왜·무엇으로 Datadog RUM에서 빠져나오나"를, [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}})이 "ClickHouse를 채택했다면 범용으로 어떻게 운영하나(how)"를 다뤘다면, 이 챕터는 그 사이를 잇는 **실전 운용 케이스**입니다 — HyperDX ClickStack을 **우리의 실제 RUM 워크로드**로 K8s(EKS)에 실제로 얹고 실제 장애를 견디게 하고 실제 용량을 산정하는 청사진입니다. 전제를 아주 구체적으로 못박습니다: **RUM-only**(세션 리플레이·로그·트레이스·Web Vitals), **staging→prod 승급**, **EBS(gp3/io2)-first** 스토리지(로컬 NVMe는 옵셔널), 그리고 **prod 세션 샘플링 100% = 월 0.7TB** 규모입니다. 이론이나 의사결정이 아니라 매니페스트·DDL·다운타임 타임라인·달러 산식을 노출하는 것이 이 챕터의 성격입니다.
 
 {{< callout type="info" >}}
 **한눈에** — 핵심 결정 한 장.
 
-- **스택 조립**: ClickStack 표준 2-Helm 차트를 그대로 쓰지 않고 `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 **'HyperDX Only'**)로 붙입니다. ClickHouse/Keeper는 **Altinity operator(CHI/CHK)**로 분리 운영, HyperDX·OTel Collector·MongoDB만 차트/operator로 남깁니다. `✓`
-- **hot 스토리지**: 기본 **gp3 단일 볼륨**(ClickHouse는 throughput-bound라 IOPS를 살 이유가 거의 없음), io2 Block Express는 **필요 시**(극한 IOPS·sub-ms·볼륨 99.999% 요구)만, 로컬 NVMe는 **옵셔널 업그레이드 경로**. `✓/≈`
+- **스택 조립**: ClickStack 표준 2-Helm 차트를 그대로 쓰지 않고 `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 **'HyperDX Only'**)로 붙입니다. ClickHouse/Keeper는 **Altinity operator(CHI/CHK)**로 분리 운영하고 차트/operator 아래에는 HyperDX·OTel Collector·MongoDB만 남깁니다. `✓`
+- **hot 스토리지**: 기본은 **gp3 단일 볼륨**(ClickHouse는 throughput-bound라 IOPS를 살 이유가 거의 없음), io2 Block Express는 **필요 시**(극한 IOPS·sub-ms·볼륨 99.999% 요구)만, 로컬 NVMe는 **옵셔널 업그레이드 경로**. `✓/≈`
 - **cold 티어링**: **S3 Standard + cache disk**, 이동은 **시간 기반 TTL `TO VOLUME 'cold'`**(`move_factor`는 안전판) `✓`. 인증은 IRSA — CH 서버 disk가 web-identity 자격증명을 런타임에 실제로 집어드는지는 배포 후 확인 `?`({{< relref "03-s3-cold-tiering.md" >}}).
 - **조정 계층**: **Keeper 3노드**(gp3 영속, 3 AZ). Keeper는 **Kafka식 durable queue가 아니다** — CH가 죽으면 in-flight INSERT는 큐잉되지 않습니다. `✓`
-- **MongoDB**: 메타데이터 전용이라 **아주 작게** 돌릴 수 있고, prod는 `members:3` 또는 Atlas가 값싼 보험. 실효 바닥 사이징은 {{< relref "01-stack-topology.md" >}}가 정본. `≈`
-- **용량/비용**: **월 0.7TB(on-disk 해석)** 기준 **1 shard × RF2** 로 1년+ 충분. hot·컴퓨트는 지평 무관 고정, 3→12개월 증분은 대부분 싼 S3 cold. prod 월 **~$1.0~1.4K** `≈`(us-east-1 기준, 서울 ~10~15%↑).
+- **MongoDB**: 메타데이터 전용이라 **아주 작게** 돌릴 수 있고, prod는 `members:3` 또는 Atlas가 값싼 보험입니다. 실효 바닥 사이징은 {{< relref "01-stack-topology.md" >}}가 정본. `≈`
+- **용량/비용**: **월 0.7TB(on-disk 해석)** 기준 **1 shard × RF2** 로 1년+ 충분합니다. hot·컴퓨트는 지평 무관 고정이고 3→12개월 증분은 대부분 싼 S3 cold입니다. prod 월 **~$1.0~1.4K** `≈`(us-east-1 기준, 서울 ~10~15%↑).
 {{< /callout >}}
 
 ## 이 챕터의 위치 — 전제 차이
 
-study-hugo에는 이미 겹치는 주제의 깊은 문서가 있습니다. 이 챕터가 기존 문서와 **모순처럼 보이면 안 됩니다** — 특히 "로컬 NVMe vs EBS"는 어느 쪽이 옳은 논쟁이 아니라 **규모·목표가 다른 별개 시나리오**입니다. 아래 축으로 읽습니다.
+study-hugo에는 이미 겹치는 주제의 깊은 문서가 있습니다. 이 챕터가 그 문서들과 **모순처럼 보이면 안 됩니다** — 특히 "로컬 NVMe vs EBS"는 어느 쪽이 옳으냐는 논쟁이 아니라 **규모·목표가 다른 별개 시나리오**입니다. 아래 축으로 읽습니다.
 
 | 축 | 기존 `clickhouse/` 운영 | 기존 `rum/` 내재화 | **이 챕터 `hyperdx/`** |
 |---|---|---|---|
@@ -32,10 +32,10 @@ study-hugo에는 이미 겹치는 주제의 깊은 문서가 있습니다. 이 �
 | 성격(톤) | 이론·의사결정·"채택했다면" | 비교·매트릭스·마이그레이션 | **실전 운용** — 실제 배포·장애·산정 |
 
 {{< callout type="warning" >}}
-**두 스토리지 전략은 충돌이 아닙니다.** [로컬 NVMe 문서]({{< relref "../clickhouse/02-storage-local-nvme.md" >}})는 20TB+·성능 극대화 전제에서 출발하고, 이 챕터는 0.7TB/월·운영 단순성·내구성 우선 전제에서 EBS를 1차로 둡니다. EBS-first의 값어치는 성능이 아니라 **재수화가 필요 없습니다**는 운영 프로파일입니다 — 이벤트별 재수화 필요 여부와 재수화 위험 창은 [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}})가 정본이고, 창의 정의·MTTR 산식은 로컬 NVMe 문서가 소유합니다. 노드 유실 시의 물리 역학은 {{< relref "04-operator-topology-downtime.md" >}}.
+**두 스토리지 전략은 충돌이 아닙니다.** [로컬 NVMe 문서]({{< relref "../clickhouse/02-storage-local-nvme.md" >}})는 20TB+·성능 극대화 전제에서 출발합니다. 이 챕터는 0.7TB/월·운영 단순성·내구성 우선 전제에서 EBS를 1차로 둡니다. EBS-first의 값어치는 성능이 아니라 **재수화가 필요 없다**는 운영 프로파일입니다 — 이벤트별 재수화 필요 여부와 재수화 위험 창은 [hot 스토리지·EBS]({{< relref "02-hot-storage-ebs.md" >}})가 정본이고, 창의 정의·MTTR 산식은 로컬 NVMe 문서가 소유합니다. 노드 유실 시의 물리 역학은 {{< relref "04-operator-topology-downtime.md" >}}.
 {{< /callout >}}
 
-**operator 분기(중요)** — 표준 Helm 2-차트가 딸려 오는 ClickHouse operator는 Altinity가 아니라 **ClickHouse Inc.의 공식 operator**이고, 우리는 `clickhouse.enabled: false`(HyperDX Only)로 ClickHouse를 차트 밖으로 빼 **Altinity operator의 CHI/CHK**로 분리 운영합니다 `✓`. 이 챕터 전체가 이 전제 위에 있습니다 — CRD 이름·채택 근거·이 분기를 흐렸을 때의 오독은 {{< relref "01-stack-topology.md" >}}와 [operator 선택]({{< relref "../clickhouse/03-operator.md" >}})이 정본입니다.
+**operator 분기(중요)** — 표준 Helm 2-차트가 딸려 오는 ClickHouse operator는 Altinity가 아니라 **ClickHouse Inc.의 공식 operator**입니다. 우리는 `clickhouse.enabled: false`(HyperDX Only)로 ClickHouse를 차트 밖으로 빼 **Altinity operator의 CHI/CHK**로 분리 운영합니다 `✓`. 이 챕터 전체가 이 전제 위에 있습니다 — CRD 이름·채택 근거·이 분기를 흐렸을 때의 오독은 {{< relref "01-stack-topology.md" >}}와 [operator 선택]({{< relref "../clickhouse/03-operator.md" >}})이 정본입니다.
 
 {{< callout type="info" >}}
 **배포 모드 이름 — 섞으면 결론이 뒤집힙니다** `✓`
@@ -82,7 +82,7 @@ RUM 인제스트 경로에 **MongoDB는 없습니다** — 브라우저 SDK가 O
 
 ## 이 챕터 구성 (문서 지도)
 
-- **[HyperDX 직접 운영하기]({{< relref "../hyperdx-operating/_index.md" >}})** · 운영 트랙(**3부**, 별도 챕터) — 이 챕터가 표준을 소유한다면 그 트랙은 **우리 클러스터의 현황 → 사건 시 순서 → 승급 판단**을 소유한다: ①{{< relref "../hyperdx-operating/01-our-deployment.md" >}}(우리 배포 형상) ②{{< relref "../hyperdx-operating/02-runbook.md" >}}(운영 런북) ③{{< relref "../hyperdx-operating/03-decision-guide.md" >}}(의사결정 가이드). 버전·수치·용량·요금은 트랙이 재기재하지 않고 아래 기준 문서 01~09·출처 10을 가리킵니다.
+- **[HyperDX 직접 운영하기]({{< relref "../hyperdx-operating/_index.md" >}})** · 운영 트랙(**3부**, 별도 챕터) — 이 챕터가 표준을 소유한다면 그 트랙은 **우리 클러스터의 현황 → 사건 시 순서 → 승급 판단**을 소유합니다: ①{{< relref "../hyperdx-operating/01-our-deployment.md" >}}(우리 배포 형상) ②{{< relref "../hyperdx-operating/02-runbook.md" >}}(운영 런북) ③{{< relref "../hyperdx-operating/03-decision-guide.md" >}}(의사결정 가이드). 버전·수치·용량·요금은 트랙이 재기재하지 않고 아래 기준 문서 01~09·출처 10을 가리킵니다.
 - **{{< relref "01-stack-topology.md" >}}** · ClickStack 4컴포넌트 배포 토폴로지·데이터 흐름, OTel Collector 배치/사이징, **MongoDB 최소 규모 배포·운영**. 4컴포넌트/배포 6모드는 {{< relref "../rum/01-hyperdx-deep-dive.md" >}}, MongoDB 부하 프로파일은 {{< relref "../rum/07-hyperdx-mongodb.md" >}}에 위임.
 - **{{< relref "02-hot-storage-ebs.md" >}}** · **gp3 vs io2 vs io2 Block Express** 실전 상세, ClickHouse I/O 적합성, 왜 EBS-first, operator StorageClass/VolumeClaimTemplate. 로컬 NVMe 상세·EBS 대역 한계는 {{< relref "../clickhouse/02-storage-local-nvme.md" >}}에 위임.
 - **{{< relref "03-s3-cold-tiering.md" >}}** · **S3 cold worked example**: storage_configuration 전문·TTL MOVE DDL·IRSA·우리 RUM 테이블 튜닝. 티어링≠내구성·zero-copy 금지는 {{< relref "../clickhouse/02-storage-local-nvme.md" >}}에 위임.
@@ -96,7 +96,7 @@ RUM 인제스트 경로에 **MongoDB는 없습니다** — 브라우저 SDK가 O
 
 ## 자매 챕터
 
-- [우리 배포 형상]({{< relref "../hyperdx-operating/01-our-deployment.md" >}}) — **우리 케이스**: 실제 RUM 수집 스택 종합도(자체 RUM 컨버터 포함)·실행 단위 분할·컴포넌트별 HA·stage/prod 격차. 이 챕터가 표준을 다루는 자리에 우리 형상을 섞지 않으려고 운영 트랙으로 옮겼다(R1). 표준 4컴포넌트·가용성·Keeper·복제는 {{< relref "01-stack-topology.md" >}}·{{< relref "04-operator-topology-downtime.md" >}}·{{< relref "05-keeper.md" >}}·{{< relref "06-replication-failover.md" >}}가 소유합니다.
+- [우리 배포 형상]({{< relref "../hyperdx-operating/01-our-deployment.md" >}}) — **우리 케이스**: 실제 RUM 수집 스택 종합도(자체 RUM 컨버터 포함)·실행 단위 분할·컴포넌트별 HA·stage/prod 격차. 이 챕터가 표준을 다루는 자리에 우리 형상을 섞지 않으려고 운영 트랙으로 옮겼습니다(R1). 표준 4컴포넌트·가용성·Keeper·복제는 {{< relref "01-stack-topology.md" >}}·{{< relref "04-operator-topology-downtime.md" >}}·{{< relref "05-keeper.md" >}}·{{< relref "06-replication-failover.md" >}}가 소유합니다.
 - [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) — ClickHouse 범용 운영 how(operator 선택·로컬 NVMe·배포 플레이북·스케일/롤링). 이 챕터가 relref로 위임하는 대부분의 배경이 여기 있습니다.
 - [RUM 내재화]({{< relref "../rum/_index.md" >}}) — Datadog RUM에서 빠져나오는 why/what(비교·매트릭스·마이그레이션). 이 챕터의 상류.
 - [HyperDX/ClickStack 심층]({{< relref "../rum/01-hyperdx-deep-dive.md" >}}) — HyperDX 4컴포넌트·배포 6모드·HyperDX Only 의존성의 기준 문서.
@@ -104,8 +104,8 @@ RUM 인제스트 경로에 **MongoDB는 없습니다** — 브라우저 SDK가 O
 
 ## 우리 케이스에서는
 
-**HyperDX-only + Altinity CHI/CHK + MongoDB(MCK 또는 Atlas)** 로 조립하고, hot은 **단일 gp3**, cold는 **S3 + TTL MOVE**, 조정은 **Keeper 3노드**, 토폴로지는 **1 shard × RF2(2 AZ)** 로 시작합니다. io2·로컬 NVMe·RF3·샤딩은 전부 **트리거 기반 승급**으로 미뤄두는 것이 0.7TB/월 규모의 정답입니다 — 이 규모에서 조기 수평 확장·고성능 스토리지는 비용과 운영 부채만 남깁니다.
+**HyperDX-only + Altinity CHI/CHK + MongoDB(MCK 또는 Atlas)** 로 조립하고 hot은 **단일 gp3**, cold는 **S3 + TTL MOVE**, 조정은 **Keeper 3노드**, 토폴로지는 **1 shard × RF2(2 AZ)** 로 시작합니다. io2·로컬 NVMe·RF3·샤딩은 전부 **트리거 기반 승급**으로 미뤄두는 것이 0.7TB/월 규모의 정답입니다 — 이 규모에서 조기 수평 확장·고성능 스토리지는 비용과 운영 부채만 남깁니다.
 
-두 가지는 배포 전에 못박아야 하고, 둘 다 지금은 `≈`·`?`입니다. **"월 0.7TB"의 해석(raw ingest냐 on-disk냐)** 과 **세션 리플레이 압축비·구성비·ClickStack 기본 TTL**입니다. 해석 분기가 배포 규모·비용에 어떻게 번지는지, 그리고 무엇을 어떤 쿼리로 실측해 `✓`으로 올리는지는 [용량 산정]({{< relref "07-capacity-planning.md" >}})이 정본입니다 — 이 실측 한 번을 위해 staging을 두는 것이 캐파 관점의 이유입니다. 시점 기준 2026-08.
+배포 전에 못박아야 할 것이 두 가지 있습니다. 둘 다 지금은 `≈`·`?`입니다. **"월 0.7TB"의 해석(raw ingest냐 on-disk냐)** 과 **세션 리플레이 압축비·구성비·ClickStack 기본 TTL**입니다. 해석 분기가 배포 규모·비용에 어떻게 번지는지, 그리고 무엇을 어떤 쿼리로 실측해 `✓`으로 올리는지는 [용량 산정]({{< relref "07-capacity-planning.md" >}})이 정본입니다 — 이 실측 한 번을 위해 staging을 두는 것이 캐파 관점의 이유입니다. 시점 기준 2026-08.
 
 > **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻합니다.

@@ -5,11 +5,11 @@ weight: 7
 
 # 출처 — RUM 섹션 조사 문서 원본 링크
 
-RUM 섹션(01~05)은 `research/hyperdx-clickhouse/` 아래 8개 조사 문서(01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 07-recommendation, 08-supplement-1~2·4~5)를 근거로 큐레이션했습니다. 이 페이지는 그 조사 문서들의 "## 출처" 섹션에 나열된 URL을 전부 수집·중복 제거해 주제별로 재정리한 것입니다. 개별 URL이 본문 어느 주장을 뒷받침하는지는 각 조사 문서를 직접 대조해야 하며, 이 페이지는 색인 목적으로만 씁니다. [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}})(07)는 별도 딥리서치(3-vote 적대검증, 2026-07-15) 기반이며 해당 근거 URL도 아래 표에 포함했습니다. 조사 기준 2026-07.
+RUM 섹션(01~05)의 근거는 `research/hyperdx-clickhouse/` 아래 조사 문서 8개입니다 — 01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 07-recommendation, 08-supplement-1~2·4~5. 이 페이지는 그 문서들의 "## 출처" 섹션에 나열된 URL을 전부 모아 중복을 걷어내고 주제별로 재정리했습니다. 개별 URL이 본문 어느 주장을 뒷받침하는지는 각 조사 문서를 직접 대조해야 합니다. 이 페이지는 색인 목적으로만 씁니다. [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}})(07)는 별도 딥리서치(3-vote 적대검증, 2026-07-15) 기반입니다. 그 근거 URL도 아래 표에 포함했습니다. 조사 기준 2026-07.
 
 ## HyperDX·ClickStack 공식
 
-ClickHouse Inc./HyperDX가 직접 게시한 블로그·공식 문서·GitHub 레포·이슈.
+ClickHouse Inc.와 HyperDX가 직접 게시한 블로그·공식 문서·GitHub 레포·이슈입니다.
 
 {{% details title="HyperDX·ClickStack 공식 출처 전체 목록" closed="true" %}}
 | 출처 | 비고 |
@@ -81,7 +81,7 @@ ClickHouse Inc./HyperDX가 직접 게시한 블로그·공식 문서·GitHub 레
 
 ## Datadog 공식·SDK
 
-Datadog 공식 문서·제품 페이지·OSS SDK(dd-trace, browser-sdk, datadog-agent) 레포.
+Datadog 공식 문서와 제품 페이지, OSS SDK(dd-trace, browser-sdk, datadog-agent) 레포입니다.
 
 {{% details title="Datadog 공식·SDK 출처 전체 목록" closed="true" %}}
 | 출처 | 비고 |
@@ -141,7 +141,7 @@ Datadog 공식 문서·제품 페이지·OSS SDK(dd-trace, browser-sdk, datadog-
 
 ## OTel·Vector
 
-OpenTelemetry Collector(Contrib)·Vector·표준 semconv 및 그 확장 배포판.
+OpenTelemetry Collector(Contrib), Vector, 표준 semconv와 그 확장 배포판입니다.
 
 {{% details title="OTel·Vector 출처 전체 목록" closed="true" %}}
 | 출처 | 비고 |
@@ -176,7 +176,7 @@ OpenTelemetry Collector(Contrib)·Vector·표준 semconv 및 그 확장 배포�
 
 ## 커뮤니티·사례
 
-HN·벤더 비교 블로그·이관 사례·서드파티 도구·이슈 트래커.
+HN·벤더 비교 블로그·이관 사례·서드파티 도구·이슈 트래커입니다.
 
 {{% details title="커뮤니티·사례 출처 전체 목록" closed="true" %}}
 | 출처 | 비고 |
@@ -293,4 +293,4 @@ HN·벤더 비교 블로그·이관 사례·서드파티 도구·이슈 트래�
 
 ---
 
-이 목록은 조사 문서 8종(01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 08-supplement-1, 08-supplement-2, 08-supplement-4, 08-supplement-5, 그리고 맥락 참조한 07-recommendation)의 "## 출처" 섹션을 합친 것이며, 07-recommendation 자체는 근거 문서 색인만 갖고 있어 별도 URL 목록이 없습니다. 근거 등급([확인됨]/[추정]/[미확인])은 각 URL이 인용된 원 조사 문서를 따라야 하며, 이 페이지는 등급을 이어받지 않습니다(단순 링크 색인).
+이 목록은 조사 문서 8종(01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 08-supplement-1, 08-supplement-2, 08-supplement-4, 08-supplement-5, 그리고 맥락 참조한 07-recommendation)의 "## 출처" 섹션을 합쳤습니다. 07-recommendation 자체는 근거 문서 색인만 있어서 별도 URL 목록이 없습니다. 근거 등급([확인됨]/[추정]/[미확인])은 각 URL이 인용된 원 조사 문서를 따라야 합니다. 단순 링크 색인인 이 페이지는 등급을 이어받지 않습니다.

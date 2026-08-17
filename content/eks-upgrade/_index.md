@@ -7,7 +7,7 @@ cascade:
 
 # EKS 버전 업그레이드 — finance 클러스터 blue-green 이관 케이스
 
-finance(금융) 도메인 EKS 클러스터를 신규 blue 클러스터로 갈아타는 실전 기록입니다. [HyperDX 내재화]({{< relref "../hyperdx/_index.md" >}})가 "신규 스택을 어떻게 얹나"의 케이스였다면, 이 챕터는 "**이미 돌아가는 클러스터를 어떻게 안전하게 갈아타나**"의 케이스입니다.
+finance(금융) 도메인 EKS 클러스터를 신규 blue 클러스터로 갈아타는 실전 기록입니다. [HyperDX 내재화]({{< relref "../hyperdx/_index.md" >}})가 "신규 스택을 어떻게 얹나"를 다룬 케이스라면, 이 챕터는 "**이미 돌아가는 클러스터를 어떻게 안전하게 갈아타나**"를 다룹니다.
 
 {{< callout type="info" >}}
 **한눈에**
@@ -35,5 +35,5 @@ finance(금융) 도메인 EKS 클러스터를 신규 blue 클러스터로 갈아
 
 ## 자매 챕터
 
-- [Istio]({{< relref "../istio/_index.md" >}}) — 서비스 메시 운영. 이 챕터의 [components]({{< relref "components/_index.md" >}})가 istio sidecar 이관을 다룹니다.
-- [모니터링]({{< relref "../monitoring/_index.md" >}}) — VictoriaMetrics 운영. 이 챕터의 [components]({{< relref "components/_index.md" >}})가 victoria-metrics-k8s-stack 버전업을 다룹니다.
+- [Istio]({{< relref "../istio/_index.md" >}}) — 서비스 메시 운영입니다. istio sidecar 이관은 이 챕터의 [components]({{< relref "components/_index.md" >}})에서 다룹니다.
+- [모니터링]({{< relref "../monitoring/_index.md" >}}) — VictoriaMetrics 운영입니다. victoria-metrics-k8s-stack 버전업은 이 챕터의 [components]({{< relref "components/_index.md" >}})에서 다룹니다.

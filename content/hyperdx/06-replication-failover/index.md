@@ -5,14 +5,14 @@ weight: 6
 
 # 복제·멀티마스터·failover — 승격 없는 다중 마스터 복구 모델
 
-HyperDX 스택의 self-host ClickHouse는 `ReplicatedMergeTree`(RMT)가 강제되고, 그 복제 모델은 PostgreSQL·MySQL의 primary-replica와 근본적으로 다릅니다 — **멀티마스터**입니다. 이 차이가 우리 운영에서 실제로 무엇을 바꾸는지, 특히 "노드 하나가 죽으면 무슨 일이 벌어지나"와 "RF2에서 노드 작업이 안전한가"에 답하는 것이 이 페이지의 목적입니다.
+HyperDX 스택의 self-host ClickHouse는 `ReplicatedMergeTree`(RMT)가 강제되고, 그 복제 모델은 PostgreSQL·MySQL의 primary-replica와 근본적으로 다릅니다 — **멀티마스터**입니다. 이 차이가 우리 운영에서 실제로 무엇을 바꾸는지, 특히 "노드 하나가 죽으면 무슨 일이 벌어지나"와 "RF2에서 노드 작업이 안전한가"에 답하려고 이 페이지를 씁니다.
 
 이 페이지는 이미 다른 문서가 깊게 다룬 것을 반복하지 않습니다. 다운타임 시나리오의 물리 역학·EBS 재부착 절차는 [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}})(S1~S9)이, Keeper 자체(NuRaft·정족수 산술·"큐가 아니다"·async_insert)는 [Keeper]({{< relref "05-keeper.md" >}})가, 재수화 위험 창·zero-copy 금지는 [스토리지·로컬 NVMe]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})가, `insert_quorum` 주입 위치·RF2/RF3 산술은 [배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})이, 스케일·롤링 업그레이드는 [operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})이 기준 문서입니다. 여기서는 그것들을 링크로 위임하고, **복제 메커니즘 자체 + 멀티마스터 데이터 모델 + 승격 없는 failover 의미론** 한 축만 본문으로 씁니다.
 
 {{< callout type="info" >}}
 **한눈에**
 
-- **멀티마스터**입니다: 모든 replica가 INSERT를 수용하고 단일 primary/leader가 없습니다. 그래서 replica 하나가 죽어도 **"승격(promotion) failover" 절차가 존재하지 않습니다** — 살아있는 replica가 read+write를 그대로 계속합니다 `✓`.
+- **멀티마스터**입니다: 모든 replica가 INSERT를 수용하고 단일 primary/leader가 없습니다. 그래서 replica 하나가 죽어도 **"승격(promotion) failover" 절차가 아예 없습니다** — 살아있는 replica가 read+write를 그대로 계속합니다 `✓`.
 - **Keeper는 복제를 조율할 뿐 데이터를 저장하지 않습니다**: 복제 로그·part 참조·블록 dedup 체크섬만 담고, part 바이트는 replica끼리 직접 fetch합니다. SELECT은 Keeper를 아예 타지 않습니다 `✓`.
 - **Keeper 정족수를 잃으면 테이블이 read-only로 전락**한다(INSERT/DDL 거부, SELECT은 계속). 데이터 노드가 전부 멀쩡해도 조정 계층 과반 상실만으로 쓰기가 멈추는 것 — 이 아키텍처의 진짜 SPOF다 `✓`.
 - **RF2 + anti-affinity(hostname) + topologySpread(AZ) + PDB(maxUnavailable 1)면 consolidation·노드 작업이 안전**합니다. 한 번에 한 replica만 내려가고, EBS라 재수화(로컬 NVMe면 수 시간)가 아니라 reattach라 실질 RF1 창이 수 분입니다. 2차 하드웨어 장애까지 견디려면 RF3, 창 발생 빈도를 줄이려면 LTS 고정입니다.
@@ -22,7 +22,7 @@ HyperDX 스택의 self-host ClickHouse는 `ReplicatedMergeTree`(RMT)가 강제�
 
 ### 각 replica = 완전한 사본, part 단위 복제
 
-RMT 복제의 단위는 shard 안의 **replica**이고, 같은 shard의 replica들은 각자 **완전한 데이터 사본**을 자기 로컬 디스크(우리 전제로는 EBS 볼륨)에 보유합니다 — shared-nothing입니다 `✓`. 공유 스토리지가 아니라 replica마다 물리적으로 독립된 사본이므로, S3 cold 티어에서도 데이터가 RF만큼 중복 저장됩니다(티어링≠내구성의 근거는 [스토리지·로컬 NVMe]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})로 위임).
+RMT 복제의 단위는 shard 안의 **replica**입니다. 같은 shard의 replica들은 각자 **완전한 데이터 사본**을 자기 로컬 디스크(우리 전제로는 EBS 볼륨)에 들고 있습니다 — shared-nothing입니다 `✓`. 공유 스토리지가 아니라 replica마다 물리적으로 독립된 사본을 갖는 구조이므로, S3 cold 티어로 내려간 데이터도 RF만큼 중복 저장됩니다(티어링≠내구성의 근거는 [스토리지·로컬 NVMe]({{< relref "../../clickhouse/02-storage-local-nvme.md" >}})로 위임).
 
 복제는 **테이블(엔진) 레벨**에서 선언합니다. 첫 인자가 shard별로 유일한 Keeper znode 경로, 둘째가 replica 식별자입니다 `✓`.
 
@@ -41,7 +41,7 @@ ORDER BY (...);
 
 ### 동기화 메커니즘 — /log → replication_queue → 실행 (pull 모델)
 
-각 replica는 **스스로** 다음 루프를 도습니다. 쓰기를 받은 replica가 다른 replica에 push하는 게 아니라, 각 replica가 공용 `/log`를 보고 스스로 당겨오는 **pull 모델**입니다 `✓`. 그래서 잠깐 offline이던 replica가 돌아오면 자기 `log_pointer` 이후 밀린 엔트리만 이어 소비하면 됩니다(catch-up).
+각 replica는 **스스로** 다음 루프를 돕니다. 쓰기를 받은 replica가 다른 replica에 push하는 게 아니라, 각 replica가 공용 `/log`를 보고 스스로 당겨오는 **pull 모델**입니다 `✓`. 그래서 잠깐 offline이던 replica가 돌아오면 자기 `log_pointer` 이후 밀린 엔트리만 이어 소비하면 됩니다(catch-up).
 
 {{< flow src="_flow/동기화-메커니즘-log-replication.json" />}}
 
@@ -57,7 +57,7 @@ ORDER BY (...);
 
 ### 진단 — system.replicas / system.replication_queue
 
-lag과 이상 징후는 이 두 테이블로 봅니다 `✓`. 멀티마스터라 "primary lag" 개념이 없고, replica별 로그 소비 진행도(`log_pointer` vs `log_max_index`)와 `absolute_delay`(초)로 뒤처짐을 쟉니다.
+lag과 이상 징후는 이 두 테이블로 봅니다 `✓`. 멀티마스터라 "primary lag" 개념이 없어서, replica별 로그 소비 진행도(`log_pointer` vs `log_max_index`)와 `absolute_delay`(초)로 뒤처짐을 잽니다.
 
 | 컬럼(`system.replicas`) | 의미 |
 |---|---|
@@ -94,7 +94,7 @@ ORDER BY create_time;
 
 > *"Replication is asynchronous and multi-master. `INSERT` queries (as well as `ALTER`) can be sent to any available server."*
 
-RMT는 **비동기·멀티마스터**입니다. INSERT도 ALTER도 아무 살아있는 서버(replica)로나 보낼 수 있습니다. 어느 replica가 받든 ① 자기 로컬 디스크에 part로 쓰고, ② Keeper `/log`에 `GET_PART` 엔트리 + 블록번호 + dedup 체크섬을 등록하고, ③ 다른 replica들이 그 로그를 보고 fetch합니다. **"어느 노드가 primary인가"라는 질문 자체가 없습니다** — 이것이 failover가 단순한 근본 이유입니다.
+RMT는 **비동기·멀티마스터**입니다. INSERT도 ALTER도 아무 살아있는 서버(replica)로나 보낼 수 있습니다. 어느 replica가 받든 ① 자기 로컬 디스크에 part로 쓰고, ② Keeper `/log`에 `GET_PART` 엔트리 + 블록번호 + dedup 체크섬을 등록하고, ③ 다른 replica들이 그 로그를 보고 fetch합니다. **"어느 노드가 primary인가"라는 질문 자체가 없습니다** — failover가 단순한 근본 이유가 여기 있습니다.
 
 ### "leader"는 20.6에서 제거된 레거시 개념
 
@@ -145,7 +145,7 @@ Keeper znode **전체 인벤토리**와 "Keeper는 durable queue가 아니다"(C
 
 두 가지를 못박습니다 `✓`:
 
-- **데이터(part 바이트)는 Keeper에 없습니다** — Keeper는 "누가 무엇을 가졌나"의 포인터·지시만 갖고, 실제 바이트는 replica끼리 직접 fetch합니다. insert_quorum 조율도 Keeper의 quorum znode를 통하지만, 여기 흐르는 것도 조정 상태지 사용자 데이터가 아닙니다.
+- **데이터(part 바이트)는 Keeper에 없습니다** — Keeper는 "누가 무엇을 가졌나"의 포인터·지시만 갖고, 실제 바이트는 replica끼리 직접 fetch합니다. insert_quorum 조율도 Keeper의 quorum znode에서 이뤄지지만, 거기 흐르는 것도 조정 상태지 사용자 데이터가 아닙니다.
 - **SELECT은 Keeper를 타지 않는다**(*"ZooKeeper is not used in SELECT queries"*). Keeper는 쓰기·조정 경로의 SPOF지 읽기 병목이 아니다 — 그래서 정족수를 잃어도 읽기는 산다(§중단과 failover).
 
 **dedup의 복제 역할** `✓`: 각 INSERT 블록의 해시가 `/blocks/<hash>`(파티션별)에 저장돼, 같은 크기·같은 행·같은 순서의 블록이 다시 오면 한 번만 씁니다. 이 체크섬이 **공용 Keeper에 있으므로 INSERT를 어느 replica로 재시도해도 dedup이 성립**합니다 — primary가 없어도 재시도 안전성(at-least-once → 사실상 exactly-once)이 유지되는 이유입니다. dedup window 기본값(1000블록/7일)·`async_insert_deduplicate`·`insert_deduplication_token`은 [Keeper]({{< relref "05-keeper.md" >}})가 기준 문서입니다.
@@ -195,19 +195,19 @@ failover가 "승격 없음"이어도, 클라이언트가 죽은 replica를 안 �
 
 {{< flow src="_flow/split-brain-방지-raft.json" />}}
 
-전통 primary-replica는 승격 오판으로 두 primary가 생기는 split-brain을 펜싱(STONITH)으로 별도 방어해야 하지만, RMT는 쓰기 자격 자체가 Raft 정족수에 종속돼 이 문제를 원천 차단합니다 `✓`. 대가는 위 §정족수 상실입니다 — 정족수를 잃은 쪽은 그냥 못 씁니다(가용성보다 일관성 우선, CP 성향).
+전통 primary-replica는 승격 오판으로 두 primary가 생기는 split-brain을 펜싱(STONITH)으로 별도 방어해야 하지만, RMT는 쓰기 자격 자체가 Raft 정족수에 종속돼 애초에 이 문제가 생기지 않습니다 `✓`. 대가는 위 §정족수 상실입니다 — 정족수를 잃은 쪽은 그냥 못 씁니다(가용성보다 일관성 우선, CP 성향).
 
 ### insert_quorum ↔ failover 일관성
 
-기본 INSERT는 **1개 replica 확정 후 즉시 ack**(async, 멀티마스터의 최고 가용성)이라, ack 직후 그 replica가 죽고 아직 복제 전이면 미복제 part 유실이 가능합니다 `✓`. `insert_quorum: N`을 켜면 N개 replica 확정 후 ack라 failover 시 손실 확률이 낮아지되, 확정 가능 replica가 N 미만이면 쓰기가 **차단**됩니다(내구성↔가용성). 개념 축만: **insert_quorum은 "failover 시 얼마나 데이터를 보장하나"를 가용성과 맞바꾸는 노브**입니다. 주입 위치(profiles/users.xml)·RF3와 왜 짝인가·재수화 창 중 쓰기 차단 트레이드오프는 [배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})이 기준 문서입니다. 관측성 RUM은 append-only·소량 손실 허용이라 기본 async로 시작하고, 신뢰가 더 필요한 경로만 quorum(+RF3)을 선택 적용합니다 `≈`.
+기본 INSERT는 **1개 replica 확정 후 즉시 ack**(async, 멀티마스터의 최고 가용성)이라, ack 직후 그 replica가 죽고 아직 복제 전이면 미복제 part가 유실될 수 있습니다 `✓`. `insert_quorum: N`을 켜면 N개 replica 확정 후 ack라 failover 시 손실 확률이 낮아지되, 확정 가능 replica가 N 미만이면 쓰기가 **차단**됩니다(내구성↔가용성). 개념 축만: **insert_quorum은 "failover 시 얼마나 데이터를 보장하나"를 가용성과 맞바꾸는 노브**입니다. 주입 위치(profiles/users.xml)·RF3와 왜 짝인가·재수화 창 중 쓰기 차단 트레이드오프는 [배포 플레이북]({{< relref "../../clickhouse/04-deployment-playbook.md" >}})이 기준 문서입니다. 관측성 RUM은 append-only·소량 손실 허용이라 기본 async로 시작하고, 신뢰가 더 필요한 경로만 quorum(+RF3)을 선택 적용합니다 `≈`.
 
 ## RF2에서 consolidation·노드 작업은 안전한가
 
-**질문에 대한 직접 답: 안전합니다 — 단 "한 번에 한 replica만" 내리는 것이 강제될 때.**
+**바로 답하면 안전합니다 — 단 "한 번에 한 replica만" 내려가도록 강제할 때.**
 
-- **왜 안전한가** `✓`: RF2에서 replica A를 consolidation/재부팅/드레인하는 동안 replica B가 read+write를 그대로 서빙합니다 — 멀티마스터라 B로의 승격 절차조차 없이 그냥 계속 씁니다. consolidation·노드 작업은 **자발적(voluntary) 중단**이고, operator 자동 **PDB `pdbMaxUnavailable: 1`**이 같은 클러스터에서 동시에 1개 초과 replica가 내려가는 것을 막아 drain·롤링·Karpenter consolidation을 직렬화합니다. Karpenter(≥v1.0)는 PDB를 준수하고 VolumeAttachment 삭제까지 대기한 뒤 노드를 종료해 EBS graceful detach를 보장합니다.
+- **왜 안전한가** `✓`: RF2에서 replica A를 consolidation/재부팅/드레인하는 동안 replica B가 read+write를 그대로 서빙합니다 — 멀티마스터라 B로의 승격 절차조차 없이 그냥 계속 씁니다. consolidation·노드 작업은 **자발적(voluntary) 중단**이고, operator 자동 **PDB `pdbMaxUnavailable: 1`**이 같은 클러스터에서 1개 초과 replica가 동시에 내려가지 못하게 막아 drain·롤링·Karpenter consolidation을 직렬화합니다. Karpenter(≥v1.0)는 PDB를 준수하고 VolumeAttachment 삭제까지 대기한 뒤 노드를 종료해 EBS graceful detach를 보장합니다.
 - **그 창 동안 그 shard는 실질 RF1**입니다 `✓`. 사본이 하나뿐이라 이 창 안에 B까지 시간차 독립 하드웨어 장애로 죽으면 위험 — PDB·anti-affinity로는 못 막는 2차 타격입니다. 창을 짧게, 2차 장애를 막는 게 핵심.
-- **EBS라 이 창이 짧다**(상세 04) `✓`: consolidation으로 노드가 바뀌어도 데이터는 EBS 볼륨에 남아 재수화가 아니라 reattach다(상세 04) → 실질 RF1 창이 수 분으로 줄어 **RF2가 방어 가능한 기본값**이 됩니다.
+- **EBS라 이 창이 짧다**(상세 04) `✓`: consolidation으로 노드가 바뀌어도 데이터는 EBS 볼륨에 남아 재수화가 아니라 reattach다 → 실질 RF1 창이 수 분으로 줄어 **RF2가 방어 가능한 기본값**이 됩니다.
 - **동시 disruption 방지**: [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}})의 **배치 강제 3종(anti-affinity/topologySpread/PDB)**이 같은 클러스터의 동시 하락을 직렬화한다 → 상세 04. 06의 자기 축은 **멀티마스터라 그 직렬화된 창 동안 승격 없이 잔여 replica가 read+write를 서빙**한다는 것입니다 `✓`. 단 EBS-first에선 AZ 분산의 무게가 특히 크다 — AZ 장애는 reattach로 못 풀고 cross-AZ replica만이 방어하기 때문. 데이터 노드는 Karpenter `do-not-disrupt` + `consolidationPolicy: WhenEmpty`로 불필요한 churn을 막는다(상세 04).
 - **RF3가 답이 되는 경우** `✓/≈`: consolidation 창 중에도 2사본을 유지해 2차 장애를 견디거나, `insert_quorum: 2`를 상시 켜거나(RF2면 reattach 중 확정 가능 replica가 1이라 quorum:2가 쓰기를 막는다), AZ 무저하가 요구일 때. **LTS(24.8) 고정이면 CH minor 롤링 빈도가 줄어** consolidation/롤링 이벤트 자체가 감소해 실질 RF1 창 노출 횟수가 준다 `≈`(one-year/2 LTS 호환 창·minor 스킵 금지는 [operator 운영]({{< relref "../../clickhouse/05-altinity-operations.md" >}})).
 

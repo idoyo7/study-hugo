@@ -5,15 +5,15 @@ weight: 10
 
 # 출처 — HyperDX 내재화(실전 배포) 조사 자료
 
-이 페이지는 [개요]({{< relref "_index.md" >}}), [스택 토폴로지·MongoDB 최소 규모]({{< relref "01-stack-topology.md" >}}), [hot 스토리지(EBS)]({{< relref "02-hot-storage-ebs.md" >}}), [S3 cold 티어링]({{< relref "03-s3-cold-tiering.md" >}}), [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}}), [Keeper]({{< relref "05-keeper.md" >}}), [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}}), [용량 산정]({{< relref "07-capacity-planning.md" >}}), [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}), [버전 호환·업그레이드]({{< relref "09-version-upgrade-compat.md" >}}) 열 페이지가 인용한 1차 조사(R1~R9)의 `## 출처` 섹션을 모아 중복을 제거하고 주제별로 분류했습니다. 조사 기준일은 **2026-07-16**입니다.
+이 페이지는 [개요]({{< relref "_index.md" >}}), [스택 토폴로지·MongoDB 최소 규모]({{< relref "01-stack-topology.md" >}}), [hot 스토리지(EBS)]({{< relref "02-hot-storage-ebs.md" >}}), [S3 cold 티어링]({{< relref "03-s3-cold-tiering.md" >}}), [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}}), [Keeper]({{< relref "05-keeper.md" >}}), [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}}), [용량 산정]({{< relref "07-capacity-planning.md" >}}), [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}), [버전 호환·업그레이드]({{< relref "09-version-upgrade-compat.md" >}}) 열 페이지가 인용한 1차 조사(R1~R9)의 `## 출처` 섹션을 모은 목록입니다. 중복을 걷어내고 주제별로 분류했습니다. 조사 기준일은 **2026-07-16**입니다.
 
-각 조사가 다룬 범위는 ClickStack 4컴포넌트 배포 토폴로지와 MongoDB 최소 규모 운영, EBS(gp3/io2/io2 Block Express) hot 스토리지 선택, S3 cold 티어링 worked example, Altinity operator 기반 replication·sharding·다운타임 시나리오, ClickHouse Keeper 상세와 "큐가 아니다" 정정, 그리고 0.7TB/월 RUM 워크로드의 용량 산정입니다.
+각 조사가 다룬 범위는 ClickStack 4컴포넌트 배포 토폴로지와 MongoDB 최소 규모 운영, EBS(gp3/io2/io2 Block Express) hot 스토리지 선택, S3 cold 티어링 worked example, Altinity operator 기반 replication·sharding·다운타임 시나리오, ClickHouse Keeper 상세와 "큐가 아니다" 정정, 0.7TB/월 RUM 워크로드의 용량 산정입니다.
 
-개별 URL의 등급(`✓`/`≈`/`?`/`Ⓥ`/`Ⓑ`)은 각 페이지 본문의 인라인 태그를 따릅니다 — 이 목록 자체는 출처 목록이며 등급을 재판정하지 않습니다. 기존 study-hugo 코퍼스(`content/clickhouse/*`, `content/rum/*`) 및 선행 research(`research/hyperdx-clickhouse/*`) 참조는 각 페이지에서 relref로 인라인 연결하며 외부 URL이 아니므로 아래 목록에는 싣지 않았습니다.
+개별 URL의 등급(`✓`/`≈`/`?`/`Ⓥ`/`Ⓑ`)은 각 페이지 본문의 인라인 태그를 따릅니다 — 이 목록은 출처 목록일 뿐이고 등급을 재판정하지 않습니다. 기존 study-hugo 코퍼스(`content/clickhouse/*`, `content/rum/*`)와 선행 research(`research/hyperdx-clickhouse/*`) 참조는 각 페이지에서 relref로 인라인 연결하며 외부 URL이 아니므로 아래 목록에는 싣지 않았습니다.
 
 ## ClickStack · HyperDX 공식
 
-HyperDX·ClickStack 배포 문서, 스키마/TTL 설정, Browser SDK, 그리고 실물 Helm 차트 값·매니페스트.
+HyperDX·ClickStack 배포 문서와 스키마/TTL 설정, Browser SDK, 실물 Helm 차트 값·매니페스트입니다.
 
 - ClickStack Helm 배포 가이드(2-차트 구조·PVC 보호) — [clickhouse.com/docs/.../clickstack/deployment/helm](https://clickhouse.com/docs/use-cases/observability/clickstack/deployment/helm)
 - ClickStack OTel Collector(역할·포트·배치·큐·사이징) — [clickhouse.com/docs/.../clickstack/ingesting-data/otel-collector](https://clickhouse.com/docs/use-cases/observability/clickstack/ingesting-data/otel-collector)
@@ -30,7 +30,7 @@ HyperDX·ClickStack 배포 문서, 스키마/TTL 설정, Browser SDK, 그리고 
 
 ## ClickHouse 공식 (docs · 엔지니어링)
 
-ClickHouse Inc.의 스토리지·복제·insert·Keeper 문서와 압축·비용 엔지니어링 자료, GitHub PR.
+ClickHouse Inc.의 스토리지·복제·insert·Keeper 문서, 압축·비용 엔지니어링 자료, GitHub PR입니다.
 
 - External disks for storing data(type=s3/object_storage·cache disk·metadata_type/path) — [clickhouse.com/docs/operations/storing-data](https://clickhouse.com/docs/operations/storing-data)
 - Integrating S3(type=s3 예제·ReplicatedMergeTree on S3) — [clickhouse.com/docs/integrations/s3](https://clickhouse.com/docs/integrations/s3)
@@ -55,7 +55,7 @@ ClickHouse Inc.의 스토리지·복제·insert·Keeper 문서와 압축·비용
 
 ## AWS 공식 (EBS · EC2 · S3)
 
-EBS 볼륨 스펙·요금·내구성, gp3 상향 발표, io2 Block Express, EBS-optimized 인스턴스 대역, Multi-Attach.
+EBS 볼륨 스펙·요금·내구성, gp3 상향 발표, io2 Block Express, EBS-optimized 인스턴스 대역, Multi-Attach입니다.
 
 - EBS General Purpose SSD (gp3) User Guide(baseline 3,000/125·max 80,000 IOPS/2,000 MiB/s·64 TiB·durability·Outposts 16,000/1,000 한계) — [docs.aws.amazon.com/ebs/.../general-purpose.html](https://docs.aws.amazon.com/ebs/latest/userguide/general-purpose.html)
 - EBS Volume Types(io2 BE 256,000 IOPS/4,000 MB/s·99.999%·<500µs·gp3·io1) — [aws.amazon.com/ebs/volume-types](https://aws.amazon.com/ebs/volume-types/)
@@ -73,7 +73,7 @@ EBS 볼륨 스펙·요금·내구성, gp3 상향 발표, io2 Block Express, EBS-
 
 ## Altinity · clickhouse-operator
 
-Altinity operator/backup 문서·GitHub 이슈, EBS/S3 KB, CRD install bundle, tiered-S3 예제 YAML, dedup/Keeper KB.
+Altinity operator/backup 문서와 GitHub 이슈, EBS/S3 KB, CRD install bundle, tiered-S3 예제 YAML, dedup/Keeper KB입니다.
 
 - KB — AWS EC2 Storage(gp3 native·1-3 volume·7,000 IOPS/1,000 MiB/s safe·io2 500 MiB/s 낡은 주장) — [kb.altinity.com/.../aws-ec2-storage](https://kb.altinity.com/altinity-kb-setup-and-maintenance/aws-ec2-storage/)
 - Blog — Managing EBS gp3 Volumes in EKS(StorageClass ebs.csi.aws.com·throughput·allowVolumeExpansion·WaitForFirstConsumer) — [altinity.com/blog/managing-ebs-gp3-volumes-in-eks](https://altinity.com/blog/managing-ebs-gp3-volumes-in-eks)
@@ -96,7 +96,7 @@ Altinity operator/backup 문서·GitHub 이슈, EBS/S3 KB, CRD install bundle, t
 
 ## MongoDB · MCK
 
-HyperDX 메타데이터 스토어(MongoDB) 최소 규모 운영·WiredTiger 캐시·백업·Community/Enterprise 통합 operator.
+HyperDX 메타데이터 스토어(MongoDB)의 최소 규모 운영, WiredTiger 캐시, 백업, Community/Enterprise 통합 operator입니다.
 
 - mongodb/mongodb-kubernetes(MCK — community+enterprise 통합 리네임) — [github.com/mongodb/mongodb-kubernetes](https://github.com/mongodb/mongodb-kubernetes)
 - Community Operator 샘플(pod resources·SCRAM·members:3) — [github.com/mongodb/mongodb-kubernetes-operator/.../specify_pod_resources.yaml](https://github.com/mongodb/mongodb-kubernetes-operator/blob/master/config/samples/mongodb.com_v1_mongodbcommunity_specify_pod_resources.yaml)
@@ -106,7 +106,7 @@ HyperDX 메타데이터 스토어(MongoDB) 최소 규모 운영·WiredTiger 캐�
 
 ## OpenTelemetry
 
-Collector exporter·persistent queue·resiliency 문서(CH 앞단 유실 방어 근거).
+Collector exporter·persistent queue·resiliency 문서입니다. CH 앞단에서 유실을 막는 근거로 씁니다.
 
 - ClickHouse exporter README(create_schema·ttl_days) — [github.com/open-telemetry/opentelemetry-collector-contrib/.../clickhouseexporter/README.md](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/clickhouseexporter/README.md)
 - exporterhelper README(sending_queue.storage·queue_size 1000·num_consumers 10·block_on_overflow·WAL 재개) — [github.com/open-telemetry/opentelemetry-collector/.../exporterhelper/README.md](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md)
@@ -114,7 +114,7 @@ Collector exporter·persistent queue·resiliency 문서(CH 앞단 유실 방어 
 
 ## Kubernetes · 노드/스토리지 운영 (다운타임)
 
-노드 급사·비정상 종료·PVC AZ 고정·force-detach·Karpenter disruption 등 EBS 기반 다운타임 시나리오 근거.
+노드 급사·비정상 종료·PVC AZ 고정·force-detach·Karpenter disruption 등 EBS 기반 다운타임 시나리오의 근거입니다.
 
 - Non-Graceful Node Shutdown GA(1.28·out-of-service taint·StatefulSet+PV 무한 Terminating 해결) — [kubernetes.io/blog/2023/08/16/kubernetes-1-28-non-graceful-node-shutdown-ga](https://kubernetes.io/blog/2023/08/16/kubernetes-1-28-non-graceful-node-shutdown-ga/)
 - Node Shutdowns 개념 — [kubernetes.io/docs/concepts/cluster-administration/node-shutdown](https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/)
@@ -125,7 +125,7 @@ Collector exporter·persistent queue·resiliency 문서(CH 앞단 유실 방어 
 
 ## 커뮤니티 · 2차 자료 · 사례
 
-third-party 기술 블로그·실사례·RUM 리플레이 벤더 문서·EBS 실패율 실측. 편향 가능성을 감안해 읽습니다.
+third-party 기술 블로그와 실사례, RUM 리플레이 벤더 문서, EBS 실패율 실측입니다. 편향 가능성을 감안해 읽습니다.
 
 - OneUptime — S3 cold storage worked example(disk/cache/policy/TTL/모니터링) — [oneuptime.com/.../clickhouse-s3-cold-storage](https://oneuptime.com/blog/post/2026-03-31-clickhouse-s3-cold-storage/view)
 - OneUptime — Storage policies(move_factor 정밀 정의·max_data_part_size·system.storage_policies) — [oneuptime.com/.../clickhouse-storage-policies](https://oneuptime.com/blog/post/2026-03-31-clickhouse-storage-policies/view)
@@ -152,7 +152,7 @@ third-party 기술 블로그·실사례·RUM 리플레이 벤더 문서·EBS 실
 
 ## R8·R9 추가 — 블록 온리 튜닝·버전/업그레이드
 
-블록 스토리지 온리([08]({{< relref "08-block-only-tuning.md" >}}))·버전 호환·업그레이드([09]({{< relref "09-version-upgrade-compat.md" >}})) 조사에서 추가된 1차 출처.
+블록 스토리지 온리([08]({{< relref "08-block-only-tuning.md" >}}))·버전 호환·업그레이드([09]({{< relref "09-version-upgrade-compat.md" >}})) 조사에서 추가된 1차 출처입니다.
 
 ### ClickHouse 공식 (설정·업그레이드·백업)
 
@@ -188,12 +188,12 @@ third-party 기술 블로그·실사례·RUM 리플레이 벤더 문서·EBS 실
 
 ## 추가 조사 — S3 백엔드·티어링 비용 경로 (2026-08)
 
-self-host에서 S3를 어디까지 쓸 수 있는지를 다시 조사한 결과 중 이 챕터로 들어온 출처입니다. 티어링의 요청 단가·HyperDX가 붙는 CH 계정 권한·Express One Zone 경계가 여기에 속합니다.
+self-host에서 S3를 어디까지 쓸 수 있는지 다시 조사한 결과 가운데 이 챕터로 들어온 출처입니다. 티어링의 요청 단가, HyperDX가 붙는 CH 계정 권한, Express One Zone 경계가 여기에 속합니다.
 
 - ClickStack Going to production(HyperDX용 CH 계정은 readonly + `max_rows_to_read`(최소 100만)·`read_overflow_mode`·`cancel_http_readonly_queries_on_client_close`·`wait_end_of_query` 변경 권한 필요, 기본 계정 대신 전용 사용자 권고) — [clickhouse.com/docs/.../clickstack/production](https://clickhouse.com/docs/use-cases/observability/clickstack/production)
 - AWS Price List Bulk API — ap-northeast-2 S3 오퍼 index.json(서울 S3 Standard GB 단가·PUT/GET/DELETE 요청 단가를 직접 조회한 경로. gp3 GB 단가는 같은 API의 EC2 오퍼를 같은 방식으로 조회한다) — [pricing.us-east-1.amazonaws.com/.../AmazonS3/current/ap-northeast-2/index.json](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/ap-northeast-2/index.json)
 - GitHub issue — S3 Express One Zone 디렉터리 버킷 엔드포인트 `IncompleteBody` #72078 — [github.com/ClickHouse/ClickHouse/issues/72078](https://github.com/ClickHouse/ClickHouse/issues/72078)
 
-아래 넷은 본문이 인용하지만 1차 URL이 원 조사 산출물에 남아 있지 않아 이 목록에 아직 싣지 못했습니다. URL을 확보하는 대로 이 절에 채웁니다 — S3 Gateway VPC Endpoint의 무료 정책과 NAT Gateway 데이터 처리요금(서울), S3 Express One Zone 제공 리전 목록, wide part 파일 수 증폭 실측 예시(컬럼 109개 → part당 227 파일, ClickHouse 공식 KB), Packed storage `min_level_for_full_part_storage`와 `system.parts.part_storage_type` 문서.
+아래 넷은 본문이 인용하지만 1차 URL이 원 조사 산출물에 남아 있지 않아 이 목록에 아직 싣지 못했습니다 — S3 Gateway VPC Endpoint의 무료 정책과 NAT Gateway 데이터 처리요금(서울), S3 Express One Zone 제공 리전 목록, wide part 파일 수 증폭 실측 예시(컬럼 109개 → part당 227 파일, ClickHouse 공식 KB), Packed storage `min_level_for_full_part_storage`와 `system.parts.part_storage_type` 문서. URL을 확보하는 대로 이 절에 채웁니다.
 
 시점 기준 2026-08.

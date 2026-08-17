@@ -14,7 +14,7 @@ weight: 2
 - **AWS 문서와 실제가 어긋납니다.** User Guide는 Terraform을 "coming soon"이라 쓰지만 provider **v6.59.0**(발표 당일)에 이미 들어왔고, eksctl·CDK는 반대로 과대 서술입니다(§6).
 {{< /callout >}}
 
-2026-08-12, EKS가 관리형 컨트롤 플레인 3개 컴포넌트의 파라미터 4종을 고객 설정 대상으로 열었습니다. 지금까지 kube-scheduler·kube-apiserver·kube-controller-manager 설정은 손댈 수 없는 영역이었습니다. 노드를 채워 써서 컴퓨트 비용을 줄이고 싶어도 관리형 스케줄러의 전략을 바꿀 방법이 없었습니다. [목표버전]({{< relref "../01-target-version.md" >}})에서 확정한 blue의 목표는 **1.35**이고 이 4종의 하한은 **1.31**입니다. blue는 4개를 전부 쓸 수 있는 상태로 태어납니다. 그래서 이 페이지는 **"써야 하나"**를 판정합니다. "쓸 수 있나"는 이미 답이 나와 있습니다. 클러스터 레벨 파라미터와 가변성 3분류는 [레이어 1]({{< relref "01-cluster-parameters.md" >}}), HPA syncPeriod가 요구하는 용량 축은 [Provisioned Control Plane]({{< relref "03-provisioned-control-plane.md" >}}), 이번에도 여전히 닫혀 있는 플래그들은 [레이어 3]({{< relref "04-not-tunable.md" >}})이 다룹니다.
+2026-08-12, EKS가 관리형 컨트롤 플레인 3개 컴포넌트의 파라미터 4종을 고객 설정 대상으로 열었습니다. kube-scheduler·kube-apiserver·kube-controller-manager 설정은 그때까지 손댈 수 없는 영역이었습니다. 노드를 채워 써서 컴퓨트 비용을 줄이고 싶어도 관리형 스케줄러의 전략을 바꿀 방법이 없었습니다. [목표버전]({{< relref "../01-target-version.md" >}})에서 확정한 blue의 목표는 **1.35**이고 이 4종의 하한은 **1.31**이니 blue는 4개를 전부 쓸 수 있는 상태로 태어납니다. "쓸 수 있나"에는 이미 답이 나와 있으므로 이 페이지가 판정하는 것은 **"써야 하나"**입니다. 클러스터 레벨 파라미터와 가변성 3분류는 [레이어 1]({{< relref "01-cluster-parameters.md" >}}), HPA syncPeriod가 요구하는 용량 축은 [Provisioned Control Plane]({{< relref "03-provisioned-control-plane.md" >}}), 이번에도 여전히 닫혀 있는 플래그들은 [레이어 3]({{< relref "04-not-tunable.md" >}})이 다룹니다.
 
 > 이 페이지의 모든 `path:line` 인용은 로컬 클론 기준이다 — 쿠버네티스는 **v1.37 개발 브랜치 커밋 `752b8875`(2026-07-26)**, karpenter-core는 **`ac7a021e`(`v1.14.0-6`, 2026-07-27)**. 1.31~1.36 배포본에서는 줄번호가 다를 수 있습니다. 다만 네 필드 모두 1.19~1.23 사이에 도입돼 이후 API 계약이 바뀌지 않았으므로 개념·기본값 자체는 안정적입니다.
 
@@ -73,7 +73,7 @@ AWS의 요금 문구는 이렇게 못박혀 있습니다. "There is no additiona
 | scoringStrategy | 2종만 | 업스트림에 존재하는 세 번째 전략 `RequestedToCapacityRatio`가 제외됐다 |
 | serviceNodePortRange | 하한만 내려간다 | 상한 32767은 업스트림 기본값과 같고, 확장 여지는 아래쪽 10260까지뿐이다 |
 
-AWS 문서는 경계값의 근거까지 직접 밝힙니다. 하한 **10260**은 노드의 kubelet health 포트(**10248**)와 kube-proxy health check 포트(**10256**)를 피한 자리입니다. 상한 **32767**은 Linux ephemeral port 범위(통상 **32768**부터)와의 충돌을 막습니다. 임의로 잘라 놓은 숫자가 아닙니다.
+AWS 문서는 경계값의 근거까지 직접 밝힙니다. 하한 **10260**은 노드의 kubelet health 포트(**10248**)와 kube-proxy health check 포트(**10256**)를 피한 자리이고 상한 **32767**은 Linux ephemeral port 범위(통상 **32768**부터)와의 충돌을 막습니다. 임의로 잘라 놓은 숫자가 아닙니다.
 
 `RequestedToCapacityRatio` 제외는 **사실로 확정**됐습니다. API Reference가 `LeastAllocated | MostAllocated`만 명시합니다. 다만 **제외 이유는 어디에도 없습니다.** 코드를 보면 이 전략만 임의 개수의 `(utilization, score)` 점 배열(`UtilizationShapePoint`)과 단조성 검증(`validateFunctionShape`)을 요구하므로 스칼라 몇 개로 끝나는 앞의 두 전략보다 관리형 API 표면이 훨씬 커집니다(`pkg/scheduler/framework/plugins/noderesources/requested_to_capacity_ratio.go`). 이건 코드 구조상 그렇다는 **추론**입니다. AWS가 실제로 그 이유로 뺐다는 근거는 찾지 못했습니다.
 
@@ -109,13 +109,13 @@ karpenter·Auto Mode와의 관계는 AWS가 원론부터 못박습니다. "The s
 
 전환해도 즉시 효과는 없습니다. "The Kubernetes scheduler never relocates a pod that is already running. Changing the scoring strategy affects future scheduling decisions only." AWS의 후속 안내는 "To rebalance pods that are already running, evict or restart them."입니다. descheduler(`HighNodeUtilization`)가 이 재조정에 필수인지는 단정할 근거가 없습니다. 흔히 인용되는 `descheduler#749`는 2022년 이슈이고 stale 봇이 닫았으며 최신 버전 유효성은 확인되지 않았습니다. **"기존 파드는 옮겨지지 않으므로 재조정이 필요할 수 있다"**까지가 안전선입니다.
 
-과거 EKS에서 `MostAllocated`를 쓰려면 커스텀 스케줄러를 직접 운영해야 했습니다. ClickHouse가 공개한 사례(노드 약 10% 감소, EC2 비용 20%+ 절감, 활용률 50%→70%)도 커스텀 스케줄러 기반이었습니다. 거기에는 실패담도 함께 실려 있습니다. 기본 스케줄러와 커스텀 스케줄러 사이에 프리엠션이 서로 작동하지 않아 오버프로비저닝 파드까지 커스텀 쪽으로 통일해야 했습니다. 이번 발표는 관리형 kube-scheduler 자체의 설정을 바꾸는 것이라 스케줄러 이원화로 인한 프리엠션 불일치가 **원천적으로** 사라집니다. 절감 수치보다 이쪽이 더 큰 변화입니다.
+과거 EKS에서 `MostAllocated`를 쓰려면 커스텀 스케줄러를 직접 운영해야 했습니다. ClickHouse가 공개한 사례(노드 약 10% 감소, EC2 비용 20%+ 절감, 활용률 50%→70%)도 커스텀 스케줄러 기반이었는데 거기에는 실패담도 함께 실려 있습니다. 기본 스케줄러와 커스텀 스케줄러 사이에 프리엠션이 서로 작동하지 않아 오버프로비저닝 파드까지 커스텀 쪽으로 통일해야 했습니다. 이번 발표는 관리형 kube-scheduler 자체의 설정을 바꾸는 것이라 스케줄러 이원화로 인한 프리엠션 불일치가 **원천적으로** 사라집니다. 절감 수치보다 이쪽이 더 큰 변화입니다.
 
 ### 3.2 kube-apiserver — eventTtl
 
 축소 동기는 명확합니다. "Clusters running high-churn workloads, such as **large-scale batch jobs, AI workloads, CI/CD pipelines, and frequent CronJobs**, accumulate thousands of events quickly." 2022년 AWS 블로그가 "Amazon EKS keeps the Kubernetes upstream default event TTL of 60 minutes, **which can't be changed**"라고 못박았던 것이 이번에 뒤집혔습니다.
 
-함정은 여기서 나옵니다.
+함정은 세 개입니다.
 
 1. **신규 이벤트에만 적용됩니다.** 기존 이벤트는 생성 시점 TTL로 만료되므로 스토리지 회수가 점진적입니다. 바꾸고 나서 etcd 크기가 즉시 줄지 않는 것이 정상입니다.
 2. **삭제된 이벤트는 복구할 수 없습니다.** 축소는 외부 보존 파이프라인이 **이미 돌고 있다는 전제**에서만 안전합니다.
@@ -123,7 +123,7 @@ karpenter·Auto Mode와의 관계는 AWS가 원론부터 못박습니다. "The s
 
 3번은 표현을 그대로 옮겼지만 오픈소스 코드에서 이 메커니즘의 근거는 **확인되지 않았습니다.** 이벤트 TTL 만료는 kube-apiserver → etcd lease 경로로만 구현돼 있습니다(`pkg/registry/core/event/storage/storage.go:36-41` → `staging/.../etcd3/lease_manager.go`). kube-controller-manager의 leader election과는 코드 경로상 연결점이 없습니다. 업스트림에 실재하는 유사 현상은 **lease 재사용 최적화**입니다. 같은 TTL의 이벤트들을 하나의 lease에 묶으려고 `min(60s, TTL의 5%)`를 얹어 lease를 발급하므로(`lease_manager.go:28-29, 85-113`) 개별 이벤트의 실제 삭제가 설정값보다 수십 초 늦어질 수 있습니다. AWS 문구가 관리형 구현의 비공개 디테일을 가리키는 것일 수도 있어 어느 쪽이라 단정하지 않습니다. 실무 결론은 같습니다. eventTtl은 **하드 데드라인이 아닙니다.**
 
-1차 문서에는 "이벤트가 etcd를 채워 API 서버 성능을 떨어뜨릴 위험"이라는 정성적 서술만 있습니다. 60분 유지가 실제 etcd의 몇 %를 차지하는지는 AWS 문서·블로그 어디에도 없습니다. etcd 점유율의 정량 수치가 없으니 축소 판단은 자기 클러스터의 **`apiserver_storage_size_bytes` 실측**으로 해야 합니다.
+1차 문서에는 "이벤트가 etcd를 채워 API 서버 성능을 떨어뜨릴 위험"이라는 정성적 서술만 있습니다. 60분 유지가 실제 etcd의 몇 %를 차지하는지는 AWS 문서·블로그 어디에도 없습니다. 수치가 없으니 축소 판단은 자기 클러스터의 **`apiserver_storage_size_bytes` 실측**으로 해야 합니다.
 
 ### 3.3 kube-apiserver — serviceNodePortRange
 
@@ -145,14 +145,14 @@ karpenter·Auto Mode와의 관계는 AWS가 원론부터 못박습니다. "The s
 
 ### 3.4 kube-controller-manager — HPA syncPeriod
 
-이 파라미터만 **Provisioned Control Plane이 전제**입니다. 이 페이지에서 가장 위험한 항목이기도 합니다. 손잡이부터 구분해야 합니다.
+이 파라미터만 **Provisioned Control Plane이 전제**이고 이 페이지에서 가장 위험한 항목이기도 합니다. 손잡이부터 구분해야 합니다.
 
 | 손잡이 | 무엇인가 | 어떻게 정해지나 |
 |---|---|---|
 | **sync period**(이번에 열린 것) | HPA 컨트롤러가 스케일 판단을 **얼마나 자주** 하는가 | 10s~15s, 사용자 설정 |
 | **sync concurrency**(파라미터 아님) | 컨트롤러 매니저가 HPA 오브젝트를 **몇 개 병렬로** 처리하는가 | Provisioned CP 티어가 자동 부여(XL 50 · 2XL 100 · 4XL/8XL 200). **업스트림 기본값은 5** |
 
-concurrency는 2026-07-28에 별도로 확대된 것이고 전 Provisioned 클러스터에 자동 적용돼 설정할 것이 없습니다(→ [Provisioned Control Plane]({{< relref "03-provisioned-control-plane.md" >}})). 8XL의 200 ÷ 업스트림 5 = 40배입니다. 그 발표의 "up to 40x"와 정합합니다.
+concurrency는 2026-07-28에 별도로 확대됐고 전 Provisioned 클러스터에 자동 적용돼 설정할 것이 없습니다(→ [Provisioned Control Plane]({{< relref "03-provisioned-control-plane.md" >}})). 8XL의 200 ÷ 업스트림 5 = 40배입니다. 그 발표의 "up to 40x"와 정합합니다.
 
 sync period 쪽 메커니즘은 코드에서 명확합니다. `processNextWorkItem()`이 reconcile 후 큐에 다시 넣는 구조라(`pkg/controller/podautoscaler/horizontal.go:356-368`, "Requests spend resyncPeriod in queue so HPAs are processed every resyncPeriod") HPA 오브젝트 하나당 정확히 period 간격으로 reconcile이 재실행됩니다. 매 reconcile은 metrics 조회 + Scale 서브리소스 접근을 수반합니다. 그래서 apiserver 요청량은 **HPA 개수 × (1/period)**에 선형 비례합니다.
 
@@ -176,7 +176,7 @@ sync period 쪽 메커니즘은 코드에서 명확합니다. `processNextWorkIt
 
 ## 4. cpu/memory 가중치를 노드 비율에 맞게 줄 수 있나
 
-karpenter가 c계열(cpu:mem 1:2)·m계열(1:4)·r계열(1:8)을 섞어 띄우는 클러스터라면 질문이 이렇게 나옵니다. "노드 모양이 다양한데 가중치를 그 비율에 맞게 줘야 하나." 결론부터 말하면 **필요 없습니다.** 그리고 하고 싶어도 이 파라미터로는 못 합니다.
+karpenter가 c계열(cpu:mem 1:2)·m계열(1:4)·r계열(1:8)을 섞어 띄우는 클러스터라면 질문이 이렇게 나옵니다. "노드 모양이 다양한데 가중치를 그 비율에 맞게 줘야 하나." 답은 **필요 없습니다.** 그리고 하고 싶어도 이 파라미터로는 못 합니다.
 
 ### 4.1 점수 공식이 이미 노드 비율로 정규화한다
 
@@ -184,9 +184,9 @@ karpenter가 c계열(cpu:mem 1:2)·m계열(1:4)·r계열(1:8)을 섞어 띄우�
 
 ### 4.2 가중치가 실제로 정하는 것은 병목 자원이다
 
-그리고 하고 싶어도 못 합니다. `resources[]`는 **클러스터 전역 단일 설정**입니다. AWS 문서 원문은 이렇습니다. "Control plane parameters apply to the whole cluster and to all workloads running on it. You can't scope them to individual namespaces or workloads." NodePool별·인스턴스 패밀리별·네임스페이스별 차등 부여는 불가능합니다.
+하고 싶어도 못 하는 이유는 스코프입니다. `resources[]`는 **클러스터 전역 단일 설정**입니다. AWS 문서 원문은 이렇습니다. "Control plane parameters apply to the whole cluster and to all workloads running on it. You can't scope them to individual namespaces or workloads." NodePool별·인스턴스 패밀리별·네임스페이스별 차등 부여는 불가능합니다.
 
-그래서 가중치는 **어느 차원이 패킹을 주도할지**를 정합니다. 노드 모양을 정하는 손잡이가 아닙니다. 설정 기준을 "노드 비율"에서 찾으면 헛짚습니다. 물어야 할 것은 **무엇이 이 클러스터의 병목 자원인가**입니다. AWS 문서의 GPU 예시가 정확히 이 논리입니다. 가속기가 희소 자원인 클러스터에서 `nvidia.com/gpu`를 cpu·memory보다 높게 주면 가속기를 요구하는 파드가 이미 일부 점유된 노드로 모입니다. 가중치는 **상대값**입니다. `cpu:100, memory:1`은 memory를 무시하는 설정이 아니라 cpu를 100배 더 보는 설정입니다. 모든 후보 노드의 cpu 여유가 동일하면 cpu가 노드를 구별하지 못해 사실상 memory가 결정합니다(AWS 문서).
+그래서 가중치는 **어느 차원이 패킹을 주도할지**를 정합니다. 노드 모양을 정하는 손잡이가 아니니 설정 기준을 "노드 비율"에서 찾으면 헛짚습니다. 물어야 할 것은 **무엇이 이 클러스터의 병목 자원인가**입니다. AWS 문서의 GPU 예시가 정확히 이 논리입니다. 가속기가 희소 자원인 클러스터에서 `nvidia.com/gpu`를 cpu·memory보다 높게 주면 가속기를 요구하는 파드가 이미 일부 점유된 노드로 모입니다. 가중치는 **상대값**입니다. `cpu:100, memory:1`은 memory를 무시하는 설정이 아니라 cpu를 100배 더 보는 설정입니다. 모든 후보 노드의 cpu 여유가 동일하면 cpu가 노드를 구별하지 못해 사실상 memory가 결정합니다(AWS 문서).
 
 ### 4.3 생략은 낮은 가중치가 아니다
 
@@ -212,7 +212,7 @@ grep -rniE 'scoringStrategy|KubeSchedulerConfiguration|nodeResourcesFit|MostAllo
 # → 0건 (테스트 포함/제외 모두)
 ```
 
-karpenter는 EKS에 설정한 kube-scheduler scoring 전략을 **읽지 않습니다.** 자체 스케줄링 시뮬레이션(`pkg/controllers/provisioning/scheduling/`)으로 인스턴스 타입을 고릅니다. `scheduler.go:845`의 `sortExistingNodes()`는 초기화된 노드를 먼저 두는 자체 정렬이고 스케줄러 점수와 무관합니다. 따라서 두 계층의 역할이 이렇게 갈립니다.
+karpenter는 EKS에 설정한 kube-scheduler scoring 전략을 **읽지 않습니다.** 자체 스케줄링 시뮬레이션(`pkg/controllers/provisioning/scheduling/`)으로 인스턴스 타입을 고릅니다. `scheduler.go:845`의 `sortExistingNodes()`는 초기화된 노드를 먼저 두는 자체 정렬이고 스케줄러 점수와 무관합니다. 두 계층의 역할은 이렇게 갈립니다.
 
 | 상황 | scoringStrategy의 영향 |
 |---|---|
@@ -244,7 +244,7 @@ karpenter 코어 메인테이너(jonathan-innis)도 2024년 이슈 `kubernetes-s
 
 `NodeResourcesBalancedAllocation`은 파드를 놓은 뒤 **cpu·memory 사용 비율이 서로 가까워지는지**로 점수를 매깁니다. `balanced_allocation.go:204-218` 주석이 범위를 직접 서술합니다. 균형이 개선되면 100 쪽으로, 나빠지면 50 쪽으로, 변화가 작으면 75 근처입니다. 좌초를 줄이는 shape-aware 배치는 이미 기본으로 돌고 있고 가중치도 `nodeResourcesFit`과 **동일한 1**입니다.
 
-그리고 EKS는 이 플러그인의 가중치를 **열지 않았습니다.** 열린 것은 `nodeResourcesFit`의 scoring 전략뿐입니다. 원하는 동작은 이미 켜져 있고 켜져 있는 쪽을 조정할 창구는 없습니다. 이 축에서 튜닝할 여지가 없습니다.
+그리고 EKS는 이 플러그인의 가중치를 **열지 않았습니다.** 열린 것은 `nodeResourcesFit`의 scoring 전략뿐입니다. 원하는 동작은 이미 켜져 있는데 그쪽을 조정할 창구가 없습니다. 이 축에는 튜닝할 여지가 없습니다.
 
 여기서 실질적인 경고가 하나 나옵니다. 인스턴스 패밀리가 섞인 플릿에서 `MostAllocated`는 **좌초를 악화시킬 수 있습니다.** 메모리가 무거운 파드(1 vCPU / 8 GiB)를 빈 c계열(16 vCPU / 32 GiB)과 빈 m계열(16 vCPU / 64 GiB)에 놓아 보겠습니다. §3.1의 공식으로 계산하면 방향이 갈립니다.
 
@@ -255,9 +255,7 @@ karpenter 코어 메인테이너(jonathan-innis)도 2024년 이슈 `kubernetes-s
 
 `MostAllocated`는 파드가 더 많이 채우는 노드를 선호하므로 메모리 무거운 파드를 **메모리가 빡빡한 c계열로 보냅니다.** 비율 정합의 반대 방향입니다. 동시에 기본으로 켜진 `NodeResourcesBalancedAllocation`과 서로 반대되는 신호를 냅니다. 두 플러그인이 같은 가중치라 힘이 상쇄되는 구간이 생깁니다.
 
-실무 결론은 여기서 나옵니다.
-
-패밀리가 섞인 NodePool에서 `MostAllocated`를 켤 때는 **좌초와 파편화를 함께 측정**해야 합니다. 노드 대수만 보면 개선으로 보이는데 좌초가 늘어날 수 있습니다.
+실무 결론은 이렇습니다. 패밀리가 섞인 NodePool에서 `MostAllocated`를 켤 때는 **좌초와 파편화를 함께 측정**해야 합니다. 노드 대수만 보면 개선으로 보이는데 좌초가 늘어날 수 있습니다.
 
 비율 정합을 원한다면 그 레버는 **karpenter의 인스턴스 타입 선택**입니다(§4.4). 스케줄러 쪽에는 없습니다. karpenter는 pending 파드 배치의 합산 request를 보고 인스턴스를 고르기 때문에 한 NodePool에 여러 패밀리를 허용하면 배치 단위로 비율이 맞는 패밀리가 선택됩니다. 단일 패밀리로 좁혀 두면 그 적응력을 끄는 셈입니다. 반대로 넓히면 노드 모양이 불균일해져 topologySpread·PDB 운영이 복잡해집니다. 어느 쪽이든 스케줄러 가중치가 결정하는 문제가 아닙니다.
 
@@ -480,7 +478,7 @@ getting-started 가이드의 전제조건은 "describe and update Amazon EKS clu
 
 ### 8.2 MostAllocated 도입 선행조건
 
-방향은 좋습니다. AWS 자신이 "packing이 유휴 노드를 만들어 consolidation이 걷어가게 한다"고 상보 관계를 명시합니다. karpenter 메인테이너도 헤지를 붙여 같은 방향을 말합니다(§4.4). finance는 [karpenter 1.14 전환]({{< relref "../components/01-karpenter.md" >}})에서 CRD v1beta1→v1을 어차피 해야 하므로 consolidation 설정을 손대는 창이 이미 열립니다. 그럼에도 컷오버와 같은 창에 넣지 않는 이유는 §8.1에 적었습니다. 그와 별개로 먼저 정리해야 할 선행조건이 있습니다.
+방향은 좋습니다. AWS 자신이 "packing이 유휴 노드를 만들어 consolidation이 걷어가게 한다"고 상보 관계를 명시하고 karpenter 메인테이너도 헤지를 붙여 같은 방향을 말합니다(§4.4). finance는 [karpenter 1.14 전환]({{< relref "../components/01-karpenter.md" >}})에서 CRD v1beta1→v1을 어차피 해야 하므로 consolidation 설정을 손대는 창이 이미 열립니다. 그럼에도 컷오버와 같은 창에 넣지 않는 이유는 §8.1에 적었습니다. 그와 별개로 먼저 정리해야 할 선행조건이 있습니다.
 
 | 선행 조건 | finance 현황 | 판정 |
 |---|---|---|
@@ -499,7 +497,7 @@ getting-started 가이드의 전제조건은 "describe and update Amazon EKS clu
 
 **`serviceNodePortRange`.** 내부 ALB Ingress(`target-type: ip`)가 istio-ingressgateway 앞에 섭니다. 파드는 ALB 타깃으로 직접 등록되고 kube-proxy를 우회합니다. 트래픽 경로 관점에서는 "무관"이 답입니다. 그런데 슬롯 소비는 별개입니다. `allocateLoadBalancerNodePorts` 기본값이 `true`라서 LoadBalancer 타입 서비스는 `ip` 모드여도 슬롯을 하나씩 먹습니다(§3.3). 그래서 확인할 것은 **LoadBalancer 타입 서비스 개수**입니다. 2768 슬롯을 소진할 규모가 아니면 기본값 유지입니다. 축소는 이득이 없습니다. 확대는 SG·NACL 작업을 부르는데 내부 ALB 전제의 보안 baseline과 어긋납니다. "나중에 넓힐 일이 생길까 봐 미리 넓혀둔다"도 답이 아닙니다. 확대는 나중에도 무중단으로 가능하고 SG를 선제적으로 열어두는 쪽이 더 비쌉니다. 그래도 할 일 하나: **NLB instance 모드를 쓰는 서비스가 있는지 확인**합니다. 있으면 그 서비스에 `allocateLoadBalancerNodePorts: false`는 금지입니다. `istio-ingressgateway`가 ClusterIP인지 LoadBalancer인지, LoadBalancer 타입 서비스가 몇 개인지는 **확인 필요**로 남습니다.
 
-**`eventTtl`.** 반출 경로 자체는 그림이 그려집니다. 이 블로그가 [HyperDX/ClickHouse 스택]({{< relref "../../hyperdx/_index.md" >}})을 운영하므로 `kubernetes-event-exporter` → OTLP → OpenTelemetry Collector `clickhouseexporter` → ClickHouse 경로가 가능합니다. AWS 문서가 직접 언급하는 도구도 `kubernetes-event-exporter`입니다. 문제는 순서입니다. 삭제된 이벤트는 복구할 수 없으므로 축소는 이 파이프라인이 이미 돌고 있을 때만 안전합니다. 그런데 blue-green에서 이벤트가 가장 필요한 시점이 정확히 **컷오버 구간**입니다. `FailedScheduling`·`FailedMount`·`Unhealthy`·`PortOutOfRange`가 이관 실패를 가장 먼저 알려주는 신호이고 60분 보존은 "장애를 인지하고 사람이 붙을 시간"에 대응합니다. 컷오버 창에서 TTL을 10분으로 줄이는 것은 진단 창을 좁히는 조작입니다. 축소 동기가 되는 워크로드 성격(대규모 배치·AI·CI/CD)도 finance와 거리가 있습니다. **판정:** 컷오버 이후 `apiserver_storage_size_bytes`를 실측하고, 이벤트 반출이 붙은 뒤에만 재검토합니다.
+**`eventTtl`.** 반출 경로 자체는 그림이 그려집니다. 이 블로그가 [HyperDX/ClickHouse 스택]({{< relref "../../hyperdx/_index.md" >}})을 운영하므로 `kubernetes-event-exporter` → OTLP → OpenTelemetry Collector `clickhouseexporter` → ClickHouse 경로가 가능합니다. AWS 문서가 직접 언급하는 도구도 `kubernetes-event-exporter`입니다. 문제는 순서입니다. 삭제된 이벤트는 복구할 수 없으므로 축소는 이 파이프라인이 이미 돌고 있을 때만 안전합니다. 그런데 blue-green에서 이벤트가 가장 필요한 시점이 정확히 **컷오버 구간**입니다. `FailedScheduling`·`FailedMount`·`Unhealthy`·`PortOutOfRange`가 이관 실패를 가장 먼저 알려주는 신호이고 60분 보존은 "장애를 인지하고 사람이 붙을 시간"에 대응합니다. 컷오버 창에서 TTL을 10분으로 줄이는 것은 진단 창을 좁히는 조작입니다. 축소 동기가 되는 워크로드 성격(대규모 배치·AI·CI/CD)도 finance와 거리가 있습니다. **판정:** 컷오버 이후 `apiserver_storage_size_bytes`를 실측하고 이벤트 반출이 붙은 뒤에만 재검토합니다.
 
 **HPA `syncPeriod`.** 비용부터 보면 답이 거의 나옵니다. Standard $73/월이 XL $1,277.50/월이 되고 증분만 **월 +$1,204.50**입니다. prod·staging 두 클러스터에서 환경 일관성을 지키려면 증분이 두 배가 됩니다. 그 돈으로 얻는 것이 sync period 5초 단축인데 finance 스택에서는 그 5초조차 대부분 소멸합니다. KEDA 2.20.1이 만든 HPA는 KEDA의 `pollingInterval`이 반응 지연을 지배합니다. metrics-server 0.9.0의 기본 `--metric-resolution`은 15초입니다. 스케일다운 지연의 주범인 `downscale-stabilization`은 애초에 열리지 않았습니다(§3.4). 여기에 **기본값이 아닌 동안 Standard로 못 돌아간다**는 복귀 제약까지 얹히므로 "일단 켜 보고 아니면 끈다"가 2단계 롤백이 됩니다(→ [Provisioned Control Plane]({{< relref "03-provisioned-control-plane.md" >}})). 먼저 볼 곳은 병목의 위치입니다. `workqueue_depth{name="horizontalpodautoscaler"}`가 0 근처라면 컨트롤 플레인은 애초에 병목이 아니었습니다. 그러면 체감 지연의 원인은 KEDA `pollingInterval`·metrics-server `metric-resolution`·`scaleDown.stabilizationWindowSeconds` 셋 중 하나입니다. 세 개 모두 **추가 비용 없이** 워크로드 쪽에서 조절할 수 있습니다.
 

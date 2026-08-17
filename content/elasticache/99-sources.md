@@ -5,15 +5,17 @@ weight: 99
 
 # 출처 — Redis · Valkey · Memcached 조사 자료
 
-이 페이지는 [2009 첫 커밋부터 6.2 까지]({{< relref "01-origins-and-design/index.md" >}}), [memcached — 같은 문제를 다르게 푼 6년 선배]({{< relref "02-memcached/index.md" >}}), [왜 찢어졌나 — Commons Clause 부터 AGPL 복귀까지]({{< relref "03-license-and-fork.md" >}}), [Redis 7.0 → 8.10 — 그리고 9 는 왜 없나]({{< relref "04-redis-7-to-8.md" >}}), [Valkey 8.0 → 9.1 — 엔진이 갈라진 지점]({{< relref "05-valkey-8-to-9/index.md" >}}), [cluster mode — 16384 슬롯이 강제하는 것]({{< relref "06-cluster-mode/index.md" >}}), [AWS 에서 엔드포인트는 어떻게 바뀌나]({{< relref "07-aws-endpoints/index.md" >}}), [무엇을 고를 것인가]({{< relref "08-choosing.md" >}}) 여덟 페이지가 인용한 1차 조사 문서의 근거 표기(URL·`gh api`·로컬 클론 `git show`)에서 URL 부분만 모아 중복을 제거하고 주제별로 분류했습니다.
+이 페이지는 [2009 첫 커밋부터 6.2 까지]({{< relref "01-origins-and-design/index.md" >}}), [memcached — 같은 문제를 다르게 푼 6년 선배]({{< relref "02-memcached/index.md" >}}), [왜 찢어졌나 — Commons Clause 부터 AGPL 복귀까지]({{< relref "03-license-and-fork.md" >}}), [Redis 7.0 → 8.10 — 그리고 9 는 왜 없나]({{< relref "04-redis-7-to-8.md" >}}), [Valkey 8.0 → 9.1 — 엔진이 갈라진 지점]({{< relref "05-valkey-8-to-9/index.md" >}}), [cluster mode — 16384 슬롯이 강제하는 것]({{< relref "06-cluster-mode/index.md" >}}), [AWS 에서 엔드포인트는 어떻게 바뀌나]({{< relref "07-aws-endpoints/index.md" >}}), [무엇을 고를 것인가]({{< relref "08-choosing.md" >}}) 여덟 페이지가 인용한 1차 조사 문서의 근거 표기에서 URL 부분만 모은 목록입니다. 근거 표기는 URL·`gh api`·로컬 클론 `git show` 세 형태였는데 그중 URL 만 뽑아 중복을 제거하고 주제별로 분류했습니다.
 
-그 1차 조사 문서가 다룬 범위는 Redis 첫 커밋(2009-03-22)부터 6.2 까지의 설계 연쇄, Redis 7.0\~8.10 의 버전별 신기능·breaking change·"9 가 없다"는 사실 확인, memcached 의 23년치 slab/LRU/영속성 진화(2003-05-27 첫 커밋 기산), 2018\~2025 라이선스 변경과 Valkey·Redict 등 포크 계보, Valkey 8.x 의 내부 자료구조 교체(dict entry 키 임베딩 → `hashtable.c`)와 비동기 I/O 스레딩, Valkey 9.x 와 atomic slot migration, cluster mode 내부 구조(16384 슬롯·MOVED/ASK·슬롯 마이그레이션), AWS ElastiCache·MemoryDB 엔드포인트·버전 지원입니다. 조사 기준일은 문서에 따라 갈립니다 — 엔진을 다룬 조사 문서는 **2026-08-05**, AWS 를 다룬 `08-aws-endpoints` 와 갭 리포트 `07-gap-2`(ElastiCache cluster mode 전환 시 엔드포인트가 어떻게 바뀌는가)는 **2026-08-06**, 갭 리포트 `07-gap-3`(Valkey 모듈 생태계 전수조사)은 2026-08-05 입니다. 집필 착수 전 최종 게이트의 판정일은 **2026-08-06** 입니다.
+그 1차 조사 문서가 다룬 범위는 Redis 첫 커밋(2009-03-22)부터 6.2 까지의 설계 연쇄, Redis 7.0\~8.10 의 버전별 신기능·breaking change·"9 가 없다"는 사실 확인, memcached 의 23년치 slab/LRU/영속성 진화(2003-05-27 첫 커밋 기산), 2018\~2025 라이선스 변경과 Valkey·Redict 등 포크 계보, Valkey 8.x 의 내부 자료구조 교체(dict entry 키 임베딩 → `hashtable.c`)와 비동기 I/O 스레딩, Valkey 9.x 와 atomic slot migration, cluster mode 내부 구조(16384 슬롯·MOVED/ASK·슬롯 마이그레이션), AWS ElastiCache·MemoryDB 엔드포인트·버전 지원입니다.
 
-개별 URL의 등급(확인됨/추정/미확인)은 원 조사 문서 본문의 인라인 태그를 따릅니다 — 이 표 자체는 출처 목록이며 등급을 재판정하지 않습니다.
+조사 기준일은 문서마다 갈립니다. 엔진을 다룬 조사 문서는 **2026-08-05**, AWS 를 다룬 `08-aws-endpoints` 와 갭 리포트 `07-gap-2`(ElastiCache cluster mode 전환 시 엔드포인트가 어떻게 바뀌는가)는 **2026-08-06**, 갭 리포트 `07-gap-3`(Valkey 모듈 생태계 전수조사)은 2026-08-05 입니다. 집필 착수 전 최종 게이트의 판정일은 **2026-08-06** 입니다.
+
+개별 URL 의 등급(확인됨/추정/미확인)은 원 조사 문서 본문의 인라인 태그를 따릅니다 — 이 표 자체는 출처 목록이며 등급을 재판정하지 않습니다.
 
 ## Redis 공식
 
-redis.io 의 기술 문서·블로그(라이선스·거버넌스 관련은 아래 `라이선스·포크` 절로 분리).
+redis.io 의 기술 문서·블로그입니다. 라이선스·거버넌스 관련은 아래 `라이선스·포크` 절로 분리했습니다.
 
 - **프로토콜 스펙(RESP1/2/3 원문)** — [redis.io/.../protocol-spec](https://redis.io/docs/latest/develop/reference/protocol-spec/)
 - **Functions 소개(7.0)** — [redis.io/.../functions-intro](https://redis.io/docs/latest/develop/programmability/functions-intro/)
@@ -37,7 +39,7 @@ redis.io 의 기술 문서·블로그(라이선스·거버넌스 관련은 아�
 
 ## Valkey 공식
 
-valkey.io 의 기술 문서·블로그(라이선스·포크 서사 관련은 아래 절로 분리).
+valkey.io 의 기술 문서·블로그입니다. 라이선스·포크 서사 쪽은 아래 절에 따로 두었습니다.
 
 - **Unlock One Million RPS 블로그(io-threads 벤치마크 조건 원문)** — [valkey.io/blog/unlock-one-million-rps](https://valkey.io/blog/unlock-one-million-rps/)
 - **메모리 효율 8.0 블로그(kvstore·임베디드 엔트리)** — [valkey.io/blog/valkey-memory-efficiency-8-0](https://valkey.io/blog/valkey-memory-efficiency-8-0/)
@@ -57,7 +59,7 @@ valkey.io 의 기술 문서·블로그(라이선스·포크 서사 관련은 아
 
 ## memcached 공식
 
-memcached.org·docs.memcached.org 와 메인테이너 dormando 의 공식 채널.
+memcached.org·docs.memcached.org 와 메인테이너 dormando 의 공식 채널입니다.
 
 - **memcached.org 홈(최신 릴리스 공지)** — [memcached.org](https://memcached.org/)
 - **memcached.org/about(라이선스·거버넌스 고지)** — [memcached.org/about](https://memcached.org/about)
@@ -72,7 +74,7 @@ memcached.org·docs.memcached.org 와 메인테이너 dormando 의 공식 채널
 
 ## 라이선스·포크 1차 자료
 
-Redis 라이선스 변경사(2018 Commons Clause → 2025 AGPLv3 복귀)와 Valkey·Redict·KeyDB·Garnet 등 포크·거버넌스에 관한 1차 자료. redis.io·valkey.io 도메인이라도 이 주제인 것은 여기로 모았습니다.
+Redis 라이선스 변경사(2018 Commons Clause → 2025 AGPLv3 복귀)와 Valkey·Redict·KeyDB·Garnet 등 포크·거버넌스를 다룬 1차 자료입니다. redis.io·valkey.io 도메인이라도 이 주제인 것은 여기로 모았습니다.
 
 - **antirez "Redis will remain BSD licensed"(2018-08-22)** — [antirez.com/news/120](https://antirez.com/news/120)
 - **antirez 스텝다운 공표(2020-06-30)** — [antirez.com/news/133](https://antirez.com/news/133)
@@ -106,7 +108,7 @@ Redis 라이선스 변경사(2018 Commons Clause → 2025 AGPLv3 복귀)와 Valk
 
 ## AWS 공식(ElastiCache·MemoryDB)
 
-AWS What's New 공지와 ElastiCache/MemoryDB 개발자 가이드·API·CLI 레퍼런스.
+AWS What's New 공지와 ElastiCache/MemoryDB 개발자 가이드·API·CLI 레퍼런스입니다.
 
 **What's New 공지**
 
@@ -176,7 +178,7 @@ AWS What's New 공지와 ElastiCache/MemoryDB 개발자 가이드·API·CLI 레�
 
 ## GitHub — 릴리스·PR·설계 문서
 
-redis/redis · valkey-io · memcached 조직의 이슈·PR·커밋 중 URL 로 직접 인용된 것.
+redis/redis · valkey-io · memcached 조직의 이슈·PR·커밋 중 URL 로 직접 인용한 것만 모았습니다.
 
 - **redis/redis discussions #13464(버전 넘버링 규칙 논의)** — [github.com/redis/redis/discussions/13464](https://github.com/redis/redis/discussions/13464)
 - **redis/redis issues #2576(antirez, 2015-05-12, 16384 슬롯 이유 설명 — 댓글 anchor `#issuecomment-101546151`)** — [github.com/redis/redis/issues/2576](https://github.com/redis/redis/issues/2576)
@@ -207,7 +209,7 @@ redis/redis · valkey-io · memcached 조직의 이슈·PR·커밋 중 URL 로 �
 
 ## 로컬 레포 체크아웃
 
-URL 이 아니라 로컬 blobless 클론에서 `git show <tag|sha>:path`·`git log`·`for-each-ref`로 직접 실측한 근거. 클론 위치는 8개 조사 문서가 공통으로 씁니다 — AWS 를 다룬 `08-aws-endpoints` 도 self-host 대조군 절에서 `valkey 9.1.1:valkey.conf` 를 같은 클론에서 읽었습니다.
+URL 이 아니라 로컬 blobless 클론에서 `git show <tag|sha>:path`·`git log`·`for-each-ref`로 직접 실측한 근거입니다. 클론 위치는 8개 조사 문서가 공통으로 씁니다 — AWS 를 다룬 `08-aws-endpoints` 도 self-host 대조군 절에서 `valkey 9.1.1:valkey.conf` 를 같은 클론에서 읽었습니다.
 
 - **클론 위치**: `~/evejuni/redis`, `~/evejuni/valkey`, `~/evejuni/memcached`
 - **실측 기준일**: **2026-08-05**(AWS 문서 기반 절과 `07-gap-2` 는 2026-08-06)

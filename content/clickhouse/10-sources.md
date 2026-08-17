@@ -6,11 +6,11 @@ aliases: ["/clickhouse/08-sources/"]
 
 # 출처 — ClickHouse 배포·오퍼레이터·운영사례 조사 자료
 
-이 페이지는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), [변경관리·복구]({{< relref "05-altinity-operations.md" >}}), [프로덕션 운영사례]({{< relref "06-production-usecases.md" >}}), [데이터스토어 횡단 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}}), [무신사 CDP]({{< relref "08-musinsa-cdp.md" >}}), [Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}}) 아홉 페이지가 인용한 1차 조사 문서의 `## 출처` 섹션을 모아 중복을 제거하고 주제별로 분류했습니다.
+이 페이지는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), [변경관리·복구]({{< relref "05-altinity-operations.md" >}}), [프로덕션 운영사례]({{< relref "06-production-usecases.md" >}}), [데이터스토어 횡단 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}}), [무신사 CDP]({{< relref "08-musinsa-cdp.md" >}}), [Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}}) 아홉 페이지가 인용한 1차 조사 문서의 `## 출처` 섹션을 한데 모은 목록입니다. 그 과정에서 중복은 제거하고 주제별로 분류했습니다.
 
-그 1차 조사 문서가 다룬 범위는 배포 전략·스토리지 아키텍처, clickhouse-operator 채택, operator로 로컬 NVMe에 CH를 배포하는 실전 플레이북·CHI/CHK CRD 심층·local PV 연동·토폴로지 운영 런북, 규모별 스케일링·롤링 업그레이드 운영 실무, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강, 로컬 NVMe 데이터스토어 횡단 조사입니다. 조사 기준일은 **2026-07-13~15**입니다(각 조사 문서 frontmatter `updated` 값 — 데이터스토어 횡단 조사·티어링 검증은 07-14, operator 배포 플레이북 시리즈와 Altinity operator 운영 적대검증은 07-15). 뒤에 붙은 두 페이지는 별도 조사(**기준일 2026-08-12**)이고, 그 URL은 무신사 CDP 사례가 「운영 사례 블로그·발표」, Iceberg 지원 현황이 「Iceberg·레이크하우스」에 들어가 있습니다.
+그 1차 조사 문서가 다룬 범위는 배포 전략·스토리지 아키텍처, clickhouse-operator 채택, operator로 로컬 NVMe에 CH를 배포하는 실전 플레이북·CHI/CHK CRD 심층·local PV 연동·토폴로지 운영 런북, 규모별 스케일링·롤링 업그레이드 운영 실무, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강, 로컬 NVMe 데이터스토어 횡단 조사입니다. 조사 기준일은 **2026-07-13~15**이고 각 조사 문서 frontmatter의 `updated` 값을 따랐습니다 — 데이터스토어 횡단 조사·티어링 검증은 07-14, operator 배포 플레이북 시리즈와 Altinity operator 운영 적대검증은 07-15입니다. 뒤에 붙은 두 페이지는 별도 조사(**기준일 2026-08-12**)이고 그 URL은 무신사 CDP 사례가 「운영 사례 블로그·발표」에, Iceberg 지원 현황이 「Iceberg·레이크하우스」에 들어가 있습니다.
 
-개별 URL의 등급(확인됨/추정/미확인)은 원 조사 문서 본문의 인라인 태그를 따릅니다 — 이 표 자체는 출처 목록이며 등급을 재판정하지 않습니다.
+개별 URL의 등급(확인됨/추정/미확인)은 원 조사 문서 본문의 인라인 태그를 따릅니다 — 이 페이지는 출처를 모아둔 목록일 뿐이어서 등급을 재판정하지 않습니다.
 
 ## AWS 공식 스펙
 
@@ -144,7 +144,7 @@ Altinity 자체 문서/저장소, ClickHouse Inc. 공식 operator, 대안 operat
 
 ## operator 배포·CRD·local PV
 
-[operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})과 [변경관리·복구]({{< relref "05-altinity-operations.md" >}}), 그리고 그 근거 시리즈(operator로 로컬 NVMe에 CH를 배포하는 종합 플레이북, CHI/CHK CRD 필드 심층, local PV 연동 how-to, 토폴로지 운영 런북)가 **필드 수준 배포·변경관리 근거**로 삼은 1차 URL. 배포 시점 필드는 04, 스케일·롤링·복구 절차는 05가 인용합니다. CRD 스키마·공식 예제 YAML·operator 자체 설정·local PV provisioner·백업/GitOps 연동 위주로, 위 `Altinity·operator` 표와 중복되는 URL은 제외했습니다.
+[operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}})과 [변경관리·복구]({{< relref "05-altinity-operations.md" >}}), 그리고 그 근거 시리즈(operator로 로컬 NVMe에 CH를 배포하는 종합 플레이북, CHI/CHK CRD 필드 심층, local PV 연동 how-to, 토폴로지 운영 런북)가 **필드 수준 배포·변경관리 근거**로 삼은 1차 URL입니다. 배포 시점 필드는 04, 스케일·롤링·복구 절차는 05가 인용합니다. CRD 스키마·공식 예제 YAML·operator 자체 설정·local PV provisioner·백업/GitOps 연동이 중심이고 위 `Altinity·operator` 목록과 겹치는 URL은 제외했습니다.
 
 - **operator 설치 번들 CRD(provisioner/reclaimPolicy/podDistribution/reconcile enum 원문)** — [raw.githubusercontent.com/.../clickhouse-operator-install-bundle.yaml](https://raw.githubusercontent.com/Altinity/clickhouse-operator/master/deploy/operator/clickhouse-operator-install-bundle.yaml)
 - **custom_resource_explained.md(설정 렌더·config.d/users.d·remote_servers/macros 자동생성)** — [github.com/Altinity/.../custom_resource_explained.md](https://github.com/Altinity/clickhouse-operator/blob/master/docs/custom_resource_explained.md)
@@ -162,7 +162,7 @@ Altinity 자체 문서/저장소, ClickHouse Inc. 공식 operator, 대안 operat
 
 ## 운영 사례 블로그·발표
 
-각 회사의 공식 엔지니어링 블로그/발표. 이 중 다수(Zomato·Netflix·Didi·Trip.com·GitLab·Tesla·Character.AI·Anthropic·Clarity·LogHouse)는 `clickhouse.com/blog`에 ClickHouse Inc.가 게재한 고객 케이스스터디로, 자사 제품 홍보 맥락의 편향 가능성을 감안해 읽어야 합니다.
+각 회사의 공식 엔지니어링 블로그/발표입니다. 다만 이 중 다수(Zomato·Netflix·Didi·Trip.com·GitLab·Tesla·Character.AI·Anthropic·Clarity·LogHouse)는 `clickhouse.com/blog`에 ClickHouse Inc.가 게재한 고객 케이스스터디여서 자사 제품 홍보 맥락의 편향 가능성을 감안해 읽어야 합니다.
 
 - **무신사 CDP — self-hosted → ClickHouse Cloud(ClickHouse blog, 2026-08-09, AWS Summit Seoul 2026 발표 정리)** — [clickhouse.com/blog/musinsa-customer-data-platform](https://clickhouse.com/blog/musinsa-customer-data-platform)
 - **Cloudflare(ClickHouse blog, 2026-02-18)** — [clickhouse.com/blog/cloudflare](https://clickhouse.com/blog/cloudflare)
@@ -260,7 +260,7 @@ third-party 기술 블로그, 벤치마크/가격 계산기, 리뷰 사이트, G
 
 ## S3 primary · zero-copy 현행 (2026-08 별도 조사)
 
-[스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})의 `plain_rewritable` 기각 절과 zero-copy 판정, [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})의 Cloud 부품 4개·라이터 failover 재검토 트리거가 근거로 삼은 1차 URL. 기준일 **2026-08-12**. 등급은 본문 인라인 태그를 따르고 여기서 재판정하지 않습니다.
+[스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})의 `plain_rewritable` 기각 절과 zero-copy 판정, [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})의 Cloud 부품 4개·라이터 failover 재검토 트리거가 근거로 삼은 1차 URL입니다. 기준일은 **2026-08-12**입니다. 등급은 본문 인라인 태그를 따르고 여기서 재판정하지 않습니다.
 
 `plain_rewritable` 계열:
 
@@ -289,12 +289,12 @@ zero-copy replication 현행 상태:
 Cloud 부품·요금 원본:
 
 - **AWS Price List Bulk API — offer index 진입점(서울 단가 직접 조회)** — [pricing.us-east-1.amazonaws.com/offers/v1.0/aws/index.json](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/index.json)
-- **ClickHouse Private(자체 인프라에서 SharedMergeTree, AWS GA·GCP preview)** — 제품 페이지 URL 미확보 `?`. 공개된 접점은 영업 문의뿐이고, 요금·최소 커밋은 확인하지 못했습니다.
+- **ClickHouse Private(자체 인프라에서 SharedMergeTree, AWS GA·GCP preview)** — 제품 페이지 URL 미확보 `?`. 공개된 접점은 영업 문의뿐이고 요금·최소 커밋은 확인하지 못했습니다.
 - **ClickHouse 블로그 — stateless compute · Shared Catalog 계열 포스트** — 개별 포스트 URL 미확보 `?`. 본문은 부품 존재 사실만 인용하고 수치를 쓰지 않습니다.
 
 ## 데이터스토어 횡단 벤치마킹
 
-[데이터스토어 횡단 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}}) 페이지의 근거인 로컬 NVMe 1차 스토리지 조사(ScyllaDB·Cassandra / Kafka·스트리밍 / Elasticsearch·OpenSearch / Aerospike·LSM-KV) `## 출처`에서 시스템군별 대표 URL을 선별했다(전량 아님 — 각 시스템군의 1차·핵심 근거 위주). 전체 목록은 원 조사 문서(11-1~11-4) 참조.
+[데이터스토어 횡단 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}}) 페이지의 근거인 로컬 NVMe 1차 스토리지 조사(ScyllaDB·Cassandra / Kafka·스트리밍 / Elasticsearch·OpenSearch / Aerospike·LSM-KV)의 `## 출처`에서 시스템군별 대표 URL을 선별했습니다 — 전량은 아니고 각 시스템군의 1차·핵심 근거 위주입니다. 전체 목록은 원 조사 문서(11-1~11-4)를 참조하세요.
 
 - **ScyllaDB — Cloud instance recommendations(i3en/i4i/i7i/i8g)** — [docs.scylladb.com/.../cloud-instance-recommendations](https://docs.scylladb.com/manual/stable/getting-started/cloud-instance-recommendations.html)
 - **ScyllaDB — Operator Storage(RAID0/XFS/Local CSI 자동)** — [operator.docs.scylladb.com/.../storage](https://operator.docs.scylladb.com/stable/understand/storage.html)
@@ -323,7 +323,7 @@ Cloud 부품·요금 원본:
 
 ## Iceberg·레이크하우스
 
-[Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}}) 페이지의 근거. 조사 기준일 2026-08-12.
+[Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}}) 페이지의 근거입니다. 조사 기준일 2026-08-12.
 
 - **Are open-table-formats + lakehouses the future of observability?(Melvyn Peignon·Dale McDiarmid, 2025-10-16)** — [clickhouse.com/blog/lakehouses-path-to-low-cost-scalable-no-lockin-observability](https://clickhouse.com/blog/lakehouses-path-to-low-cost-scalable-no-lockin-observability)
 - **ClickHouse and Parquet: A foundation for fast Lakehouse analytics(ClickBench 28s/56s·Q41)** — [clickhouse.com/blog/clickhouse-and-parquet-a-foundation-for-fast-lakehouse-analytics](https://clickhouse.com/blog/clickhouse-and-parquet-a-foundation-for-fast-lakehouse-analytics)
