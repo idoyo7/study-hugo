@@ -254,7 +254,7 @@ throttle을 완화하는 게 아니라 **구조적으로 없애는** 접근입�
 
 - **파편화.** 정수 코어만 배정되므로 남는 코어가 놀 수 있습니다. 클러스터 사용률이 떨어집니다.
 - **Guaranteed 강제.** requests = limits를 모든 컨테이너에 걸어야 해서 오버커밋으로 얻던 밀도를 포기합니다.
-- **[01의 in-place resize와 상극이다.]({{< relref "01-inplace-pod-resize.md" >}})** static policy 노드의 Guaranteed 파드는 resize가 admission에서 Infeasible로 거부됩니다. 우회 게이트는 아직 alpha입니다.
+- **[01의 in-place resize와 상극입니다.]({{< relref "01-inplace-pod-resize.md" >}})** static policy 노드의 Guaranteed 파드는 resize가 admission에서 Infeasible로 거부됩니다. 우회 게이트는 아직 alpha입니다.
 - **노드 단위 설정이고 되돌리기가 번거롭습니다.** 정책을 바꾸려면 kubelet을 재시작하고 CPU Manager 상태 파일을 지워야 합니다.
 - 관련해서 스케일다운 시 **바쁜 CPU를 회수해 affinity를 깨는** 리포트도 열려 있습니다([#131309](https://github.com/kubernetes/kubernetes/issues/131309)).
 

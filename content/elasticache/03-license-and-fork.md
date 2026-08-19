@@ -8,11 +8,11 @@ weight: 3
 {{< callout type="info" >}}
 **한눈에**
 - **2018·2019·2022 의 라이선스 변경은 전부 모듈 얘기입니다.** RediSearch·RedisGraph·ReJSON·ReBloom·Redis-ML 에 붙은 것이고, core 는 2024-03-20 까지 BSD-3 였습니다. 회사는 그 사이 세 번 문서로 "core 는 BSD 로 남는다"고 공언했습니다 `✓`
-- **core 가 넘어간 것은 커밋 하나다.** `0b3439692` "Change license from BSD-3 to dual RSALv2+SSPLv1 (#13157)", 2024-03-20 22:38:24Z, author Pieter Cailliau(Redis Inc.). `COPYING` 삭제 + `LICENSE.txt`(733줄) 추가 `✓`
+- **core 가 넘어간 것은 커밋 하나입니다.** `0b3439692` "Change license from BSD-3 to dual RSALv2+SSPLv1 (#13157)", 2024-03-20 22:38:24Z, author Pieter Cailliau(Redis Inc.). `COPYING` 삭제 + `LICENSE.txt`(733줄) 추가 `✓`
 - **SSPL 단독이 아니라 "RSALv2 또는 SSPLv1" 듀얼**이고 둘의 성격이 정반대다 — RSALv2 는 "서비스로 제공하지 말라"는 **금지형**, SSPLv1 은 "하려면 오케스트레이션 전부를 공개하라"는 **조건형 copyleft** `✓`
 - **포크 기점은 두 개입니다.** 라이선스적으로는 마지막 BSD 릴리스인 7.2.4(2024-01-09), 코드적으로는 relicense 커밋의 **부모** `e64d91c37`(2024-03-20 20:44:28Z) — 즉 Valkey 는 relicense 1시간 54분 전의 트리를 들고 나갔고 7.2.4 이후 2개월 반치 unstable 을 포함합니다 `✓`
 - **"AWS 가 만든 포크"는 절반만 사실입니다.** 첫 커밋 저자 Madelyn Olson 은 2020-07-09 에 Redis Core Team 멤버가 됐는데, **Redis Inc. 가 직접 초청해 앉힌 자리**였습니다. 실제 대비는 "벤더 vs 벤더"가 아니고 **CLA + 단일 소유 vs DCO + LF + TSC 1/3 상한**에 있습니다 `✓`
-- **2025-05 에 Redis 는 AGPLv3 를 추가해 OSI 승인 라이선스로 돌아왔다. 그런데도 Valkey 는 돌아가지 않았다.** 라이선스 옵션이 늘어난 것과 거버넌스가 바뀐 것은 다르다 — CLA 는 그대로이고, AGPL 은 **추가**였을 뿐 RSALv2/SSPLv1 철회가 아니다 `✓`
+- **2025-05 에 Redis 는 AGPLv3 를 추가해 OSI 승인 라이선스로 돌아왔습니다. 그런데도 Valkey 는 돌아가지 않았습니다.** 라이선스 옵션이 늘어난 것과 거버넌스가 바뀐 것은 다르다 — CLA 는 그대로이고, AGPL 은 **추가**였을 뿐 RSALv2/SSPLv1 철회가 아니다 `✓`
 - **호환성은 RESP 레벨까지만 참입니다.** 커맨드 JSON 기준 Valkey 9.1.0 전용 18개 / Redis 8.10.0 전용 52개. atomic slot migration 처럼 **같은 기능을 다른 커맨드로** 구현한 사례가 이미 있습니다 `✓`
 - 사내에서 캐시로만 쓴다면 **어느 라이선스에서도 걸리지 않는다**(§7). 걸리는 것은 재배포·외부 제공·그룹사 경계입니다.
 {{< /callout >}}
@@ -36,7 +36,7 @@ weight: 3
 | 2022-11-15 | 모듈 RSALv2 + SSPLv1 듀얼 | **모듈만** | 2024 FAQ 가 이 날짜를 명시 `✓` |
 | 2023-02-01 | **Rowan Trollope CEO** 취임 | 경영 | 2022-12-05 발표. Ofer Bengal 은 회장으로 `✓` |
 
-**약속은 세 번 문서화됐다.** (a) 2018-08-22 회사 블로그 — "the license for open source Redis was never changed. It is BSD and will always remain BSD". (b) 2019-02-21 — "This change has zero effect on the Redis core license, which is and will always be licensed under the 3-Clause-BSD." (c) 2021-08-11 리브랜딩 프레스릴리스 — "The company renaming will not affect the licensing of open source Redis, which has always been and will continue to be BSD licensed, **nor the governance model**." `✓`
+**약속은 세 번 문서화됐습니다.** (a) 2018-08-22 회사 블로그 — "the license for open source Redis was never changed. It is BSD and will always remain BSD". (b) 2019-02-21 — "This change has zero effect on the Redis core license, which is and will always be licensed under the 3-Clause-BSD." (c) 2021-08-11 리브랜딩 프레스릴리스 — "The company renaming will not affect the licensing of open source Redis, which has always been and will continue to be BSD licensed, **nor the governance model**." `✓`
 
 그래서 **2018·2019 에 Redis core 를 걷어낸 배포판은 없습니다.** 2024 사건이 처음으로 배포판·클라우드·자체 호스팅을 동시에 때렸고, 충격의 크기는 조항의 강도보다 **이 세 문장의 파기**에서 나왔습니다 `Σ`. 이 점이 §5 의 AGPL 복귀가 신뢰를 회복하지 못한 이유를 미리 설명합니다 — 옵션 추가는 "약속 하나 더"로 읽혔습니다.
 
@@ -90,7 +90,7 @@ Change license from BSD-3 to dual RSALv2+SSPLv1 (#13157)
 그런데 **Redis 9.0 이 나오지 않았습니다.** 8.0(2025-05-02) 이후 8.2·8.4·8.6·8.8·8.10 짝수 마이너 케이던스로 갔고 9.x 는 태그·브랜치·마일스톤·공표 계획이 모두 없습니다(→ [Redis 7.0 → 8.10]({{< relref "04-redis-7-to-8.md" >}})). 결과적으로 그 약속이 만료 조건에 도달하지 못한 채 계속 이행되고 있습니다 — 2026-07-23 에 **6.2.23 과 7.2.15** 가 나왔고, **두 태그의 루트에는 여전히 `COPYING`(BSD-3)만 있습니다** `✓`
 
 {{< callout type="important" >}}
-**"2024-03-20 이후의 모든 Redis 는 non-BSD"라는 말은 성립하지 않는다.** `git ls-tree --name-only 7.2.15` → `COPYING`, `git ls-tree --name-only 8.10.0` → `LICENSE.txt`. 라이선스 판정은 **버전 라인 단위**로 해야 한다(§7 표).
+**"2024-03-20 이후의 모든 Redis 는 non-BSD"라는 말은 성립하지 않습니다.** `git ls-tree --name-only 7.2.15` → `COPYING`, `git ls-tree --name-only 8.10.0` → `LICENSE.txt`. 라이선스 판정은 **버전 라인 단위**로 해야 한다(§7 표).
 {{< /callout >}}
 
 배포판의 반응은 §4 에서 다룹니다. 여기서 한 줄만 미리 적으면, Fedora 는 F41 에서 redis 를 retire 하고 `valkey-compat` 이 `Obsoletes: redis` 로 자동 대체하게 했으며 그 사유를 명문화했습니다 — "Redis's shift to the Server Side Public License (SSPL) that Fedora does not allow poses an issue." `✓`

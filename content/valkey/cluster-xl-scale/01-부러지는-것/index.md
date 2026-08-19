@@ -9,7 +9,7 @@ weight: 1
 {{< callout type="info" >}}
 **한눈에**
 - 간판 수치는 Kubernetes에서 잰 게 아닙니다. 2,000노드·1B RPS의 서면판인 [valkey.io 블로그](https://valkey.io/blog/1-billion-rps/) 원문에 Kubernetes·pod·StatefulSet·container가 한 번도 나오지 않고, 실험대는 `r7g.2xlarge`(8코어/64GB) 클러스터 + 부하 생성기 `c7g.16xlarge` 750대였습니다. 발표 시작 13초에 본인들이 "we come from Amazon, which is mostly a **VM based world**"라고 밝힙니다.
-- 그래도 엔진 수정 4건은 인프라와 무관하게 넘어옵니다. [#654](https://github.com/valkey-io/valkey/pull/654)·[#1018](https://github.com/valkey-io/valkey/pull/1018)·[#2154](https://github.com/valkey-io/valkey/pull/2154)·[#2277](https://github.com/valkey-io/valkey/pull/2277)은 배포 방식이 아니라 cluster bus 코드 안에 들어갔다. 버전만 맞추면 된다 — 각각 8.0 / 8.1 / 9.0 / 9.0.
+- 그래도 엔진 수정 4건은 인프라와 무관하게 넘어옵니다. [#654](https://github.com/valkey-io/valkey/pull/654)·[#1018](https://github.com/valkey-io/valkey/pull/1018)·[#2154](https://github.com/valkey-io/valkey/pull/2154)·[#2277](https://github.com/valkey-io/valkey/pull/2277)은 배포 방식이 아니라 cluster bus 코드 안에 들어갔습니다. 버전만 맞추면 된다 — 각각 8.0 / 8.1 / 9.0 / 9.0.
 - CPU 100% 그래프를 클러스터 전체로 읽으면 틀립니다. 슬라이드에서 천장에 붙는 계열은 `engine_cpu_percent_p99`고 같은 차트의 p90·avg는 한 자릿수다(스냅샷 p90 6.2 / avg 5.80). 발표자 노트는 포화 범위를 "atleast 5% of the nodes"(오타는 원문 그대로)라 적는다 — 하한이지 점추정이 아닙니다. 2,000노드가 전부 탄 게 아니라 최소 100대가 탔다는 뜻이고, 발표는 이 구분을 하지 않습니다.
 - Kubernetes 조언 중 실측이 뒷받침하는 건 사실상 하나다 — CPU limit을 걸지 마라. 나머지(StatefulSet, headless service 부트스트랩, IP 직결, AZ 분산)는 전부 경험칙이고 발표에 수치가 붙지 않습니다.
 - operator는 아직 도입 대상이 아닙니다. API가 `v1alpha1`이고 README가 "not ready for production use"라 못박으며 scale-out/in에 Valkey 9.0+를 요구합니다. 다만 `spec.shards`는 진짜 최상위 필드라 Q&A의 "shard가 first-class" 주장 자체는 맞습니다.

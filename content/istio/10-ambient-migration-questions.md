@@ -100,7 +100,7 @@ ztunnel이 EnvoyFilter를 못 받는 것은 정책이 아니라 구조 때문입
 - 09에서 우리가 세운 임계값은 전부 "커넥션 수 × 커넥션당 config 크기"라는 곱 위에 있었습니다. 두 항이 동시에 줄면 **KEDA 트리거와 keepalive 주기를 다시 계산**해야 합니다. 특히 15분 keepalive가 계속 필요한지.
 - 혼재 기간에는 istiod가 사이드카용 Envoy xDS와 ztunnel용 커스텀 xDS를 동시에 계산합니다. `pilot_xds` 하나로 두 종류를 세는 오토스케일링은 **단가가 다른 것을 같은 단위로 세는** 구조가 됩니다. 카운터를 프록시 종류별로 쪼갤 수 있는지 확인할 것.
 - ztunnel이 DaemonSet이라는 사실은 09의 keepalive 손잡이와 [03-3 업그레이드 런북]({{< relref "ambient/03-3-ambient-upgrade-in-place.md" >}})의 node pool blue-green이 같은 일(강제 재연결)을 한다는 뜻입니다. 두 개가 겹치는 창을 피하는 운영 규칙이 필요합니다.
-- 09가 다룬 "재분배 없음"의 반대편 증상 — 한 번 끊긴 스트림이 스스로 낫지 않는 문제 — 은 채널팀이 [03-4 507과 istiod disconnected]({{< relref "ambient/03-4-507-istiod-disconnected.md" >}})에서 탐지 문제로 만났다. 우리 readinessProbe·알럿을 그 기준으로 다시 볼 것.
+- 09가 다룬 "재분배 없음"의 반대편 증상 — 한 번 끊긴 스트림이 스스로 낫지 않는 문제 — 은 채널팀이 [03-4 507과 istiod disconnected]({{< relref "ambient/03-4-507-istiod-disconnected.md" >}})에서 탐지 문제로 만났습니다. 우리 readinessProbe·알럿을 그 기준으로 다시 볼 것.
 
 **열린 질문.**
 
@@ -233,7 +233,7 @@ ambient 공식 문서·예제의 주 트랙은 Gateway API입니다. HTTPRoute·
 
 - **이행 계획의 첫 입력은 EnvoyFilter 목록과 L7 AuthorizationPolicy 목록입니다.** 전자는 옮길 데가 없을 수 있고, 후자는 무중단 경로가 없다고 공식 가이드가 명시합니다. 이 두 목록이 전환 순서를 거의 다 정합니다.
 - **02와 06의 결론은 무효가 아니라 대체됩니다.** `Sidecar` 스코핑은 waypoint 기본 스코프로, 공짜 관측성은 "waypoint를 어디에 세울까"라는 배치 결정으로 바뀝니다. 09의 GOMAXPROCS·CFS 사슬처럼 istiod 안쪽 얘기는 그대로 살아남습니다.
-- **답이 없는 항목이 이 문서의 절반이다.** waypoint의 rate limit 공식 경로, 기존 정책의 자동 재해석, waypoint 배치 커스터마이즈의 공식 근거 — 셋 다 공식 문서에서 확인하지 못했습니다. 이행 결정을 이 세 항목의 답이 나오기 전에 내리면 안 되는 것인지부터 정할 것.
+- **답이 없는 항목이 이 문서의 절반입니다.** waypoint의 rate limit 공식 경로, 기존 정책의 자동 재해석, waypoint 배치 커스터마이즈의 공식 근거 — 셋 다 공식 문서에서 확인하지 못했습니다. 이행 결정을 이 세 항목의 답이 나오기 전에 내리면 안 되는 것인지부터 정할 것.
 - **채널팀 기록은 대조군이지 우리 계획서가 아닙니다.** [Ambient mode 도입기]({{< relref "ambient/_index.md" >}})의 네 가지 장애는 전부 "프록시가 파드 밖으로 나가서" 생긴 것이고 그건 우리도 똑같이 받습니다. 반면 이 문서의 절들은 "사이드카를 이미 운영했기 때문에" 생기는 비용이라 그쪽 기록에 없습니다.
 
 ## 소스

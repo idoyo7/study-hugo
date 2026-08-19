@@ -280,7 +280,7 @@ if p.ToleratePreferNoSchedule {
 - **self-selecting anti-affinity** — `nextDomainAntiAffinity()`가 "매치되는 파드가 0인 도메인"만 후보로 삼는다 → 빈 도메인부터 하나씩 채우는 배치가 자연히 나옵니다.
 - **hostname 부트스트랩** — 실재하지 않는 NodeClaim에 대해 "이 노드가 self-selecting 파드의 첫 인스턴스라면 후보로 인정"하는 분기가 있습니다.
 - **역방향(inverse) 추적** — 기존 파드를 스캔해 anti-affinity를 가진 파드를 `inverseTopologyGroups`로 추적합니다 — "A가 B를 피하는데 B는 아무 제약이 없는" 케이스 대응.
-- **preferred inverse anti-affinity** — **의도적으로 추적하지 않는다.** 주석: "We intentionally don't track inverse anti-affinity preferences... the pod we are relaxing is not the pod with the anti-affinity term".
+- **preferred inverse anti-affinity** — **의도적으로 추적하지 않습니다.** 주석: "We intentionally don't track inverse anti-affinity preferences... the pod we are relaxing is not the pod with the anti-affinity term".
 - **`namespaceSelector`** — term의 `namespaces` + `namespaceSelector`를 합쳐 표준대로 처리합니다.
 - **`topologyKey` 화이트리스트** — `newForAffinities()`는 임의의 키를 받아 group을 만들며 **명시적 검증이 코드에 없습니다.** 다만 §4.1의 도메인 우주가 NodePool requirements에 값이 있는 키에만 채워지므로 NodePool이 그 키에 requirement가 없으면 도메인 후보가 비어 실질적으로 매치되지 않습니다 — **업스트림 문서에도 이 케이스 서술이 없습니다.**
 

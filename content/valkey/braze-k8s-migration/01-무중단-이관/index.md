@@ -353,7 +353,7 @@ image:                        image:
 
 숫자가 뒷받침합니다. Braze의 [2024년 API 호출은 8.6조 건](https://www.braze.com/resources/articles/2024-how-braze-powered-exceptional-marketing-at-scale)입니다. **p50이 5% 빨라진다는 건 "거의 모든 요청이 조금씩 빨라진다"는 뜻입니다.** 조 단위에서는 그 합이 p95 꼬리 개선보다 총 대기시간을 더 많이 줄입니다. 꼬리 개선은 소수 요청에만 적용되기 때문입니다.
 
-**두 숫자는 서로 다른 질문에 답한다.** p95 15%는 "최악의 경험이 얼마나 나아지나", p50 5%는 "시스템 전체가 얼마나 가벼워지나"다.
+**두 숫자는 서로 다른 질문에 답합니다.** p95 15%는 "최악의 경험이 얼마나 나아지나", p50 5%는 "시스템 전체가 얼마나 가벼워지나"다.
 
 ### 7.2 이 숫자가 귀속시키는 것과 안 시키는 것
 
@@ -373,7 +373,7 @@ image:                        image:
 
 ### 8.1 bin-packing — 원하는 규칙을 표현할 프리미티브가 없다
 
-**primary들이 한 노드에 몰린다.** 스케줄러 입장에서 그 파드들은 전부 똑같은 파드라 노드를 고르게 채우기만 하면 되고 그 결과 primary 셋이 한 노드에 앉는 배치가 아무렇지 않게 나온다(슬라이드 29쪽).
+**primary들이 한 노드에 몰립니다.** 스케줄러 입장에서 그 파드들은 전부 똑같은 파드라 노드를 고르게 채우기만 하면 되고 그 결과 primary 셋이 한 노드에 앉는 배치가 아무렇지 않게 나온다(슬라이드 29쪽).
 
 primary가 replica보다 훨씬 바쁘므로 결과는 hot node입니다 — CPU 편중, 대역폭 편중, 그리고 AWS에서는 **네트워크 상한**에 걸립니다. 발표자가 무대에서 이름을 더듬은 그 지표는 [ENA의 `bw_in_allowance_exceeded` / `bw_out_allowance_exceeded`](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-network-performance-ena.html)입니다 — "the number of packets queued or dropped because the inbound aggregate bandwidth exceeded the maximum for the instance". **초과분은 에러가 아니라 큐잉과 드롭으로 나타납니다.** 애플리케이션에는 지연과 재전송으로만 보이므로 이 카운터를 안 보면 원인을 영영 못 찾습니다. `ethtool -S eth0`로 읽고 Linux에서는 ENA 드라이버 2.2.10 이상이 필요합니다(발표는 이 조건을 언급하지 않습니다).
 
