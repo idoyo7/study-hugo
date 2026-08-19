@@ -13,7 +13,7 @@
     { "id": "keycloak", "col": 1, "row": 2, "label": "Keycloak", "sub": "sso.makgol.com · realm monthouse", "kind": "proc" },
     { "id": "nas", "col": 0, "row": 3, "label": "Synology NAS", "sub": "NFS · storageClass synology", "kind": "store" },
     { "id": "argocd-edge", "col": 3, "row": 1, "label": "ArgoCD (edge)", "sub": "argo.montkim.com", "kind": "proc" },
-    { "id": "apps-edge", "col": 4, "row": 1, "label": "서비스 앱 10개", "sub": "블로그 · 청첩장 · HA … 전부 무상태", "kind": "proc" },
+    { "id": "apps-edge", "col": 4, "row": 1, "label": "서비스 앱", "sub": "블로그 · 청첩장 · HA … 전부 무상태", "kind": "proc" },
     { "id": "vmagent", "col": 4, "row": 2, "label": "vmagent", "sub": "cluster=edge 라벨 · PVC 없음", "kind": "proc" }
   ],
   "edges": [

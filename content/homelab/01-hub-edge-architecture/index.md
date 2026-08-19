@@ -38,7 +38,7 @@ weight: 1
 - 부트스트랩이 재현 가능해진다. edge가 통째로 날아가도 ArgoCD 설치 + `kubectl apply -f edge/apps/apps-root.yaml` 한 번이면 전부 돌아온다. 복원할 데이터 자체가 없으니까.
 - 원격지에 백업·용량·디스크 교체 같은 운영 부담을 두지 않는다. 본가에 가야만 고칠 수 있는 문제의 목록을 0에 수렴시킨다.
 
-그래서 edge의 VM 스택은 vmagent 하나로 줄였고(저장·조회·알림 전부 hub로 위임), keycloak·uptime-kuma 같은 stateful 앱은 edge 앱 목록에서 제거했다. 지금 edge에서 도는 건 블로그·청첩장 같은 무상태 서비스 10개와 vmagent뿐이다. 규칙은 가이드에 한 줄로 박았다: **edge에는 PVC를 요구하는 앱을 배포하지 않는다.**
+그래서 edge의 VM 스택은 vmagent 하나로 줄였고(저장·조회·알림 전부 hub로 위임), keycloak·uptime-kuma 같은 stateful 앱은 edge 앱 목록에서 제거했다. 지금 edge에서 도는 건 블로그·청첩장 같은 무상태 서비스 몇 개와 vmagent뿐이다. 규칙은 가이드에 한 줄로 박았다: **edge에는 PVC를 요구하는 앱을 배포하지 않는다.**
 
 apps-root도 구조를 바꿨다. `{env}/apps/apps-root.yaml`로 옮겨 **자기 자신이 sync 대상 디렉토리 안에 있게(self-managed)** 했다. 이제 루트 Application의 스펙 변경도 git push만으로 클러스터에 닿는다. 두 달 드리프트 같은 사고가 구조적으로 불가능해졌다.
 
@@ -85,15 +85,15 @@ stateless 원칙은 인증에도 적용된다. Keycloak은 DB가 필요한 state
 
 ## 6. 앱 인벤토리
 
-| | hub (47 apps) | edge (12 apps) |
+| | hub (47 apps) | edge (11 apps) |
 |---|---|---|
 | 플랫폼 | istio ×3, cert-manager, nfs-csi/storage, reloader, lxcfs, VM CRDs | istio ×3, cert-manager, nfs-csi, VM CRDs |
 | 관측 | victoria-metrics(풀스택), victoria-logs, opentelemetry, tempo, kuma+autokuma | victoria-metrics(vmagent만) |
 | 인증 | keycloak, oauth2-proxy ×3, workspace-auth | argo-config(OIDC 위임 설정) |
 | 개발 인프라 | code-server, atlantis, portal, kagent, s3manager, seaweedfs, minio-console, turbo-cache, workspace-* | — |
-| 서비스 | hotdeal, jekyll, nextra, kanna, memos, openclaw, study ×3, wedding ×2, palworld ×4, home-assistant | jekyll, nextra, kanna, k8s-dashboard, wedding ×3, home-assistant |
+| 서비스 | hotdeal, jekyll, nextra, kanna, memos, openclaw, study ×3, wedding ×2, palworld ×4, home-assistant | jekyll, nextra, kanna, k8s-dashboard, wedding ×2, home-assistant |
 
-hub와 edge에 같은 앱(블로그·청첩장)이 겹치는 건 의도다 — 같은 이미지를 양쪽 도메인으로 서빙하는 이중화라서, edge가 내려가도 makgol 쪽 URL은 살아 있다.
+hub와 edge에 같은 앱(블로그·청첩장)이 겹치는 건 의도다. 블로그는 같은 이미지를 양쪽 도메인으로 서빙하는 이중화고, 청첩장은 도메인별로 다른 버전(hub=invi2, edge=구형)을 나눠 서빙한다.
 
 ## 7. 남은 일
 
