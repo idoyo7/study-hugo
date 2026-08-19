@@ -1,0 +1,29 @@
+{
+  "caption": "전체 토폴로지 — GitHub의 montstrap 3-repo를 두 클러스터의 ArgoCD가 각자 pull해서 수렴한다. hub(현재집)는 스토리지·관측·SSO를 전부 쥔 중앙이고, edge(본가)는 저장할 것이 없는 수집기다. 두 집 사이 VPN은 없다 — 클러스터 간 통신은 공인망 위 TLS + basic auth 하나뿐이고, 그 화살표가 edge vmagent → hub vmcluster의 remote write다. edge ArgoCD의 로그인도 hub Keycloak에 위임(OIDC)한다.",
+  "groups": [
+    { "id": "hub", "label": "hub — 현재집 · *.makgol.com · master1+node1+Synology", "members": ["argocd-hub", "apps-hub", "vm-hub", "grafana", "keycloak", "nas"] },
+    { "id": "edge", "label": "edge — 본가 · *.montkim.com · node1 단일 노드 · 스토리지 없음", "members": ["argocd-edge", "apps-edge", "vmagent"] }
+  ],
+  "nodes": [
+    { "id": "github", "col": 2, "row": 0, "label": "GitHub", "sub": "montstrap · mont-helm · montstrap-manifest", "kind": "src" },
+    { "id": "argocd-hub", "col": 1, "row": 1, "label": "ArgoCD (hub)", "sub": "argo.makgol.com", "kind": "proc" },
+    { "id": "apps-hub", "col": 0, "row": 1, "label": "서비스 앱 40여 개", "sub": "hotdeal · blog · palworld · code-server …", "kind": "proc" },
+    { "id": "vm-hub", "col": 0, "row": 2, "label": "VictoriaMetrics vmcluster", "sub": "vmstorage ×4 · RF2 · 90d", "kind": "store" },
+    { "id": "grafana", "col": 1, "row": 3, "label": "Grafana", "sub": "metrics.makgol.com", "kind": "sink" },
+    { "id": "keycloak", "col": 1, "row": 2, "label": "Keycloak", "sub": "sso.makgol.com · realm monthouse", "kind": "proc" },
+    { "id": "nas", "col": 0, "row": 3, "label": "Synology NAS", "sub": "NFS · storageClass synology", "kind": "store" },
+    { "id": "argocd-edge", "col": 3, "row": 1, "label": "ArgoCD (edge)", "sub": "argo.montkim.com", "kind": "proc" },
+    { "id": "apps-edge", "col": 4, "row": 1, "label": "서비스 앱 10개", "sub": "블로그 · 청첩장 · HA … 전부 무상태", "kind": "proc" },
+    { "id": "vmagent", "col": 4, "row": 2, "label": "vmagent", "sub": "cluster=edge 라벨 · PVC 없음", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "github", "to": "argocd-hub", "label": "pull · auto-sync" },
+    { "from": "github", "to": "argocd-edge", "label": "pull · auto-sync" },
+    { "from": "argocd-hub", "to": "apps-hub" },
+    { "from": "argocd-edge", "to": "apps-edge" },
+    { "from": "vmagent", "to": "vm-hub", "label": "remote write · 공인망 TLS + basic auth" },
+    { "from": "vm-hub", "to": "nas", "label": "PVC(NFS)" },
+    { "from": "grafana", "to": "vm-hub", "label": "조회", "kind": "query" },
+    { "from": "argocd-edge", "to": "keycloak", "label": "OIDC 위임", "dashed": true }
+  ]
+}
