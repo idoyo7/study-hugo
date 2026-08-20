@@ -1,0 +1,25 @@
+{
+  "caption": "메트릭 파이프라인 — edge vmagent가 자기 클러스터를 스크랩해 hub로 remote write 합니다. 공인망을 지나는 경로는 이것 하나뿐이라 그 앞에 vmauth를 세워 쓰기·읽기를 한 관문으로 모았습니다. hub 내부 소비자(Grafana·vmalert)는 클러스터 내부 svc로 직결이라 이 관문을 타지 않고, 따라서 vmauth가 죽어도 hub 관측은 살아 있습니다.",
+  "groups": [
+    { "id": "edge", "label": "edge (본가)", "members": ["targets", "vmagent"] },
+    { "id": "hub", "label": "hub (현재집)", "members": ["vmauth", "vminsert", "vmstorage", "vmselect", "grafana"] }
+  ],
+  "nodes": [
+    { "id": "targets", "col": 0, "row": 0, "label": "스크랩 타겟", "sub": "kubelet · apiserver · KSM", "kind": "src" },
+    { "id": "vmagent", "col": 1, "row": 0, "label": "vmagent", "sub": "cluster=edge 라벨", "kind": "proc" },
+    { "id": "vmauth", "col": 2, "row": 0, "label": "vmauth", "sub": "쓰기·읽기 단일 관문", "kind": "proc" },
+    { "id": "vminsert", "col": 3, "row": 0, "label": "vminsert", "kind": "proc" },
+    { "id": "vmstorage", "col": 3, "row": 1, "label": "vmstorage ×4", "sub": "RF2", "kind": "store" },
+    { "id": "vmselect", "col": 3, "row": 2, "label": "vmselect", "kind": "proc" },
+    { "id": "grafana", "col": 2, "row": 2, "label": "Grafana · vmalert", "sub": "내부 svc 직결", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "targets", "to": "vmagent", "label": "scrape" },
+    { "from": "vmagent", "to": "vmauth", "label": "공인망 · 인증" },
+    { "from": "vmauth", "to": "vminsert", "label": "쓰기" },
+    { "from": "vmauth", "to": "vmselect", "label": "읽기", "kind": "query" },
+    { "from": "vminsert", "to": "vmstorage" },
+    { "from": "vmselect", "to": "vmstorage", "kind": "query" },
+    { "from": "grafana", "to": "vmselect", "label": "내부 svc", "kind": "query" }
+  ]
+}

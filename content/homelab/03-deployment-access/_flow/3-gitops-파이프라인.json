@@ -1,0 +1,27 @@
+{
+  "caption": "GitOps·CI 파이프라인 — 사람 손은 앱 repo push까지만 닿습니다. GitHub Actions가 이미지를 빌드해 Docker Hub에 올리고, montstrap 계열 repo의 hub/·edge/ 경로에 태그 커밋을 밉니다. 가운데 줄이 공통 경로고 거기서 위아래로 갈라진 두 갈래가 각 클러스터의 apps-root입니다. 같은 커밋을 두 클러스터가 각자 당겨갈 뿐 한쪽이 다른 쪽을 거치지 않아서, hub가 죽어 있어도 edge는 배포됩니다.",
+  "groups": [
+    { "id": "gh", "label": "GitHub", "members": ["apprepo", "gha", "montstrap"] }
+  ],
+  "nodes": [
+    { "id": "root-hub", "col": 4, "row": 0, "label": "apps-root (hub)", "sub": "self-managed · prune", "kind": "proc" },
+    { "id": "hubc", "col": 5, "row": 0, "label": "hub 클러스터", "kind": "sink" },
+    { "id": "dev", "col": 0, "row": 1, "label": "개발자", "sub": "git push", "kind": "src" },
+    { "id": "apprepo", "col": 1, "row": 1, "label": "앱 repo", "sub": "블로그 · 정적 사이트 · 툴", "kind": "proc" },
+    { "id": "gha", "col": 2, "row": 1, "label": "GitHub Actions", "sub": "이미지 빌드 + 태그 커밋", "kind": "proc" },
+    { "id": "montstrap", "col": 3, "row": 1, "label": "montstrap 3-repo", "sub": "hub/ · edge/ 로 환경 분리", "kind": "store" },
+    { "id": "root-edge", "col": 4, "row": 2, "label": "apps-root (edge)", "sub": "self-managed · prune", "kind": "proc" },
+    { "id": "edgec", "col": 5, "row": 2, "label": "edge 클러스터", "kind": "sink" },
+    { "id": "dockerhub", "col": 3, "row": 3, "label": "Docker Hub", "sub": "이미지 저장소", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "dev", "to": "apprepo" },
+    { "from": "apprepo", "to": "gha", "label": "on: push" },
+    { "from": "gha", "to": "dockerhub", "label": "image push" },
+    { "from": "gha", "to": "montstrap", "label": "newTag 커밋" },
+    { "from": "montstrap", "to": "root-hub", "label": "hub/apps pull" },
+    { "from": "montstrap", "to": "root-edge", "label": "edge/apps pull" },
+    { "from": "root-hub", "to": "hubc", "label": "sync" },
+    { "from": "root-edge", "to": "edgec", "label": "sync" }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "caption": "전체 지도 — 좌우가 같은 골격입니다. 앱이 있고, 그 위를 수집하는 계층이 있고, 그 아래 상태 계층이 있습니다. 다른 것은 맨 아랫줄 하나뿐이라 edge에는 상태 계층이 비어 있습니다. edge vmagent는 긁은 메트릭을 디스크에 남기지 않고 공인망 너머 hub로 넘기며, 두 집을 건너는 트래픽은 그 화살표 하나입니다.",
+  "groups": [
+    { "id": "edge", "label": "edge — 본가 · 서비스 클러스터", "members": ["apps-edge", "vmagent", "state-edge"] },
+    { "id": "hub", "label": "hub — 현재집 · 중앙", "members": ["apps-hub", "obs-hub", "state-hub"] }
+  ],
+  "nodes": [
+    { "id": "apps-edge", "col": 0, "row": 0, "label": "edge 서비스 앱", "sub": "전부 무상태", "kind": "proc" },
+    { "id": "vmagent", "col": 0, "row": 1, "label": "edge vmagent", "sub": "수집만 · PVC 없음", "kind": "proc" },
+    { "id": "state-edge", "col": 0, "row": 2, "label": "edge 상태 계층", "sub": "없음 — PVC 금지", "kind": "proc" },
+    { "id": "apps-hub", "col": 1, "row": 0, "label": "hub 서비스 앱", "sub": "서비스 앱 40여 개", "kind": "proc" },
+    { "id": "obs-hub", "col": 1, "row": 1, "label": "hub 관측 스택", "sub": "vmcluster · Grafana", "kind": "proc" },
+    { "id": "state-hub", "col": 1, "row": 2, "label": "hub 상태 계층", "sub": "NAS — NFS", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "apps-edge", "to": "vmagent", "label": "scrape" },
+    { "from": "apps-hub", "to": "obs-hub", "label": "scrape" },
+    { "from": "vmagent", "to": "obs-hub", "label": "remote write · 공인망 인증" },
+    { "from": "obs-hub", "to": "state-hub", "label": "PVC(NFS)" },
+    { "from": "vmagent", "to": "state-edge", "label": "저장 안 함", "dashed": true }
+  ]
+}
