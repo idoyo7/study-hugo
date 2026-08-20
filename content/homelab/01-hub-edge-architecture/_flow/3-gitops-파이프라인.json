@@ -1,5 +1,5 @@
 {
-  "caption": "GitOps·CI 파이프라인 — 사람 손은 앱 repo push까지만 닿는다. GitHub Actions가 이미지를 빌드해 Docker Hub에 올리고, montstrap 계열 repo의 hub/·edge/ 경로에 태그 커밋을 민다. 그 뒤는 각 클러스터의 apps-root가 알아서 한다. apps-root 자신도 {env}/apps/ 디렉토리 안에 있어(self-managed) git push만으로 루트 Application 스펙까지 갱신된다 — 예전엔 이 파일이 수동 apply 전용이라 edge가 두 달치 수정을 못 받는 사고가 있었다.",
+  "caption": "GitOps·CI 파이프라인 — 사람 손은 앱 repo push까지만 닿습니다. GitHub Actions가 이미지를 빌드해 Docker Hub에 올리고, montstrap 계열 repo의 hub/·edge/ 경로에 태그 커밋을 밉니다. 그 뒤는 각 클러스터의 apps-root가 알아서 합니다. apps-root 자신도 {env}/apps/ 디렉토리 안에 있어(self-managed) git push만으로 루트 Application 스펙까지 갱신됩니다 — 예전엔 이 파일이 수동 apply 전용이라 edge가 두 달치 수정을 못 받는 사고가 있었습니다.",
   "groups": [
     { "id": "gh", "label": "GitHub", "members": ["apprepo", "gha", "montstrap"] }
   ],
