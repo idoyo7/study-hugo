@@ -1,0 +1,27 @@
+{
+  "caption": "GitOps·CI 파이프라인 — 사람 손은 앱 repo push까지만 닿습니다. GitHub Actions가 이미지를 빌드해 Docker Hub에 올리고, montstrap 계열 repo의 hub/·edge/ 경로에 태그 커밋을 밉니다. 그 뒤는 각 클러스터의 apps-root가 알아서 합니다. apps-root 자신도 {env}/apps/ 디렉토리 안에 있어(self-managed) git push만으로 루트 Application 스펙까지 갱신됩니다 — 예전엔 이 파일이 수동 apply 전용이라 edge가 두 달치 수정을 못 받는 사고가 있었습니다.",
+  "groups": [
+    { "id": "gh", "label": "GitHub", "members": ["apprepo", "gha", "montstrap"] }
+  ],
+  "nodes": [
+    { "id": "dev", "col": 0, "row": 0, "label": "개발자", "sub": "git push", "kind": "src" },
+    { "id": "apprepo", "col": 1, "row": 0, "label": "앱 repo", "sub": "hotdeal · jekyll · nextra · kanna …", "kind": "proc" },
+    { "id": "gha", "col": 2, "row": 0, "label": "GitHub Actions", "sub": "이미지 빌드 + 태그 커밋", "kind": "proc" },
+    { "id": "dockerhub", "col": 2, "row": 1, "label": "Docker Hub", "kind": "store" },
+    { "id": "montstrap", "col": 3, "row": 0, "label": "montstrap 3-repo", "sub": "hub/ · edge/ 디렉토리로 환경 분리", "kind": "store" },
+    { "id": "root-hub", "col": 4, "row": 0, "label": "apps-root (hub)", "sub": "self-managed · auto-sync + prune", "kind": "proc" },
+    { "id": "root-edge", "col": 4, "row": 1, "label": "apps-root (edge)", "sub": "self-managed · auto-sync + prune", "kind": "proc" },
+    { "id": "hubc", "col": 5, "row": 0, "label": "hub 클러스터", "kind": "sink" },
+    { "id": "edgec", "col": 5, "row": 1, "label": "edge 클러스터", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "dev", "to": "apprepo" },
+    { "from": "apprepo", "to": "gha", "label": "on: push" },
+    { "from": "gha", "to": "dockerhub", "label": "image push" },
+    { "from": "gha", "to": "montstrap", "label": "newTag 커밋" },
+    { "from": "montstrap", "to": "root-hub", "label": "hub/apps pull" },
+    { "from": "montstrap", "to": "root-edge", "label": "edge/apps pull" },
+    { "from": "root-hub", "to": "hubc", "label": "sync" },
+    { "from": "root-edge", "to": "edgec", "label": "sync" }
+  ]
+}

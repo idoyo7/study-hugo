@@ -1,0 +1,31 @@
+{
+  "caption": "메트릭 파이프라인 — 쓰기와 읽기가 전부 vmauth(:8427)라는 한 관문을 지납니다. edge vmagent는 VMUser `edge` 계정으로 /insert/* 만, 외부 조회는 `viewer` 계정으로 /select/* 만 통과할 수 있고, 계정 없는 요청은 401로 끊깁니다. hub 내부 소비자(Grafana·hub vmagent·vmalert)는 클러스터 내부 svc로 직결이라 vmauth를 타지 않습니다. 인증 자격증명은 git에 없고 양쪽 클러스터의 native secret으로만 존재합니다.",
+  "groups": [
+    { "id": "edge", "label": "edge (본가)", "members": ["targets", "vmagent"] },
+    { "id": "hub", "label": "hub (현재집)", "members": ["igw", "vmauth", "vminsert", "vmstorage", "vmselect", "grafana"] }
+  ],
+  "nodes": [
+    { "id": "targets", "col": 0, "row": 0, "label": "스크랩 타겟", "sub": "kubelet · apiserver · node-exporter · KSM", "kind": "src" },
+    { "id": "vmagent", "col": 1, "row": 0, "label": "vmagent", "sub": "externalLabels cluster=edge · 디스크 버퍼 1GiB", "kind": "proc" },
+    { "id": "reader", "col": 0, "row": 2, "label": "외부 조회", "sub": "viewer 계정 · basic auth", "kind": "src" },
+    { "id": "anon", "col": 0, "row": 3, "label": "미인증 요청", "kind": "src" },
+    { "id": "igw", "col": 2, "row": 1, "label": "istio makgol-gateway", "sub": "metrics-insert · metrics-select (443)", "kind": "proc" },
+    { "id": "vmauth", "col": 3, "row": 1, "label": "vmauth :8427", "sub": "VMUser edge → /insert/* · viewer → /select/*", "kind": "proc" },
+    { "id": "vminsert", "col": 4, "row": 0, "label": "vminsert", "kind": "proc" },
+    { "id": "vmstorage", "col": 4, "row": 1, "label": "vmstorage ×4", "sub": "RF2 · synology PVC 900Gi", "kind": "store" },
+    { "id": "vmselect", "col": 4, "row": 2, "label": "vmselect", "kind": "proc" },
+    { "id": "grafana", "col": 3, "row": 3, "label": "Grafana · vmalert", "sub": "내부 svc 직결 — vmauth 안 탐", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "targets", "to": "vmagent", "label": "scrape 20s" },
+    { "from": "vmagent", "to": "igw", "label": "공인망 TLS + basic auth" },
+    { "from": "reader", "to": "igw", "label": "basic auth" },
+    { "from": "anon", "to": "igw", "label": "401 차단", "dashed": true },
+    { "from": "igw", "to": "vmauth" },
+    { "from": "vmauth", "to": "vminsert", "label": "/insert/*" },
+    { "from": "vmauth", "to": "vmselect", "label": "/select/*", "kind": "query" },
+    { "from": "vminsert", "to": "vmstorage" },
+    { "from": "vmselect", "to": "vmstorage", "kind": "query" },
+    { "from": "grafana", "to": "vmselect", "label": "내부 svc", "kind": "query" }
+  ]
+}
