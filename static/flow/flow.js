@@ -115,7 +115,19 @@
     var anim = [];
     edges.forEach(function (ed) {
       var a = boxOf(ed.from), bb = boxOf(ed.to); if (!a || !bb) return;
-      var x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = bb.x, y2 = bb.y + bb.h / 2;
+      /* 라우팅 — 세로로 정렬된 박스(x 겹침 40%+)는 아래/위 면으로 수직으로 잇고,
+         타깃이 왼쪽이면 좌우를 반전한다. 그 외에는 기존처럼 오른쪽 면 → 왼쪽 면. */
+      var dxc = (bb.x + bb.w / 2) - (a.x + a.w / 2), dyc = (bb.y + bb.h / 2) - (a.y + a.h / 2);
+      var xov = Math.min(a.x + a.w, bb.x + bb.w) - Math.max(a.x, bb.x);
+      var x1, y1, x2, y2;
+      if (xov > Math.min(a.w, bb.w) * 0.4 && Math.abs(dyc) > 1) {
+        x1 = a.x + a.w / 2; x2 = bb.x + bb.w / 2;
+        if (dyc > 0) { y1 = a.y + a.h; y2 = bb.y; } else { y1 = a.y; y2 = bb.y + bb.h; }
+      } else if (dxc < 0) {
+        x1 = a.x; y1 = a.y + a.h / 2; x2 = bb.x + bb.w; y2 = bb.y + bb.h / 2;
+      } else {
+        x1 = a.x + a.w; y1 = a.y + a.h / 2; x2 = bb.x; y2 = bb.y + bb.h / 2;
+      }
       var dashed = !!ed.dashed;
       gEdges.appendChild(el('line', { x1: x1, y1: y1, x2: x2, y2: y2, class: 'flow-edge' + (dashed ? ' is-dashed' : '') }));
       var ang = Math.atan2(y2 - y1, x2 - x1), ax = x2 - 8 * Math.cos(ang), ay = y2 - 8 * Math.sin(ang);

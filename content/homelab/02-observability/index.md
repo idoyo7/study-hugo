@@ -11,7 +11,7 @@ edge가 상태를 갖지 않기로 한 순간 따라오는 질문이 있습니�
 
 {{< flow src="_flow/2-메트릭-파이프라인.json" />}}
 
-edge vmagent는 자기 클러스터의 kubelet·apiserver·node-exporter·kube-state-metrics를 긁어 `cluster=edge` 라벨을 달고 hub로 remote write 합니다. hub 자신의 vmagent도 대칭으로 `cluster=hub`를 답니다. 두 클러스터의 메트릭이 한 TSDB에 들어오고, Grafana에서는 라벨 하나로 갈라집니다.
+수집은 양쪽 클러스터가 똑같이 합니다. 각자의 vmagent가 자기 클러스터에 배포된 서비스 앱과 시스템 컴포넌트(kubelet·apiserver·node-exporter·kube-state-metrics)를 긁고, edge는 `cluster=edge`, hub는 `cluster=hub` 라벨을 달아 같은 vminsert에 씁니다. 갈라지는 건 수집이 아니라 쓰기 경로입니다 — hub는 클러스터 내부 svc로 직결하고, edge는 공인망을 건너 관문을 통과해야 합니다. 두 클러스터의 메트릭이 한 TSDB에 들어오고, Grafana에서는 라벨 하나로 갈라집니다.
 
 ## 공인망을 건너는 유일한 트래픽
 
