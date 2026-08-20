@@ -7,7 +7,7 @@
   "nodes": [
     { "id": "targets", "col": 0, "row": 0, "label": "스크랩 타겟", "sub": "kubelet · apiserver · node-exporter · KSM", "kind": "src" },
     { "id": "vmagent", "col": 1, "row": 0, "label": "vmagent", "sub": "externalLabels cluster=edge · 디스크 버퍼 1GiB", "kind": "proc" },
-    { "id": "reader", "col": 0, "row": 2, "label": "외부 조회", "sub": "metrics-select.makgol.com · viewer 계정", "kind": "src" },
+    { "id": "reader", "col": 0, "row": 2, "label": "외부 조회", "sub": "viewer 계정 · basic auth", "kind": "src" },
     { "id": "anon", "col": 0, "row": 3, "label": "미인증 요청", "kind": "src" },
     { "id": "igw", "col": 2, "row": 1, "label": "istio makgol-gateway", "sub": "metrics-insert · metrics-select (443)", "kind": "proc" },
     { "id": "vmauth", "col": 3, "row": 1, "label": "vmauth :8427", "sub": "VMUser edge → /insert/* · viewer → /select/*", "kind": "proc" },
