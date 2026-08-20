@@ -1,29 +1,36 @@
 {
-  "caption": "전체 지도 — 두 기둥이 같은 모양입니다. GitOps repo에서 갈라져 ArgoCD가 sync하고, 워크로드가 돌고, vmagent가 긁는 데까지 좌우가 똑같고, 맨 아래 상태 계층에서만 갈립니다. hub는 자기 상태 계층에 저장하고, edge는 저장할 곳이 없어 공인망을 건너 hub의 상태 계층으로 보냅니다. 두 집을 잇는 트래픽은 그 대각선 하나뿐입니다.",
+  "caption": "전체 지도 — 좌우 기둥이 hub·edge고, 가운데 열은 두 클러스터가 공유하는 것들입니다(GitOps repo · Keycloak SSO · Grafana — 뒤의 둘은 hub에 떠 있습니다). 두 기둥은 ArgoCD → 워크로드 → vmagent까지 같은 모양이고, 그 아래에서 갈립니다. hub는 vmcluster와 NAS로 이어지는 상태 계층을 갖고, edge는 저장할 곳이 없어 공인망을 건너 hub vmcluster로 보냅니다. 두 집을 잇는 트래픽은 그 대각선 하나뿐이고, ArgoCD 로그인은 둘 다 가운데 Keycloak으로 위임됩니다(점선).",
   "groups": [
-    { "id": "hub", "label": "hub — 현재집", "members": ["argocd-hub", "apps-hub", "agent-hub", "state-hub"] },
+    { "id": "hub", "label": "hub — 현재집", "members": ["argocd-hub", "apps-hub", "agent-hub", "vm-hub", "nas"] },
     { "id": "edge", "label": "edge — 본가", "members": ["argocd-edge", "apps-edge", "agent-edge", "state-edge"] }
   ],
   "nodes": [
     { "id": "github", "col": 1, "row": 0, "label": "GitOps repo", "sub": "montstrap 계열 3-repo", "kind": "src" },
     { "id": "argocd-hub", "col": 0, "row": 1, "label": "ArgoCD (hub)", "sub": "auto-sync + prune", "kind": "proc" },
-    { "id": "apps-hub", "col": 0, "row": 2, "label": "hub 워크로드", "sub": "서비스 앱 40여 개", "kind": "proc" },
-    { "id": "agent-hub", "col": 0, "row": 3, "label": "hub vmagent", "sub": "cluster=hub 라벨", "kind": "proc" },
-    { "id": "state-hub", "col": 0, "row": 4, "label": "hub 상태 계층", "sub": "vmcluster · NAS", "kind": "store" },
     { "id": "argocd-edge", "col": 2, "row": 1, "label": "ArgoCD (edge)", "sub": "auto-sync + prune", "kind": "proc" },
+    { "id": "apps-hub", "col": 0, "row": 2, "label": "hub 워크로드", "sub": "서비스 앱 40여 개", "kind": "proc" },
+    { "id": "keycloak", "col": 1, "row": 2, "label": "Keycloak", "sub": "SSO — 두 ArgoCD 공유", "kind": "proc" },
     { "id": "apps-edge", "col": 2, "row": 2, "label": "edge 워크로드", "sub": "무상태 서비스만", "kind": "proc" },
+    { "id": "agent-hub", "col": 0, "row": 3, "label": "hub vmagent", "sub": "cluster=hub 라벨", "kind": "proc" },
     { "id": "agent-edge", "col": 2, "row": 3, "label": "edge vmagent", "sub": "cluster=edge 라벨", "kind": "proc" },
-    { "id": "state-edge", "col": 2, "row": 4, "label": "edge 상태 계층", "sub": "없음 — PVC 금지", "kind": "proc" }
+    { "id": "vm-hub", "col": 0, "row": 4, "label": "VictoriaMetrics vmcluster", "sub": "vmstorage ×4 · RF2", "kind": "store" },
+    { "id": "state-edge", "col": 2, "row": 4, "label": "상태 계층 없음", "sub": "PVC 금지 — 전부 hub로", "kind": "proc" },
+    { "id": "nas", "col": 0, "row": 5, "label": "Synology NAS", "sub": "NFS — 상태의 종착지", "kind": "store" },
+    { "id": "grafana", "col": 1, "row": 5, "label": "Grafana · vmalert", "sub": "조회·알림", "kind": "sink" }
   ],
   "edges": [
     { "from": "github", "to": "argocd-hub", "label": "hub/ pull" },
     { "from": "github", "to": "argocd-edge", "label": "edge/ pull" },
     { "from": "argocd-hub", "to": "apps-hub", "label": "sync" },
     { "from": "argocd-edge", "to": "apps-edge", "label": "sync" },
+    { "from": "argocd-hub", "to": "keycloak", "label": "OIDC", "dashed": true },
+    { "from": "argocd-edge", "to": "keycloak", "label": "OIDC · 공인망", "dashed": true },
     { "from": "apps-hub", "to": "agent-hub", "label": "scrape" },
     { "from": "apps-edge", "to": "agent-edge", "label": "scrape" },
-    { "from": "agent-hub", "to": "state-hub", "label": "remote write · 내부" },
+    { "from": "agent-hub", "to": "vm-hub", "label": "remote write · 내부" },
     { "from": "agent-edge", "to": "state-edge", "label": "저장 안 함", "dashed": true },
-    { "from": "agent-edge", "to": "state-hub", "label": "remote write · 공인망 인증" }
+    { "from": "agent-edge", "to": "vm-hub", "label": "remote write · 공인망 인증" },
+    { "from": "vm-hub", "to": "nas", "label": "PVC (NFS)" },
+    { "from": "grafana", "to": "vm-hub", "label": "조회", "kind": "query" }
   ]
 }

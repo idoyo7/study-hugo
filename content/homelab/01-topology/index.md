@@ -30,7 +30,7 @@ weight: 1
 
 {{< flow src="_flow/1-전체-토폴로지.json" />}}
 
-두 기둥이 같은 모양입니다. 같은 repo에서 갈라져 ArgoCD가 sync하고, 워크로드가 돌고, vmagent가 긁는 데까지 좌우가 똑같고, 맨 아래 상태 계층에서만 갈립니다. hub는 자기 상태 계층에 저장하고 edge는 저장할 곳이 없어 hub로 올려보냅니다. 이 그림 한 장이 이 시리즈의 논지 전부입니다.
+좌우 기둥이 두 클러스터고, 가운데 열이 둘이 공유하는 것들입니다 — GitOps repo, Keycloak SSO, Grafana. 두 기둥은 ArgoCD가 sync하고 워크로드가 돌고 vmagent가 긁는 데까지 같은 모양이고, 그 아래에서 갈립니다. hub는 vmcluster와 NAS로 이어지는 상태 계층을 갖고, edge는 그 자리가 비어 있어 hub로 올려보냅니다. 이 그림 한 장이 이 시리즈의 논지 전부입니다.
 
 두 집을 건너는 트래픽은 edge에서 hub로 가는 remote write 하나뿐입니다. 그 화살표에 인증을 붙이는 이야기는 [관측 평면]({{< relref "../02-observability/index.md" >}})에서 다룹니다.
 
