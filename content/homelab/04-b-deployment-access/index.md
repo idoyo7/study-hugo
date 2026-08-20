@@ -31,12 +31,12 @@ apps-root는 `{env}/apps/apps-root.yaml`로 옮겨 자기 자신이 sync 대상 
 
 {{< flow src="_flow/4-사람의-접근.json" />}}
 
-stateless 원칙은 인증에도 적용됩니다. Keycloak은 DB가 필요한 stateful 앱이라 edge에 둘 수 없고 둘 필요도 없습니다. edge ArgoCD(argo.montkim.com)는 hub의 Keycloak(sso.makgol.com, realm `monthouse`)을 OIDC provider로 씁니다.
+stateless 원칙은 인증에도 적용됩니다. Keycloak은 DB가 필요한 stateful 앱이라 edge에 둘 수 없고 둘 필요도 없습니다. edge ArgoCD는 hub의 Keycloak을 OIDC provider로 씁니다.
 
 필요했던 건 세 가지뿐입니다.
 
 1. edge argocd-cm에 OIDC 설정 — issuer를 hub SSO로.
-2. Keycloak `argocd` 클라이언트의 redirect URI에 `https://argo.montkim.com/auth/callback` 추가 — 클라이언트 하나를 두 ArgoCD가 공유합니다.
+2. Keycloak `argocd` 클라이언트의 redirect URI에 edge ArgoCD의 callback 주소 추가 — 클라이언트 하나를 두 ArgoCD가 공유합니다.
 3. client secret을 edge의 `argocd-secret`에 주입 — git엔 평문이 없고 클러스터 secret으로만.
 
 RBAC은 hub와 동일하게 Keycloak 그룹(`platform-admins` → admin) 매핑을 그대로 복사했습니다. 계정·권한 관리가 hub 한 곳으로 모입니다 — 사람을 추가·차단하는 일도, 권한을 바꾸는 일도 Keycloak에서 한 번이면 두 클러스터에 동시에 적용됩니다.

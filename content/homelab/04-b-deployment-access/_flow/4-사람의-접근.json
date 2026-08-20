@@ -8,7 +8,7 @@
     { "id": "user", "col": 0, "row": 1, "label": "운영자", "kind": "src" },
     { "id": "argo-hub", "col": 1, "row": 0, "label": "ArgoCD (hub)", "kind": "proc" },
     { "id": "argo-edge", "col": 1, "row": 2, "label": "ArgoCD (edge)", "kind": "proc" },
-    { "id": "keycloak", "col": 2, "row": 1, "label": "Keycloak", "sub": "realm monthouse · client argocd", "kind": "proc" },
+    { "id": "keycloak", "col": 2, "row": 1, "label": "Keycloak", "sub": "client argocd — 두 ArgoCD가 공유", "kind": "proc" },
     { "id": "rbac", "col": 3, "row": 1, "label": "argocd-rbac-cm", "sub": "platform-admins → admin · platform-viewers → readonly", "kind": "sink" }
   ],
   "edges": [

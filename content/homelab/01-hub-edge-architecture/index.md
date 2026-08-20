@@ -11,14 +11,14 @@ weight: 1
 
 | | hub (현재집, 舊 stage) | edge (본가, 舊 prod) |
 |---|---|---|
-| 도메인 | `*.makgol.com` | `*.montkim.com` |
+| 도메인 | hub 전용 도메인 | edge 전용 도메인 |
 | 노드 | master1 + node1 + Synology NAS | node1 단일 노드 |
 | 역할 | 중앙 — 스토리지·관측·SSO·CI 산출물의 종착지 | 스포크 — 서비스만 돌리고 상태는 전부 hub로 |
 | 스토리지 | `synology` storageClass (NFS) | **없음. PVC 금지** |
 | 관측 | vmcluster(vmstorage ×4, RF2) + Grafana + vmalert | vmagent 하나 |
-| 인증 | Keycloak (sso.makgol.com) | 자체 IdP 없음 — hub Keycloak에 OIDC 위임 |
+| 인증 | Keycloak (hub SSO) | 자체 IdP 없음 — hub Keycloak에 OIDC 위임 |
 
-환경 이름이 도메인과 1:1이 된 것도 부수 효과입니다. `*.makgol.com`이면 hub, `*.montkim.com`이면 edge. GitOps repo의 디렉토리(`hub/`, `edge/`)부터 메트릭 라벨(`cluster=hub`, `cluster=edge`)까지 같은 축으로 정렬됩니다.
+환경 이름이 도메인과 1:1이 된 것도 부수 효과입니다. hub 도메인이면 hub, edge 도메인이면 edge. GitOps repo의 디렉토리(`hub/`, `edge/`)부터 메트릭 라벨(`cluster=hub`, `cluster=edge`)까지 같은 축으로 정렬됩니다.
 
 ## 1. 전체 지도
 
@@ -46,7 +46,7 @@ apps-root도 구조를 바꿨습니다. `{env}/apps/apps-root.yaml`로 옮겨 �
 
 {{< flow src="_flow/2-메트릭-파이프라인.json" />}}
 
-edge vmagent는 자기 클러스터의 kubelet·apiserver·node-exporter·kube-state-metrics를 긁어서 `cluster=edge` 라벨을 달고 `metrics-insert.makgol.com`으로 remote write 합니다. hub 자신의 vmagent도 대칭으로 `cluster=hub`를 답니다. Grafana에서 라벨 하나로 두 클러스터가 갈라집니다.
+edge vmagent는 자기 클러스터의 kubelet·apiserver·node-exporter·kube-state-metrics를 긁어서 `cluster=edge` 라벨을 달고 hub의 메트릭 수집 엔드포인트로 remote write 합니다. hub 자신의 vmagent도 대칭으로 `cluster=hub`를 답니다. Grafana에서 라벨 하나로 두 클러스터가 갈라집니다.
 
 이 경로는 공인망을 탑니다. 무인증으로 열어두면 인터넷 전체가 내 TSDB에 아무 시계열이나 꽂아 넣는 구멍이 됩니다. 쓰기·읽기 관문에 **vmauth**를 세운 이유입니다.
 
@@ -57,7 +57,7 @@ edge vmagent는 자기 클러스터의 kubelet·apiserver·node-exporter·kube-s
 
 전환 검증은 세 가지로 했습니다. 미인증 write/read가 401인지, 인증 경로가 200인지, 그리고 edge 샘플의 최신 timestamp가 계속 전진하는지. vmagent 쪽엔 WAN 단절 대비로 디스크 버퍼 상한(`remoteWrite.maxDiskUsagePerURL=1GiB`)을 걸어뒀습니다 — 끊겼다 붙으면 버퍼에서 재전송됩니다.
 
-아직 무인증으로 남은 건 `mon.makgol.com`(vmselect UI)과 `metrics-alert.makgol.com`(alertmanager)입니다. 같은 패턴으로 붙일 수 있어서 후속 작업 목록에 있습니다.
+아직 무인증으로 남은 건 vmselect UI와 alertmanager의 공개 경로입니다. 같은 패턴으로 붙일 수 있어서 후속 작업 목록에 있습니다.
 
 ## 4. GitOps·CI — 사람 손은 앱 repo까지만
 
@@ -79,9 +79,9 @@ edge vmagent는 자기 클러스터의 kubelet·apiserver·node-exporter·kube-s
 
 ## 5. 인증 위임 — edge에 IdP를 두지 않는다
 
-stateless 원칙은 인증에도 적용됩니다. Keycloak은 DB가 필요한 stateful 앱이라 edge에 둘 수 없고 둘 필요도 없습니다. edge ArgoCD(argo.montkim.com)는 hub의 Keycloak(sso.makgol.com, realm `monthouse`)을 OIDC provider로 씁니다.
+stateless 원칙은 인증에도 적용됩니다. Keycloak은 DB가 필요한 stateful 앱이라 edge에 둘 수 없고 둘 필요도 없습니다. edge ArgoCD는 hub의 Keycloak을 OIDC provider로 씁니다.
 
-필요했던 건 세 가지뿐입니다. edge argocd-cm에 OIDC 설정(issuer를 hub SSO로), Keycloak `argocd` 클라이언트의 redirect URI에 `https://argo.montkim.com/auth/callback` 추가, 그리고 client secret을 edge의 `argocd-secret`에 주입. RBAC은 hub와 동일하게 Keycloak 그룹(`platform-admins` → admin) 매핑을 그대로 복사했습니다. 계정·권한 관리가 hub 한 곳으로 모입니다.
+필요했던 건 세 가지뿐입니다. edge argocd-cm에 OIDC 설정(issuer를 hub SSO로), Keycloak `argocd` 클라이언트의 redirect URI에 edge ArgoCD의 callback 주소 추가, 그리고 client secret을 edge의 `argocd-secret`에 주입. RBAC은 hub와 동일하게 Keycloak 그룹(`platform-admins` → admin) 매핑을 그대로 복사했습니다. 계정·권한 관리가 hub 한 곳으로 모입니다.
 
 ## 6. 앱 인벤토리
 
@@ -97,6 +97,6 @@ hub와 edge에 같은 앱(블로그·청첩장)이 겹치는 건 의도입니다
 
 ## 7. 남은 일
 
-- `mon.makgol.com`, `metrics-alert.makgol.com`에도 vmauth 인증 (§3과 동일 패턴)
+- vmselect UI·alertmanager 공개 경로에도 vmauth 인증 (§3과 동일 패턴)
 - edge의 home-assistant — 이사 간 NAS의 PVC에 묶여 있는 마지막 stateful 잔재. hub로 옮기거나 local-path로 전환
 - vmalert 룰에 `cluster` 라벨 조건 정리 — 두 클러스터 메트릭이 한 TSDB에 섞이면서 알림 대상 구분이 필요해졌습니다

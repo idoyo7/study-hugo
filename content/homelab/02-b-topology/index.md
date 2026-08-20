@@ -13,12 +13,12 @@ weight: 2
 
 | | hub (현재집, 舊 stage) | edge (본가, 舊 prod) |
 |---|---|---|
-| 도메인 | `*.makgol.com` | `*.montkim.com` |
+| 도메인 | hub 전용 도메인 | edge 전용 도메인 |
 | 노드 | master1 + node1 + Synology NAS | node1 단일 노드 |
 | 역할 | 중앙 — 스토리지·관측·SSO·CI 산출물의 종착지 | 스포크 — 서비스만 돌리고 상태는 전부 hub로 |
 | 스토리지 | `synology` storageClass (NFS) | **없음. PVC 금지** |
 
-환경 이름이 도메인과 1:1이 된 것도 부수 효과입니다. `*.makgol.com`이면 hub, `*.montkim.com`이면 edge. GitOps repo의 디렉토리(`hub/`, `edge/`)부터 메트릭 라벨(`cluster=hub`, `cluster=edge`)까지 같은 축으로 정렬됩니다.
+환경 이름이 도메인과 1:1이 된 것도 부수 효과입니다. hub 도메인이면 hub, edge 도메인이면 edge. GitOps repo의 디렉토리(`hub/`, `edge/`)부터 메트릭 라벨(`cluster=hub`, `cluster=edge`)까지 같은 축으로 정렬됩니다.
 
 ## 전체 지도
 

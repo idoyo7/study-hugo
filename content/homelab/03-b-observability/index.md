@@ -9,7 +9,7 @@ weight: 3
 
 {{< flow src="_flow/2-메트릭-파이프라인.json" />}}
 
-edge vmagent는 자기 클러스터의 kubelet·apiserver·node-exporter·kube-state-metrics를 긁어서 `cluster=edge` 라벨을 달고 `metrics-insert.makgol.com`으로 remote write 합니다. hub 자신의 vmagent도 대칭으로 `cluster=hub`를 답니다. Grafana에서 라벨 하나로 두 클러스터가 갈라집니다.
+edge vmagent는 자기 클러스터의 kubelet·apiserver·node-exporter·kube-state-metrics를 긁어서 `cluster=edge` 라벨을 달고 hub의 메트릭 수집 엔드포인트로 remote write 합니다. hub 자신의 vmagent도 대칭으로 `cluster=hub`를 답니다. Grafana에서 라벨 하나로 두 클러스터가 갈라집니다.
 
 ## vmauth — 쓰기·읽기의 단일 관문
 
@@ -26,5 +26,5 @@ edge vmagent는 자기 클러스터의 kubelet·apiserver·node-exporter·kube-s
 
 ## 남은 일
 
-- `mon.makgol.com`(vmselect UI), `metrics-alert.makgol.com`(alertmanager)에도 같은 패턴의 vmauth 인증을 붙입니다.
+- vmselect UI·alertmanager 공개 경로에도 같은 패턴의 vmauth 인증을 붙입니다.
 - vmalert 룰에 `cluster` 라벨 조건을 정리합니다 — 두 클러스터 메트릭이 한 TSDB에 섞이면서 알림 대상 구분이 필요해졌습니다.

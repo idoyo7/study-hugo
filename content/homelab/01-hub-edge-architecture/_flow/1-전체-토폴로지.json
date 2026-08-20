@@ -11,7 +11,7 @@
     { "id": "vm-hub", "col": 0, "row": 2, "label": "VictoriaMetrics vmcluster", "sub": "vmstorage ×4 · RF2 · 90d", "kind": "store" },
     { "id": "nas", "col": 0, "row": 3, "label": "Synology NAS", "sub": "NFS — 상태는 전부 여기로", "kind": "store" },
     { "id": "grafana", "col": 1, "row": 3, "label": "Grafana · vmalert", "sub": "조회·알림도 hub에서만", "kind": "sink" },
-    { "id": "keycloak", "col": 2, "row": 3, "label": "Keycloak", "sub": "realm monthouse — 두 ArgoCD의 IdP", "kind": "proc" },
+    { "id": "keycloak", "col": 2, "row": 3, "label": "Keycloak", "sub": "두 ArgoCD의 공용 IdP", "kind": "proc" },
     { "id": "argocd-edge", "col": 3, "row": 1, "label": "ArgoCD (edge)", "kind": "proc" },
     { "id": "apps-edge", "col": 4, "row": 1, "label": "서비스 앱", "sub": "블로그 · 청첩장 · HA … 전부 무상태", "kind": "proc" },
     { "id": "vmagent", "col": 4, "row": 2, "label": "vmagent", "sub": "cluster=edge 라벨 · PVC 없음", "kind": "proc" }
