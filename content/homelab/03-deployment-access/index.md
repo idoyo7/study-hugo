@@ -25,7 +25,7 @@ edge가 상태를 갖지 않는다는 말은 뒤집으면 edge의 전부가 git�
 
 두 클러스터가 같은 커밋을 각자 당겨간다는 점이 중요합니다. hub를 거쳐 edge로 흘러가는 게 아닙니다. hub가 죽어 있어도 edge는 GitHub만 보이면 배포됩니다. 중앙에 상태를 모으는 구조에서 중앙이 배포 경로까지 쥐면 단일 장애점이 하나 더 늘어나는데, 그건 피했습니다.
 
-apps-root는 `{env}/apps/apps-root.yaml`로 옮겨 자기 자신이 sync 대상 디렉토리 안에 있게(self-managed) 했습니다. 루트 Application의 스펙 변경도 git push만으로 클러스터에 닿습니다. 예전엔 이 파일이 수동 apply 전용이라 edge가 두 달치 수정을 못 받은 적이 있고, 그 재발을 구조로 막은 장치입니다. NAS 이사 사건 때 고칠 수 없었던 이유가 바로 이것이었습니다.
+apps-root는 `{env}/apps/apps-root.yaml`로 옮겨 자기 자신이 sync 대상 디렉토리 안에 있게(self-managed) 했습니다. 루트 Application의 스펙 변경도 git push만으로 클러스터에 닿습니다. 예전엔 이 파일이 수동 apply 전용이라 edge가 두 달치 수정을 못 받은 적이 있고, 그 재발을 구조로 막은 장치입니다.
 
 환경 분리는 디렉토리 하나입니다. 같은 repo의 `hub/`와 `edge/`가 각 클러스터의 전체 상태고, 두 클러스터는 서로의 존재를 모릅니다. 접점은 [관측 평면]({{< relref "../02-observability/index.md" >}})의 remote write와 아래 OIDC뿐입니다.
 

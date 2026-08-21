@@ -30,23 +30,9 @@ weight: 1
 
 {{< flow src="_flow/1-전체-토폴로지.json" />}}
 
-좌우 기둥이 두 클러스터고, 가운데 열이 둘이 공유하는 것들입니다 — GitOps repo, Keycloak SSO, Grafana. 두 기둥은 ArgoCD가 sync하고 워크로드가 돌고 vmagent가 긁는 데까지 같은 모양이고, 그 아래에서 갈립니다. hub는 vmcluster와 NAS로 이어지는 상태 계층을 갖고, edge는 그 자리가 비어 있어 hub로 올려보냅니다. 이 그림 한 장이 이 시리즈의 논지 전부입니다.
+왼쪽 덩어리가 hub, 오른쪽 덩어리가 edge고, 가운데는 둘이 공유하는 GitOps repo와 Keycloak입니다. 두 덩어리는 ArgoCD가 sync하고 워크로드가 돌고 vmagent가 긁는 데까지 거울상이고, 그 아래에서 갈립니다. hub는 vmcluster·NAS·Grafana로 한 줄이 더 있고, edge는 그 자리가 비어 있어 가운데 다리 하나로 hub에 씁니다. 이 그림 한 장이 이 시리즈의 논지 전부입니다.
 
 두 집을 건너는 트래픽은 edge에서 hub로 가는 remote write 하나뿐입니다. 그 화살표에 인증을 붙이는 이야기는 [관측 평면]({{< relref "../02-observability/index.md" >}})에서 다룹니다.
-
-## 원칙을 어겼을 때 무슨 일이 생기나 — NAS 이사 사건
-
-이 원칙은 처음부터 지켜진 게 아닙니다. 원래 edge에도 hub와 똑같은 VictoriaMetrics 풀스택이 있었습니다. vmstorage가 각자 PVC를 잡고 Grafana도 PVC 위에서 돌았습니다. 문제는 그 PVC가 전부 NAS의 NFS를 보고 있었고, 그 NAS가 이사하면서 본가를 떠났다는 것.
-
-결과는 참혹했습니다. vmstorage 3대가 마운트 실패로 재시작 12,000회를 넘겼고 Grafana와 alertmanager는 Init에서 영영 멈췄습니다. 더 나쁜 건 이걸 GitOps로 고칠 수도 없었다는 점입니다. 당시 apps-root(루트 Application)는 automated sync가 없는 수동 apply 전용 파일이라, git에 들어간 수정이 두 달 동안 클러스터에 반영되지 않은 채 드리프트만 쌓였습니다. 이 구조를 고친 이야기는 [배포·접근 평면]({{< relref "../03-deployment-access/index.md" >}})에 있습니다.
-
-프로덕션에서라면 이건 "원격 스토리지가 잠깐 끊겼다" 정도로 끝났을 사고입니다. 여기서는 스토리지가 아예 다른 집으로 걸어 나갔습니다. 원칙을 어긴 대가를 극단적인 형태로 받아본 셈이고, 그래서 결론도 분명해졌습니다. **원격지 클러스터는 상태를 갖지 않는 편이 낫습니다.**
-
-- 상태가 없으면 스토리지 장애라는 사건 자체가 존재하지 않습니다. NAS가 어디로 이사 가든 edge는 무사합니다.
-- 부트스트랩이 재현 가능해집니다. edge가 통째로 날아가도 ArgoCD를 설치하고 apps-root 하나를 apply하면 전부 돌아옵니다. 복원할 데이터가 없으니까.
-- 원격지에 백업·용량·디스크 교체 같은 운영 부담을 두지 않습니다. 본가에 가야만 고칠 수 있는 문제의 목록을 0에 수렴시킵니다.
-
-그래서 edge의 VM 스택은 vmagent 하나로 줄였고, keycloak·uptime-kuma처럼 DB나 PVC를 요구하는 앱은 edge 목록에서 뺐습니다. 규칙은 가이드에 한 줄로 박았습니다. edge에는 PVC를 요구하는 앱을 배포하지 않습니다.
 
 ## 앱 인벤토리
 
@@ -64,4 +50,4 @@ hub와 edge에 같은 앱(블로그·청첩장)이 겹치는 건 의도입니다
 
 ## 남은 일
 
-- edge의 home-assistant — 이사 간 NAS의 PVC에 묶여 있는 마지막 stateful 잔재. hub로 옮기거나 local-path로 전환합니다.
+- edge의 home-assistant — 아직 PVC에 묶여 있는 마지막 stateful 잔재. hub로 옮기거나 local-path로 전환합니다.
