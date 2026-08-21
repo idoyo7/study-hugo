@@ -2,7 +2,7 @@
   "caption": "전체 지도 — hub와 edge는 같은 GitOps 체인으로 각자 수렴합니다. 가운데 공인 인터넷 경계를 건너는 런타임 의존성은 remote write와 OIDC 둘뿐입니다. hub는 VictoriaMetrics·Keycloak과 Synology NAS를 보유하고, edge에는 영속 저장소가 없습니다.",
   "groups": [
     {"id": "hub", "label": "hub — 현재 집 · 상태 보유", "members": ["argocd-hub", "apps-hub", "keycloak", "agent-hub", "vm-hub", "nas"]},
-    {"id": "wan", "label": "공인 인터넷 · VPN 없음", "members": ["oidc-wan", "write-wan"]},
+    {"id": "wan", "label": "두 집 사이 · 인증된 연결", "members": ["oidc-wan", "write-wan"]},
     {"id": "edge", "label": "edge — 본가 · 영속 저장소 없음", "members": ["argocd-edge", "apps-edge", "agent-edge", "state-edge"]}
   ],
   "nodes": [
