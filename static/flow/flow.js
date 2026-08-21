@@ -144,7 +144,7 @@
     });
 
     nodes.forEach(function (nd) {
-      var g = el('g', { class: 'flow-node kind-' + (nd.kind || 'proc') + (nd.layer ? ' layer-' + nd.layer : ''), 'data-nid': nd.id });
+      var g = el('g', { class: 'flow-node kind-' + (nd.kind || 'proc') + (nd.layer ? ' layer-' + nd.layer : '') + (nd.ghost ? ' is-ghost' : ''), 'data-nid': nd.id });
       g.appendChild(el('rect', { x: nd._x, y: nd._y, width: L.NODE_W, height: nd._h, rx: 10, class: 'flow-rect' }));
       var th = nd._lab.length * LAB_LH + (nd._sub.length ? 3 + nd._sub.length * SUB_LH : 0);
       var ty = nd._y + (nd._h - th) / 2 + LAB_F - 1;

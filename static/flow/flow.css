@@ -82,6 +82,9 @@ html.dark .vm-flow {
 .vm-flow .pk-layer-observe { fill: var(--flow-layer-observe); }
 .vm-flow .pk-layer-state   { fill: var(--flow-layer-state); }
 .vm-flow .pk-layer-access  { fill: var(--flow-layer-access); }
+/* ghost — 비어 있는 자리(없음·예정·미구현)를 점선 반투명으로. layer/kind 색은 그대로 쓰되 바탕은 없앤다 */
+.vm-flow .flow-node.is-ghost .flow-rect { fill: transparent; stroke-dasharray: 5 4; stroke-width: 1.5; opacity: 0.55; }
+.vm-flow .flow-node.is-ghost .flow-nlabel, .vm-flow .flow-node.is-ghost .flow-nsub { opacity: 0.6; }
 .vm-flow .flow-group-box { fill: var(--flow-group-fill); stroke: var(--flow-group-stroke); stroke-width: 1.3; stroke-dasharray: 4 4; }
 .vm-flow .flow-group-label { fill: var(--flow-sub); font-size: 11px; font-weight: 650; }
 .vm-flow .flow-caption {

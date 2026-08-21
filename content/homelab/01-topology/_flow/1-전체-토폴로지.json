@@ -16,7 +16,7 @@
     {"id": "agent-edge", "col": 4, "row": 3, "label": "edge vmagent", "sub": "cluster=edge 라벨", "layer": "observe", "kind": "proc"},
     {"id": "grafana", "col": 0, "row": 4, "label": "Grafana · vmalert", "sub": "조회·알림", "layer": "observe", "kind": "sink"},
     {"id": "nas", "col": 1, "row": 4, "label": "Synology NAS", "sub": "NFS — 상태의 종착지", "layer": "state", "kind": "store"},
-    {"id": "state-edge", "col": 4, "row": 4, "label": "상태 계층 없음", "sub": "PVC 금지 — 전부 hub로", "layer": "state", "kind": "proc"}
+    {"id": "state-edge", "col": 4, "row": 4, "label": "상태 계층 없음", "sub": "PVC 금지 — 전부 hub로", "layer": "state", "ghost": true, "kind": "proc"}
   ],
   "edges": [
     {"from": "github", "to": "argocd-hub", "label": "hub/ pull"},
