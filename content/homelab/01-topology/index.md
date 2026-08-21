@@ -30,9 +30,9 @@ weight: 1
 
 {{< flow src="_flow/1-전체-토폴로지.json" />}}
 
-왼쪽 덩어리가 hub, 오른쪽 덩어리가 edge고, 가운데는 둘이 공유하는 GitOps repo와 Keycloak입니다. 두 덩어리는 ArgoCD가 sync하고 워크로드가 돌고 vmagent가 긁는 데까지 거울상이고, 그 아래에서 갈립니다. hub는 vmcluster·NAS·Grafana로 한 줄이 더 있고, edge는 그 자리가 비어 있어 가운데 다리 하나로 hub에 씁니다. 이 그림 한 장이 이 시리즈의 논지 전부입니다.
+왼쪽 덩어리가 hub, 오른쪽 덩어리가 edge고, 위에 떠 있는 GitOps repo만 둘 밖에 있습니다. 두 덩어리는 ArgoCD가 sync하고 워크로드가 돌고 vmagent가 긁는 데까지 거울상이고, 그 아래에서 갈립니다. hub는 Keycloak·vmcluster·NAS·Grafana까지 한 열과 한 줄이 더 있고, edge는 그 자리가 비어 있어 hub 것을 빌려 씁니다. 이 그림 한 장이 이 시리즈의 논지 전부입니다.
 
-두 집을 건너는 트래픽은 edge에서 hub로 가는 remote write 하나뿐입니다. 그 화살표에 인증을 붙이는 이야기는 [관측 평면]({{< relref "../02-observability/index.md" >}})에서 다룹니다.
+두 집을 건너는 선은 둘뿐입니다. 데이터는 edge vmagent에서 hub vmcluster로 가는 remote write, 사람 로그인은 edge ArgoCD에서 hub Keycloak으로 가는 OIDC. 앞의 것에 인증을 붙이는 이야기는 [관측 평면]({{< relref "../02-observability/index.md" >}})에서, 뒤의 것은 [배포·접근 평면]({{< relref "../03-deployment-access/index.md" >}})에서 다룹니다.
 
 ## 앱 인벤토리
 
