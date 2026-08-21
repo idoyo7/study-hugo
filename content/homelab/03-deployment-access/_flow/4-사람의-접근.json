@@ -1,21 +1,21 @@
 {
   "caption": "사람의 접근 — 두 클러스터의 ArgoCD 로그인이 hub Keycloak 한 곳으로 모입니다. 위아래가 같은 모양이고 edge 쪽만 공인망을 건넙니다. 권한은 Keycloak 그룹 클레임을 argocd-rbac-cm이 매핑해 정하므로, 사람을 넣고 빼는 일이 두 클러스터에 한 번에 적용됩니다. client secret은 git에 없고 각 클러스터 secret에만 있습니다.",
   "groups": [
-    { "id": "hub", "label": "hub — 현재집", "members": ["argo-hub", "keycloak", "rbac"] },
-    { "id": "edge", "label": "edge — 본가 · IdP 없음", "members": ["argo-edge"] }
+    {"id": "hub", "label": "hub — 현재집", "members": ["argo-hub", "keycloak", "rbac"]},
+    {"id": "edge", "label": "edge — 본가 · IdP 없음", "members": ["argo-edge"]}
   ],
   "nodes": [
-    { "id": "argo-hub", "col": 1, "row": 0, "label": "ArgoCD (hub)", "sub": "내부 경로", "kind": "proc" },
-    { "id": "user", "col": 0, "row": 2, "label": "운영자", "sub": "계정 하나", "kind": "src" },
-    { "id": "keycloak", "col": 2, "row": 2, "label": "Keycloak", "sub": "두 ArgoCD가 공유", "kind": "proc" },
-    { "id": "rbac", "col": 3, "row": 2, "label": "argocd-rbac-cm", "sub": "그룹 → 권한 매핑", "kind": "sink" },
-    { "id": "argo-edge", "col": 1, "row": 4, "label": "ArgoCD (edge)", "sub": "공인망 위임", "kind": "proc" }
+    {"id": "argo-hub", "col": 1, "row": 0, "label": "ArgoCD (hub)", "sub": "내부 경로", "layer": "deploy", "kind": "proc"},
+    {"id": "user", "col": 0, "row": 2, "label": "운영자", "sub": "계정 하나", "kind": "src"},
+    {"id": "keycloak", "col": 2, "row": 2, "label": "Keycloak", "sub": "두 ArgoCD가 공유", "layer": "access", "kind": "proc"},
+    {"id": "rbac", "col": 3, "row": 2, "label": "argocd-rbac-cm", "sub": "그룹 → 권한 매핑", "layer": "access", "kind": "sink"},
+    {"id": "argo-edge", "col": 1, "row": 4, "label": "ArgoCD (edge)", "sub": "공인망 위임", "layer": "deploy", "kind": "proc"}
   ],
   "edges": [
-    { "from": "user", "to": "argo-hub", "label": "로그인" },
-    { "from": "user", "to": "argo-edge", "label": "로그인" },
-    { "from": "argo-hub", "to": "keycloak", "label": "OIDC" },
-    { "from": "argo-edge", "to": "keycloak", "label": "OIDC · 공인망", "dashed": true },
-    { "from": "keycloak", "to": "rbac", "label": "groups 클레임", "kind": "query" }
+    {"from": "user", "to": "argo-hub", "label": "로그인"},
+    {"from": "user", "to": "argo-edge", "label": "로그인"},
+    {"from": "argo-hub", "to": "keycloak", "label": "OIDC"},
+    {"from": "argo-edge", "to": "keycloak", "label": "OIDC · 공인망", "dashed": true},
+    {"from": "keycloak", "to": "rbac", "label": "groups 클레임", "kind": "query"}
   ]
 }

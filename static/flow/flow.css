@@ -15,6 +15,10 @@
   --flow-sink: #0ca30c;
   --flow-group-fill: rgba(11, 11, 11, 0.025);
   --flow-group-stroke: #cdccc2;
+  --flow-layer-deploy: #2a78d6;
+  --flow-layer-observe: #0d9488;
+  --flow-layer-state: #7c3aed;
+  --flow-layer-access: #d97706;
   margin: 1.4rem 0;
   padding: 14px 16px 8px;
   background: var(--flow-surface);
@@ -37,6 +41,10 @@ html.dark .vm-flow {
   --flow-sink: #34d06a;
   --flow-group-fill: rgba(255, 255, 255, 0.035);
   --flow-group-stroke: #45443f;
+  --flow-layer-deploy: #4b93e6;
+  --flow-layer-observe: #2dd4bf;
+  --flow-layer-state: #a78bfa;
+  --flow-layer-access: #f59e0b;
 }
 .vm-flow > script { display: none; }
 .vm-flow .flow-svg { display: block; width: 100%; height: auto; margin-inline: auto; }
@@ -65,6 +73,15 @@ html.dark .vm-flow {
 .vm-flow .pk-store { fill: var(--flow-store); }
 .vm-flow .pk-query { fill: var(--flow-query); }
 .vm-flow .pk-sink  { fill: var(--flow-sink); }
+/* layer — 평면별 테두리·파티클 색. kind 보다 뒤에 와서 stroke 를 덮는다. fill 은 color-mix 미지원 브라우저면 기본 노드색 유지 */
+.vm-flow .layer-deploy  .flow-rect { stroke: var(--flow-layer-deploy);  stroke-width: 2; fill: color-mix(in srgb, var(--flow-layer-deploy) 7%, var(--flow-node)); }
+.vm-flow .layer-observe .flow-rect { stroke: var(--flow-layer-observe); stroke-width: 2; fill: color-mix(in srgb, var(--flow-layer-observe) 7%, var(--flow-node)); }
+.vm-flow .layer-state   .flow-rect { stroke: var(--flow-layer-state);   stroke-width: 2; fill: color-mix(in srgb, var(--flow-layer-state) 7%, var(--flow-node)); }
+.vm-flow .layer-access  .flow-rect { stroke: var(--flow-layer-access);  stroke-width: 2; fill: color-mix(in srgb, var(--flow-layer-access) 7%, var(--flow-node)); }
+.vm-flow .pk-layer-deploy  { fill: var(--flow-layer-deploy); }
+.vm-flow .pk-layer-observe { fill: var(--flow-layer-observe); }
+.vm-flow .pk-layer-state   { fill: var(--flow-layer-state); }
+.vm-flow .pk-layer-access  { fill: var(--flow-layer-access); }
 .vm-flow .flow-group-box { fill: var(--flow-group-fill); stroke: var(--flow-group-stroke); stroke-width: 1.3; stroke-dasharray: 4 4; }
 .vm-flow .flow-group-label { fill: var(--flow-sub); font-size: 11px; font-weight: 650; }
 .vm-flow .flow-caption {

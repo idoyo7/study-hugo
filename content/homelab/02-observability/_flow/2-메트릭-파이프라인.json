@@ -1,26 +1,26 @@
 {
   "caption": "메트릭 파이프라인 — 수집은 양쪽이 똑같습니다. 두 클러스터 모두 자기 vmagent가 서비스 앱과 시스템 컴포넌트를 긁습니다. 갈라지는 것은 쓰기 경로입니다. hub vmagent는 내부 svc로 vminsert에 직결하고, edge vmagent는 공인망을 건너 vmauth 관문을 통과해야 같은 vminsert에 닿습니다. vmauth는 hub에 배포된 인증 관문인데 두 클러스터의 경계를 지키는 역할이라 경계에 그렸습니다. Grafana·vmalert의 조회는 vmselect를 경유하는 내부 경로라 관문과 무관합니다.",
   "groups": [
-    { "id": "hub", "label": "hub (현재집)", "members": ["targets-hub", "agent-hub", "grafana", "vminsert", "vmstorage"] },
-    { "id": "edge", "label": "edge (본가)", "members": ["targets-edge", "agent-edge"] }
+    {"id": "hub", "label": "hub (현재집)", "members": ["targets-hub", "agent-hub", "grafana", "vminsert", "vmstorage"]},
+    {"id": "edge", "label": "edge (본가)", "members": ["targets-edge", "agent-edge"]}
   ],
   "nodes": [
-    { "id": "targets-hub", "col": 0, "row": 0, "label": "hub 스크랩 타겟", "sub": "앱 · 시스템 컴포넌트", "kind": "src" },
-    { "id": "agent-hub", "col": 1, "row": 0, "label": "hub vmagent", "sub": "cluster=hub 라벨", "kind": "proc" },
-    { "id": "grafana", "col": 3, "row": 0, "label": "Grafana · vmalert", "sub": "조회 · 내부 svc", "kind": "sink" },
-    { "id": "vminsert", "col": 3, "row": 1, "label": "vminsert", "sub": "쓰기 프런트", "kind": "proc" },
-    { "id": "vmstorage", "col": 4, "row": 1, "label": "vmstorage ×4", "sub": "RF2", "kind": "store" },
-    { "id": "vmauth", "col": 2, "row": 2, "label": "vmauth", "sub": "쓰기·읽기 인증 관문", "kind": "proc" },
-    { "id": "targets-edge", "col": 0, "row": 3, "label": "edge 스크랩 타겟", "sub": "앱 · 시스템 컴포넌트", "kind": "src" },
-    { "id": "agent-edge", "col": 1, "row": 3, "label": "edge vmagent", "sub": "cluster=edge 라벨", "kind": "proc" }
+    {"id": "targets-hub", "col": 0, "row": 0, "label": "hub 스크랩 타겟", "sub": "앱 · 시스템 컴포넌트", "layer": "observe", "kind": "src"},
+    {"id": "agent-hub", "col": 1, "row": 0, "label": "hub vmagent", "sub": "cluster=hub 라벨", "layer": "observe", "kind": "proc"},
+    {"id": "grafana", "col": 3, "row": 0, "label": "Grafana · vmalert", "sub": "조회 · 내부 svc", "layer": "observe", "kind": "sink"},
+    {"id": "vminsert", "col": 3, "row": 1, "label": "vminsert", "sub": "쓰기 프런트", "layer": "observe", "kind": "proc"},
+    {"id": "vmstorage", "col": 4, "row": 1, "label": "vmstorage ×4", "sub": "RF2", "layer": "state", "kind": "store"},
+    {"id": "vmauth", "col": 2, "row": 2, "label": "vmauth", "sub": "쓰기·읽기 인증 관문", "layer": "observe", "kind": "proc"},
+    {"id": "targets-edge", "col": 0, "row": 3, "label": "edge 스크랩 타겟", "sub": "앱 · 시스템 컴포넌트", "layer": "observe", "kind": "src"},
+    {"id": "agent-edge", "col": 1, "row": 3, "label": "edge vmagent", "sub": "cluster=edge 라벨", "layer": "observe", "kind": "proc"}
   ],
   "edges": [
-    { "from": "targets-hub", "to": "agent-hub", "label": "scrape" },
-    { "from": "targets-edge", "to": "agent-edge", "label": "scrape" },
-    { "from": "agent-hub", "to": "vminsert", "label": "remote write · 내부 svc" },
-    { "from": "agent-edge", "to": "vmauth", "label": "remote write · 공인망" },
-    { "from": "vmauth", "to": "vminsert", "label": "인증 통과" },
-    { "from": "vminsert", "to": "vmstorage" },
-    { "from": "grafana", "to": "vmstorage", "label": "조회 (vmselect)", "kind": "query" }
+    {"from": "targets-hub", "to": "agent-hub", "label": "scrape"},
+    {"from": "targets-edge", "to": "agent-edge", "label": "scrape"},
+    {"from": "agent-hub", "to": "vminsert", "label": "remote write · 내부 svc"},
+    {"from": "agent-edge", "to": "vmauth", "label": "remote write · 공인망"},
+    {"from": "vmauth", "to": "vminsert", "label": "인증 통과"},
+    {"from": "vminsert", "to": "vmstorage"},
+    {"from": "grafana", "to": "vmstorage", "label": "조회 (vmselect)", "kind": "query"}
   ]
 }

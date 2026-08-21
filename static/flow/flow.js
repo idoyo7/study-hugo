@@ -139,12 +139,12 @@
       }
       ed._x1 = x1; ed._y1 = y1; ed._x2 = x2; ed._y2 = y2;
       ed._dur = Math.hypot(x2 - x1, y2 - y1) / (SPEED[ed.speed] || SPEED.normal);
-      ed._kind = ed.kind || (byId[ed.from] && byId[ed.from].kind) || 'proc';
+      ed._kind = ed.kind || (byId[ed.from] && (byId[ed.from].layer ? 'layer-' + byId[ed.from].layer : byId[ed.from].kind)) || 'proc';
       if (!dashed) anim.push({ x1: x1, y1: y1, x2: x2, y2: y2, rate: ed.rate || 720, dur: ed._dur, kind: ed._kind, particles: [], last: 0 });
     });
 
     nodes.forEach(function (nd) {
-      var g = el('g', { class: 'flow-node kind-' + (nd.kind || 'proc'), 'data-nid': nd.id });
+      var g = el('g', { class: 'flow-node kind-' + (nd.kind || 'proc') + (nd.layer ? ' layer-' + nd.layer : ''), 'data-nid': nd.id });
       g.appendChild(el('rect', { x: nd._x, y: nd._y, width: L.NODE_W, height: nd._h, rx: 10, class: 'flow-rect' }));
       var th = nd._lab.length * LAB_LH + (nd._sub.length ? 3 + nd._sub.length * SUB_LH : 0);
       var ty = nd._y + (nd._h - th) / 2 + LAB_F - 1;
