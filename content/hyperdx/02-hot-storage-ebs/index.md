@@ -41,7 +41,7 @@ gp3는 EBS SSD 중 최저가이며 **성능을 용량과 독립적으로** 프�
 
 - 비율 제약: **IOPS ≤ 500 × 볼륨GiB**, **throughput(MiB/s) ≤ 0.25 × provisioned IOPS**. 2,000 MiB/s를 쓰려면 IOPS를 8,000 이상, 80,000 IOPS를 쓰려면 볼륨을 160 GiB 이상 프로비저닝해야 합니다 `✓`.
 - gp2 대비 **GiB당 20% 저렴**하고 성능이 크기와 분리돼 예측 가능 `✓`.
-- **최대치를 읽는 I/O 크기 주의**: gp3의 최대 IOPS(80,000)와 최대 throughput(2,000 MiB/s)을 **동시에** 달성하는 지점의 I/O 크기는 `2,000 MiB/s ÷ 80,000 = 25.6 KiB`입니다 — AWS가 gp3 Max IOPS를 명시할 때 기준으로 삼는 I/O 크기가 25.6 KiB입니다 `✓`. ClickHouse 머지의 순차 read/write는 이보다 훨씬 큰 블록입니다. 실전에서 우리를 먼저 제약하는 축은 throughput입니다(§3).
+- **최대치를 읽는 I/O 크기 주의**: gp3의 최대 IOPS(80,000)와 최대 throughput(2,000 MiB/s)을 **동시에** 달성하는 지점의 I/O 크기는 `2,000 MiB/s ÷ 80,000 = 25.6 KiB`입니다 — AWS가 gp3 Max IOPS를 명시할 때 기준으로 삼는 I/O 크기가 25.6 KiB입니다 `✓`. ClickHouse 머지의 순차 read/write는 이보다 훨씬 큰 블록입니다. 실전에서 우리를 먼저 제약하는 축은 throughput입니다. IOPS가 아닙니다(§3).
 
 ### 1.2 통념 정정 — "gp3 최대 16,000 IOPS / 1,000 MiB/s / 16 TiB"는 상향 이전 값 `✓`
 
