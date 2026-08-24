@@ -1,0 +1,31 @@
+{
+  "caption": "통합 전체 지도 — 세 흐름을 한 장에 담았습니다. ① 배포: GitHub의 montstrap 3-repo를 두 클러스터 ArgoCD가 각자 pull, ② 관측: edge vmagent가 공인망 위 vmauth 인증을 거쳐 hub vmcluster로 remote write(둘만의 유일한 데이터 접점), ③ 인증: edge ArgoCD가 hub Keycloak에 OIDC 위임. 디스크가 달린 것(store)은 전부 hub에 있고 edge는 무상태입니다 — 메트릭 행(가운데)과 인증 행(아래)을 분리해 서로 무관한 흐름임을 배치로 표현했습니다.",
+  "groups": [
+    { "id": "hub", "label": "hub — 현재집 · 중앙 (스토리지·관측·SSO)", "members": ["apps-hub", "argocd-hub", "vm-hub", "nas", "grafana", "keycloak"] },
+    { "id": "edge", "label": "edge — 본가 · 스포크 (스토리지 없음)", "members": ["argocd-edge", "apps-edge", "vmagent"] }
+  ],
+  "nodes": [
+    { "id": "github", "col": 2, "row": 0, "label": "GitHub", "sub": "montstrap · mont-helm · montstrap-manifest", "kind": "src" },
+    { "id": "apps-hub", "col": 0, "row": 1, "label": "서비스 앱 40여 개", "kind": "proc" },
+    { "id": "argocd-hub", "col": 1, "row": 1, "label": "ArgoCD (hub)", "kind": "proc" },
+    { "id": "vm-hub", "col": 0, "row": 2, "label": "VictoriaMetrics vmcluster", "sub": "vmstorage ×4 · RF2 · 90d", "kind": "store" },
+    { "id": "nas", "col": 0, "row": 3, "label": "Synology NAS", "sub": "NFS — 상태는 전부 여기로", "kind": "store" },
+    { "id": "grafana", "col": 1, "row": 3, "label": "Grafana · vmalert", "sub": "조회·알림도 hub에서만", "kind": "sink" },
+    { "id": "keycloak", "col": 2, "row": 3, "label": "Keycloak", "sub": "두 ArgoCD의 공용 IdP", "kind": "proc" },
+    { "id": "argocd-edge", "col": 3, "row": 1, "label": "ArgoCD (edge)", "kind": "proc" },
+    { "id": "apps-edge", "col": 4, "row": 1, "label": "서비스 앱", "sub": "블로그 · 청첩장 · HA … 전부 무상태", "kind": "proc" },
+    { "id": "vmagent", "col": 4, "row": 2, "label": "vmagent", "sub": "cluster=edge 라벨 · PVC 없음", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "github", "to": "argocd-hub", "label": "pull · auto-sync" },
+    { "from": "github", "to": "argocd-edge", "label": "pull · auto-sync" },
+    { "from": "argocd-hub", "to": "apps-hub", "label": "sync" },
+    { "from": "argocd-edge", "to": "apps-edge", "label": "sync" },
+    { "from": "apps-edge", "to": "vmagent", "label": "scrape" },
+    { "from": "vmagent", "to": "vm-hub", "label": "remote write · 공인망 · vmauth 인증" },
+    { "from": "vm-hub", "to": "nas", "label": "PVC(NFS)" },
+    { "from": "grafana", "to": "vm-hub", "label": "조회", "kind": "query" },
+    { "from": "argocd-hub", "to": "keycloak", "label": "OIDC", "dashed": true },
+    { "from": "argocd-edge", "to": "keycloak", "label": "OIDC 위임 (공인망)", "dashed": true }
+  ]
+}
