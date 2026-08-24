@@ -6,16 +6,15 @@ weight: 16
 # 10 · 1.20 → 1.24 — ambient가 실험에서 나오고, 설치 경로가 바뀐다
 
 {{< callout type="info" >}}
-**한눈에**
-- 이 구간의 사건은 두 개입니다. ambient가 alpha → Beta(1.22.0) → GA(1.24.0)로 올라간 것, 그리고 설치·관리 경로가 강제로 바뀐 것(in-cluster operator 폐기 1.23.0 → 제거 1.24.0, [#52090](https://github.com/istio/istio/pull/52090))입니다. 앞의 것은 선택이지만 뒤의 것은 선택이 아닙니다 — sidecar를 유지하는 클러스터도 1.24 이상으로 가려면 그대로 맞습니다.
+- 이 구간에서 벌어진 일은 ambient가 alpha → Beta(1.22.0) → GA(1.24.0)로 올라간 것, 그리고 설치·관리 경로가 강제로 바뀐 것(in-cluster operator 폐기 1.23.0 → 제거 1.24.0, [#52090](https://github.com/istio/istio/pull/52090))입니다. 앞의 것은 선택이지만 뒤의 것은 선택이 아닙니다 — sidecar를 유지하는 클러스터도 1.24 이상으로 가려면 그대로 맞습니다.
 - ambient GA는 sidecar의 폐기 신호가 아닙니다. 1.20~1.24 어느 upgrade-notes·change-notes에도 sidecar injection을 deprecated로 표시한 문구가 없고 최신 스냅샷 문서도 sidecar를 "thoroughly battle-tested"라며 두 개의 main data plane mode 중 하나로 나란히 둡니다. 우리 방침(ambient 금지)은 유효하고 이 구간 사실만으로는 재검토 트리거도 발생하지 않았습니다(§2.4).
 - 제거된 것은 in-cluster 컨트롤러와 `istio-operator` 차트이고 `IstioOperator` API 타입은 1.30.0에도 살아 있습니다(`operator/pkg/apis/types.go`, `install.istio.io/v1alpha1`). `istioctl install -f istio.yaml`도 그대로 동작합니다 — "IstioOperator가 죽었다"는 요약은 틀렸습니다.
 - 1.24.0에서 CRD가 Helm 템플릿으로 이동하고 `base.enableCRDTemplates`가 기본 `true`가 됩니다([#43204](https://github.com/istio/istio/issues/43204)). CRD를 `kubectl apply`나 이전 `helm install`로 넣었다면 1.24 전에 1회 `kubectl label/annotate`로 Helm 소유권 이관을 해야 하고 ArgoCD가 만든 실제 Helm 릴리스명을 모르면 이 명령을 실행하면 안 됩니다.
-- sidecar 트래픽 동작을 바꾸는 플래그 7개가 1.24.0에 한꺼번에 들어오고 전부 기본 `true`입니다(§5.6) — `ENABLE_INBOUND_RETRY_POLICY`·`EXCLUDE_UNSAFE_503_FROM_DEFAULT_RETRY`·`PILOT_UNIFIED_SIDECAR_SCOPE`·`ENABLE_ENHANCED_DESTINATIONRULE_MERGE`·`PREFER_DESTINATIONRULE_TLS_FOR_EXTERNAL_SERVICES`·`ENABLE_DEFERRED_STATS_CREATION`·`BYPASS_OVERLOAD_MANAGER_FOR_STATIC_LISTENERS`. 이 7개가 정확히 `compatibilityVersion=1.23` 프로파일의 내용입니다.
-- 1.21.0의 TLS 기본값 두 개가 egress를 끊을 수 있습니다. `ENABLE_AUTO_SNI`와 `VERIFY_CERTIFICATE_AT_CLIENT`가 동시에 `true`가 되면서 `caCertificates` 없는 `DestinationRule` TLS 오리지네이션이 OS CA로 검증을 시작합니다. 사설 CA 대상은 그 순간 실패합니다.
+- sidecar 트래픽 동작을 바꾸는 플래그 7개가 1.24.0에 한꺼번에 들어오고 전부 기본 `true`입니다(§5.6) — `ENABLE_INBOUND_RETRY_POLICY`·`EXCLUDE_UNSAFE_503_FROM_DEFAULT_RETRY`·`PILOT_UNIFIED_SIDECAR_SCOPE`·`ENABLE_ENHANCED_DESTINATIONRULE_MERGE`·`PREFER_DESTINATIONRULE_TLS_FOR_EXTERNAL_SERVICES`·`ENABLE_DEFERRED_STATS_CREATION`·`BYPASS_OVERLOAD_MANAGER_FOR_STATIC_LISTENERS`. 이 7개가 `compatibilityVersion=1.23` 프로파일의 내용입니다.
+- 1.21.0의 TLS 기본값 두 개가 egress를 끊을 수 있습니다. `ENABLE_AUTO_SNI`와 `VERIFY_CERTIFICATE_AT_CLIENT`가 함께 `true`가 되면서 `caCertificates` 없는 `DestinationRule` TLS 오리지네이션이 OS CA로 검증을 시작합니다. 사설 CA 대상은 그 순간 실패합니다.
 - istio.io 문서의 플래그명이 실제 env var와 다른 곳이 두 군데입니다. 1.21 upgrade-notes는 `VERIFY_CERT_AT_CLIENT`라 쓰지만 등록명은 `VERIFY_CERTIFICATE_AT_CLIENT`(`pilot/pkg/features/pilot.go:239`)고 1.22 upgrade-notes는 `ENHANCED_RESOURCE_SCOPING`이라 쓰지만 실제는 `ENABLE_ENHANCED_RESOURCE_SCOPING`(`experimental.go:182`)입니다. 문서를 복사해 env를 걸면 아무 일도 일어나지 않습니다.
-- 1.23.0에 공개 upgrade-notes 페이지에 실리지 않은 메트릭 파괴 변경이 있습니다. `ENABLE_DELIMITED_STATS_TAG_REGEX`(기본 `true`, [#52271](https://github.com/istio/istio/pull/52271))가 Envoy cluster 메트릭의 `cluster_name`·`http_conn_manager_prefix` 라벨 파싱을 바꿉니다. 근거는 릴리스노트 원본 `releasenotes/notes/51761.yaml`의 `upgradeNote`뿐입니다 — 대시보드가 조용히 깨지는 종류입니다.
-- 1.22.0의 `v1` 승격은 "추가"이지 "이동"이 아닙니다. CRD가 `v1`·`v1alpha3`·`v1beta1` 셋을 동시에 served로 제공하고 storage 버전은 1.22.0에 `v1alpha3`에서 `v1beta1`로 올라가 1.26.0까지 남습니다(1.27.0에서 `v1`로 이동). `v1alpha3`로 쓴 옛 매니페스트는 1.30.0 기준으로도 그대로 apply됩니다.
+- 1.23.0에 공개 upgrade-notes 페이지에 실리지 않은 메트릭 파괴 변경이 있습니다. `ENABLE_DELIMITED_STATS_TAG_REGEX`(기본 `true`, [#52271](https://github.com/istio/istio/pull/52271))가 Envoy cluster 메트릭의 `cluster_name`·`http_conn_manager_prefix` 라벨 파싱을 바꿉니다. 근거는 릴리스노트 원본 `releasenotes/notes/51761.yaml`의 `upgradeNote`뿐입니다 — 대시보드가 경고 없이 깨지는 종류입니다.
+- 1.22.0의 `v1` 승격은 "추가"이지 "이동"이 아닙니다. CRD가 `v1`·`v1alpha3`·`v1beta1` 셋을 모두 served로 제공하고 storage 버전은 1.22.0에 `v1alpha3`에서 `v1beta1`로 올라가 1.26.0까지 남습니다(1.27.0에서 `v1`로 이동). `v1alpha3`로 쓴 옛 매니페스트는 1.30.0 기준으로도 그대로 apply됩니다.
 - 1.24 계열은 k8s ≤1.31까지입니다. 하한 가정(chart tip 1.24.1)이 k8s 1.33 위에서는 지원 대상 밖이라는 뜻이고 1.24는 2025-06-24에 EOL이라 compat profile로 버티는 선택지 자체가 이미 없습니다.
 {{< /callout >}}
 
@@ -35,7 +34,7 @@ weight: 16
 | 1.23.0 | 2024-08-15 | 1.27 – 1.30 |
 | 1.24.0 | 2024-11-07 | **1.28 – 1.31** |
 
-버전별 대표 변경과 breaking·필요 조치는 이렇게 갈립니다.
+버전마다 대표 변경과 breaking·필요 조치가 이렇게 다릅니다.
 
 - 1.20.0 — 대표 변경: Gateway API v1.0 GA 전면 지원 + Istio CRD `targetRef`, `ExternalName` alias 방식 예고(off), Envoy 필터 순서 통일, 다중 대상 미러링. breaking·필요 조치: sidecar `startupProbe` 기본 on — 10분 미기동 시 파드 종료(이전엔 무한 대기). 플래그·CLI 제거 4건.
 - 1.21.0 — 대표 변경: `compatibilityVersion` 개념 도입, 사이드카 바이너리 ~10MB 축소(이미지 25%↓, 파드당 ~5MB RAM↓). breaking·필요 조치: `ENABLE_AUTO_SNI`·`VERIFY_CERTIFICATE_AT_CLIENT` 기본 on(egress TLS 위험), `ExternalName` alias 기본 on, Gateway 라벨 키 교체, Telemetry legacy `EnvoyFilter` 필드 4종 무반영.
@@ -53,7 +52,7 @@ Envoy 마이너 버전 대응은 업스트림 문서에 이 구간이 없습니�
 
 ### 2.1 단계 이동 — Beta는 1.22.0, GA는 1.24.0
 
-성숙도 단계는 세 지점으로 확정됩니다.
+성숙도 단계는 버전별로 이렇게 움직였습니다.
 
 - 1.20.0 이전(2022 발표) — alpha. 1.21 공지가 2022 발표 블로그를 참조하며 여전히 실험 단계로 서술합니다.
 - 1.21.0 — alpha(플랫폼 확장). *"works across all Kubernetes platforms and CNI implementations"* — GKE·AKS·EKS와 Calico·Cilium·OpenShift 검증. *"targeted to move to Beta in the upcoming Istio 1.22"*라고 예고했습니다.
@@ -67,7 +66,7 @@ Envoy 마이너 버전 대응은 업스트림 문서에 이 구간이 없습니�
 
 {{< flow src="_flow/2-2-두-데이터패스가-지나는-곳.json" />}}
 
-세 컴포넌트의 책임 분담은 이렇습니다. ztunnel은 노드당 하나의 프로세스지만 파드마다 별도의 논리 프록시와 리슨 포트 셋(15008·15006·15001)을 파드 netns 안에 만듭니다. 워크로드마다 다른 x509 신원을 대신 들어야 하므로 노드에 있는 서비스 어카운트마다 인증서를 따로 발급받습니다(CA는 요청된 신원이 실제로 그 노드에 있는지 검증해 거부합니다 — 노드 하나가 침해돼도 메시 전체가 털리지 않게 하는 장치입니다). waypoint는 HBONE 트래픽만 받고 `AuthorizationPolicy` L7·`RequestAuthentication`·`WasmPlugin`·`Telemetry`를 적용한 뒤 전달하며 `Service` 향 요청에는 L7 라우팅·로드밸런싱까지 합니다. istio-cni는 체인 CNI 플러그인으로 파드 생성 알림을 받고 노드 에이전트가 파드 netns에 들어가 리다이렉션 규칙을 세운 다음 Unix 도메인 소켓으로 ztunnel에 netns 파일 디스크립터를 넘깁니다.
+컴포넌트별 책임 분담은 이렇습니다. ztunnel은 노드당 하나의 프로세스지만 파드마다 별도의 논리 프록시와 리슨 포트 셋(15008·15006·15001)을 파드 netns 안에 만듭니다. 워크로드마다 다른 x509 신원을 대신 들어야 하므로 노드에 있는 서비스 어카운트마다 인증서를 따로 발급받습니다(CA는 요청된 신원이 실제로 그 노드에 있는지 검증해 거부합니다 — 노드 하나가 침해돼도 메시 전체가 털리지 않게 하는 장치입니다). waypoint는 HBONE 트래픽만 받고 `AuthorizationPolicy` L7·`RequestAuthentication`·`WasmPlugin`·`Telemetry`를 적용한 뒤 전달하며 `Service` 향 요청에는 L7 라우팅·로드밸런싱까지 합니다. istio-cni는 체인 CNI 플러그인으로 파드 생성 알림을 받고 노드 에이전트가 파드 netns에 들어가 리다이렉션 규칙을 세운 다음 Unix 도메인 소켓으로 ztunnel에 netns 파일 디스크립터를 넘깁니다.
 
 HBONE 터널이 "ztunnel 사이"에 그려지는 것은 논리적 표현이고 실제 캡슐화·암호화는 출발지 파드의 netns 안에서 일어나 목적지 파드 netns에서 풀립니다(`docs/ambient/architecture/data-plane/index.md`의 tip 블록). 같은 노드 안 통신도 ztunnel을 거쳐야 L4 인가·텔레메트리가 노드 경계와 무관하게 동일하게 적용됩니다.
 
@@ -165,9 +164,9 @@ kubectl annotate $CRDS "meta.helm.sh/release-namespace=istio-system"  # 실제 �
 
 ### 3.4 같은 릴리스의 나머지 설치 변경
 
-`istiod-remote` 차트가 1.24.0에서 제거되고 `helm install istiod istio/istiod --set profile=remote`로 대체됐습니다. 업스트림이 "never been officially documented or stable"이라고 밝힌 경로이므로 remote/external control plane을 쓰지 않으면 무관하지만, 같은 upgrade-note가 덧붙인 문장은 넓게 적용됩니다 — `istio-base` 차트 설치가 로컬·리모트 양쪽에서 이제 필수입니다.
+`istiod-remote` 차트가 1.24.0에서 제거되고 `helm install istiod istio/istiod --set profile=remote`로 대체됐습니다. 업스트림이 "never been officially documented or stable"이라고 밝힌 경로이므로 remote/external control plane을 쓰지 않으면 무관하지만 같은 upgrade-note가 덧붙인 문장은 넓게 적용됩니다 — `istio-base` 차트 설치가 로컬·리모트 양쪽에서 이제 필수입니다.
 
-`istioctl` 쪽에서는 `istioctl manifest diff`·`manifest profile diff`·`profile`이 제거됐습니다(1.24 change-notes:275,277). CI에서 프로파일 diff로 드리프트를 검사하는 스텝이 있으면 범용 YAML diff로 바꿔야 하고, 이건 [04 설정을 코드로]({{< relref "04-config-as-code.md" >}})가 다루는 파이프라인에 직접 걸리는 변경입니다.
+`istioctl` 쪽에서는 `istioctl manifest diff`·`manifest profile diff`·`profile`이 제거됐습니다(1.24 change-notes:275,277). CI에서 프로파일 diff로 드리프트를 검사하는 스텝이 있으면 범용 YAML diff로 바꿔야 하고 이건 [04 설정을 코드로]({{< relref "04-config-as-code.md" >}})가 다루는 파이프라인에 직접 걸리는 변경입니다.
 
 ## 4. API 그룹 승격과 Gateway API
 
@@ -248,7 +247,7 @@ sidecar 유지 방침과 어긋나지 않고 드물게 순이득인 변경입니
 
 ### 5.2 egress TLS를 끊을 수 있는 두 플래그 (1.21.0)
 
-둘 다 같은 릴리스에서 `false` → `true`가 됐고 둘 다 `DestinationRule` TLS 오리지네이션에만 걸립니다. `ENABLE_AUTO_SNI`(`pilot.go:236`)는 `DestinationRule`이 SNI를 명시하지 않으면 다운스트림 `Host`/`:authority`로 SNI를 자동 설정합니다. `VERIFY_CERTIFICATE_AT_CLIENT`(`pilot.go:239`)는 `caCertificates`가 없을 때 OS CA 인증서로 서버 인증서를 검증합니다. 이전에는 `caCertificates` 미지정 시 검증이 아예 없었으니 보안상 옳은 방향이지만, 사설 CA·자체서명 인증서를 쓰는 egress 대상은 업그레이드 즉시 연결이 끊깁니다.
+둘 다 같은 릴리스에서 `false` → `true`가 됐고 둘 다 `DestinationRule` TLS 오리지네이션에만 걸립니다. `ENABLE_AUTO_SNI`(`pilot.go:236`)는 `DestinationRule`이 SNI를 명시하지 않으면 다운스트림 `Host`/`:authority`로 SNI를 자동 설정합니다. `VERIFY_CERTIFICATE_AT_CLIENT`(`pilot.go:239`)는 `caCertificates`가 없을 때 OS CA 인증서로 서버 인증서를 검증합니다. 이전에는 `caCertificates` 미지정 시 검증이 아예 없었으니 보안상 옳은 방향이지만 사설 CA·자체서명 인증서를 쓰는 egress 대상은 업그레이드 즉시 연결이 끊깁니다.
 
 여기에 문서 함정이 있습니다. 1.21 upgrade-notes는 이 플래그를 `VERIFY_CERT_AT_CLIENT`로 적습니다. 그건 Go 변수명(`VerifyCertAtClient`)에 가깝고 `env.Register`의 실제 이름은 `VERIFY_CERTIFICATE_AT_CLIENT`입니다. 1.24 change-notes는 같은 플래그를 정확한 이름으로 적으므로 문서 안에서도 표기가 갈립니다.
 
@@ -269,13 +268,13 @@ kubectl get destinationrule -A -o json | jq -r '
 
 같은 변경이 두 릴리스에 걸쳐 있습니다. 1.20.0에서 `ENABLE_EXTERNAL_NAME_ALIAS=true` 옵트인으로 들어오고 1.21.0에서 기본이 됩니다. `ExternalName` Service를 독립 서비스로 취급하던 방식을 alias로 바꾼 것이고 결과는 세 줄입니다 — ① `ports` 필드가 불필요해지고 지정해도 무시됩니다(Kubernetes 동작과 일치). ② `VirtualService`는 참조 대상 서비스(`Service` 또는 `ServiceEntry`)가 실제로 존재해야 동작하며 매칭을 참조 대상 쪽으로 다시 써야 합니다. ③ `DestinationRule`은 `ExternalName` 서비스에 더 이상 적용되지 않고, `host`가 참조 대상을 가리키는 규칙을 새로 만들어야 합니다.
 
-`ExternalName`을 안 쓰면 무해하고, 쓰면 정책이 조용히 안 붙는 형태로 나타납니다(에러 없이 mTLS·라우팅 규칙만 빠집니다). 옵트아웃 수단도 없어졌습니다 — `ENABLE_EXTERNAL_NAME_ALIAS`는 1.24.0에서 플래그 자체가 제거됐습니다.
+`ExternalName`을 안 쓰면 무해하고 쓰면 정책이 안 붙는 형태로 나타납니다(에러 없이 mTLS·라우팅 규칙만 빠집니다). 옵트아웃 수단도 없어졌습니다 — `ENABLE_EXTERNAL_NAME_ALIAS`는 1.24.0에서 플래그 자체가 제거됐습니다.
 
 ### 5.4 Delta xDS와 스코핑 기본값 (1.22.0) — 09이 다루는 축에 걸린다
 
 Delta(incremental) xDS가 기본이 됐습니다. state-of-the-world 방식은 1,000개 서비스 중 하나가 바뀌어도 모든 사이드카에 1,000개를 다 보냈고 Delta는 바뀐 것만 보냅니다. 공지가 든 기대 효과는 istiod·프록시의 CPU·메모리 감소와 둘 사이 네트워크 트래픽 감소인데, "프로토콜을 incremental로 바꿨을 뿐 완벽한 최소 증분을 보내는 건 아니다"라고 스스로 단서를 붙였습니다. 이상 동작 시 프록시에 `ISTIO_DELTA_XDS=false`를 걸고 이슈를 올리라는 것이 공식 안내입니다.
 
-이 변경은 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "09-istiod-scaling-connections.md" >}})의 축과 정확히 겹칩니다. 버전이 바꾼 것은 "push 1건의 페이로드 크기"이고 09이 말하는 "커넥션 1건의 단가 = 커넥션 수 × 클러스터 config 크기"라는 성질 자체는 바뀌지 않습니다. 커넥션이 재분배되지 않는 문제도, `GOMAXPROCS`가 `limits.cpu`로 정해지는 문제도 그대로입니다. Delta xDS는 그 곡선의 기울기를 낮추는 변경이고 메커니즘과 손잡이는 09에서 봅니다.
+이 변경은 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "09-istiod-scaling-connections.md" >}})의 축과 겹칩니다. 버전이 바꾼 것은 "push 1건의 페이로드 크기"이고 09이 말하는 "커넥션 1건의 단가 = 커넥션 수 × 클러스터 config 크기"라는 성질 자체는 바뀌지 않습니다. 커넥션이 재분배되지 않는 문제도, `GOMAXPROCS`가 `limits.cpu`로 정해지는 문제도 그대로입니다. Delta xDS는 그 곡선의 기울기를 낮추는 변경이고 메커니즘과 손잡이는 09에서 봅니다.
 
 `ENABLE_ENHANCED_RESOURCE_SCOPING`이 기본 `true`가 됐습니다([#49719](https://github.com/istio/istio/pull/49719), `experimental.go:182`). pilot이 `meshConfig.discoverySelectors` 스코프 안의 Istio CR만 처리하고 root-ca 인증서 배포도 이 스코프를 따릅니다. `discoverySelectors`를 설정하지 않았다면 전체 스코프가 유지되므로 무해하고 설정해뒀다면 스코프 밖에서 동작하기를 기대한 것이 있는지 재검증해야 합니다. 여기에도 표기 함정이 있습니다 — 1.22 upgrade-notes의 제목은 `ENHANCED_RESOURCE_SCOPING`이고 실제 등록명은 `ENABLE_ENHANCED_RESOURCE_SCOPING`입니다.
 
@@ -289,13 +288,13 @@ Delta(incremental) xDS가 기본이 됐습니다. state-of-the-world 방식은 1
 
 Envoy cluster 메트릭은 `.`을 메트릭 네임스페이스 구분자로 쓰는데 호스트명에도 `.`이 들어가니 구분이 불가능했고 `.svc.cluster.local` 접미사가 없는 서비스의 `cluster_name`·`http_conn_manager_prefix` 라벨이 잘못 잘렸습니다. 1.23은 클러스터명 끝을 세미콜론으로 표시하도록 정규식을 바꿔 이를 고쳤습니다. `meshconfig`의 `inbound_cluster_stat_name`·`outbound_cluster_stat_name`을 쓰고 있으면 세미콜론이 자동 추가됩니다.
 
-운영 영향은 "옳게 고쳐진 것이 대시보드를 깨는" 종류입니다. `.svc.cluster.local`이 아닌 호스트(외부 서비스, `ServiceEntry` 대상, 커스텀 도메인)의 `cluster_name` 라벨 값이 달라지므로, 그 라벨로 필터·집계하는 Grafana 패널과 알람 룰이 조용히 빈 결과를 냅니다. 되돌리는 수단은 proxyConfig로 `ENABLE_DELIMITED_STATS_TAG_REGEX=false`를 걸거나 `compatibilityVersion=1.22`이고 둘 다 영구 해법이 아닙니다 — 플래그와 코드 경로 자체가 1.26.0에서 제거됐습니다(커밋 `9986a0f8d9` "Remove ENABLE_DELIMITED_STATS_TAG_REGEX flag and code paths (#55207)", `git tag --contains` → 최초 `1.26.0`). 1.26 이상으로 가는 계획이면 이 항목은 "미룰 수 있는지"가 아니라 "언제 대시보드를 고칠지"의 문제입니다. 관측 지점과 라벨 설계는 [06 메시가 공짜로 주는 관측성]({{< relref "06-observability-points.md" >}})이 소유합니다.
+운영 영향은 "옳게 고쳐진 것이 대시보드를 깨는" 종류입니다. `.svc.cluster.local`이 아닌 호스트(외부 서비스, `ServiceEntry` 대상, 커스텀 도메인)의 `cluster_name` 라벨 값이 달라지므로 그 라벨로 필터·집계하는 Grafana 패널과 알람 룰이 에러 없이 빈 결과를 냅니다. 되돌리는 수단은 proxyConfig로 `ENABLE_DELIMITED_STATS_TAG_REGEX=false`를 걸거나 `compatibilityVersion=1.22`이고 둘 다 영구 해법이 아닙니다 — 플래그와 코드 경로 자체가 1.26.0에서 제거됐습니다(커밋 `9986a0f8d9` "Remove ENABLE_DELIMITED_STATS_TAG_REGEX flag and code paths (#55207)", `git tag --contains` → 최초 `1.26.0`). 1.26 이상으로 가는 계획이면 이 항목은 "미룰 수 있는지"가 아니라 "언제 대시보드를 고칠지"의 문제입니다. 관측 지점과 라벨 설계는 [06 메시가 공짜로 주는 관측성]({{< relref "06-observability-points.md" >}})이 소유합니다.
 
 같은 릴리스의 나머지: IP 자동할당이 재구현되어 할당된 IP가 `ServiceEntry`의 `status`에 영속되지만 기본은 off입니다(`PILOT_ENABLE_IP_AUTOALLOCATE=true`로 옵트인). 인바운드 리트라이가 프리뷰로 들어왔고 기본 `false`이며 공지가 "expected to be on by default in future releases"라고 예고합니다 — 그 예고가 §5.6입니다.
 
 ### 5.6 1.24.0 — sidecar 트래픽 동작 7개가 한꺼번에 기본 on
 
-`compatibilityVersion=1.23` 프로파일의 내용이 이 절의 목록 전체입니다. `manifests/helm-profiles/compatibility-version-1.23.yaml`(1.24.0 태그)이 정확히 이 7개를 `false`로 되돌립니다 — 5개는 `pilot.env`로, 2개는 `meshConfig.defaultConfig.proxyMetadata`로.
+`compatibilityVersion=1.23` 프로파일의 내용이 이 절의 목록 전체입니다. `manifests/helm-profiles/compatibility-version-1.23.yaml`(1.24.0 태그)이 이 7개를 `false`로 되돌립니다 — 5개는 `pilot.env`로, 2개는 `meshConfig.defaultConfig.proxyMetadata`로.
 
 플래그마다 기본값·위치, 도입 PR, 무엇이 바뀌나, sidecar 유지 클러스터의 영향을 차례로 짚습니다.
 
@@ -307,7 +306,7 @@ Envoy cluster 메트릭은 `.`을 메트릭 네임스페이스 구분자로 쓰�
 - `ENABLE_DEFERRED_STATS_CREATION`(`true` · `experimental.go:194`, [#52654](https://github.com/istio/istio/pull/52654)) — Envoy stats 객체 일부를 지연 초기화(메모리·CPU 절감). 영향: 파드마다 사이드카가 붙는 구성에서 누적 이득. `proxyMetadata`로 전달.
 - `BYPASS_OVERLOAD_MANAGER_FOR_STATIC_LISTENERS`(`true` · `experimental.go:201`, [#52971](https://github.com/istio/istio/pull/52971)) — static listener에 overload manager 미적용. 영향: 성능 최적화. `proxyMetadata`로 전달.
 
-`PILOT_UNIFIED_SIDECAR_SCOPE`가 이 목록에서 가장 위험합니다. 근거는 upgrade-notes가 나란히 적어놓은 세 가지 규칙입니다.
+`PILOT_UNIFIED_SIDECAR_SCOPE`가 이 목록에서 가장 위험합니다. 근거는 upgrade-notes가 나란히 적어놓은 규칙입니다.
 
 - 같은 hostname으로 정의된 서비스가 여러 개: `Sidecar` 없을 때(이전) — Kubernetes `Service` 우선(`ServiceEntry` 아님), 아니면 임의 선택. `Sidecar` 있을 때(이전) — 프록시와 같은 네임스페이스의 Service 우선, 아니면 임의 선택. 1.24.0 통일 규칙 — 같은 네임스페이스 Service → Kubernetes Service(`ServiceEntry` 아님) → 임의.
 - 같은 서비스에 Gateway API Route가 여러 개: `Sidecar` 없을 때(이전) — 로컬 프록시 네임스페이스 우선(consumer override 허용). `Sidecar` 있을 때(이전) — 임의 순서. 1.24.0 통일 규칙 — 로컬 프록시 네임스페이스 우선.
@@ -342,7 +341,7 @@ helm upgrade istiod istio/istiod -n istio-system \
 - Telemetry CEL 표준화 — 내용: CEL이 커스텀 Wasm 속성 대신 표준 Envoy 속성을 씁니다. `filter_state["wasm.downstream_peer"]` → `filter_state.downstream_peer`, `node` → `xds.node`. 커스텀 Wasm 속성은 완전 수식 필요(`filter_state["wasm.istio_responseClass"]`). 우리가 할 일: `kubectl get telemetry -A -o yaml`에서 `filter_state`·`node.` grep. 기본 제공 메트릭·액세스 로그는 영향이 없습니다(Istio가 이미 맞춰 배포). 혼합 프록시 환경은 `has(...)` presence 연산자로 양쪽을 받는 식을 쓸 수 있습니다.
 - `istio-csr` ALPN 호환성 — 내용: 컨트롤 플레인 내부 gRPC 검증 강화(사용자 트래픽 아님). cert-manager `istio-csr`이 걸리고 `v0.12.0`에는 fix가 없습니다. 증상은 `"transport: authentication handshake failed: credentials: cannot check peer: missing selected ALPN property"`. 우리가 할 일: 외부 CA로 `istio-csr`을 쓰는지 확인. 쓰면 fix 포함 버전으로 올리거나 `meshConfig.defaultConfig.proxyMetadata.GRPC_ENFORCE_ALPN_ENABLED: "false"`.
 - `istio.io/gateway-name` 라벨 제거 — 내용: 1.21.0에서 `gateway.networking.k8s.io/gateway-name`으로 바뀌며 병기됐던 구 라벨이 1.24.0에서 제거. 우리가 할 일: Grafana 쿼리·정책 셀렉터·스크립트에서 구 라벨 grep. 1.21~1.23 사이에 갱신하지 않은 채 1.24로 오면 여기서 끊깁니다.
-- Helm values 11개 제거 — 내용: `pilot.{configNamespace,configSource,enableProtocolSniffingForOutbound,enableProtocolSniffingForInbound,useMCP}`, `global.{autoscalingV2API,configRootNamespace,defaultConfigVisibilitySettings,useMCP}`, `sidecarInjectorWebhook.{objectSelector,useLegacySelectors}` ([#51987](https://github.com/istio/istio/issues/51987)). 별도로 `istiod` 차트의 `istio_cni` values 제거([#52645](https://github.com/istio/istio/issues/52645), 1.22에서 [#49290](https://github.com/istio/istio/issues/49290)으로 폐기 예고). 우리가 할 일: values.yaml에서 위 키 grep. change-notes가 "had been without effect and in some cases long-deprecated"라고 밝혔듯 이미 무효였던 값이 많지만, 제거 후에도 에러가 아니라 무시라 죽은 설정이 남습니다.
+- Helm values 11개 제거 — 내용: `pilot.{configNamespace,configSource,enableProtocolSniffingForOutbound,enableProtocolSniffingForInbound,useMCP}`, `global.{autoscalingV2API,configRootNamespace,defaultConfigVisibilitySettings,useMCP}`, `sidecarInjectorWebhook.{objectSelector,useLegacySelectors}` ([#51987](https://github.com/istio/istio/issues/51987)). 별도로 `istiod` 차트의 `istio_cni` values 제거([#52645](https://github.com/istio/istio/issues/52645), 1.22에서 [#49290](https://github.com/istio/istio/issues/49290)으로 폐기 예고). 우리가 할 일: values.yaml에서 위 키 grep. change-notes가 "had been without effect and in some cases long-deprecated"라고 밝혔듯 이미 무효였던 값이 많지만 제거 후에도 에러가 아니라 무시라 죽은 설정이 남습니다.
 - `sidecar.istio.io/enableCoreDump`·`--log_rotate_*` 제거 — 내용: 코어덤프 어노테이션과 레거시 로그 로테이션 플래그 삭제. 우리가 할 일: 각각 `samples/proxy-coredump` 방식과 외부 로그 로테이션 도구로 이관([logging 챕터]({{< relref "../../logging/_index.md" >}})의 수집 경로와 함께 결정).
 - `1.20` compat profile 제거 — 내용: `ENABLE_EXTERNAL_NAME_ALIAS`·`PERSIST_OLDEST_FIRST_HEURISTIC_FOR_VIRTUAL_SERVICE_HOST_MATCHING`·`VERIFY_CERTIFICATE_AT_CLIENT`는 플래그 자체가 삭제되고 `ENABLE_AUTO_SNI`만 남았습니다. 우리가 할 일: 1.20 동작에 의존했다면 되돌릴 방법이 없습니다. §5.2·§5.3의 적응이 끝났는지 확인.
 
@@ -376,7 +375,7 @@ blue-green으로 1.30.3을 직행 설치하는 경로에서 자동으로 회피�
 
 1.24 → 1.30(6마이너)은 어느 방식으로도 단일 스텝이 아닙니다. 공식 지원 안에서 가장 짧은 경로는 canary로 2마이너씩 뛰는 것 — 1.24 → 1.26 → 1.28 → 1.30, 3홉. in-place면 6홉 전부입니다. 컨트롤/데이터 플레인 스큐는 "컨트롤 플레인이 데이터 플레인보다 **한 버전 앞설 수 있고, 반대는 안 된다**"가 규칙이며 revision을 쓰면 스큐 자체를 없앨 수 있습니다.
 
-revision canary 절차 자체는 이 구간에서 바뀌지 않았습니다. 다만 라벨 순서 하나가 이 구간에도 그대로 걸립니다 — 네임스페이스에서 `istio-injection`을 먼저 제거한 뒤 `istio.io/rev=<name>`을 붙여야 합니다. `istio-injection`이 하위호환을 위해 `istio.io/rev`보다 우선 적용되므로 순서가 뒤바뀌면 라벨을 붙여도 옛 revision이 이깁니다. `default` 프로파일에서 게이트웨이는 revision별 인스턴스가 아니라 in-place로 새 revision을 따라갑니다. 상세 절차는 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}})가 소유합니다.
+revision canary 절차 자체는 이 구간에서 바뀌지 않았습니다. 라벨 순서 하나는 이 구간에도 걸립니다 — 네임스페이스에서 `istio-injection`을 먼저 제거한 뒤 `istio.io/rev=<name>`을 붙여야 합니다. `istio-injection`이 하위호환을 위해 `istio.io/rev`보다 우선 적용되므로 순서가 뒤바뀌면 라벨을 붙여도 옛 revision이 이깁니다. `default` 프로파일에서 게이트웨이는 revision별 인스턴스가 아니라 in-place로 새 revision을 따라갑니다. 상세 절차는 [eks-upgrade/istio]({{< relref "../../eks-upgrade/components/02-istio.md" >}})가 소유합니다.
 
 업그레이드 전 `istioctl x precheck` 실행이 canary·in-place 공통 권장이고 `--from-version`을 주면 compat profile이 필요한지까지 판정합니다. 1.21이 도입한 이 용법이 이 구간 전체의 표준 사전 점검 수단입니다.
 
@@ -388,7 +387,7 @@ revision canary 절차 자체는 이 구간에서 바뀌지 않았습니다. 다
 
 ② 1.24는 2025-06-24에 EOL됐습니다. 지원 정책은 "N+2 마이너 릴리스 후 6주까지"이고(`docs/releases/supported-releases/index.md`), 오늘(2026-07-30) 기준 지원 중인 마이너는 1.29와 1.30 둘뿐입니다. 1.28도 2026-07-01에 EOL됐습니다. 하한 가정(chart tip 1.24.1)은 13개월 전에 EOL된 버전을 기준선으로 잡고 있다는 뜻이고 그 자체가 시급성의 근거입니다. 목표 1.30.3은 지원 여유가 남은 유일한 선택지입니다.
 
-여기서 §5.6의 완충 수단이 사라지는 것과 맞물립니다. compat profile은 가리키는 릴리스가 EOL되면 제거되므로, 1.24로 갈 때 `compatibilityVersion=1.23`을 쓰는 선택은 지금 존재하지 않습니다. 1.30으로 갈 때 쓸 수 있는 것은 1.30.0 태그가 들고 있는 직전 3개 프로파일뿐입니다. "일단 옛 동작으로 깔고 나중에 전환한다"는 전략의 유효기간은 릴리스 지원 기간과 같습니다.
+여기서 §5.6의 완충 수단이 사라지는 것과 맞물립니다. compat profile은 가리키는 릴리스가 EOL되면 제거되므로 1.24로 갈 때 `compatibilityVersion=1.23`을 쓰는 선택은 지금 존재하지 않습니다. 1.30으로 갈 때 쓸 수 있는 것은 1.30.0 태그가 들고 있는 직전 3개 프로파일뿐입니다. "일단 옛 동작으로 깔고 나중에 전환한다"는 전략의 유효기간은 릴리스 지원 기간과 같습니다.
 
 ## 8. 근거
 

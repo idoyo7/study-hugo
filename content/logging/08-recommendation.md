@@ -6,7 +6,6 @@ weight: 8
 # 우리 케이스 — "이거랑 저거만 있으면"
 
 {{< callout type="info" >}}
-**한눈에**
 - 결론은 수집 1개(OTel Collector) + 저장 패밀리 1개(Victoria) + Grafana로 수렴합니다 — RUM/APM은 별도 트랙으로 분리 판단.
 - 진짜 게이트는 인건비입니다 — 신호 하나만 내재화하면 platform SRE 인건비가 절감을 상쇄하거나 초과합니다.
 - 저후회 시퀀싱: Week 0 공짜 이득 → 키스톤(OTel Collector) → istio 부활(D1) → dual-write(D2) → OpenSearch 은퇴 → RUM 트랙(D3) → 선택적 통합(D4, earn-it-last).
@@ -14,7 +13,7 @@ weight: 8
 - "OpenSearch 40% RI 절감 기대", "메트릭을 CH/StarRocks에 억지로", "Loki SSD 신규 구축" 등 7가지는 검증에서 기각됐습니다.
 {{< /callout >}}
 
-각 솔루션의 성격은 앞의 솔루션별 페이지(OpenSearch·Loki·VictoriaLogs·ClickHouse·HyperDX·StarRocks)에서 다뤘습니다 — 목록은 [챕터 개요]({{< relref "_index.md" >}}) 참고. 여기서는 그걸 우리 환경에 얹어 최소 조합·게이트·마이그레이션 순서로 정리합니다.
+각 솔루션의 성격은 앞의 솔루션별 페이지(OpenSearch·Loki·VictoriaLogs·ClickHouse·HyperDX·StarRocks)에서 다뤘습니다 — 목록은 [챕터 개요]({{< relref "_index.md" >}}) 참고. 여기서는 그걸 우리 환경에 대입해 최소 조합·게이트·마이그레이션 순서로 정리합니다.
 
 발라내면 결론은 수집 1개 + 저장 패밀리 1개 + Grafana로 수렴합니다. RUM/APM은 별도 트랙으로 분리해 판단합니다.
 
@@ -46,10 +45,10 @@ weight: 8
 
 ## 진짜 게이트는 기술이 아니라 인건비
 
-숫자를 맞춰보면 불편한 진실이 나옵니다. OpenSearch 인프라 절감은 vs RI ~$205K/yr, vs 온디맨드 ~$365K/yr `≈`로 큽니다. 그러나 셀프호스트 스택을 제대로 운영할 platform SRE 1.5~2명의 fully-loaded 비용이 ~$330~440K/yr `≈`입니다. 온디맨드 기준($365K)이면 거의 상쇄되고 문서가 실제로 모델링한 RI 기준($205K)이면 인건비가 절감을 오히려 초과합니다.
+숫자를 맞춰보면 불편한 진실이 나옵니다. OpenSearch 인프라 절감은 vs RI ~$205K/yr, vs 온디맨드 ~$365K/yr `≈`로 큽니다. 그러나 셀프호스트 스택을 제대로 운영할 platform SRE 1.5~2명의 fully-loaded 비용이 ~$330~440K/yr `≈`입니다. 온디맨드 기준($365K)이면 거의 상쇄됩니다. 문서가 실제로 모델링한 RI 기준($205K)이면 인건비가 절감을 오히려 초과합니다.
 
 {{< callout type="important" >}}
-신호 하나만 내재화하면 수지가 안 맞습니다. logs + metrics + 웹 RUM 셋이 같은 팀·같은 컬럼나 스토어를 나눠 물어야 비로소 성립합니다. 이것이 "여러 신호를 한 스택/한 팀에 수렴"시키는 통합 권고의 진짜 근거입니다. 그래서 D4(ClickHouse 통합)는 이 세 신호가 한곳에 모일 명분이 섰을 때 "earn it last"로 얹습니다.
+신호 하나만 내재화하면 수지가 안 맞습니다. logs + metrics + 웹 RUM 셋이 같은 팀·같은 컬럼나 스토어를 나눠 물어야 비로소 성립합니다. "여러 신호를 한 스택/한 팀에 수렴"시키라는 통합 권고가 여기서 나옵니다. 그래서 D4(ClickHouse 통합)는 이 세 신호가 한곳에 모일 명분이 섰을 때 "earn it last"로 추가합니다.
 {{< /callout >}}
 
 ## 저후회(low-regret) 시퀀싱
@@ -67,7 +66,7 @@ weight: 8
 ## 한 줄 결론
 
 {{< callout type="important" >}}
-로그 내재화의 축은 OTel Collector(수집) + VictoriaLogs(저장) + Grafana(조회)입니다. 이미 VM을 잘 운영하고 있다면 이 조합이 학습 비용과 방치 리스크를 동시에 최소화합니다. OpenSearch는 해체 전에 tail 이전 + OR/RI in-place 최적화로 먼저 다이어트하고 ClickHouse/HyperDX는 "여러 신호를 한 팀에 수렴"이라는 분명한 명분이 섰을 때 얹는 다음 챕터입니다. StarRocks는 S3 탄력성이 하드 요구인 별도 분석 플랫폼 mandate가 아닌 한 로그 숏리스트에서 빠지고 모바일 RUM은 대안이 성숙할 때까지 Datadog에 남겨두는 것이 현실적입니다.
+로그 내재화의 축은 OTel Collector(수집) + VictoriaLogs(저장) + Grafana(조회)입니다. 이미 VM을 잘 운영하고 있다면 이 조합에서 학습 비용도 방치 리스크도 가장 낮습니다. OpenSearch는 해체 전에 tail 이전 + OR/RI in-place 최적화로 먼저 다이어트합니다. ClickHouse/HyperDX는 "여러 신호를 한 팀에 수렴"이라는 분명한 명분이 섰을 때 도입할 다음 챕터입니다. StarRocks는 S3 탄력성이 하드 요구인 별도 분석 플랫폼 mandate가 아닌 한 로그 숏리스트에서 빠집니다. 모바일 RUM은 대안이 성숙할 때까지 Datadog에 남겨두는 것이 현실적입니다.
 {{< /callout >}}
 
 ## 하지 말 것 (검증에서 기각)

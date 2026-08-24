@@ -7,10 +7,9 @@ aliases: ["/k8s-features/karpenter/02-generation-preference/"]
 # 05 · 세대 선호 만들기 — weight vs NodeOverlay
 
 {{< callout type="info" >}}
-**한눈에**
-- GA 해법은 NodePool을 쪼개고 `spec.weight`를 주는 것입니다. weight는 가격보다 먼저 적용됩니다 — NodePool을 고르는 코드 경로(`scheduler.go` `addToNewNodeClaim`)에는 가격 비교가 아예 없습니다. `grep -ic price scheduler.go` → 0건.
-- 동작을 정확히 말하면 "위에서부터 순차 시도"가 아닙니다. NodeClaimTemplate들이 병렬로 시뮬레이션되고, 뮤텍스 아래에서 성공한 것 중 인덱스가 가장 앞선(=weight 최고) 것만 채택됩니다.
-- 파드 쪽에는 아무것도 걸지 않습니다. nodeSelector/affinity는 필요 없고, 오히려 `karpenter.sh/nodepool` 셀렉터를 걸면 weight가 통째로 무시됩니다(테스트가 못박습니다).
+- GA 해법은 NodePool을 쪼개고 `spec.weight`를 줍니다. weight는 가격보다 먼저 적용됩니다 — NodePool을 고르는 코드 경로(`scheduler.go` `addToNewNodeClaim`)에는 가격 비교가 아예 없습니다. `grep -ic price scheduler.go` → 0건.
+- 동작은 "위에서부터 순차 시도"가 아닙니다. NodeClaimTemplate들이 병렬로 시뮬레이션되고 뮤텍스 아래에서 성공한 것 중 인덱스가 가장 앞선(=weight 최고) 것만 채택됩니다.
+- 파드 쪽에는 아무것도 걸지 않습니다. nodeSelector/affinity는 필요 없고 오히려 `karpenter.sh/nodepool` 셀렉터를 걸면 weight가 통째로 무시됩니다(테스트로 확인됩니다).
 - NodeOverlay `priceAdjustment`는 알파입니다. feature gate `NodeOverlay`가 기본 false입니다. 세대 선호를 실제로 만드는 건 provider-aws가 EC2 Fleet 전략을 `prioritized`로 바꾸는 지점인데 — 거기에 확인 못 한 구멍이 둘 있습니다(정수 Priority 규정, 단일 CreateFleet 내 폴백 미보장).
 - 오버레이를 쓰지 않는 한, 8세대 복귀 장치는 gen7 풀의 `expireAfter` 하나뿐입니다. consolidation은 더 싼 쪽으로만 움직이므로 7→8 승격을 절대 하지 않습니다.
 - 적용 순서를 틀리면 대량 교체가 납니다. 기존 단일 풀에서 세대를 *빼는* 편집은 RequirementsDrifted를 유발합니다. 두 풀을 새로 만든 뒤 기존 풀을 지우는 순서로 갑니다.
@@ -49,7 +48,7 @@ if i >= idx {
 
 이 선택 로직 어디에도 가격이 없습니다. 파일 전체에 `grep -ic price pkg/controllers/provisioning/scheduling/scheduler.go`를 돌리면 0이 나옵니다 — 스케줄러 파일에는 price라는 단어조차 없습니다. 가격 정렬(`OrderByPrice`)은 NodePool이 이미 확정된 뒤에 개입합니다. 그때 정렬하는 대상은 확정된 그 풀 내부의 인스턴스 타입 목록뿐입니다(`nodeclaimtemplate.go:113-114`, `ToNodeClaim()` 안).
 
-⇒ "7세대가 더 싸니까 항상 7세대가 뽑힐 것"이라는 우려는 c7i와 c8i를 한 NodePool에 섞었을 때만 맞습니다. 풀을 둘로 나누고 weight를 주는 순간 그 우려가 성립할 자리가 사라집니다. 단위 테스트가 이를 못박습니다 — `suite_test.go:2814` *"should schedule to the nodepool with the highest priority always"*. 셀렉터 없는 평범한 파드 3개가 전부 weight 100 풀로 갑니다.
+⇒ "7세대가 더 싸니까 항상 7세대가 뽑힐 것"이라는 우려는 c7i와 c8i를 한 NodePool에 섞었을 때만 맞습니다. 풀을 둘로 나누고 weight를 주는 순간 그 우려가 성립할 자리가 사라집니다. 단위 테스트가 이를 명시합니다 — `suite_test.go:2814` *"should schedule to the nodepool with the highest priority always"*. 셀렉터 없는 평범한 파드 3개가 전부 weight 100 풀로 갑니다.
 
 ### 1.2 "순차 시도"가 아니라 "병렬 평가 + 최소 인덱스"
 
@@ -60,7 +59,7 @@ if i >= idx {
 scheduler.NumConcurrentReconciles(int(math.Ceil(float64(options.FromContext(ctx).CPURequests) / 1000.0)))
 ```
 
-그런데도 결과는 결정론적입니다. 결정성은 평가 순서에서 오지 않고 뮤텍스로 보호된 최소 인덱스 리덕션에서 옵니다 — 인덱스 3이 먼저 끝나 승자로 앉아 있어도, 나중에 끝난 인덱스 0이 `if i >= idx`를 통과해 그 자리를 빼앗습니다. 순서가 아니라 비교식이 순위를 만듭니다. 그래서 상류 문서도 "항상 최고 weight 풀"을 보장하지 않는다고 명시합니다:
+그런데도 결과는 결정론적입니다. 결정성은 뮤텍스로 보호된 최소 인덱스 리덕션에서 나옵니다. 평가 순서와는 무관합니다 — 인덱스 3이 먼저 끝나 승자로 앉아 있어도 나중에 끝난 인덱스 0이 `if i >= idx`를 통과해 그 자리를 빼앗습니다. 순위는 비교식이 만듭니다. 그래서 상류 문서도 "항상 최고 weight 풀"을 보장하지 않는다고 명시합니다:
 
 > "Based on the way that Karpenter performs pod batching and bin packing, it is not guaranteed that Karpenter will always choose the highest priority NodePool given specific requirements."
 > — [karpenter.sh · Weighted NodePools](https://karpenter.sh/docs/concepts/scheduling/#weighted-nodepools)
@@ -73,11 +72,11 @@ scheduler.NumConcurrentReconciles(int(math.Ceil(float64(options.FromContext(ctx)
 
 {{< seq src="_seq/1-3-실제-폴백은-ice-왕복.json" />}}
 
-시간 상수는 셋입니다. NodeClaim은 ICE 시 즉시 삭제되고 재큐되지 않습니다(`launch.go:85-97`). 파드가 다시 pending으로 관측되는 데 PodController의 10초 재큐(`provisioning/controller.go:77`)와 배치창 1~10초(`options.go:129-130`)가 더해집니다 — 대략 11~30초. 그 뒤 3분간은 provider-aws의 `UnavailableOfferingsTTL`(3분) 덕에 재시도 없이 곧바로 gen7이 뽑히고, 3분이 지나면 다시 gen8을 시도합니다. 상세는 [07]({{< relref "07-ice-fallback.md" >}}).
+시간 상수는 셋입니다. NodeClaim은 ICE 시 즉시 삭제되고 재큐되지 않습니다(`launch.go:85-97`). 파드가 다시 pending으로 관측되는 데 PodController의 10초 재큐(`provisioning/controller.go:77`)와 배치창 1~10초(`options.go:129-130`)가 더해집니다 — 대략 11~30초. 그 뒤 3분간은 provider-aws의 `UnavailableOfferingsTTL`(3분) 덕에 재시도 없이 곧바로 gen7이 뽑히고 3분이 지나면 다시 gen8을 시도합니다. 상세는 [07]({{< relref "07-ice-fallback.md" >}}).
 
 ### 1.4 파드 쪽에는 아무것도 걸지 마라
 
-`addToNewNodeClaim`은 파드마다 템플릿 슬라이스 전체를 후보로 삼으므로(`scheduler.go:705-706`), 제약 없는 평범한 파드가 자동으로 gen8 → gen7 순서를 탑니다. 반대 방향 함정도 테스트가 못박습니다:
+`addToNewNodeClaim`은 파드마다 템플릿 슬라이스 전체를 후보로 삼으므로(`scheduler.go:705-706`), 제약 없는 평범한 파드가 자동으로 gen8 → gen7 순서를 탑니다. 반대 방향 함정도 테스트에 나와 있습니다:
 
 ```go
 // pkg/controllers/provisioning/suite_test.go:2830
@@ -99,7 +98,7 @@ It("should schedule to explicitly selected nodepool even if other nodePools are 
 
 근거: weight 범위는 `pkg/apis/v1/nodepool.go:64-67`(`Minimum:=1`, `Maximum:=100`). replicas 배타는 `nodepool.go:41`의 CEL(`replicas`와 `weight`를 동시에 가질 수 없음) + 런타임 `provisioner.go:273-275`의 `IsStatic` 제외로 이중 차단됩니다. tie-break는 `pkg/utils/nodepool/nodepool.go:157-171`(`return nps[a].Name > nps[b].Name`). 후보 제외는 `provisioner.go:272-282`, `:295-298`(`"skipping, awaiting nodeoverlay evaluation"`). limits는 `scheduler.go:709-726`, `provisioner.go:467-469`.
 
-⇒ 두 풀에는 반드시 서로 다른 weight를 명시하십시오. 동률이면 이름의 사전순 역순이 순위를 정합니다. `gen7-fallback` > `gen8-primary`이므로 정확히 원하지 않는 쪽이 이깁니다.
+⇒ 두 풀에는 반드시 서로 다른 weight를 명시하십시오. 동률이면 이름의 사전순 역순이 순위를 정합니다. `gen7-fallback` > `gen8-primary`이므로 하필 원하지 않는 쪽이 이깁니다.
 
 ## 2. 해법 B — NodeOverlay `priceAdjustment` (알파)
 
@@ -117,10 +116,10 @@ NodePool을 나누지 않고 가격을 거짓말해서 같은 결과를 노리�
 
 계산 지점은 `cloudprovider.AdjustedPrice`(`types.go:493-525`) 하나뿐입니다. 부호 없으면 절대 치환, `%` 접미사면 `price*(1+n/100)`, 그 외 부호값이면 `price+n`, 결과가 음수면 0으로 클램프.
 
-같은 offering을 같은 weight의 두 오버레이가 노리면 `isOfferingUpdateConflicting`이 true를 반환합니다(`store.go:267-286`). 컨트롤러는 2-phase로 검증과 저장을 분리해, 충돌이 하나라도 있으면 저장 단계 자체를 건너뜁니다(`controller.go:163-181`, 주석: *"ensuring atomicity of the operation"*) — 부분 적용이 아니라 전 NodePool에 걸쳐 통째로 드롭되고 status에 `ValidationSucceeded=False, reason="Conflict", message="conflict with another overlay"`가 찍힙니다.
+같은 offering을 같은 weight의 두 오버레이가 노리면 `isOfferingUpdateConflicting`이 true를 반환합니다(`store.go:267-286`). 컨트롤러는 2-phase로 검증과 저장을 분리해 충돌이 하나라도 있으면 저장 단계 자체를 건너뜁니다(`controller.go:163-181`, 주석: *"ensuring atomicity of the operation"*) — 부분 적용이 아니라 전 NodePool에 걸쳐 통째로 드롭되고 status에 `ValidationSucceeded=False, reason="Conflict", message="conflict with another overlay"`가 찍힙니다.
 
 {{< callout type="warning" >}}
-검증 실패가 `kubectl apply`를 막지 않습니다. `nodeoverlay_validation.go`의 주석은 "validation webhook"이라고 쓰여 있지만 실제 호출부는 컨트롤러 Reconcile 안입니다(`controller.go:107` `overlayList.Items[i].RuntimeValidate(ctx)`). 잘못된 오버레이도 apply는 성공하고, 실패는 status condition으로만 드러납니다. 배포 후 반드시 확인할 것:
+검증 실패가 `kubectl apply`를 막지 않습니다. `nodeoverlay_validation.go`의 주석은 "validation webhook"이라고 쓰여 있지만 실제 호출부는 컨트롤러 Reconcile 안입니다(`controller.go:107` `overlayList.Items[i].RuntimeValidate(ctx)`). 잘못된 오버레이도 apply는 성공하고 실패는 status condition으로만 드러납니다. 배포 후 반드시 확인할 것:
 
 ```bash
 kubectl get nodeoverlay -o wide
@@ -131,9 +130,9 @@ kubectl get nodeoverlay penalize-gen7 -o jsonpath='{.status.conditions}' | jq
 ```
 {{< /callout >}}
 
-라벨은 `karpenter.k8s.aws/instance-generation`으로 고르는 게 가장 정확합니다. provider-aws가 인스턴스 이름을 정규식으로 파싱해 세대 숫자를 `InstanceType.Requirements`에 심기 때문입니다(`instancetype/types.go:49` `instanceTypeScheme` — `c7i.large` → generation `7`). `instance-generation Lte 7` 한 줄이면 c7i/m7i/r7i를 한꺼번에 잡고, 나중에 7세대 패밀리가 늘어도 오버레이를 고칠 필요가 없습니다.
+라벨은 `karpenter.k8s.aws/instance-generation`으로 고르는 게 가장 정확합니다. provider-aws가 인스턴스 이름을 정규식으로 파싱해 세대 숫자를 `InstanceType.Requirements`에 심기 때문입니다(`instancetype/types.go:49` `instanceTypeScheme` — `c7i.large` → generation `7`). `instance-generation Lte 7` 한 줄이면 c7i/m7i/r7i를 한꺼번에 잡고 나중에 7세대 패밀리가 늘어도 오버레이를 고칠 필요가 없습니다.
 
-흔한 오해 하나 — provider-aws는 `init()`에서 `karpenter.k8s.aws`를 `RestrictedLabelDomains`에 넣습니다(`pkg/apis/v1/labels.go:29-30`). 그런데도 `instance-generation`이 통과하는 건 도메인이 자유로워서가 아니라, 코어의 `IsRestrictedLabel`이 `WellKnownLabels.Has(key)`로 먼저 빠져나오고 provider-aws가 이 라벨을 그 목록에 등록해 뒀기 때문입니다. ⇒ WellKnownLabels에 없는 `karpenter.k8s.aws/*` 라벨은 `RuntimeValidation`으로 거부됩니다 — 아무 프로바이더 라벨이나 써도 된다고 읽으면 안 됩니다.
+흔한 오해 하나 — provider-aws는 `init()`에서 `karpenter.k8s.aws`를 `RestrictedLabelDomains`에 넣습니다(`pkg/apis/v1/labels.go:29-30`). 그런데도 `instance-generation`이 통과하는 이유는 도메인이 자유로워서가 아닙니다. 코어의 `IsRestrictedLabel`이 `WellKnownLabels.Has(key)`로 먼저 빠져나오고 provider-aws가 이 라벨을 그 목록에 등록해 뒀기 때문입니다. ⇒ WellKnownLabels에 없는 `karpenter.k8s.aws/*` 라벨은 `RuntimeValidation`으로 거부됩니다 — 아무 프로바이더 라벨이나 써도 된다고 읽으면 안 됩니다.
 
 ### 2.2 배선 경로 — 실제로 세대를 고르는 건 EC2다
 
@@ -158,7 +157,7 @@ NodeRepair=false,ReservedCapacity=true,SpotToSpotConsolidation=false,
 NodeOverlay=false,StaticCapacity=false,CapacityBuffer=false
 ```
 
-- feature gate `NodeOverlay`는 기본 false입니다(`options.go:134`). helm은 `settings.featureGates.nodeOverlay=true`로 켭니다 — 이 helm 키는 provider-aws 차트 문서 기준이며 코어 체크아웃(`charts/` 없음)으로는 재확인하지 못했습니다 — 확인 필요. 안 켜면 `overlay/cloudprovider.go:48`에서 `ApplyAll` 자체를 건너뛰어 에러 없이 조용히 무시됩니다.
+- feature gate `NodeOverlay`는 기본 false입니다(`options.go:134`). helm은 `settings.featureGates.nodeOverlay=true`로 켭니다 — 이 helm 키는 provider-aws 차트 문서 기준이며 코어 체크아웃(`charts/` 없음)으로는 재확인하지 못했습니다 — 확인 필요. 안 켜면 `overlay/cloudprovider.go:48`에서 `ApplyAll` 자체를 건너뛰어 에러 없이 무시됩니다.
 - provider-aws ≥ v1.7.0. 코어 CRD 도입 커밋 `218cca8f`의 최초 태그가 v1.7.0이고 provider-aws v1.7.0 릴리스 노트에 *"Add Node Overlay Support (#8305)"*가 있습니다. v1.6.x에는 없습니다.
 - CRD `nodeoverlays.karpenter.sh`가 필요합니다 — `karpenter-crd` 차트에 동봉된다고 하므로 정상 경로는 `helm upgrade karpenter-crd`지만 이 역시 provider-aws 차트 문서 기준이라 코어 체크아웃으로는 재확인하지 못했습니다 — 확인 필요.
 - 배선은 코어가 아니라 provider가 합니다 — 코어의 `overlay.Decorate` 호출부는 `kwok/main.go` 하나뿐이고 실제 배선은 provider-aws `cmd/controller/main.go:44-45`가 수행합니다. "코어에 기능이 있다"와 "동작한다" 사이에 버전 의존이 한 겹 더 있습니다.
@@ -168,9 +167,9 @@ NodeOverlay=false,StaticCapacity=false,CapacityBuffer=false
 ### 2.4 확인 못 한 구멍 둘 — 도입한다면 실측 필수
 
 {{< callout type="warning" >}}
-① `Priority`에 소수 달러값을 넣습니다. AWS API 문서는 `FleetLaunchTemplateOverridesRequest.Priority`를 *"Valid values are whole numbers starting at `0`. The lower the number, the higher the priority."* 로 규정합니다([API 레퍼런스](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_FleetLaunchTemplateOverridesRequest.html)). 그런데 Karpenter는 `Priority: lo.ToPtr(float64(offering.Price))`로 0.17 / 0.19 같은 시간당 달러값을 넣습니다. EC2 쪽에서 정수 절단이 일어난다면 시간당 $1 미만 인스턴스가 전부 priority 0이 되어 세대 선호가 조용히 무력화됩니다. **확인 필요 — 코드로도 공개 문서로도 확정할 수 없습니다.** AWS가 float을 그대로 받아 정렬하는지는 실제 CreateFleet 응답으로만 알 수 있습니다.
+① `Priority`에 소수 달러값을 넣습니다. AWS API 문서는 `FleetLaunchTemplateOverridesRequest.Priority`를 *"Valid values are whole numbers starting at `0`. The lower the number, the higher the priority."* 로 규정합니다([API 레퍼런스](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_FleetLaunchTemplateOverridesRequest.html)). 그런데 Karpenter는 `Priority: lo.ToPtr(float64(offering.Price))`로 0.17 / 0.19 같은 시간당 달러값을 넣습니다. EC2 쪽에서 정수 절단이 일어난다면 시간당 $1 미만 인스턴스가 전부 priority 0이 되어 세대 선호가 아무 신호 없이 무력화됩니다. **확인 필요 — 코드로도 공개 문서로도 확정할 수 없습니다.** AWS가 float을 그대로 받아 정렬하는지는 실제 CreateFleet 응답으로만 알 수 있습니다.
 
-② 단일 CreateFleet 안에서 다음 우선순위로 넘어간다는 보장이 없습니다. [할당 전략 문서](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-allocation-strategy.html)의 폴백 문장 — *"if the lowest priced pool doesn't have available capacity, the On-Demand Instances come from the next lowest priced pool"* — 은 `Lowest price` 항목에만 있습니다. `prioritized` 항목은 *"launching instance types in order of the highest priority first"* 까지만 말하고 폴백을 언급하지 않습니다. **확인 필요.** 이걸 계약으로 삼지 말고, 진짜 안전망은 §1.3의 ICE 캐시 기반 재시도 경로임을 전제해야 합니다.
+② 단일 CreateFleet 안에서 다음 우선순위로 넘어간다는 보장이 없습니다. [할당 전략 문서](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-allocation-strategy.html)의 폴백 문장 — *"if the lowest priced pool doesn't have available capacity, the On-Demand Instances come from the next lowest priced pool"* — 은 `Lowest price` 항목에만 있습니다. `prioritized` 항목은 *"launching instance types in order of the highest priority first"* 까지만 말하고 폴백을 언급하지 않습니다. **확인 필요.** 이걸 계약으로 삼지 말고 진짜 안전망은 §1.3의 ICE 캐시 기반 재시도 경로임을 전제해야 합니다.
 
 ⇒ 오버레이를 도입한다면 "어떤 패밀리가 실제로 떴는가"를 실측하십시오. `kubectl get nodes -L karpenter.k8s.aws/instance-family` 로 분포를 며칠 관찰하기 전에는 동작한다고 말할 수 없습니다.
 {{< /callout >}}
@@ -188,21 +187,21 @@ NodeOverlay=false,StaticCapacity=false,CapacityBuffer=false
 
 A의 폴백은 ICE 왕복 이후 3분간은 즉시 gen7로 갑니다 — 오퍼링이 unavailable로 마킹된 동안입니다([07]({{< relref "07-ice-fallback.md" >}})).
 
-동작 원리를 보면, A의 경로는 weight 내림차순 정렬 → 병렬 시뮬레이션 → 최소 인덱스 채택입니다. 여기에 가격 비교가 아예 없습니다(§1.1-1.2). B는 `Offering.Price`를 변조하고 NodeClaim에 주석을 달아 Fleet의 OD 전략을 `prioritized`로 전환시킵니다(§2.1-2.2).
+A의 경로는 weight 내림차순 정렬 → 병렬 시뮬레이션 → 최소 인덱스 채택입니다. 여기에 가격 비교가 아예 없습니다(§1.1-1.2). B는 `Offering.Price`를 변조하고 NodeClaim에 주석을 달아 Fleet의 OD 전략을 `prioritized`로 전환시킵니다(§2.1-2.2).
 
-주요 함정을 보면 A는 셋입니다 — 한 번 내려가면 consolidation이 되돌리지 않고(§1.2), 배치 내 빈패킹으로 gen7 in-flight에 후속 파드가 얹히며(§1.2), 기존 풀에서 세대를 제거하면 대량 drift가 납니다(§4). B는 넷입니다 — 알파 API에 Cluster 스코프라 스코프를 안 걸면 전 NodePool이 오염되고(§2.1), 동일 weight 충돌 시 전량 드롭이며(§2.1), 게이트를 켜는 순간 평가 공백이 생기고(§2.3), 페널티가 과하면 전략이 원복됩니다(§2.4).
+A의 주요 함정은 셋입니다 — 한 번 내려가면 consolidation이 되돌리지 않고(§1.2), 배치 내 빈패킹으로 gen7 in-flight에 후속 파드가 실리며(§1.2), 기존 풀에서 세대를 제거하면 대량 drift가 납니다(§4). B는 넷입니다 — 알파 API에 Cluster 스코프라 스코프를 안 걸면 전 NodePool이 오염되고(§2.1), 동일 weight 충돌 시 전량 드롭이며(§2.1), 게이트를 켜는 순간 평가 공백이 생기고(§2.3), 페널티가 과하면 전략이 원복됩니다(§2.4).
 
 ### A를 고르는 이유 세 가지
 
 1. 결정성이 코어 안에서 닫힙니다. A는 gen8 풀의 요청에 8세대 타입만 실어 보내므로 EC2가 세대를 고를 여지 자체가 없습니다. B는 마지막 결정을 `prioritized` 해석에 맡기는데, 거기에 §2.4의 미검증 구멍이 둘 있습니다.
-2. 알파를 회피합니다. B는 `v1alpha1` + 기본 OFF 게이트 + provider 버전 의존 + 게이트 활성화 시의 평가 공백이 한 세트입니다. 프로덕션 노드 프로비저닝 경로에 이 조합을 얹을 이유가 약합니다.
-3. A의 최대 약점은 실제로는 좁습니다. "consolidation이 gen8을 gen7로 다운그레이드한다"는 우려가 있지만, 대체안 시뮬레이션도 같은 weight 정렬 스케줄러를 쓰므로(`disruption/helpers.go:113`) 평상시엔 gen8 풀에서 대체안이 나오고 `launchPrice < maxPrice`(strict 부등호)에 걸려 탈락합니다. 크로스 풀 다운그레이드는 gen8 풀이 스케줄에 실패할 때만 일어납니다. 그건 정확히 gen7을 원하는 상황입니다. 상세는 [06]({{< relref "06-consolidation-traps.md" >}}).
+2. 알파를 회피합니다. B는 `v1alpha1` + 기본 OFF 게이트 + provider 버전 의존 + 게이트 활성화 시의 평가 공백이 한 세트입니다. 프로덕션 노드 프로비저닝 경로에 이 조합을 더할 이유가 약합니다.
+3. A의 최대 약점은 실제로는 좁습니다. "consolidation이 gen8을 gen7로 다운그레이드한다"는 우려가 있지만 대체안 시뮬레이션도 같은 weight 정렬 스케줄러를 쓰므로(`disruption/helpers.go:113`) 평상시엔 gen8 풀에서 대체안이 나오고 `launchPrice < maxPrice`(strict 부등호)에 걸려 탈락합니다. 크로스 풀 다운그레이드는 gen8 풀이 스케줄에 실패할 때만 일어납니다. 그건 gen7을 원하는 상황입니다. 상세는 [06]({{< relref "06-consolidation-traps.md" >}}).
 
 ### B가 A보다 나은 유일한 지점
 
 7세대에서 8세대로 자동 복귀하는 경로입니다. 오버레이 가격은 consolidation의 후보 노드 가격 산정에도 쓰이므로(`disruption/types.go` `resolveNodePrice` → `instanceType.OfferingPrice`) 부풀려진 gen7 노드가 "비싼 노드"로 인식되어 용량 회복 시 gen8로 교체될 수 있습니다. A에는 이 경로가 아예 없어 `expireAfter`로 대신해야 합니다.
 
-**확인 필요** — 코드 경로는 확인했으나 실제 교체를 재현하지는 않았습니다. 그리고 이 "장점"은 뒤집으면 churn입니다(용량이 오갈 때마다 노드가 갈립니다). `disruption.budgets`로 속도를 제어할 것.
+**확인 필요** — 코드 경로는 확인했으나 실제 교체를 재현하지는 않았습니다. 그리고 이 "장점"은 뒤집으면 churn입니다(용량이 오갈 때마다 노드가 교체됩니다). `disruption.budgets`로 속도를 제어할 것.
 
 ## 4. 매니페스트 전문
 
@@ -436,17 +435,17 @@ provider-aws는 reserved offering의 가격을 이렇게 매깁니다:
 price = odPrice / 10_000_000.0
 ```
 
-사실상 0입니다. 그래서 이 가격은 코어의 `OrderByPrice`·`Truncate`·EC2의 `lowest-price` 전부에서 무조건 1순위가 되고, consolidation의 `launchPrice < maxPrice` 비교에서도 항상 이깁니다. `ReservedCapacity` feature gate는 기본 ON입니다(위 `FEATURE_GATES` 기본 문자열, BETA).
+사실상 0입니다. 그래서 이 가격은 코어의 `OrderByPrice`·`Truncate`·EC2의 `lowest-price` 전부에서 무조건 1순위가 되고 consolidation의 `launchPrice < maxPrice` 비교에서도 항상 이깁니다. `ReservedCapacity` feature gate는 기본 ON입니다(위 `FEATURE_GATES` 기본 문자열, BETA).
 
 ⇒ 8세대에 ODCR을 잡아두면 알파 기능 없이 "평소 8세대 → 예약 소진 시 나머지"가 성립합니다. 예약 오퍼링이 있는 NodePool과 호환되면 더 낮은 weight 풀로 폴백하지 않습니다(`scheduler.go:734-751` `IsReservedOfferingError`) — weight 기반 폴백을 막는 코드 전체에서 유일한 분기입니다.
 
-값은 돈으로 치릅니다 — ODCR은 쓰든 안 쓰든 과금되고, 예약한 만큼만 우선순위를 삽니다. 그래서 A의 대안이라기보다 A와 함께 쓰는 강화 장치에 가깝습니다 — 기저 부하만큼 8세대 ODCR을 잡고 변동분은 weight 폴백에 맡기는 구성.
+값은 돈으로 치릅니다 — ODCR은 쓰든 안 쓰든 과금되고 예약한 만큼만 우선순위를 삽니다. 그래서 A의 대안이라기보다 A와 함께 쓰는 강화 장치에 가깝습니다 — 기저 부하만큼 8세대 ODCR을 잡고 변동분은 weight 폴백에 맡기는 구성.
 
 ## 6. 배포 후 볼 것
 
-세대 선호는 "설정했다"로 끝나지 않습니다. 8세대 풀이 조용히 사라지는 경로가 여럿이고 그 전부가 파드는 정상 스케줄하므로, 알람이 없으면 드러나지 않습니다. `gen8-primary`에 `weight: 100`을 걸고 며칠이 지났는데 `kubectl get nodes -L karpenter.k8s.aws/instance-family`에 c7i만 보이는 상황을 떠올려 보면 됩니다. 아래 다섯 신호 중 하나를 확인하십시오.
+세대 선호는 "설정했다"로 끝나지 않습니다. 8세대 풀이 사라지는 경로가 여럿이고 그 전부가 파드는 정상 스케줄하므로 알람이 없으면 드러나지 않습니다. `gen8-primary`에 `weight: 100`을 걸고 며칠이 지났는데 `kubectl get nodes -L karpenter.k8s.aws/instance-family`에 c7i만 보이는 상황을 떠올려 보면 됩니다. 아래 다섯 신호 중 하나를 확인하십시오.
 
-- `karpenter_nodeclaims_disrupted_total{reason="insufficient_capacity"}` — 8세대 ICE 발생률. 지속적으로 오르면 8세대 재고가 구조적으로 부족합니다.
+- `karpenter_nodeclaims_disrupted_total{reason="insufficient_capacity"}` — 8세대 ICE 발생률. 지속적으로 오르면 8세대 재고 자체가 모자란 상태입니다.
 - `kubectl get events --field-selector reason=InsufficientCapacityError` — 위와 같은 사건의 개별 인스턴스/AZ.
 - 로그 `"skipping, nodepool requirements filtered out all instance types"` — 8세대 풀이 통째로 빠졌습니다. requirements가 모든 인스턴스 타입을 걸러낸 상태입니다.
 - 로그 `"ignoring nodepool, not ready"` — NodeClass 오류로 8세대 풀이 후보에서 제외.
@@ -454,20 +453,20 @@ price = odPrice / 10_000_000.0
 - `kubectl get nodes -L karpenter.sh/nodepool -L karpenter.k8s.aws/instance-family` — gen7 비중. 이게 튀면 위 다섯 신호 중 하나가 진행 중입니다.
 
 {{< callout type="warning" >}}
-**확인 필요 — 배포 전 한 번은 눈으로 볼 것.** c8i/m8i/r8i가 대상 리전(ap-northeast-2)에서 실제로 제공되는지, 그리고 배포 중인 provider-aws 버전이 8세대를 인스턴스 타입 목록에 포함하는지는 코어 소스로도 공개 문서로도 확정할 수 없었습니다. provider-aws는 `DescribeInstanceTypes`로 동적 조회하므로 원리상 문제없지만, 8세대를 모르는 구버전 provider에서는 gen8 풀의 requirements가 모든 인스턴스 타입을 걸러내 템플릿 자체가 사라집니다 — 그러면 폴백은 정상 동작하는데 8세대는 영영 안 뜹니다. 적용 직후 `kubectl get nodepool gen8-primary -o yaml`의 `Ready` 컨디션과 위 표의 `"filtered out all instance types"` 로그를 확인하십시오.
+**확인 필요 — 배포 전 한 번은 눈으로 볼 것.** c8i/m8i/r8i가 대상 리전(ap-northeast-2)에서 실제로 제공되는지, 그리고 배포 중인 provider-aws 버전이 8세대를 인스턴스 타입 목록에 포함하는지는 코어 소스로도 공개 문서로도 확정할 수 없었습니다. provider-aws는 `DescribeInstanceTypes`로 동적 조회하므로 원리상 문제없지만 8세대를 모르는 구버전 provider에서는 gen8 풀의 requirements가 모든 인스턴스 타입을 걸러내 템플릿 자체가 사라집니다 — 그러면 폴백은 정상 동작하는데 8세대는 영영 안 뜹니다. 적용 직후 `kubectl get nodepool gen8-primary -o yaml`의 `Ready` 컨디션과 위 표의 `"filtered out all instance types"` 로그를 확인하십시오.
 {{< /callout >}}
 
 ## 이 문서에서 가져갈 것
 
 - weight는 가격보다 먼저 적용됩니다. 스케줄러에는 가격 비교가 없습니다(`grep -ic price scheduler.go` → 0). 풀을 나누고 weight를 주면 "싼 쪽이 이긴다"는 경쟁 자체가 사라집니다.
-- "순차 시도"가 아니라 "병렬 시뮬레이션 + 최소 인덱스 채택"입니다. 결정성은 평가 순서가 아니라 뮤텍스 아래 비교식에서 나오고, 상류 문서도 "항상 최고 weight"를 보장하지 않는다고 명시합니다.
+- "순차 시도"가 아니라 "병렬 시뮬레이션 + 최소 인덱스 채택"입니다. 결정성은 평가 순서가 아니라 뮤텍스 아래 비교식에서 나오고 상류 문서도 "항상 최고 weight"를 보장하지 않는다고 명시합니다.
 - 파드는 건드리지 않습니다. `karpenter.sh/nodepool` 셀렉터는 weight를 무력화합니다.
 - NodeOverlay는 A의 대체재가 아닙니다. 알파 게이트 + provider 버전 의존에 더해 EC2 `prioritized` 경로에 확인 못 한 구멍이 둘 있습니다 — 도입한다면 실측이 필수입니다.
 - 8세대 복귀는 자동이 아닙니다. A만 쓴다면 gen7 풀의 `expireAfter`가 유일한 복귀 장치입니다. 적용 순서를 틀리면(기존 풀에서 세대 제거) 대량 교체가 납니다.
 
 ## 참고 자료
 
-- 동작 서술의 근거 코드: `kubernetes-sigs/karpenter` **v1.14.0-6-gac7a021e** — `pkg/controllers/provisioning/provisioner.go`(OrderByWeight·limits 재검증), `pkg/controllers/provisioning/scheduling/scheduler.go`(최소 인덱스 채택·limits 사전 필터), `pkg/apis/v1/nodepool.go`(weight 제약·CEL), `pkg/apis/v1alpha1/nodeoverlay.go`(오버레이 스펙), `pkg/controllers/nodeoverlay/`(충돌 판정·2-phase 저장), `pkg/cloudprovider/types.go`(AdjustedPrice·Truncate), `pkg/controllers/provisioning/suite_test.go:2813-2841`(weight 동작을 못박는 테스트)
+- 동작 서술의 근거 코드: `kubernetes-sigs/karpenter` **v1.14.0-6-gac7a021e** — `pkg/controllers/provisioning/provisioner.go`(OrderByWeight·limits 재검증), `pkg/controllers/provisioning/scheduling/scheduler.go`(최소 인덱스 채택·limits 사전 필터), `pkg/apis/v1/nodepool.go`(weight 제약·CEL), `pkg/apis/v1alpha1/nodeoverlay.go`(오버레이 스펙), `pkg/controllers/nodeoverlay/`(충돌 판정·2-phase 저장), `pkg/cloudprovider/types.go`(AdjustedPrice·Truncate), `pkg/controllers/provisioning/suite_test.go:2813-2841`(weight 동작을 검증하는 테스트)
 - provider-aws: `main` / `v1.7.0` / `v1.11.3` — `pkg/providers/instance/instance.go`(`WithOverlay()`, `Priority`, 60개 절단), `pkg/providers/instance/types.go`(Fleet 할당 전략 전환), `pkg/providers/instancetype/types.go`(instance-family·generation 라벨 생성), `pkg/providers/instancetype/offering/reserved_capacity_resolver.go`(reserved 가격), `pkg/cache/cache.go`(ICE TTL 3분)
 - [Weighted NodePools](https://karpenter.sh/docs/concepts/scheduling/#weighted-nodepools) — "not guaranteed that Karpenter will always choose the highest priority NodePool"의 원문 · [NodeOverlays 개념 문서](https://karpenter.sh/docs/concepts/nodeoverlays/)
 - [EC2 Fleet allocation strategies](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-allocation-strategy.html) · [FleetLaunchTemplateOverridesRequest](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_FleetLaunchTemplateOverridesRequest.html) — §2.4의 두 구멍이 여기서 나옵니다

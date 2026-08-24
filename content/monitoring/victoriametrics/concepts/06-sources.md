@@ -6,7 +6,7 @@ aliases: ["/monitoring/victoriametrics/08-sources/"]
 
 # 06 · 소스맵 — 발표 영상·기사·전사본 가이드
 
-이 지식베이스의 바탕은 네이버 D2/DEVIEW가 공개한 VictoriaMetrics 자료 5건입니다 — 발표 영상 2편과 텍스트 기사 3편. 이 자료를 주제별로 다시 묶어 개념/실전/우리 운영 문서로 엮었습니다. 자료 하나하나를 원문 단위로 정리한 판은 [원문별 정리]({{< relref "../by-source/_index.md" >}})에 따로 있습니다. 여기서는 각 문서가 어떤 원본에서 나왔는지, 원본을 직접 확인하려면 어디를 봐야 하는지 정리합니다.
+이 지식베이스의 바탕은 네이버 D2/DEVIEW가 공개한 VictoriaMetrics 자료 5건입니다 — 발표 영상 2편과 텍스트 기사 3편. 이 자료를 주제별로 다시 묶어 개념/실전/우리 운영 문서로 엮었습니다. 자료 하나하나를 원문 단위로 정리한 판은 [원문별 정리]({{< relref "../by-source/_index.md" >}})에 따로 있습니다. 여기서는 각 문서가 어떤 원본에서 나왔는지, 원본을 직접 확인하려면 어디를 봐야 하는지 적었습니다.
 
 관련 문서: [개념 인덱스]({{< relref "_index.md" >}}) · [원문별 정리]({{< relref "../by-source/_index.md" >}})
 
@@ -17,7 +17,7 @@ aliases: ["/monitoring/victoriametrics/08-sources/"]
 - 발표자: 손주식, 이선규 (NAVER 검색 SRE) · 33분 50초
 - 영상: https://youtu.be/OUyXPgVcdw4
 - 관련 D2 게시글: [네이버 검색 SRE의 시계열 데이터베이스 운영기](https://d2.naver.com/helloworld/6867189) (2024-02)
-  - 게시글에 임베드된 영상(`tv.naver.com/v/48174751`)은 55초 트레일러라, 전체본은 YouTube 원본에서 확보했습니다.
+  - 게시글에 임베드된 영상(`tv.naver.com/v/48174751`)은 55초 트레일러라 전체본은 YouTube 원본에서 확보했습니다.
 - 원본 파일 (작업 저장소 `evejuni/monitoring/d2-victoriametrics/`, GitBook 미포함): `01_deview2023_victoriametrics_멀티버스.mp4` · `01_대사집_VictoriaMetrics_시계열데이터_대혼돈의_멀티버스.md` · `01_transcript.srt|txt`
 - 다루는 범위: 시계열/대용량 정의, TSDB 히스토리(Prometheus·Gorilla·Thanos·Cortex), IndexDB/DataDB 분리, LSM 트리, TSID/역색인, Gorilla 계열 압축. 후반부(≈25:00~)는 멀티클러스터 "멀티버스" 실전 운영기입니다.
 - 주로 반영된 문서: [01]({{< relref "01-tsdb-and-victoriametrics.md" >}}), [02]({{< relref "02-architecture.md" >}}), [04]({{< relref "04-storage-and-compression.md" >}}), [실전 02]({{< relref "../practice/02-operations-at-scale.md" >}}).
@@ -26,7 +26,7 @@ aliases: ["/monitoring/victoriametrics/08-sources/"]
 
 - 발표자: 강민구 (NAVER Container Platform, N3R Standard) · 40분 37초
 - 영상: https://tv.naver.com/v/100672029
-- 관련 D2 게시글: [Inside VictoriaMetrics](https://d2.naver.com/helloworld/9290861) — 본문은 메타와 목차만 얹은 영상 래퍼이고 실제 내용은 영상에 있습니다.
+- 관련 D2 게시글: [Inside VictoriaMetrics](https://d2.naver.com/helloworld/9290861) — 본문은 메타와 목차만 붙인 영상 래퍼이고 실제 내용은 영상에 있습니다.
 - 원본 파일 (작업 저장소 `evejuni/monitoring/d2-victoriametrics/`, GitBook 미포함): `02_inside_victoriametrics.mp4` · `02_대사집_Inside_VictoriaMetrics.md` · `02_transcript.srt|txt`
 - 다루는 범위: 6섹션 구성 — 아키텍처 오버뷰 / vmagent / vminsert / vmstorage / vmselect / best·worst case. VM 내부 동작을 담은 1차 소스 가운데 가장 완전합니다.
 - 주로 반영된 문서: [01]({{< relref "01-tsdb-and-victoriametrics.md" >}}), [02]({{< relref "02-architecture.md" >}}), [03]({{< relref "03-ingestion.md" >}}), [04]({{< relref "04-storage-and-compression.md" >}}), [05]({{< relref "05-query-and-ops-components.md" >}}), [실전 01]({{< relref "../practice/01-cardinality.md" >}}).
@@ -42,7 +42,7 @@ aliases: ["/monitoring/victoriametrics/08-sources/"]
 
 - 출처: https://d2.naver.com/helloworld/6867189
 - 원본 파일 (작업 저장소, GitBook 미포함): `04_기사_6867189_SRE시계열운영기.md`
-- 성격: DEVIEW 2023 발표(①)를 요약한 얇은 래퍼 기사입니다(약 4KB, 55초 트레일러 임베드). 실질 내용은 ① 영상 전사본이 담당하고 이 기사는 보조 참고용입니다.
+- 성격: DEVIEW 2023 발표(①)를 요약한 얇은 래퍼 기사입니다(약 4KB, 55초 트레일러 임베드). 실질 내용은 ① 영상 전사본에 있고 이 기사는 보조 참고용입니다.
 
 ### ⑤ VictoriaMetrics 운영기 2편 — 3단계 최적화 전략 (텍스트, 2026-07)
 

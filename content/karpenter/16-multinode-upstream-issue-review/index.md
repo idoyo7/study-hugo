@@ -9,9 +9,9 @@ weight: 16
 
 - 이 문제는 AWS provider가 아니라 **provider-neutral Karpenter core**의 MultiNode 후보 탐색 알고리즘에 있습니다.
 - 논의 장소도 `aws/karpenter-provider-aws`보다 `kubernetes-sigs/karpenter`가 맞습니다.
-- 다만 새 Issue는 권장하지 않습니다. 같은 문제를 직접 다룬 `#853`, `#2434`, `#2814`가 이미 있습니다.
+- 새 Issue는 권장하지 않습니다. 같은 문제를 직접 다룬 `#853`, `#2434`, `#2814`가 이미 있습니다.
 - 현재 기준점은 열린 채 `triage/accepted`된 **[#2434 Multinode consolidation delayed/stuck](https://github.com/kubernetes-sigs/karpenter/issues/2434)**입니다.
-- 별도 `consolidationCoverage` 설정을 앞세우기보다 `#2434`에 재현 사례와 측정값을 추가하고 **설정 없는 후보 compatibility 개선**을 RFC에서 논의하는 편이 upstream 방향과 맞습니다.
+- 별도 `consolidationCoverage` 설정을 앞세우는 것보다 `#2434`에 재현 사례와 측정값을 추가하고 **설정 없는 후보 compatibility 개선**을 RFC에서 논의하는 쪽이 upstream 방향과 맞습니다.
 - 조사 기준일은 **2026-08-04**입니다. Issue 상태와 라벨은 이후 변경될 수 있습니다.
 {{< /callout >}}
 
@@ -56,9 +56,9 @@ Issue만 비교하면 `#2814`가 가장 가깝습니다.
 | maintainer가 주도하는 장기 방향 | `#3141` | `help wanted`, `needs-design`, working group 논의 진행 |
 | merge 가능성 | 아직 확정된 항목 없음 | RFC·승인·최종 구현이 아직 없음 |
 
-PR `#2871`에는 코드가 있지만 현재 상태는 `lifecycle/stale`, `needs-rebase`, `do-not-merge/work-in-progress`입니다. 구현물이 있다는 점에서는 앞서 있어도 merge에 가깝지는 않습니다.
+PR `#2871`에는 코드가 있지만 현재 상태는 `lifecycle/stale`, `needs-rebase`, `do-not-merge/work-in-progress`입니다. 구현물이 나와 있는 것만 보면 앞서 있어도 merge에 가깝지는 않습니다.
 
-`#3141`은 가장 활발한 장기 방향입니다. 다만 NodePool별 hard grouping 대신 다음과 같은 pair/set heuristic을 논의합니다.
+`#3141`은 가장 활발한 장기 방향입니다. 여기서는 NodePool별 hard grouping 대신 다음과 같은 pair/set heuristic을 논의합니다.
 
 ```text
 pairScore(A, B)
@@ -70,7 +70,7 @@ pairScore(A, B)
 
 현재 upstream이 선호하는 방향은 이렇습니다.
 
-NodePool을 유일한 강제 경계로 고정하기보다, NodePool·architecture·AZ·requirements를 compatibility 신호로 사용해 더 유망한 후보 pair/set을 우선 탐색합니다.
+NodePool을 유일한 강제 경계로 고정하는 대신 NodePool·architecture·AZ·requirements를 compatibility 신호로 삼아 더 유망한 후보 pair/set을 먼저 탐색합니다.
 
 ### 0.3 네 항목의 관계
 
@@ -91,7 +91,7 @@ NodePool을 유일한 강제 경계로 고정하기보다, NodePool·architectur
              상태: accepted, needs-design, MultiNode는 follow-up
 ```
 
-지금 기여할 때는 `#2814` 같은 새 Feature Issue를 반복하기보다 `#2434`에 근거를 보태고 `#3141`의 compatibility-aware MultiNode 후속 설계로 연결하는 편이 적절합니다.
+지금 기여한다면 `#2814` 같은 새 Feature Issue를 다시 여는 대신 `#2434`에 근거를 보태고 `#3141`의 compatibility-aware MultiNode 후속 설계로 연결하는 것이 적절합니다.
 
 ## 1. 어느 저장소에 제안해야 하는가
 
@@ -132,13 +132,13 @@ Karpenter를 도입한 provider라면 같은 `karpenter.sh/v1 NodePool` 개념�
 - Alibaba Cloud ACK provider: 공통 `NodePool` 모델 + provider별 NodeClass
 - 기타 Karpenter provider도 core API와 cloud provider interface 위에 구현합니다.
 
-`NodePool-aware MultiNode 후보 탐색`은 AWS 전용 문제가 아닙니다. ARM/x86, zone, capacity type, taint와 workload partition처럼 서로 scheduling-compatible하지 않은 노드가 하나의 전역 후보 목록에 섞이는 provider라면 어디서나 나타날 수 있습니다.
+`NodePool-aware MultiNode 후보 탐색`은 AWS 전용 문제가 아닙니다. ARM/x86, zone, capacity type, taint, workload partition처럼 서로 scheduling-compatible하지 않은 노드가 하나의 전역 후보 목록에 섞이면 어느 provider에서든 나타납니다.
 
-다만 모든 managed Kubernetes가 Karpenter의 `NodePool`을 쓰는 것은 아닙니다. Cluster Autoscaler의 node group이나 각 cloud의 managed node pool은 이름이 비슷해도 별도 API입니다. 여기서 말하는 범위는 Karpenter controller가 관리하는 `karpenter.sh/v1 NodePool`입니다.
+모든 managed Kubernetes가 Karpenter의 `NodePool`을 쓰는 것은 아닙니다. Cluster Autoscaler의 node group이나 각 cloud의 managed node pool은 이름이 비슷해도 별도 API입니다. 여기서 말하는 범위는 Karpenter controller가 관리하는 `karpenter.sh/v1 NodePool`입니다.
 
 ## 2. Issue 검색 방법
 
-GitHub core 저장소에서 open/closed Issue를 모두 대상으로 다음 검색어를 교차 검색했습니다.
+GitHub core 저장소에서 open/closed Issue를 모두 놓고 다음 검색어를 교차 검색했습니다.
 
 ```text
 multinode consolidation
@@ -171,7 +171,7 @@ consolidation grouping
 | 종료 사유 | 기술적으로 기각된 것이 아니라 stale/rotten 자동 종료 |
 | 직접성 | 매우 높음 |
 
-이 Issue는 다음을 정확히 지적했습니다.
+이 Issue는 다음을 지적했습니다.
 
 - 서로 독립적인 NodePool의 노드를 하나의 전역 MultiNode 후보로 수집
 - pending pod가 다른 partition에 속하면 simulation이 실패할 수 있음
@@ -192,7 +192,7 @@ maintainer 댓글에서도 NodePool 수만큼 `n`개의 MultiNode consolidation�
 | 라벨 | `kind/bug`, `triage/accepted`, `priority/important-soon`, `lifecycle/rotten` |
 | 직접성 | 가장 높음 |
 
-핵심 재현은 이렇습니다.
+재현 조건은 이렇습니다.
 
 - 여러 NodePool이 있는 80노드 클러스터
 - 특정 NodePool의 `2 × m7g.2xlarge → 1 × r7g.2xlarge`는 가능
@@ -203,7 +203,7 @@ maintainer 댓글에서도 NodePool 수만큼 `n`개의 MultiNode consolidation�
 maintainer는 binary search가 이상적이지 않다고 인정하면서 이 Issue를 `triage/accepted` 처리했습니다. `#2814`를 닫을 때도 이 Issue를 문제 정의의 기준점으로 지정했습니다.
 
 {{< callout type="warning" >}}
-`#2434`에는 현재 `lifecycle/rotten` 라벨도 붙어 있습니다. 하지만 2026-06-09에 maintainer가 다시 `triage accepted`를 적용했고 2026-07-31에도 진행 여부 질문이 올라왔습니다. 새 중복 Issue보다 이 Issue에 구체적인 운영 자료를 추가하는 편이 낫습니다.
+`#2434`에는 현재 `lifecycle/rotten` 라벨도 붙어 있습니다. 하지만 2026-06-09에 maintainer가 다시 `triage accepted`를 적용했고 2026-07-31에도 진행 여부 질문이 올라왔습니다. 새 중복 Issue를 여는 것보다 이 Issue에 구체적인 운영 자료를 붙이는 쪽이 낫습니다.
 {{< /callout >}}
 
 ### 3.3 #2814 — 우리가 생각한 해결안과 거의 같은 제안
@@ -216,7 +216,7 @@ maintainer는 binary search가 이상적이지 않다고 인정하면서 이 Iss
 | 상태 | Closed — Completed |
 | 직접성 | 해결안 기준으로 거의 동일 |
 
-제안 내용은 이렇습니다.
+제안한 내용은 다음과 같습니다.
 
 - 전역 후보에 다른 NodePool이 섞여 두 개 이상의 replacement가 필요해지는 문제
 - `firstNConsolidationOption()`의 prefix binary search 한계
@@ -228,9 +228,9 @@ maintainer는 binary search가 이상적이지 않다고 인정하면서 이 Iss
 1. root cause는 `#2434`와 같습니다.
 2. 별도 configuration 없이 Karpenter 후보 선택 알고리즘을 개선해야 합니다.
 3. 해결안과 대안 비교는 Issue보다 RFC에서 수행해야 합니다.
-4. NodePool 경계만으로는 충분하지 않습니다. 같은 NodePool 안에도 ARM/x86처럼 함께 consolidate할 수 없는 노드가 존재합니다.
+4. NodePool 경계만으로는 충분하지 않습니다. 같은 NodePool 안에도 ARM/x86처럼 함께 consolidate할 수 없는 노드가 있습니다.
 
-2026-06-08에 위 이유로 닫혔습니다. 동일한 `consolidationCoverage` 또는 `consolidationGroup` Feature Issue를 새로 만들면 중복으로 판단될 가능성이 매우 높습니다.
+2026-06-08에 위 이유로 닫혔습니다. 동일한 `consolidationCoverage` 또는 `consolidationGroup` Feature Issue를 새로 만들면 중복으로 판단되기 쉽습니다.
 
 ## 4. 현재 진행 중인 상위 설계
 
@@ -254,7 +254,7 @@ maintainer는 binary search가 이상적이지 않다고 인정하면서 이 Iss
 
 working group 댓글에서는 `same nodepool`, `same architecture` 같은 compatibility 신호와 MultiNode 전용 heuristic이 필요하다고 논의했습니다.
 
-우리의 NodePool별 budget coverage 아이디어는 단기적으로 `#2434`의 재현 가능한 완화책입니다. 장기적으로는 `#3141`의 **compatible candidate pair/set 탐색**과 합쳐질 가능성이 큽니다.
+우리의 NodePool별 budget coverage 아이디어는 당장은 `#2434`를 재현 가능한 형태로 완화하는 방법입니다. 길게 보면 `#3141`의 **compatible candidate pair/set 탐색**과 합쳐질 가능성이 큽니다.
 
 ## 5. 관련 POC와 구현 시도
 
@@ -271,7 +271,7 @@ working group 댓글에서는 `same nodepool`, `same architecture` 같은 compat
 - 100개 후보 제한 우회
 - AZ 요구가 다른 pod 때문에 replacement가 2개 이상 생성되는 실패 완화
 
-반면 simulation 수와 validation failure가 늘어날 수 있다는 단점도 확인했습니다. 현재 로컬 구현은 모든 NodePool을 공용 1분 deadline 안에서 순차 평가하는 설계이므로 성능 측정을 반드시 함께 해야 합니다.
+simulation 수와 validation failure가 늘어날 수 있다는 단점도 함께 확인했습니다. 현재 로컬 구현은 모든 NodePool을 공용 1분 deadline 안에서 순차 평가하므로 성능 측정을 반드시 함께 해야 합니다.
 
 ## 6. 증상과 성능을 공유하는 주변 Issue
 
@@ -294,9 +294,9 @@ working group 댓글에서는 `same nodepool`, `same architecture` 같은 compat
 | [#2972 scale에서 consolidation CPU 증가](https://github.com/kubernetes-sigs/karpenter/issues/2972) | Open, Accepted | 반복 scheduler construction 비용 측정 |
 | [#3186 max candidate 수 설정](https://github.com/kubernetes-sigs/karpenter/issues/3186) | Open, Accepted | 100개 고정값과 timeout의 직접적인 후속 |
 
-`#3186`의 maintainer 댓글은 특히 중요합니다. MultiNode roadmap을 계획 중이므로 장기 공개 설정을 늘리기보다 임시 undocumented flag 또는 timeout에 따라 후보 수를 동적으로 줄이는 방향을 선호한다고 밝혔습니다.
+`#3186`에 달린 maintainer 댓글이 특히 중요합니다. MultiNode roadmap을 계획 중이라 장기 공개 설정을 늘리는 대신 임시 undocumented flag를 쓰거나 timeout에 따라 후보 수를 동적으로 줄이는 방향을 선호한다고 밝혔습니다.
 
-이 댓글이 `consolidationCoverage`를 정식 사용자 설정으로 바로 upstream하기보다 설정 없는 algorithm improvement나 실험적 내부 flag로 접근해야 한다는 근거입니다.
+이 댓글은 `consolidationCoverage`를 정식 사용자 설정으로 바로 upstream하지 말고 설정 없는 algorithm improvement나 실험적 내부 flag로 접근하라는 근거가 됩니다.
 
 ### 6.3 budget semantics 관련
 
@@ -306,7 +306,7 @@ working group 댓글에서는 `same nodepool`, `same architecture` 같은 compat
 | [#2218 disruption budget 문서 불명확](https://github.com/kubernetes-sigs/karpenter/issues/2218) | Open, Accepted/Backlog | budget 의미와 실제 동작 설명 부족 |
 | [#2344 allowed disruptions metric과 schedule 불일치](https://github.com/kubernetes-sigs/karpenter/issues/2344) | Open | budget 계산·관측 가능성 문제 |
 
-이 항목들은 후보 grouping 문제와 직접 중복되지는 않습니다. 다만 “NodePool별 budget이 실행 제한뿐 아니라 탐색 기회도 의미해야 하는가”를 설명할 때 배경 자료로 사용할 수 있습니다.
+이 항목들은 후보 grouping 문제와 직접 중복되지는 않습니다. 그래도 “NodePool별 budget이 실행 제한뿐 아니라 탐색 기회도 의미해야 하는가”를 설명할 때 배경 자료로 쓸 수 있습니다.
 
 ## 7. 새 Issue를 만들 것인가
 
@@ -388,7 +388,7 @@ for multi-node consolidation, while preserving existing NodePool disruption
 budgets and final scheduling validation.
 ```
 
-upstream에서는 사용자 설정 자체보다 다음 계약을 제안하는 편이 좋습니다.
+upstream에는 사용자 설정 대신 다음 계약을 제안하는 쪽이 낫습니다.
 
 1. 모든 NodePool budget은 기존처럼 안전 제한으로 유지
 2. 서로 호환될 가능성이 높은 source candidate가 함께 simulation될 기회 보장
@@ -408,7 +408,7 @@ upstream에서는 사용자 설정 자체보다 다음 계약을 제안하는 �
   → 필요한 경우 provider별 chart PR
 ```
 
-Karpenter 공식 Feature Lifecycle은 사용자에게 보이는 disruption 동작이나 주요 알고리즘 변경에 RFC가 필요할 가능성이 높다고 설명합니다.
+Karpenter 공식 Feature Lifecycle은 사용자에게 보이는 disruption 동작이나 주요 알고리즘 변경에 RFC가 필요할 때가 많다고 설명합니다.
 
 - [Feature Lifecycle](https://github.com/kubernetes-sigs/karpenter/blob/main/FEATURE_LIFECYCLE.md)
 - [Scope Guidelines](https://github.com/kubernetes-sigs/karpenter/blob/main/SCOPE.md)
@@ -427,6 +427,6 @@ Karpenter 공식 Feature Lifecycle은 사용자에게 보이는 disruption 동�
 | `consolidationCoverage`를 그대로 upstream할까 | 가능성 낮음. maintainer는 설정 없는 알고리즘 개선을 선호 |
 | 다음 행동 | `#2434`에 측정 가능한 재현과 POC 비교 결과를 추가 |
 
-가장 중요한 변화는 이것입니다.
+가장 크게 달라진 부분은 이렇습니다.
 
-새롭게 발견한 고립된 문제가 아니라, upstream이 이미 인정한 MultiNode 후보 탐색 문제를 놓고 NodePool budget coverage라는 구체적인 관찰과 검증 가능한 POC를 우리가 확보한 상태입니다.
+우리가 다루는 것은 새롭게 발견한 고립된 문제가 아닙니다. upstream이 이미 인정한 MultiNode 후보 탐색 문제를 놓고 NodePool budget coverage라는 구체적인 관찰과 검증 가능한 POC를 확보한 상태입니다.

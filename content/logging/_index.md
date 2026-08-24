@@ -7,9 +7,9 @@ cascade:
 
 # 로깅 · 옵저버빌리티 — ES 말고 어떻게 관리할까
 
-로그·메트릭·RUM을 여러 저장소에 흩뿌려 놓은 MSA 팀이 "이거랑 저거만 있으면 다 될 것 같은" 최소 조합을 찾으며 검토한 솔루션들을 정리한 챕터입니다. Elasticsearch(OpenSearch) 기반 EFK 말고 애플리케이션 로깅을 내재화하는 다른 길이 있는지, 솔루션마다 성격은 어떻고 우리 케이스에서는 무엇을 골랐는지 다룹니다.
+로그·메트릭·RUM을 여러 저장소에 흩뿌려 놓은 MSA 팀이 "이거랑 저거만 있으면 다 될 것 같은" 최소 조합을 찾으며 검토한 솔루션을 정리한 챕터입니다. Elasticsearch(OpenSearch) 기반 EFK 말고 애플리케이션 로깅을 내재화하는 다른 길이 있는지, 솔루션마다 성격은 어떻고 우리 케이스에서는 무엇을 골랐는지 다룹니다.
 
-자매 챕터: [VictoriaMetrics 지식베이스]({{< relref "../monitoring/victoriametrics/_index.md" >}}) · [메트릭 400일 보관]({{< relref "../monitoring/longterm-retention/_index.md" >}}) — 메트릭 계층은 그쪽에서 다루고 로그·RUM 계층을 이 챕터에서 다룹니다. istio 액세스 로그·APM·RUM만 따로 파는 심화는 별도 도메인([Istio]({{< relref "../istio/_index.md" >}}) · [APM]({{< relref "../apm/_index.md" >}}) · [RUM 내재화]({{< relref "../rum/_index.md" >}}))에서 이어갈 예정입니다. ClickHouse를 채택했을 때의 운영 전략(배포·스토리지·operator)은 [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) 도메인에서 다룹니다(D4의 채택 여부 판단과 전제가 다릅니다).
+자매 챕터: [VictoriaMetrics 지식베이스]({{< relref "../monitoring/victoriametrics/_index.md" >}}) · [메트릭 400일 보관]({{< relref "../monitoring/longterm-retention/_index.md" >}}) — 메트릭 계층은 그쪽에 있고 이 챕터는 로그·RUM 계층을 맡습니다. istio 액세스 로그·APM·RUM만 따로 파는 심화는 별도 도메인([Istio]({{< relref "../istio/_index.md" >}}) · [APM]({{< relref "../apm/_index.md" >}}) · [RUM 내재화]({{< relref "../rum/_index.md" >}}))에서 이어갈 예정입니다. ClickHouse를 채택했을 때 필요한 운영 전략(배포·스토리지·operator)은 [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) 도메인에서 다룹니다(D4의 채택 여부 판단과 전제가 다릅니다).
 
 ## 먼저, 이건 "하나의 큰 결정"이 아니다
 
@@ -22,7 +22,7 @@ cascade:
 | **D3. RUM 내재화** | Datadog RUM 2배 인상, 빼올까 | **웹 YES / 모바일 NO** |
 | **D4. 단일 통합 저장소** | ClickHouse로 로그+트레이스+RUM 다 합칠까 | 가능하나 **최후에** ("earn it last") |
 
-이 프레이밍을 먼저 못 박는 이유가 있습니다. D1은 스프린트 단위로 끝나는 저위험 작업이고 D2는 자릿수 절감이 걸린 큰 건입니다. D4는 조건이 성숙해야 성립하는 장기 베팅입니다. 하나로 묶으면 "전면 이전 ROI 나올까?"라는 답 없는 질문이 됩니다.
+이 프레이밍을 먼저 정해두는 이유가 있습니다. D1은 스프린트 단위로 끝나는 저위험 작업이고 D2는 자릿수 절감이 걸린 큰 건입니다. D4는 조건이 성숙해야 성립하는 장기 베팅입니다. 하나로 묶으면 "전면 이전 ROI 나올까?"라는 답 없는 질문이 됩니다.
 
 ## 왜 이 고민을 하는가 — 현재 구조의 겹침
 
@@ -36,7 +36,7 @@ cascade:
 | APM/트레이스 | Datadog 단독 | 1중 | 당분간 유지 |
 | RUM (웹/모바일) | Datadog 단독 | 1중 | RWoL 재요율로 ~2배 인상 |
 
-로깅 스택이 죽는 원인은 대개 기술이 아니라 오너십입니다. promtail이 방치되고 DaemonSet이 노드 교체와 함께 사라지는 건 도구를 바꿔서 해결될 일이 아닙니다. 그래서 "어떤 솔루션이냐"만큼 "우리가 스택 하나를 더 썩히지 않을 수 있느냐"가 선택을 가르는 기준이 됩니다.
+로깅 스택이 죽는 원인은 대개 기술이 아니라 오너십입니다. promtail이 방치되고 DaemonSet이 노드 교체와 함께 사라지는 건 도구를 바꿔서 해결될 일이 아닙니다. 그래서 "어떤 솔루션이냐"만큼 "우리가 스택 하나를 더 썩히지 않을 수 있느냐"가 선택 기준이 됩니다.
 
 ## 솔루션 한눈에 보기
 

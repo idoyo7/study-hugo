@@ -7,10 +7,10 @@ cascade:
 
 # HyperDX 내재화 — 실전 배포 청사진
 
-[RUM 내재화]({{< relref "../rum/_index.md" >}})가 "왜·무엇으로 Datadog RUM에서 빠져나오나"를, [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}})이 "ClickHouse를 채택했다면 범용으로 어떻게 운영하나(how)"를 다뤘다면, 이 챕터는 그 사이를 잇는 **실전 운용 케이스**입니다 — HyperDX ClickStack을 **우리의 실제 RUM 워크로드**로 K8s(EKS)에 얹고 장애를 견디게 하고 용량을 산정하는 청사진. 전제는 아주 구체적으로 못박습니다: **RUM-only**(세션 리플레이·로그·트레이스·Web Vitals), **staging→prod 승급**, **EBS(gp3/io2)-first** 스토리지(로컬 NVMe는 옵셔널), 그리고 **prod 세션 샘플링 100% = 월 0.7TB** 규모입니다. 이 챕터는 이론·의사결정 대신 매니페스트·DDL·다운타임 타임라인·달러 산식을 그대로 노출합니다.
+[RUM 내재화]({{< relref "../rum/_index.md" >}})가 "왜·무엇으로 Datadog RUM에서 빠져나오나"를, [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}})이 "ClickHouse를 채택했다면 범용으로 어떻게 운영하나(how)"를 다뤘다면, 이 챕터는 그 사이를 잇는 **실전 운용 케이스**입니다 — HyperDX ClickStack을 **우리의 실제 RUM 워크로드**로 K8s(EKS)에 올리고 장애를 견디게 하고 용량을 산정하는 청사진. 전제는 아주 구체적으로 정해 둡니다: **RUM-only**(세션 리플레이·로그·트레이스·Web Vitals), **staging→prod 승급**, **EBS(gp3/io2)-first** 스토리지(로컬 NVMe는 옵셔널), 그리고 **prod 세션 샘플링 100% = 월 0.7TB** 규모입니다. 이 챕터는 이론·의사결정 대신 매니페스트·DDL·다운타임 타임라인·달러 산식을 그대로 노출합니다.
 
 {{< callout type="info" >}}
-핵심 결정을 한 장으로 먼저 봅니다.
+핵심 결정부터 먼저 봅니다.
 
 - 스택 조립: ClickStack 표준 2-Helm 차트를 그대로 쓰지 않고 `clickhouse.enabled: false`(자체(self-hosted) ClickHouse에 연결하는 **'HyperDX Only'**)로 붙입니다. ClickHouse/Keeper는 **Altinity operator(CHI/CHK)**로 분리 운영하고 HyperDX·OTel Collector·MongoDB만 차트/operator로 남깁니다. `✓`
 - hot 스토리지: 기본은 **gp3 단일 볼륨**입니다. ClickHouse는 throughput-bound라 IOPS를 살 이유가 거의 없습니다. io2 Block Express는 극한 IOPS·sub-ms·볼륨 99.999%가 필요할 때만, 로컬 NVMe는 옵셔널 업그레이드 경로입니다. `✓/≈`
@@ -22,7 +22,7 @@ cascade:
 
 ## 이 챕터의 위치 — 전제 차이
 
-study-hugo에는 이미 겹치는 주제의 깊은 문서가 있습니다. 이 챕터가 기존 문서와 **모순처럼 보이면 안 됩니다** — 특히 "로컬 NVMe vs EBS"는 규모·목표가 다른 별개 시나리오입니다. 어느 쪽이 옳은지를 가리는 논쟁이 아닙니다. 아래 축으로 읽습니다.
+study-hugo에는 이미 겹치는 주제의 깊은 문서가 있습니다. 이 챕터가 기존 문서와 **모순처럼 보이면 안 됩니다** — 특히 "로컬 NVMe vs EBS"는 규모·목표가 다른 별개 시나리오입니다. 어느 쪽이 옳은지 가릴 문제가 아닙니다. 아래 축으로 읽습니다.
 
 | 축 | 기존 `clickhouse/` 운영 | 기존 `rum/` 내재화 | **이 챕터 `hyperdx/`** |
 |---|---|---|---|
@@ -40,8 +40,8 @@ study-hugo에는 이미 겹치는 주제의 깊은 문서가 있습니다. 이 �
 {{< callout type="info" >}}
 **배포 모드 이름 — 섞으면 결론이 뒤집힙니다** `✓`
 
-- "BYOD"는 공식 문서에도 이 레포에도 없는 말입니다. 어디서 흘러든 표현이든, 아래 셋 중 무엇을 가리키는지 먼저 갈라야 합니다.
-- 공식 표현은 둘입니다 — ClickStack Docker Compose 문서의 "BYO ClickHouse", HyperDX Only 문서의 "already have a running ClickHouse instance". 둘 다 "이미 돌고 있는 CH에 붙인다"는 같은 뜻입니다.
+- "BYOD"는 공식 문서에도 이 레포에도 없는 말입니다. 어디서 흘러든 표현이든, 아래 셋 중 무엇을 가리키는지 먼저 구분해야 합니다.
+- 공식 표현은 ClickStack Docker Compose 문서의 "BYO ClickHouse"와 HyperDX Only 문서의 "already have a running ClickHouse instance"입니다. 둘 다 "이미 돌고 있는 CH에 붙인다"는 같은 뜻입니다.
 - 우리 표현은 "HyperDX Only"(`clickhouse.enabled: false`)이고 이 챕터·트랙 전체가 이 표기를 씁니다.
 - BYOC(Bring Your Own Cloud)는 ClickHouse Cloud 상품이라 완전히 다른 축입니다. 이걸 self-host로 착각하면 결론이 반대로 뒤집힙니다 — managed와 self-host의 부품 경계는 [managed vs self-host]({{< relref "../clickhouse/01-managed-vs-selfhosted.md" >}})입니다.
 {{< /callout >}}
@@ -78,7 +78,7 @@ study-hugo에는 이미 겹치는 주제의 깊은 문서가 있습니다. 이 �
 
 {{< flow src="_flow/우리-케이스-청사진-한.json" />}}
 
-RUM 인제스트 경로에 **MongoDB는 없습니다** — 브라우저 SDK가 OTel Collector로 직접 보내고 MongoDB는 UI에서 대시보드·알럿·소스를 만들 때만 쓰입니다. 그래서 MongoDB 다운은 "관측 정지"가 아니라 "**설정·알럿·UI 정지**"입니다. MongoDB를 아주 작게 돌려도 되는 근거가 바로 이 구조입니다 `✓`. 포트·컴포넌트별 역할·세션 리플레이 적재 테이블은 {{< relref "01-stack-topology.md" >}}가 정본입니다.
+RUM 인제스트 경로에 **MongoDB는 없습니다** — 브라우저 SDK가 OTel Collector로 직접 보내고 MongoDB는 UI에서 대시보드·알럿·소스를 만들 때만 쓰입니다. 그래서 MongoDB 다운은 "관측 정지"가 아니라 "**설정·알럿·UI 정지**"입니다. 이 구조라서 MongoDB를 아주 작게 돌려도 됩니다 `✓`. 포트·컴포넌트별 역할·세션 리플레이 적재 테이블은 {{< relref "01-stack-topology.md" >}}가 정본입니다.
 
 ## 이 챕터 구성 (문서 지도)
 
@@ -96,7 +96,7 @@ RUM 인제스트 경로에 **MongoDB는 없습니다** — 브라우저 SDK가 O
 
 ## 자매 챕터
 
-- [우리 배포 형상]({{< relref "../hyperdx-operating/01-our-deployment.md" >}}) — **우리 케이스**: 실제 RUM 수집 스택 종합도(자체 RUM 컨버터 포함)·실행 단위 분할·컴포넌트별 HA·stage/prod 격차. 이 챕터가 표준을 다루는 자리에 우리 형상을 섞지 않으려고 운영 트랙으로 옮겼습니다(R1). 표준 4컴포넌트·가용성·Keeper·복제는 {{< relref "01-stack-topology.md" >}}·{{< relref "04-operator-topology-downtime.md" >}}·{{< relref "05-keeper.md" >}}·{{< relref "06-replication-failover.md" >}}가 소유합니다.
+- [우리 배포 형상]({{< relref "../hyperdx-operating/01-our-deployment.md" >}}) — **우리 케이스**: 실제 RUM 수집 스택 종합도(자체 RUM 컨버터 포함)·실행 단위 분할·컴포넌트별 HA·stage/prod 격차. 이 챕터는 표준을 다루므로 우리 형상을 섞지 않으려고 운영 트랙으로 옮겼습니다(R1). 표준 4컴포넌트·가용성·Keeper·복제는 {{< relref "01-stack-topology.md" >}}·{{< relref "04-operator-topology-downtime.md" >}}·{{< relref "05-keeper.md" >}}·{{< relref "06-replication-failover.md" >}}가 소유합니다.
 - [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) — ClickHouse 범용 운영 how(operator 선택·로컬 NVMe·배포 플레이북·스케일/롤링). 이 챕터가 relref로 위임하는 대부분의 배경이 여기 있습니다.
 - [RUM 내재화]({{< relref "../rum/_index.md" >}}) — Datadog RUM에서 빠져나오는 why/what(비교·매트릭스·마이그레이션). 이 챕터의 상류.
 - [HyperDX/ClickStack 심층]({{< relref "../rum/01-hyperdx-deep-dive.md" >}}) — HyperDX 4컴포넌트·배포 6모드·HyperDX Only 의존성의 기준 문서.
@@ -106,6 +106,6 @@ RUM 인제스트 경로에 **MongoDB는 없습니다** — 브라우저 SDK가 O
 
 **HyperDX-only + Altinity CHI/CHK + MongoDB(MCK 또는 Atlas)** 로 조립하고, hot은 **단일 gp3**, cold는 **S3 + TTL MOVE**, 조정은 **Keeper 3노드**, 토폴로지는 **1 shard × RF2(2 AZ)** 로 시작합니다. io2·로컬 NVMe·RF3·샤딩은 전부 **트리거 기반 승급**으로 미뤄둡니다 — 0.7TB/월 규모에서 조기 수평 확장·고성능 스토리지는 비용과 운영 부채만 남깁니다.
 
-배포 전에 못박아야 할 것이 둘 있는데, 지금은 둘 다 `≈`·`?`입니다. **"월 0.7TB"의 해석(raw ingest냐 on-disk냐)**, 그리고 **세션 리플레이 압축비·구성비·ClickStack 기본 TTL**입니다. 해석 분기가 배포 규모·비용에 어떻게 번지는지, 그리고 무엇을 어떤 쿼리로 실측해 `✓`으로 올리는지는 [용량 산정]({{< relref "07-capacity-planning.md" >}})이 정본입니다 — 캐파 관점에서 staging을 두는 이유가 바로 이 실측 한 번입니다. 시점 기준 2026-08.
+배포 전에 확정해야 할 것이 아직 `≈`·`?`로 남아 있습니다. **"월 0.7TB"의 해석(raw ingest냐 on-disk냐)**, 그리고 **세션 리플레이 압축비·구성비·ClickStack 기본 TTL**입니다. 해석 분기가 배포 규모·비용에 어떻게 번지는지, 그리고 무엇을 어떤 쿼리로 실측해 `✓`으로 올리는지는 [용량 산정]({{< relref "07-capacity-planning.md" >}})이 정본입니다 — 캐파 관점에서 staging을 두는 이유가 이 실측 한 번입니다. 시점 기준 2026-08.
 
 > **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻합니다.

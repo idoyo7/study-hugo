@@ -6,8 +6,7 @@ weight: 3
 # 용량 축 — Provisioned Control Plane 티어와 복귀 제약
 
 {{< callout type="info" >}}
-**한눈에**
-- finance 판정부터 — 해당 없습니다. XL 최소 증분이 월 +$1,204.50인데, 이걸 켜서 새로 얻는 파라미터는 HPA `syncPeriod` 하나뿐이고 그 실효는 metrics-server 스크레이프 간격과 scaleDown stabilization이 상한을 겁니다.
+- finance 판정부터 — 해당 없습니다. XL 최소 증분이 월 +$1,204.50인데, 이걸 켜서 새로 얻는 파라미터는 HPA `syncPeriod` 하나뿐이고 그 실효마저 metrics-server 스크레이프 간격과 scaleDown stabilization이 상한을 겁니다.
 - 신규 기능이 아닙니다 — 2025-11-21 GA. 2026-08-12 발표는 레이어 2 파라미터 개방입니다. Provisioned CP는 그 발표에서 전제조건으로 언급된 9개월 된 기존 기능입니다.
 - 파는 것은 용량 자체가 아니라 "언제 그 용량이 되는가"입니다. Standard는 APF inflight 상한을 600에서 사후적으로 최대 2000까지 올립니다. Provisioned는 그 점진 증가를 건너뛰고 티어 값을 처음부터 고정 할당합니다.
 - 8XL은 "스케줄링이 더 빠른 티어"가 아닙니다. 파드 스케줄링 처리율이 4XL에서 400/s로 포화하고 8XL도 400/s입니다. 8XL이 늘리는 것은 API 동시성 2배뿐입니다.
@@ -32,21 +31,21 @@ Provisioned Control Plane은 네 번에 걸쳐 지금 형태가 됐습니다. 20
 
 마지막 두 행은 이름이 비슷해서 특히 헷갈립니다. 2026-07-28은 concurrency(컨트롤러 매니저가 동시에 처리하는 HPA 오브젝트 수)이고 자동 적용이라 우리가 할 일이 없습니다. 2026-08-12는 period(reconcile 간격)이고 티어 opt-in과 파라미터 설정을 모두 요구합니다.
 
-같은 문제(HPA 오토스케일 지연)를 한 달 간격으로 다른 레버로 겨냥한 셈입니다. 그래서 AWS가 이 영역을 2026 하반기 우선순위로 두고 있다고 추정할 수 있습니다. 1차 문서가 두 발표를 명시적으로 연결한 것은 아닙니다.
+같은 문제(HPA 오토스케일 지연)를 한 달 간격으로 다른 레버로 겨냥했습니다. 그래서 AWS가 이 영역을 2026 하반기 우선순위로 두고 있다고 추정할 수 있습니다. 1차 문서가 두 발표를 명시적으로 연결한 것은 아닙니다.
 
 ## 2. Standard와 무엇이 다른가
 
-User Guide는 두 모드를 이렇게 갈라 놓습니다. Standard는 "the best price to performance ratio"이고 "recommended option for the vast majority of use cases"입니다. Provisioned는 "성능 변동을 전혀 허용할 수 없거나 매우 큰 컨트롤 플레인 용량이 필요한" 예외 워크로드용이라고 명시합니다. 기본값이 Standard라는 사실을 AWS 자신이 권고로 재확인하는 구조입니다.
+User Guide는 두 모드를 이렇게 구분합니다. Standard는 "the best price to performance ratio"이고 "recommended option for the vast majority of use cases"입니다. Provisioned는 "성능 변동을 전혀 허용할 수 없거나 매우 큰 컨트롤 플레인 용량이 필요한" 예외 워크로드용이라고 명시합니다. 기본값이 Standard라는 사실을 AWS 자신이 권고로 재확인합니다.
 
 ### 2.1 차이는 값이 아니라 타이밍이다
 
-Standard 모드의 APF 동시성 동작이 핵심입니다. Best Practices Guide 원문에 따르면 EKS는 `--max-requests-inflight` 400 + `--max-mutating-requests-inflight` 200으로 총 600에서 시작합니다. 사용률과 워크로드 churn이 올라가면 "correspondingly increases the inflight request quota all the way till 2000"이라고 서술합니다. 즉 상한 상승은 부하를 관측한 뒤에 따라오는 사후 반응입니다.
+Standard 모드의 APF 동시성은 이렇게 움직입니다. Best Practices Guide 원문에 따르면 EKS는 `--max-requests-inflight` 400 + `--max-mutating-requests-inflight` 200으로 총 600에서 시작합니다. 사용률과 워크로드 churn이 올라가면 "correspondingly increases the inflight request quota all the way till 2000"이라고 서술합니다. 상한 상승은 부하를 관측한 뒤에 따라오는 사후 반응입니다.
 
-그래서 급격한 버스트에서 429(Too Many Requests)가 납니다. 캐치올 우선순위 레벨이 큐잉 없이 즉시 거부하는 Reject 타입이라 특히 취약합니다. Best Practices Guide가 "클러스터 크기를 한 번에 두 자릿수 퍼센트씩 늘리는 스파이크를 제한하라"(1000→1100 노드, 4000→4500 파드 수준)고 권고하는 이유가 이것입니다.
+급격한 버스트에서는 429(Too Many Requests)가 납니다. 캐치올 우선순위 레벨이 큐잉 없이 즉시 거부하는 Reject 타입이라 특히 취약합니다. Best Practices Guide가 "클러스터 크기를 한 번에 두 자릿수 퍼센트씩 늘리는 스파이크를 제한하라"(1000→1100 노드, 4000→4500 파드 수준)고 권고하는 것도 그래서입니다.
 
 Provisioned는 그 점진 증가 구간을 건너뜁니다. 티어가 정한 값을 처음부터 고정 할당해 두므로 워크로드가 갑자기 튀어도 스케일업을 기다리지 않습니다(User Guide: "without waiting for automatic scaling to respond to demand"). 팔고 있는 것은 도달 가능한 최대 용량이 아니라 그 용량에 도달하는 시점입니다 — v1.34+ XL의 2,000 seats는 Standard가 시간을 들여 도달하는 상한과 같은 숫자입니다.
 
-역사적 맥락은 2022-06-27 AWS 블로그에서 볼 수 있습니다. 당시 컨트롤 플레인 스케일링이 "as long as 50 minutes"까지 걸렸습니다. 그 지연이 "API and etcd latencies를 올리거나 API 서버를 일시적으로 무응답으로 만들 수 있었다"고 서술합니다. 최소 컨트롤 플레인 노드 수를 항상 유지해야 해서 순차 스케일링만 가능했던 것이 원인이었습니다. 그 포스트는 4배 개선을 발표한 글이고 지금 상태를 서술한 문서가 아니므로, 현재 수치의 근거로 쓰면 안 됩니다.
+2022-06-27 AWS 블로그에 그 배경이 남아 있습니다. 당시 컨트롤 플레인 스케일링이 "as long as 50 minutes"까지 걸렸습니다. 그 지연이 "API and etcd latencies를 올리거나 API 서버를 일시적으로 무응답으로 만들 수 있었다"고 서술합니다. 최소 컨트롤 플레인 노드 수를 항상 유지해야 했기 때문에 순차 스케일링만 가능했습니다. 그 포스트는 4배 개선을 발표한 글이고 지금 상태를 서술한 문서가 아니므로 현재 수치의 근거로 쓰면 안 됩니다.
 
 ### 2.2 축별 대조
 
@@ -90,23 +89,23 @@ etcd 상한 8GB → 16GB 차이가 §6의 복귀 제약을 만듭니다. Provisi
 
 ### 3.2 HPA sync concurrency와 40배
 
-User Guide 원문은 "Each Provisioned Control Plane scaling tier is configured with the following HPA sync concurrency"라고 씁니다. 이어서 위 표의 50/100/200/200을 제시합니다. 업스트림 쿠버네티스 기본값이 5이므로 8XL의 200은 정확히 40배입니다. 이것이 2026-07-28 발표가 말한 "최대 40배"의 정체입니다. 표현이 "최대"라서 전 티어가 40배로 오해되기 쉬운데 XL은 10배, 2XL은 20배입니다.
+User Guide 원문은 "Each Provisioned Control Plane scaling tier is configured with the following HPA sync concurrency"라고 씁니다. 이어서 위 표의 50/100/200/200을 제시합니다. 업스트림 쿠버네티스 기본값이 5이므로 8XL의 200은 40배입니다. 2026-07-28 발표가 말한 "최대 40배"는 여기서 나온 숫자입니다. 표현이 "최대"라서 전 티어가 40배로 오해되기 쉬운데 XL은 10배, 2XL은 20배입니다.
 
 ### 3.3 v1.28~1.29 구간의 간극
 
-지원 범위는 "v1.28 and higher"인데 티어 수치 표는 v1.30~1.33과 v1.34+ 두 개만 제공됩니다. v1.28~1.29에서 어떤 수치가 적용되는지는 문서로 확인되지 않았습니다 — 확인 필요로 남깁니다. 이 챕터의 목표 버전은 1.35라 실무 영향은 없습니다. 확장지원 구간의 구 클러스터에 이 기능을 붙일 때는 수치를 문서에서 찾을 수 없다는 점을 알고 시작해야 합니다.
+지원 범위는 "v1.28 and higher"인데 티어 수치 표는 v1.30~1.33과 v1.34+ 두 개만 제공됩니다. v1.28~1.29에서 어떤 수치가 적용되는지는 문서로 확인되지 않았습니다 — 확인 필요로 남깁니다. 이 챕터의 목표 버전은 1.35라 실무 영향은 없습니다. 확장지원 구간의 구 클러스터에 이 기능을 붙일 때는 문서에 수치가 없다는 사실부터 감안하고 시작해야 합니다.
 
 ## 4. 프로그래매틱 조회 — 티어가 파라미터 제약까지 흔들 수 있다
 
 `DescribeClusterVersions` API가 `clusterVersions[].controlPlaneScalingTiers[]`로 티어 정의를 반환합니다. 필드는 `tierName`·`apiRequestConcurrency`·`podSchedulingRatePerSecond`·`clusterDatabaseSizeGb`, 그리고 `controlPlaneComponentConfigOverrides`입니다.
 
-마지막 필드가 중요합니다. 스키마상 티어별로 `kubeApiServerConfig`·`kubeControllerManagerConfig`·`kubeSchedulerConfig`의 기본값과 제약을 오버라이드할 수 있는 구조입니다. 그러면 [레이어 2]({{< relref "02-component-parameters.md" >}})가 정리한 파라미터 허용 범위가 티어 무관 고정이라고 단정할 수 없습니다 — 예컨대 `horizontalPodAutoscalerSyncPeriod`의 min/max/default가 티어마다 다를 여지가 열려 있습니다. 다만 실제 응답값에 티어별 차이가 있는지는 API를 호출해 확인하지 않았습니다. 스키마에 필드가 존재한다는 사실까지만 확정입니다. 값 차이는 미확인입니다.
+마지막 필드가 변수입니다. 스키마상 티어별로 `kubeApiServerConfig`·`kubeControllerManagerConfig`·`kubeSchedulerConfig`의 기본값과 제약을 오버라이드할 수 있습니다. 그러면 [레이어 2]({{< relref "02-component-parameters.md" >}})가 정리한 파라미터 허용 범위가 티어 무관 고정이라고 단정할 수 없습니다 — 예컨대 `horizontalPodAutoscalerSyncPeriod`의 min/max/default가 티어마다 다를 여지가 열려 있습니다. 실제 응답값에 티어별 차이가 있는지는 API를 호출해 확인하지 않았습니다. 스키마에 필드가 존재한다는 사실까지만 확정입니다. 값 차이는 미확인입니다.
 
 실무에서는 IaC에 기본값을 하드코딩하지 말아야 합니다. 티어를 바꿀 계획이 있으면 파라미터 제약을 `describe-cluster-versions`로 조회해 확인하는 편이 안전합니다.
 
 ## 5. 요금 — 기본요금에 더해진다
 
-여기가 계산을 가장 많이 틀리는 지점입니다. AWS 요금 페이지 원문(2026-08-14 직접 확인)이 못박습니다.
+여기서 계산이 가장 많이 틀립니다. AWS 요금 페이지 원문(2026-08-14 직접 확인)에 이렇게 적혀 있습니다.
 
 > "This charge is in addition to the standard Amazon EKS cluster pricing based on Kubernetes version support tier detailed in the 'Amazon EKS cluster pricing' section above."
 
@@ -124,9 +123,9 @@ User Guide 원문은 "Each Provisioned Control Plane scaling tier is configured 
 
 ### 5.1 기본요금이 지원 티어에 따라 달라진다
 
-위 인용문에서 놓치기 쉬운 한정어가 "based on Kubernetes version support tier"입니다. 더해지는 기본요금이 표준 지원인지 확장 지원인지에 따라 달라진다는 뜻입니다. 그래서 Provisioned 총액도 클러스터의 지원 상태를 따라 움직입니다. 확장지원 구간 클러스터에 Provisioned를 붙이면 위 표의 총액보다 커집니다.
+위 인용문에서 놓치기 쉬운 한정어가 "based on Kubernetes version support tier"입니다. 더해지는 기본요금은 표준 지원인지 확장 지원인지에 따라 달라집니다. Provisioned 총액도 클러스터의 지원 상태를 따라 움직입니다. 확장지원 구간 클러스터에 Provisioned를 붙이면 위 표의 총액보다 커집니다.
 
-이 챕터에는 직접 걸리는 맥락이 있습니다. blue는 1.35 표준지원이라 기본요금 $0.10이 맞지만 green은 확장지원 구간이고 종료일이 2026-11-26입니다([목표버전]({{< relref "../01-target-version.md" >}})). 확장지원 클러스터의 시간당 기본요금 정확한 금액은 이번에 확인하지 않았으므로 금액을 쓰지 않습니다 — "지원 티어에 따라 기본요금이 달라진다"까지만 확정입니다.
+이 챕터에도 직접 걸립니다. blue는 1.35 표준지원이라 기본요금 $0.10이 맞지만 green은 확장지원 구간이고 종료일이 2026-11-26입니다([목표버전]({{< relref "../01-target-version.md" >}})). 확장지원 클러스터의 시간당 기본요금 정확한 금액은 이번에 확인하지 않았으므로 금액을 쓰지 않습니다 — "지원 티어에 따라 기본요금이 달라진다"까지만 확정입니다.
 
 ### 5.2 리전과 상한
 
@@ -150,7 +149,7 @@ User Guide 원문은 "Each Provisioned Control Plane scaling tier is configured 
 | k8s 버전 | 1.28+ |
 | 리전 | 전 상용 + GovCloud + China |
 
-"자동 스케일 없음 + 빈도 제한 없음"이 함께 오니 운영 설계에 여지가 생깁니다. AWS가 오토스케일링을 대신 해주지는 않습니다. 그렇다고 예상되는 이벤트 앞뒤로 티어를 올렸다 내리는 운영을 막지도 않습니다. 다만 그 운영은 §6.2의 복귀 제약을 매번 통과해야 합니다.
+"자동 스케일 없음 + 빈도 제한 없음"이 함께 오니 운영 설계에 여지가 생깁니다. AWS가 오토스케일링을 대신 해주지는 않습니다. 그렇다고 예상되는 이벤트 앞뒤로 티어를 올렸다 내리는 운영을 막지도 않습니다. 그 운영은 §6.2의 복귀 제약을 매번 통과해야 합니다.
 
 업데이트 추적은 이름 표기가 문서 두 곳에서 엇갈립니다.
 
@@ -167,13 +166,13 @@ aws eks describe-update --name "$CLUSTER" --update-id "$UPDATE_ID"
 aws eks wait cluster-active --name "$CLUSTER"   # 블로킹 대기
 ```
 
-자동화에서 update type 문자열로 필터를 거는 코드를 쓸 때는 두 이름 중 어느 쪽이 실제 응답에 오는지 먼저 한 번 호출해 확인하는 편이 안전합니다.
+update type 문자열로 필터를 거는 자동화 코드를 쓴다면 두 이름 중 어느 쪽이 실제 응답에 오는지 먼저 한 번 호출해 확인하는 편이 안전합니다.
 
-"API 서버 다운타임 없음"은 요청 수준의 서술입니다. 컨트롤 플레인 교체 전반을 다루는 AWS re:Post 서술은 기존 watch 연결이 "might be affected"라고 합니다. 그러니 전환 중 watch가 끊길 수 있습니다. 이 문장의 근거가 Provisioned CP 기능 문서가 아니라 컨트롤 플레인 교체 일반을 다루는 서술이라는 점도 함께 밝힙니다 — 컨트롤러가 watch 재연결과 relist를 견디는지는 어차피 확인해 둘 값어치가 있습니다.
+"API 서버 다운타임 없음"은 요청 수준의 서술입니다. 컨트롤 플레인 교체 전반을 다루는 AWS re:Post 서술은 기존 watch 연결이 "might be affected"라고 합니다. 그러니 전환 중 watch가 끊길 수 있습니다. 이 문장의 근거는 Provisioned CP 기능 문서가 아니라 컨트롤 플레인 교체 일반을 다루는 서술입니다 — 컨트롤러가 watch 재연결과 relist를 견디는지는 어차피 확인해 둘 값어치가 있습니다.
 
 ### 6.2 Standard 복귀를 막는 두 조건 — 문서가 하나씩 나눠 갖고 있다
 
-이 페이지에서 가장 값진 함정입니다. Standard로 못 돌아가게 만드는 조건이 둘인데, 각각 다른 문서에만 적혀 있습니다.
+이 페이지에서 가장 값진 함정입니다. Standard로 못 돌아가게 만드는 조건이 둘인데 각각 다른 문서에만 적혀 있습니다.
 
 | # | 조건 | 어느 문서에 있나 | 해소 방법 |
 |---|---|---|---|
@@ -184,17 +183,17 @@ Provisioned CP 문서만 읽으면 2번을 모르고, 파라미터 문서만 읽
 
 실무 함의는 하나입니다. "HPA syncPeriod를 실험적으로 켜 본다"는 결정은 두 단계 롤백을 예약하는 결정입니다. 파라미터를 되돌리는 업데이트 한 번, 티어를 내리는 전환 한 번. 순서도 고정입니다 — 파라미터가 비기본값인 채로 티어를 `standard`로 내리려 하면 막힙니다.
 
-1번은 성격이 다릅니다. 파라미터는 우리가 되돌리면 되지만 etcd 크기는 워크로드가 만든 결과라서 되돌리는 데 시간과 판단이 듭니다. Provisioned에서 16GB 여유를 쓰다가 8GB를 넘기면, 그 시점부터 Standard 복귀는 요금 결정이 아니라 데이터 정리 프로젝트가 됩니다. 티어를 켤 때 `apiserver_storage_size_bytes`에 8GB 경보를 함께 걸어 두는 편이 낫습니다.
+1번은 성격이 다릅니다. 파라미터는 우리가 되돌리면 되지만 etcd 크기는 워크로드가 만든 결과라서 되돌리는 데 시간과 판단이 듭니다. Provisioned에서 16GB 여유를 쓰다가 8GB를 넘기면 그 시점부터 Standard 복귀는 요금 결정이 아니라 데이터 정리 프로젝트가 됩니다. 티어를 켤 때 `apiserver_storage_size_bytes`에 8GB 경보를 함께 걸어 두는 편이 낫습니다.
 
 ## 7. 티어 수치는 보장 처리량이 아니다
 
-User Guide에 "Understanding Tier capacity versus actual performance" 섹션이 따로 있습니다. 거기서 티어의 숫자가 처리량 보장이 아니라 "underlying configuration"이라고 못박습니다. list 요청이 get 요청보다 큰 페널티를 받는 것처럼 요청 종류에 따라 실효 처리량이 달라집니다. APF는 Provisioned에서도 계속 작동합니다.
+User Guide에 "Understanding Tier capacity versus actual performance" 섹션이 따로 있습니다. 거기서 티어의 숫자가 처리량 보장이 아니라 "underlying configuration"이라고 명시합니다. list 요청이 get 요청보다 큰 페널티를 받는 것처럼 요청 종류에 따라 실효 처리량이 달라집니다. APF는 Provisioned에서도 계속 작동합니다.
 
 그래서 "우리는 초당 N 요청이 필요하니 N을 넘는 티어를 고른다"는 계산이 성립하지 않습니다. AWS 자신의 권고도 계산이 아닙니다.
 
 최적 티어 선정 순서는 8XL(최고 티어)로 프로비저닝, 피크 수요를 시뮬레이션하는 로드테스트, 피크 부하에서 티어 사용률 메트릭 관찰, 그 관측을 근거로 적정 티어 선택입니다.
 
-공식 절차가 "과할당해서 측정한 뒤 내린다"라는 뜻입니다. 8XL 로드테스트 기간의 요금($14.00/h)을 선정 비용으로 예산에 넣어야 합니다. 그 뒤 내리는 전환이 §6.2의 복귀 제약과는 무관하다는 점(티어 간 다운그레이드는 DB 제약이 없다)도 함께 봐야 합니다.
+공식 절차가 "과할당해서 측정한 뒤 내린다"라는 뜻입니다. 8XL 로드테스트 기간의 요금($14.00/h)을 선정 비용으로 예산에 넣어야 합니다. 그 뒤 내리는 전환은 §6.2의 복귀 제약과 무관합니다(티어 간 다운그레이드는 DB 제약이 없습니다). 이것도 함께 봐야 합니다.
 
 2차 해설에 도는 노드·파드 규모 벤치마크 수치는 이 페이지에서 쓰지 않습니다. 해당 수치는 AWS containers 블로그 본문을 요약 도구가 생성한 값이고 원문을 직접 대조하지 못했습니다. 1차 문서인 User Guide·요금 페이지·API Reference 어디에도 그런 규모 수치는 없습니다. 티어 선택의 근거로 인용하면 검증되지 않은 숫자에 요금 결정을 걸게 됩니다.
 
@@ -230,4 +229,4 @@ aws eks describe-cluster-versions \
 
 해당 없습니다. finance가 Provisioned CP를 켜서 새로 얻는 것은 실질적으로 [레이어 2]({{< relref "02-component-parameters.md" >}})의 HPA `syncPeriod` 하나(15s→10s)뿐인데, 최소 티어인 XL의 증분이 월 +$1,204.50입니다. 그 5초를 사서도 실효가 나지 않습니다 — metrics-server 기본 `--metric-resolution`이 15초라 10초 reconcile의 상당수가 같은 스냅샷을 다시 읽고, 스케일다운 지연을 지배하는 `behavior.scaleDown.stabilizationWindowSeconds`(기본 5분)는 이번에 열리지 않아 실효가 scaleUp 반응성에만 걸립니다. 나머지 축은 애초에 필요가 없습니다 — 99.99% SLA를 요구하는 계약이 없고, etcd 8GB나 파드 스케줄링 400/s에 닿는 규모도 아닙니다.
 
-판단을 뒤집을 조건은 명확하게 정해 둘 수 있습니다. `workqueue_depth{name="horizontalpodautoscaler"}`가 지속적으로 0에서 떨어져 있거나 `apiserver_flowcontrol_current_executing_seats`가 Standard 상한 부근에서 429를 만들기 시작하면 그때 다시 계산합니다. 그전까지 오토스케일 체감이 느린 원인은 컨트롤 플레인이 아닌 쪽에 있고(§8), 그쪽 값들은 추가 비용 없이 워크로드에서 조절할 수 있습니다. 게다가 지금 켜면 켜는 결정이 아니라 두 단계 롤백을 예약하는 결정(§6.2)이 되므로, blue 안정화 전에는 후보로도 올리지 않습니다.
+판단을 뒤집을 조건은 미리 정해 둘 수 있습니다. `workqueue_depth{name="horizontalpodautoscaler"}`가 지속적으로 0에서 떨어져 있거나 `apiserver_flowcontrol_current_executing_seats`가 Standard 상한 부근에서 429를 만들기 시작하면 그때 다시 계산합니다. 그전까지 오토스케일 체감이 느린 원인은 컨트롤 플레인이 아닌 쪽에 있고(§8), 그쪽 값들은 추가 비용 없이 워크로드에서 조절할 수 있습니다. 지금 켜면 켜는 결정이 아니라 두 단계 롤백을 예약하는 결정(§6.2)이 되므로 blue 안정화 전에는 후보로도 올리지 않습니다.

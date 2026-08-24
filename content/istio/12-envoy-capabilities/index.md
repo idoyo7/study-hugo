@@ -6,15 +6,14 @@ weight: 12
 # 12 · Envoy가 제공하는 것 — Istio를 걷어내고 프록시 하나만 본다
 
 {{< callout type="info" >}}
-**한눈에**
-- Envoy는 앱에 링크되는 라이브러리가 아니라 **앱 옆에서 따로 도는 프로세스**다. 그래서 언어를 가리지 않습니다. 공식 홈페이지의 자기 정의가 "universal data plane"입니다.
-- 코어는 L3/L4 프록시 + 꽂아 넣는 필터 체인이고 HTTP는 그 위에 얹힌 **L7 필터 레이어**입니다. 모델은 listener → 필터 체인 → route → cluster → endpoint 하나로 끝납니다.
-- 재시도·서킷 브레이킹·아웃라이어 감지·헬스체크·로드밸런싱은 **전부 Envoy가 이미 갖고 있는 기능**입니다. Istio CRD는 그 스위치를 밖으로 꺼낸 창구입니다.
+- Envoy는 앱에 링크되는 라이브러리가 아니라 **앱 옆에서 따로 도는 프로세스**입니다. 그래서 언어를 가리지 않습니다. 공식 홈페이지의 자기 정의가 "universal data plane"입니다.
+- 코어는 L3/L4 프록시 + 꽂아 넣는 필터 체인이고 HTTP는 그 위에 놓인 **L7 필터 레이어**입니다. 모델은 listener → 필터 체인 → route → cluster → endpoint 하나로 끝납니다.
+- 재시도·서킷 브레이킹·아웃라이어 감지·헬스체크·로드밸런싱은 **전부 Envoy에 이미 있는 기능**입니다. Istio CRD는 그 스위치를 밖으로 꺼낸 창구입니다.
 - 관측성 세 축도 Envoy가 생산합니다. 특히 트레이싱에서 Envoy는 헤더만 넘기는 게 아니라 **스팬을 직접 만들어 수집기로 보냅니다**.
 - **xDS는 Envoy 프로젝트가 정의한 API**이고 istiod는 그 관리 서버 구현 중 하나입니다.
 {{< /callout >}}
 
-지금까지 이 챕터에서 Envoy는 늘 Istio의 부품이었습니다. [01]({{< relref "01-mesh-basics.md" >}})에서는 파드에 붙는 사이드카였습니다. [02]({{< relref "02-istiod-control-plane.md" >}})에서는 xDS를 받아가는 대상이었고, [08]({{< relref "08-envoyfilter-extension.md" >}})에서는 EnvoyFilter가 패치하는 설정 덩어리였습니다. 이 문서는 그 방향을 뒤집습니다 — **Istio를 걷어낸 Envoy 자체의 기능 카탈로그**, 즉 조립되기 전의 부품이 원래 무엇을 할 수 있는가입니다. 조립 이야기는 [13]({{< relref "13-istio-envoy-assembly.md" >}})으로 넘깁니다.
+지금까지 이 챕터에서 Envoy는 늘 Istio의 부품이었습니다. [01]({{< relref "01-mesh-basics.md" >}})에서는 파드에 붙는 사이드카였습니다. [02]({{< relref "02-istiod-control-plane.md" >}})에서는 xDS를 받아가는 대상이었고 [08]({{< relref "08-envoyfilter-extension.md" >}})에서는 EnvoyFilter가 패치하는 설정 덩어리였습니다. 이 문서는 그 방향을 뒤집습니다 — **Istio를 걷어낸 Envoy 자체의 기능 카탈로그**, 즉 조립되기 전의 부품이 원래 무엇을 할 수 있는가입니다. 조립 이야기는 [13]({{< relref "13-istio-envoy-assembly.md" >}})으로 넘깁니다.
 
 > 관련 문서: [13 Istio는 Envoy를 어떻게 조립하나]({{< relref "13-istio-envoy-assembly.md" >}}) · [11 요청 경로 해부]({{< relref "11-request-path-anatomy.md" >}}) · [06 관측성]({{< relref "06-observability-points.md" >}}) · [08 EnvoyFilter]({{< relref "08-envoyfilter-extension.md" >}})
 
@@ -22,9 +21,9 @@ weight: 12
 
 자기 정의는 홈페이지 첫 문장에 그대로 있습니다 — "A high performance C++ distributed proxy designed for single services and applications, as well as a communication bus and 'universal data plane' designed for large microservice 'service mesh' architectures." 서비스 하나 앞에 세우는 프록시와 메시 전체의 데이터 플레인이 같은 프로그램이라는 뜻입니다.
 
-배치 형태도 문서가 못 박습니다: "Envoy is a self contained process that is designed to run alongside every application server." 앱과 같은 주소 공간이 아니라 옆에서 따로 도는 프로세스입니다. 여기서 따라오는 결론이 [01]({{< relref "01-mesh-basics.md" >}})이 "공통 관심사의 중복"으로 서술한 문제의 해답입니다 — "Envoy works with any application language. A single Envoy deployment can form a mesh between Java, C++, Go, PHP, Python, etc." 재시도 라이브러리를 언어마다 다시 짜는 대신, 프로세스 하나가 언어와 무관하게 같은 동작을 제공합니다.
+배치 형태도 문서가 명시합니다: "Envoy is a self contained process that is designed to run alongside every application server." 앱과 주소 공간을 공유하지 않고 옆에서 따로 도는 프로세스입니다. 여기서 따라오는 결론이 [01]({{< relref "01-mesh-basics.md" >}})이 "공통 관심사의 중복"으로 서술한 문제의 해답입니다 — "Envoy works with any application language. A single Envoy deployment can form a mesh between Java, C++, Go, PHP, Python, etc." 재시도 라이브러리를 언어마다 다시 짜는 대신, 프로세스 하나가 언어와 무관하게 같은 동작을 맡습니다.
 
-기능의 층은 둘로 나뉩니다.
+기능의 층은 이렇게 나뉩니다.
 
 - **코어는 L3/L4입니다.** "At its core, Envoy is an L3/L4 network proxy. A pluggable filter chain mechanism allows filters to be written to perform different TCP/UDP proxy tasks." 확장 모델이 코어 정의에 이미 들어 있다는 점을 기억해 두세요 — 6절에서 다시 나옵니다.
 - **HTTP는 그 위의 레이어입니다.** "HTTP is such a critical component of modern application architectures that Envoy supports an additional HTTP L7 filter layer."
@@ -41,16 +40,16 @@ weight: 12
 | **hot restart** | 코드와 설정을 통째로 리로드하되 drain 과정에서 기존 커넥션을 끊지 않는다 |
 
 {{< callout type="important" >}}
-**HTTP/3 상태는 버전에 붙어 있습니다.** 위 표의 downstream/upstream 구분은 이번에 확인한 최신 문서 트리(1.40.0-dev) 기준입니다. Envoy 마이너 릴리스마다 바뀔 수 있으므로, 인용할 때는 **실제 배포 중인 Envoy 버전의 문서**로 다시 확인해야 합니다. hot restart도 마찬가지로 "기존 커넥션이 새 프로세스로 옮겨간다"는 뜻이 아닙니다 — drain 동안 **기존 커넥션을 마저 처리**하는 것입니다.
+**HTTP/3 상태는 버전에 붙어 있습니다.** 위 표의 downstream/upstream 구분은 이번에 확인한 최신 문서 트리(1.40.0-dev) 기준입니다. Envoy 마이너 릴리스마다 바뀔 수 있으므로 인용할 때는 **실제 배포 중인 Envoy 버전의 문서**로 다시 확인해야 합니다. hot restart도 마찬가지로 "기존 커넥션이 새 프로세스로 옮겨간다"는 뜻이 아닙니다 — drain 동안 **기존 커넥션을 마저 처리**하는 것입니다.
 {{< /callout >}}
 
 ## 2. 코어 모델 — listener에서 endpoint까지
 
-Envoy 설정을 읽는 문법은 사실 하나뿐입니다. 요청이 들어와서 나가기까지 거치는 단계가 그대로 설정의 뼈대입니다.
+Envoy 설정을 읽는 문법은 하나뿐입니다. 요청이 들어와서 나가기까지 거치는 단계가 그대로 설정의 뼈대입니다.
 
 {{< flow src="_flow/2-코어-모델-listener-에서.json" />}}
 
-입구는 listener입니다. 문서가 주는 역할은 "responsible for binding to an IP/port, accepting new TCP connections (or UDP datagrams) and orchestrating the downstream facing aspects of request processing"입니다. 커넥션이 들어오면 리스너 필터가 먼저 돌고 그다음 전송 소켓 설정과 네트워크 필터로 이루어진 필터 체인이 매칭됩니다.
+입구는 listener입니다. 문서가 적어 둔 역할은 "responsible for binding to an IP/port, accepting new TCP connections (or UDP datagrams) and orchestrating the downstream facing aspects of request processing"입니다. 커넥션이 들어오면 리스너 필터가 먼저 돌고 그다음 전송 소켓 설정과 네트워크 필터로 이루어진 필터 체인이 매칭됩니다.
 
 그 네트워크 필터 체인의 **마지막이자 가장 중요한 필터가 HTTP connection manager(HCM)**입니다. HCM이 하는 일을 문서는 이렇게 적습니다 — "translates raw bytes into HTTP level messages and events (e.g., headers received, body data received, trailers received, etc.)". 바이트가 HTTP가 되는 지점이 여기입니다. HCM은 다음을 한곳에서 관리합니다.
 
@@ -62,11 +61,11 @@ Envoy 설정을 읽는 문법은 사실 하나뿐입니다. 요청이 들어와�
 | 라우트 테이블 관리 (정적 또는 RDS로 동적) | 5절 |
 | 통계 | 4절 |
 
-L7 기능 대부분이 "HCM 아래"에 모여 있다는 사실이 [11]({{< relref "11-request-path-anatomy.md" >}})에서 "HTTP로 파싱되는 홉에서만 L7 기능이 생긴다"고 한 규칙의 구현 쪽 이유입니다.
+L7 기능 대부분이 "HCM 아래"에 모여 있어서 [11]({{< relref "11-request-path-anatomy.md" >}})이 "HTTP로 파싱되는 홉에서만 L7 기능이 생긴다"고 한 규칙이 구현 쪽에서 성립합니다.
 
-HTTP 필터는 스트림마다 실행되고 그중 **router 필터가 목적지를 정합니다**. 문서 표현 그대로 "When decodeHeaders() is invoked on the router filter, the route is selected and a cluster is picked." 여기서 고른 cluster의 로드밸런서가 "picks an endpoint when a new request arrives"합니다. 이어서 커넥션 풀이 그 엔드포인트로의 커넥션을 얻거나 새로 맺습니다 — **이때 서킷 브레이커 한도가 걸립니다.**
+HTTP 필터는 스트림마다 실행되고 그중 **router 필터가 목적지를 정합니다**. 문서 표현 그대로 "When decodeHeaders() is invoked on the router filter, the route is selected and a cluster is picked." 여기서 고른 cluster의 로드밸런서가 "picks an endpoint when a new request arrives"합니다. 이어서 커넥션 풀이 그 엔드포인트로 가는 커넥션을 얻거나 새로 맺습니다 — **이때 서킷 브레이커 한도가 걸립니다.**
 
-즉 복원력 설정이 두 층에 나뉘어 사는 이유가 여기서 나옵니다. 재시도처럼 "어디로 보낼지"에 붙는 것은 route에, 커넥션 한도처럼 "상대를 어떻게 대할지"에 붙는 것은 cluster에 있습니다.
+복원력 설정이 두 층에 나뉘어 사는 이유가 여기서 나옵니다. 재시도처럼 "어디로 보낼지"에 붙는 것은 route에, 커넥션 한도처럼 "상대를 어떻게 대할지"에 붙는 것은 cluster에 있습니다.
 
 ## 3. 복원력 카탈로그
 
@@ -81,7 +80,7 @@ HTTP 필터는 스트림마다 실행되고 그중 **router 필터가 목적지�
 
 마지막 두 항목의 수동/능동 구분은 문서가 직접 대비시켜 놓은 것입니다. **아웃라이어 감지는 실제 트래픽의 응답을 보고 판정**하고 **능동 헬스체크는 별도의 체크 요청을 보냅니다.** 둘은 배타적이지 않고 같은 클러스터에 함께 걸립니다.
 
-로드밸런싱 정책도 프록시가 이름을 붙여 갖추고 있습니다.
+로드밸런싱 정책도 프록시가 이름을 붙여 갖춰 두었습니다.
 
 | 정책 | 특징 |
 |---|---|
@@ -93,7 +92,7 @@ HTTP 필터는 스트림마다 실행되고 그중 **router 필터가 목적지�
 | random | 무작위 |
 
 {{< callout type="important" >}}
-**Istio CRD는 이 표의 스위치를 밖으로 꺼낸 창구입니다.** 대략의 위치만 말하면 route 층(재시도·타임아웃)은 `VirtualService`, cluster 층(서킷 브레이킹·아웃라이어 감지·로드밸런싱)은 `DestinationRule` 쪽에서 노출됩니다 — [01]({{< relref "01-mesh-basics.md" >}})의 CRD 표가 이미 그렇게 묶어 두었습니다. **필드 단위의 정확한 대응과, Istio가 어떤 기본값을 얹는지는 [13]({{< relref "13-istio-envoy-assembly.md" >}})에서 다룹니다.** 재시도 예산처럼 표준 CRD 대응을 이 문서의 재료로 확인하지 못한 항목도 있습니다.
+**Istio CRD는 이 표의 스위치를 밖으로 꺼낸 창구입니다.** 대략의 위치만 말하면 route 층(재시도·타임아웃)은 `VirtualService`, cluster 층(서킷 브레이킹·아웃라이어 감지·로드밸런싱)은 `DestinationRule` 쪽에서 노출됩니다 — [01]({{< relref "01-mesh-basics.md" >}})의 CRD 표가 이미 그렇게 묶어 두었습니다. **필드 단위의 정확한 대응과, Istio가 어떤 기본값을 더하는지는 [13]({{< relref "13-istio-envoy-assembly.md" >}})에서 다룹니다.** 재시도 예산처럼 표준 CRD 대응을 이 문서의 재료로 확인하지 못한 항목도 있습니다.
 {{< /callout >}}
 
 ## 4. 관측성 — Envoy가 만들어내는 것
@@ -116,7 +115,7 @@ Envoy의 stats는 **꽂아 바꿀 수 있는 싱크 모델**입니다 — "As of
 
 ### 트레이싱
 
-여기가 이 절에서 가장 중요한 지점입니다. **Envoy는 트레이싱 헤더를 통과시키기만 하는 것이 아니라 스팬을 직접 만들어 보냅니다** — "Envoy automatically sends spans to tracing collectors." 사이드카로 동작할 때 인바운드에서는 SERVER 스팬, 아웃바운드에서는 CLIENT 스팬이 됩니다. 독립적인 홉으로 명시적 스팬을 만들게 하려면 `spawn_upstream_span`을 씁니다. `x-request-id` UUID도 Envoy가 발급합니다.
+이 절에서 제일 눈여겨볼 대목이 여기입니다. **Envoy는 트레이싱 헤더를 통과시키기만 하는 것이 아니라 스팬을 직접 만들어 보냅니다** — "Envoy automatically sends spans to tracing collectors." 사이드카로 동작할 때 인바운드에서는 SERVER 스팬, 아웃바운드에서는 CLIENT 스팬이 됩니다. 독립적인 홉으로 명시적 스팬을 만들게 하려면 `spawn_upstream_span`을 씁니다. `x-request-id` UUID도 Envoy가 발급합니다.
 
 지원하는 컨텍스트 포맷은 하나가 아닙니다.
 
@@ -138,20 +137,20 @@ B3와 W3C 사이의 추출 fallback은 설정으로 정합니다. 그래서 [06]
 
 Envoy 자신의 xDS 문서는 이렇게 시작합니다 — "Envoy discovers its various dynamic resources via the filesystem or by querying one or more management servers. Collectively, these discovery services and their corresponding APIs are referred to as xDS."
 
-두 가지가 읽힙니다.
+여기서 읽히는 내용은 이렇습니다.
 
 - **xDS는 Envoy 프로젝트가 정의한 스펙**입니다. 규격에 맞는 관리 서버라면 무엇이든 Envoy에 설정을 공급할 수 있습니다. Envoy 문서는 특정 컨트롤 플레인 이름을 부르지 않고 클라이언트 대 관리 서버라는 일반형으로만 서술합니다.
 - **관리 서버가 필수도 아닙니다.** 같은 문장이 파일시스템을 먼저 듭니다. xDS를 쓴다는 것과 컨트롤 플레인이 붙어 있다는 것은 같은 말이 아닙니다.
 
 Istio 쪽 서술도 이 방향과 맞습니다. istio.io 1.5 릴리스 노트는 컨트롤 플레인 비용을 이야기하며 이들을 "Envoy xDS APIs"라고 부릅니다 — Istio가 정의한 규격이 아니라 **Envoy의 API를 istiod가 서빙한다**는 표현입니다.
 
-그래서 [02]({{< relref "02-istiod-control-plane.md" >}})의 CPU 이야기와 [11]({{< relref "11-request-path-anatomy.md" >}})의 agent 중계는 부품 쪽에서 보면 "관리 서버 구현 하나가 이 API를 어떻게 서빙하는가"의 문제가 됩니다. 그 구현 선택이 어디서 갈리는지는 [13]({{< relref "13-istio-envoy-assembly.md" >}})의 주제입니다.
+그래서 [02]({{< relref "02-istiod-control-plane.md" >}})의 CPU 이야기와 [11]({{< relref "11-request-path-anatomy.md" >}})의 agent 중계는 부품 쪽에서 보면 "관리 서버 구현 하나가 이 API를 어떻게 서빙하는가"의 문제가 됩니다. 구현마다 무엇이 달라지는지는 [13]({{< relref "13-istio-envoy-assembly.md" >}})의 주제입니다.
 
 ## 6. 확장 지점 — 안에서 돌리거나, 밖에 물어보거나
 
-1절에서 봤듯 필터 체인은 Envoy의 부가 기능이 아니라 코어 정의의 일부입니다 — "A pluggable filter chain mechanism allows filters to be written to perform different TCP/UDP proxy tasks." 네트워크 필터가 TCP/UDP 층을, HTTP 필터가 스트림 층을 담당합니다. 확장은 전부 이 두 자리에 필터를 꽂는 식입니다.
+1절에서 봤듯 필터 체인은 Envoy 코어 정의의 일부입니다 — "A pluggable filter chain mechanism allows filters to be written to perform different TCP/UDP proxy tasks." 네트워크 필터가 TCP/UDP 층을, HTTP 필터가 스트림 층을 담당합니다. 확장은 전부 이 두 자리에 필터를 꽂는 식입니다.
 
-꽂히는 필터는 성격이 둘로 갈립니다.
+꽂히는 필터는 성격이 서로 다른 두 부류입니다.
 
 **프록시 안에서 코드를 돌리는 쪽.**
 
@@ -165,7 +164,7 @@ Istio 쪽 서술도 이 방향과 맞습니다. istio.io 1.5 릴리스 노트는
 - **`ext_authz`** — "calls an external gRPC or HTTP service to determine whether an incoming HTTP request is authorized". 거부 시 **403**.
 - **`rate_limit`** — route나 virtual host에 매칭되는 설정이 있으면 서비스를 호출합니다. 초과 시 **429**(설정 가능).
 
-두 부류의 차이가 곧 운영 비용의 차이입니다. 안에서 도는 쪽은 요청 경로에 CPU를 더하고 밖에 묻는 쪽은 요청마다 왕복 지연과 **외부 서비스라는 장애 지점**을 더합니다. `failure_mode_deny`가 설정 항목으로 존재한다는 사실 자체가, 그 외부 서비스가 죽었을 때 통과시킬지 막을지를 미리 정해 두라는 요구입니다.
+두 부류의 차이가 곧 운영 비용의 차이입니다. 안에서 도는 쪽은 요청 경로에 CPU를 더하고 밖에 묻는 쪽은 요청마다 왕복 지연과 **외부 서비스라는 장애 지점**을 더합니다. `failure_mode_deny`가 설정 항목으로 있다는 것 자체가, 그 외부 서비스가 죽었을 때 통과시킬지 막을지를 미리 정해 두라는 요구입니다.
 
 이 필터들을 Istio에서 어떤 창구로 붙이는지 — EnvoyFilter의 위험, `WasmPlugin`이라는 상위 추상화, local과 global 레이트 리밋의 성격 차이 — 는 [08]({{< relref "08-envoyfilter-extension.md" >}})에 있습니다.
 
@@ -173,13 +172,13 @@ Istio 쪽 서술도 이 방향과 맞습니다. istio.io 1.5 릴리스 노트는
 
 같은 부품을 쓰는 프로젝트 목록은 Envoy 공식 커뮤니티 페이지에 그대로 있습니다. 메시 쪽에는 Istio 외에 **Kuma**, **Consul Connect**("first-class support for using Envoy as a proxy"), **AWS App Mesh**가 있고, API 게이트웨이·인그레스 쪽에는 **Ambassador**("An open source Kubernetes-native API Gateway built on Envoy"), **Contour**, **Enroute**, **Gloo Edge**, **Higress**, 그리고 Envoy 프로젝트 자신의 컨트롤 플레인인 **Envoy Gateway**가 올라 있습니다.
 
-같은 데이터 플레인을 두고 컨트롤 플레인만 다른 것들이 이만큼 있다는 사실이 5절의 관계 역전을 실물로 보여줍니다. 다만 이 목록의 설명 문구는 각 프로젝트가 자기 소개로 적은 것이고 시간이 지나면 갱신·삭제될 수 있습니다.
+같은 데이터 플레인 위에 컨트롤 플레인만 다른 것들이 이만큼 서 있으니 5절의 관계 역전이 실물로 확인됩니다. 이 목록의 설명 문구는 각 프로젝트가 자기 소개로 적은 것이라 시간이 지나면 갱신되거나 삭제될 수 있습니다.
 
 ## 이 문서에서 가져갈 것
 
 - Envoy는 앱 옆에서 도는 **독립 프로세스**이고 그 때문에 언어를 가리지 않습니다. 코어는 L3/L4 프록시 + 필터 체인이며 HTTP는 그 위의 레이어입니다.
 - 설정을 읽는 문법은 **listener → 필터 체인 → route → cluster → endpoint** 하나입니다. 재시도가 route에, 서킷 브레이커가 cluster에 있는 이유도 이 순서에서 나옵니다.
-- 복원력·관측성 기능은 Istio가 만들어 준 것이 아니라 **Envoy가 원래 갖고 있던 것**입니다. Istio CRD는 그 스위치를 꺼낸 창구이고 트레이싱에서 Envoy는 스팬을 직접 만듭니다.
+- 복원력·관측성 기능은 Istio가 만들어 준 것이 아니라 **원래 Envoy에 있던 것**입니다. Istio CRD는 그 스위치를 꺼낸 창구이고 트레이싱에서 Envoy는 스팬을 직접 만듭니다.
 - **xDS는 Envoy가 정의한 API**이고 istiod는 그 구현 하나입니다. 같은 부품 위에 다른 컨트롤 플레인이 여럿 서 있습니다.
 
 ## 소스

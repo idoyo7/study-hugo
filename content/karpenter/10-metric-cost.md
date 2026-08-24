@@ -6,10 +6,9 @@ weight: 10
 # 10 · 메트릭 수집 비용 — 무엇을 버릴 것인가
 
 {{< callout type="info" >}}
-**한눈에**
-- 비용을 만드는 건 메트릭 60개가 아니라 시리즈 수입니다. 60개 중 **파드 단위 6개**가 대부분을 차지하고, 그 6개만 배포마다 전량 churn합니다.
+- 비용을 만드는 건 메트릭 60개가 아니라 시리즈 수입니다. 60개 중 **파드 단위 6개**가 대부분을 차지하고 그 6개만 배포마다 전량 churn합니다.
 - Datadog은 OpenMetrics로 긁은 것을 전부 custom metric으로 셉니다. 공식 문서 표현이 *"all metrics retrieved by the generic Prometheus check are considered custom metrics"* 입니다. 아무 설정 없이 붙이면 청구가 튑니다.
-- OpenMetrics 체크에는 `max_returned_metrics` 기본 2000 상한이 있습니다. 대규모 클러스터에서는 이 선에서 조용히 잘립니다 — 없는 메트릭과 잘린 메트릭이 구분되지 않습니다.
+- OpenMetrics 체크에는 `max_returned_metrics` 기본 2000 상한이 있습니다. 대규모 클러스터에서는 이 선에서 경고 없이 잘립니다 — 없는 메트릭과 잘린 메트릭이 구분되지 않습니다.
 - VM에서는 청구가 아니라 **`indexdb` 팽창**이 비용입니다. 시리즈 총수가 같아도 churn이 크면 인덱스가 계속 자랍니다.
 - Prometheus의 보호 장치는 전부 기본으로 꺼져 있습니다 — `sample_limit`·`label_limit`·`target_limit` 기본값이 모두 `0`(무제한)입니다.
 - 파드 6종을 버려도 잃는 게 거의 없습니다. 파드 단위 상태는 kube-state-metrics가 이미 더 잘 냅니다.
@@ -17,7 +16,7 @@ weight: 10
 - drop보다 keep이 낫습니다. 업스트림이 메트릭을 추가하면 blocklist는 그것을 자동으로 통과시킵니다(§4.1).
 {{< /callout >}}
 
-[09]({{< relref "09-metrics-logs-events.md" >}})가 "무엇이 나오나"라면 여기는 "무엇을 저장할 것인가"입니다 — 60개를 다 긁는 것 자체는 문제가 아니고, 비용이 백엔드마다 다른 이름으로 나타나는 게 주제입니다. 카디널리티 폭발의 원리는 [VictoriaMetrics / 카디널리티]({{< relref "../monitoring/victoriametrics/practice/01-cardinality.md" >}})가 소유합니다. 여기서는 그 결과만 다룹니다.
+[09]({{< relref "09-metrics-logs-events.md" >}})가 "무엇이 나오나"라면 여기는 "무엇을 저장할 것인가"입니다 — 60개를 다 긁는 것 자체는 문제가 아니고 비용이 백엔드마다 다른 이름으로 나타나는 게 주제입니다. 카디널리티 폭발의 원리는 [VictoriaMetrics / 카디널리티]({{< relref "../monitoring/victoriametrics/practice/01-cardinality.md" >}})가 소유합니다. 여기서는 그 결과만 다룹니다.
 
 ## 1. 비용을 만드는 축은 넷이다
 
@@ -156,13 +155,13 @@ ad.datadoghq.com/controller.checks: |
   }
 ```
 
-유입을 줄이는 유일한 수단이 `metrics:` allowlist입니다. `max_returned_metrics`(기본 2000)는 allowlist 없이 붙였을 때 조용히 잘리는 선입니다. `exclude_labels`는 파드 이름·네임스페이스를 Agent 단계에서 제거합니다. MWL의 태그 allowlist는 indexed만 줄이는 그다음 층이라 위 셋을 먼저 적용합니다.
+유입을 줄이는 유일한 수단이 `metrics:` allowlist입니다. `max_returned_metrics`(기본 2000)는 allowlist 없이 붙였을 때 경고 없이 잘리는 선입니다. `exclude_labels`는 파드 이름·네임스페이스를 Agent 단계에서 제거합니다. MWL의 태그 allowlist는 indexed만 줄이는 그다음 층이라 위 셋을 먼저 적용합니다.
 
 ## 4. 무엇을 버리고 무엇을 남기나
 
 ### 4.1 drop보다 keep이 낫다
 
-blocklist보다 allowlist(keep-list)를 권합니다 — 업스트림이 메트릭을 추가하면 blocklist는 그것을 자동으로 통과시킵니다. 새 메트릭이 파드 단위면 비용이 조용히 올라갑니다.
+blocklist보다 allowlist(keep-list)를 권합니다 — 업스트림이 메트릭을 추가하면 blocklist는 그것을 자동으로 통과시킵니다. 새 메트릭이 파드 단위면 아무 경고 없이 비용이 오릅니다.
 
 ```yaml
 metricRelabelConfigs:
@@ -218,7 +217,7 @@ metricRelabelConfigs:
 
 ### 4.5 버린 뒤 무엇이 깨지나
 
-drop하면 그 메트릭을 쓰던 대시보드·알림이 조용히 빈 결과를 냅니다 — 에러가 아니라 침묵입니다. 버리기 전에 대체재를 확인합니다.
+drop하면 그 메트릭을 쓰던 대시보드·알림이 빈 결과를 냅니다 — 에러가 아니라 침묵입니다. 버리기 전에 대체재를 확인합니다.
 
 | 잃는 것 | 대체 |
 |---|---|
@@ -271,7 +270,7 @@ sum(max_over_time(vm_cache_entries{type="storage/hour_metric_ids"}[24h]))  # act
 sum(increase(vm_new_timeseries_created_total[24h]))                        # churn
 ```
 
-churn은 배포일과 비배포일을 갈라 봐야 의미가 있습니다 — 파드 축 제거 전후 이 값의 변화가 이 문서의 결론을 검증합니다. 메트릭·라벨별 분해는 vmui의 Cardinality Explorer(`/vmui/#/cardinality`)가 보여줍니다. Prometheus는 `/api/v1/status/tsdb`의 `seriesCountByMetricName`이 같은 답을 줍니다(기본 상위 10개, `limit`으로 확대).
+churn은 배포일과 비배포일을 나눠서 봐야 의미가 있습니다 — 파드 축 제거 전후 이 값의 변화가 이 문서의 결론을 검증합니다. 메트릭·라벨별 분해는 vmui의 Cardinality Explorer(`/vmui/#/cardinality`)가 보여줍니다. Prometheus는 `/api/v1/status/tsdb`의 `seriesCountByMetricName`이 같은 답을 줍니다(기본 상위 10개, `limit`으로 확대).
 
 ### 5.3 적용 순서
 
@@ -285,7 +284,7 @@ churn은 배포일과 비배포일을 갈라 봐야 의미가 있습니다 — �
 
 ## 6. 함정 넷
 
-**① Datadog OpenMetrics는 2000개에서 조용히 자릅니다** — `max_returned_metrics` 기본값. 잘린 것과 원래 없는 것이 대시보드에서 구분되지 않으니 붙이자마자 §5로 상한에 닿는지 봅니다.
+**① Datadog OpenMetrics는 2000개에서 경고 없이 자릅니다** — `max_returned_metrics` 기본값. 잘린 것과 원래 없는 것이 대시보드에서 구분되지 않으니 붙이자마자 §5로 상한에 닿는지 봅니다.
 
 **② MWL은 유입을 줄이지 않습니다.** allowlist는 indexed만 줄입니다 — ingested 과금이 별도라는 전제로 계약을 봅니다.
 

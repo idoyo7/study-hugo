@@ -6,34 +6,33 @@ weight: 5
 # 03-3 · Ambient mode 안전하게 업그레이드하기 — istiod → istio-cni → ztunnel, 그리고 ztunnel만은 node pool blue-green (2026-07)
 
 {{< callout type="info" >}}
-**참조한 내용정리** · 이 문서는 아래 원문을 읽고 우리 지식베이스 형식으로 재구성한 요약입니다. 원문 자체가 아니며, 정확한 워딩·전체 맥락·그림은 원문에서 확인합니다.
+**참조한 내용정리** · 이 문서는 아래 원문을 읽고 우리 지식베이스 형식으로 재구성한 요약입니다. 원문 자체가 아니며 정확한 워딩·전체 맥락·그림은 원문에서 확인합니다.
 - **원문**: [Istio 3-3편: Ambient mode 안전하게 업그레이드하기](https://tech.channel.io/kr/articles/tech-istio-cni-in-place-b004fdb9)
 - **매체 · 게시일**: 채널코퍼레이션 기술 블로그 · 2026-07-08
 - **저자**: 딜런 · 재티(정재홍), 채널코퍼레이션 DevOps팀
 {{< /callout >}}
 
 {{< callout type="info" >}}
-**한눈에**
 - Ambient mode는 사이드카가 없어 애플리케이션 Pod을 재시작하지 않아도 됩니다. 대신 업그레이드 위험이 `istio-cni`·`ztunnel`이라는 node-local 컴포넌트로 옮겨 옵니다.
 - 채널팀이 세운 순서는 `istiod` → `istio-cni` → `ztunnel`입니다. `v1.x` istio-cni와 ztunnel이 `v1.x` 및 `v1.x+1` control plane과 호환되므로 control plane이 먼저 올라갑니다.
-- `istiod`와 `istio-cni`는 in-place로 갑니다. istio-cni가 in-place로 성립하는 이유는 이미 Running인 Pod의 network namespace가 재생성되지 않기 때문입니다. 위험은 rollout 틈에 새로 생성되는 Pod의 `FailedCreatePodSandBox` 정도이고, 이건 kubelet이 재시도합니다.
+- `istiod`와 `istio-cni`는 in-place로 갑니다. istio-cni가 in-place로 성립하는 이유는 이미 Running인 Pod의 network namespace가 재생성되지 않기 때문입니다. 위험은 rollout 틈에 새로 생성되는 Pod의 `FailedCreatePodSandBox` 정도이고 이건 kubelet이 재시도합니다.
 - `ztunnel`만은 rolling update를 쓰지 않습니다. graceful shutdown 기본값이 30초 수준이라 그 안에 끝나지 않은 long-lived connection은 종료 순간 끊깁니다. 그래서 node pool 단위 blue-green으로 옮깁니다.
-- 구현은 이렇습니다. ztunnel DaemonSet을 `ztunnel-a`(1.25.0) / `ztunnel-b`(1.26.2)로 나눠 `node.channel.io/istio-version` label에 매핑하고, istiod의 `CA_TRUSTED_NODE_ACCOUNTS`에 두 service account를 모두 등록한 뒤 blue node를 점진적으로 cordon/drain합니다.
+- 구현은 이렇습니다. ztunnel DaemonSet을 `ztunnel-a`(1.25.0) / `ztunnel-b`(1.26.2)로 나눠 `node.channel.io/istio-version` label에 매핑하고 istiod의 `CA_TRUSTED_NODE_ACCOUNTS`에 두 service account를 모두 등록한 뒤 blue node를 점진적으로 cordon/drain합니다.
 {{< /callout >}}
 
 Ambient mode 도입기 시리즈의 3-3편입니다. 앞의 두 편은 장애 기록이었습니다. [3-1편]({{< relref "03-1-503-half-open-connection.md" >}})은 waypoint와 ztunnel 사이의 stale connection이 만든 503을 추적했고 [3-2편]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}})은 istio-cni와 ztunnel이 준비되기 전에 Pod이 스케줄되어 생기는 partially enrolled 문제를 다뤘습니다. 이번 편은 버전 업그레이드 런북입니다.
 
-Ambient mode의 장점으로 자주 꼽히는 "사이드카가 없으니 앱 Pod을 재시작하지 않아도 된다"는 말은 사실입니다. [사이드카 모드]({{< relref "../../01-mesh-basics.md" >}})에서는 프록시 버전을 올릴 때마다 결국 워크로드 Pod을 다시 띄우는 수밖에 없었습니다. 그 롤아웃이 그대로 [istiod에 xDS 부하]({{< relref "../../02-istiod-control-plane.md" >}})를 만드는 이벤트였습니다. Ambient에서는 그 재시작이 사라집니다. 사라진 대신 재시작해야 할 대상이 노드 위의 DaemonSet 두 개로 옮겨 갑니다.
+Ambient mode의 장점으로 자주 꼽히는 "사이드카가 없으니 앱 Pod을 재시작하지 않아도 된다"는 말은 사실입니다. [사이드카 모드]({{< relref "../../01-mesh-basics.md" >}})에서는 프록시 버전을 올릴 때마다 워크로드 Pod을 다시 띄우는 수밖에 없었습니다. 그 롤아웃이 그대로 [istiod에 xDS 부하]({{< relref "../../02-istiod-control-plane.md" >}})를 만드는 이벤트였습니다. Ambient에서는 그 재시작이 사라집니다. 대신 재시작해야 할 대상이 노드 위의 DaemonSet 두 개로 옮겨 갑니다.
 
-Istio Slack의 `#ambient` 채널에도 업그레이드 절차 질문이 종종 올라옵니다. 채널팀이 참고한 thread의 고민도 같았습니다. `istio-cni`는 여러 release를 동시에 설치하기가 어렵습니다. `ztunnel`은 `resourceName`으로 여러 DaemonSet을 만들 수 있어 보이지만 istiod 설정값인 `trustedZtunnelName`과 묶여 있어서 istiod의 revision canary처럼 다루기는 어렵습니다. 그래서 채널팀은 ztunnel을 node pool 단위로 blue-green 배포하기로 했습니다.
+Istio Slack의 `#ambient` 채널에도 업그레이드 절차 질문이 종종 올라옵니다. 채널팀이 참고한 thread의 고민도 같았습니다. `istio-cni`는 여러 release를 동시에 설치하기가 어렵습니다. `ztunnel`은 `resourceName`으로 여러 DaemonSet을 만들 수 있어 보입니다. 그런데 istiod 설정값인 `trustedZtunnelName`과 묶여 있어서 istiod의 revision canary처럼 다루기는 어렵습니다. 그래서 채널팀은 ztunnel을 node pool 단위로 blue-green 배포하기로 했습니다.
 
 원문이 정리한 결론은 한 문장입니다.
 
-Ambient mode 업그레이드는 `istiod → istio-cni → ztunnel` 순서로 진행하되, ztunnel은 일반적인 rolling update보다 blue-green node pool 방식으로 접근하는 편이 안전합니다.
+Ambient mode 업그레이드는 `istiod → istio-cni → ztunnel` 순서로 진행하되 ztunnel은 일반적인 rolling update보다 blue-green node pool 방식으로 접근하는 편이 안전합니다.
 
 ## 1. 업그레이드 대상은 세 가지
 
-Ambient mode의 버전 업그레이드가 대상으로 삼는 컴포넌트는 셋입니다.
+Ambient mode에서 버전을 올려야 하는 컴포넌트는 셋입니다.
 
 | 컴포넌트 | 역할 | 업그레이드 특성 |
 | --- | --- | --- |
@@ -49,30 +48,30 @@ Ambient mode의 버전 업그레이드가 대상으로 삼는 컴포넌트는 �
 
 먼저 control plane인 `istiod`를 업그레이드합니다.
 
-Ambient 환경의 istiod는 config 전파에 그치지 않고 Gateway controller 역할까지 하는데, 이 대목을 놓치기 쉽습니다. Istio Gateway controller가 관리하는 Envoy 워크로드는 istiod의 revision·버전과 맞물려 있습니다. 그래서 istiod를 업그레이드하면 istio-gateway도 새 Envoy 이미지·설정으로 자동 rollout됩니다. 업그레이드 후에 gateway 쪽을 같이 확인해야 하는 이유입니다.
+Ambient 환경의 istiod는 config 전파에 그치지 않고 Gateway controller 역할까지 하는데 이 대목을 놓치기 쉽습니다. Istio Gateway controller가 관리하는 Envoy 워크로드는 istiod의 revision·버전과 맞물려 있습니다. 그래서 istiod를 업그레이드하면 istio-gateway도 새 Envoy 이미지·설정으로 자동 rollout됩니다. 업그레이드 후에 gateway 쪽을 같이 확인해야 하는 이유입니다.
 
-Istio가 graceful shutdown을 지원하는 덕에 control plane과 gateway rollout이 곧바로 서비스 중단으로 이어지지는 않는 게 정상입니다. 다만 채널팀이 업그레이드 중에 확인하는 항목은 다음과 같습니다.
+Istio가 graceful shutdown을 지원하는 덕에 control plane과 gateway rollout이 곧바로 서비스 중단으로 이어지지는 않는 게 정상입니다. 채널팀이 업그레이드 중에 확인하는 항목은 다음과 같습니다.
 
 - 새 istiod revision이 정상적으로 뜨는가?
 - gateway/waypoint가 의도한 revision을 보고 있는가?
 - xDS sync가 깨지지 않았는가?
 - control plane 에러 로그가 증가하지 않는가?
 
-원문 밖 배경으로 덧붙입니다. istiod를 여러 대로 굴리는 환경에서 xDS 커넥션이 재배치되지 않는 성질은 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../../09-istiod-scaling-connections.md" >}})에서 다뤘습니다. istiod Pod이 교체되는 순간은 그 커넥션이 강제로 재수립되는 몇 안 되는 시점이기도 합니다. 원문은 여기까지 파고들지 않고 "xDS sync가 깨지지 않았는가"를 체크 항목으로 두는 데서 멈춥니다.
+원문 밖 배경으로 덧붙입니다. istiod를 여러 대로 굴리는 환경에서 xDS 커넥션이 재배치되지 않는다는 이야기는 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../../09-istiod-scaling-connections.md" >}})에서 다뤘습니다. istiod Pod이 교체되는 순간은 그 커넥션이 강제로 재수립되는 몇 안 되는 시점이기도 합니다. 원문은 여기까지 파고들지 않고 "xDS sync가 깨지지 않았는가"를 체크 항목으로 두는 데서 멈춥니다.
 
 ## 3. Step 2 — istio-cni는 in-place로 업그레이드
 
 Ambient mode에서 `istio-cni`는 노드 안의 Pod를 감지하고 Pod network namespace 안에 redirection rule을 설정해 트래픽이 `ztunnel`을 거치게 만듭니다. 그 위에서 ztunnel은 해당 Pod network namespace 안에 redirection socket을 준비하고 workload Pod의 inbound/outbound 트래픽은 이 경로로 흐릅니다.
 
-istio-cni 업그레이드 자체는 Kubernetes DaemonSet rollout으로 진행됩니다.
+istio-cni 업그레이드 자체는 Kubernetes DaemonSet rollout입니다.
 
 ### 왜 이게 "in-place"로 성립하는가
 
-핵심은 network namespace가 언제 만들어지는가입니다. 이미 실행 중인 Pod은 network namespace가 생성되는 그 시점에 redirection rule과 ztunnel로 향하는 경로를 함께 받아 뒀습니다. istio-cni Pod이 재시작돼도 그 namespace가 다시 만들어지지는 않습니다. istio-cni는 트래픽이 지나가는 길이 아니라 길을 깔아 주는 쪽이어서 그 재시작이 기존 Pod의 트래픽을 곧바로 끊는 data plane 교체가 되지 않습니다.
+network namespace가 언제 만들어지는가에 달렸습니다. 이미 실행 중인 Pod은 network namespace가 생성되는 그 시점에 redirection rule과 ztunnel로 향하는 경로를 함께 받아 뒀습니다. istio-cni Pod이 재시작돼도 그 namespace가 다시 만들어지지는 않습니다. istio-cni는 트래픽이 지나가는 길이 아니라 길을 깔아 주는 쪽입니다. 그래서 재시작해도 기존 Pod의 트래픽을 곧바로 끊는 data plane 교체가 되지 않습니다.
 
 ### 위험은 rollout 틈에 새로 뜨는 Pod에 있다
 
-in-place를 허용할 수 있는 건 이때의 실패가 조용히 묻히지 않고 시끄럽게 드러나 재시도되기 때문입니다.
+in-place를 허용할 수 있는 건 이때의 실패가 묻히지 않고 곧바로 드러나 재시도되기 때문입니다.
 
 {{< seq src="_seq/위험은-rollout-틈에-새로.json" />}}
 
@@ -80,11 +79,11 @@ in-place를 허용할 수 있는 건 이때의 실패가 조용히 묻히지 않
 
 Istio 공식문서는 CNI 버전 호환성을 이렇게 정합니다.
 
-`v1.x` istio-cni는 `v1.x` 및 `v1.x+1` control plane과 호환되며, ztunnel도 같습니다.
+`v1.x` istio-cni는 `v1.x` 및 `v1.x+1` control plane과 호환되며 ztunnel도 같습니다.
 
 그래서 일반적인 업그레이드는 control plane을 먼저 올리고 그다음 CNI를 올리는 순서가 됩니다. 노드 컴포넌트가 control plane보다 한 마이너 뒤처져 있는 상태는 허용되지만 그 반대는 보장되지 않습니다.
 
-다만 [3-2편]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}})에서 다룬 것처럼, istio-cni 및 ztunnel이 준비되지 않은 상태에서 workload Pod이 먼저 뜨는 race condition은 여전히 생길 수 있습니다. 이때의 `FailedCreatePodSandBox`도 영구 장애라기보다 istio-cni가 준비될 때까지 Pod 생성이 재시도되는 현상으로 봅니다. 그래서 CNI 업그레이드에서 채널팀은 기존 Pod의 연결 상태 대신 다음 두 가지를 봅니다.
+[3-2편]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}})에서 다룬 것처럼 istio-cni 및 ztunnel이 준비되지 않은 상태에서 workload Pod이 먼저 뜨는 race condition은 여전히 생길 수 있습니다. 이때의 `FailedCreatePodSandBox`도 영구 장애라기보다 istio-cni가 준비될 때까지 Pod 생성이 재시도되는 현상으로 봅니다. 그래서 CNI 업그레이드에서 채널팀은 기존 Pod의 연결 상태 대신 다음을 봅니다.
 
 | 확인 대상 | 무엇을 보는가 |
 | --- | --- |
@@ -96,14 +95,14 @@ Istio 공식문서는 CNI 버전 호환성을 이렇게 정합니다.
 ztunnel은 Ambient mode의 data plane입니다. 버전 호환 규칙은 CNI와 같습니다. `v1.x` ztunnel은 `v1.x` 및 `v1.x+1` control plane과 호환되므로 control plane을 먼저 업그레이드한 뒤 ztunnel을 옮길 수 있습니다. 정작 까다로운 쪽은 업그레이드 방식입니다.
 
 {{< callout type="warning" >}}
-ztunnel도 graceful shutdown을 지원하지만 이 시간을 길게 잡는 건 권장하지 않고, 기본값도 30초 수준입니다.
+ztunnel도 graceful shutdown을 지원하지만 이 시간을 길게 잡는 건 권장하지 않고 기본값도 30초 수준입니다.
 
-즉 ztunnel upgrade를 무조건 무중단으로 볼 수는 없습니다.
+ztunnel upgrade를 무조건 무중단으로 볼 수는 없습니다.
 {{< /callout >}}
 
 {{< seq src="_seq/4-step-ztunnel-은-blue.json" />}}
 
-이건 채널팀만의 판단이 아닙니다. Istio의 [Ztunnel Safe Upgrade 이슈](https://github.com/istio/istio/issues/51126)도 in-place hitless upgrade와 한 노드에서 여러 ztunnel revision을 동시에 띄우는 방식을 범위 밖으로 두고, node drain 기반 절차를 문서화하는 쪽으로 논의를 모으고 있습니다.
+이건 채널팀만의 판단이 아닙니다. Istio의 [Ztunnel Safe Upgrade 이슈](https://github.com/istio/istio/issues/51126)도 in-place hitless upgrade와 한 노드에서 여러 ztunnel revision을 동시에 띄우는 방식을 범위 밖으로 두고 node drain 기반 절차를 문서화하는 쪽으로 논의를 모읍니다.
 
 사이드카에서는 프록시가 Pod에 붙어 있었으니 revision canary로 워크로드 단위 카나리가 가능했습니다. ztunnel은 노드에 붙어 있으니 카나리 단위도 노드입니다.
 
@@ -125,7 +124,7 @@ ztunnel-b:
     node.channel.io/istio-version: 1.26.2
 ```
 
-ztunnel 버전별로 `nodeSelector`를 다르게 주는 게 핵심입니다. 그러면 기존 노드에서는 기존 ztunnel이 계속 돌고 새 노드에서는 새 ztunnel만 뜹니다. 두 DaemonSet의 nodeSelector가 겹치지 않으니 한 노드에 ztunnel이 둘 뜨는 일도 없습니다.
+ztunnel 버전별로 `nodeSelector`를 다르게 줘야 합니다. 그러면 기존 노드에서는 기존 ztunnel이 계속 돌고 새 노드에서는 새 ztunnel만 뜹니다. 두 DaemonSet의 nodeSelector가 겹치지 않으니 한 노드에 ztunnel이 둘 뜨는 일도 없습니다.
 
 여기까지만 하면 반쪽입니다. ztunnel의 resource 이름을 바꾸거나 여러 ztunnel DaemonSet을 동시에 운영하려면 `istiod` 설정도 같이 맞춰야 합니다. istiod Helm chart는 기본적으로 ztunnel의 이름을 `ztunnel`로 가정합니다. `ztunnel-a`, `ztunnel-b`를 쓰려면 istiod가 신뢰할 ztunnel service account 목록에 두 이름을 모두 넣어야 합니다.
 
@@ -179,7 +178,7 @@ kubectl drain <blue-node> --ignore-daemonsets --delete-emptydir-data
 5. 5xx, TCP reset, latency 지표 확인
 6. `ztunnel-a`가 올라간 node가 더 이상 없으면 `ztunnel-a` 제거
 
-이 절차에서 실질적인 게이트는 5번 항목입니다. workload가 green node로 옮겨 간 직후에 5xx나 TCP reset이 늘면 새 ztunnel이 기존 트래픽 패턴을 그대로 처리하지 못한다는 신호입니다. [3-1편]({{< relref "03-1-503-half-open-connection.md" >}})이 다룬 half-open connection 계열의 증상이 여기서 다시 나타날 수 있습니다.
+이 절차에서 진짜 게이트는 5번 항목입니다. workload가 green node로 옮겨 간 직후에 5xx나 TCP reset이 늘면 새 ztunnel이 기존 트래픽 패턴을 그대로 처리하지 못한다는 신호입니다. [3-1편]({{< relref "03-1-503-half-open-connection.md" >}})이 다룬 half-open connection 계열의 증상이 여기서 다시 나타날 수 있습니다.
 
 ## 5. Step 4 — NodeGroup 정리
 
@@ -191,7 +190,7 @@ kubectl drain <blue-node> --ignore-daemonsets --delete-emptydir-data
 - `istio-cni` — 방식: in-place (DaemonSet rollout). 재시작 대상: istio-cni Pod. 주 위험: rollout 틈에 생성되는 Pod의 `FailedCreatePodSandBox`. 확인 지표: DaemonSet rollout 완료, redirection 누락·pending Pod
 - `ztunnel` — 방식: blue-green node pool. 재시작 대상: 노드 전체 (workload 재스케줄). 주 위험: graceful shutdown 30초를 넘긴 long-lived connection 절단. 확인 지표: 5xx, TCP reset, latency
 
-아래 대조는 원문에 없는 내용으로, 이 지식베이스의 사이드카 모드 문서들과 맞춰 읽기 위해 정리했습니다.
+아래 대조는 원문에 없는 내용으로, 이 지식베이스의 사이드카 모드 문서들과 맞춰 읽으려고 정리했습니다.
 
 | 항목 | 사이드카 모드 | Ambient mode |
 | --- | --- | --- |
@@ -203,15 +202,15 @@ kubectl drain <blue-node> --ignore-daemonsets --delete-emptydir-data
 Ambient mode 업그레이드는 Istio 버전 숫자 하나를 올리는 일로 끝나지 않습니다. 성격이 다른 세 컴포넌트를 순서대로 다루는 작업입니다. 원문의 결론 세 줄은 다음과 같습니다.
 
 - `istiod`는 먼저 업그레이드하고 gateway/waypoint 상태를 확인합니다.
-- `istio-cni`는 in-place로 업그레이드하되, untaint-controller 및 `ambient.istio.io/redirection: enabled` annotation들을 확인합니다.
-- `ztunnel`은 가장 조심해야 하며, 가능하면 blue-green node pool 방식으로 node 단위 migration을 수행합니다.
+- `istio-cni`는 in-place로 업그레이드하되 untaint-controller 및 `ambient.istio.io/redirection: enabled` annotation들을 확인합니다.
+- `ztunnel`은 가장 조심해야 하며 가능하면 blue-green node pool 방식으로 node 단위 migration을 수행합니다.
 
 ## 이 문서에서 가져갈 것
 
 - 앱 재시작이 사라진 대신 재시작 대상이 워크로드 Pod에서 노드 위 DaemonSet 두 개로 옮겨 갔습니다. 그중 ztunnel은 트래픽이 실제로 지나가는 경로입니다.
-- 데이터 플레인의 배포 단위가 카나리의 단위를 결정합니다. 프록시가 Pod에 있으면 워크로드 카나리가 되고, 노드에 있으면 노드 풀 카나리가 됩니다. ztunnel을 revision canary로 다루기 어려운 이유는 istiod의 trusted account 설정(`CA_TRUSTED_NODE_ACCOUNTS` / `trustedZtunnelName`)이 이름 하나에 묶여 있기 때문입니다.
+- 데이터 플레인의 배포 단위가 카나리의 단위를 결정합니다. 프록시가 Pod에 있으면 워크로드 카나리가 되고 노드에 있으면 노드 풀 카나리가 됩니다. ztunnel을 revision canary로 다루기 어려운 이유는 istiod의 trusted account 설정(`CA_TRUSTED_NODE_ACCOUNTS` / `trustedZtunnelName`)이 이름 하나에 묶여 있기 때문입니다.
 - graceful shutdown이 있다고 무중단은 아닙니다. 30초 유예는 짧은 요청만 지켜 주고 long-lived connection에는 무의미합니다. 그래서 유예를 늘리는 대신 연결이 끊기는 지점 자체를 우회하는 쪽(node drain)을 택했습니다.
-- in-place를 허용할지는 실패 모드가 갈랐습니다. istio-cni rollout 중의 `FailedCreatePodSandBox`는 시끄럽게 실패하고 재시도되는 쪽이라 넘어갈 수 있습니다. Pod이 redirection 없이 Running으로 떠 버린다면 같은 판단을 내릴 수 없습니다.
+- in-place를 허용할지는 실패 모드가 결정했습니다. istio-cni rollout 중의 `FailedCreatePodSandBox`는 겉으로 드러나게 실패하고 재시도되는 쪽이라 넘어갈 수 있습니다. Pod이 redirection 없이 Running으로 떠 버린다면 같은 판단을 내릴 수 없습니다.
 - blue-green은 끝나는 시점을 운영자가 정하지 못합니다. stateful workload와 PDB 때문에 blue node가 오래 남고 그동안 두 ztunnel 버전과 두 node pool을 동시에 운영해야 합니다. 이 병존 기간의 비용을 계획에 넣습니다.
 
 ## 소스

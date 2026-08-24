@@ -7,14 +7,12 @@ cascade:
 
 # EKS 버전 업그레이드 — finance 클러스터 blue-green 이관 케이스
 
-finance(금융) 도메인 EKS 클러스터를 신규 blue 클러스터로 갈아타는 실전 기록입니다. [HyperDX 내재화]({{< relref "../hyperdx/_index.md" >}})가 "신규 스택을 어떻게 얹나"였다면, 이 챕터는 "**이미 돌아가는 클러스터를 어떻게 안전하게 갈아타나**"의 케이스입니다.
+finance(금융) 도메인 EKS 클러스터를 신규 blue 클러스터로 갈아타는 실전 기록입니다. [HyperDX 내재화]({{< relref "../hyperdx/_index.md" >}})가 "신규 스택을 어떻게 얹나"였다면, 이 챕터는 "이미 돌아가는 클러스터를 어떻게 안전하게 갈아타나"를 다룹니다.
 
 {{< callout type="info" >}}
-**한눈에**
-
-- 이관 대상은 finance 워크로드(`prod-finance-green`·`staging-finance-green`, 현재 k8s 1.31)입니다. 관리 클러스터 `ring0-blue`는 별건으로 끝냈습니다.
-- 채택한 방식은 green을 그대로 두고 신규 blue 클러스터를 Terraform으로 EKS 1.35로 세우는 blue-green 이관입니다. CAPI(CAPA) in-place는 폐기했습니다 → [배경]({{< relref "00-background.md" >}}).
-- 목표 1.35: 전 컴포넌트 세트가 공식 지원하는 최고 버전입니다. 1.36은 서드파티 6종이 막습니다 → [목표버전]({{< relref "01-target-version.md" >}}).
+- 옮기는 대상은 finance 워크로드(`prod-finance-green`·`staging-finance-green`, 현재 k8s 1.31)입니다. 관리 클러스터 `ring0-blue`는 별건으로 끝냈습니다.
+- green을 그대로 두고 신규 blue 클러스터를 Terraform으로 EKS 1.35로 세우는 blue-green 이관을 골랐습니다. CAPI(CAPA) in-place는 폐기했습니다 → [배경]({{< relref "00-background.md" >}}).
+- 1.35를 목표로 잡은 건 전 컴포넌트 세트가 공식 지원하는 최고 버전이어서입니다. 1.36은 서드파티 6종이 막습니다 → [목표버전]({{< relref "01-target-version.md" >}}).
 - 토폴로지는 managed nodegroup 0 + Fargate(coredns·karpenter) + karpenter system nodepool입니다 → [클러스터 설정]({{< relref "02-cluster-config.md" >}}).
 - green 확장지원 종료가 2026-11-26이라 런웨이가 약 4개월 남았습니다(임박한 절벽은 아닙니다).
 - 확장지원이 기본값입니다. `upgradePolicy.supportType`의 기본값이 `STANDARD`가 아니라 `EXTENDED`라, blue 생성 시 명시하지 않으면 표준지원 종료일부터 시간당 $0.60이 자동으로 붙습니다 → [컨트롤 플레인 파라미터]({{< relref "controlplane/01-cluster-parameters.md" >}}).

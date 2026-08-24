@@ -6,18 +6,17 @@ weight: 6
 # 06 · cluster mode — 16384 슬롯이 강제하는 것
 
 {{< callout type="info" >}}
-**한눈에**
 - **cluster mode 는 스케일을 주는 대신 애플리케이션의 자유를 뺏습니다.** 그 대가는 2015-04-01(3.0.0)에 프록시를 두지 않기로 한 결정에서 나왔습니다 — 라우팅 비용을 클라이언트로 옮겨 hop 을 하나 없앤 대신, **smart client 가 없으면 아무것도 동작하지 않습니다** `✓`.
-- `MOVED` 와 `ASK` 는 같은 코드 경로에서 접두어만 갈려 나오는데 의미는 정반대입니다. `MOVED` 는 영구 재배치라 **슬롯 맵을 갱신**해야 하고, `ASK` 는 단발이라 **슬롯 맵을 갱신하면 안 되고** `ASKING` 을 앞세워 한 번만 재시도해야 합니다. 이 구분을 못 하는 클라이언트는 리샤딩 중 슬롯 맵을 오염시킵니다 `✓`.
-- **16384 는 gossip 헤더 예산이 정한 숫자입니다.** 모든 PING/PONG/MEET 헤더에 슬롯 비트맵이 raw 로 실리고 그게 정확히 2048바이트입니다 — `clusterMsg` 의 `myslots` 오프셋 80, `replicaof` 오프셋 2128 이 `static_assert` 로 못 박혀 있습니다 `✓`.
-- 슬롯 계산은 `mod` 가 아니라 `crc16(key) & 0x3FFF` 입니다. 해시 태그는 **첫 `{` 와 그 뒤 첫 `}`** 만 봅니다 — `{a}{b}` 는 `a` 로 해시되고, `{}` 나 `}` 없는 경우는 태그가 **무시되고 키 전체**가 해시됩니다 `✓`.
-- 잃는 것은 cross-slot 다중 키 연산·단일 슬롯 트랜잭션·pub/sub 브로드캐스트 비용·`KEYS`/`SCAN`/`DBSIZE` 의 의미·커넥션 수 곱셈입니다. **"DB 0 하나뿐"만은 진영이 갈렸습니다** — Valkey 9.0.0 이 `cluster-databases` 를 열었고 Redis 8.10.0 에는 그 설정이 없습니다 `✓`.
+- `MOVED` 와 `ASK` 는 같은 코드 경로에서 접두어만 달라지는데 의미는 정반대입니다. `MOVED` 는 영구 재배치라 **슬롯 맵을 갱신**해야 하고 `ASK` 는 단발이라 **슬롯 맵을 갱신하면 안 되고** `ASKING` 을 앞세워 한 번만 재시도해야 합니다. 이 구분을 못 하는 클라이언트는 리샤딩 중 슬롯 맵을 오염시킵니다 `✓`.
+- **16384 는 gossip 헤더 예산이 정한 숫자입니다.** 모든 PING/PONG/MEET 헤더에 슬롯 비트맵이 raw 로 실리고 그게 2048바이트입니다 — `clusterMsg` 의 `myslots` 오프셋 80, `replicaof` 오프셋 2128 을 `static_assert` 이 강제합니다 `✓`.
+- 슬롯 계산은 `mod` 가 아니라 `crc16(key) & 0x3FFF` 입니다. 해시 태그는 **첫 `{` 와 그 뒤 첫 `}`** 만 봅니다 — `{a}{b}` 는 `a` 로 해시되고 `{}` 나 `}` 없는 경우는 태그가 **무시되고 키 전체**가 해시됩니다 `✓`.
+- 잃는 것은 cross-slot 다중 키 연산·단일 슬롯 트랜잭션·pub/sub 브로드캐스트 비용·`KEYS`/`SCAN`/`DBSIZE` 의 의미·커넥션 수 곱셈입니다. **"DB 0 하나뿐"만은 진영마다 다릅니다** — Valkey 9.0.0 이 `cluster-databases` 를 열었고 Redis 8.10.0 에는 그 설정이 없습니다 `✓`.
 - 가장 아팠던 슬롯 마이그레이션을 **양쪽이 각자 원자적으로 고쳤고 방향이 반대입니다** — Valkey 9.0.0(2025-10-21) `CLUSTER MIGRATESLOTS` 는 source 에서 push, Redis 8.4.0(2025-11-18) `CLUSTER MIGRATION IMPORT` 는 destination 에서 pull. **리샤딩 자동화가 두 진영 호환되지 않는 첫 사례**입니다 `✓`.
-- `cluster_state:ok` 는 세 가지 방식으로 거짓 안심을 줍니다 — `cluster-require-full-coverage no` 면 커버리지 검사를 아예 하지 않습니다. 커버리지 검사는 **PFAIL 을 안 봅니다**. 값은 **그 노드의 로컬 gossip 시야**로 계산됩니다 `✓`.
+- `cluster_state:ok` 는 거짓 안심을 줍니다 — `cluster-require-full-coverage no` 면 커버리지 검사를 아예 하지 않습니다. 커버리지 검사는 **PFAIL 을 안 봅니다**. 값은 **그 노드의 로컬 gossip 시야**로 계산됩니다 `✓`.
 - Valkey 에서 **모듈을 하나라도 로드하면 ASM 이 아예 거부됩니다.** 공식 모듈 4개(search/json/bloom/ldap) 전부가 `VALKEYMODULE_OPTIONS_HANDLE_ATOMIC_SLOT_MIGRATION` 을 선언하지 않습니다 `✓`.
 {{< /callout >}}
 
-왜 이 문서인가. cluster mode 를 "샤딩 켜기"로 읽으면 매니페스트는 통과하고 애플리케이션이 나중에 터집니다. 실제로는 **애플리케이션 계약이 바뀝니다** — 같이 읽던 키를 같이 읽을 수 없습니다. standalone 에서 통과한 트랜잭션이 `EXEC` 에서만 실패합니다. 모니터링이 보던 `DBSIZE` 가 다른 뜻이 됩니다. 이 문서는 그 제약이 **어느 코드에서 어떤 조건으로 발생하는지**, 그리고 11년간 가장 아팠던 슬롯 마이그레이션이 2025년에 어떻게 바뀌었는지를 다룹니다.
+왜 이 문서인가. cluster mode 를 "샤딩 켜기"로 읽으면 매니페스트는 통과하고 애플리케이션이 나중에 터집니다. **애플리케이션 계약이 바뀝니다** — 같이 읽던 키를 같이 읽을 수 없습니다. standalone 에서 통과한 트랜잭션이 `EXEC` 에서만 실패합니다. 모니터링이 보던 `DBSIZE` 가 다른 뜻이 됩니다. 이 문서는 그 제약이 **어느 코드에서 어떤 조건으로 발생하는지**, 그리고 11년간 가장 아팠던 슬롯 마이그레이션이 2025년에 어떻게 바뀌었는지를 다룹니다.
 
 근거 기준: 소스는 `valkey 9.1.0`/`9.1.1`, `redis 8.10.0`, `redis 3.0.0` 로컬 클론과 각 릴리스노트입니다. 릴리스일은 GitHub `published_at` 이고 사건 시각은 UTC 로 통일했습니다. 기준일 2026-08-06. 줄 번호는 해당 태그 스냅샷입니다.
 
@@ -27,7 +26,7 @@ AWS 에서 이 구조가 어떤 엔드포인트로 노출되는지, CMD → CME 
 
 Redis Cluster 는 3.0.0(2015-04-01)에 "a distributed implementation of a subset of Redis" 로 나왔습니다(`redis:RELEASENOTES-3.0.0.txt:19`) `✓`. 2.6 릴리스노트가 이미 "2.6 에서 cluster 코드를 전부 제거했고 3.0 에서 낸다"고 예고했으므로 이 설계는 4년 가까이 벼려진 결정입니다(`redis 2.6.0:00-RELEASENOTES:180-183`) `✓`.
 
-핵심 결정은 하나입니다. **서버는 자기 슬롯이 아닌 키 요청을 대신 처리하지 않습니다.** `getNodeByQuery()` 가 노드를 판정하고 내 것이 아니면 `clusterRedirectClient()` 가 에러 문자열을 되돌립니다 — 두 에러가 완전히 같은 포맷으로 같은 줄에서 만들어집니다.
+**서버는 자기 슬롯이 아닌 키 요청을 대신 처리하지 않습니다.** `getNodeByQuery()` 가 노드를 판정하고 내 것이 아니면 `clusterRedirectClient()` 가 에러 문자열을 되돌립니다 — 두 에러가 완전히 같은 포맷으로 같은 줄에서 만들어집니다.
 
 ```c
 addReplyErrorSds(c, sdscatprintf(sdsempty(), "-%s %d %s:%d",
@@ -65,11 +64,11 @@ if (migrating_slot && missing_keys) {
 
 {{< seq src="_seq/2-moved-와-ask.json" />}}
 
-`ASKING` 은 커넥션 단위 모드가 아닙니다. 클라이언트 플래그를 세우는 것뿐이고(`c->flag.asking = 1`), 소멸 조건이 소스에 명시돼 있습니다 — "MULTI 안이 아니고, 직전에 실행한 것이 ASKING 자신이 아니면 지웁니다"(`valkey 9.1.0:src/networking.c:3345-3346`, `redis 8.10.0:src/networking.c:3050-3056`) `✓`. 즉 **다음 커맨드 1개 전용**이며, MULTI 안에서는 유지되므로 트랜잭션 전체가 한 번의 `ASKING` 으로 커버됩니다. 레거시 `MIGRATE` 가 내부에서 `RESTORE-ASKING` 을 쓰는 것도 같은 이유입니다(`redis 3.0.0:src/cluster.c`) `✓`.
+`ASKING` 은 커넥션 단위 모드가 아닙니다. 클라이언트 플래그를 세우는 것뿐이고(`c->flag.asking = 1`), 소멸 조건이 소스에 명시돼 있습니다 — "MULTI 안이 아니고, 직전에 실행한 것이 ASKING 자신이 아니면 지웁니다"(`valkey 9.1.0:src/networking.c:3345-3346`, `redis 8.10.0:src/networking.c:3050-3056`) `✓`. 플래그는 **다음 커맨드 1개 전용**이며 MULTI 안에서는 유지되므로 트랜잭션 전체가 한 번의 `ASKING` 으로 커버됩니다. 레거시 `MIGRATE` 가 내부에서 `RESTORE-ASKING` 을 쓰는 것도 같은 이유입니다(`redis 3.0.0:src/cluster.c`) `✓`.
 
 **슬롯 맵이 낡으면 클라이언트는 세 단계를 밟습니다.** (1) `MOVED` 를 받으면 그 슬롯만 고치고 끝내지 말고 토폴로지 전체를 재조회합니다 — `MOVED` 하나는 보통 failover 나 리샤딩 완료를 뜻하고 다른 슬롯도 함께 움직였을 확률이 높습니다. (2) 재조회는 `CLUSTER SHARDS`(Redis 7.0+ 권장) 또는 `CLUSTER SLOTS` 로 합니다(§9 — 두 진영의 deprecation 상태가 다릅니다). (3) 갱신 중 들어오는 요청은 리다이렉트 횟수 상한을 두고 재시도합니다. 상한이 없으면 토폴로지가 흔들리는 동안 무한 리다이렉트가 됩니다.
 
-`TRYAGAIN` 은 별종입니다. `-TRYAGAIN Multiple keys request during rehashing of slot` 은 요청 키 중 일부는 아직 source 에 있고 일부는 이미 넘어간 상태에서 나며, **백오프 재시도로 넘길 수 있는 에러가 아닙니다** — 그 슬롯의 이동이 끝날 때까지 그 다중 키 커맨드는 계속 실패합니다(`valkey 9.1.0:src/cluster.c:1268-1290`, `:1187-1191`) `✓`. 이것은 **레거시 키 단위 마이그레이션 고유의 병**이고 §6 의 ASM 에서는 원리상 사라집니다.
+`TRYAGAIN` 은 별종입니다. `-TRYAGAIN Multiple keys request during rehashing of slot` 은 요청 키 중 일부는 아직 source 에 있고 일부는 이미 넘어간 상태에서 나고 **백오프 재시도로 넘길 수 있는 에러가 아닙니다** — 그 슬롯의 이동이 끝날 때까지 그 다중 키 커맨드는 계속 실패합니다(`valkey 9.1.0:src/cluster.c:1268-1290`, `:1187-1191`) `✓`. **레거시 키 단위 마이그레이션 고유의 병**이라 §6 의 ASM 에서는 원리상 사라집니다.
 
 ## 3. 16384 인 이유
 
@@ -77,7 +76,7 @@ antirez 가 2015-05-12 에 직접 답했습니다(`redis/redis` issue #2576, 201
 
 > "Normal heartbeat packets carry the full configuration of a node … they contain the slots configuration for a node, in raw form, that uses 2k of space with 16k slots, but would use a prohibitive 8k of space using 65k slots. … At the same time it is unlikely that Redis Cluster would scale to more than 1000 master nodes because of other design tradeoffs."
 
-소스가 이 숫자를 그대로 못 박아 둡니다.
+소스가 이 숫자를 그대로 적어 뒀습니다.
 
 ```c
 #define CLUSTER_SLOT_MASK_BITS 14
@@ -89,7 +88,7 @@ static_assert(offsetof(clusterMsg, replicaof) == 2128, "unexpected field offset"
 
 2128 − 80 = **2048 바이트**. `valkey 9.1.0:src/cluster.h:9-10`, `:src/cluster_legacy.h:285`, `:303-322` `✓`.
 
-함의는 둘입니다. 첫째, 이 비트맵은 압축되지 않은 raw 이고 노드 쌍마다 주기적으로 흐르므로 노드가 늘면 cluster bus 트래픽이 대략 O(N²) 로 커집니다 `≈` — 1000 primary 를 실무 상한으로 꼽는 이유입니다. 다만 antirez 가 말한 "other design tradeoffs" 가 정확히 무엇인지는 본인도 밝히지 않았고 gossip O(N²) 추정 외의 근거는 확인하지 못했습니다 `?`. 둘째, 필드 오프셋이 `static_assert` 로 잠겨 있으므로 **rolling upgrade 중 서로 다른 버전이 같은 wire format 을 읽어야 한다는 제약을 코드가 강제합니다**(구조체 주석: "fields in this struct should remain at the same offset from release to release") `✓`.
+이 비트맵은 압축되지 않은 raw 이고 노드 쌍마다 주기적으로 흐르므로 노드가 늘면 cluster bus 트래픽이 대략 O(N²) 로 커집니다 `≈` — 1000 primary 를 실무 상한으로 꼽는 이유입니다. 그런데 antirez 가 말한 "other design tradeoffs" 가 무엇인지는 본인도 밝히지 않았고 gossip O(N²) 추정 외의 근거는 확인하지 못했습니다 `?`. 필드 오프셋도 `static_assert` 로 잠겨 있으므로 **rolling upgrade 중 서로 다른 버전이 같은 wire format 을 읽어야 한다는 제약을 코드가 강제합니다**(구조체 주석: "fields in this struct should remain at the same offset from release to release") `✓`.
 
 슬롯 계산은 흔히 `crc16(key) mod 16384` 로 설명하지만 실제 코드는 비트마스크입니다. 16384 가 2의 거듭제곱이라 등가이고 나눗셈이 사라지는 것도 2^14 를 고른 이유 중 하나입니다.
 
@@ -127,7 +126,7 @@ if (!server.cluster_port && port > (65535 - CLUSTER_PORT_INCR)) { /* 기동 거�
 
 `valkey 9.1.0:src/cluster_legacy.c:878-880`, `:1500`, `:1554` `✓`. 오프셋을 벗어난 임의 포트는 Redis 7.0 의 `cluster-port`(IMMUTABLE)로 지정할 수 있습니다(`redis:RELEASENOTES-7.0.0.txt:495,500`). NAT·컨테이너 환경용으로는 `cluster-announce-ip`/`-port`/`-bus-port`/`-hostname` 이 있습니다(`valkey 9.1.0:src/config.c:3323-3328`, `:3404-3406`) `✓`.
 
-운영 함정 셋. (1) 방화벽·SecurityGroup·NetworkPolicy 에 **두 포트를 다 열어야** 합니다 — 6379 만 열고 16379 를 막으면 노드가 서로를 PFAIL 로 보다가 클러스터가 형성되지 않습니다. (2) 데이터 포트가 55535 를 넘으면 기동이 거부되므로 높은 포트를 쓸 때 `cluster-port` 를 명시해야 합니다. (3) **announce 값은 신뢰 경계입니다** — Valkey 9.1.1 이 cluster AUX 필드의 제어문자·구분자를 거부하고 `cluster-announce-ip` 를 검증하도록 고친 이유가 `nodes.conf` injection 방지입니다(`valkey:RELEASENOTES-9.1.1.txt:45`) `✓`.
+운영에서 걸리는 곳. (1) 방화벽·SecurityGroup·NetworkPolicy 에 **두 포트를 다 열어야** 합니다 — 6379 만 열고 16379 를 막으면 노드가 서로를 PFAIL 로 보다가 클러스터가 형성되지 않습니다. (2) 데이터 포트가 55535 를 넘으면 기동이 거부되므로 높은 포트를 쓸 때 `cluster-port` 를 명시해야 합니다. (3) **announce 값은 신뢰 경계입니다** — Valkey 9.1.1 이 cluster AUX 필드의 제어문자·구분자를 거부하고 `cluster-announce-ip` 를 검증하도록 고친 이유가 `nodes.conf` injection 방지입니다(`valkey:RELEASENOTES-9.1.1.txt:45`) `✓`.
 
 버스에 흐르는 것은 PING/PONG/MEET/FAIL 계열이고 장애 판정은 2단계입니다. `cluster-node-timeout`(Valkey 9.1.0 기본 **15000ms**, `valkey 9.1.0:src/config.c:3449`) 동안 PONG 이 없으면 그 노드를 로컬에서 PFAIL 로 찍습니다. gossip 으로 모인 failure report 가 정족수를 넘으면 FAIL 로 승격 + 브로드캐스트합니다.
 
@@ -146,7 +145,7 @@ void markNodeAsFailingIfNeeded(clusterNode *node) {
 
 `valkey 9.1.0:src/cluster_legacy.c:2582-2605`, `:6650-6665` `✓`.
 
-`server.cluster->size` 는 **슬롯을 1개 이상 가진 primary 의 수**입니다(`clusterNodeIsVotingPrimary`). 결과가 세 가지입니다 — (a) replica 를 아무리 늘려도 정족수는 변하지 않습니다, (b) **슬롯을 다 빼낸 primary 는 투표 인원에서 빠지므로** 리샤딩 후 방치한 노드가 정족수를 흔듭니다, (c) 3-shard 클러스터는 size=3·정족수 2 이므로 primary 2대 동시 장애 시 FAIL 판정 자체가 불가능해집니다 `✓`. `cluster-replica-no-failover`(기본 0 = failover 함, `valkey 9.1.0:src/config.c:3287`)를 1 로 두면 그 replica 는 승격을 시도하지 않습니다 — cross-DC 대기 replica 를 의도적으로 묶어둘 때 쓰지만 켜둔 걸 잊으면 장애 시 승격이 안 됩니다 `✓`.
+`server.cluster->size` 는 **슬롯을 1개 이상 가진 primary 의 수**입니다(`clusterNodeIsVotingPrimary`). 그래서 (a) replica 를 아무리 늘려도 정족수는 변하지 않습니다. (b) **슬롯을 다 빼낸 primary 는 투표 인원에서 빠지므로** 리샤딩 후 방치한 노드가 정족수를 흔듭니다. (c) 3-shard 클러스터는 size=3·정족수 2 이므로 primary 2대 동시 장애 시 FAIL 판정 자체가 불가능해집니다 `✓`. `cluster-replica-no-failover`(기본 0 = failover 함, `valkey 9.1.0:src/config.c:3287`)를 1 로 두면 그 replica 는 승격을 시도하지 않습니다 — cross-DC 대기 replica 를 의도적으로 묶어둘 때 쓰지만 켜둔 걸 잊으면 장애 시 승격이 안 됩니다 `✓`.
 
 `cluster-require-full-coverage`(양 진영 기본 **1** = yes, `valkey 9.1.0:src/config.c:3282`, `redis 8.10.0:src/config.c:3310`)의 트레이드오프는 통상 설명과 방향이 다릅니다 `✓`.
 
@@ -174,7 +173,7 @@ void markNodeAsFailingIfNeeded(clusterNode *node) {
 | **커넥션 수 곱셈** | 클라이언트가 노드마다 풀을 따로 유지한다 | `maxclients` 를 클라이언트 인스턴스 수 × 풀 크기 × primary 수(replica 읽기까지 하면 전체 노드 수)로 재산정한다 `≈` |
 | **모듈 + ASM (Valkey)** | `moduleVerifyAllAllowAtomicSlotMigrationOrReply()` 가 전체 모듈을 순회해 **하나라도** `VALKEYMODULE_OPTIONS_HANDLE_ATOMIC_SLOT_MIGRATION` 이 없으면 `CLUSTER MIGRATESLOTS` 를 거부한다. **공식 4개 모듈(search/json/bloom/ldap) 전부 미선언** `✓` | ASM 을 쓰려면 모듈을 로드하지 않은 순수 서버여야 한다. `valkey-bundle` 이미지는 4개를 모두 로드하므로 ASM 이 불가능하다. 운영 중 확인은 `INFO modules` 의 `handle-atomic-slot-migration` 토큰 유무로 한다 |
 
-`per-slot kvstore` 는 이 표의 여러 행을 떠받치는 하부 구조입니다. **왜 만들었나**(메모리·엔진 관점)는 [05 · Valkey 8.0 → 9.1]({{< relref "../05-valkey-8-to-9/index.md" >}})가 소유합니다. cluster 관점에서는 슬롯 단위 순회가 실용적이 됐습니다 — `CLUSTER COUNTKEYSINSLOT`/`GETKEYSINSLOT`, per-slot 메모리 회계(`CLUSTER SLOT-STATS`), 그리고 **§6 의 ASM 이 슬롯을 통째로 떼어내는 동작**이 여기서 나옵니다. `kvstore.c` 자체는 Redis 7.4.0 에 먼저 등장했고 Valkey 8.0.0 이 그것을 이어받았습니다 — 릴리스노트가 출처를 `Redis#12822` 로 명시하므로 "Valkey 가 만든 것"이 아닙니다(`redis 7.4.0:src/kvstore.c:1-10`, `valkey 8.0.0:src/kvstore.c:1-11`, `valkey:RELEASENOTES-8.0.0.txt:361-362`) `✓`. 포크 기점인 7.2.4 에는 없었습니다(`valkey 7.2.4:src/server.h:967-977` — 단일 `dict *dict`) `✓`.
+`per-slot kvstore` 는 이 표의 여러 행을 떠받치는 하부 구조입니다. **왜 만들었나**(메모리·엔진 관점)는 [05 · Valkey 8.0 → 9.1]({{< relref "../05-valkey-8-to-9/index.md" >}})가 소유합니다. cluster 관점에서는 슬롯 단위 순회가 쓸 만해졌습니다 — `CLUSTER COUNTKEYSINSLOT`/`GETKEYSINSLOT`, per-slot 메모리 회계(`CLUSTER SLOT-STATS`), 그리고 **§6 의 ASM 이 슬롯을 통째로 떼어내는 동작**이 여기서 나옵니다. `kvstore.c` 자체는 Redis 7.4.0 에 먼저 등장했고 Valkey 8.0.0 이 이어받았습니다 — 릴리스노트가 출처를 `Redis#12822` 로 명시하므로 "Valkey 가 만든 것"이 아닙니다(`redis 7.4.0:src/kvstore.c:1-10`, `valkey 8.0.0:src/kvstore.c:1-11`, `valkey:RELEASENOTES-8.0.0.txt:361-362`) `✓`. 포크 기점인 7.2.4 에는 없었습니다(`valkey 7.2.4:src/server.h:967-977` — 단일 `dict *dict`) `✓`.
 
 sharded pub/sub 이 7.0 에 추가된 경위와 릴리스 맥락은 [04 · Redis 7.0 → 8.10]({{< relref "../04-redis-7-to-8.md" >}})가 소유합니다(`redis:RELEASENOTES-7.0.0.txt:316,343`).
 
@@ -190,14 +189,14 @@ Redis 가 자기 블로그에서 이 방식의 문제를 6개로 정리했습니
 2. 다중 키 커맨드가 `TRYAGAIN` — "The client could complete this command until the whole slot was migrated"
 3. **중간 실패 시 수동 복구 필요, 종종 데이터 유실**("led to data loss")
 4. replica 가 마이그레이션 중임을 몰라 `ASK` 대신 "그냥 키 없음"으로 응답
-5. 키 단위라 본질적으로 느림(per-key 조회 + RTT)
+5. 키 단위라 원래 느림(per-key 조회 + RTT)
 6. **큰 키 하나가 `MIGRATE` 타임아웃과 양쪽 지연 스파이크**를 유발
 
 그래서 리샤딩은 "안전하지만 느린" 작업이 아니라 **위험하고 느린** 작업이었습니다. 실무에서 리샤딩을 미루고 오버프로비저닝하는 관행이 여기서 나왔습니다 `Σ`. 도구가 서버 밖(`redis-cli --cluster reshard`/`rebalance`)에 있어 실패하면 슬롯이 걸친 상태(`MIGRATING`/`IMPORTING` 잔존)를 사람이 `--cluster fix` 로 풀어야 했습니다.
 
 ### 6.2 Valkey 9.0 atomic slot migration
 
-Valkey 9.0.0(2025-10-21, PR #1949 머지 2025-08-12Z)이 이걸 바꿨습니다. 설계 문서가 원리를 한 줄로 밝힙니다 — "adapting existing replication and failover primitives" `✓`. 새 프로토콜을 만든 것이 아니라 **replication + manual failover 를 슬롯 범위로 좁혀 재사용**합니다.
+Valkey 9.0.0(2025-10-21, PR #1949 머지 2025-08-12Z)이 이걸 바꿨습니다. 설계 문서가 원리를 한 줄로 밝힙니다 — "adapting existing replication and failover primitives" `✓`. 새 프로토콜은 없습니다. **replication + manual failover 를 슬롯 범위로 좁혀 재사용**합니다.
 
 {{< seq src="_seq/6-atomic-slot-migration.json" />}}
 
@@ -229,7 +228,7 @@ Redis 8.4.0(2025-11-18, PR #14414 머지 2025-10-22)의 `CLUSTER MIGRATION` 은 
 
 근거: `redis 8.10.0:src/cluster_asm.c:9-42`, `:901-903`, `:925-1000`; `redis 8.10.0:src/config.c:3433`, `:3465`, `:3466`, `:3467`; `redis 8.10.0:src/cluster.h:32-40`; `valkey 9.1.0:src/cluster.h:21-29`; `valkey 9.1.1:src/valkey-cli.c:2800`, `:4689`; `redis:RELEASENOTES-8.4.0.txt:33,104`; `redis:RELEASENOTES-8.10.0.txt:245` `✓`.
 
-**운영 결론은 넷입니다.** (1) 리샤딩 자동화 스크립트는 커맨드명·인수·실행 노드·조회 커맨드가 전부 달라 **두 진영 호환이 안 됩니다** — 엔진을 갈아탈 때 런북을 다시 씁니다. (2) Redis 는 **같은 CLI 명령이 8.8 이하와 8.10 이상에서 다른 메커니즘으로 동작합니다**. 버전 확인 없이 런북을 재사용하면 안 됩니다. (3) Redis 는 ASM "완료" 후에도 trim 구간에 `-TRYAGAIN Slot is being trimmed` 를 낼 수 있습니다 — 마이그레이션 완료 시점과 에러가 멈추는 시점이 다릅니다. 클라이언트가 이 새 문자열을 재시도 대상으로 인식하지 못하면 애플리케이션 예외가 됩니다 `✓`. (4) trim 은 모듈 미지원이나 `CLIENT TRACKING` 활성 시 메인 스레드 active trimming 으로 폴백합니다 — ASM 이후 지연 스파이크의 숨은 원인입니다 `✓`.
+**운영 결론입니다.** (1) 리샤딩 자동화 스크립트는 커맨드명·인수·실행 노드·조회 커맨드가 전부 달라 **두 진영 호환이 안 됩니다** — 엔진을 갈아탈 때 런북을 다시 씁니다. (2) Redis 는 **같은 CLI 명령이 8.8 이하와 8.10 이상에서 다른 메커니즘으로 동작합니다**. 버전 확인 없이 런북을 재사용하면 안 됩니다. (3) Redis 는 ASM "완료" 후에도 trim 구간에 `-TRYAGAIN Slot is being trimmed` 를 낼 수 있습니다 — 마이그레이션 완료 시점과 에러가 멈추는 시점이 다릅니다. 클라이언트가 이 새 문자열을 재시도 대상으로 인식하지 못하면 애플리케이션 예외가 됩니다 `✓`. (4) trim 은 모듈 미지원이나 `CLIENT TRACKING` 활성 시 메인 스레드 active trimming 으로 폴백합니다 — ASM 이후 지연 스파이크의 숨은 원인입니다 `✓`.
 
 **관측 지표가 ASM 중에 거짓말을 합니다.** importing/trimming 진행 중 `KEYS`·`SCAN`·`RANDOMKEY`·`CLUSTER GETKEYSINSLOT`·`DBSIZE`·`CLUSTER COUNTKEYSINSLOT` 이 미소유 슬롯 키를 **필터링**하지만 `INFO KEYSPACE` 는 실제 키 수(import 중인 것 포함)를 보여줍니다 → 같은 순간 두 값이 불일치합니다. Redis 8.4 릴리스노트는 `FT.SEARCH`/`FT.AGGREGATE`/`TS.MGET`/`TS.MRANGE` 등이 ASM 중 **부분 결과 또는 중복**을 낼 수 있다고 추가로 경고합니다 `✓`.
 
@@ -248,7 +247,7 @@ Redis 가 공개한 수치입니다. 측정 조건: 1000만 키 / 512B 값(약 5
 
 이 수치는 **Redis Ltd 자체 벤치마크**이고 독립 검증 자료를 찾지 못했습니다 `Ⓥ`. 큰 값·존 간·hot slot 편중·모듈 사용 환경에서는 재현되지 않을 수 있습니다 `?`. 그럼에도 방향은 분명합니다 — 리샤딩의 성격이 "수분~수십분짜리 위험 작업"에서 "수초짜리 일상 작업"으로 바뀌면, 오버프로비저닝 대신 실제 스케일링을 전제로 캐패시티 계획을 다시 짤 수 있습니다 `Σ`. 단 **"무중단"이 아니라 "매우 짧은 중단"** 입니다 — handoff 순간에 해당 슬롯 쓰기를 실제로 정지하고 Redis 는 그 시간을 `write_pause_ms` 로 노출합니다.
 
-Valkey 9.1.0 이 ASM 후속으로 **실제로 넣은 것은 둘**입니다 — `CLUSTER GETSLOTMIGRATIONS` 의 `remaining_repl_size` 필드(#3135)와 valkey-cli 의 ASM 경로 지원(#2755)(`valkey:RELEASENOTES-9.1.0.txt:115,129`) `✓`. 흔히 9.1 기능으로 함께 묶어 말하는 **dual-channel atomic slot migration**(#2957, 스냅샷 채널을 자식 프로세스에서 target 으로 직접 write)과 `CLUSTER MIGRATESLOTS` 의 **AUTH/AUTH2 옵션**(#2392, #3538)은 2026-08-06 기준 **전부 open 이고 어떤 릴리스에도 들어가지 않았습니다**(`gh api repos/valkey-io/valkey/issues/{2957,2392,3538}` → 모두 `state: open`) `✓`. ASM 의 export 상태 기계에 `SLOT_EXPORT_SEND_AUTH`/`READ_AUTH_RESPONSE` 가 이미 9.0.0 부터 있으므로 내부 인증 단계 자체는 존재하고 미해결인 것은 **운영자가 자격증명을 설정으로 넣는 경로**입니다 `✓`. `MIGRATE`/`CLUSTER SETSLOT` 기반 레거시 경로는 **제거되지 않았습니다** — ASM 은 opt-in 이고 기존 리샤딩 스크립트는 계속 동작합니다 `✓`.
+Valkey 9.1.0 이 ASM 후속으로 **실제로 넣은 것은 둘**입니다 — `CLUSTER GETSLOTMIGRATIONS` 의 `remaining_repl_size` 필드(#3135)와 valkey-cli 의 ASM 경로 지원(#2755)(`valkey:RELEASENOTES-9.1.0.txt:115,129`) `✓`. 흔히 9.1 기능으로 함께 묶어 말하는 **dual-channel atomic slot migration**(#2957, 스냅샷 채널을 자식 프로세스에서 target 으로 직접 write)과 `CLUSTER MIGRATESLOTS` 의 **AUTH/AUTH2 옵션**(#2392, #3538)은 2026-08-06 기준 **전부 open 이고 어떤 릴리스에도 들어가지 않았습니다**(`gh api repos/valkey-io/valkey/issues/{2957,2392,3538}` → 모두 `state: open`) `✓`. ASM 의 export 상태 기계에 `SLOT_EXPORT_SEND_AUTH`/`READ_AUTH_RESPONSE` 가 이미 9.0.0 부터 있으니 내부 인증 단계 자체는 존재합니다. 미해결인 것은 **운영자가 자격증명을 설정으로 넣는 경로**입니다 `✓`. `MIGRATE`/`CLUSTER SETSLOT` 기반 레거시 경로는 **제거되지 않았습니다** — ASM 은 opt-in 이고 기존 리샤딩 스크립트는 계속 동작합니다 `✓`.
 
 ## 7. Sentinel vs Cluster
 
@@ -264,13 +263,13 @@ Valkey 9.1.0 이 ASM 후속으로 **실제로 넣은 것은 둘**입니다 — `
 | 애플리케이션 제약 | standalone 과 동일 (cross-slot·멀티 DB·`KEYS`·트랜잭션 자유) | §5 전부 |
 | acked write 유실 | 비동기 복제라 가능 | **동일하게 가능** |
 
-판정은 단순합니다. 데이터가 한 노드에 들어가고 §5 의 자유도가 필요하면 **Sentinel**, 메모리·처리량이 한 노드를 넘거나 넘을 예정이면 **Cluster** 입니다 `Σ`. "Cluster 가 Sentinel 을 대체하는가"는 HA 기능 축에서는 그렇습니다. 하지만 **Sentinel 을 쓰던 앱을 Cluster 로 옮기는 것은 HA 방식 교체가 아니라 §5 의 데이터 모델 제약을 애플리케이션에 도입하는 일**이고, 그것이 이 마이그레이션의 실제 비용입니다. 둘 다 비동기 복제라 acked write 유실 가능성은 그대로 남습니다 — Sentinel 문서 원문: "Sentinel + Redis distributed system does not guarantee that acknowledged writes are retained during failures, since Redis uses asynchronous replication" `✓`.
+판정은 단순합니다. 데이터가 한 노드에 들어가고 §5 의 자유도가 필요하면 **Sentinel**, 메모리·처리량이 한 노드를 넘거나 넘을 예정이면 **Cluster** 입니다 `Σ`. "Cluster 가 Sentinel 을 대체하는가"는 HA 기능 축에서는 그렇습니다. 하지만 **Sentinel 을 쓰던 앱을 Cluster 로 옮기는 것은 HA 방식 교체가 아니라 §5 의 데이터 모델 제약을 애플리케이션에 도입하는 일**입니다. 이 마이그레이션의 실제 비용도 거기서 나옵니다. 둘 다 비동기 복제라 acked write 유실 가능성은 그대로 남습니다 — Sentinel 문서 원문: "Sentinel + Redis distributed system does not guarantee that acknowledged writes are retained during failures, since Redis uses asynchronous replication" `✓`.
 
 Sentinel 은 죽은 기능이 아닙니다. Valkey 도 계속 유지·수정합니다(9.1.1 에서 coordinated failover 중 Sentinel crash 수정, #4068, `valkey:RELEASENOTES-9.1.1.txt:32`) `✓`.
 
 ## 8. 클라이언트 라이브러리
 
-`MOVED`/`ASK` 는 **RESP 에러 응답**입니다(`addReplyErrorSds`). 프로토콜 레벨의 특별한 리다이렉트가 아니라 그냥 에러 문자열입니다 `✓`. 그래서 비-cluster 클라이언트로 붙으면 다음이 순서대로 일어납니다.
+`MOVED`/`ASK` 는 **RESP 에러 응답**입니다(`addReplyErrorSds`). 프로토콜이 따로 취급하는 리다이렉트가 아닙니다. 그냥 에러 문자열입니다 `✓`. 그래서 비-cluster 클라이언트로 붙으면 다음이 순서대로 일어납니다.
 
 | 증상 | 원인 | 관측되는 모습 |
 |---|---|---|
@@ -280,7 +279,7 @@ Sentinel 은 죽은 기능이 아닙니다. Valkey 도 계속 유지·수정합�
 | 멀쩡한 `MGET` 이 죽는다 | 다중 키를 슬롯별로 쪼개지 않음 | `-CROSSSLOT` |
 | `maxclients` 소진 | 커넥션 풀이 노드 수만큼 곱해짐 | 스케일아웃 직후 커넥션 고갈 |
 
-**cluster 지원 클래스를 쓰는 것은 선택이 아닙니다.** 각 언어의 주요 클라이언트가 cluster 전용 진입점을 따로 두고 있고 그 진입점이 슬롯 맵 캐시·`MOVED`/`ASK` 구분·`ASKING` 선행·다중 키 분해 재조립을 대신합니다. **구체적 클래스명(redis-py `RedisCluster`, Jedis `JedisCluster`, Lettuce `RedisClusterClient`, ioredis `Cluster`, go-redis `ClusterClient`)은 이번 조사에서 각 라이브러리 문서로 검증하지 않았습니다** `?` — 실제 이름과 최소 버전은 쓰는 라이브러리의 현행 문서에서 확인해야 합니다.
+**cluster 지원 클래스를 쓰는 것은 선택이 아닙니다.** 각 언어의 주요 클라이언트가 cluster 전용 진입점을 따로 둡니다. 그 진입점이 슬롯 맵 캐시·`MOVED`/`ASK` 구분·`ASKING` 선행·다중 키 분해 재조립을 대신합니다. **클래스명(redis-py `RedisCluster`, Jedis `JedisCluster`, Lettuce `RedisClusterClient`, ioredis `Cluster`, go-redis `ClusterClient`)은 이번 조사에서 각 라이브러리 문서로 검증하지 않았습니다** `?` — 실제 이름과 최소 버전은 쓰는 라이브러리의 현행 문서에서 확인해야 합니다.
 
 진영별 공식 클라이언트 정책은 확인했습니다. Redis 는 6개를 공식으로 유지합니다(Jedis, node-redis, redis-py, NRedisStack, go-redis, 그리고 나중에 합류한 Lettuce). Valkey 는 **valkey-glide** 를 공식 다국어 클라이언트로 밀고 있습니다 — Rust 코어(`glide-core`) + 언어 바인딩 구조입니다 `✓`. valkey.io 의 clients 페이지는 glide 외에 valkey-py / iovalkey / valkey-java / valkey-go / valkey-swift 를 "regularly tested and recommended" 로, redisson·phpredis·predis 를 커뮤니티로 분류합니다 `✓`. **glide 의 언어별 버전 숫자와 언어별 cluster 기능 격차(예: `CLUSTERSCAN` 지원 여부)는 확인하지 못했습니다** `?`.
 
@@ -301,7 +300,7 @@ int needed_quorum = (server.cluster->size / 2) + 1;
 if (reachable_primaries < needed_quorum) { new_state = CLUSTER_FAIL; new_reason = CLUSTER_FAIL_MINORITY_PARTITION; }
 ```
 
-`valkey 9.1.0:src/cluster_legacy.c:6606-6680` `✓`. 구멍은 세 군데서 납니다. (1) `cluster-require-full-coverage no` 면 슬롯이 비어 있어도 state 는 `ok` 이고 그 슬롯 요청만 `-CLUSTERDOWN Hash slot not served` 로 실패합니다 — 그리고 `getNodeByQuery()` 는 이 검사를 healthy 검사보다 **먼저** 합니다("This check is done early to preserve historical behavior"). (2) 커버리지 검사가 `CLUSTER_NODE_FAIL` 만 보고 **PFAIL 은 보지 않습니다** → `cluster_slots_pfail > 0` 인데 `cluster_state:ok` 가 정상 출력입니다. (3) `reachable_primaries` 는 **그 노드의 로컬 gossip 시야**로 계산됩니다 — 파티션 양쪽이 서로 다른 답을 냅니다.
+`valkey 9.1.0:src/cluster_legacy.c:6606-6680` `✓`. 구멍은 여기서 납니다. (1) `cluster-require-full-coverage no` 면 슬롯이 비어 있어도 state 는 `ok` 이고 그 슬롯 요청만 `-CLUSTERDOWN Hash slot not served` 로 실패합니다 — 그리고 `getNodeByQuery()` 는 이 검사를 healthy 검사보다 **먼저** 합니다("This check is done early to preserve historical behavior"). (2) 커버리지 검사가 `CLUSTER_NODE_FAIL` 만 보고 **PFAIL 은 보지 않습니다** → `cluster_slots_pfail > 0` 인데 `cluster_state:ok` 가 정상 출력입니다. (3) `reachable_primaries` 는 **그 노드의 로컬 gossip 시야**로 계산됩니다 — 파티션 양쪽이 서로 다른 답을 냅니다.
 
 알럿은 조합으로 걸고 **모든 노드에서 수집해 불일치를 잡습니다** `Σ`.
 
@@ -356,7 +355,7 @@ cluster bus 부하 자체는 Valkey 9.1.0 이 바이트 단위 지표를 추가�
 - Redis Sentinel 문서 — "High availability for non-clustered Redis", 4역할, quorum 의 감지 전용 성격, 비동기 복제 경고
 - valkey.io clients 페이지 · `valkey-io/valkey-glide` · Redis 공식 클라이언트 발표 2건
 - `gh api repos/twitter/twemproxy`, `gh api repos/CodisLabs/codis` (2026-08-06 조회) — 마지막 push 2024-03-29 / 2024-04-15, 양쪽 `archived: false`
-- Valkey ASM 후속 항목의 미출시 확인 — `gh api repos/valkey-io/valkey/issues/{2957,2392,3538}` (2026-08-06 조회) 전부 `state: open`, milestone 없음. 반면 `issues/2755`(valkey-cli ASM) 는 `closed_at: 2025-12-22Z` 로 9.1.0 에 실렸습니다 `✓`
+- Valkey ASM 후속 항목의 미출시 확인 — `gh api repos/valkey-io/valkey/issues/{2957,2392,3538}` (2026-08-06 조회) 전부 `state: open`, milestone 없음. `issues/2755`(valkey-cli ASM) 는 `closed_at: 2025-12-22Z` 로 9.1.0 에 실렸습니다 `✓`
 - Valkey 모듈 ASM opt-in 실측 — `valkey-io/{valkey-search,valkey-json,valkey-bloom,valkey-ldap}` 를 `--depth 1` 클론해 `grep -rn 'ATOMIC_SLOT_MIGRATION'` → 전부 0건. 교차 확인 `gh api "search/code?q=…"` 도 0건. 업스트림도 인지 상태(valkey-ldap #73, valkey-search #473, valkey-json #84 open) `✓`
 
 **미확인으로 남긴 것** — 클라이언트 라이브러리의 정확한 cluster 클래스명과 최소 버전 `?` · valkey-glide 의 언어별 버전과 cluster 기능 격차 `?` · 비-cluster 클라이언트의 실패 비율(2/3 은 균등 분배 가정의 산술 추정) `?` · Redis ASM 벤치마크의 독립 재현 `?` · antirez 가 말한 "other design tradeoffs" 의 내용 `?` · `CLUSTER SYNCSLOTS` 페이로드의 두 진영 wire 호환성(혼합 클러스터는 애초에 지원 대상이 아닙니다) `?` · `cluster-databases` 를 1보다 올렸을 때의 실제 메모리·순회 비용 `?` · 프록시 대안(Envoy Redis proxy 등)이 흡수해주는 제약 범위 `?`

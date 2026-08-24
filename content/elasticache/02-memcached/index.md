@@ -6,10 +6,9 @@ weight: 2
 # 02 · memcached — 같은 문제를 다르게 푼 6년 선배
 
 {{< callout type="info" >}}
-**한눈에**
 - memcached 는 Redis 의 열등한 과거가 아닙니다. "캐시는 캐시여야 한다"를 끝까지 밀어서 Redis 가 갖지 못한 성질(한 프로세스로 코어를 먹는 확장, 느린 커맨드가 존재할 수 없는 지연 예측성, 값을 NVMe 로 내리는 용량 확장)을 얻고 자료구조·영속성·복제·다중 키 원자성을 포기했습니다 `Σ`
-- 첫 커밋(2003-05-27)에는 slab allocator 도 자체 해시 테이블도 없었습니다. `malloc()` + Judy 트라이 + 전역 단일 LRU 였고, slab 은 3일 뒤·자체 해시는 3주 뒤에 **둘 다 파편화 때문에** 들어왔습니다 `✓`
-- slab allocator 의 대가가 calcification 이고, 그것을 갚는 데 21년이 걸렸습니다. 문제 인지 2003-06-24, 첫 공식 해법 1.4.11(2012-01-16), 기본값 승격 1.5.0(2017-07-21), 그리고 **1.6.34(2024-12-22)의 mover 전면 재작성이 "페이지를 옮기면 아이템을 잃는다"는 대가 자체를 제거**했습니다 `✓`
+- 첫 커밋(2003-05-27)에는 slab allocator 도 자체 해시 테이블도 없었습니다. `malloc()` + Judy 트라이 + 전역 단일 LRU 였고 slab 은 3일 뒤·자체 해시는 3주 뒤에 **둘 다 파편화 때문에** 들어왔습니다 `✓`
+- slab allocator 의 대가가 calcification 이고 그것을 갚는 데 21년이 걸렸습니다. 문제 인지 2003-06-24, 첫 공식 해법 1.4.11(2012-01-16), 기본값 승격 1.5.0(2017-07-21), 그리고 **1.6.34(2024-12-22)의 mover 전면 재작성이 "페이지를 옮기면 아이템을 잃는다"는 대가 자체를 제거**했습니다 `✓`
 - LRU 는 HOT/WARM/COLD/TEMP 4단 segmented LRU 이고 1.5.0 부터 기본입니다. Redis 와 근사의 **위치가 반대입니다** — memcached 는 접근 기록을 스레드별 bump buffer 에 비동기로 쌓고 넘치면 버리며, Redis 는 축출 시점에 표본을 뽑습니다(`maxmemory-samples 5`) `✓`
 - 워커 스레드 N개가 각자 이벤트 루프를 돌려 read·parse·execute·write 를 끝냅니다. `-t 16` 한 프로세스가 16코어를 씁니다. Redis 8.10.0 `redis.conf` 는 2026년에도 "Redis is mostly single threaded" 이고 io-threads 는 소켓 읽기·쓰기와 **프로토콜 파싱까지**입니다 — 커맨드 실행은 메인 스레드입니다 `✓`
 - 그 대가가 원자성입니다. 보장 단위가 아이템 하나뿐이라 MULTI/EXEC·Lua·다중 키 트랜잭션에 대응할 방법이 원리적으로 없습니다 `✓`
@@ -42,7 +41,7 @@ version                                   → "VERSION 2.0" 이 하드코딩돼 
 
 없던 것을 보는 게 더 빠릅니다. `incr`/`decr` 는 다음 날(2003-05-28) avva 가 넣었고, `flush_all` 은 2003-12-01, `append`/`prepend`/`cas` 는 2007-10-03, `touch` 는 1.4.8, meta 계열은 1.5.19 입니다 `✓` 이 프로젝트의 헌법은 README 의 한 문장입니다 — "memcached does non-blocking network I/O, but **not disk. (it should never go to disk, or you've lost the whole point of it)**". 이 문장이 있었기 때문에 14년 뒤 extstore(§5)가 얼마나 큰 전환이었는지 알 수 있습니다 `Σ`
 
-메인테이너 이행은 문서로 추적할 수 있습니다. 2003\~2005 는 Brad Fitzpatrick + Anatoly Vorobey(avva) + Evan Martin 이고 2006\~2008 은 Steven Grimm(Facebook)·Dustin Sallings·Trond Norbye(Sun)·Brian Aker 가 대거 참여한 구간입니다. dormando(Alan Kasindorf)의 첫 커밋은 **2007-09-18**, ChangeLog 에 그의 명의가 처음 박히는 것은 **2007-11-19 "Prepping for 1.2.4 release."** 이고 **2011년 이후로는 매년 커밋 1위**입니다 — 2024년 127/139, 2025년 65/75, 2026년 60/76, 1.6.45 는 33 커밋 전부 그 한 사람입니다 `✓` `LICENSE` 의 저작권 표기는 여전히 "Copyright (c) 2003, Danga Interactive, Inc." 이고 2003-06-15 에 GPL 에서 BSD-3 로 바꾼 뒤 **23년간 변경이 없습니다** — Redis 진영의 라이선스 이동([03 · 왜 찢어졌나]({{< relref "../03-license-and-fork.md" >}}))과 대비되는 memcached 의 조용한 자산이고 동시에 **버스 팩터 1** 이라는 부채입니다 `Σ`
+메인테이너 이행은 문서로 추적할 수 있습니다. 2003\~2005 는 Brad Fitzpatrick + Anatoly Vorobey(avva) + Evan Martin 이고 2006\~2008 은 Steven Grimm(Facebook)·Dustin Sallings·Trond Norbye(Sun)·Brian Aker 가 대거 참여한 구간입니다. dormando(Alan Kasindorf)의 첫 커밋은 **2007-09-18**, ChangeLog 에 그의 명의가 처음 박히는 것은 **2007-11-19 "Prepping for 1.2.4 release."** 이고 **2011년 이후로는 매년 커밋 1위**입니다 — 2024년 127/139, 2025년 65/75, 2026년 60/76, 1.6.45 는 33 커밋 전부 그 한 사람입니다 `✓` `LICENSE` 의 저작권 표기는 여전히 "Copyright (c) 2003, Danga Interactive, Inc." 이고 2003-06-15 에 GPL 에서 BSD-3 로 바꾼 뒤 **23년간 변경이 없습니다** — Redis 진영의 라이선스 이동([03 · 왜 찢어졌나]({{< relref "../03-license-and-fork.md" >}}))과 대비되는 memcached 의 자산이자 **버스 팩터 1** 이라는 부채입니다 `Σ`
 
 ## 2. slab allocator — `malloc` 을 버린 대가와 그것을 갚은 21년
 
@@ -50,13 +49,13 @@ version                                   → "VERSION 2.0" 이 하드코딩돼 
 
 현재 구조는 `slabs.c` 헤더 주석이 정의합니다 — "Slabs are up to 1MB in size and are divided into chunks. The chunk sizes start off at the size of the 'item' structure plus space for a small key and value. They increase by a multiplier factor from there, up to half the maximum slab size"(`memcached 1.6.45:slabs.c:1-7`). 기본값은 `factor 1.25` · `chunk_size 48` · `item_size_max 1MB`("The famous 1MB upper limit.", `memcached 1.6.45:memcached.c:240`) · `slab_chunk_size_max 512KB` · 8바이트 정렬입니다 `✓` 시작 청크는 `sizeof(item) + chunk_size` = 48 + 48 = 96바이트고 여기서 1.25배씩 올려 기본 설정에서 **38개 클래스**(96, 120, 152, 192, 240, 304, … 394840)가 만들어집니다 `≈`(소스 기본값으로 계산한 값이며 `-vv` 출력을 관측한 것은 아닙니다). 클래스 상한 `MAX_NUMBER_OF_SLAB_CLASSES` 는 63+1 인데, 이 6비트 제약은 `item->slabs_clsid` 의 **상위 2비트를 LRU 종류에 쓰기 때문**입니다(§3) `✓`
 
-교환 조건이 여기서 확정됩니다. 청크는 항상 요청보다 크므로 **내부 파편화(슬랙)를 구조적으로 안고 가고**, 대신 외부 파편화와 `malloc` 경합이 사라집니다. `factor 1.25` 는 "슬랙 최대 25%"와 "클래스 개수" 사이의 타협값이라, 아이템 크기 분포가 좁으면 `-f` 를 낮춰 슬랙을 줄이는 게 실이득이고 넓으면 클래스 폭증으로 페이지가 낭비됩니다 `Σ` 실측은 `stats slabs` 의 `chunk_size`/`used_chunks`/`free_chunks` 와 `stats sizes`(`-o track_sizes`)로 합니다 `✓`
+교환 조건이 여기서 확정됩니다. 청크는 항상 요청보다 크므로 **내부 파편화(슬랙)를 설계상 안고 가고**, 대신 외부 파편화와 `malloc` 경합이 사라집니다. `factor 1.25` 는 "슬랙 최대 25%"와 "클래스 개수" 사이의 타협값이라, 아이템 크기 분포가 좁으면 `-f` 를 낮춰 슬랙을 줄이는 게 실이득이고 넓으면 클래스 폭증으로 페이지가 낭비됩니다 `Σ` 실측은 `stats slabs` 의 `chunk_size`/`used_chunks`/`free_chunks` 와 `stats sizes`(`-o track_sizes`)로 합니다 `✓`
 
-**1MB 는 고정 상한이 아닙니다.** 주석이 "famous" 라고 부를 만큼 유명해서 상수로 오해되지만 `-I/--max-item-size` 로 조정됩니다. 범위는 `ITEM_SIZE_MAX_LOWER_LIMIT`(1KB)부터 `ITEM_SIZE_MAX_UPPER_LIMIT`(1GB)까지입니다 `✓` 다만 `slab_chunk_size_max`(기본 512KB)를 넘는 아이템은 청크 하나에 안 들어가므로 여러 청크를 **chained** 로 씁니다(1.5.0). 큰 아이템을 담을 수 있다는 것과 담아도 되는 것은 다른 얘기입니다 — 값이 커지면 네트워크와 슬랙이 같이 커지고 캐시 한 대가 큰 아이템 몇 개로 채워집니다 `Σ`
+**1MB 는 고정 상한이 아닙니다.** 주석이 "famous" 라고 부를 만큼 유명해서 상수로 오해되지만 `-I/--max-item-size` 로 조정됩니다. 범위는 `ITEM_SIZE_MAX_LOWER_LIMIT`(1KB)부터 `ITEM_SIZE_MAX_UPPER_LIMIT`(1GB)까지입니다 `✓` 그런데 `slab_chunk_size_max`(기본 512KB)를 넘는 아이템은 청크 하나에 안 들어가므로 여러 청크를 **chained** 로 씁니다(1.5.0). 큰 아이템을 담을 수 있다는 것과 담아도 되는 것은 다른 얘기입니다 — 값이 커지면 네트워크와 슬랙이 같이 커지고 캐시 한 대가 큰 아이템 몇 개로 채워집니다 `Σ`
 
 ### 2.1 calcification — 인지 2003, 해법 2012, 재작성 2024
 
-한 번 어떤 클래스에 배정된 1MB 페이지는 **그 클래스 소유로 굳습니다**. 100바이트 아이템으로 메모리를 채운 뒤 워크로드가 200바이트로 바뀌면, 200바이트 클래스는 페이지가 없어 계속 축출·OOM 하는데 100바이트 클래스는 놀고 있습니다. 이것이 slab calcification 입니다. 해법의 연대기가 곧 memcached 의 성격입니다.
+한 번 어떤 클래스에 배정된 1MB 페이지는 **그 클래스 소유로 굳습니다**. 100바이트 아이템으로 메모리를 채운 뒤 워크로드가 200바이트로 바뀌면, 200바이트 클래스는 페이지가 없어 계속 축출·OOM 하는데 100바이트 클래스는 놀고 있습니다. slab calcification 이라고 부릅니다. 해법의 연대기가 곧 memcached 의 성격입니다.
 
 | 시점 | 버전 | 무엇을 했나 | 남은 대가 |
 |---|---|---|---|
@@ -103,13 +102,13 @@ LRU 종류를 `item->slabs_clsid` 의 상위 2비트에 인코딩하므로 **아
 
 {{< flow src="_flow/4-스레드-per-코어-대-단일-스레드.json" />}}
 
-멀티스레드는 2006-11-22 Steven Grimm(Facebook)의 `--enable-threads` 로 들어왔고 2007-04 에 기본 경로가 됐습니다 `✓` 현재 구조에서 중요한 것은 세 가지입니다.
+멀티스레드는 2006-11-22 Steven Grimm(Facebook)의 `--enable-threads` 로 들어왔고 2007-04 에 기본 경로가 됐습니다 `✓` 현재 구조에서 중요한 것을 짚어 둡니다.
 
-**첫째, 실행이 워커에서 끝납니다.** `settings.num_threads` 기본 4(`-t N`)이고 `memcached_thread_init()` 이 `LIBEVENT_THREAD threads[nthreads]` 를 만들면 각 스레드가 `worker_libevent()`("Worker thread: main event loop", `memcached 1.6.45:thread.c:505-507`)에서 **자기 event base** 를 돌립니다. 메인은 accept 만 하고 `dispatch_conn_new()` → `select_thread_round_robin()` 으로 배분합니다. `settings.num_napi_ids` 가 있으면 `select_thread_by_napi_id(sfd)` 로 **NIC 큐와 워커를 맞춥니다**(1.6.9) `✓`
+**실행이 워커에서 끝납니다.** `settings.num_threads` 기본 4(`-t N`)이고 `memcached_thread_init()` 이 `LIBEVENT_THREAD threads[nthreads]` 를 만들면 각 스레드가 `worker_libevent()`("Worker thread: main event loop", `memcached 1.6.45:thread.c:505-507`)에서 **자기 event base** 를 돌립니다. 메인은 accept 만 하고 `dispatch_conn_new()` → `select_thread_round_robin()` 으로 배분합니다. `settings.num_napi_ids` 가 있으면 `select_thread_by_napi_id(sfd)` 로 **NIC 큐와 워커를 맞춥니다**(1.6.9) `✓`
 
-**둘째, 경쟁은 해시값으로 샤딩됩니다.** `item_lock(hv)` 는 `item_locks[hv & hashmask(item_lock_hashpower)]` 를 잡습니다. 락 테이블 크기는 워커 수로 결정됩니다 — 3 미만 1k, 4 미만 2k, 5 미만 4k, 10 이하 8k, 20 이하 16k, 그 외 32k. 소스 주석이 의도를 적습니다 — "Want a wide lock table, but don't waste memory". 락 테이블이 해시 테이블보다 커지면 **시작 시 에러로 죽습니다** `✓` 나머지 락은 `lru_locks[]`(클래스×LRU 종류), `slabs_lock` 하나, `stats_lock`, `conn_lock` 이고 통계는 per-thread 로 모아 필요할 때만 합산합니다 `✓`
+**경쟁은 해시값으로 샤딩됩니다.** `item_lock(hv)` 는 `item_locks[hv & hashmask(item_lock_hashpower)]` 를 잡습니다. 락 테이블 크기는 워커 수로 결정됩니다 — 3 미만 1k, 4 미만 2k, 5 미만 4k, 10 이하 8k, 20 이하 16k, 그 외 32k. 소스 주석이 의도를 적습니다 — "Want a wide lock table, but don't waste memory". 락 테이블이 해시 테이블보다 커지면 **시작 시 에러로 죽습니다** `✓` 나머지 락은 `lru_locks[]`(클래스×LRU 종류), `slabs_lock` 하나, `stats_lock`, `conn_lock` 이고 통계는 per-thread 로 모아 필요할 때만 합산합니다 `✓`
 
-**셋째, 그래서 지는 지점도 정해집니다.** 아이템 락은 해시값 샤딩이므로 **핫 키 하나는 결국 락 하나에 몰립니다** — 단일 핫 키 워크로드에서는 `-t` 를 올려도 안 늘어납니다 `Σ` 그리고 `-t` 는 코어 수보다 조금 적게 잡습니다. lru_maintainer · lru_crawler · assoc 확장 · logger · slab mover · extstore IO 스레드가 별도로 코어를 먹기 때문입니다 `Σ`
+**그래서 지는 지점도 정해집니다.** 아이템 락은 해시값 샤딩이므로 **핫 키 하나는 결국 락 하나에 몰립니다** — 단일 핫 키 워크로드에서는 `-t` 를 올려도 안 늘어납니다 `Σ` 그리고 `-t` 는 코어 수보다 조금 적게 잡습니다. lru_maintainer · lru_crawler · assoc 확장 · logger · slab mover · extstore IO 스레드가 별도로 코어를 먹기 때문입니다 `Σ`
 
 Redis 쪽 경계는 `redis.conf` 원문이 직접 그어 줍니다 — "Redis is **mostly single threaded**, however there are certain threaded operations such as UNLINK, slow I/O accesses and other things that are performed on side threads"(`redis 8.10.0:redis.conf:1381-1383`), 그리고 io-threads 는 "threads for **reads and protocol parsing**" 까지입니다. 같은 파일이 권하는 스케일 방식도 "spawn multiple instances in order to scale more" 입니다 `✓` Redis 6.0 threaded I/O 의 내부 경계(fan-out/fan-in 배리어)는 [01 · 2009 첫 커밋부터 6.2 까지]({{< relref "../01-origins-and-design/index.md" >}})가, Valkey 8.0 이 그것을 어떻게 바꿨는지는 [05 · Valkey 8.0 → 9.1]({{< relref "../05-valkey-8-to-9/index.md" >}})가 소유합니다.
 
@@ -117,7 +116,7 @@ Redis 쪽 경계는 `redis.conf` 원문이 직접 그어 줍니다 — "Redis is
 
 ### 4.1 해시 테이블 — 확장에 STW 가 없다
 
-스레드 모델을 떠받치는 부품이 인덱스입니다. `assoc.c` 는 `primary_hashtable` 과 `old_hashtable` **두 개를 동시에 유지**합니다. 기본 `HASHPOWER_DEFAULT 16`(65536 버킷), 상한 32 이고 `curr_items > (hashsize(hashpower) * 3) / 2`(**로드 팩터 1.5 초과**)이면 확장이 시작됩니다 `✓` 확장 중 조회·삽입·삭제는 `expanding && (hv & hashmask(hashpower - 1)) >= expand_bucket` 로 분기해 **아직 안 옮긴 구간은 옛 테이블에서, 옮긴 구간은 새 테이블에서** 읽습니다. 실제 이동은 `assoc_maintenance_thread` 가 `hash_bulk_move`(기본 1) 버킷씩 합니다. 소스 주석이 요령을 자랑합니다 — "So we can process expanding with only one item_lock. **cool!**" 새 테이블의 두 후보 버킷이 같은 아이템 락 샤드에 들어가도록 비트를 잡았기 때문입니다 `✓`
+스레드 모델을 떠받치는 부품이 인덱스입니다. `assoc.c` 는 `primary_hashtable` 과 `old_hashtable` **두 개를 함께 유지**합니다. 기본 `HASHPOWER_DEFAULT 16`(65536 버킷), 상한 32 이고 `curr_items > (hashsize(hashpower) * 3) / 2`(**로드 팩터 1.5 초과**)이면 확장이 시작됩니다 `✓` 확장 중 조회·삽입·삭제는 `expanding && (hv & hashmask(hashpower - 1)) >= expand_bucket` 로 분기해 **아직 안 옮긴 구간은 옛 테이블에서, 옮긴 구간은 새 테이블에서** 읽습니다. 실제 이동은 `assoc_maintenance_thread` 가 `hash_bulk_move`(기본 1) 버킷씩 합니다. 소스 주석이 요령을 자랑합니다 — "So we can process expanding with only one item_lock. **cool!**" 새 테이블의 두 후보 버킷이 같은 아이템 락 샤드에 들어가도록 비트를 잡았기 때문입니다 `✓`
 
 대가는 두 곳에 있습니다. 기본 `hash_bulk_move 1` 은 매우 보수적이라 아이템이 수억 개면 확장이 길게 늘어지고 해시 테이블 메모리(`hashsize(hashpower) × 8B` — hashpower 26이면 512MB)는 **`-m` 과 별도로** 잡힙니다 `✓` 그래서 캐시 규모를 알면 `-o hashpower=N` 으로 처음부터 크게 잡는 것이 정석입니다(`--help` 도 "set based on 'STAT hash_power_level'" 로 안내합니다). 감시는 `stats` 의 `hash_power_level`·`hash_is_expanding`·`hash_bytes` 로 합니다. `-o no_hashexpand` 는 help 가 직접 "(dangerous)" 라고 적어 둔 스위치입니다 `✓`
 
@@ -161,7 +160,7 @@ Redis 쪽 경계는 `redis.conf` 원문이 직접 그어 줍니다 — "Redis is
 
 세 개는 별도로 붙여 둡니다.
 
-**extstore 는 영속성이 아닙니다.** 키·메타데이터·해시 테이블은 RAM 에 남고 값만 플래시로 내려가며(RAM 에 12바이트 위치 헤더 + bucket 당 8MB write buffer), 공식 문서가 "**All data is tracked in memory. A restart of memcached effectively empties flash**" 라고 못박습니다 `✓` `ext_item_size` 기본 512B 미만은 안 내립니다. `ext_recache_rate` 로 뜨거운 아이템이 RAM 으로 복귀합니다. `ext_max_frag`(0.9) 기준으로 compaction 이 돕니다. UDP·restartable cache 와 **동시 사용 불가**입니다 `✓`
+**extstore 는 영속성이 아닙니다.** 키·메타데이터·해시 테이블은 RAM 에 남고 값만 플래시로 내려가며(RAM 에 12바이트 위치 헤더 + bucket 당 8MB write buffer), 공식 문서가 "**All data is tracked in memory. A restart of memcached effectively empties flash**" 라고 명시합니다 `✓` `ext_item_size` 기본 512B 미만은 안 내립니다. `ext_recache_rate` 로 뜨거운 아이템이 RAM 으로 복귀합니다. `ext_max_frag`(0.9) 기준으로 compaction 이 돕니다. UDP·restartable cache 와 **동시 사용 불가**입니다 `✓`
 
 **restartable cache 도 영속성이 아닙니다.** `-e /tmpfs_mount/file` 로 아이템 메모리를 mmap 파일에 두고 SIGUSR1 로 종료하면 재시작이 캐시를 물려받습니다(10억 아이템급 2~3분). 그런데 `-m`·최대 아이템 크기·청크 설정·CAS 활성 여부·slab reassign 허용 여부를 **바꾸면 캐시가 통째로 빕니다**. 죽어 있는 동안 시스템 시계가 튀면 `rel_time_t` 기반 TTL 계산이 깨집니다. 무엇보다 "**Deletes, sets, adds, incr/decr/etc commands will be missed while instance restarts**" — 재시작 창의 무효화를 놓칩니다 `✓` 목적은 복구가 아니라 **버전 업그레이드 시 cold cache 회피**이고 stale 을 감당할 수 있는 워크로드에서만 쓸 수 있습니다 `Σ`
 
@@ -169,13 +168,13 @@ Redis 쪽 경계는 `redis.conf` 원문이 직접 그어 줍니다 — "Redis is
 
 ## 6. 내장 proxy — mcrouter 를 서버 바이너리 안으로
 
-memcached 에는 복제도 클러스터 버스도 없으므로(§7) 샤딩은 전통적으로 **클라이언트의 consistent hashing**(ketama 등) 몫이었고 그 위에 mcrouter(Facebook)·twemproxy 같은 별도 라우팅 계층을 얹는 것이 관행이었습니다. 1.6.13(2022-01-12)부터 **같은 바이너리가 프록시 모드로 뜹니다** — `proto_proxy.c` + Lua 설정입니다. 1.6.45 트리의 proxy 파일은 19개(`proxy_config.c`·`proxy_lua.c`·`proxy_network.c`·`proxy_ring_hash.c`·`proxy_jump_hash.c`·`proxy_ratelim.c`·`proxy_tls.c` 등)입니다. 링크에 `vendor/lua/src/liblua.a` 와 `vendor/routelib/routelib.h` 가 들어갑니다 `✓`
+memcached 에는 복제도 클러스터 버스도 없으므로(§7) 샤딩은 전통적으로 **클라이언트의 consistent hashing**(ketama 등) 몫이었고 그 위에 mcrouter(Facebook)·twemproxy 같은 별도 라우팅 계층을 두는 것이 관행이었습니다. 1.6.13(2022-01-12)부터 **같은 바이너리가 프록시 모드로 뜹니다** — `proto_proxy.c` + Lua 설정입니다. 1.6.45 트리의 proxy 파일은 19개(`proxy_config.c`·`proxy_lua.c`·`proxy_network.c`·`proxy_ring_hash.c`·`proxy_jump_hash.c`·`proxy_ratelim.c`·`proxy_tls.c` 등)입니다. 링크에 `vendor/lua/src/liblua.a` 와 `vendor/routelib/routelib.h` 가 들어갑니다 `✓`
 
 하는 일은 라우팅입니다 — 공식 문서 표현으로 "forwards cache requests to pools of backends that you define" 입니다. 클라이언트는 엔드포인트 하나만 알면 됩니다. 키 프리픽스·TCP 포트·핸들러 인자로 경로를 정하고, 백엔드 풀에 consistent hashing 으로 분배하고, **pool → set → zone 계층으로 failover 우선순위**를 구성합니다. 텍스트·meta 프로토콜 모두 지원합니다. 관측은 `watch` 의 proxy 전용 채널 세 개(`proxyreqs`·`proxyevents`·`proxyuser`)와 `proxy_ustats.c` 의 사용자 정의 카운터로 합니다 `✓` 도입 버전이 두 개로 읽히는 이유도 여기 있습니다 — 코드가 처음 릴리스에 들어간 것은 1.6.13("non production ready" 명시)입니다. **공식 문서가 안내하는 기준선은 API v2·routelib 가 들어온 1.6.23** 입니다 `✓`
 
-**그래도 이것은 복제가 아닙니다.** 백엔드 사이에 데이터 동기화가 없으므로 노드가 죽으면 그 데이터는 여전히 사라집니다 `✓` 그리고 두 가지 경고가 붙습니다. `configure.ac` 는 1.6.45 에서도 proxy 를 `EXPERIMENTAL` 로 표기하고 기본 빌드에 넣지 않습니다 — **배포판 패키지로는 못 쓰고 직접 빌드해야 합니다** `✓` 또 2026년 보안·크래시 수정이 **proxy 코드에 몰려 있습니다**(1.6.42 버퍼 언더플로, 1.6.44 대용량 값 오버플로, 1.6.45 의 33 커밋 중 절대다수가 `proxy:` 접두사). 신뢰 경계 밖에 노출하는 구성은 아직 이르고 켠다면 패치 추적이 상시 업무가 됩니다 `Σ`
+**그래도 이것은 복제가 아닙니다.** 백엔드 사이에 데이터 동기화가 없으므로 노드가 죽으면 그 데이터는 여전히 사라집니다 `✓` 경고도 붙습니다. `configure.ac` 는 1.6.45 에서도 proxy 를 `EXPERIMENTAL` 로 표기하고 기본 빌드에 넣지 않습니다 — **배포판 패키지로는 못 쓰고 직접 빌드해야 합니다** `✓` 또 2026년 보안·크래시 수정이 **proxy 코드에 몰려 있습니다**(1.6.42 버퍼 언더플로, 1.6.44 대용량 값 오버플로, 1.6.45 의 33 커밋 중 절대다수가 `proxy:` 접두사). 신뢰 경계 밖에 노출하는 구성은 아직 이르고 켠다면 패치 추적이 상시 업무가 됩니다 `Σ`
 
-커넥션 수가 문제라서 UDP 를 떠올린다면 그 길은 이미 닫혀 있습니다 — **UDP 포트는 1.5.6(2018-02-27)부터 기본 off** 이고(`dbb7a8a` "disable UDP port by default"), extstore 와 병용도 불가하며, `protocol.txt` 자체가 "실패해도 되는 연산에만" 쓰라고 못박습니다. 2026년의 답은 proxy 나 커넥션 풀링입니다 `✓`
+커넥션 수가 문제라서 UDP 를 떠올린다면 그 길은 이미 닫혀 있습니다 — **UDP 포트는 1.5.6(2018-02-27)부터 기본 off** 이고(`dbb7a8a` "disable UDP port by default"), extstore 와 병용도 불가하며, `protocol.txt` 자체가 "실패해도 되는 연산에만" 쓰라고 정해 뒀습니다. 2026년의 답은 proxy 나 커넥션 풀링입니다 `✓`
 
 ## 7. Redis 와의 구조 대비 — 이 문서의 결론표
 
@@ -207,13 +206,13 @@ memcached 에는 복제도 클러스터 버스도 없으므로(§7) 샤딩은 �
 
 ### 이기는 자리
 
-**① 순수 캐시 워크로드에서 CPU 가 아니라 NIC 가 병목이 됩니다.** ScyllaDB 의 3자 벤치마크(2024-10-08, i4i.4xlarge 16 vCPU, memcached 1.6.25, 14 스레드 pin)는 RAM-only read 에서 **3M GET/s** 로 "fully maximizing AWS NIC bandwidth (25 Gbps)", p99.999 < 1ms 를 보고합니다 `Ⓑ`(발행 주체가 경쟁 제품 벤더라는 점, 측정 조건이 위와 같다는 점을 함께 읽어야 합니다). dormando 자체 측정은 Xeon 32코어에서 순수 RAM multiget **18M keys/s** 입니다 `Ⓥ`(2018-06-12, 자체 블로그). **memcached 와 Redis 를 같은 하드웨어에서 1:1 로 측정한 1차 출처는 없습니다** — 그래서 배수 주장은 하지 않고, 구조적 근거(§4)만 씁니다 `?`
+**① 순수 캐시 워크로드에서 CPU 가 아니라 NIC 가 병목이 됩니다.** ScyllaDB 의 3자 벤치마크(2024-10-08, i4i.4xlarge 16 vCPU, memcached 1.6.25, 14 스레드 pin)는 RAM-only read 에서 **3M GET/s** 로 "fully maximizing AWS NIC bandwidth (25 Gbps)", p99.999 < 1ms 를 보고합니다 `Ⓑ`(발행 주체가 경쟁 제품 벤더라는 점, 측정 조건이 위와 같다는 점을 함께 읽어야 합니다). dormando 자체 측정은 Xeon 32코어에서 순수 RAM multiget **18M keys/s** 입니다 `Ⓥ`(2018-06-12, 자체 블로그). **memcached 와 Redis 를 같은 하드웨어에서 1:1 로 측정한 1차 출처는 없습니다** — 그래서 배수 주장은 하지 않고 구조 근거(§4)만 씁니다 `?`
 
 **② extstore 는 캐시 용량을 DRAM 가격이 아니라 NVMe 가격으로 삽니다.** dormando 의 측정(2018-06-12, Xeon 32코어 / 192GB RAM / Optane 750GB, **IO 스레드 4개·클라이언트 4개**)은 Optane **230k ops/s**(레이턴시 10μs 대), SSD **40k ops/s**(100μs\~1ms)입니다. 비용 근거는 "DRAM costs are 3-4x Optane, and 4-8x SSD" → RAM 지출 1/3, 워크로드에 따라 총비용 최대 80% 절감입니다 `Ⓥ` 3자 측정(ScyllaDB, 2024-10-08, i4i.4xlarge, memcached 1.6.25, **extstore IO 스레드 32개**)은 1KB 값 **182k GET/s**(개별 요청, P99 < 1ms), 8KB 값 **105k GET/s** 입니다 `Ⓑ` 조건이 좁습니다 — 값이 키보다 훨씬 커야 하고(`ext_item_size` 기본 512B 미만은 안 내려갑니다), 저장 효율 기대치가 80\~90% 이고, 파이프라인 구성에서는 P99 가 3\~5ms 로 올라갑니다. **sub-ms SLO 경로에는 못 씁니다** `Σ` 오픈소스 Redis 에는 동등 기능이 없습니다 — 릴리스노트 7.x/8.x 전체와 `redis 8.10.0:redis.conf` 에 `flash`/`tiering` 계열 문자열이 0건이고 Redis on Flash 는 Redis Software 문서 경로에만 있는 상용 기능입니다 `✓`
 
-**③ 아이템당 메타데이터가 얇습니다 — 48B, CAS 포함 56B.** `struct _stritem` 을 세면 그대로 나오고(`memcached 1.6.45:memcached.h:613-636`), 레포에 이 값을 찍는 전용 툴 `sizes.c` 가 있습니다 `✓` 다만 "얇다"는 **헤더가 얇다**는 뜻이고 총 오버헤드가 작다는 뜻이 아닙니다 — 키 20B + 값 100B + CAS 는 `48+8+20+1+100 = 177B` 라서 **192B 청크**에 담기고 순수 데이터 120B 대비 **오버헤드 60%** 입니다 `≈` 값이 1KB 면 1184B 청크로 약 15% 입니다 `≈` 그래서 작은 값 위주 워크로드에서는 `-f` 를 낮추고, 값을 묶고, 필요하면 `-C` 로 CAS 8B 를 뺍니다(단 restartable cache 와의 호환에 영향) `Σ`
+**③ 아이템당 메타데이터가 얇습니다 — 48B, CAS 포함 56B.** `struct _stritem` 을 세면 그대로 나오고(`memcached 1.6.45:memcached.h:613-636`), 레포에 이 값을 찍는 전용 툴 `sizes.c` 가 있습니다 `✓` "얇다"는 **헤더가 얇다**는 뜻이지 총 오버헤드가 작다는 뜻이 아닙니다 — 키 20B + 값 100B + CAS 는 `48+8+20+1+100 = 177B` 라서 **192B 청크**에 담기고 순수 데이터 120B 대비 **오버헤드 60%** 입니다 `≈` 값이 1KB 면 1184B 청크로 약 15% 입니다 `≈` 그래서 작은 값 위주 워크로드에서는 `-f` 를 낮추고, 값을 묶고, 필요하면 `-C` 로 CAS 8B 를 뺍니다(단 restartable cache 와의 호환에 영향) `Σ`
 
-**④ 지연이 예측 가능합니다.** 전체를 멈추는 커맨드가 없고, 백그라운드 작업은 전부 스레드로 분리된 뒤 백오프합니다 — lru_maintainer 는 1ms~1s 슬립을 `backoff_juggles` 로 증감하고(주석: "1000 loops with 1ms min sleep gives us under 1m items shifted/sec. **The locks can't handle much more than that**"), crawler 는 할 일이 없으면 최대 1시간까지 물러나고, 해시 확장은 STW 없이 두 테이블을 동시에 서비스합니다(§4.1) `✓` "느린 커맨드가 없다"는 것은 커맨드 표면이 좁다는 사실의 결과입니다. 대신 배경 작업의 진척을 지표로 봐야 합니다 `Σ`
+**④ 지연이 예측 가능합니다.** 전체를 멈추는 커맨드가 없고 백그라운드 작업은 전부 스레드로 분리된 뒤 백오프합니다 — lru_maintainer 는 1ms~1s 슬립을 `backoff_juggles` 로 증감하고(주석: "1000 loops with 1ms min sleep gives us under 1m items shifted/sec. **The locks can't handle much more than that**"), crawler 는 할 일이 없으면 최대 1시간까지 물러나고, 해시 확장은 STW 없이 두 테이블을 같이 서비스합니다(§4.1) `✓` "느린 커맨드가 없다"는 것은 커맨드 표면이 좁다는 사실의 결과입니다. 대신 배경 작업의 진척을 지표로 봐야 합니다 `Σ`
 
 **⑤ 운영 표면적이 작습니다.** 프로세스 1개, 설정 파일 없이 CLI 플래그, 복제·AOF/RDB·클러스터 버스·Sentinel 없음 — **틀릴 수 있는 것이 적습니다.** 최소 구성(사설망 + 텍스트/meta, proxy·SASL·TLS·extstore 미사용)이면 2026년 보안 릴리스가 건드린 표면(proxy·binprot·auth)을 거의 스치지 않습니다 `Σ`
 
@@ -248,4 +247,3 @@ memcached 에는 복제도 클러스터 버스도 없으므로(§7) 샤딩은 �
 - 3자 측정: ScyllaDB "ScyllaDB and Memcached"(2024-10-08) — i4i.4xlarge, memcached 1.6.25, 14 스레드 pin. 벤더 발행물이므로 조건과 함께만 인용했습니다.
 - 미확인으로 남긴 것: Redis 의 아이템당 메모리 오버헤드를 memcached 의 48/56B 와 1:1 로 대응시킬 1차 출처 `?` · memcached 와 Redis 를 동일 하드웨어에서 비교한 1차 벤치마크 `?` · proxy 가 "production ready" 로 선언된 버전(`configure.ac` 는 1.6.45 에서도 EXPERIMENTAL) `?` · restartable cache 의 DAX/persistent memory 경로가 Optane PMEM 단종 이후에도 실용적인지 `?` · ElastiCache for Memcached 의 날짜 박힌 EOL 캘린더 `?` · 1.6.42 보안 수정의 CVE 매핑(릴리스노트가 개별 부여하지 않았습니다) `?`
 - 챕터 전체 URL 목록은 [99 · 출처]({{< relref "../99-sources.md" >}})가 모읍니다.
-

@@ -8,19 +8,17 @@ cascade:
 # 커넥션 게이트웨이 — 링이 필요한 순간과 필요 없는 순간
 
 {{< callout type="info" >}}
-**한눈에**
-
 - **링이 필요한지는 규모가 아니라 "누가 연결을 거느냐"가 정합니다.** 클라이언트가 걸면 로드밸런서가 소유권을 이미 정해버려서 파드끼리 나눌 것이 없습니다. 파드가 걸어야 소유권이 파드들의 문제가 되고 그때 비로소 링이 값을 합니다.
 - **재개 보장(Last-Event-ID)을 요구하는 순간 링이 필요할 이유는 대부분 사라집니다.** 이벤트가 파드 밖에 남아야 하니 "이 단말의 상태를 누가 들고 있나"를 물을 일이 없어집니다. Loki ingester가 링을 쓰는 것도 팬아웃 때문이 아닙니다. **flush 전 chunk가 그 파드 메모리에만 있어서**입니다.
-- **API Gateway WebSocket API의 `Connection duration for WebSocket API: 2 hours`는 상향할 수 없습니다**([공식 쿼터 표](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-execution-service-websocket-limits-table.html)). 상시 연결을 전제하는 POS 워크로드와 어긋나는 지점이 여기입니다.
+- **API Gateway WebSocket API의 `Connection duration for WebSocket API: 2 hours`는 상향할 수 없습니다**([공식 쿼터 표](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-execution-service-websocket-limits-table.html)). 상시 연결을 전제하는 POS 워크로드와 여기서 어긋납니다.
 - **비용은 떠나는 이유가 못 됩니다.** 5만 대를 한 달 내내 붙여둬도 connection-minutes는 2,160M × $0.25 = **월 $540** 수준입니다. "API GW가 비싸서"로 논거를 세우면 검토가 첫 질문에서 무너집니다.
 - **`hash % membersCount`는 링이 아닙니다.** vmagent가 쓰는 방식이 바로 이것입니다([문서](https://docs.victoriametrics.com/victoriametrics/vmagent/)). **죽은 멤버의 몫은 아무도 인수하지 않고** 대신 `replicationFactor`로 미리 중복 스크랩해 덮습니다. "죽은 몫을 살아있는 파드가 주워간다"는 요구가 있으면 이 방식은 못 씁니다.
-- **링은 배정을 나눌 뿐 상호배제를 보장하지 않습니다.** Thanos 문서가 *"not all object storage providers implement a safe locking mechanism, you need to ensure on your own that only a single Compactor is running against a single stream"*라고 못박는 이유입니다([compact.md](https://thanos.io/tip/components/compact.md/)). 중복 실행이 사고가 되는 설계라면 링 위에 lease가 따로 필요합니다.
+- **링은 배정을 나눌 뿐 상호배제를 보장하지 않습니다.** Thanos 문서가 *"not all object storage providers implement a safe locking mechanism, you need to ensure on your own that only a single Compactor is running against a single stream"*라고 명시하는 이유입니다([compact.md](https://thanos.io/tip/components/compact.md/)). 중복 실행이 사고가 되는 설계라면 링 위에 lease가 따로 필요합니다.
 - **커넥션 게이트웨이 자체는 Deployment로 충분합니다.** StatefulSet은 "안정적 ordinal이 샤드 배정을 고정한다"는 값을 줄 때만 의미가 있고 그 값은 파드가 거는 분기에서만 생깁니다.
 - **SSE에는 WebSocket에 없는 표준 필드가 하나 있습니다 — `retry:`.** 종료 직전에 커넥션마다 jitter를 섞어 재연결 지연을 지정할 수 있습니다. 5만 대 재접속 폭풍을 프로토콜 레벨에서 분산하는 유일한 수단입니다.
 {{< /callout >}}
 
-**왜 이 도메인인가.** 출발점은 "POS 단말 1만~5만 대에 중앙에서 푸시하는 게이트웨이를 Kotlin으로 만들고, AWS API Gateway WebSocket에서 자체 SSE로 옮긴다"는 구체적 과제입니다. 그런데 이 과제가 던지는 질문 — *파드들끼리 어떻게 상태를 나눠 갖나, 죽은 파드의 몫은 누가 줍나, StatefulSet이어야 하나* — 은 관측성 스택들이 이미 각자 다른 답을 낸 문제입니다. 이 도메인은 **그 답들이 각각 어떤 전제 위에 서 있는지를 먼저 해부하고 그 전제가 우리에게 있는지를 판정합니다.** 링을 만들기 전에 링이 필요한지부터 따지는 것이 목적입니다.
+**왜 이 도메인인가.** 출발점은 "POS 단말 1만~5만 대에 중앙에서 푸시하는 게이트웨이를 Kotlin으로 만들고, AWS API Gateway WebSocket에서 자체 SSE로 옮긴다"는 구체적 과제입니다. 그런데 이 과제에서 나오는 질문 — *파드들끼리 어떻게 상태를 나눠 갖나, 죽은 파드의 몫은 누가 줍나, StatefulSet이어야 하나* — 은 관측성 스택들이 이미 각자 다른 답을 낸 문제입니다. 이 도메인에서는 **그 답들이 각각 어떤 전제 위에 서 있는지를 먼저 해부하고 그 전제가 우리에게 있는지를 판정합니다.** 링을 만들기 전에 링이 필요한지부터 따지는 것이 목적입니다.
 
 ## 이 도메인이 다루는 워크로드
 

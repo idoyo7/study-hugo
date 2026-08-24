@@ -7,7 +7,7 @@ weight: 15
 {{< callout type="info" >}}
 **이 문서의 범위**
 
-- AZ grouping에 앞서 NodePool별 disruption budget이 독립된 MultiNode 후보 탐색으로 이어지게 만드는 최소 변경계획입니다.
+- AZ grouping에 앞서 NodePool별 disruption budget이 독립된 MultiNode 후보 탐색으로 이어지게 만드는 최소 변경 계획입니다.
 - 기존 `Cluster` 동작은 기본값으로 그대로 두고 그 위에 `NodePool` coverage를 opt-in으로 추가합니다.
 - source 후보만 같은 NodePool로 제한하고 replacement NodePool과 기존 destination node는 기존 scheduler 동작을 유지합니다.
 - Pool별 command를 전부 병렬 실행하지는 않습니다. 유효한 결과 중 하나만 선택합니다.
@@ -15,7 +15,7 @@ weight: 15
 
 ## 1. 목표
 
-각 NodePool의 잔여 disruption budget 안에서 MultiNode consolidation이 **독립된 후보 묶음 하나를 실제로 simulation할 기회**를 갖게 하는 것이 목표입니다.
+각 NodePool이 잔여 disruption budget 안에서 독립된 후보 묶음 하나를 실제로 simulation할 기회를 갖게 하는 것이 목표입니다.
 
 > 한 NodePool의 후보가 다른 NodePool 후보와 같은 전역 prefix에 섞였다는 이유로 해당 Pool 안에서 가능한 MultiNode consolidation이 평가조차 되지 않는 상황을 없앱니다.
 
@@ -99,7 +99,7 @@ destination existing    = 클러스터 전체
 replacement NodePool    = 전체 managed NodePool에서 scheduler 선택
 ```
 
-핵심 알고리즘은 먼저 생성자 option으로 구현해 검토하고 승인 후에 CLI/env/Helm 연결을 별도 커밋으로 붙입니다.
+핵심 알고리즘은 먼저 생성자 option으로 구현해 검토합니다. 승인 후에 CLI/env/Helm 연결을 별도 커밋으로 붙입니다.
 
 ## 5. Pool별 후보와 winner
 
@@ -116,11 +116,11 @@ Pool별 유효 command 비교:
 3. Pool disruption cost 오름차순
 4. NodePool 이름 오름차순
 
-마지막 항목인 NodePool 이름이 map iteration에 따른 비결정성을 제거하는 최종 tie-breaker입니다.
+마지막 항목인 NodePool 이름은 map iteration 순서 때문에 결과가 흔들리는 것을 막는 최종 tie-breaker입니다.
 
 ## 6. timeout과 consolidated 상태
 
-Pool마다 1분 timeout을 따로 만들면 Pool 수만큼 reconcile이 늘어날 수 있습니다. 그래서 전체 탐색에는 기존 1분 deadline 하나만 만들고 모든 Pool이 이를 공유합니다.
+Pool마다 1분 timeout을 따로 만들면 Pool 수만큼 reconcile이 늘어날 수 있습니다. 그래서 전체 탐색에는 기존 1분 deadline 하나만 두고 모든 Pool이 공유합니다.
 
 ```text
 전체 1분
@@ -228,8 +228,8 @@ karpenter_voluntary_disruption_failed_validations_total{consolidation_type="mult
 
 - eligible 후보가 2 미만이면 grouping보다 후보 자격과 `consolidateAfter`가 먼저입니다.
 - 실효 budget이 2 미만이면 MultiNode가 성립하지 않습니다.
-- timeout이 증가한다면 Pool별 순차 simulation 비용을 먼저 제어해야 합니다.
-- failed validation만 높다면 후보 탐색보다 15초 동안의 churn이나 budget 변화가 핵심일 수 있습니다.
+- timeout이 늘어난다면 Pool별 순차 simulation 비용부터 잡아야 합니다.
+- failed validation만 높다면 후보 탐색보다 15초 동안의 churn이나 budget 변화를 먼저 봐야 합니다.
 
 ## 11. 구현 전 피드백 항목
 

@@ -6,13 +6,12 @@ weight: 4
 # 04 · Redis 7.0 → 8.10 — 그리고 9 는 왜 없나
 
 {{< callout type="info" >}}
-**한눈에**
-- Redis 에 9 는 없습니다. `redis/redis` 에 `9*` 태그가 하나도 없고, 숫자 브랜치는 `8.10` 이 끝이며, 마일스톤 목록에 `9.0` 이 없고, 8.10 GA 이후에도 `unstable` 의 `src/version.h` 는 여전히 `8.9.241` 입니다 `✓`. 9.0 계획을 공표한 문서는 찾지 못했습니다 — 9 를 기다려 업그레이드를 미루는 것은 근거 없는 유예입니다 `Σ`.
+- Redis 에 9 는 없습니다. `redis/redis` 에 `9*` 태그가 하나도 없습니다. 숫자 브랜치는 `8.10` 이 끝이고 마일스톤 목록에도 `9.0` 이 없습니다. 8.10 GA 이후에도 `unstable` 의 `src/version.h` 는 여전히 `8.9.241` 입니다 `✓`. 9.0 계획을 공표한 문서는 찾지 못했습니다 — 9 를 기다려 업그레이드를 미루는 것은 근거 없는 유예입니다 `Σ`.
 - "8.1·8.3·8.5 가 스킵됐다" 는 오해입니다. 홀수 마이너는 프리릴리스 전용 번호입니다 — 8.0 의 RC1 은 `7.9.240`, 8.10 의 RC1 은 `8.9.240` 으로 실재합니다 `✓`. GA 는 짝수만 나옵니다(8.0 → 8.2 → 8.4 → 8.6 → 8.8 → 8.10).
 - 8.0 은 기능 릴리스가 아니라 제품 경계의 재편입니다. 이름(Community Edition → Open Source) · 라이선스(AGPLv3 추가) · 번들 구성(Redis Stack 흡수)이 한 릴리스에 겹쳤습니다 `✓`. 그 "core 통합" 은 빌드 시 각 모듈 upstream 을 `git clone` 해 `.so` 로 만들고 `loadmodule` 로 싣는 번들입니다 — 바이너리 내장이 아닙니다(`redis 8.0.0:modules/common.mk:34`) `✓`.
 - 8.6 이후로 롤백 창이 닫혔습니다. RDB_VERSION 이 7.4~8.4 구간 12 로 고정이었다가 8.6=13 · 8.8=14 · 8.10=15 로 매 릴리스 올라갑니다(`redis 8.10.0:src/rdb.h:21`) `✓`. "가볍게 올려보고 안 되면 내리자" 가 8.6 부터 성립하지 않습니다.
 - Redis 는 "LTS" 라는 말을 쓰지 않습니다. Standard(다음 마이너 후 6개월) / Extended(5년)이고 8.x 중 Extended 는 8.2 하나뿐(EOL 2030-09-01)입니다. 8.0 은 2026-12-01 에 끝납니다 `✓`. 최신인 8.10 은 지원 표에 아직 등재조차 되지 않았습니다 — 장기 지원을 전제하면 안 됩니다.
-- "87% 빠르다" 는 분포의 최댓값입니다. 정확히는 7.2.5 대비 149개 테스트 중 90개 개선, p50 감소폭 5.4%~87.4%, 중앙값 16.7% `Ⓥ`. "2배 처리량" 은 `io-threads=8` + multi-core Intel 조건이고 기본값은 `io-threads 1` 입니다(`redis 8.10.0:src/config.c:3396` — 8.10.0 까지 `IMMUTABLE_CONFIG`) `✓`.
+- "87% 빠르다" 는 분포의 최댓값입니다. 실제 수치는 7.2.5 대비 149개 테스트 중 90개 개선, p50 감소폭 5.4%~87.4%, 중앙값 16.7% `Ⓥ`. "2배 처리량" 은 `io-threads=8` + multi-core Intel 조건이고 기본값은 `io-threads 1` 입니다(`redis 8.10.0:src/config.c:3396` — 8.10.0 까지 `IMMUTABLE_CONFIG`) `✓`.
 - 9 를 찾는 사람은 대개 Valkey 를 보고 있습니다. Valkey 는 홀수 마이너를 정식 GA 로 쓰고(8.1 · 9.1) 9.0.0 이 2025-10-21 에 나왔습니다 — Redis 의 짝수 전용 케이던스와 정반대입니다 `✓`. → [05]({{< relref "05-valkey-8-to-9/index.md" >}})
 {{< /callout >}}
 
@@ -22,7 +21,7 @@ weight: 4
 
 ## 1. 한눈에 — 7.0 부터 8.10 까지
 
-읽는 순서를 미리 정하면 이렇습니다. 7.0 은 파괴적 변경이 네 겹으로 겹친 유일한 마이너입니다. 7.2 는 조용하고 7.4 는 자료형 하나를 바꿉니다. 8.0 은 제품 경계가 바뀌고, 8.2 이후는 "기능은 계속 늘지만 롤백이 막히는" 구간입니다.
+읽는 순서를 미리 정하면 이렇습니다. 7.0 은 파괴적 변경이 네 겹으로 겹친 유일한 마이너입니다. 7.2 는 변화가 적고 7.4 는 자료형 하나를 바꿉니다. 8.0 은 제품 경계가 바뀌고 8.2 이후는 "기능은 계속 늘지만 롤백이 막히는" 구간입니다.
 
 | 버전 | 릴리스일 | 대표 변화 | RDB | 라이선스 | 지원 타입 |
 |---|---|---|---|---|---|
@@ -39,7 +38,7 @@ weight: 4
 
 날짜에 함정이 하나 있습니다. 7.4 이후 구간에서 `git log -1 <tag>` 가 찍는 author date 가 릴리스일과 다릅니다 — 7.4.0 은 author date 2024-07-28 / 릴리스 2024-07-29, 8.6.0 은 2026-02-08 / 2026-02-10 입니다 `✓`. 태그 객체 종류 때문이 아닙니다 — Redis 태그는 2.6.0~6.0.0 이 annotated, 6.2.0 이후는 전부 lightweight 이고(`git cat-file -t refs/tags/<tag>`), lightweight 에서 `creatordate` 는 가리키는 커밋의 committer date 를 따릅니다. 즉 벌어지는 것은 author date 와 committer date 이고 7.2.0 까지는 그 둘이 같아서 함정이 드러나지 않았습니다 `✓`. 인터넷에 떠도는 "7.4.0 = 2024-07-28" 은 author date 를 릴리스일로 인용한 결과입니다.
 
-지원 표에는 한 줄이 더 있습니다. 6.2 는 Extended 로 EOL 2027-04-01 입니다. 실제로 2026-07-23 에 6.2.23 / 7.2.15 / 7.4.10 / 8.2.8 / 8.4.5 / 8.6.5 / 8.8.1 이 하루에 동시 릴리스됐습니다 `✓`. 이 웨이브에 8.0.x 만 없습니다(8.0.6 이 2026-02-22 로 마지막) — Standard 인 8.0 은 이미 유지보수 종료 국면이고, 표에 적힌 정책이 말뿐이 아니라는 증거도 됩니다.
+지원 표에는 한 줄이 더 있습니다. 6.2 는 Extended 로 EOL 2027-04-01 입니다. 실제로 2026-07-23 에 6.2.23 / 7.2.15 / 7.4.10 / 8.2.8 / 8.4.5 / 8.6.5 / 8.8.1 이 하루에 동시 릴리스됐습니다 `✓`. 이 웨이브에 8.0.x 만 없습니다(8.0.6 이 2026-02-22 로 마지막) — Standard 인 8.0 은 이미 유지보수 종료 국면이고 표에 적힌 정책이 말뿐이 아니라는 증거도 됩니다.
 
 ## 2. 7.0 (2022-04-27) — 프로그래머빌리티의 소유권이 옮겨간다
 
@@ -49,11 +48,11 @@ weight: 4
 
 `FUNCTION LOAD` / `FCALL` / `FCALL_RO` 가 신설되어 EVAL 스크립트를 대체합니다. 라이브러리는 shebang 헤더(`#!lua name=mylib`)로 엔진과 이름을 선언하고 함수는 `redis.register_function()` 으로 등록합니다. 7.0-RC3 에서 `FUNCTION LOAD` 의 `ENGINE`/`NAME` 인자가 제거되어 스크립트 본문으로 옮겨졌고 `DESCRIPTION` 은 삭제됐습니다 `✓`.
 
-차이는 문법이 아니라 소유권입니다. EVAL/EVALSHA 는 Redis 가 스크립트를 캐시만 하므로 `SCRIPT FLUSH`·재시작·replica 로 failover 하는 시점에 언제든 사라질 수 있고 재적재 책임이 애플리케이션에 있습니다. 공식 문서가 그 전제를 문장으로 못 박습니다 — "The underlying assumption is that scripts are a part of the application and not maintained by the Redis server." 반대로 함수는 "first-class software artifacts of the database … persisted to the AOF file and replicated from master to replicas, so they are as durable as the data itself" 입니다 `✓`.
+차이는 문법이 아니라 소유권입니다. EVAL/EVALSHA 는 Redis 가 스크립트를 캐시만 하므로 `SCRIPT FLUSH`·재시작·replica 로 failover 하는 시점에 언제든 사라질 수 있고 재적재 책임이 애플리케이션에 있습니다. 공식 문서가 그 전제를 문장으로 명시합니다 — "The underlying assumption is that scripts are a part of the application and not maintained by the Redis server." 반대로 함수는 "first-class software artifacts of the database … persisted to the AOF file and replicated from master to replicas, so they are as durable as the data itself" 입니다 `✓`.
 
 스크립트가 애플리케이션 소유였을 때 생기던 실무 문제도 같은 문서가 열거합니다 — (1) 모든 클라이언트 인스턴스가 사본을 유지해야 하고, (2) 트랜잭션 안에서 캐시 스크립트를 부르면 missing script 로 실패할 확률이 커지고, (3) SHA1 때문에 `MONITOR` 디버깅이 사실상 불가능하고, (4) 스크립트가 다른 스크립트를 호출할 수 없어 재사용이 안 됩니다 `✓`.
 
-운영에서 달라지는 것은 이렇습니다. 함수는 RDB/AOF·replication 을 타므로 "함수 배포" 가 코드 배포보다 데이터 마이그레이션에 가까워집니다. 단 Cluster 에서는 자동 전파되지 않습니다 — 문서가 `redis-cli --cluster-only-masters --cluster call host:port FUNCTION LOAD …` 를 쓰라고 명시적으로 안내하고 `--cluster add-node` 는 기존 노드에서 함수를 복사해 옵니다. ephemeral cache 로 쓰는 클러스터라면 `redis-cli --functions-rdb` 로 함수만 담은 RDB 를 만들어 부팅 시 적재하는 우회가 필요합니다 `✓`.
+운영에서 달라지는 것은 이렇습니다. 함수는 RDB/AOF·replication 을 타므로 "함수 배포" 가 코드 배포보다 데이터 마이그레이션에 가까워집니다. Cluster 에서는 자동 전파되지 않습니다 — 문서가 `redis-cli --cluster-only-masters --cluster call host:port FUNCTION LOAD …` 를 쓰라고 명시적으로 안내하고 `--cluster add-node` 는 기존 노드에서 함수를 복사해 옵니다. ephemeral cache 로 쓰는 클러스터라면 `redis-cli --functions-rdb` 로 함수만 담은 RDB 를 만들어 부팅 시 적재하는 우회가 필요합니다 `✓`.
 
 ### 2.2 나머지 네 축과, 7.0 이 위험한 이유
 
@@ -64,9 +63,9 @@ weight: 4
 | **listpack 전환**(#8887·#9366·#9740) | Hash/List/Zset 의 ziplist 를 listpack 으로 교체. `hash-max-listpack-*`·`zset-max-listpack-*`·`list-max-listpack-size` config 등장 | `OBJECT ENCODING` 이 `ziplist` 대신 `listpack` 을 반환합니다 — 인코딩 문자열로 분기하는 모니터링·테스트가 깨집니다. 구 RDB 로딩·primary 복제 시 **on-the-fly 변환**이 일어나 로딩이 약간 느려집니다(릴리스노트 명시) |
 | **multi-part AOF**(#9788) | AOF 가 단일 파일에서 **manifest + base + incr 파일들의 폴더**로. `appenddirname` 신설, `redis-check-aof` 대응(#10061) | `INFO` 의 `aof_rewrite_buffer_length` 가 사라집니다. 백업 스크립트가 `appendonly.aof` 단일 파일을 전제하면 전부 다시 써야 합니다. 7.0 자신이 이것을 "Potentially Breaking Changes" 로 분류했습니다 |
 
-여기에 command introspection 이 붙습니다 — `COMMAND DOCS`·`COMMAND LIST`·`COMMAND GETKEYSANDFLAGS`·key-specs·command tips. 이것도 조용한 변경을 하나 담고 있습니다: `COMMAND` 응답에서 `random`/`sort-for-scripts` 플래그가 사라져 tips 로 이동했습니다 `✓`.
+여기에 command introspection 이 붙습니다 — `COMMAND DOCS`·`COMMAND LIST`·`COMMAND GETKEYSANDFLAGS`·key-specs·command tips. 여기에도 눈에 잘 띄지 않는 변경이 하나 딸려 있습니다. `COMMAND` 응답에서 `random`/`sort-for-scripts` 플래그가 사라져 tips 로 이동했습니다 `✓`.
 
-7.0 업그레이드의 위험은 (a) RDB v10 비호환, (b) AOF 디렉터리 구조 변경, (c) ACL pub/sub 기본 차단, (d) `MODULE`/`DEBUG` 기본 protected 로 네 겹입니다. 이 중 (c) 만이 애플리케이션을 조용히 죽입니다 — 나머지 셋은 기동·복원 시점에 드러납니다 `Σ`.
+7.0 업그레이드의 위험은 (a) RDB v10 비호환, (b) AOF 디렉터리 구조 변경, (c) ACL pub/sub 기본 차단, (d) `MODULE`/`DEBUG` 기본 protected 로 네 겹입니다. 이 중 (c) 만이 런타임에 애플리케이션을 죽입니다 — 나머지 셋은 기동·복원 시점에 드러납니다 `Σ`.
 
 흔한 오해 하나를 여기서 정정합니다. `CLIENT NO-TOUCH` 는 7.0 이 아니라 7.2 기능(#11483)입니다. 7.0 에 들어온 것은 `CLIENT NO-EVICT`(#8687)입니다 `✓`.
 
@@ -76,9 +75,9 @@ weight: 4
 
 listpack 전환이 여기서 끝납니다. 7.0 은 Hash/List/Zset 까지였고 Set 은 7.2 입니다. 릴리스노트의 "Significant memory optimization for small set type keys (#11290)"·"for large sets (#11595)" 가 그것이고 코드 근거가 더 명확합니다 — `set-max-listpack-entries 128` / `set-max-listpack-value 64` 가 `redis 7.2.0:redis.conf` 에서 처음 등장합니다(7.0.0 에는 없습니다) `✓`. "listpack 전환은 7.0 에서 끝났다" 는 서술은 절반만 맞습니다.
 
-RESP3 는 7.2 에서도, 8.10 에서도 기본이 아닙니다. 프로토콜 스펙이 "By default, the connection starts in RESP2 mode" 라고 명시하고 RESP3 로 가려면 클라이언트가 `HELLO 3` 로 승격해야 합니다 `✓`. 스펙은 "Future versions of Redis may change the default protocol version" 이라고 미래형으로만 언급합니다. 7 이후 RESP2/RESP3 양쪽에서 모든 core 커맨드를 부를 수 있지만 응답 타입이 프로토콜에 따라 달라집니다 — 클라이언트 라이브러리를 올릴 때 여기서 사고가 납니다. 관련해서 7.2 에는 동작 변경이 하나 더 있습니다: RESP3 클라이언트가 자기가 구독한 채널에 `PUBLISH` 하면 응답과 메시지 순서가 바뀝니다(#12326) `✓`.
+RESP3 는 7.2 에서도, 8.10 에서도 기본이 아닙니다. 프로토콜 스펙이 "By default, the connection starts in RESP2 mode" 라고 명시하고 RESP3 로 가려면 클라이언트가 `HELLO 3` 로 승격해야 합니다 `✓`. 스펙은 "Future versions of Redis may change the default protocol version" 이라고 미래형으로만 언급합니다. 7 이후 RESP2/RESP3 양쪽에서 모든 core 커맨드를 부를 수 있지만 응답 타입이 프로토콜에 따라 달라집니다 — 클라이언트 라이브러리를 올릴 때 여기서 사고가 납니다. 7.2 에는 동작 변경이 하나 더 있습니다. RESP3 클라이언트가 자기가 구독한 채널에 `PUBLISH` 하면 응답과 메시지 순서가 바뀝니다(#12326) `✓`.
 
-라이선스는 이 문서의 소유가 아니지만 버전 라인에 걸린 사실 하나는 여기서 고정합니다. 7.2 는 BSD-3 로 출발한 마지막 마이너 라인입니다 — 7.2.0 / 7.2.4 / 7.2.15(2026-07-23) 모두 루트에 `COPYING`(BSD-3)만 있고 `LICENSE.txt` 가 없습니다. 7.4.0 부터 `COPYING` 이 사라지고 `LICENSE.txt` 가 생깁니다 `✓`. 라이선스 판정은 릴리스 날짜가 아니라 버전 라인 단위로 해야 하고, 그 판정표와 전환의 경위·조항은 [03]({{< relref "03-license-and-fork.md" >}}) 이 소유합니다.
+라이선스는 이 문서의 소유가 아니지만 버전 라인에 걸린 사실 하나는 여기서 적어 둡니다. 7.2 는 BSD-3 로 출발한 마지막 마이너 라인입니다 — 7.2.0 / 7.2.4 / 7.2.15(2026-07-23) 모두 루트에 `COPYING`(BSD-3)만 있고 `LICENSE.txt` 가 없습니다. 7.4.0 부터 `COPYING` 이 사라지고 `LICENSE.txt` 가 생깁니다 `✓`. 라이선스 판정은 릴리스 날짜가 아니라 버전 라인 단위로 해야 합니다. 그 판정표와 전환의 경위·조항은 [03]({{< relref "03-license-and-fork.md" >}}) 이 소유합니다.
 
 ## 4. 7.4 (2024-07-29) — hash field TTL, 그리고 앱이 하던 일을 엔진이 받는다
 
@@ -86,7 +85,7 @@ RESP3 는 7.2 에서도, 8.10 에서도 기본이 아닙니다. 프로토콜 스
 
 왜 이게 필요했나. 그전까지 Redis 의 만료 단위는 키뿐이었습니다. 세션 스토어에서 "세션은 30분 유효하지만 CSRF 토큰 필드는 5분" 을 구현하려면 필드를 별도 키로 쪼개(`sess:{id}:csrf`) TTL 을 걸어야 했습니다. 해시 태그로 같은 슬롯에 묶은 뒤 애플리케이션이 두 키의 일관성까지 관리해야 했습니다. 레이트리밋도 같습니다 — 윈도별 카운터를 필드로 두고 싶어도 필드 단위 만료가 없으니 키를 윈도마다 새로 만들고 `EXPIRE` 를 걸었습니다. 7.4 는 그 우회를 엔진 안으로 들여옵니다. 세션은 살아 있는데 특정 필드만 사라지는 모델이 처음으로 서버 쪽에서 표현 가능해집니다 `Σ`.
 
-대가도 있습니다. RDB 가 12 로 올라가 7.2 이하로 다운그레이드할 수 없습니다. 이 기능은 초기에 세부가 계속 흔들렸습니다 — RC1 → GA 사이에 RDB 파일 포맷이 또 바뀌었고(#13391, #13438), `HEXPIRE` 류의 `DENYOOM` 플래그가 8.0-M04 에서 제거됐습니다 `✓`. 프리릴리스로 개발해 프로덕션에 올린 경로가 있었다면 이 구간을 확인해야 합니다.
+대가도 있습니다. RDB 가 12 로 올라가 7.2 이하로 다운그레이드할 수 없습니다. 이 기능은 초기에 세부가 계속 흔들렸습니다 — RC1 → GA 사이에 RDB 파일 포맷이 또 바뀌었고(#13391, #13438) `HEXPIRE` 류의 `DENYOOM` 플래그가 8.0-M04 에서 제거됐습니다 `✓`. 프리릴리스로 개발해 프로덕션에 올린 경로가 있었다면 이 구간을 확인해야 합니다.
 
 7.4 시점에 core 와 모듈은 아직 완전히 분리돼 있습니다. `git ls-tree --name-only 7.4.0` 에 `modules/` 디렉터리가 없습니다 — 8.0 에서 처음 생깁니다 `✓`. "Redis 7.4 + Redis Stack" 은 서로 다른 두 배포물이었습니다.
 
@@ -121,9 +120,9 @@ RediSearch/JSON/TimeSeries/Bloom 은 (a) redis/redis 트리에 벤더링된 것�
 
 예외는 Vector Set 하나입니다. `modules/vector-sets/` 는 실제 소스가 in-tree입니다(`vset.c`·`hnsw.c`·`expr.c`·`cJSON.c`). 8.10 의 매니페스트가 이걸 주석으로 명시합니다 — "`vector-sets` is intentionally absent — it lives in-tree under `modules/vector-sets/` and is not cloned"(`redis 8.10.0:modules/modules.yaml:60-61`) `✓`.
 
-8.10 에서 구조가 한 번 더 정리됩니다. per-module Makefile 스텁이 사라지고 `modules.yaml` 단일 매니페스트 + `manifest.mk` 로 바뀝니다. 각 모듈은 `ref: v8.10.0` 으로 코어 버전에 핀되고, `make tarball` 이 네트워크 없이 빌드 가능한 소스 tarball 을 만듭니다 `✓`.
+8.10 에서 구조가 한 번 더 정리됩니다. per-module Makefile 스텁이 사라지고 `modules.yaml` 단일 매니페스트 + `manifest.mk` 로 바뀝니다. 각 모듈은 `ref: v8.10.0` 으로 코어 버전에 핀되고 `make tarball` 이 네트워크 없이 빌드 가능한 소스 tarball 을 만듭니다 `✓`.
 
-여기서 나오는 운영 함의가 셋입니다.
+여기서 나오는 운영 함의는 이렇습니다.
 
 | 함정 | 내용 |
 |---|---|
@@ -148,17 +147,17 @@ RediSearch/JSON/TimeSeries/Bloom 은 (a) redis/redis 트리에 벤더링된 것�
 | "up to 18% faster replication / 35% less memory" | 10GB 데이터셋 full sync + 그 사이 26.84M write(25GB 변경). 결과는 primary 쓰기 처리율 +7.5%, 복제 시간 −18%, primary 측 replication buffer 피크 −35% | 조건이 구체적이라 인용 가능 `Ⓥ` |
 | "up to 16x more query processing power" | Query Engine 의 수평(cluster)·수직(multi-thread) 스케일링을 **둘 다 켠** 경우. 1B × 768dim 에서 정밀도 ≥95% 시 66,000 insert/s, 정밀도를 낮추면 160,000/s. 검색 레이턴시는 **정밀도 90% → median 200ms, 95% → median 1.3s**(top-100, 동시 50쿼리) | 1.3초는 "실시간" 이라 부르기 어렵다 — **정밀도를 함께 쓰지 않으면 오독을 유발한다** `Ⓥ` |
 
-8.x 성능 개선의 성격이 이 표에 드러납니다. 대부분 (a) prefetch·SIMD 같은 CPU 마이크로 최적화와 (b) `io-threads` 설정에 걸려 있습니다. 그런데 `io-threads` 는 8.10.0 까지도 `IMMUTABLE_CONFIG` 이고 기본 1, 상한 128 입니다(`redis 8.10.0:src/config.c:3396`) `✓` — 런타임에 못 바꾸므로 재시작 계획에 넣어야 하고 안 켜면 "8.x 로 올렸는데 왜 안 빠르냐" 가 그대로 나옵니다. 반대로 diskless full sync 의 checksum 생략(#14851)이나 fork child 의 `MADV_DONTNEED`(#14979) 같은 것은 설정 없이 얻습니다 `✓`.
+8.x 성능 개선의 성격이 이 표에 드러납니다. 대부분 (a) prefetch·SIMD 같은 CPU 마이크로 최적화와 (b) `io-threads` 설정에 걸려 있습니다. 그런데 `io-threads` 는 8.10.0 까지도 `IMMUTABLE_CONFIG` 이고 기본 1, 상한 128 입니다(`redis 8.10.0:src/config.c:3396`) `✓` — 런타임에 못 바꾸므로 재시작 계획에 넣어야 하고 안 켜면 "8.x 로 올렸는데 왜 안 빠르냐" 가 그대로 나옵니다. diskless full sync 의 checksum 생략(#14851)이나 fork child 의 `MADV_DONTNEED`(#14979) 같은 것은 설정 없이 얻습니다 `✓`.
 
 성능 주장의 서술 품질은 8.8 에서 크게 개선됩니다 — 기준선(8.6), 하드웨어(AWS m7i.metal-24xl x86 / m8g ARM), 재현 스펙(`redis/redis-benchmarks-specification`)이 모두 명시됩니다 `Ⓥ`.
 
 ### 5.4 7.4 다음이 왜 8.0 인가
 
-공식 근거로 확인되는 것은 두 가지뿐입니다 `✓`. 첫째, 8.0 이 담은 것이 제품 경계의 재편입니다 — 이름 변경, AGPLv3 추가, Redis Stack 흡수가 한 릴리스에 겹쳤고 공식 블로그가 "we're combining our Redis Stack and community offerings into a single Redis Open Source distribution" 이라고 씁니다. 둘째, 버전 정책 문서의 정의상 메이저 증가는 "breaking change 를 포함할 수 있는 중대한 변화" 이고 마이너는 "메이저 안에서의 신기능·개선" 입니다 — Stack 흡수는 후자로 담기 어려운 규모였습니다.
+공식 근거로 확인되는 것은 둘뿐입니다 `✓`. 8.0 이 담은 것이 제품 경계의 재편입니다 — 이름 변경, AGPLv3 추가, Redis Stack 흡수가 한 릴리스에 겹쳤고 공식 블로그가 "we're combining our Redis Stack and community offerings into a single Redis Open Source distribution" 이라고 씁니다. 버전 정책 문서의 정의상으로도 메이저 증가는 "breaking change 를 포함할 수 있는 중대한 변화" 이고 마이너는 "메이저 안에서의 신기능·개선" 입니다. Stack 흡수는 후자로 담기 어려운 규모였습니다.
 
-정정할 서술이 하나 있습니다. "7.4 가 non-OSI 라이선스여서 배포판에서 퇴출당했고 그래서 7.6 을 건너뛰었다" 는 인과는 2차 출처(remirepo 블로그 등)의 해석이고, Redis 공식 문서·블로그에서 "7.6 을 건너뛰었다" 는 문장을 찾지 못했습니다 `?`.
+정정할 서술이 하나 있습니다. "7.4 가 non-OSI 라이선스여서 배포판에서 퇴출당했고 그래서 7.6 을 건너뛰었다" 는 인과는 2차 출처(remirepo 블로그 등)의 해석입니다. Redis 공식 문서·블로그에서 "7.6 을 건너뛰었다" 는 문장을 찾지 못했습니다 `?`.
 
-혼동 지점도 하나 정리해 둡니다. Redis 7.8 과 7.22 는 실재합니다 — 다만 OSS 가 아니라 Redis Software(상용)입니다. Redis Software 는 `Major1.Major2.Minor-Build` 4자리 번호를 쓰고 7.8(2024-11)·7.22(2025-05)가 있으며 Redis Software 8.2.0 은 번들 DB 엔진으로 `6.2, 7.2, 7.4, 8.0, 8.2, 8.4, 8.6` 를 담고 기본값이 8.6 입니다 `✓`. 티켓이나 벤더 문서에서 "Redis 7.8" 을 봤다면 어느 축의 번호인지 먼저 구분해야 합니다.
+혼동하기 쉬운 것도 하나 정리해 둡니다. Redis 7.8 과 7.22 는 실재합니다. OSS 가 아니라 Redis Software(상용)의 번호입니다. Redis Software 는 `Major1.Major2.Minor-Build` 4자리 번호를 쓰고 7.8(2024-11)·7.22(2025-05)가 있으며 Redis Software 8.2.0 은 번들 DB 엔진으로 `6.2, 7.2, 7.4, 8.0, 8.2, 8.4, 8.6` 를 담고 기본값이 8.6 입니다 `✓`. 티켓이나 벤더 문서에서 "Redis 7.8" 을 봤다면 어느 축의 번호인지 먼저 구분해야 합니다.
 
 같은 축의 오해로 Redis Flex / Auto Tiering / RDI 도 OSS 에 없습니다. 7.x·8.x 릴리스노트 전체를 `flex|tiering|auto-tier|flash` 로 grep 하면 0건이고 `redis 8.10.0:redis.conf` 에도 0건입니다 `✓`. "Redis 8 로 올리면 Flex 로 메모리 비용을 줄일 수 있다" 는 판단은 OSS 에서 성립하지 않습니다.
 
@@ -174,7 +173,7 @@ RediSearch/JSON/TimeSeries/Bloom 은 (a) redis/redis 트리에 벤더링된 것�
 | **8.8.0** | 2026-05-25 | **새 자료구조 `Array`**(#15162, @antirez — 커맨드 **18개**, ACL 카테고리 `ARRAY`) · **`INCREX`** = `INCR` + 상한/하한 + 만료를 합친 윈도 카운터(#15045) · `XNACK`(pending 메시지 명시 반납, #14797) · **hash 필드 단위 keyspace 알림**(#14958) · `ZUNION`/`ZINTER` 계열의 `COUNT` aggregator(#14892) · slowlog 절단 config(#15182) | **RDB 13 → 14.** 그리고 **Removed Features** — 8.8-M02 에 들어갔던 **GCRA rate limiter 가 RC1 에서 제거**(#15191)됐고 `INCREX` 자체도 GA 직전 문법이 변경(#15237)됐습니다 → M02/M03 프리릴리스로 개발했다면 이관 필요 | ① **CVE 5건이 RCE 급입니다** — CVE-2026-23479(unblock client UAF) · CVE-2026-25243(`RESTORE` 잘못된 메모리 접근) · CVE-2026-23631(Lua UAF) · CVE-2026-25588/25589(TimeSeries·Probabilistic 의 `RESTORE`). **`RESTORE` 를 외부 입력으로 받는 경로(마이그레이션 툴, 백업 복원 API)가 있으면 최우선 패치.** ② Sentinel `SENTINEL SET` config injection(#14970) 수정 — Sentinel 을 신뢰 경계 밖에 뒀다면 심각. ③ slowlog 절단 config 로 큰 argv 의 slowlog 메모리 점유를 통제. 새 메트릭(`slowlog_commands_count`, `slowlog_commands_time_ms_sum/max`) 대시보드 추가. ④ `commands_per_parse_batch_avg`(실효 파이프라인 깊이 근사)로 prefetch 개선의 수혜 여부를 판별 |
 | **8.10.0** | 2026-07-29 | **Compact hashes**(#15364) — **스키마를 공유하는 여러 hash 키의 필드명을 한 번만 저장하는 새 인코딩** + `HIMPORT`(고속 대량 삽입) + config 3개 + metric 4개 · **replication stream 압축**(#15366) · **`BACKUP`**(MP-AOF 기반 노드 측 백업/복원, #15441) · `LMOVEM`/`BLMOVEM`(#15405) · `SUNIONCARD`/`SDIFFCARD`(결과를 materialize 하지 않고 카디널리티만) · `XREAD` 의 `MAXCOUNT`/`MAXSIZE`(#15282) · **JSONPath 대폭 확장** · TimeSeries `TS.NRANGE`/`TS.READ`/`TS.QUERYLABELS` | **RDB 14 → 15**(compact hashes). 명시적 breaking 섹션은 없지만 **검색 타임아웃 정책이 실질적으로 바뀐다** — `search-on-timeout` 이 `FAIL`/`RETURN`(기본)/**`RETURN_STRICT`(신규)** 3값이 되고 강제가 엄격해집니다. `search-workers 0` 이면 `search-_max-foreground-timeout-limit`(기본 60000ms)로 캡되고, 새 `search-global-timeout` 이 쿼리별 `TIMEOUT` 의 상한이 됩니다 → **8.8 에서 조용히 오래 돌던 쿼리가 8.10 에서 잘려 나갈 수 있습니다** | ① **최우선: ACL 우회 취약점 #15478** — `SORT`·`GEORADIUS`·`GEORADIUSBYMEMBER`·`XREAD`·`XREADGROUP` 에서 ACL permission bypass. 8.8 이하에서 이 커맨드들을 ACL 로 제한했다면 **제한이 실제로는 우회 가능했습니다.** 함께 BCAST client-side caching invalidation 의 ACL key-name leak(#15371)도 수정. ② RESP 에러 응답에 `\r\n` 을 주입해 다른 커맨드 응답을 위조할 수 있던 문제(RC2 수정). ③ **`MEMORY USAGE` 의 의미가 바뀝니다** — compact hash 키는 "자기 몫 + template 지분" 을 보고합니다. 이 값을 합산해 총량을 추정하던 용량 산정 스크립트는 재검토. ④ `search-global-timeout`/`search-on-timeout` 을 명시 설정해 새 강제 정책을 통제. ⑤ replication stream 압축은 대역폭을 줄이고 CPU 를 씁니다 — 크로스 AZ/리전에서 이득이 크고 CPU 포화 환경은 검증 필요. ⑥ **`redis-cli --cluster reshard`/`rebalance` 가 서버측 atomic slot migration 을 쓰도록 변경(#15338)** — 같은 CLI 가 8.8 이하와 다르게 동작하므로 리샤딩 런북과 소요 시간 가정을 다시 세워야 합니다 |
 
-표 밖에서 세 가지를 덧붙입니다.
+표에 담기지 않은 것을 덧붙입니다.
 
 RDB_VERSION 이 업그레이드 전략을 결정합니다.
 
@@ -182,7 +181,7 @@ RDB_VERSION 이 업그레이드 전략을 결정합니다.
 |---|---|---|---|---|---|---|---|---|---|---|
 | RDB_VERSION | 9 | 10 | 11 | **12** | 12 | 12 | 12 | **13** | **14** | **15** |
 
-7.4 / 8.0 / 8.2 / 8.4 는 포맷이 같아 그 사이 롤백 여지가 있었습니다(모듈 데이터 제외). 8.6 · 8.8 · 8.10 은 릴리스마다 올라가므로 롤백이 사실상 불가능합니다 `✓`. 6개월 케이던스로 마이너가 나오는데 매번 포맷이 바뀌면 다운그레이드는 replication 대신 논리적 재적재(`DUMP`/`RESTORE` 또는 애플리케이션 레벨 재구성)로 계획해야 합니다 — 8.8 의 CVE 목록이 보여주듯 `RESTORE` 경로 자체가 공격면입니다 `Σ`.
+7.4 / 8.0 / 8.2 / 8.4 는 포맷이 같아 그 사이 롤백 여지가 있었습니다(모듈 데이터 제외). 8.6 · 8.8 · 8.10 은 릴리스마다 올라가므로 롤백이 사실상 불가능합니다 `✓`. 6개월 케이던스로 마이너가 나오는데 매번 포맷이 바뀌면 다운그레이드는 replication 대신 논리적 재적재(`DUMP`/`RESTORE` 또는 애플리케이션 레벨 재구성)로 계획해야 합니다 — 8.8 의 CVE 목록에서 보듯 `RESTORE` 경로 자체가 공격면입니다 `Σ`.
 
 "마이너라서 안전하다" 는 8.x 에서 성립하지 않습니다. 명시적 breaking 섹션이 없는 릴리스가 (a) 문서화되지 않은 `SCAN` 필터 순서 변경(8.2, 8.6 에서 되돌림), (b) 검색 기본 scorer 변경(8.4), (c) 검색 타임아웃 강제(8.10)를 담았습니다. 이 셋은 모두 에러 없이 결과가 달라지는 종류입니다 `Σ`.
 
@@ -205,11 +204,11 @@ RDB_VERSION 이 업그레이드 전략을 결정합니다.
 | `8.8-rc1` | `8.7.240` | 2026-05-14 |
 | `8.10-rc1` / `rc2` | `8.9.240` / `8.9.241` | 2026-07-20 |
 
-패치 번호 224 부터가 마일스톤(M01=224 … M04=227), 240 부터가 RC(RC1=240, RC2=241)이고 마이너는 목표 릴리스보다 1 작은 홀수입니다. 릴리스노트 헤더에도 그대로 박혀 있습니다 — `8.0-RC1 (v7.9.240)`.
+패치 번호 224 부터가 마일스톤(M01=224 … M04=227), 240 부터가 RC(RC1=240, RC2=241)이고 마이너는 목표 릴리스보다 1 작은 홀수입니다. 릴리스노트 헤더에도 그대로 적혀 있습니다 — `8.0-RC1 (v7.9.240)`.
 
 `-m0N` 의 뜻은 릴리스노트가 직접 정의합니다 — "Milestones are non-feature-complete pre-releases. Pre-releases are not suitable for production use. Once we reach feature-completeness we will release RC1." RC 는 "feature-complete pre-releases" 입니다 `✓`.
 
-`-int` 태그는 공식 정의를 찾지 못했습니다 `?`. 실측으로 아는 것은 두 가지입니다: GitHub Releases 목록에 `-int` 태그가 없고(8.10 사이클은 `8.10-rc1`·`8.10-rc2`·`8.10.0` 만 등재), 상당수가 `version.h` = `255.255.255` 라는 센티넬을 담습니다(`8.4-int`, `8.10-m01-int`\~`m04-int`) `✓`. 사내·CI 빌드용 비공개 태그로 읽는 것이 합리적이지만 어디까지나 근거 있는 추정이지 확인된 정의는 아닙니다. 실제로 8.10 사이클에서는 M01\~M04 가 전부 `-int` 로만 존재해 공개 마일스톤이 아예 없었습니다 — 8.10 릴리스노트에도 M 섹션이 없습니다 `✓`.
+`-int` 태그는 공식 정의를 찾지 못했습니다 `?`. 실측으로 확인되는 것만 적습니다. GitHub Releases 목록에 `-int` 태그가 없습니다(8.10 사이클은 `8.10-rc1`·`8.10-rc2`·`8.10.0` 만 등재). 그런 태그 상당수는 `version.h` = `255.255.255` 라는 센티넬을 담습니다(`8.4-int`, `8.10-m01-int`\~`m04-int`) `✓`. 사내·CI 빌드용 비공개 태그로 읽는 것이 합리적이지만 어디까지나 근거 있는 추정이지 확인된 정의는 아닙니다. 실제로 8.10 사이클에서는 M01\~M04 가 전부 `-int` 로만 존재해 공개 마일스톤이 아예 없었습니다 — 8.10 릴리스노트에도 M 섹션이 없습니다 `✓`.
 
 ### 7.2 지원 기간 — LTS 는 없고, 8.x 에서 5년은 8.2 뿐이다
 
@@ -227,7 +226,7 @@ Redis 는 "LTS" 라는 용어를 쓰지 않습니다. 릴리스 타입이 둘입
 | 7.4 / 7.2 | Extended | 2029-12-01 |
 | 6.2 | Extended | 2027-04-01 |
 
-실무에서 제일 무거운 결론이 여기서 나옵니다. 8.0 을 표준으로 삼은 조직은 2026-12-01 에 지원이 끊깁니다. 5년 지평이 필요하면 8.x 안에서는 8.2 가 유일한 선택이고, 다음 Extended 는 "8 시리즈의 마지막 마이너" 가 확정될 때 정해집니다. 8.10 을 장기 지원으로 가정하면 위험합니다 — 지원 표에 등재조차 되지 않았고 Standard/Extended 구분도 미정입니다 `✓`. 정책 문서의 "마지막 마이너" 조항이 아직 발동하지 않았다는 것은 뒤집어 보면 8.x 가 더 나올 예정임을 시사합니다(추론이며 명시 근거는 아닙니다) `≈`.
+실무에서 제일 무거운 결론이 여기서 나옵니다. 8.0 을 표준으로 삼은 조직은 2026-12-01 에 지원이 끊깁니다. 5년 지평이 필요하면 8.x 안에서는 8.2 가 유일한 선택이고 다음 Extended 는 "8 시리즈의 마지막 마이너" 가 확정될 때 정해집니다. 8.10 을 장기 지원으로 가정하면 위험합니다 — 지원 표에 등재조차 되지 않았고 Standard/Extended 구분도 미정입니다 `✓`. 정책 문서의 "마지막 마이너" 조항이 아직 발동하지 않았다는 것은 뒤집어 보면 8.x 가 더 나올 예정이라는 뜻이 됩니다(추론이며 명시 근거는 아닙니다) `≈`.
 
 보조 근거로 메인테이너 발언이 하나 있습니다. GitHub Discussion #13464 에서 "With the first release of a new stable major, we will also support the two latest minors of the previous stable major. So with 8.0 - it would be 7.4 and 7.2." 라고 답했고 후속으로 "for 8.0 we decided to continue supporting 6.2 till, at least, end of 2025" 라는 예외를 밝혔습니다 `✓`. 6.2 는 실제로 2026-07-23 까지 패치가 나왔으므로 그 예외가 더 연장됐습니다.
 
@@ -242,11 +241,11 @@ Redis 는 "LTS" 라는 용어를 쓰지 않습니다. 릴리스 타입이 둘입
 | 마일스톤 | `gh api repos/redis/redis/milestones` | `Redis >= 4.2`, `4.0 final`, `Urgent`, `Redis 6.0.x`, `Next minor backlog`, `Next major backlog`. **`9.0` 마일스톤 없음** `✓` |
 | 공표 | 공식 블로그·문서 검색 | "Redis 9" 로드맵·릴리스 계획 문서를 **찾지 못했다** `?` |
 
-그래서 "9 를 기다린다" 는 전략이 성립하지 않습니다. 다음 릴리스가 8.12 일지 9.0 일지는 알 수 없고, 지금 결정할 것은 8.x 안의 선택뿐입니다 `Σ`. 8.0 은 2026-12-01 에 끝나고, 8.2 는 2030-09-01 까지 가고, 8.10 은 최신이지만 지원 기간이 미정입니다 — 이 세 줄이 실제 선택지입니다. 판단표는 [08]({{< relref "08-choosing.md" >}}).
+그래서 "9 를 기다린다" 는 전략이 성립하지 않습니다. 다음 릴리스가 8.12 일지 9.0 일지는 알 수 없고 지금 결정할 것은 8.x 안의 선택뿐입니다 `Σ`. 8.0 은 2026-12-01 에 끝나고 8.2 는 2030-09-01 까지 가고 8.10 은 최신이지만 지원 기간이 미정입니다 — 이 세 줄이 실제 선택지입니다. 판단표는 [08]({{< relref "08-choosing.md" >}}).
 
 ## 8. 그런데 왜 "9" 를 찾게 되는가 — Valkey 와의 대조
 
-버전 번호 혼동의 출처는 대부분 하나입니다. 9.x 가 있는 쪽은 Valkey 입니다. 두 진영은 7.2.4 를 공통 조상으로 두고 그 이후 번호를 독립적으로 굴렸습니다. 케이던스 규칙이 정반대여서 같은 숫자가 전혀 다른 의미를 갖습니다.
+버전 번호 혼동의 출처는 대부분 하나입니다. 9.x 가 있는 쪽은 Valkey 입니다. 두 진영은 7.2.4 를 공통 조상으로 두고 그 이후 번호를 독립적으로 굴렸습니다. 케이던스 규칙이 정반대여서 같은 숫자가 전혀 다른 뜻입니다.
 
 | 축 | Redis | Valkey |
 |---|---|---|
@@ -260,7 +259,7 @@ Redis 는 "LTS" 라는 용어를 쓰지 않습니다. 릴리스 타입이 둘입
 | `io-threads` 가변성 | **8.10.0 까지 `IMMUTABLE_CONFIG`**, 상한 128 | 8.0/8.1 IMMUTABLE → **9.0.0 부터 MODIFIABLE**, 상한 256 |
 | RDB 호환 | 7.4+ 는 12 이상 | 8.x 는 11(`REDIS0011`) → **9.x 는 80 / `VALKEY080`** |
 
-마지막 행이 실무적으로 가장 뾰족합니다. Redis 7.4 이상(RDB 12)에서 만든 RDB 는 Valkey 8.x 가 거부합니다 — Valkey 8.1 이 12~79 를 foreign 으로 예약했고 `DUMP`/`RESTORE`·`MIGRATE` 도 같은 판정을 받습니다 `✓`. 즉 "Redis 8.x 를 쓰다가 Valkey 로 옮기겠다" 는 RDB 로는 불가능합니다. 마이그레이션 경로와 Valkey 쪽 신기능은 [05]({{< relref "05-valkey-8-to-9/index.md" >}}), 두 진영의 atomic slot migration 비교는 [06]({{< relref "06-cluster-mode/index.md" >}}) 이 소유합니다.
+마지막 행이 실무적으로 가장 뾰족합니다. Redis 7.4 이상(RDB 12)에서 만든 RDB 는 Valkey 8.x 가 거부합니다 — Valkey 8.1 이 12~79 를 foreign 으로 예약했고 `DUMP`/`RESTORE`·`MIGRATE` 도 같은 판정을 받습니다 `✓`. "Redis 8.x 를 쓰다가 Valkey 로 옮기겠다" 는 RDB 로는 불가능합니다. 마이그레이션 경로와 Valkey 쪽 신기능은 [05]({{< relref "05-valkey-8-to-9/index.md" >}}), 두 진영의 atomic slot migration 비교는 [06]({{< relref "06-cluster-mode/index.md" >}}) 이 소유합니다.
 
 AWS 를 쓰는 경우 한 줄이 더 붙습니다 — ElastiCache 의 Redis OSS 는 7.1 에서 멈췄고 그 위는 전부 Valkey 입니다. ElastiCache 에 Redis 8 은 없습니다 `✓`. 이 문서의 8.x 서술은 self-host 또는 다른 배포 경로를 전제합니다. 상세는 [07]({{< relref "07-aws-endpoints/index.md" >}}).
 
@@ -287,4 +286,3 @@ AWS 를 쓰는 경우 한 줄이 더 붙습니다 — ElastiCache 의 Redis OSS 
 - Valkey 대조값 — Valkey 릴리스일·`config.c` 실측·모듈 커버리지는 [05]({{< relref "05-valkey-8-to-9/index.md" >}}) 가 소유하며 이 문서는 대조표에 필요한 최소값만 인용했습니다
 
 미확인으로 남긴 것: Vector Set 의 GA 시점(릴리스노트에 선언이 없습니다) · `-int` 태그와 `255.255.255` 센티넬의 공식 정의 · 8.10 의 릴리스 타입과 EOL(version-mgmt 문서 미등재) · "7.6 을 건너뛰었다" 는 인과(공식 문장 없음, 2차 출처의 해석) · Compact hashes 의 실측 메모리 절감률(릴리스노트가 수치를 제시하지 않습니다) · replication stream 압축의 CPU 비용과 기본 활성 여부.
-

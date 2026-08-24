@@ -7,8 +7,7 @@ weight: 7
 # 07 · Kotlin 구현 노트 — 무엇이 실제로 어려운가
 
 {{< callout type="info" >}}
-**한눈에**
-- 런타임 선택은 성능 문제가 아닙니다. WebFlux·Ktor·(MVC + 가상 스레드) 셋 다 파드당 2,500 연결을 여유 있게 감당합니다. 가르는 건 백프레셔를 어떤 모델로 표현하느냐이고, 팀이 이미 쓰는 것을 고르는 게 대개 옳습니다.
+- 런타임 선택은 성능 문제가 아닙니다. WebFlux·Ktor·(MVC + 가상 스레드) 셋 다 파드당 2,500 연결을 여유 있게 감당합니다. 차이는 백프레셔를 어떤 모델로 표현하느냐에서 생깁니다. 팀이 이미 쓰는 것을 고르는 게 대개 옳습니다.
 - `XREAD BLOCK`은 커넥션을 독점합니다. Lettuce 문서가 명시하듯 *"the connection will no longer respond to any other commands until XREAD completes"* — tail 전용 커넥션을 따로 잡아야 하고 일반 명령용 커넥션과 절대 섞으면 안 됩니다.
 - 한 번의 `XREAD`로 64개 스트림을 전부 읽을 수 있습니다. 샤드마다 커넥션을 만들 필요가 없습니다 — 스트림 하나당 스레드 하나를 붙이는 순진한 구현이 이 설계에서 가장 흔한 낭비입니다.
 - 그런데 Redis Cluster에서는 그게 `CROSSSLOT`으로 깨집니다. 해시 태그로 샤드를 슬롯 그룹에 묶어 그룹당 `XREAD` 하나로 만들거나, Cluster 대신 인스턴스를 애플리케이션 레벨로 나누는 편이 단순합니다.
@@ -17,7 +16,7 @@ weight: 7
 - POS 클라이언트를 우리가 만든다는 사실이 설계 자산입니다. last event ID를 처리 완료 후에 커밋하게 하면 서버 코드 변경 없이 at-least-once가 됩니다.
 {{< /callout >}}
 
-[04]({{< relref "04-branch-a-client-dials/index.md" >}})의 설계를 JVM/Kotlin으로 옮길 때 실제로 발목을 잡는 것들만 모았습니다. 프레임워크 튜토리얼이 다루지 않는 세 가지 — blocking 명령의 커넥션 독점, Cluster의 CROSSSLOT, 느린 소비자 — 가 본론입니다.
+[04]({{< relref "04-branch-a-client-dials/index.md" >}})의 설계를 JVM/Kotlin으로 옮길 때 실제로 발목을 잡는 것들만 모았습니다. 프레임워크 튜토리얼이 다루지 않는 blocking 명령의 커넥션 독점, Cluster의 CROSSSLOT, 느린 소비자가 본론입니다.
 
 ## 1. 런타임 — 셋 다 되고, 기준은 백프레셔 모델
 
@@ -30,7 +29,7 @@ weight: 7
 | 정신 모델 | 리액티브 (학습 곡선) | **코루틴 (Kotlin 관용구)** | 블로킹 (가장 단순) |
 | Redis 통합 | Lettuce reactive 자연스러움 | Lettuce coroutine 확장 | Lettuce sync |
 
-성능으로는 갈리지 않습니다. 셋 다 Netty 위에서 파드당 수천 연결을 듭니다. 실제 판정 기준은 둘입니다.
+성능으로는 차이가 나지 않습니다. 셋 다 Netty 위에서 파드당 수천 연결을 듭니다. 실제 판정 기준은 둘입니다.
 
 1. **팀이 이미 쓰는 것.** Spring 생태계를 쓰고 있으면 WebFlux, 그린필드이고 Kotlin 관용구를 중시하면 Ktor.
 2. **백프레셔를 프레임워크가 표현해주는가.** §4가 이 설계의 핵심 위험인데, 가상 스레드 방식은 그 처리를 전부 직접 만들어야 합니다 — 코드는 가장 단순해 보이지만 가장 중요한 부분을 프레임워크가 도와주지 않습니다.
@@ -54,7 +53,7 @@ class ConnectionRegistry {
 }
 ```
 
-이 맵은 "커넥션 레지스트리"가 아닙니다. 다른 파드가 조회하지 않고 공유되지 않으며, 파드가 죽으면 그냥 사라집니다. [04]({{< relref "04-branch-a-client-dials/index.md" >}})가 만들지 않기로 한 그 레지스트리와는 다른 물건입니다 — 파드 내부의 자료구조일 뿐입니다.
+이 맵은 "커넥션 레지스트리"가 아닙니다. 다른 파드가 조회하지 않고 공유되지 않으며 파드가 죽으면 그냥 사라집니다. [04]({{< relref "04-branch-a-client-dials/index.md" >}})가 만들지 않기로 한 그 레지스트리와는 다른 물건입니다 — 파드 내부의 자료구조일 뿐입니다.
 
 응답 헤더는 [06 §6]({{< relref "06-k8s-shape.md" >}})의 목록대로 나가야 하고 첫 바이트를 즉시 flush해야 클라이언트가 연결 성립을 인지합니다.
 
@@ -62,7 +61,7 @@ class ConnectionRegistry {
 
 ### 3.1 `XREAD BLOCK`은 커넥션을 독점한다
 
-[Lettuce](https://lettuce.io/core/release/reference/) 기준 주의사항이 명확합니다 — blocking 명령이 실행되는 동안 그 커넥션은 다른 명령에 응답하지 않습니다. Lettuce의 커넥션은 원래 여러 스레드가 공유하도록 설계돼 있어서 tail용 `XREAD BLOCK`을 공용 커넥션에서 실행하면 그 파드의 모든 Redis 명령이 함께 멈춥니다.
+[Lettuce](https://lettuce.io/core/release/reference/) 기준 주의사항이 명확합니다 — blocking 명령이 실행되는 동안 그 커넥션은 다른 명령에 응답하지 않습니다. Lettuce의 커넥션은 원래 여러 스레드가 공유하도록 설계돼 있습니다. tail용 `XREAD BLOCK`을 공용 커넥션에서 실행하면 그 파드의 모든 Redis 명령이 함께 멈춥니다.
 
 ```kotlin
 // tail 전용 커넥션 — 이 커넥션으로는 다른 명령을 절대 보내지 않는다
@@ -90,9 +89,9 @@ val batch = tailConn.sync().xread(
 
 ### 3.3 Redis Cluster의 `CROSSSLOT` 함정
 
-[04 §4.3]({{< relref "04-branch-a-client-dials/index.md" >}})에서 샤드를 Redis Cluster 노드에 흩어 송신 부하를 나누자고 했는데, 그러면 §3.2의 단일 `XREAD`가 성립하지 않습니다. Cluster에서 다중 키 명령은 모든 키가 같은 슬롯에 있어야 하고, 아니면 `CROSSSLOT` 오류입니다.
+[04 §4.3]({{< relref "04-branch-a-client-dials/index.md" >}})에서 샤드를 Redis Cluster 노드에 흩어 송신 부하를 나누자고 했는데 그러면 §3.2의 단일 `XREAD`가 성립하지 않습니다. Cluster에서 다중 키 명령은 모든 키가 같은 슬롯에 있어야 하고 아니면 `CROSSSLOT` 오류입니다.
 
-두 가지 해법이 있습니다.
+해법은 이렇습니다.
 
 ① 해시 태그로 그룹을 만듭니다. 중괄호 안이 같으면 같은 슬롯으로 갑니다.
 
@@ -111,13 +110,13 @@ pos-ev:{g3}:48 … pos-ev:{g3}:63    → 슬롯 D
 
 ### 3.4 `lastId` 복구
 
-파드가 재시작하면 `lastId`가 없습니다. `$`(지금부터)로 시작하는 것이 맞습니다 — 밀린 이벤트는 각 POS가 `Last-Event-ID`로 알아서 요청하므로, 파드가 과거를 재생할 이유가 없습니다.
+파드가 재시작하면 `lastId`가 없습니다. `$`(지금부터)로 시작하는 것이 맞습니다 — 밀린 이벤트는 각 POS가 `Last-Event-ID`로 알아서 요청하므로 파드가 과거를 재생할 이유가 없습니다.
 
 여기서 `0`(처음부터)으로 시작하면 재시작할 때마다 전 스트림을 다시 읽고 전 커넥션에 중복 전송합니다. 흔한 실수입니다.
 
 ## 4. 느린 소비자 — 이 시스템의 조용한 킬러
 
-POS 하나가 죽거나, 매장 회선이 막히거나, 단말이 멈춰 TCP 수신 버퍼를 비우지 않으면, 그 커넥션의 write가 진행되지 않습니다. 이벤트는 계속 오고 큐는 계속 자랍니다.
+POS 하나가 죽거나, 매장 회선이 막히거나, 단말이 멈춰 TCP 수신 버퍼를 비우지 않으면 그 커넥션의 write가 진행되지 않습니다. 이벤트는 계속 오고 큐는 계속 자랍니다.
 
 연결은 끊기지 않습니다. TCP는 상대가 살아 있는 한 죽지 않고 SSE는 애플리케이션 레벨 ack가 없습니다. 하트비트도 쓰기 방향이라 도움이 안 됩니다 — 우리가 보내는 ping이 같은 큐에 쌓일 뿐입니다.
 
@@ -142,7 +141,7 @@ if (!channel.trySend(ev).isSuccess) closeSlowConsumer(deviceId)
 
 상한 값은 재개 창과 함께 정합니다 — 큐가 100개까지 찬다면 그 시점의 지연이 얼마인지가 기준입니다. 100~500이 출발점이고 `sse_slow_consumer_disconnects_total`을 보면서 조정합니다.
 
-기본값이 무제한인 API를 조심하세요. `Sinks.many().unicast().onBackpressureBuffer()`를 인자 없이 부르면 무제한 큐입니다. `Channel()`도 기본이 `RENDEZVOUS`라 성격이 다르지만, `Channel(Channel.UNLIMITED)`은 그대로 힙 누수입니다.
+기본값이 무제한인 API를 조심하세요. `Sinks.many().unicast().onBackpressureBuffer()`를 인자 없이 부르면 무제한 큐입니다. `Channel()`도 기본이 `RENDEZVOUS`라 성격이 다르지만 `Channel(Channel.UNLIMITED)`은 그대로 힙 누수입니다.
 
 ## 5. 하트비트
 
@@ -181,7 +180,7 @@ fun onSigterm() {
 }
 ```
 
-3번이 SSE를 고른 값을 회수하는 지점입니다. [WHATWG 명세](https://html.spec.whatwg.org/multipage/server-sent-events.html)가 `retry:`를 재연결 시간 설정으로 규정하므로, 클라이언트가 명세를 따르기만 하면 이 한 줄로 재접속이 흩어집니다.
+3번이 SSE를 고른 값을 회수하는 지점입니다. [WHATWG 명세](https://html.spec.whatwg.org/multipage/server-sent-events.html)가 `retry:`를 재연결 시간 설정으로 규정하므로 클라이언트가 명세를 따르기만 하면 이 한 줄로 재접속이 흩어집니다.
 
 4번의 `Thread.sleep`은 예시입니다. 실제로는 종료 전용 스케줄러에서 논블로킹으로 처리하고 전체 소요가 `terminationGracePeriodSeconds` 안에 들어오는지 계산해두어야 합니다.
 
@@ -213,7 +212,7 @@ fun onSigterm() {
 | `redis_tail_lag_seconds` | 마지막 읽은 Stream ID의 타임스탬프와 현재 시각의 차 — **tail이 밀리고 있는지** |
 | `redis_tail_bytes_total` | [04 §4.2]({{< relref "04-branch-a-client-dials/index.md" >}})의 `R × S × P` 실측 |
 
-`redis_tail_lag_seconds`가 가장 중요합니다. 이 값이 자라기 시작하면 파드가 이벤트 소비를 못 따라가고 있다는 뜻이고, 그건 곧 모든 POS의 지연으로 나타납니다. Stream ID의 앞부분이 밀리초 타임스탬프이므로 계산이 공짜입니다.
+`redis_tail_lag_seconds`가 가장 중요합니다. 이 값이 자라기 시작하면 파드가 이벤트 소비를 못 따라간다는 뜻이고 그건 곧 모든 POS의 지연으로 나타납니다. Stream ID의 앞부분이 밀리초 타임스탬프이므로 계산이 공짜입니다.
 
 ## 9. 부하 시험에서 반드시 재야 할 것
 

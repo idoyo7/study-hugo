@@ -7,25 +7,24 @@ weight: 3
 # 03 · 플랫폼 선례 해부 — 그들은 왜 링을 쓰는가
 
 {{< callout type="info" >}}
-**한눈에**
-- 링을 쓰는 이유는 다섯 시스템이 전부 다릅니다. "분산 시스템이니까 링"이 아니라, 각자 못 피한 제약 하나를 링으로 우회했습니다. 그 제약이 우리에게 없으면 링도 필요 없습니다.
+- 링을 쓰는 이유는 다섯 시스템이 전부 다릅니다. "분산 시스템이니까 링"은 이유가 못 됩니다. 각자 못 피한 제약 하나를 링으로 우회했을 뿐입니다. 그 제약이 우리에게 없으면 링도 필요 없습니다.
 - Loki/Mimir ingester가 링을 쓰는 진짜 이유는 쿼리입니다. flush 전 chunk가 그 파드 메모리에만 있어서 querier가 그 파드를 찾아가야 합니다. 링은 "누가 갖고 있나"를 O(1)로 답하는 주소록이고 부하 분산은 부수 효과입니다.
 - vmagent는 링을 쓰지 않습니다. `hash(target) % membersCount`이고 `memberNum`은 플래그로 고정됩니다. 멤버십을 알지 못하고 죽은 멤버의 몫을 아무도 인수하지 않습니다 — 대신 `replicationFactor`로 미리 중복 스크랩해 덮습니다.
-- Alloy는 반대를 택했습니다. consistent hashing으로 노드당 512 토큰을 돌리고 문서가 트레이드오프를 명시합니다 — hashmod는 *fully consistent*지만 재분배가 전량이고 consistent hashing은 이동이 1/N이지만 ***eventually consistent***입니다. "eventually"가 곧 일시적 중복 소유이고 이게 분기 B의 최대 위험입니다.
-- Promtail은 분배 문제를 배치로 없앴습니다. DaemonSet으로 노드마다 하나 두면 "누가 무엇을 맡나"가 질문조차 되지 않습니다. 우리 분기 A에서 로드밸런서가 하는 역할이 정확히 이것입니다.
+- Alloy는 반대를 택했습니다. consistent hashing으로 노드당 512 토큰을 돌리고 문서가 트레이드오프를 명시합니다 — hashmod는 *fully consistent*지만 재분배가 전량이고 consistent hashing은 이동이 1/N이지만 ***eventually consistent***입니다. "eventually"가 곧 일시적 중복 소유입니다. 이게 분기 B의 최대 위험입니다.
+- Promtail은 분배 문제를 배치로 없앴습니다. DaemonSet으로 노드마다 하나 두면 "누가 무엇을 맡나"가 질문조차 되지 않습니다. 우리 분기 A에서는 로드밸런서가 이 역할을 합니다.
 - Thanos compactor는 링을 안 쓰고 상호배제를 사람에게 떠넘깁니다. *"you need to ensure on your own that only a single Compactor is running against a single stream"* — 링의 한계를 가장 정직하게 드러낸 문장입니다. 링은 배정을 나눌 뿐 상호배제를 보장하지 않습니다.
 - 판정 축은 셋입니다 — ① 휘발성 상태가 파드 메모리에 있는가, ② 죽은 멤버의 몫을 인수해야 하는가, ③ 중복 소유가 사고인가. 우리 워크로드는 ①에 아니오, ②는 분기에 따라, ③은 분기 B에서만 예입니다.
 {{< /callout >}}
 
-"Loki도 링을 쓰니 우리도 링"은 근거가 아닙니다. 이 문서는 다섯 시스템에서 링을 채택하게 만든 제약을 하나씩 뽑아내고 그 제약이 POS 게이트웨이에 있는지를 대조합니다. 결론을 먼저 말하면 — 분기 A에는 다섯 개 중 어느 제약도 없습니다. 검증 기준은 각 프로젝트 공식 문서와 CLI 플래그 정의입니다.
+"Loki도 링을 쓰니 우리도 링"은 근거가 아닙니다. 이 문서는 다섯 시스템에서 링을 채택하게 만든 제약을 하나씩 뽑아내고 그 제약이 POS 게이트웨이에 있는지를 대조합니다. 미리 말해 두면 분기 A에는 다섯 개 중 어느 제약도 없습니다. 검증 기준은 각 프로젝트 공식 문서와 CLI 플래그 정의입니다.
 
 ## 1. Loki / Mimir ingester — 링은 주소록이다
 
 distributor가 스트림(테넌트 ID + 레이블 집합)을 해시해 링에서 ingester를 고르고 복제 인수만큼 복제해 보냅니다. ingester는 받은 로그를 메모리에서 chunk로 쌓다가 조건이 되면 오브젝트 스토리지로 flush합니다.
 
-링을 쓰게 만든 제약은 하나입니다. flush되기 전 데이터는 그 ingester의 메모리에만 있습니다. Loki 문서가 querier를 이렇게 설명합니다 — querier는 *"fetches log data from both the ingesters and from long-term storage"*, 즉 최근 데이터를 얻으려면 그것을 들고 있는 ingester를 직접 찾아가야 합니다.
+링을 쓰게 만든 제약은 하나입니다. flush되기 전 데이터는 그 ingester의 메모리에만 있습니다. Loki 문서는 querier를 이렇게 설명합니다 — querier는 *"fetches log data from both the ingesters and from long-term storage"*. 최근 데이터를 얻으려면 그 데이터를 들고 있는 ingester를 직접 찾아가야 합니다.
 
-그래서 링의 1차 용도는 부하 분산이 아니라 주소 지정입니다. "이 스트림의 미flush 데이터는 어느 파드에 있나"를 쓰기 측과 읽기 측이 같은 함수로 답할 수 있어야 하고 그 합의 구조가 링입니다.
+그래서 링은 부하 분산 장치이기 전에 주소 지정 장치입니다. "이 스트림의 미flush 데이터는 어느 파드에 있나"를 쓰기 측과 읽기 측이 같은 함수로 답할 수 있어야 하고 그 합의 구조가 링입니다.
 
 메모리에 미flush 데이터가 있으므로 프로세스가 죽으면 그게 날아갑니다. 그래서 WAL이 붙습니다 — *"the ingester now includes a write ahead log (WAL) which persists incoming writes to disk to ensure they are not lost."* WAL은 디스크를 요구하고 디스크는 PVC를 요구하고 PVC는 StatefulSet을 요구합니다. 그리고 재시작 시 같은 링 토큰을 되찾아야 WAL이 의미가 있으므로 안정적 ID도 필요합니다.
 
@@ -45,13 +44,13 @@ distributor가 스트림(테넌트 ID + 레이블 집합)을 해시해 링에서
 
 각 인스턴스는 `hash(target) % membersCount`를 계산해 자기 `memberNum`과 맞는 타깃만 긁습니다. Helm 차트는 `statefulSet.clusterMode`가 켜지면 `membersCount`를 `replicaCount`로 자동 주입합니다.
 
-결정적인 것은 `membersCount`가 플래그로 고정된 상수라는 점입니다. vmagent는 다른 멤버가 살아 있는지 죽었는지를 알지 못하고 알 필요도 없게 설계됐습니다. 파드 3번이 죽으면 3번이 맡던 타깃은 그냥 안 긁힙니다.
+`membersCount`가 플래그로 고정된 상수라는 대목이 결정적입니다. vmagent는 다른 멤버가 살아 있는지 죽었는지를 알지 못하고 알 필요도 없게 설계됐습니다. 파드 3번이 죽으면 3번이 맡던 타깃은 그냥 안 긁힙니다.
 
-그 구멍을 메우는 것이 `replicationFactor`입니다. 2로 두면 모든 타깃을 두 인스턴스가 중복 스크랩하고 하나가 죽어도 나머지가 이미 긁고 있습니다. 대신 원격 저장소에서 중복 제거가 필수가 됩니다 — 문서가 `-dedup.minScrapeInterval`을 `scrape_interval`과 맞추라고 못박습니다.
+그 구멍을 메우는 것이 `replicationFactor`입니다. 2로 두면 모든 타깃을 두 인스턴스가 중복 스크랩하고 하나가 죽어도 나머지가 이미 긁고 있습니다. 대신 원격 저장소에서 중복 제거가 필수가 됩니다 — 문서가 `-dedup.minScrapeInterval`을 `scrape_interval`과 맞추라고 명시합니다.
 
-놀랍도록 값싼 설계입니다. 멤버십 발견도, gossip도, 코디네이터도 없습니다. 대가는 두 가지 — 중복 작업을 상시로 감수하고 결과를 뒤에서 dedup할 수 있어야 합니다.
+놀랍도록 값싼 설계입니다. 멤버십 발견도, gossip도, 코디네이터도 없습니다. 대가는 있습니다. 중복 작업을 상시로 감수해야 하고 결과를 뒤에서 dedup할 수 있어야 합니다.
 
-분기 B라면 이 방식을 못 씁니다. "죽은 파드의 몫을 살아있는 파드가 주워간다"가 요구사항인데, 이 방식은 정확히 그것을 포기했습니다. 그리고 중복 다이얼은 dedup으로 덮을 수 있는 종류의 중복이 아닙니다 — 단말에 같은 명령이 두 번 갑니다.
+분기 B라면 이 방식을 못 씁니다. "죽은 파드의 몫을 살아있는 파드가 주워간다"가 요구사항인데, 이 방식은 그 인수를 포기한 설계입니다. 그리고 중복 다이얼은 dedup으로 덮을 수 있는 종류의 중복이 아닙니다 — 단말에 같은 명령이 두 번 갑니다.
 
 ## 3. Alloy — consistent hashing의 대가를 문서가 직접 말한다
 
@@ -63,10 +62,10 @@ distributor가 스트림(테넌트 ID + 레이블 집합)을 해시해 링에서
 >
 > 출처: Alloy clustering 문서
 
-두 가지를 동시에 말합니다.
+이 문장은 이동량과 일관성을 한꺼번에 말합니다.
 
 1. 이동량: hashmod(`% N`)는 인원이 바뀌면 거의 전량 재배정됩니다. consistent hashing은 1/N만 움직입니다.
-2. 일관성: 그 대가로 eventually consistent입니다. 멤버십 변화가 전파되는 동안 피어들의 뷰가 갈리고 잠깐 두 노드가 같은 타깃을 자기 것이라 믿는 구간이 생깁니다.
+2. 일관성: 그 대가로 eventually consistent입니다. 멤버십 변화가 전파되는 동안 피어들의 뷰가 서로 달라집니다. 잠깐 두 노드가 같은 타깃을 자기 것이라 믿는 구간이 생깁니다.
 
 메트릭 스크랩에서 2번은 중복 샘플 몇 개로 끝납니다. POS에 명령을 미는 게이트웨이에서는 같은 명령의 이중 전송입니다. 성질이 다릅니다.
 
@@ -78,37 +77,37 @@ Promtail은 노드의 로컬 파일을 tail합니다. 배포 형태가 DaemonSet
 
 "누가 무엇을 맡나"라는 질문이 아예 발생하지 않습니다. 링도, 샤딩도, 멤버십도 없습니다. 배치 토폴로지가 소유권을 정의해버렸기 때문입니다.
 
-우리 분기 A가 정확히 이 형태입니다. 로드밸런서가 인바운드 연결을 파드에 꽂는 순간 소유권이 정해지고 파드는 자기에게 꽂힌 것만 봅니다. 분배 알고리즘을 우리가 만들지 않는 이유는 이미 만들어져 있기 때문입니다. Promtail이 DaemonSet에 위임한 것을 우리는 L4/L7 로드밸런서에 위임합니다.
+우리 분기 A가 이 형태입니다. 로드밸런서가 인바운드 연결을 파드에 꽂는 순간 소유권이 정해지고 파드는 자기에게 꽂힌 것만 봅니다. 분배 알고리즘을 우리가 만들지 않는 이유는 이미 만들어져 있기 때문입니다. Promtail이 DaemonSet에 위임한 것을 우리는 L4/L7 로드밸런서에 위임합니다.
 
 ## 5. Thanos compactor — 링의 한계를 가장 정직하게 말하는 곳
 
 Thanos compactor는 오브젝트 스토리지의 블록을 병합합니다. 수평 확장은 `--selector.relabel-config-file`로 external label을 걸러 스트림을 나누는 정적 샤딩이고 링은 없습니다.
 
-[문서](https://thanos.io/tip/components/compact.md/)가 이렇게 못박습니다.
+[문서](https://thanos.io/tip/components/compact.md/)에 이렇게 적혀 있습니다.
 
 > *"Only one instance of Compactor may run against a single stream of blocks in a single object storage, and because **not all object storage providers implement a safe locking mechanism, you need to ensure on your own** that only a single Compactor is running against a single stream of blocks on a single bucket."*
 >
 > 출처: Thanos compactor 문서
 
-이 한 문단이 두 가지를 말합니다.
+이 한 문단은 상호배제와 사람의 책임을 나란히 짚습니다.
 
 - 중복 실행이 데이터 손상으로 이어지는 작업에서는 소유권 분배 알고리즘만으로 부족합니다. 상호배제는 별개의 메커니즘입니다.
 - 안전한 락이 없으면 결국 사람이 보장해야 합니다 — 자동화할 수 없는 구간이 남습니다.
 
-링은 "누가 맡을지"의 합의를 만들 뿐, "동시에 둘이 맡지 않음"을 보장하지 않습니다. §3의 eventual consistency와 정확히 같은 이야기입니다.
+링은 "누가 맡을지"의 합의를 만들 뿐, "동시에 둘이 맡지 않음"을 보장하지 않습니다. §3의 eventual consistency와 같은 이야기입니다.
 
 ## 6. Kafka consumer group — 사용자가 그린 그림의 성숙한 원형
 
 "대상을 링으로 나눠 갖고, 죽은 멤버의 몫을 남은 멤버가 잘라 가져간다"는 그림에 가장 가까운 실제 시스템은 링 기반 스토리지가 아니라 Kafka consumer group입니다.
 
 - 파티션이 처리 단위, 컨슈머가 멤버
-- 그룹 코디네이터(브로커)가 멤버십을 관리합니다 — gossip이 아니라 중앙 조정자
+- 그룹 코디네이터(브로커)가 멤버십을 관리합니다 — gossip 없이 중앙 조정자가 맡습니다
 - 멤버가 세션 타임아웃 내에 하트비트를 못 보내면 rebalance가 발동하고 그 몫이 재배정됩니다
 - rebalance 중에는 모든 멤버가 일단 소유권을 놓거나(eager) 겹치지 않는 부분만 유지합니다(cooperative)
 
-핵심은 "일단 놓고 다시 받는다"는 규약입니다. §3의 중복 소유 구간을 없애는 정공법이 이것입니다 — 이동량을 줄이는 대신 재배정 순간에 소유권 공백을 만들어 중복을 원천 차단합니다.
+규약은 "일단 놓고 다시 받는다"입니다. §3의 중복 소유 구간은 이렇게 없앱니다 — 이동량을 줄이는 대신 재배정 순간에 소유권 공백을 만들어 중복을 원천 차단합니다.
 
-분기 B를 설계한다면 링보다 이쪽이 참고 원형입니다. 중복이 사고인 도메인에서 검증된 방식은 "겹치지 않게 잘 나누기"가 아니라 "겹칠 바에 잠깐 비운다"입니다.
+분기 B를 설계한다면 링보다 이쪽이 참고 원형입니다. 중복이 사고인 도메인에서 검증된 방식은 "겹칠 바에 잠깐 비운다"입니다. "겹치지 않게 잘 나누기"가 아닙니다.
 
 ## 7. 축 세 개로 정리
 
@@ -136,6 +135,6 @@ Thanos compactor는 오브젝트 스토리지의 블록을 병합합니다. 수�
 | ③ 중복 소유 | 발생 불가 — 단말이 한 곳에만 연결 | **사고** — 같은 명령 이중 전송 |
 | **결론** | **링 불필요.** Promtail형(배치가 곧 소유권) | **링 + lease 필요.** Kafka형(공백 규약) |
 
-①이 두 분기 모두 "없음"이라는 점이 중요합니다. Loki/Mimir가 링을 쓰는 이유는 우리에게 아예 없습니다. 분기 B에서 링이 필요해지는 이유는 ②와 ③이고 그건 *상태* 때문이 아니라 *능동적 소유권* 때문입니다. 링을 도입하더라도 Loki가 아니라 Kafka를 베껴야 합니다.
+무엇보다 두 분기 모두 ①이 "없음"입니다. Loki/Mimir가 링을 쓰는 이유는 우리에게 아예 없습니다. 분기 B에서 링이 필요해지는 이유는 ②와 ③입니다. *능동적 소유권* 때문이지 *상태* 때문이 아닙니다. 링을 도입하더라도 베낄 곳은 Loki가 아니라 Kafka입니다.
 
 각 분기의 실제 설계는 [04]({{< relref "04-branch-a-client-dials/index.md" >}})와 [05]({{< relref "05-branch-b-pod-dials/index.md" >}})로 넘어갑니다.

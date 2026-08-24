@@ -6,18 +6,17 @@ weight: 4
 # 레이어 3 — 닫힌 영역과 클러스터 내부 우회
 
 {{< callout type="info" >}}
-**한눈에**
 - finance가 실제로 부딪히는 닫힌 항목은 셋입니다 — HPA 스케일다운 안정화 시간, 감사 정책 파일, etcd 스냅샷. 셋 다 클러스터 내부 우회로만 처리합니다.
 - 2026-08에 열린 것은 EKS API 필드 3개 안의 세부 값 4개뿐입니다. `kubeApiServerConfig`는 하위 필드가 `eventTtl`·`serviceNodePortRange` **2개**입니다. "이제 apiserver 플래그를 만질 수 있다"는 서술은 이 숫자 하나로 반박됩니다.
 - 열린 값 옆자리가 그대로 닫혀 있습니다. HPA는 `--horizontal-pod-autoscaler-sync-period` 하나만 열리고 같은 코드 블록의 downscale-stabilization·tolerance·cpu-initialization-period·initial-readiness-delay 4개는 닫혔습니다.
 - 우회 창구는 사실상 3개입니다 — APF(`FlowSchema`·`PriorityLevelConfiguration`), 어드미션(웹훅·CEL·Kyverno/OPA), 자체 스케줄러 배포 + `schedulerName`. 나머지 대부분은 대안이 **없습니다**.
 - etcd는 전 구간 차단입니다. 엔드포인트도, compaction·defrag·quota 튜닝도, 스냅샷도 없습니다. 백업은 Velero 같은 API 레벨 도구뿐이고 **원자적 시점 복구는 포기해야 합니다**.
-- `--force`는 PDB·어드미션 웹훅을 우회하지 않습니다. EKS 자체 인사이트 검사만 우회하며 전진 업그레이드 쪽 강제는 2025-03-28 임시 롤백된 뒤 재활성화가 확인되지 않아 현재 실질적으로 거의 무효입니다.
+- `--force`는 PDB·어드미션 웹훅을 우회하지 않습니다. EKS 자체 인사이트 검사만 우회합니다. 전진 업그레이드 쪽 강제는 2025-03-28 임시 롤백된 뒤 재활성화가 확인되지 않아 현재 실질적으로 거의 무효입니다.
 {{< /callout >}}
 
-이 페이지는 [레이어 1]({{< relref "01-cluster-parameters.md" >}})의 클러스터 파라미터와 [레이어 2]({{< relref "02-component-parameters.md" >}})의 열린 4종을 전제로 그 **여집합**을 다룹니다. 무엇을 못 하는가, 못 하는 자리를 클러스터 안에서 어떻게 메우는가. 질문은 이 둘입니다.
+이 페이지는 [레이어 1]({{< relref "01-cluster-parameters.md" >}})의 클러스터 파라미터와 [레이어 2]({{< relref "02-component-parameters.md" >}})의 열린 4종을 전제로 그 **여집합**을 다룹니다. 무엇을 못 하는가, 못 하는 부분을 클러스터 안에서 어떻게 메우는가. 질문은 이 둘입니다.
 
-이 페이지의 모든 `path:line` 인용은 로컬 클론 기준입니다 — kubernetes는 v1.37 개발 브랜치 커밋 `752b8875`(2026-07-26, `git describe`로는 `v1.37.0-beta.0-499`), karpenter-core는 `ac7a021e`(v1.14.0-6, 2026-07-27). EKS가 실제로 돌리는 마이너(1.31~1.36)의 배포본과 줄번호가 다를 수 있습니다. 다만 여기 인용한 플래그들은 대부분 오래전에 도입돼 옵션 계약 자체는 안정적입니다.
+이 페이지의 모든 `path:line` 인용은 로컬 클론 기준입니다 — kubernetes는 v1.37 개발 브랜치 커밋 `752b8875`(2026-07-26, `git describe`로는 `v1.37.0-beta.0-499`), karpenter-core는 `ac7a021e`(v1.14.0-6, 2026-07-27). EKS가 실제로 돌리는 마이너(1.31~1.36)의 배포본과 줄번호가 다를 수 있습니다. 여기 인용한 플래그들은 대부분 오래전에 도입돼 옵션 계약 자체는 안정적입니다.
 
 ## 1. 열린 것과 닫힌 것의 경계
 
@@ -33,7 +32,7 @@ weight: 4
 | cloud-controller-manager | **없음** | 0 | 3 | 이번 신설에 CCM 필드는 아예 포함되지 않았다 |
 | etcd | **없음**(`encryptionConfig`만 간접) | 0 | `--etcd-*` 전체 | §5 |
 
-`CreateCluster` 요청 스키마에서 이 셋이 차지하는 자리를 그대로 옮겼습니다. 스키마가 열어 준 자리는 중괄호 안에서 끝납니다.
+`CreateCluster` 요청 스키마에서 이 셋이 차지하는 자리를 그대로 옮겼습니다. 스키마가 열어 준 범위는 중괄호 안에서 끝납니다.
 
 ```json
 {
@@ -58,7 +57,7 @@ weight: 4
 
 ### 1.2 열린 값의 옆자리가 닫혀 있다
 
-개방이 좁다는 것은 총량 비교가 아니라 **같은 코드 블록 안에서 하나만 뚫렸다**는 데서 가장 잘 드러납니다.
+개방이 좁다는 사실은 총량 비교보다 **같은 코드 블록 안에서 하나만 뚫렸다**는 데서 가장 잘 드러납니다.
 
 | 열린 값 | 업스트림 정의 위치 | 바로 옆에 있는데 닫힌 것 |
 |---|---|---|
@@ -134,7 +133,7 @@ ValidatingAdmissionWebhook, ResourceQuota
 | `--horizontal-pod-autoscaler-cpu-initialization-period` / `--initial-readiness-delay` | 새 파드 메트릭을 신뢰하기 시작하는 시점(5m / 30s) | 같은 블록 | **닫힘** |
 | `--concurrent-horizontal-pod-autoscaler-syncs` | HPA 오브젝트 동시 처리 수 | `hpacontroller.go:38`, `Validate()`는 `:58-68` | **직접 불가.** 티어가 대리로 올려준다(§6) — 사용자가 독립적으로 지정하는 축이 아니다 |
 
-sync period를 줄이면 apiserver 요청량이 늘어납니다. 메커니즘은 코드에서 그대로 읽힙니다. `pkg/controller/podautoscaler/horizontal.go:356-368`의 `processNextWorkItem()`은 reconcile을 마친 뒤 `queue.AddRateLimited(key)`로 같은 키를 다시 큐에 넣습니다. 이때 resync period만큼 지연이 걸립니다. 그래서 HPA 오브젝트 하나당 정확히 period 간격으로 재평가가 돌고 매 실행이 metrics 조회 + Scale 서브리소스 호출을 수반합니다. 요청량은 **HPA 개수 × (1/period)** 에 선형 비례합니다. 다만 AWS가 하한을 그 값으로 고른 산출식이나 부하 시험 수치는 공개 문서에서 확인되지 않았습니다.
+sync period를 줄이면 apiserver 요청량이 늘어납니다. 메커니즘은 코드에서 그대로 읽힙니다. `pkg/controller/podautoscaler/horizontal.go:356-368`의 `processNextWorkItem()`은 reconcile을 마친 뒤 `queue.AddRateLimited(key)`로 같은 키를 다시 큐에 넣습니다. 이때 resync period만큼 지연이 걸립니다. 그래서 HPA 오브젝트 하나당 period 간격으로 재평가가 돌고 매 실행마다 metrics 조회와 Scale 서브리소스 호출이 따라붙습니다. 요청량은 **HPA 개수 × (1/period)** 에 선형 비례합니다. AWS가 하한을 그 값으로 고른 산출식이나 부하 시험 수치는 공개 문서에서 확인되지 않았습니다.
 
 ### 3.2 노드 라이프사이클·GC·클라이언트 QPS
 
@@ -160,7 +159,7 @@ sync period를 줄이면 apiserver 요청량이 늘어납니다. 메커니즘은
 
 ## 4. feature gate와 alpha API
 
-User Guide FAQ가 원문으로 못박습니다.
+User Guide FAQ가 원문으로 명시합니다.
 
 > "Amazon EKS supports all generally available (GA) features of the Kubernetes API. New beta APIs aren't enabled in clusters by default. However, previously existing beta APIs and new versions of existing beta APIs continue to be enabled by default. **Alpha features aren't supported.**"
 >
@@ -173,7 +172,7 @@ User Guide FAQ가 원문으로 못박습니다.
 | beta(신규) | 기본 비활성 | 이건 EKS가 더 막는 것이 아니라 **업스트림 정책 그대로다**(1.24부터 신규 beta API는 기본 off) |
 | alpha | ⚠️ **불가.** 켤 수단이 없다 | `--feature-gates`·`--runtime-config` 둘 다 비노출(§2.3) |
 
-`--feature-gates`가 없으니 게이트를 켤 수 없고 `--runtime-config`가 없으니 API 그룹을 켤 수도 없습니다. 두 경로가 동시에 막혀 있어 alpha는 **원리적으로 닫힌 영역**입니다. 대안은 없습니다. 그 기능이 beta 기본 활성 또는 GA로 승격할 때까지 기다리는 수밖에 없습니다.
+`--feature-gates`가 없으니 게이트를 켤 수 없고 `--runtime-config`가 없으니 API 그룹을 켤 수도 없습니다. 두 경로가 모두 막혀 있어 alpha는 **원리적으로 닫힌 영역**입니다. 대안은 없습니다. 그 기능이 beta 기본 활성 또는 GA로 승격할 때까지 기다리는 수밖에 없습니다.
 
 "alpha 게이트를 전부 켠 전용 클러스터 타입을 달라"는 요청은 `aws/containers-roadmap#2348`("EKS Alpha Clusters")로 살아 있으나 2026-08 기준 그런 제품은 없습니다.
 
@@ -198,7 +197,7 @@ User Guide FAQ가 원문으로 못박습니다.
 | 크기 한도 | Standard 최대 **8GB**, Provisioned 티어 **16GB** | 8GB는 Provisioned→Standard 복귀 조건과 직결된다 → [용량 축]({{< relref "03-provisioned-control-plane.md" >}}) |
 | 관측 | `apiserver_storage_size_bytes` | AWS 문서가 2026년 하반기부터 `etcd_mvcc_db_total_size_in_use_in_bytes`로 전체 클러스터에 롤아웃할 예정이라고 명시했다 |
 
-**백업 대안과 그 한계.** Velero는 API 서버를 거쳐 리소스를 백업합니다. etcd를 직접 읽지 않으니 `kubectl`이 보는 것과 같은 수준입니다. PV 데이터는 CSI 볼륨 스냅샷이나 Velero의 파일 레벨 백업으로 따로 처리합니다. RBAC·CRD 정의 같은 컨트롤 플레인 메타데이터까지 리소스 단위로 재현은 되지만 **etcd 스냅샷 기반 복원처럼 원자적 시점 복구는 되지 않습니다.** 리소스마다 백업 시각이 미세하게 다르고 백업 중 변경된 오브젝트 사이의 정합은 보장되지 않습니다. "애플리케이션 레벨 백업이 최초이자 최후의 방어선"이라는 정리는 커뮤니티 2차 소스 다수가 일치합니다. 다만 원자성 상실이라는 대가를 명시하지 않고 인용하면 오해를 만듭니다.
+**백업 대안과 그 한계.** Velero는 API 서버를 거쳐 리소스를 백업합니다. etcd를 직접 읽지 않으니 `kubectl`이 보는 것과 같은 수준입니다. PV 데이터는 CSI 볼륨 스냅샷이나 Velero의 파일 레벨 백업으로 따로 처리합니다. RBAC·CRD 정의 같은 컨트롤 플레인 메타데이터까지 리소스 단위로 재현은 되지만 **etcd 스냅샷 기반 복원처럼 원자적 시점 복구는 되지 않습니다.** 리소스마다 백업 시각이 미세하게 다르고 백업 중 변경된 오브젝트 사이의 정합은 보장되지 않습니다. "애플리케이션 레벨 백업이 최초이자 최후의 방어선"이라는 정리는 커뮤니티 2차 소스 다수가 일치합니다. 원자성 상실이라는 대가를 명시하지 않고 인용하면 오해를 만듭니다.
 
 ## 6. 컨트롤 플레인 사이징
 
@@ -297,7 +296,7 @@ spec:
 
 ### 7.3 자체 스케줄러 배포
 
-스케줄러 프로파일·플러그인은 못 고칩니다. 그 자리를 메우는 길은 하나뿐입니다. kube-scheduler를 우리가 하나 더 배포하고 그 스케줄러에 맡길 파드에 `spec.schedulerName`을 지정합니다.
+스케줄러 프로파일·플러그인은 못 고칩니다. 그 공백을 메우는 길은 하나뿐입니다. kube-scheduler를 우리가 하나 더 배포하고 그 스케줄러에 맡길 파드에 `spec.schedulerName`을 지정합니다.
 
 ```yaml
 spec:
@@ -309,7 +308,7 @@ spec:
 - AWS가 `aws-samples/custom-scheduler-eks`로 참조 구현을 공개했습니다(bin packing 목적, EKS 1.24+ 명시).
 - 같은 문서는 kube-scheduler를 직접 빌드하지 말고 eks-distro 이미지를 쓰라고 권고합니다. 버전 정합 관리가 그만큼 까다롭습니다.
 - ServiceAccount + ClusterRoleBinding을 직접 구성해야 합니다. 스케줄러는 파드·노드·PV 전반에 광범위한 권한이 필요하므로 RBAC 범위가 작지 않습니다.
-- 관리형 스케줄러와 공존합니다. `schedulerName`을 지정하지 않은 파드는 계속 EKS 관리형 스케줄러가 처리합니다. 그래서 전면 교체 없이 부분 적용으로 갈 수 있습니다. 반대로 두 스케줄러가 같은 노드 자원을 동시에 바인딩하려는 경쟁 조건은 우리 책임입니다.
+- 관리형 스케줄러와 공존합니다. `schedulerName`을 지정하지 않은 파드는 계속 EKS 관리형 스케줄러가 처리합니다. 그래서 전면 교체 없이 부분 적용으로 갈 수 있습니다. 대신 두 스케줄러가 같은 노드 자원을 한꺼번에 바인딩하려는 경쟁 조건은 우리 책임입니다.
 
 ### 7.4 감사·이벤트 보존
 
@@ -333,13 +332,13 @@ EKS가 내부적으로 in-tree AWS cloud provider를 쓰는지 external `cloud-p
 | 모든 검증을 건너뛴다 | **아니다.** 7일 창·생성 시점 버전 확인·순차 롤백 확인 같은 필수 검증은 우회하지 못한다 |
 | 무엇을 우회하나 | **EKS 자체 인사이트(readiness) 검사뿐이다** |
 
-인사이트가 ERROR/UNKNOWN일 때 `--force` 없이는 업그레이드를 막는 기능은 **2025-03-27 도입 후 2025-03-28 임시 롤백**됐습니다. 2026-08-14 현재도 User Guide가 같은 문장을 현재 시제로 유지하고 있습니다. 여기에 시점 문제가 하나 더 겹칩니다.
+인사이트가 ERROR/UNKNOWN일 때 `--force` 없이는 업그레이드를 막는 기능은 **2025-03-27 도입 후 2025-03-28 임시 롤백**됐습니다. 2026-08-14 현재도 User Guide는 같은 문장을 현재 시제로 유지합니다. 여기에 시점 문제가 하나 더 겹칩니다.
 
 > "Amazon EKS has temporarily rolled back a feature that would require you to use a `--force` flag to upgrade your cluster when there were certain cluster insight issues."
 >
 > 출처: AWS User Guide, cluster-insights.html
 
-재활성화를 확인해 주는 1차 문서는 없습니다. 따라서 **전진 업그레이드에서 `--force`는 현재 실질적으로 거의 무효**입니다. 의미를 갖는 자리는 다른 곳입니다 — 2026년 도입된 **클러스터 버전 롤백**(역방향) 흐름에서는 신설된 Rollback Readiness Insights가 ERROR/UNKNOWN일 때 `--force` 없이 롤백을 차단하는 강제 로직이 실제로 살아 있습니다. "인사이트가 ERROR면 업그레이드가 시스템적으로 막힌다"는 전제로 절차를 짜면 안 됩니다. 롤백 절차에서는 반대로 이 플래그를 계산에 넣어야 합니다. 롤백 계약 자체는 [컷오버·롤백]({{< relref "../05-cutover-rollback.md" >}})이 다룹니다.
+재활성화를 확인해 주는 1차 문서는 없습니다. **전진 업그레이드에서 `--force`는 현재 실질적으로 거의 무효**입니다. 이 플래그가 의미를 갖는 곳은 따로 있습니다 — 2026년 도입된 **클러스터 버전 롤백**(역방향) 흐름에서는 신설된 Rollback Readiness Insights가 ERROR/UNKNOWN일 때 `--force` 없이 롤백을 차단하는 강제 로직이 실제로 살아 있습니다. "인사이트가 ERROR면 업그레이드가 시스템적으로 막힌다"는 전제로 절차를 짜면 안 됩니다. 롤백 절차에서는 이 플래그를 계산에 넣어야 합니다. 롤백 계약 자체는 [컷오버·롤백]({{< relref "../05-cutover-rollback.md" >}})이 다룹니다.
 
 ## 9. 과장과 오해 정리
 
@@ -358,6 +357,6 @@ EKS가 내부적으로 in-tree AWS cloud provider를 쓰는지 external `cloud-p
 
 ## 우리 케이스에서는
 
-finance가 실제로 부딪히는 닫힌 항목은 세 개로 좁혀집니다. 첫째는 **HPA downscale stabilization**입니다. 열린 것은 sync period뿐이라 스케일다운 지연은 HPA `behavior.scaleDown` 필드로 워크로드마다 따로 잡아야 합니다(오브젝트 레벨 설정이라 컨트롤 플레인과 무관하게 쓸 수 있습니다). **감사 정책 파일**이 둘째입니다. 금융 도메인이라 기록 레벨을 우리가 정하고 싶지만 그 축은 닫혔습니다. [클러스터 설정]({{< relref "../02-cluster-config.md" >}})이 `enabled_cluster_log_types=["audit"]`로 로그 타입을 켜는 데까지가 우리 몫입니다. 세 번째는 **etcd 스냅샷 부재**입니다. blue-green 이관이라 "green을 그대로 남겨둔다"는 것이 사실상 우리의 시점 복구 수단이고 컷오버 이후 시점부터는 Velero 같은 API 레벨 백업으로 내려앉습니다. 원자적 시점 복구가 없다는 대가는 이관 계획에 명시해 두는 편이 낫습니다.
+finance가 실제로 부딪히는 닫힌 항목은 세 개로 좁혀집니다. **HPA downscale stabilization**이 하나입니다. 열린 것은 sync period뿐이라 스케일다운 지연은 HPA `behavior.scaleDown` 필드로 워크로드마다 따로 잡아야 합니다(오브젝트 레벨 설정이라 컨트롤 플레인과 무관하게 쓸 수 있습니다). **감사 정책 파일**도 걸립니다. 금융 도메인이라 기록 레벨을 우리가 정하고 싶지만 그 축은 닫혔습니다. [클러스터 설정]({{< relref "../02-cluster-config.md" >}})이 `enabled_cluster_log_types=["audit"]`로 로그 타입을 켜는 데까지가 우리 몫입니다. **etcd 스냅샷 부재**가 마지막입니다. blue-green 이관이라 "green을 그대로 남겨둔다"는 것이 사실상 우리의 시점 복구 수단이고 컷오버 이후 시점부터는 Velero 같은 API 레벨 백업으로 내려앉습니다. 원자적 시점 복구가 없다는 대가는 이관 계획에 명시해 두는 편이 낫습니다.
 
-이 조직은 [HyperDX 내재화]({{< relref "../../hyperdx/_index.md" >}})에서 ClickStack + ClickHouse를 직접 운영하고 있으므로 §7.4의 "감사·이벤트를 외부로 반출해 장기 보존·질의한다"는 우회에 새 스택을 세울 필요가 없습니다. 감사 로그와 Event를 보낼 싱크가 이미 서 있습니다. 우회 쪽에서 손에 쥔 자산이 이것 하나입니다. 다만 그 챕터의 용량 산정은 **RUM 전용 전제**(월 0.7TB 규모)로 잡혀 있어서 k8s 감사 로그를 얹으려면 별도 산정이 선행돼야 합니다. APF 쪽은 우선순위가 낮습니다. [레이어 2]({{< relref "02-component-parameters.md" >}})가 정리한 대로 blue create 시점에는 컨트롤 플레인 파라미터를 전부 기본값으로 두는 방침입니다. karpenter·ArgoCD 컨트롤러가 seat를 다투는지는 blue가 실제 부하를 받은 뒤에 `apiserver_flowcontrol_current_executing_seats`로 확인할 문제입니다.
+이 조직은 [HyperDX 내재화]({{< relref "../../hyperdx/_index.md" >}})에서 ClickStack + ClickHouse를 직접 운영하니 §7.4의 "감사·이벤트를 외부로 반출해 장기 보존·질의한다"는 우회에 새 스택을 세울 필요가 없습니다. 감사 로그와 Event를 보낼 싱크가 이미 서 있습니다. 우회 쪽에서 손에 쥔 자산이 이것 하나입니다. 그 챕터의 용량 산정은 **RUM 전용 전제**(월 0.7TB 규모)로 잡혀 있어서 k8s 감사 로그를 추가하려면 산정을 새로 해야 합니다. APF 쪽은 우선순위가 낮습니다. [레이어 2]({{< relref "02-component-parameters.md" >}})가 정리한 대로 blue create 시점에는 컨트롤 플레인 파라미터를 전부 기본값으로 두는 방침입니다. karpenter·ArgoCD 컨트롤러가 seat를 다투는지는 blue가 실제 부하를 받은 뒤에 `apiserver_flowcontrol_current_executing_seats`로 확인할 문제입니다.

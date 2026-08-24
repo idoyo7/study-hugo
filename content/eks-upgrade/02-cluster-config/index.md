@@ -6,10 +6,9 @@ weight: 3
 # 클러스터 설정 — Fargate+karpenter 토폴로지와 Terraform 리소스
 
 {{< callout type="info" >}}
-**한눈에**
 - managed nodegroup은 0개입니다. Fargate가 CoreDNS와 karpenter 컨트롤러만 호스팅하고 나머지는 전부 karpenter NodePool(system 풀 포함)이 프로비저닝합니다.
 - Fargate 3제약이 토폴로지를 지배합니다 — amd64 전용 · DaemonSet 미부착 · 동적 EBS 불가.
-- Terraform 최대 리스크는 둘입니다. OIDC 이중등록(빠뜨리면 external-secrets 포함 cross-account IRSA 전체가 조용히 깨집니다), 그리고 ebs-csi IRSA 롤(스펙에 필드 자체가 없어 놓치기 쉽습니다).
+- Terraform 최대 리스크는 둘입니다. OIDC 이중등록(빠뜨리면 external-secrets 포함 cross-account IRSA 전체가 아무 에러 없이 깨집니다), 그리고 ebs-csi IRSA 롤(스펙에 필드 자체가 없어 놓치기 쉽습니다).
 - karpenter 인프라 전체(IRSA·노드 롤·interruption·discovery 태그)는 이 레포에 전무해 처음부터 짜야 합니다.
 {{< /callout >}}
 
@@ -17,25 +16,25 @@ weight: 3
 
 ## 1. 목표 토폴로지
 
-Karpenter를 Fargate 위에서 돌리는 것은 karpenter 공식 getting-started가 정식으로 제공하는 옵션("managedNodeGroups 대신 fargateProfiles 사용")입니다. 이 프로젝트는 그 옵션 위에 CoreDNS까지 얹어 **managed nodegroup을 아예 두지 않는** 형태로 갑니다.
+Karpenter를 Fargate 위에서 돌리는 것은 karpenter 공식 getting-started가 정식으로 제공하는 옵션("managedNodeGroups 대신 fargateProfiles 사용")입니다. 이 프로젝트는 그 옵션 위에 CoreDNS까지 추가해 **managed nodegroup을 아예 두지 않는** 형태로 갑니다.
 
 {{< flow src="_flow/1-목표-토폴로지.json" />}}
 
-managed nodegroup이 없으므로 **첫 EC2 노드는 karpenter 자신이 만듭니다.** CoreDNS와 karpenter는 EC2 노드 없이 Fargate에서 뜰 수 있는 유일한 두 컴포넌트이고 그 둘이 살아나야 나머지(ebs-csi·ALB controller·external-secrets 등)가 착지할 EC2 노드가 생깁니다 — 이 "노드 없이 뜨는 2컴포넌트가 나머지의 착지장을 만든다"는 것이 토폴로지의 구조적 핵심입니다. 단계별 부트스트랩 순서(닭-달걀 풀기)는 [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}})이 다룹니다. arm64 required affinity가 걸린 플랫폼 컴포넌트는 arm64 풀이 system 하나뿐이라 전부 거기로 몰리므로, system 풀 사이징은 이 컴포넌트 총합을 수용해야 합니다(§3).
+managed nodegroup이 없으므로 **첫 EC2 노드는 karpenter 자신이 만듭니다.** CoreDNS와 karpenter는 EC2 노드 없이 Fargate에서 뜰 수 있는 유일한 두 컴포넌트입니다. 그 둘이 살아나야 나머지(ebs-csi·ALB controller·external-secrets 등)가 착지할 EC2 노드가 생깁니다. 노드 없이 뜨는 두 컴포넌트가 나머지의 착지장을 만듭니다. 토폴로지의 뼈대가 여기 있습니다. 단계별 부트스트랩 순서(닭-달걀 풀기)는 [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}})이 다룹니다. arm64 required affinity가 걸린 플랫폼 컴포넌트는 arm64 풀이 system 하나뿐이라 전부 거기로 몰립니다. system 풀 사이징은 이 컴포넌트 총합을 수용해야 합니다(§3).
 
 ## 2. Fargate 3대 물리 제약
 
-EKS 공식 문서 기준 아래 세 가지가 설계 전체를 지배합니다.
+EKS 공식 문서 기준으로 아래 제약이 설계 전체를 지배합니다.
 
 1. **amd64 전용(Arm 미지원).** CoreDNS·karpenter에 원래 붙어 있던 arm64 required nodeAffinity·toleration을 반드시 제거해야 합니다. 지우지 않으면 Fargate 스케줄러가 배치를 시도조차 하지 않아 **영구 Pending**이 됩니다.
 2. **DaemonSet 미지원.** Fargate는 파드 하나에 전용 micro-VM 하나를 붙이는 구조라 "노드" 개념이 없고 노드 기반 DaemonSet이 존재할 자리도 없습니다. csi-node·datadog·fluentbit·node-exporter·node-local-dns·kube-proxy·aws-node 어느 것도 Fargate 파드에는 붙지 않습니다(§4).
 3. **동적 EBS 마운트 불가.** EBS CSI 컨트롤러 자체는 Fargate에서 돌 수 있지만 실제 볼륨을 붙이는 csi-node DaemonSet은 EC2 전용입니다. 그래서 Fargate 파드는 동적 프로비저닝 EBS PV를 쓸 수 없습니다(EFS 정적 프로비저닝은 예외적으로 가능하나 finance는 EFS를 쓰지 않아 무관합니다).
 
-세 제약 모두 CoreDNS·karpenter에는 문제가 되지 않습니다 — 둘 다 EBS가 필요 없고 arm64 고정만 풀면 amd64로 문제없이 뜹니다. 제약이 실제로 부딪히는 지점은 **DaemonSet 공백**(§4)입니다.
+세 제약 모두 CoreDNS·karpenter에는 문제가 되지 않습니다 — 둘 다 EBS가 필요 없고 arm64 고정만 풀면 amd64로 문제없이 뜹니다. 제약이 실제로 부딪히는 곳은 **DaemonSet 공백**(§4)입니다.
 
 ## 3. 컴포넌트 배치 매트릭스
 
-배치처는 네 가지입니다 — **Fargate**(amd64 micro-VM), **system pool**(arm64 EC2), **workload pool**(amd64 EC2), **DaemonSet**(전 EC2 노드).
+배치처는 **Fargate**(amd64 micro-VM), **system pool**(arm64 EC2), **workload pool**(amd64 EC2), **DaemonSet**(전 EC2 노드) 네 곳입니다.
 
 | 컴포넌트 | 배치처 | arch | 필요 조치 |
 |---|---|---|---|
@@ -56,7 +55,7 @@ EKS 공식 문서 기준 아래 세 가지가 설계 전체를 지배합니다.
 
 ## 4. DaemonSet 공백과 대안
 
-Fargate 파드(CoreDNS, karpenter)에는 노드 DaemonSet이 붙지 않으므로, 노드 기반 로그·메트릭 수집기가 이 두 파드를 놓칩니다.
+Fargate 파드(CoreDNS, karpenter)에는 노드 DaemonSet이 붙지 않습니다. 노드 기반 로그·메트릭 수집기가 이 두 파드를 놓칩니다.
 
 - fluentbit(컨테이너 로그) · 공백: CoreDNS/karpenter stdout 미수집 — Fargate 내장 로그 라우터로 대체합니다. ns `aws-observability`(label `aws-observability: enabled`) + ConfigMap `aws-logging`으로 output을 지정하면 AWS가 대신 Fluent Bit를 구동합니다. 단 pod-execution-role에 로깅 IAM 정책(`logs:CreateLogStream`/`CreateLogGroup`/`PutLogEvents`)을 별도 부착해야 동작합니다 — 기본 정책엔 없습니다.
 - datadog agent(노드 메트릭·APM) · 공백: CoreDNS/karpenter 메트릭 미수집 — Fargate에서는 파드별 사이드카로만 수집합니다. CoreDNS/karpenter에 사이드카는 과하므로 karpenter `/metrics`는 Prometheus 계열 스크레이퍼로 직접 긁습니다.
@@ -111,9 +110,9 @@ IRSA 롤이 addon에 실제로 연결되는지·PVC가 붙는지 검증은 [03 m
 IaC 레포에는 EKS 클러스터를 만드는 모듈이 이미 있지만 실제로 쓰이는 것은 거의 없습니다. 호출 여부(참조 카운트)를 기준으로 재활용 판정을 내립니다.
 
 - `modules/clusters/eks`(호출 0건) · `aws_eks_cluster` + `aws_eks_node_group`(관리형, `AL2_ARM_64` 하드코딩) + 런치템플릿 + OIDC provider — 부분 재활용: 클러스터 셸은 유효하나 `access_config`·`encryption_config` 필드가 없어 추가해야 합니다. 노드그룹·런치템플릿은 삭제합니다(Fargate-only와 충돌 + AL2는 1.33+ 신규 노드그룹에 선택 불가).
-- `modules/clusters/addons`(호출 0건) · `aws_eks_addon` 4종 generic for_each + config JSON `file()` 주입 — 구조 재활용 가치가 높습니다: 버전 문자열만 1.35로 바꿉니다. 단 ebs-csi 전용 블록엔 `service_account_role_arn` 인자가 없어 IRSA 롤은 generic 블록을 경유해 주입합니다.
+- `modules/clusters/addons`(호출 0건) · `aws_eks_addon` 4종 generic for_each + config JSON `file()` 주입 — 구조 재활용 가치가 높아 버전 문자열만 1.35로 바꾸면 됩니다. 단 ebs-csi 전용 블록엔 `service_account_role_arn` 인자가 없어 IRSA 롤은 generic 블록을 경유해 주입합니다.
 - `modules/clusters/security_groups`(호출 0건) · cluster SG에 ALB→8080/15021 ingress 등 SG 규칙만 — 재활용 가능합니다. SG 리소스 정의는 여전히 이 레포 밖에 있습니다.
-- `modules/clusters/sqs`(호출 0건) · 범용 앱 DLQ(main+dead-letter, redrive, `prevent_destroy`) — karpenter interruption 큐로는 재활용할 수 없습니다: EventBridge 배선도 큐 정책도 없습니다. §8에서 전용으로 새로 씁니다.
+- `modules/clusters/sqs`(호출 0건) · 범용 앱 DLQ(main+dead-letter, redrive, `prevent_destroy`) — karpenter interruption 큐로는 재활용할 수 없습니다. EventBridge 배선도 큐 정책도 없습니다. §8에서 전용으로 새로 씁니다.
 - `modules/irsa`(실사용 다수) · IRSA 롤 팩토리 — 트러스트가 `data.aws_eks_cluster[name].identity[0].oidc.issuer`로 동적 바인딩 — 재활용: §10 재바인딩 메커니즘 자체.
 
 **dead code의 시대감각**: `modules/clusters/eks`의 `eks_version` 기본값이 관리형 노드그룹이 표준이던 시절 값입니다. Fargate-only·karpenter-only가 확정된 지금은 그대로 재활용하기보다 골격만 참조해 다시 쓰는 편이 현실적입니다.
@@ -129,7 +128,7 @@ IaC 레포에는 EKS 클러스터를 만드는 모듈이 이미 있지만 실제
 | `aws_eks_fargate_profile` | `${cluster_name}-fargate`, subnet = green private only, selector 2종 |
 | selector | `{ns: karpenter}` + `{ns: kube-system, labels:{k8s-app: kube-dns}}` |
 
-재활용 판정은 높습니다. `cluster_name`을 blue 이름으로, subnet 필터를 blue private subnet으로만 바꾸면 그대로 동작합니다(stage blue subnet은 이미 선provisioned 상태입니다). 다만 prod에는 이 Fargate 스택 자체가 없어서 stage 패턴을 복제해 새로 써야 하고 prod blue 클러스터용 subnet도 아직 어디에도 정의돼 있지 않습니다. prod 재구축 전에 subnet 확보가 선행돼야 합니다. 또 selector는 파드 생성 시점에만 평가되므로 프로필 생성 후 대상 워크로드를 rollout restart해야 하고, coredns의 arm64 nodeAffinity를 먼저 제거해야 합니다(§2).
+재활용 판정은 높습니다. `cluster_name`을 blue 이름으로, subnet 필터를 blue private subnet으로만 바꾸면 그대로 동작합니다(stage blue subnet은 이미 선provisioned 상태입니다). prod에는 이 Fargate 스택 자체가 없습니다. stage 패턴을 복제해 새로 써야 하고 prod blue 클러스터용 subnet도 아직 어디에도 정의돼 있지 않습니다. prod 재구축 전에 subnet 확보가 선행돼야 합니다. 또 selector는 파드 생성 시점에만 평가되므로 프로필 생성 후 대상 워크로드를 rollout restart해야 합니다. coredns의 arm64 nodeAffinity도 먼저 제거해야 합니다(§2).
 
 ### kube-proxy addon mode 변수화 — nftables opt-in 준비
 
@@ -197,7 +196,7 @@ EC2 trust `aws_iam_role` + managed policy 4종: `AmazonEKSWorkerNodePolicy`, `Am
 
 ### 8.3 Interruption SQS + EventBridge
 
-`aws_sqs_queue`(이름은 차트 `settings.interruptionQueue` 값과 정확히 일치해야 소비됩니다) + `aws_sqs_queue_policy`(principal `events.amazonaws.com`+`sqs.amazonaws.com`, `sqs:SendMessage`, `aws:SecureTransport:false` deny). `aws_cloudwatch_event_rule`+target 5종을 큐로 연결합니다.
+`aws_sqs_queue`(이름은 차트 `settings.interruptionQueue` 값과 일치해야 소비됩니다) + `aws_sqs_queue_policy`(principal `events.amazonaws.com`+`sqs.amazonaws.com`, `sqs:SendMessage`, `aws:SecureTransport:false` deny). `aws_cloudwatch_event_rule`+target 5종을 큐로 연결합니다.
 
 | 규칙 | source | detail-type |
 |---|---|---|
@@ -228,18 +227,18 @@ CAPA를 쓰지 않으므로 `IAMAuthenticator`(aws-auth) 강제가 사라집니�
 
 CI/admin 롤의 `AmazonEKSClusterAdminPolicy` 등 access policy는 cross-account ARN을 쓸 경우 STANDARD 타입만 허용합니다.
 
-Fargate pod-exec role은 별도 조치가 필요 없습니다 — Fargate profile 롤은 access entry가 자동 생성되므로 karpenter 노드 롤(EC2_LINUX)만 명시 작성하면 됩니다. `bootstrapClusterCreatorAdminPermissions`는 기본 true라, 감사 측면에서는 false로 두고 생성 principal을 access entry로 별도 등록하는 편이 낫습니다.
+Fargate pod-exec role은 별도 조치가 필요 없습니다 — Fargate profile 롤은 access entry가 자동 생성되므로 karpenter 노드 롤(EC2_LINUX)만 명시 작성하면 됩니다. `bootstrapClusterCreatorAdminPermissions`는 기본 true입니다. 감사 측면에서는 false로 두고 생성 principal을 access entry로 별도 등록하는 편이 낫습니다.
 
 ## 10. OIDC 이중등록과 IRSA 재바인딩
 
 신규 blue 클러스터는 신규 OIDC issuer URL + provider ARN을 갖습니다. 여기가 이 프로젝트에서 가장 파급이 큰 함정입니다.
 
-기존 IRSA 롤들은 `data.aws_eks_cluster[name].identity[0].oidc.issuer`로 동적 바인딩돼 있어 클러스터 이름이 같으면 `apply`만으로 갱신되지만, **OIDC provider lookup은 항상 management 계정에서 수행**됩니다(실사용 IRSA 스택 데이터 소스에 명시). 반면 CAPA가 수행하던 `associateOIDCProvider`는 **워크로드 계정에만** provider를 등록해왔습니다. 따라서 신규 blue 클러스터는 **워크로드 계정 + management 계정 양쪽에 `aws_iam_openid_connect_provider`를 등록**해야 external-secrets 포함 IRSA 전체가 붙습니다. 이름이 다른 신규 클러스터(green→blue)라면 클러스터 registry에 신규 이름을 추가해야 재바인딩이 트리거됩니다.
+기존 IRSA 롤은 `data.aws_eks_cluster[name].identity[0].oidc.issuer`로 동적 바인딩돼 있어 클러스터 이름이 같으면 `apply`만으로 갱신됩니다. **OIDC provider lookup은 항상 management 계정에서 수행**됩니다(실사용 IRSA 스택 데이터 소스에 명시). CAPA가 수행하던 `associateOIDCProvider`는 **워크로드 계정에만** provider를 등록해왔습니다. 신규 blue 클러스터는 **워크로드 계정 + management 계정 양쪽에 `aws_iam_openid_connect_provider`를 등록**해야 external-secrets 포함 IRSA 전체가 붙습니다. 이름이 다른 신규 클러스터(green→blue)라면 클러스터 registry에 신규 이름을 추가해야 재바인딩이 트리거됩니다.
 
 재바인딩 대상:
 
 - Terraform 관리(동적, `apply`만으로): 워크로드·management 양쪽의 시크릿 관리용 IRSA 롤 — registry에 신규 클러스터명만 추가하면 자동으로 붙습니다.
-- Terraform 레포 밖(외부 관리, 별도 재발급 경로 확인): karpenter 컨트롤러 IRSA, ALB controller IRSA, argo-rollouts IRSA, fluentbit·datadog·cloudwatch-agent IRSA, 그리고 ebs-csi IRSA(스펙에 SA-Role이 없어 신규 OIDC로 wiring됐는지부터 확인). **ebs-csi IRSA는 이 프로젝트의 최대 리스크입니다** — 롤 자체는 이 페이지에서 새로 만들되, addon 연결·PVC 검증은 [03 managed addon]({{< relref "03-managed-addons.md" >}})에서 확인합니다.
+- Terraform 레포 밖(외부 관리, 별도 재발급 경로 확인): karpenter 컨트롤러 IRSA, ALB controller IRSA, argo-rollouts IRSA, fluentbit·datadog·cloudwatch-agent IRSA, 그리고 ebs-csi IRSA(스펙에 SA-Role이 없어 신규 OIDC로 wiring됐는지부터 확인). **ebs-csi IRSA는 이 프로젝트의 최대 리스크입니다** — 롤 자체는 이 페이지에서 새로 만들되 addon 연결·PVC 검증은 [03 managed addon]({{< relref "03-managed-addons.md" >}})에서 확인합니다.
 - ArgoCD: 신규 blue API endpoint로 클러스터 등록 secret을 새로 발급합니다(정적 SA bearerToken). tier-1 허브 push 앱은 하드코딩 endpoint 교체가 선행돼야 합니다 → [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}}).
 
 ## 11. amiType·IMDS
@@ -248,7 +247,7 @@ Fargate pod-exec role은 별도 조치가 필요 없습니다 — Fargate profil
 
 **IMDS hop limit = 2(필수).** AL2023 신규 노드는 hop limit이 1이면 IRSA 토큰 취득이 실패해 vpc-cni·ebs-csi가 함께 깨집니다. 신규 노드그룹/런치템플릿 생성 시 반드시 2로 설정합니다.
 
-워크로드 API endpoint가 ArgoCD app-of-apps 레포에 다수 하드코딩돼 있어 클러스터를 세울 때마다 재바인딩해야 하는데, 파일별 분포·정확한 목록·교체 절차는 [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}})이 다룹니다.
+워크로드 API endpoint가 ArgoCD app-of-apps 레포에 다수 하드코딩돼 있어 클러스터를 세울 때마다 재바인딩해야 합니다. 파일별 분포·전체 목록·교체 절차는 [04 부트스트랩]({{< relref "04-cluster-bootstrap.md" >}})이 다룹니다.
 
 ## 12. Terraform 체크리스트
 
@@ -291,4 +290,4 @@ Fargate pod-exec role은 별도 조치가 필요 없습니다 — Fargate profil
 
 ## 우리 케이스에서는
 
-Terraform으로 신규 blue 클러스터를 세우는 작업은 "새로 만드는 것"보다 **"CAPA가 암묵적으로 해오던 12가지를 명시적으로 재현하는 것"**에 가깝습니다. 클러스터 셸·addon 스키마·Fargate 프로필은 기존 자산을 재활용할 수 있지만, **karpenter 인프라 전체는 레포에 전무해 처음부터 짜야 합니다.** 가장 위험한 두 지점은 성격이 다릅니다 — **OIDC 이중등록**은 빠뜨리면 cross-account IRSA 전체가 조용히 깨지는 blocking 이슈이고 **ebs-csi IRSA 롤**은 스펙에 필드가 없어 존재 자체를 놓치기 쉬운 최대 리스크입니다. 여기에 **prod Fargate 스택·prod blue subnet이 아직 없다**는 사실까지 더하면, prod 이관은 stage 검증 후에도 별도 신규 작성이 남습니다.
+Terraform으로 신규 blue 클러스터를 세우는 작업은 새로 만들기보다 **CAPA가 암묵적으로 해오던 12가지를 명시적으로 재현하는 일**에 가깝습니다. 클러스터 셸·addon 스키마·Fargate 프로필은 기존 자산을 재활용할 수 있지만 **karpenter 인프라 전체는 레포에 전무해 처음부터 짜야 합니다.** 가장 위험한 두 곳은 성격이 다릅니다 — **OIDC 이중등록**은 빠뜨리면 cross-account IRSA 전체가 에러 하나 없이 깨지는 blocking 이슈이고 **ebs-csi IRSA 롤**은 스펙에 필드가 없어 존재 자체를 놓치기 쉬운 최대 리스크입니다. 여기에 **prod Fargate 스택·prod blue subnet이 아직 없다**는 사실까지 더하면 prod 이관은 stage 검증 후에도 별도 신규 작성이 남습니다.

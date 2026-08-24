@@ -6,10 +6,9 @@ weight: 3
 # 03 · 쿼리 패턴 — PromQL에서 MetricsQL까지
 
 {{< callout type="info" >}}
-**한눈에**
 - 지표 타입이 쿼리를 결정합니다 — Counter는 `rate`/`increase`, Gauge는 순간값·`sum`/`avg_over_time`, 지연 분포는 `histogram_quantile`, 차원을 접는 `sum by` 가 실전 4대 패턴입니다.
 - VM 계열 클라이언트의 히스토그램은 `le` 대신 `vmrange` 버킷을 씁니다(클래식 `le` 히스토그램도 그대로 저장·쿼리됩니다) — MetricsQL `histogram_quantile`는 `vmrange`를 그대로 받고 Prometheus 형식이 필요하면 `prometheus_buckets()` 로 변환합니다.
-- MetricsQL은 PromQL 상위호환입니다 — `rate`/`increase`가 외삽하지 않고 range를 생략하면 창을 `max(step, scrape_interval)`로 자동 결정하며, `default_rollup`·`keep_metric_names`·`WITH`·`topk_avg` 등 확장을 더합니다.
+- MetricsQL은 PromQL 상위호환입니다 — `rate`/`increase`가 외삽하지 않고 range를 생략하면 창을 `max(step, scrape_interval)`로 자동 결정하며 `default_rollup`·`keep_metric_names`·`WITH`·`topk_avg` 등 확장을 더합니다.
 - 무거운 쿼리(넓은 시간범위 × 고카디널리티)는 vmselect 메모리를 먹습니다 — 차원 축소·recording rule 선계산·캐시로 회피하고 카디널리티는 `/api/v1/status/tsdb` 와 vmui 카디널리티 익스플로러로 점검합니다.
 {{< /callout >}}
 
@@ -21,7 +20,7 @@ weight: 3
 
 ## 실전 쿼리 패턴 — 지표 타입별
 
-손에 잡은 지표가 Counter인지 Gauge인지 Histogram인지 — 쿼리의 8할이 여기서 갈립니다. 타입을 잘못 읽으면 함수 선택이 통째로 틀어집니다.
+손에 잡은 지표가 Counter인지 Gauge인지 Histogram인지 — 쿼리의 8할이 여기서 결정됩니다. 타입을 잘못 읽으면 함수 선택이 통째로 틀어집니다.
 
 ### Counter — rate와 increase
 
@@ -58,7 +57,7 @@ avg_over_time(node_memory_MemAvailable_bytes[5m])
 max_over_time(node_memory_MemAvailable_bytes[1h])
 ```
 
-`sum`/`avg` 같은 집계 연산자는 같은 시각의 여러 시계열을 가로로 접고, `*_over_time` 롤업 함수는 한 시계열을 시간축으로 세로로 접습니다. 접는 축이 서로 다릅니다.
+`sum`/`avg` 같은 집계 연산자는 같은 시각의 여러 시계열을 가로로 접고 `*_over_time` 롤업 함수는 한 시계열을 시간축으로 세로로 접습니다. 접는 축이 서로 다릅니다.
 
 ### Histogram — 분위수와 VM의 vmrange
 
@@ -69,7 +68,7 @@ max_over_time(node_memory_MemAvailable_bytes[1h])
 histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))
 ```
 
-VM 특유의 지점은 버킷 경계를 담는 레이블입니다. Prometheus 클래식 히스토그램은 경계를 `le`(less-than-or-equal) 레이블로 표현하지만, VM 계열 클라이언트가 만드는 히스토그램은 버킷을 `vmrange` 레이블(`"start...end"` 형태)로 표현합니다. 버킷 수를 값 분포에 맞춰 동적으로 잡아 정확도·카디널리티 균형이 낫습니다.
+VM에서 달라지는 부분은 버킷 경계를 담는 레이블입니다. Prometheus 클래식 히스토그램은 경계를 `le`(less-than-or-equal) 레이블로 표현하지만 VM 계열 클라이언트가 만드는 히스토그램은 버킷을 `vmrange` 레이블(`"start...end"` 형태)로 표현합니다. 버킷 수를 값 분포에 맞춰 동적으로 잡아 정확도·카디널리티 균형이 낫습니다.
 
 ```promql
 # VM vmrange 히스토그램 — MetricsQL의 histogram_quantile는 vmrange를 그대로 받는다
@@ -129,7 +128,7 @@ rate(http_requests_total)
 rate({__name__=~"http_requests_total|http_errors_total"}[5m]) keep_metric_names
 ```
 
-`rate` 같은 롤업·transform 함수는 기본적으로 `__name__`을 떨어뜨립니다. 여러 지표를 한 패널에 겹쳐 그릴 때 이름이 사라지면 범례를 구분할 수 없는데, 함수 뒤에 `keep_metric_names`를 붙이면 이름이 살아남습니다.
+`rate` 같은 롤업·transform 함수는 기본적으로 `__name__`을 떨어뜨립니다. 여러 지표를 한 패널에 겹쳐 그릴 때 이름이 사라지면 범례를 구분할 수 없는데 함수 뒤에 `keep_metric_names`를 붙이면 이름이 살아남습니다.
 
 ### WITH 템플릿 — 중복 부분식 제거
 
@@ -154,7 +153,7 @@ topk_avg(5, sum by (service) (rate(http_requests_total[5m])))
 
 ## 무거운 쿼리 안티패턴과 회피
 
-쿼리 성능 사고는 대부분 넓은 시간범위 × 고카디널리티의 곱에서 옵니다. 반환·처리해야 할 시계열과 데이터포인트가 폭증해 vmselect 메모리와 응답시간을 동시에 악화시킵니다.
+쿼리 성능 사고는 대부분 넓은 시간범위 × 고카디널리티의 곱에서 옵니다. 반환·처리해야 할 시계열과 데이터포인트가 폭증합니다. vmselect 메모리가 불어나고 응답시간도 늘어납니다.
 
 ```promql
 # 안티패턴: 고카디널리티 레이블(pod)을 그대로 둔 채 넓은 범위를 조회
@@ -164,23 +163,23 @@ sum by (pod) (rate(http_requests_total[5m]))   # pod 수만큼 시계열이 반�
 sum by (service) (rate(http_requests_total[5m]))
 ```
 
-회피 원칙은 네 가지입니다.
+회피 원칙은 이렇습니다.
 
 - 차원을 먼저 접습니다. `sum by (service)`처럼 필요한 레이블만 남기면 반환 시계열이 급감합니다. `pod`·`instance` 같은 고카디널리티 레이블을 화면에 굳이 펼치지 않습니다.
 - rollup 창을 조회 step에 맞춥니다. 창이 너무 작으면 데이터가 비고 너무 크면(`[1d]`, `[7d]`) 매 step마다 방대한 구간을 재계산해 무거워집니다.
 - 정규식 매처(`=~`)를 남발하지 않습니다. 정규식 레이블 필터는 인덱스 조회 비용이 큽니다. 가능하면 정확 매칭(`=`)을 씁니다.
 - 무거운 집계는 선계산합니다. 반복되는 무거운 대시보드 쿼리는 vmalert recording rule로 미리 계산해 조회 부하를 쓰기 시점으로 옮깁니다([개념 05]({{< relref "../concepts/05-query-and-ops-components.md" >}})의 선계산 — 720만 포인트를 1,440개로 줄인 사례).
 
-쿼리를 어떻게 쓰든, vmselect 자체에도 무거운 조회를 완충하는 장치가 있습니다 — [개념 05]({{< relref "../concepts/05-query-and-ops-components.md" >}})의 메모리 관리 3포인트와 이어지는 대목입니다.
+쿼리를 어떻게 쓰든 vmselect 자체에도 무거운 조회를 완충하는 장치가 있습니다 — [개념 05]({{< relref "../concepts/05-query-and-ops-components.md" >}})의 메모리 관리 3포인트와 이어집니다.
 
 - Rollup Result Cache: 한 번 처리한 쿼리 결과를 캐싱(vmselect 허용 메모리의 12.5%)하되 최근 5분은 제외합니다. 반복 조회가 많은 대시보드는 이 캐시 덕을 크게 봅니다.
-- Query Latency Offset(`search.latencyOffset`, 기본 30초): 가장 최근 30초를 일부러 뒤로 밀어 수집 지연으로 인한 불안정 데이터를 결과에서 뺍니다. 실시간성이 중요하면 0으로 줄이되, 새로고침마다 최신 구간이 들쭉날쭉해지는 건 감수해야 합니다.
+- Query Latency Offset(`search.latencyOffset`, 기본 30초): 가장 최근 30초를 일부러 뒤로 밀어 수집 지연으로 인한 불안정 데이터를 결과에서 뺍니다. 실시간성이 중요하면 0으로 줄이되 새로고침마다 최신 구간이 들쭉날쭉해지는 건 감수해야 합니다.
 
 안티패턴 회피의 순서는 ① 쿼리 자체를 가볍게(차원 축소·정확 매칭) → ② 선계산으로 부하 이전 → ③ 캐시·오프셋으로 완충입니다.
 
 ## 카디널리티 점검 쿼리·API
 
-무거운 쿼리의 뿌리는 결국 카디널리티입니다([01 카디널리티]({{< relref "01-cardinality.md" >}})). "지금 무엇이 시계열을 먹고 있는가"는 다음으로 점검합니다.
+무거운 쿼리는 결국 카디널리티에서 옵니다([01 카디널리티]({{< relref "01-cardinality.md" >}})). "지금 무엇이 시계열을 먹고 있는가"는 다음으로 점검합니다.
 
 ### TSDB 상태 API — /api/v1/status/tsdb
 
@@ -197,7 +196,7 @@ GET /api/v1/status/tsdb?topN=10&date=2026-07-18&focusLabel=service
 GET /api/v1/status/tsdb?topN=10&match[]={job="my-service"}
 ```
 
-주요 응답 필드는 세 개입니다.
+주요 응답 필드는 이렇습니다.
 
 | 필드 | 의미 |
 |------|------|
@@ -211,7 +210,7 @@ GET /api/v1/status/tsdb?topN=10&match[]={job="my-service"}
 
 ### 런타임 감시 지표
 
-배포 이후에도 카디널리티는 변하므로 런타임 지표로 이어서 감시합니다. [01 카디널리티]({{< relref "01-cardinality.md" >}})의 두 핵심 지표를 쿼리로 옮기면 이렇습니다.
+배포 이후에도 카디널리티는 변하므로 런타임 지표로 이어서 감시합니다. [01 카디널리티]({{< relref "01-cardinality.md" >}})의 두 핵심 지표를 쿼리로 옮겨 봅니다.
 
 ```promql
 # churn — 신규 시계열 생성 속도(New TSID 발급). 튀면 고카디널리티 레이블 유입 신호.

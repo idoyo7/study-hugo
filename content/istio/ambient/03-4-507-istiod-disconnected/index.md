@@ -13,23 +13,22 @@ weight: 6
 {{< /callout >}}
 
 {{< callout type="info" >}}
-**한눈에**
-- `507 Insufficient Storage`가 떴지만 스토리지 부족이 아니었습니다. `response_code_details`는 `request_payload_exceeded_retry_buffer_limit`이었고 이는 Envoy가 retry를 위해 request body를 replay하지 못하는 상태를 가리키는 local reply입니다.
-- 경계선을 그은 것은 요청 크기 제한이 아니라 retry 조건입니다. Envoy는 body를 chunk로 스트리밍하므로 수십 MB payload도 평소엔 통과하고 retry가 필요해지는 순간에만 `per_connection_buffer_limit_bytes`(기본 1MB)가 경계로 올라옵니다.
-- 대응은 buffer 증설 · retry 비활성화 · client retry 세 가지였습니다. 채널팀이 고른 쪽은 **large payload는 애플리케이션 레벨에서 멱등성 키를 갖추고 재시도**하는 방향이고 retry를 끄는 선택지는 3-1편의 503 문제 때문에 막혔습니다.
+- `507 Insufficient Storage`가 떴지만 스토리지 부족이 아니었습니다. `response_code_details`는 `request_payload_exceeded_retry_buffer_limit`이었고 Envoy가 retry에 쓸 request body를 replay하지 못하는 상태를 가리키는 local reply입니다.
+- 경계를 그은 건 retry 조건입니다. 요청 크기 제한이 아닙니다. Envoy는 body를 chunk로 스트리밍하므로 수십 MB payload도 평소엔 통과하고 retry가 필요해지는 순간에만 `per_connection_buffer_limit_bytes`(기본 1MB)가 경계로 올라옵니다.
+- 대응 후보는 buffer 증설 · retry 비활성화 · client retry였습니다. 채널팀이 고른 쪽은 **large payload는 애플리케이션 레벨에서 멱등성 키를 갖추고 재시도**하는 방향이고 retry를 끄는 선택지는 3-1편의 503 문제 때문에 막혔습니다.
 - 두 번째 사례는 gateway/waypoint가 istiod와 xDS 연결을 잃은 것으로 보이는 상황입니다. 로그에는 `lookup istiod.istio-system.svc: i/o timeout`에 `closed since 1614s ago`까지 붙었으나 채널팀은 root cause를 특정하지 못했다고 명시하고 탐지·완화로 방향을 틀었습니다.
-- 기본 readinessProbe는 "최초 xDS config를 받았는가"에 가까워 사후 단절을 못 잡습니다. 그래서 보완책으로 `control_plane.connected_state` 수집과 **`failureThreshold: 3` + `successThreshold: 3`** 조합을 잡았습니다.
+- 기본 readinessProbe는 "최초 xDS config를 받았는가"에 가까워 사후 단절을 못 잡습니다. 보완책으로 잡은 것이 `control_plane.connected_state` 수집과 **`failureThreshold: 3` + `successThreshold: 3`** 조합입니다.
 {{< /callout >}}
 
-채널코퍼레이션의 Istio Ambient mode 도입기 시리즈 3-4편입니다. [3-1편]({{< relref "03-1-503-half-open-connection.md" >}})·[3-2편]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}})·[3-3편]({{< relref "03-3-ambient-upgrade-in-place.md" >}})이 각각 하나의 원인을 끝까지 파고드는 글이었던 반면, 3-4편은 운영 중 만난 Istio/Envoy 이슈 중 기억에 남는 두 사례를 부록처럼 묶은 글입니다.
+채널코퍼레이션의 Istio Ambient mode 도입기 시리즈 3-4편입니다. [3-1편]({{< relref "03-1-503-half-open-connection.md" >}})·[3-2편]({{< relref "03-2-partially-enrolled-untaint-controller.md" >}})·[3-3편]({{< relref "03-3-ambient-upgrade-in-place.md" >}})은 각각 하나의 원인을 끝까지 파고드는 글이었습니다. 3-4편은 운영 중 만난 Istio/Envoy 이슈 중 기억에 남는 두 사례를 부록처럼 묶었습니다.
 
-채널팀은 두 사례 모두 Ambient mode에 한정된 문제가 아니라고 못 박습니다. 관찰 지점이 waypoint였을 뿐, 소재는 Envoy가 요청을 buffering하고 retry하는 방식과 Envoy·istiod 사이 xDS 연결을 readiness로 어떻게 볼 것인가입니다. sidecar mode나 ingress gateway를 쓰는 환경에도 적용되므로 전부 사이드카 모드 기준인 이 레포의 [상위 Istio 챕터]({{< relref "../../_index.md" >}})와 이 섹션이 만나는 자리이기도 합니다.
+채널팀은 두 사례 모두 Ambient mode에 한정된 문제가 아니라고 분명히 합니다. 관찰 지점이 waypoint였을 뿐 소재는 Envoy가 요청을 buffering하고 retry하는 방식, 그리고 Envoy·istiod 사이 xDS 연결을 readiness로 어떻게 볼 것인가입니다. sidecar mode나 ingress gateway를 쓰는 환경에도 그대로 적용됩니다. 전부 사이드카 모드 기준인 이 레포의 [상위 Istio 챕터]({{< relref "../../_index.md" >}})와 이 섹션이 여기서 이어집니다.
 
 ## 1. 처음 본 507 status code
 
 ### 1.1 문제 상황
 
-운영 중 애플리케이션에서 낯선 에러가 보고되었습니다.
+운영 중 애플리케이션에서 낯선 에러가 올라왔습니다.
 
 ```text
 MailException: MessengerServer Error: failed to send email
@@ -40,7 +39,7 @@ msg: exceeded request buffer limit while retrying upstream
 
 503이나 504라면 Istio/Envoy를 운영하며 흔히 만납니다. 507은 그렇지 않았습니다. 일반적으로 `507 Insufficient Storage`는 서버가 요청 처리에 필요한 저장 공간을 확보하지 못했다는 뜻이라 채널팀도 처음에는 애플리케이션 서버의 스토리지 리소스 부족을 의심했습니다.
 
-waypoint access log를 확인하니 이 응답을 만든 쪽은 애플리케이션이 아니라 **Envoy 자신**이었습니다. Envoy가 직접 생성한 local reply였고 핵심은 `response_code_details`였습니다.
+waypoint access log를 확인하니 이 응답을 만든 쪽은 애플리케이션이 아니었습니다. **Envoy 자신**이 직접 생성한 local reply였고 근거는 `response_code_details`였습니다.
 
 ```text
 request_payload_exceeded_retry_buffer_limit
@@ -50,7 +49,7 @@ Envoy 문서는 이 값을 이렇게 설명합니다.
 
 > Envoy is doing streaming proxying but too much data arrived while waiting to attempt a retry.
 
-Envoy는 요청 body를 streaming으로 upstream에 전달하면서 retry 가능성을 위해 일부 데이터를 buffer에 붙들고 있었습니다. 그 상태에서 retry용으로 보관해야 하는 request payload가 buffer limit을 넘었다는 뜻입니다.
+Envoy는 요청 body를 streaming으로 upstream에 전달하면서 retry에 대비해 일부 데이터를 buffer에 붙들고 있었습니다. 그 상태에서 retry용으로 보관해야 하는 request payload가 buffer limit을 넘었다는 뜻입니다.
 
 ### 1.2 507은 request size 제한과는 다르다
 
@@ -63,7 +62,7 @@ Envoy는 요청 body를 streaming으로 upstream에 전달하면서 retry 가능
 | 의미 | "이 payload 자체가 너무 커서 거부한다" | "retry하려면 body를 replay해야 하는데 replay할 수 없다" |
 | 발생 시점 | 요청 수신 시점에 결정적으로 | large payload + retryable failure가 겹칠 때만 |
 
-정상적인 streaming proxying만 놓고 보면 큰 payload 자체가 항상 문제는 아닙니다. Envoy는 request body 전체를 메모리에 올려두고 upstream으로 보내지 않고 chunk 단위로 받아 upstream으로 흘려보냅니다. 이 경우 payload 전체가 수십 MB라도 Envoy가 한 번에 그 전체를 buffer로 들고 있을 필요가 없습니다.
+정상적인 streaming proxying만 놓고 보면 큰 payload 자체가 항상 문제는 아닙니다. Envoy는 request body 전체를 메모리에 올려두고 upstream으로 보내지 않고 chunk 단위로 받아 upstream으로 흘려보냅니다. payload 전체가 수십 MB라도 Envoy가 한 번에 그 전체를 buffer로 들고 있을 필요는 없습니다.
 
 문제는 retry에서 생깁니다. Envoy가 upstream 실패 시 요청을 재시도하려면 같은 request를 다시 upstream으로 보낼 수 있어야 합니다. 그런데 POST body처럼 이미 streaming으로 흘려보낸 데이터를 다시 보내려면 적어도 retry에 필요한 만큼의 request body를 Envoy가 buffer에 들고 있어야 합니다. buffer가 limit을 넘는 순간 Envoy는 더 이상 retry용 request body를 보관하지 못합니다. 그 뒤 upstream reset이나 5xx 같은 retry 조건이 발생하면 요청을 replay할 수 없어 507 local reply를 반환합니다.
 
@@ -75,7 +74,7 @@ Envoy 구현을 보면 `request_payload_exceeded_retry_buffer_limit` 상황에�
 
 {{< seq src="_seq/1-3-왜-하필-인가.json" />}}
 
-이 buffer는 retry뿐 아니라 shadowing에도 쓰이고 Envoy는 새 data를 더한 크기가 effective buffer limit을 넘는지 매번 확인합니다. 실제 Envoy 코드에서도 buffer limit을 넘는 순간 retry state를 reset하고 이후 local reply를 만들 때 response code detail을 `RequestPayloadExceededRetryBufferLimit`으로 설정합니다. 최종적으로 관측되는 조합이 이것입니다.
+이 buffer는 retry뿐 아니라 shadowing에도 쓰이고 Envoy는 새 data를 더한 크기가 effective buffer limit을 넘는지 매번 확인합니다. 실제 Envoy 코드에서도 buffer limit을 넘는 순간 retry state를 reset하고 이후 local reply를 만들 때 response code detail을 `RequestPayloadExceededRetryBufferLimit`으로 설정합니다. 그래서 관측되는 조합은 이렇습니다.
 
 ```text
 response_code: 507
@@ -85,15 +84,15 @@ body: exceeded request buffer limit while retrying upstream
 
 ### 1.4 `per_connection_buffer_limit_bytes`와 1MB
 
-조사 과정에서 자연스럽게 마주친 설정이 Envoy의 `per_connection_buffer_limit_bytes`입니다. Envoy의 기본 buffer limit은 1MB이고 Istio에서 별도 설정을 하지 않으면 이 기본값의 영향을 받을 수 있습니다.
+조사하다 마주친 설정이 Envoy의 `per_connection_buffer_limit_bytes`입니다. Envoy의 기본 buffer limit은 1MB이고 Istio에서 별도 설정을 하지 않으면 이 기본값의 영향을 받을 수 있습니다.
 
-이 값은 "request payload 최대 크기"와 같은 의미가 아닙니다. 큰 request라도 streaming만 된다면 통과합니다. 다만 retry를 위해 Envoy가 request body를 보관해야 하는 상황에서는 이 buffer limit이 사실상의 경계로 동작합니다.
+이 값은 "request payload 최대 크기"와 같은 의미가 아닙니다. 큰 request라도 streaming만 된다면 통과합니다. retry용으로 Envoy가 request body를 보관해야 하는 상황에서만 이 buffer limit이 사실상의 경계로 동작합니다.
 
 운영자 입장에서 난감한 건 여기입니다. request body size 제한을 걸어둔 적이 없는데도 특정 조건에서만 일정 크기 이상의 요청이 507로 실패합니다. 그 조건이 "large payload + retryable failure"라 평소에는 드러나지 않다가 장애나 reset이 겹칠 때만 나타나고 재현도 추적도 어렵습니다.
 
 ### 1.5 대응 방안 검토
 
-채널팀이 검토한 방안은 세 가지입니다.
+채널팀이 검토한 방안은 이렇습니다.
 
 | 방안 | 내용 | 채널팀의 판단 |
 | --- | --- | --- |
@@ -101,23 +100,23 @@ body: exceeded request buffer limit while retrying upstream
 | ② retry 비활성화 | retry를 끄면 replay 자체가 불필요 | 3-1편의 reset 대응이 무너져 503 노출 |
 | ③ client에서 retry | large payload 요청은 client/애플리케이션 레벨에서 재시도 | **가장 현실적인 방향으로 선택** |
 
-**① buffer limit을 늘립니다.** 가장 직접적입니다. 실제로 이 값을 늘리면 더 큰 payload에 대해서도 retry buffer를 유지할 수 있습니다. 하지만 몇 MB까지 허용할지 정해야 하고 media나 file upload처럼 payload가 매우 큰 요청까지 고려하면 값을 무작정 키우기 어렵습니다. buffer limit은 실제로 데이터가 쌓일 때 쓰이더라도 많은 connection에서 큰 request가 동시에 들어오면 메모리 압박으로 이어질 수 있습니다. 전체 gateway/waypoint에 일괄 적용하면 blast radius가 커지고, 특정 route나 service에만 적용하면 관리 복잡도가 올라갑니다.
+**① buffer limit을 늘립니다.** 가장 직접적입니다. 실제로 이 값을 늘리면 더 큰 payload에서도 retry buffer를 유지할 수 있습니다. 하지만 몇 MB까지 허용할지 정해야 하고 media나 file upload처럼 payload가 매우 큰 요청까지 고려하면 값을 무작정 키우기 어렵습니다. buffer limit은 실제로 데이터가 쌓일 때 쓰이더라도 많은 connection에서 큰 request가 동시에 들어오면 메모리 압박으로 이어질 수 있습니다. 전체 gateway/waypoint에 일괄 적용하면 blast radius가 커지고 특정 route나 service에만 적용하면 관리 복잡도가 올라갑니다.
 
-**② retry를 끕니다.** retry를 하지 않으면 request body를 replay할 필요가 없으므로 문제 자체가 사라집니다. 그러나 채널팀 환경에서는 선택하기 어려웠습니다. [3-1편]({{< relref "03-1-503-half-open-connection.md" >}})에서 다뤘듯 Ambient mode 운영 중 waypoint/ztunnel 구간의 reset에는 retry가 필요하다는 사실을 이미 확인했기 때문입니다. retry를 끄면 507은 줄지만 다른 많은 요청에서 503이 사용자에게 노출될 수 있습니다.
+**② retry를 끕니다.** retry를 하지 않으면 request body를 replay할 필요가 없으므로 문제 자체가 사라집니다. 채널팀 환경에서는 선택하기 어려웠습니다. [3-1편]({{< relref "03-1-503-half-open-connection.md" >}})에서 다뤘듯 Ambient mode 운영 중 waypoint/ztunnel 구간의 reset에는 retry가 필요하다는 사실을 이미 확인했기 때문입니다. retry를 끄면 507은 줄지만 다른 많은 요청에서 503이 사용자에게 노출될 수 있습니다.
 
-**③ large payload는 client에서 retry합니다.** 결국 가장 현실적인 방향이었습니다. Envoy가 모든 큰 POST body를 안전하게 buffer해두고 재시도하기에는 비용이 큽니다. 반면 large payload 요청은 보통 업로드, 메일 발송, 문서 처리처럼 요청 자체가 무겁고 오래 걸리는 작업입니다. 이런 API는 애플리케이션 레벨에서 멱등성 키(idempotency key)나 중복 처리 방어를 갖추고 5xx가 오면 재시도하는 편이 더 명시적이고 안전합니다.
+**③ large payload는 client에서 retry합니다.** 가장 현실적인 방향이었습니다. Envoy가 모든 큰 POST body를 안전하게 buffer해두고 재시도하기에는 비용이 큽니다. large payload 요청은 보통 업로드, 메일 발송, 문서 처리처럼 요청 자체가 무겁고 오래 걸리는 작업입니다. 이런 API는 애플리케이션 레벨에서 멱등성 키(idempotency key)나 중복 처리 방어를 갖추고 5xx가 오면 재시도하는 편이 더 명시적이고 안전합니다.
 
 원문이 뽑은 교훈은 이렇습니다. retry를 켜면 large request body에 보이지 않는 buffer limit이 생기고 큰 payload가 항상 실패하지는 않지만 retry가 필요한 순간에는 `507 request_payload_exceeded_retry_buffer_limit`으로 실패합니다.
 
 ## 2. istiod와 disconnected 된 것으로 보이는 gateway/waypoint
 
 {{< callout type="warning" >}}
-원문은 이 사례의 원인을 명확히 찾지 못했다고 명시합니다. 따라서 아래 내용은 "원인은 이것입니다"가 아니라 관찰한 현상과 이를 탐지·대응하기 위해 검토한 메트릭 위주의 정리입니다.
+원문은 이 사례의 원인을 명확히 찾지 못했다고 명시합니다. 아래 내용도 "원인은 이것입니다"가 아니라 관찰한 현상과 탐지·대응용으로 검토한 메트릭 위주의 정리입니다.
 {{< /callout >}}
 
 ### 2.1 문제 상황
 
-운영 중 특정 gateway/waypoint Envoy가 istiod와의 xDS 연결을 정상적으로 유지하지 못하는 것으로 보이는 상황이 있었습니다. 당시 로그에는 이런 메시지가 반복해서 찍혔습니다.
+운영 중 특정 gateway/waypoint Envoy가 istiod와 맺은 xDS 연결을 제대로 유지하지 못하는 것처럼 보이는 상황이 있었습니다. 당시 로그에는 이런 메시지가 반복해서 찍혔습니다.
 
 ```text
 "DeltaAggregatedResources" gRPC stream to xds-grpc closed:
@@ -138,7 +137,7 @@ body: exceeded request buffer limit while retrying upstream
 
 하지만 같은 시간대에 cluster 전체에서 광범위한 DNS lookup error가 보이지 않았고 CoreDNS 자체에도 눈에 띄는 이상이 없었습니다. 메시지는 DNS failure처럼 보였지만 root cause를 CoreDNS로 지목할 근거는 부족했습니다.
 
-이 대목에서 채널팀은 태스크의 방향을 바꿨습니다. DNS lookup을 계속 파고들어 단일 root cause를 특정하는 쪽은 접었습니다. 대신 비슷한 상황이 다시 발생했을 때 gateway/waypoint가 오래된 xDS config만 들고 계속 traffic을 받는 상태를 어떻게 피하거나 최소한 빠르게 탐지·완화할지에 초점을 맞췄습니다.
+이 대목에서 채널팀은 태스크의 방향을 바꿨습니다. DNS lookup을 계속 파고들어 단일 root cause를 특정하는 쪽은 접었습니다. 대신 비슷한 상황이 다시 생겼을 때 gateway/waypoint가 오래된 xDS config만 들고 계속 traffic을 받는 상태를 어떻게 피할지, 못 피한다면 어떻게 빨리 탐지하고 완화할지에 초점을 맞췄습니다.
 
 ### 2.2 Envoy · pilot-agent · istiod의 연결 구조
 
@@ -150,7 +149,7 @@ Istio gateway/waypoint Pod 안에는 Envoy와 pilot-agent가 함께 있습니다
 
 ### 2.3 pilot-agent 에러는 Envoy에 전파된다
 
-Istio agent의 xDS proxy 구현을 보면, pilot-agent는 istiod upstream 연결 실패를 Envoy downstream stream에 숨기지 않고 전파합니다. 개념적으로는 다음과 같습니다.
+Istio agent의 xDS proxy 구현을 보면 pilot-agent는 istiod upstream 연결 실패를 Envoy downstream stream에 숨기지 않고 전파합니다. 개념적으로는 다음과 같습니다.
 
 ```go
 // upstream: istiod로의 xDS gRPC stream
@@ -194,11 +193,11 @@ startup readiness로는 이 방식이 적합합니다. Envoy가 최초 config를
 
 이 차이가 문제로 번지는 건 gateway/waypoint가 이미 받은 config로 한동안 트래픽을 계속 처리하기 때문입니다. 겉보기에는 멀쩡하지만 istiod와 오래 끊기면 새 config, endpoint, certificate rotation 같은 control plane 업데이트를 받지 못합니다. 그래서 process가 live인지뿐 아니라 xDS control plane과 지금 연결되어 있는지도 봐야 합니다.
 
-xDS stream이 왜 이렇게 오래 유지되는 장수 커넥션인지, 그리고 그 커넥션이 재분배되지 않는 이유는 사이드카 모드 기준으로 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../../09-istiod-scaling-connections.md" >}})에서 다룹니다. 여기서의 단절도 한 번 맺힌 stream이 알아서 낫지 않는다는 같은 성질에서 옵니다.
+xDS stream이 왜 이렇게 오래 유지되는 장수 커넥션인지, 그리고 그 커넥션이 재분배되지 않는 이유는 사이드카 모드 기준으로 [09 istiod 스케일링과 xDS 커넥션 재분배]({{< relref "../../09-istiod-scaling-connections.md" >}})에서 다룹니다. 여기서 본 단절도 한 번 맺힌 stream이 알아서 낫지 않는다는 같은 성질에서 옵니다.
 
 ### 2.5 어떤 메트릭을 볼 수 있을까
 
-채널팀이 검토한 메트릭은 두 가지입니다.
+채널팀이 검토한 메트릭은 이렇습니다.
 
 - **`envoy_control_plane_connected_state`** — xDS gRPC stream 개폐 상태. 정상값 `1`. 한계: Envoy↔pilot-agent stream 상태이지 istiod 직결 상태가 아님
 - **`envoy_cluster_upstream_cx_active{cluster_name="xds-grpc"}`** — pilot-agent UDS에 맺은 upstream connection 수. 정상값 보통 `1`. 한계: 같은 이유로 istiod 연결 상태를 직접 보지는 못함
@@ -249,7 +248,7 @@ meshConfig:
 envoy_cluster_upstream_cx_active{cluster_name="xds-grpc"}
 ```
 
-이 값은 Envoy가 pilot-agent UDS에 맺은 upstream connection 수를 나타내며 정상 상태에서는 보통 `1`입니다. DNS 장애처럼 pilot-agent가 istiod와 연결하지 못해 gRPC stream이 계속 닫히는 경우에는 `0`으로 떨어지거나 Pod 자체 scraping이 안 되면 시계열이 소실될 수 있습니다. 이 값도 Envoy ↔ pilot-agent UDS connection을 보는 것이라 istiod 연결 상태 자체는 아니지만 pilot-agent 에러가 Envoy stream close로 전파되는 케이스에서는 실용적인 신호가 됩니다.
+이 값은 Envoy가 pilot-agent UDS에 맺은 upstream connection 수를 나타내며 정상 상태에서는 보통 `1`입니다. DNS 장애처럼 pilot-agent가 istiod와 연결하지 못해 gRPC stream이 계속 닫히는 경우에는 `0`으로 떨어지거나 Pod 자체 scraping이 안 되면 시계열이 소실될 수 있습니다. 이 값도 Envoy ↔ pilot-agent UDS connection을 봅니다. istiod 연결 상태 자체는 아니지만 pilot-agent 에러가 Envoy stream close로 전파되는 케이스에서는 실용적인 신호가 됩니다.
 
 ### 2.6 readinessProbe로 감지하기
 
@@ -274,12 +273,12 @@ readinessProbe:
 | `successThreshold` | `3` | 3회 연속 성공해야 Ready로 복귀한다 (기본값 `1`) |
 
 {{< callout type="important" >}}
-채널팀은 이 방법도 완벽한 해결책이 아니라고 명시합니다. 세 가지 한계가 남습니다.
-- `connected_state`는 Envoy가 istiod에 직접 붙어 있는지를 보는 메트릭이 아니라 Envoy의 xDS stream 상태를 보는 메트릭입니다.
-- probe에서 `/stats`를 매번 파싱하는 방식은 다소 거칩니다.
+채널팀은 이 방법도 완벽한 해결책이 아니라고 명시합니다. 남는 한계는 이렇습니다.
+- `connected_state`는 Envoy의 xDS stream 상태를 보는 메트릭입니다. Envoy가 istiod에 직접 붙어 있는지를 보여 주지는 않습니다.
+- probe에서 `/stats`를 매번 파싱하는 방식은 다소 투박합니다.
 - 설정을 잘못하면 startup 지연이나 오히려 flapping을 만들 수 있습니다.
 
-그럼에도 기본 readiness가 "최초 config 수신 여부"에 가깝다는 점을 고려하면 gateway/waypoint 같은 중요 진입점에서는 현재 control plane 연결 상태를 별도로 보는 것이 운영상 의미가 있다고 판단했습니다.
+그래도 기본 readiness는 "최초 config 수신 여부"에 가깝습니다. gateway/waypoint 같은 중요 진입점이라면 지금 control plane과 연결돼 있는지를 따로 보는 편이 운영상 의미가 있다고 판단했습니다.
 {{< /callout >}}
 
 ## 3. 사이드카 모드 챕터와의 접점
@@ -297,7 +296,7 @@ Envoy config 레벨에서 `xds-grpc` cluster나 buffer limit이 실제로 어떻
 
 ## 이 문서에서 가져갈 것
 
-- **status code를 액면가로 읽지 마라.** `507 Insufficient Storage`는 디스크와 무관했습니다. Envoy가 만든 local reply인지 애플리케이션 응답인지부터 가르고 `response_code_details`를 봐야 실제 원인(`request_payload_exceeded_retry_buffer_limit`)에 닿습니다. access log에 이 필드를 남기지 않으면 이 사례는 추적 자체가 불가능합니다.
+- **status code를 액면가로 읽지 마라.** `507 Insufficient Storage`는 디스크와 무관했습니다. Envoy가 만든 local reply인지 애플리케이션 응답인지부터 구분하고 `response_code_details`를 봐야 실제 원인(`request_payload_exceeded_retry_buffer_limit`)에 닿습니다. access log에 이 필드를 남기지 않으면 이 사례는 추적 자체가 불가능합니다.
 - retry를 켜면 body 크기에 보이지 않는 상한이 생깁니다. 명시적으로 request size 제한을 걸지 않았어도 `per_connection_buffer_limit_bytes`(기본 1MB)가 retry 경로에서 경계로 작동합니다. large payload API는 Envoy에 재시도를 맡기지 말고 멱등성 키를 갖춰 애플리케이션 레벨에서 재시도하는 편이 경계가 명확합니다.
 - "한 번 Ready였다"와 "지금 연결되어 있다"는 다릅니다. Istio 기본 readinessProbe는 `receivedFirstUpdate` 기반이라 startup 게이트로는 맞지만 사후 단절을 못 잡습니다. 이미 받은 config로 트래픽은 계속 흐르므로 겉보기 정상 상태에서 stale config가 누적됩니다.
 - flapping을 막는 건 `failureThreshold`가 아니라 `successThreshold`입니다. 재연결 루프는 `connected_state`를 0↔1로 진동시키므로 기본값 1이면 한 번의 우연한 성공으로 Ready에 재진입합니다. 복귀에도 연속 성공을 요구해야 합니다.

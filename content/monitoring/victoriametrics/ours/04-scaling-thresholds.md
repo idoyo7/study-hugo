@@ -6,20 +6,19 @@ weight: 4
 # 04 · 스케일링·용량 기준치
 
 {{< callout type="info" >}}
-**한눈에**
 - 디스크 큐 상한 산정식: `sum(rate(vmagent_remotewrite_bytes_sent_total[1h]))` × 버틸 장애 시간 (실측 후 조정). 현행 stage `1000MiB` / prod `2000MiB`.
-- vmagent 리소스는 현행값을 기준치로 두되 실측 후 조정을 남깁니다(TODO).
+- vmagent 리소스는 현행값을 기준치로 두고, 실측 후 조정은 TODO로 남깁니다.
 - HA(`replicaCount: 2`)는 의도적 미적용 — replica가 각자 전량 전송해 cross-cluster 트래픽이 2배가 되고 dedup은 저장만 절약하므로 전송 절감 목표와 상충합니다.
 - slow insert 지속 10% 초과 = 메모리 부족 경고 (D2 계승) → [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}).
 {{< /callout >}}
 
-큐 상한·리소스·HA·메모리 임계를 어떤 근거로 잡는지 정리합니다. 확정 숫자보다 판단 기준과 산정식에 무게를 둡니다 — 실제 값은 실측으로 조정합니다.
+큐 상한·리소스·HA·메모리 임계를 어떤 근거로 잡는지 적어 둡니다. 확정 숫자보다 판단 기준과 산정식에 무게를 둡니다 — 실제 값은 실측으로 조정합니다.
 
 관련 문서: [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) · [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
 
 ## ① 디스크 큐 상한 산정식
 
-`maxDiskUsagePerURL`을 정하는 질문은 하나입니다 — "링크 장애가 나도 몇 시간치 지표를 큐에 버틸 수 있게 할 것인가".
+`maxDiskUsagePerURL`은 이 질문에서 나옵니다 — "링크 장애가 나도 몇 시간치 지표를 큐에 버틸 수 있게 할 것인가".
 
 ```
 maxDiskUsagePerURL ≈ sum(rate(vmagent_remotewrite_bytes_sent_total[1h])) × 버틸 장애 시간
@@ -47,13 +46,13 @@ maxDiskUsagePerURL ≈ sum(rate(vmagent_remotewrite_bytes_sent_total[1h])) × �
 
 ## ③ HA(`replicaCount: 2`) — 의도적 미적용
 
-vmagent를 2벌로 띄우면 가용성은 오릅니다. 대신 전송 절감 목표와 정면으로 부딪힙니다.
+vmagent를 2벌로 띄우면 가용성은 오릅니다. 그러면서 전송 절감 목표와 정면으로 부딪힙니다.
 
 - replica가 각자 전량을 전송합니다. vmagent HA는 2벌이 같은 타깃을 스크랩해 각자 remote_write 하는 구조라 cross-cluster 전송 트래픽이 2배가 됩니다.
-- dedup은 저장만 절약합니다. 중복은 수신측/쿼리 시점 dedup으로 제거되지만(→ [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}})), 그건 **저장 용량** 이야기일 뿐 **전송량**은 이미 2배로 나간 뒤입니다.
+- dedup은 저장만 절약합니다. 중복은 수신측/쿼리 시점 dedup이 걷어내지만(→ [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}})), 그건 저장 용량 이야기일 뿐 전송량은 이미 2배로 나간 뒤입니다.
 
 Phase 1의 목표가 전송 안정화·절감(zstd 고정, 큐 상한)인데 HA는 전송을 2배로 늘리므로 의도적으로 미적용합니다. 가용성 요구가 절감보다 우선하는 상황이 명확해지면 그때 별도로 판단합니다.
 
 ## ④ slow insert 임계 — 메모리 부족 경고
 
-수신측 관점의 용량 신호입니다. slow insert rate가 지속적으로 10%를 넘으면 현재 활성 시계열 수에 비해 메모리가 부족하다는 경고입니다. TSID 캐시가 메모리에 다 담기지 못해 IndexDB 폴백이 잦아진 상태입니다. 이 지표와 churn rate의 원리·임계 근거는 D2 개념을 그대로 계승합니다 → [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}).
+수신측에서 보는 용량 신호입니다. slow insert rate가 10%를 계속 넘으면 현재 활성 시계열 수에 비해 메모리가 부족하다는 경고입니다. TSID 캐시가 메모리에 다 담기지 못해 IndexDB 폴백이 잦아진 상태입니다. 이 지표와 churn rate의 원리·임계 근거는 D2 개념을 그대로 계승합니다 → [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}).
