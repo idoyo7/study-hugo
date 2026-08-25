@@ -1,29 +1,155 @@
 {
   "caption": "전체 오버뷰 — 왼쪽이 사용자 기기, 오른쪽이 개발환경입니다. 노트북이든 데스크탑이든 브라우저로 웹 VS Code(code-server)에 들어가고, 편집기와 터미널을 한 화면에서 씁니다. 그 요청은 hub 클러스터의 관문에서 Keycloak 인증을 지나 code-server pod에 닿습니다. pod는 홈서버 여러 대 중 한 노드에 뜨는데 어느 노드든 상관없습니다 — 작업 디렉토리가 NAS에 있으니까요. 아이패드는 관문을 거치지 않고 Anthropic 릴레이로 그 pod 안의 Claude Code에 붙습니다. 두 길은 같은 tmux 세션에서 만납니다.",
+  "font": 1.2,
   "groups": [
-    {"id": "dev", "label": "사용자 기기 — 브라우저", "members": ["laptop", "desktop"]},
-    {"id": "k8s", "label": "hub 클러스터 — Kubernetes", "members": ["gw", "cs", "tmux", "claude"]},
-    {"id": "node", "label": "홈서버 중 한 노드", "members": ["cs", "tmux", "claude"], "pad": 6}
+    {
+      "id": "dev",
+      "label": "사용자 기기 — 브라우저",
+      "members": [
+        "laptop",
+        "desktop"
+      ]
+    },
+    {
+      "id": "k8s",
+      "label": "hub 클러스터 — Kubernetes",
+      "members": [
+        "gw",
+        "cs",
+        "tmux",
+        "claude"
+      ]
+    },
+    {
+      "id": "node",
+      "label": "홈서버 중 한 노드",
+      "members": [
+        "cs",
+        "tmux",
+        "claude"
+      ],
+      "pad": 6
+    }
   ],
   "nodes": [
-    {"id": "laptop", "col": 0, "row": 0, "label": "노트북", "sub": "웹 VS Code — 편집기 + 터미널", "kind": "src"},
-    {"id": "desktop", "col": 0, "row": 1, "label": "데스크탑", "sub": "웹 VS Code — 편집기 + 터미널", "kind": "src"},
-    {"id": "ipad", "col": 0, "row": 3, "label": "iPad · 폰", "sub": "Claude 앱 Remote Control", "kind": "src"},
-    {"id": "gw", "col": 1, "row": 0, "label": "관문", "sub": "gateway · Keycloak 인증", "layer": "access", "kind": "proc"},
-    {"id": "relay", "col": 2, "row": 3, "label": "Anthropic 릴레이", "sub": "HTTPS · 인바운드 포트 없음", "kind": "proc"},
-    {"id": "cs", "col": 2, "row": 0, "label": "code-server pod", "sub": "인증은 관문이 · 본체는 믿고 받음", "layer": "deploy", "kind": "proc"},
-    {"id": "tmux", "col": 2, "row": 1, "label": "tmux 터미널", "sub": "main 세션 · 창 유지", "layer": "deploy", "kind": "proc"},
-    {"id": "claude", "col": 2, "row": 2, "label": "Claude Code", "sub": "/rc로 릴레이 연결", "layer": "deploy", "kind": "proc"},
-    {"id": "nas", "col": 3, "row": 0, "label": "Storage", "sub": "NFS PVC — 작업 디렉토리", "layer": "state", "kind": "store"}
+    {
+      "id": "laptop",
+      "col": 0,
+      "row": 0,
+      "label": "노트북",
+      "sub": "웹 VS Code — 편집기 + 터미널",
+      "kind": "src"
+    },
+    {
+      "id": "desktop",
+      "col": 0,
+      "row": 1,
+      "label": "데스크탑",
+      "sub": "웹 VS Code — 편집기 + 터미널",
+      "kind": "src"
+    },
+    {
+      "id": "ipad",
+      "col": 0,
+      "row": 3,
+      "label": "iPad · 폰",
+      "sub": "Claude 앱 Remote Control",
+      "kind": "src"
+    },
+    {
+      "id": "gw",
+      "col": 1,
+      "row": 0,
+      "label": "관문",
+      "sub": "gateway · Keycloak 인증",
+      "layer": "access",
+      "kind": "proc"
+    },
+    {
+      "id": "relay",
+      "col": 2,
+      "row": 3,
+      "label": "Anthropic 릴레이",
+      "sub": "HTTPS · 인바운드 포트 없음",
+      "kind": "proc"
+    },
+    {
+      "id": "cs",
+      "col": 2,
+      "row": 0,
+      "label": "code-server pod",
+      "sub": "인증은 관문이 · 본체는 믿고 받음",
+      "layer": "deploy",
+      "kind": "proc"
+    },
+    {
+      "id": "tmux",
+      "col": 2,
+      "row": 1,
+      "label": "tmux 터미널",
+      "sub": "main 세션 · 창 유지",
+      "layer": "deploy",
+      "kind": "proc"
+    },
+    {
+      "id": "claude",
+      "col": 2,
+      "row": 2,
+      "label": "Claude Code",
+      "sub": "/rc로 릴레이 연결",
+      "layer": "deploy",
+      "kind": "proc"
+    },
+    {
+      "id": "nas",
+      "col": 3,
+      "row": 0,
+      "label": "Storage",
+      "sub": "NFS PVC — 작업 디렉토리",
+      "layer": "state",
+      "kind": "store"
+    }
   ],
   "edges": [
-    {"from": "laptop", "to": "gw", "label": "HTTPS · 로그인"},
-    {"from": "desktop", "to": "gw", "label": "HTTPS · 로그인"},
-    {"from": "gw", "to": "cs", "label": "인증 통과분만"},
-    {"from": "cs", "to": "tmux", "label": "터미널 열면 attach"},
-    {"from": "tmux", "to": "claude", "label": "claude 실행"},
-    {"from": "cs", "to": "nas", "label": "PVC (NFS)"},
-    {"from": "ipad", "to": "relay", "label": "HTTPS"},
-    {"from": "relay", "to": "claude", "label": "pod가 밖으로 연 연결"}
+    {
+      "from": "laptop",
+      "to": "gw",
+      "label": "HTTPS · 로그인"
+    },
+    {
+      "from": "desktop",
+      "to": "gw",
+      "label": "HTTPS · 로그인"
+    },
+    {
+      "from": "gw",
+      "to": "cs",
+      "label": "인증 통과분만"
+    },
+    {
+      "from": "cs",
+      "to": "tmux",
+      "label": "터미널 열면 attach"
+    },
+    {
+      "from": "tmux",
+      "to": "claude",
+      "label": "claude 실행"
+    },
+    {
+      "from": "cs",
+      "to": "nas",
+      "label": "PVC (NFS)"
+    },
+    {
+      "from": "ipad",
+      "to": "relay",
+      "label": "HTTPS"
+    },
+    {
+      "from": "relay",
+      "to": "claude",
+      "label": "pod가 밖으로 연 연결"
+    }
   ]
 }

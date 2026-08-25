@@ -56,13 +56,17 @@
     var spec; try { spec = JSON.parse(specEl.textContent); } catch (err) { return; }
     container.dataset.flowReady = '1';
     var nodes = spec.nodes || [], edges = spec.edges || [], groups = spec.groups || [];
+    // 글자 배율(최상위 "font": 1.2 등). 노드 폭·열 간격은 그대로 두고 글자만 키우며, 줄바꿈은 커진 글자 기준으로 다시 잡는다.
+    var F = (+spec.font > 0) ? +spec.font : 1;
+    var LF = LAB_F * F, SF = SUB_F * F, LLH = LAB_LH * F, SLH = SUB_LH * F, EF = 10.5 * F, GF = 11 * F;
+    function fs(px) { return 'font-size:' + (Math.round(px * 10) / 10) + 'px'; }
 
     // 1) 각 노드 텍스트 줄바꿈 + 높이 계산
     var maxCol = 0, maxRow = 0, byId = {};
     nodes.forEach(function (nd) {
-      nd._lab = wrap(nd.label || nd.id, L.NODE_W - 18, LAB_F);
-      nd._sub = nd.sub ? wrap(nd.sub, L.NODE_W - 14, SUB_F) : [];
-      var th = nd._lab.length * LAB_LH + (nd._sub.length ? 3 + nd._sub.length * SUB_LH : 0);
+      nd._lab = wrap(nd.label || nd.id, L.NODE_W - 18, LF);
+      nd._sub = nd.sub ? wrap(nd.sub, L.NODE_W - 14, SF) : [];
+      var th = nd._lab.length * LLH + (nd._sub.length ? 3 + nd._sub.length * SLH : 0);
       nd._h = Math.max(L.MINH, Math.round(PADY * 2 + th));
       byId[nd.id] = nd;
       maxCol = Math.max(maxCol, nd.col || 0); maxRow = Math.max(maxRow, nd.row || 0);
@@ -109,7 +113,7 @@
       var bx = groupBox[g.id]; if (!bx) return;
       var gg = el('g', {});
       gg.appendChild(el('rect', { x: bx.x, y: bx.y, width: bx.w, height: bx.h, rx: 12, class: 'flow-group-box' }));
-      if (g.label) { var t = el('text', { x: bx.x + 12, y: bx.y + 14, class: 'flow-group-label' }); t.textContent = g.label; gg.appendChild(t); }
+      if (g.label) { var t = el('text', { x: bx.x + 12, y: bx.y + 14, class: 'flow-group-label', style: fs(GF) }); t.textContent = g.label; gg.appendChild(t); }
       gGroups.appendChild(gg);
     });
 
@@ -134,9 +138,9 @@
       var ang = Math.atan2(y2 - y1, x2 - x1), ax = x2 - 8 * Math.cos(ang), ay = y2 - 8 * Math.sin(ang);
       gEdges.appendChild(el('path', { d: 'M ' + x2 + ' ' + y2 + ' L ' + (ax - 4.5 * Math.sin(ang)) + ' ' + (ay + 4.5 * Math.cos(ang)) + ' L ' + (ax + 4.5 * Math.sin(ang)) + ' ' + (ay - 4.5 * Math.cos(ang)) + ' Z', class: 'flow-arrow' }));
       if (ed.label) {
-        var lx = (x1 + x2) / 2, ly = (y1 + y2) / 2 - 6, lw = estw(ed.label, 10.5);
-        gEdges.appendChild(el('rect', { x: lx - lw / 2 - 3, y: ly - 10, width: lw + 6, height: 13, rx: 3, class: 'flow-elabel-bg' }));
-        var lt = el('text', { x: lx, y: ly, class: 'flow-elabel', 'text-anchor': 'middle' }); lt.textContent = ed.label; gEdges.appendChild(lt);
+        var lx = (x1 + x2) / 2, ly = (y1 + y2) / 2 - 6, lw = estw(ed.label, EF);
+        gEdges.appendChild(el('rect', { x: lx - lw / 2 - 3, y: ly - 10 * F, width: lw + 6, height: 13 * F, rx: 3, class: 'flow-elabel-bg' }));
+        var lt = el('text', { x: lx, y: ly, class: 'flow-elabel', 'text-anchor': 'middle', style: fs(EF) }); lt.textContent = ed.label; gEdges.appendChild(lt);
       }
       ed._x1 = x1; ed._y1 = y1; ed._x2 = x2; ed._y2 = y2;
       ed._dur = Math.hypot(x2 - x1, y2 - y1) / (SPEED[ed.speed] || SPEED.normal);
@@ -147,11 +151,11 @@
     nodes.forEach(function (nd) {
       var g = el('g', { class: 'flow-node kind-' + (nd.kind || 'proc') + (nd.layer ? ' layer-' + nd.layer : '') + (nd.ghost ? ' is-ghost' : ''), 'data-nid': nd.id });
       g.appendChild(el('rect', { x: nd._x, y: nd._y, width: L.NODE_W, height: nd._h, rx: 10, class: 'flow-rect' }));
-      var th = nd._lab.length * LAB_LH + (nd._sub.length ? 3 + nd._sub.length * SUB_LH : 0);
-      var ty = nd._y + (nd._h - th) / 2 + LAB_F - 1;
-      nd._lab.forEach(function (ln, i) { var t = el('text', { x: nd._x + L.NODE_W / 2, y: ty + i * LAB_LH, class: 'flow-nlabel', 'text-anchor': 'middle' }); t.textContent = ln; g.appendChild(t); });
-      var sy = ty + nd._lab.length * LAB_LH + 1;
-      nd._sub.forEach(function (ln, i) { var t = el('text', { x: nd._x + L.NODE_W / 2, y: sy + i * SUB_LH, class: 'flow-nsub', 'text-anchor': 'middle' }); t.textContent = ln; g.appendChild(t); });
+      var th = nd._lab.length * LLH + (nd._sub.length ? 3 + nd._sub.length * SLH : 0);
+      var ty = nd._y + (nd._h - th) / 2 + LF - 1;
+      nd._lab.forEach(function (ln, i) { var t = el('text', { x: nd._x + L.NODE_W / 2, y: ty + i * LLH, class: 'flow-nlabel', 'text-anchor': 'middle', style: fs(LF) }); t.textContent = ln; g.appendChild(t); });
+      var sy = ty + nd._lab.length * LLH + 1;
+      nd._sub.forEach(function (ln, i) { var t = el('text', { x: nd._x + L.NODE_W / 2, y: sy + i * SLH, class: 'flow-nsub', 'text-anchor': 'middle', style: fs(SF) }); t.textContent = ln; g.appendChild(t); });
       gNodes.appendChild(g);
     });
 
