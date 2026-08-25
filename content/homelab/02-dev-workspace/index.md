@@ -11,7 +11,13 @@ weight: 2
 
 ## 전체 그림
 
-{{< flow src="_flow/1-개발환경-전체.json" />}}
+{{< flow src="_flow/1-전체-오버뷰.json" />}}
+
+입구가 둘입니다. 위 줄은 브라우저가 공인 도메인으로 클러스터의 관문을 지나 호스트의 code-server에 닿는 길이고, 아래 줄은 아이패드가 Anthropic 릴레이를 거쳐 같은 호스트의 Claude Code에 붙는 길입니다. 어느 쪽으로 들어와도 호스트 한 대의 같은 tmux 세션에서 만나고 파일은 NAS에 있습니다. 클러스터 안쪽과 아이패드 쪽은 아래에서 하나씩 폅니다.
+
+## 호스팅 구조 — 클러스터는 관문, code-server는 호스트
+
+{{< flow src="_flow/2-호스팅-구조.json" />}}
 
 왼쪽에서 오른쪽으로 읽으면 됩니다. 브라우저가 공인 도메인으로 들어와 istio gateway에 닿고 앞에 선 oauth2-proxy가 로그인 쿠키를 검사합니다. 쿠키가 없으면 Keycloak으로 보내고, 있으면 ServiceEntry를 타고 클러스터 밖 호스트의 code-server로 넘깁니다. 작업 디렉토리는 호스트가 아니라 NAS에 있습니다.
 
@@ -19,17 +25,17 @@ weight: 2
 
 | 구성 | 실제 값 |
 |------|---------|
-| 도메인 | `code.makgol.com` — istio gateway가 받아 ServiceEntry로 호스트에 넘김 |
-| 인증 | oauth2-proxy (OIDC) → Keycloak `sso.makgol.com`, 그룹 `code-server-users` |
+| 도메인 | 공인 도메인 하나 — istio gateway가 받아 ServiceEntry로 호스트에 넘김 |
+| 인증 | oauth2-proxy (OIDC) → Keycloak SSO, 그룹 `code-server-users` |
 | code-server | 호스트 `192.168.0.50:8888`, systemd 서비스. 인증은 앞단이 끝냈으니 본체는 믿고 받음 |
 | 작업 디렉토리 | Synology NAS NFS 마운트 — 호스트에는 남길 것이 없음 |
 | 배치 | 클러스터 밖 호스트 — 클러스터는 관문, 상태는 NAS |
 
 ## 인증을 code-server 밖으로 뺀 이유
 
-code-server 자체에도 비밀번호 인증이 있습니다. 처음엔 그걸 썼습니다. 설정 파일에 `password: …` 한 줄을 넣고 `code.makgol.com`으로 프록시만 걸어둔 형태였습니다. 비밀번호 하나를 브라우저마다 돌려 쓰다 보니 어디서 로그인했는지 알 수 없고 사람을 빼려면 비밀번호를 바꿔야 했습니다.
+code-server 자체에도 비밀번호 인증이 있습니다. 처음엔 그걸 썼습니다. 설정 파일에 `password: …` 한 줄을 넣고 공인 도메인에서 프록시만 걸어둔 형태였습니다. 비밀번호 하나를 브라우저마다 돌려 쓰다 보니 어디서 로그인했는지 알 수 없고 사람을 빼려면 비밀번호를 바꿔야 했습니다.
 
-지금은 code-server가 인증을 하지 않습니다. `auth: none`으로 두고 클러스터 안의 oauth2-proxy가 Keycloak에 로그인을 위임합니다. 콜백은 `auth.makgol.com` 하나로 모았습니다. 쿠키 도메인이 `.makgol.com`이라 한 번 로그인하면 `3000-code.makgol.com` 같은 개발 서버 포트 호스트에도 그대로 들어갑니다. 호스트에는 인증 관련 설정이 한 줄도 없습니다.
+지금은 code-server가 인증을 하지 않습니다. `auth: none`으로 두고 클러스터 안의 oauth2-proxy가 Keycloak에 로그인을 위임합니다. 콜백 주소는 인증 전용 호스트 하나로 모았습니다. 쿠키를 상위 도메인에 걸어 두어 한 번 로그인하면 `3000-` 같은 포트 접두 서브도메인의 개발 서버에도 그대로 들어갑니다. 호스트에는 인증 관련 설정이 한 줄도 없습니다.
 
 [hub / edge 구조]({{< relref "../01-hub-edge-architecture/index.md" >}})에서 ArgoCD 로그인을 Keycloak으로 모은 것과 같은 원칙입니다. 사람을 넣고 빼는 곳은 한 군데여야 합니다. 개발환경이라고 예외를 두면 그 예외가 제일 먼저 관리에서 빠집니다.
 
@@ -45,7 +51,7 @@ code-server의 통합 터미널은 탭을 닫으면 셸이 죽습니다. 브라�
 
 ## 아이패드에서 같은 Claude Code에 붙는다
 
-{{< flow src="_flow/2-아이패드-원격-제어.json" />}}
+{{< flow src="_flow/3-아이패드-원격-제어.json" />}}
 
 위 줄이 지금까지 설명한 길입니다. 아래 줄이 이 글을 쓰게 된 이유입니다.
 
