@@ -10,7 +10,7 @@
     {"id": "desktop", "col": 0, "row": 1, "label": "데스크탑", "sub": "웹 VS Code — 편집기 + 터미널", "kind": "src"},
     {"id": "ipad", "col": 0, "row": 3, "label": "iPad · 폰", "sub": "Claude 앱 Remote Control", "kind": "src"},
     {"id": "gw", "col": 1, "row": 0, "label": "관문", "sub": "gateway · Keycloak 인증", "layer": "access", "kind": "proc"},
-    {"id": "relay", "col": 1, "row": 3, "label": "Anthropic 릴레이", "sub": "HTTPS · 인바운드 포트 없음", "kind": "proc"},
+    {"id": "relay", "col": 2, "row": 3, "label": "Anthropic 릴레이", "sub": "HTTPS · 인바운드 포트 없음", "kind": "proc"},
     {"id": "cs", "col": 2, "row": 0, "label": "code-server pod", "sub": "인증은 관문이 · 본체는 믿고 받음", "layer": "deploy", "kind": "proc"},
     {"id": "tmux", "col": 2, "row": 1, "label": "tmux 터미널", "sub": "main 세션 · 창 유지", "layer": "deploy", "kind": "proc"},
     {"id": "claude", "col": 2, "row": 2, "label": "Claude Code", "sub": "/rc로 릴레이 연결", "layer": "deploy", "kind": "proc"},
