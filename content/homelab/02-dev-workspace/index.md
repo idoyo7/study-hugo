@@ -28,7 +28,7 @@ pod가 어느 노드에 뜨는지는 신경 쓰지 않습니다. 홈서버 여�
 | 도메인 | 공인 도메인 하나 — istio gateway가 받아 pod로 넘김 |
 | 인증 | oauth2-proxy (OIDC) → Keycloak SSO, 그룹 `code-server-users` |
 | code-server | `--auth=none`. 인증은 앞단이 끝냈으니 본체는 믿고 받음 |
-| 홈 디렉토리 | Synology NAS NFS PVC — 노드에는 남길 것이 없음 |
+| 홈 디렉토리 | Storage(NAS) NFS PVC — 노드에는 남길 것이 없음 |
 | 배치 | hub 클러스터 안 pod — 홈서버 중 한 노드, 상태는 NAS |
 
 ## 인증을 code-server 밖으로 뺀 이유

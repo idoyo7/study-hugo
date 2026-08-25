@@ -11,7 +11,7 @@
     {"id": "keycloak", "col": 2, "row": 2, "label": "Keycloak", "sub": "SSO · 그룹 code-server-users", "layer": "access", "kind": "proc"},
     {"id": "cs", "col": 3, "row": 0, "label": "code-server pod", "sub": "auth=none · 인증은 밖에서", "layer": "deploy", "kind": "proc"},
     {"id": "tmux", "col": 3, "row": 2, "label": "tmux main", "sub": "터미널마다 새 window", "layer": "deploy", "kind": "proc"},
-    {"id": "nas", "col": 4, "row": 0, "label": "Synology NAS", "sub": "NFS PVC — 홈 디렉토리", "layer": "state", "kind": "store"}
+    {"id": "nas", "col": 4, "row": 0, "label": "Storage", "sub": "NFS PVC — 홈 디렉토리", "layer": "state", "kind": "store"}
   ],
   "edges": [
     {"from": "user", "to": "gw", "label": "HTTPS"},

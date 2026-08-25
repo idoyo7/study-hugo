@@ -14,7 +14,7 @@
     {"id": "cs", "col": 2, "row": 0, "label": "code-server pod", "sub": "인증은 관문이 · 본체는 믿고 받음", "layer": "deploy", "kind": "proc"},
     {"id": "tmux", "col": 2, "row": 1, "label": "tmux 터미널", "sub": "main 세션 · 창 유지", "layer": "deploy", "kind": "proc"},
     {"id": "claude", "col": 2, "row": 2, "label": "Claude Code", "sub": "/rc로 릴레이 연결", "layer": "deploy", "kind": "proc"},
-    {"id": "nas", "col": 3, "row": 0, "label": "Synology NAS", "sub": "NFS PVC — 작업 디렉토리", "layer": "state", "kind": "store"}
+    {"id": "nas", "col": 3, "row": 0, "label": "Storage", "sub": "NFS PVC — 작업 디렉토리", "layer": "state", "kind": "store"}
   ],
   "edges": [
     {"from": "laptop", "to": "gw", "label": "HTTPS · 로그인"},
