@@ -90,7 +90,8 @@
       var y1 = Math.min.apply(null, ms.map(function (m) { return m._y; }));
       var x2 = Math.max.apply(null, ms.map(function (m) { return m._x + L.NODE_W; }));
       var y2 = Math.max.apply(null, ms.map(function (m) { return m._y + m._h; }));
-      groupBox[g.id] = { x: x1 - GPAD, y: y1 - GPAD - GLABEL, w: (x2 - x1) + 2 * GPAD, h: (y2 - y1) + 2 * GPAD + GLABEL };
+      var gp = (typeof g.pad === 'number') ? g.pad : GPAD;   // 겹치는 그룹(레이어)은 pad를 줄여 안쪽 박스로 그린다
+      groupBox[g.id] = { x: x1 - gp, y: y1 - gp - GLABEL, w: (x2 - x1) + 2 * gp, h: (y2 - y1) + 2 * gp + GLABEL };
     });
     function boxOf(id) { if (byId[id]) return nodeBox(byId[id]); if (groupBox[id]) return groupBox[id]; return null; }
 
