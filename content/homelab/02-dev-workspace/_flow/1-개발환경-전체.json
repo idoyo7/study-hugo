@@ -1,23 +1,24 @@
 {
-  "caption": "개발환경 전체 — 브라우저는 공인 도메인으로 hub 클러스터의 istio gateway에 닿고, 앞에 선 oauth2-proxy가 Keycloak에 로그인을 위임합니다. 통과한 요청만 code-server pod에 들어가고, pod의 홈 디렉토리는 Synology NAS의 NFS PVC라 pod가 죽어도 작업물은 남습니다. 클러스터 내부는 논리적으로 한 덩어리로만 그렸습니다. 테두리 색은 시리즈 공통 — 파랑 배포 · 보라 상태 · 주황 접근.",
+  "caption": "개발환경 전체 — code-server는 클러스터 밖 호스트에 systemd로 떠 있고, 클러스터는 그 앞의 관문 역할만 합니다. 브라우저는 공인 도메인으로 hub 클러스터의 istio gateway에 닿고, oauth2-proxy가 Keycloak에 로그인을 위임합니다. 통과한 요청만 ServiceEntry를 타고 호스트의 code-server로 나갑니다. 작업 디렉토리는 Synology NAS의 NFS라 호스트를 갈아엎어도 작업물은 남습니다. 클러스터 내부는 논리적으로 한 덩어리로만 그렸습니다. 테두리 색은 시리즈 공통 — 파랑 배포 · 보라 상태 · 주황 접근.",
   "groups": [
-    {"id": "hub", "label": "hub 클러스터 — 논리적 한 덩어리 (node1)", "members": ["gw", "proxy", "keycloak", "cs", "tmux"]}
+    {"id": "hub", "label": "hub 클러스터 — 논리적 한 덩어리", "members": ["gw", "proxy", "keycloak"]},
+    {"id": "host", "label": "호스트 (192.168.0.50)", "members": ["cs", "tmux"]}
   ],
   "nodes": [
     {"id": "user", "col": 0, "row": 0, "label": "브라우저", "sub": "어디서든 · 공인망", "kind": "src"},
-    {"id": "gw", "col": 1, "row": 0, "label": "istio gateway", "sub": "mont-code.makgol.com", "layer": "access", "kind": "proc"},
-    {"id": "proxy", "col": 2, "row": 0, "label": "oauth2-proxy", "sub": "사용자별 · 쿠키 검사", "layer": "access", "kind": "proc"},
+    {"id": "gw", "col": 1, "row": 0, "label": "istio gateway", "sub": "code.makgol.com", "layer": "access", "kind": "proc"},
+    {"id": "proxy", "col": 2, "row": 0, "label": "oauth2-proxy", "sub": "쿠키 검사 · 로그인 위임", "layer": "access", "kind": "proc"},
     {"id": "keycloak", "col": 2, "row": 2, "label": "Keycloak", "sub": "sso.makgol.com · 그룹 code-server-users", "layer": "access", "kind": "proc"},
-    {"id": "cs", "col": 3, "row": 0, "label": "code-server pod", "sub": "auth=none · 인증은 밖에서", "layer": "deploy", "kind": "proc"},
+    {"id": "cs", "col": 3, "row": 0, "label": "code-server", "sub": "systemd · :8888 · 인증은 밖에서", "layer": "deploy", "kind": "proc"},
     {"id": "tmux", "col": 3, "row": 2, "label": "tmux main", "sub": "터미널마다 새 window", "layer": "deploy", "kind": "proc"},
-    {"id": "nas", "col": 4, "row": 0, "label": "Synology NAS", "sub": "NFS PVC — /home/mont", "layer": "state", "kind": "store"}
+    {"id": "nas", "col": 4, "row": 0, "label": "Synology NAS", "sub": "NFS — 작업 디렉토리", "layer": "state", "kind": "store"}
   ],
   "edges": [
     {"from": "user", "to": "gw", "label": "HTTPS"},
     {"from": "gw", "to": "proxy", "label": "VirtualService"},
     {"from": "proxy", "to": "keycloak", "label": "OIDC 로그인", "dashed": true},
-    {"from": "proxy", "to": "cs", "label": "통과한 요청만"},
+    {"from": "proxy", "to": "cs", "label": "ServiceEntry · 클러스터 밖으로"},
     {"from": "cs", "to": "tmux", "label": "통합 터미널"},
-    {"from": "cs", "to": "nas", "label": "PVC (NFS)"}
+    {"from": "cs", "to": "nas", "label": "NFS 마운트"}
   ]
 }
