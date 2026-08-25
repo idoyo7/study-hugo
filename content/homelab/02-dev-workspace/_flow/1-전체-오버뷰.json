@@ -1,22 +1,27 @@
 {
-  "caption": "전체 오버뷰 — 입구가 둘입니다. 위 줄은 브라우저가 공인 도메인으로 hub 클러스터의 관문(Keycloak 인증)을 지나 호스트의 code-server에 닿는 길, 아래 줄은 아이패드가 Anthropic 릴레이를 거쳐 같은 호스트에서 돌고 있는 Claude Code에 붙는 길입니다. 두 길은 호스트 한 대에서 만나고, 그 호스트의 작업 디렉토리는 NAS입니다. 클러스터는 한 노드로만 그렸습니다 — 안쪽은 두 번째 그림에서 폅니다.",
+  "caption": "전체 오버뷰 — 왼쪽이 사용자 기기, 오른쪽이 개발환경 본체인 호스트입니다. 노트북 브라우저는 편집기와 터미널 둘 다 hub 클러스터의 관문(Keycloak 인증)을 지나 호스트의 code-server에 닿고, 그 터미널은 tmux 위에서 Claude Code를 띄웁니다. 아이패드는 그 관문을 거치지 않고 Anthropic 릴레이로 같은 Claude Code에 붙습니다. 두 길은 호스트의 같은 tmux 세션에서 만나고 작업 디렉토리는 NAS입니다. 클러스터 안쪽은 두 번째 그림에서 폅니다.",
   "groups": [
-    {"id": "host", "label": "호스트 — 개발환경 본체", "members": ["cs", "claude"]}
+    {"id": "dev", "label": "노트북", "members": ["editor", "term"]},
+    {"id": "host", "label": "호스트 — 개발환경 본체", "members": ["cs", "tmux", "claude"]}
   ],
   "nodes": [
-    {"id": "browser", "col": 0, "row": 0, "label": "브라우저", "sub": "노트북 · 어디서든", "kind": "src"},
+    {"id": "editor", "col": 0, "row": 0, "label": "브라우저 · 편집기", "sub": "code-server UI", "kind": "src"},
+    {"id": "term", "col": 0, "row": 1, "label": "브라우저 · 터미널", "sub": "통합 터미널 탭", "kind": "src"},
+    {"id": "ipad", "col": 0, "row": 3, "label": "iPad · 폰", "sub": "Claude 앱 Remote Control", "kind": "src"},
     {"id": "cluster", "col": 1, "row": 0, "label": "hub 클러스터", "sub": "관문 — Keycloak 인증", "layer": "access", "kind": "proc"},
-    {"id": "cs", "col": 2, "row": 0, "label": "code-server", "sub": "편집기 + tmux 터미널", "layer": "deploy", "kind": "proc"},
-    {"id": "nas", "col": 3, "row": 0, "label": "Synology NAS", "sub": "NFS — 작업 디렉토리", "layer": "state", "kind": "store"},
-    {"id": "ipad", "col": 0, "row": 2, "label": "iPad · 폰", "sub": "Claude 앱 Remote Control", "kind": "src"},
-    {"id": "relay", "col": 1, "row": 2, "label": "Anthropic 릴레이", "sub": "HTTPS · 인바운드 포트 없음", "kind": "proc"},
-    {"id": "claude", "col": 2, "row": 2, "label": "Claude Code", "sub": "tmux 안에서 /rc", "layer": "deploy", "kind": "proc"}
+    {"id": "relay", "col": 1, "row": 3, "label": "Anthropic 릴레이", "sub": "HTTPS · 인바운드 포트 없음", "kind": "proc"},
+    {"id": "cs", "col": 2, "row": 0, "label": "code-server", "sub": "systemd · 인증은 관문이", "layer": "deploy", "kind": "proc"},
+    {"id": "tmux", "col": 2, "row": 1, "label": "tmux 터미널", "sub": "main 세션 · 창 유지", "layer": "deploy", "kind": "proc"},
+    {"id": "claude", "col": 2, "row": 3, "label": "Claude Code", "sub": "/rc로 릴레이 연결", "layer": "deploy", "kind": "proc"},
+    {"id": "nas", "col": 3, "row": 0, "label": "Synology NAS", "sub": "NFS — 작업 디렉토리", "layer": "state", "kind": "store"}
   ],
   "edges": [
-    {"from": "browser", "to": "cluster", "label": "HTTPS · 로그인"},
+    {"from": "editor", "to": "cluster", "label": "HTTPS · 로그인"},
+    {"from": "term", "to": "cluster", "label": "같은 세션 쿠키"},
     {"from": "cluster", "to": "cs", "label": "인증 통과분만"},
+    {"from": "cs", "to": "tmux", "label": "터미널 열면 attach"},
+    {"from": "tmux", "to": "claude", "label": "claude 실행"},
     {"from": "cs", "to": "nas", "label": "NFS 마운트"},
-    {"from": "cs", "to": "claude", "label": "터미널에서 실행"},
     {"from": "ipad", "to": "relay", "label": "HTTPS"},
     {"from": "relay", "to": "claude", "label": "호스트가 밖으로 연 연결"}
   ]
