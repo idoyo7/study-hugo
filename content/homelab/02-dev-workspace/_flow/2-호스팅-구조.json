@@ -1,6 +1,6 @@
 {
   "caption": "호스팅 구조 — 클러스터 안쪽을 편 그림입니다. 브라우저는 공인 도메인으로 istio gateway에 닿고, 앞에 선 oauth2-proxy가 Keycloak에 로그인을 위임합니다. 통과한 요청만 code-server pod에 들어갑니다. pod는 홈서버 여러 대 중 한 노드에 뜨고 홈 디렉토리는 NAS의 NFS PVC라 pod가 다른 노드로 옮겨 떠도 작업물은 그대로입니다. 테두리 색은 시리즈 공통 — 파랑 배포 · 보라 상태 · 주황 접근.",
-  "font": 1.2,
+  "font": 1.15,
   "groups": [
     {
       "id": "hub",
@@ -29,7 +29,7 @@
       "col": 0,
       "row": 0,
       "label": "브라우저",
-      "sub": "노트북 · 데스크탑 · 어디서든",
+      "sub": "노트북 · 데스크탑",
       "kind": "src"
     },
     {
@@ -37,7 +37,7 @@
       "col": 1,
       "row": 0,
       "label": "istio gateway",
-      "sub": "공인 도메인 수신",
+      "sub": "공인 도메인",
       "layer": "access",
       "kind": "proc"
     },
@@ -46,7 +46,7 @@
       "col": 2,
       "row": 0,
       "label": "oauth2-proxy",
-      "sub": "쿠키 검사 · 로그인 위임",
+      "sub": "로그인 위임",
       "layer": "access",
       "kind": "proc"
     },
@@ -55,7 +55,7 @@
       "col": 2,
       "row": 2,
       "label": "Keycloak",
-      "sub": "SSO · 그룹 code-server-users",
+      "sub": "SSO",
       "layer": "access",
       "kind": "proc"
     },
@@ -64,7 +64,7 @@
       "col": 3,
       "row": 0,
       "label": "code-server pod",
-      "sub": "auth=none · 인증은 밖에서",
+      "sub": "auth=none",
       "layer": "deploy",
       "kind": "proc"
     },
@@ -73,7 +73,7 @@
       "col": 3,
       "row": 2,
       "label": "tmux main",
-      "sub": "터미널마다 새 window",
+      "sub": "창 유지",
       "layer": "deploy",
       "kind": "proc"
     },
@@ -82,7 +82,7 @@
       "col": 4,
       "row": 0,
       "label": "Storage",
-      "sub": "NFS PVC — 홈 디렉토리",
+      "sub": "PVC 작업 디렉토리",
       "layer": "state",
       "kind": "store"
     }

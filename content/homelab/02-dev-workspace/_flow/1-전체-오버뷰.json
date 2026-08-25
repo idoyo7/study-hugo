@@ -1,6 +1,6 @@
 {
   "caption": "전체 오버뷰 — 왼쪽이 사용자 기기, 오른쪽이 개발환경입니다. 노트북이든 데스크탑이든 브라우저로 웹 VS Code(code-server)에 들어가고, 편집기와 터미널을 한 화면에서 씁니다. 그 요청은 hub 클러스터의 관문에서 Keycloak 인증을 지나 code-server pod에 닿습니다. pod는 홈서버 여러 대 중 한 노드에 뜨는데 어느 노드든 상관없습니다 — 작업 디렉토리가 NAS에 있으니까요. 아이패드는 관문을 거치지 않고 Anthropic 릴레이로 그 pod 안의 Claude Code에 붙습니다. 두 길은 같은 tmux 세션에서 만납니다.",
-  "font": 1.2,
+  "font": 1.15,
   "groups": [
     {
       "id": "dev",
@@ -37,7 +37,7 @@
       "col": 0,
       "row": 0,
       "label": "노트북",
-      "sub": "웹 VS Code — 편집기 + 터미널",
+      "sub": "웹 VS Code",
       "kind": "src"
     },
     {
@@ -45,7 +45,7 @@
       "col": 0,
       "row": 1,
       "label": "데스크탑",
-      "sub": "웹 VS Code — 편집기 + 터미널",
+      "sub": "웹 VS Code",
       "kind": "src"
     },
     {
@@ -53,7 +53,7 @@
       "col": 0,
       "row": 3,
       "label": "iPad · 폰",
-      "sub": "Claude 앱 Remote Control",
+      "sub": "Remote Control",
       "kind": "src"
     },
     {
@@ -61,7 +61,7 @@
       "col": 1,
       "row": 0,
       "label": "관문",
-      "sub": "gateway · Keycloak 인증",
+      "sub": "Keycloak 인증",
       "layer": "access",
       "kind": "proc"
     },
@@ -70,7 +70,7 @@
       "col": 2,
       "row": 3,
       "label": "Anthropic 릴레이",
-      "sub": "HTTPS · 인바운드 포트 없음",
+      "sub": "인바운드 포트 X",
       "kind": "proc"
     },
     {
@@ -78,7 +78,6 @@
       "col": 2,
       "row": 0,
       "label": "code-server pod",
-      "sub": "인증은 관문이 · 본체는 믿고 받음",
       "layer": "deploy",
       "kind": "proc"
     },
@@ -87,7 +86,7 @@
       "col": 2,
       "row": 1,
       "label": "tmux 터미널",
-      "sub": "main 세션 · 창 유지",
+      "sub": "main 세션",
       "layer": "deploy",
       "kind": "proc"
     },
@@ -96,7 +95,7 @@
       "col": 2,
       "row": 2,
       "label": "Claude Code",
-      "sub": "/rc로 릴레이 연결",
+      "sub": "/rc",
       "layer": "deploy",
       "kind": "proc"
     },
@@ -105,7 +104,7 @@
       "col": 3,
       "row": 0,
       "label": "Storage",
-      "sub": "NFS PVC — 작업 디렉토리",
+      "sub": "PVC 작업 디렉토리",
       "layer": "state",
       "kind": "store"
     }

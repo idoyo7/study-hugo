@@ -1,6 +1,6 @@
 {
   "caption": "두 개의 입구 — 위 줄은 브라우저가 Keycloak을 거쳐 code-server 터미널에 앉는 길, 아래 줄은 아이패드가 Anthropic 릴레이를 거쳐 그 터미널 안의 Claude Code에 붙는 길입니다. 두 길은 같은 pod의 같은 tmux 세션에서 만납니다. 릴레이 연결은 pod가 밖으로 여는 아웃바운드라 집 쪽에 포트를 하나도 더 열지 않습니다.",
-  "font": 1.2,
+  "font": 1.15,
   "groups": [
     {
       "id": "dev",
@@ -34,7 +34,7 @@
       "col": 0,
       "row": 0,
       "label": "브라우저",
-      "sub": "code-server UI + 터미널",
+      "sub": "웹 VS Code",
       "kind": "src"
     },
     {
@@ -60,7 +60,7 @@
       "col": 3,
       "row": 0,
       "label": "tmux window",
-      "sub": "claude 실행 · /rc",
+      "sub": "/rc",
       "layer": "deploy",
       "kind": "proc"
     },
@@ -69,7 +69,7 @@
       "col": 3,
       "row": 2,
       "label": "Claude Code",
-      "sub": "같은 세션 · 같은 홈 디렉토리",
+      "sub": "같은 tmux 세션",
       "layer": "deploy",
       "kind": "proc"
     },
@@ -86,7 +86,7 @@
       "col": 1,
       "row": 2,
       "label": "Anthropic 릴레이",
-      "sub": "HTTPS · 인바운드 포트 없음",
+      "sub": "인바운드 포트 X",
       "kind": "proc"
     }
   ],
