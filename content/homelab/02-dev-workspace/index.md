@@ -31,6 +31,28 @@ pod가 어느 노드에 뜨는지는 신경 쓰지 않습니다. 홈서버 여�
 | 홈 디렉토리 | Storage(NAS) NFS PVC — 노드에는 남길 것이 없음 |
 | 배치 | hub 클러스터 안 pod — 홈서버 중 한 노드, 상태는 NAS |
 
+pod 안의 컨테이너 이름은 `code-server`이고 istio-proxy 사이드카가 하나 더 붙습니다. 실제로 도는 프로세스는 이렇습니다.
+
+```
+code-server --bind-addr 0.0.0.0:8080 --auth=none /home/mont
+```
+
+| 항목 | 값 | 어디서 오나 |
+|------|-----|-------------|
+| 이미지 | `monthouse-workspace-code-server` — base `codercom/code-server:4.106.3` | Deployment |
+| `--bind-addr 0.0.0.0:8080` | 고정 | 이미지 `entrypoint.sh` |
+| `--auth=none` | 인증 끔 | pod `args` (Dockerfile CMD 기본값과 동일) |
+| `/home/mont` | 열 디렉토리 | pod `args` |
+| `containerPort` | 8080 | pod spec |
+| env `WORKSPACE_USER` | entrypoint가 gosu로 이 유저로 강등 | pod spec |
+| `/home/mont` | PVC 20Gi (`synology` storageClass) | volumeMounts |
+| `/etc/workspace-init` | ConfigMap — init-script 카탈로그 | volumeMounts |
+| resources | requests 100m / 200Mi, limits 12 CPU / 24Gi | pod spec |
+| securityContext | `fsGroup: 1000`, `fsGroupChangePolicy: OnRootMismatch` | pod spec |
+| lxcfs | `/proc/cpuinfo`·`meminfo` 등 hostPath 마운트 | admission webhook 주입 |
+
+entrypoint는 부팅 때마다 플랫폼 관리 settings.json 키를 사용자 설정에 deep-merge하고 tmux.conf를 배치한 뒤 `gosu`로 code-server를 실행합니다. `~/.config/code-server/config.yaml`에 `auth: password`가 남아 있어도 CLI 플래그 `--auth=none`이 우선이라 무시됩니다.
+
 ## 인증을 code-server 밖으로 뺀 이유
 
 code-server 자체에도 비밀번호 인증이 있습니다. 처음엔 그걸 썼습니다. 호스트 한 대에 systemd로 띄우고 설정 파일에 `password: …` 한 줄을 넣은 채 공인 도메인에서 프록시만 걸어둔 형태였습니다. 비밀번호 하나를 브라우저마다 돌려 쓰다 보니 어디서 로그인했는지 알 수 없고 사람을 빼려면 비밀번호를 바꿔야 했습니다.
