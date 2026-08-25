@@ -10,3 +10,4 @@ weight: 9
 | 문서 | 한 줄 요약 |
 |------|-----------|
 | [01 hub/edge 2-클러스터 구조]({{< relref "01-hub-edge-architecture/index.md" >}}) | prod/stage를 버리고 hub/edge로 — 통합 전체 지도, stateless 원칙, 메트릭·GitOps·인증 파이프라인 |
+| [02 개발환경]({{< relref "04-dev-workspace/index.md" >}}) | hub 위의 code-server 하나에 브라우저(Keycloak)와 아이패드(Claude Code 릴레이) 두 길로 붙는다 — 터미널은 tmux, 파일은 NAS |
