@@ -21,14 +21,14 @@ weight: 2
 
 왼쪽에서 오른쪽으로 읽으면 됩니다. 브라우저가 공인 도메인으로 들어와 istio gateway에 닿고 앞에 선 oauth2-proxy가 로그인 쿠키를 검사합니다. 쿠키가 없으면 Keycloak으로 보냅니다. 쿠키가 있으면 code-server pod로 넘깁니다. pod의 홈 디렉토리는 노드 디스크가 아니라 NAS에 있습니다.
 
-pod가 어느 노드에 뜨는지는 신경 쓰지 않습니다. 홈서버 여러 대가 노드로 묶여 있고 스케줄러가 고르는 대로 뜹니다. 그래도 되는 이유는 홈 디렉토리가 NAS의 NFS PVC라서입니다. 여기서 잡아야 할 건 "관문을 지나면 pod의 터미널이 있고, 그 터미널의 파일은 NAS에 있다"는 사실입니다.
+pod가 어느 노드에 뜨는지는 신경 쓰지 않습니다. 홈서버 여러 대가 노드로 묶여 있고 스케줄러가 고르는 대로 뜹니다. 그래도 되는 건 홈 디렉토리가 스토리지 PVC이기 때문입니다. 관문을 지나면 pod의 터미널이 나오고 그 터미널의 파일은 NAS에 있습니다. 여기까지만 잡으면 됩니다.
 
 | 구성 | 실제 값 |
 |------|---------|
 | 도메인 | 공인 도메인 하나 — istio gateway가 받아 pod로 넘김 |
 | 인증 | oauth2-proxy (OIDC) → Keycloak SSO, 그룹 `code-server-users` |
 | code-server | `--auth=none`. 인증은 앞단이 끝냈으니 본체는 믿고 받음 |
-| 홈 디렉토리 | Storage(NAS) NFS PVC — 노드에는 남길 것이 없음 |
+| 홈 디렉토리 | 스토리지 PVC — 노드에는 남길 것이 없음 |
 | 배치 | hub 클러스터 안 pod — 홈서버 중 한 노드, 상태는 NAS |
 
 pod 안의 컨테이너 이름은 `code-server`이고 istio-proxy 사이드카가 하나 더 붙습니다. 실제로 도는 프로세스는 이렇습니다.
@@ -45,13 +45,13 @@ code-server --bind-addr 0.0.0.0:8080 --auth=none /home/mont
 | `/home/mont` | 열 디렉토리 | pod `args` |
 | `containerPort` | 8080 | pod spec |
 | env `WORKSPACE_USER` | entrypoint가 gosu로 이 유저로 강등 | pod spec |
-| `/home/mont` | PVC 20Gi (`synology` storageClass) | volumeMounts |
+| `/home/mont` | 스토리지 PVC | volumeMounts |
 | `/etc/workspace-init` | ConfigMap — init-script 카탈로그 | volumeMounts |
 | resources | requests 100m / 200Mi, limits 12 CPU / 24Gi | pod spec |
 | securityContext | `fsGroup: 1000`, `fsGroupChangePolicy: OnRootMismatch` | pod spec |
 | lxcfs | `/proc/cpuinfo`·`meminfo` 등 hostPath 마운트 | admission webhook 주입 |
 
-entrypoint는 부팅 때마다 플랫폼 관리 settings.json 키를 사용자 설정에 deep-merge하고 tmux.conf를 배치한 뒤 `gosu`로 code-server를 실행합니다. `~/.config/code-server/config.yaml`에 `auth: password`가 남아 있어도 CLI 플래그 `--auth=none`이 우선이라 무시됩니다.
+entrypoint는 부팅 때마다 플랫폼이 관리하는 settings.json 키를 사용자 설정에 deep-merge하고 tmux.conf를 배치한 뒤 `gosu`로 code-server를 실행합니다. `~/.config/code-server/config.yaml`에 `auth: password`가 남아 있어도 CLI 플래그 `--auth=none`이 우선이라 무시됩니다.
 
 ## 인증을 code-server 밖으로 뺀 이유
 
