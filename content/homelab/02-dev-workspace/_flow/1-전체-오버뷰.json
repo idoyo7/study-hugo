@@ -7,7 +7,7 @@
   ],
   "nodes": [
     {"id": "laptop", "col": 0, "row": 0, "label": "노트북", "sub": "웹 VS Code — 편집기 + 터미널", "kind": "src"},
-    {"id": "desktop", "col": 0, "row": 1, "label": "데스크탑", "sub": "같은 주소 · 같은 세션", "kind": "src"},
+    {"id": "desktop", "col": 0, "row": 1, "label": "데스크탑", "sub": "웹 VS Code — 편집기 + 터미널", "kind": "src"},
     {"id": "ipad", "col": 0, "row": 3, "label": "iPad · 폰", "sub": "Claude 앱 Remote Control", "kind": "src"},
     {"id": "gw", "col": 1, "row": 0, "label": "관문", "sub": "gateway · Keycloak 인증", "layer": "access", "kind": "proc"},
     {"id": "relay", "col": 1, "row": 3, "label": "Anthropic 릴레이", "sub": "HTTPS · 인바운드 포트 없음", "kind": "proc"},
