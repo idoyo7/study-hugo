@@ -138,9 +138,15 @@
       var ang = Math.atan2(y2 - y1, x2 - x1), ax = x2 - 8 * Math.cos(ang), ay = y2 - 8 * Math.sin(ang);
       gEdges.appendChild(el('path', { d: 'M ' + x2 + ' ' + y2 + ' L ' + (ax - 4.5 * Math.sin(ang)) + ' ' + (ay + 4.5 * Math.cos(ang)) + ' L ' + (ax + 4.5 * Math.sin(ang)) + ' ' + (ay - 4.5 * Math.cos(ang)) + ' Z', class: 'flow-arrow' }));
       if (ed.label) {
-        var lx = (x1 + x2) / 2, ly = (y1 + y2) / 2 - 6, lw = estw(ed.label, EF);
-        gEdges.appendChild(el('rect', { x: lx - lw / 2 - 3, y: ly - 10 * F, width: lw + 6, height: 13 * F, rx: 3, class: 'flow-elabel-bg' }));
-        var lt = el('text', { x: lx, y: ly, class: 'flow-elabel', 'text-anchor': 'middle', style: fs(EF) }); lt.textContent = ed.label; gEdges.appendChild(lt);
+        var lw = estw(ed.label, EF), lx, ly, anchor, bx0;
+        if (Math.abs(x2 - x1) < 1) {
+          /* 수직 엣지 — 행 간격(30px)이 좁아 선 위에 얹으면 위아래 노드를 덮는다. 선 오른쪽 옆에 붙인다. */
+          lx = x1 + 7; ly = (y1 + y2) / 2 + EF * 0.35; anchor = 'start'; bx0 = lx - 3;
+        } else {
+          lx = (x1 + x2) / 2; ly = (y1 + y2) / 2 - 6; anchor = 'middle'; bx0 = lx - lw / 2 - 3;
+        }
+        gEdges.appendChild(el('rect', { x: bx0, y: ly - 10 * F, width: lw + 6, height: 13 * F, rx: 3, class: 'flow-elabel-bg' }));
+        var lt = el('text', { x: lx, y: ly, class: 'flow-elabel', 'text-anchor': anchor, style: fs(EF) }); lt.textContent = ed.label; gEdges.appendChild(lt);
       }
       ed._x1 = x1; ed._y1 = y1; ed._x2 = x2; ed._y2 = y2;
       ed._dur = Math.hypot(x2 - x1, y2 - y1) / (SPEED[ed.speed] || SPEED.normal);

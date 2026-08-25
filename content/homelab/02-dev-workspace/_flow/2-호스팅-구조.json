@@ -96,28 +96,28 @@
     {
       "from": "gw",
       "to": "proxy",
-      "label": "VirtualService"
+      "label": "라우팅"
     },
     {
       "from": "proxy",
       "to": "keycloak",
-      "label": "OIDC 로그인",
+      "label": "OIDC",
       "dashed": true
     },
     {
       "from": "proxy",
       "to": "cs",
-      "label": "통과한 요청만"
+      "label": "인증 후"
     },
     {
       "from": "cs",
       "to": "tmux",
-      "label": "통합 터미널"
+      "label": "터미널"
     },
     {
       "from": "cs",
       "to": "nas",
-      "label": "PVC (NFS)"
+      "label": "PVC"
     }
   ]
 }

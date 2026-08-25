@@ -113,32 +113,32 @@
     {
       "from": "laptop",
       "to": "gw",
-      "label": "HTTPS · 로그인"
+      "label": "HTTPS"
     },
     {
       "from": "desktop",
       "to": "gw",
-      "label": "HTTPS · 로그인"
+      "label": "HTTPS"
     },
     {
       "from": "gw",
       "to": "cs",
-      "label": "인증 통과분만"
+      "label": "인증 후"
     },
     {
       "from": "cs",
       "to": "tmux",
-      "label": "터미널 열면 attach"
+      "label": "attach"
     },
     {
       "from": "tmux",
       "to": "claude",
-      "label": "claude 실행"
+      "label": "claude"
     },
     {
       "from": "cs",
       "to": "nas",
-      "label": "PVC (NFS)"
+      "label": "PVC"
     },
     {
       "from": "ipad",
@@ -148,7 +148,7 @@
     {
       "from": "relay",
       "to": "claude",
-      "label": "pod가 밖으로 연 연결"
+      "label": "/rc 연결"
     }
   ]
 }
