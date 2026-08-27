@@ -1,0 +1,128 @@
+/* vm-rstep — canary step 진행·스킵·가중치·가용량·AnalysisRun 을 한 판에 겹쳐 보는 도식.
+   팔레트는 mnode·bscore·cfstl 과 같은 계열이고, 여기에만 "확보되지 않았는데 라우팅됨(bad)" 색이 더 있다. */
+.vm-rstep {
+  --rs-surface: #fcfcfb;
+  --rs-ink: #0b0b0b;
+  --rs-ink2: #52514e;
+  --rs-muted: #898781;
+  --rs-track: #ecebe4;
+  --rs-canary: #2a78d6;
+  --rs-canary-soft: #dbeafe;
+  --rs-stable: #15803d;
+  --rs-stable-soft: #dcfce7;
+  --rs-warn: #d97706;
+  --rs-warn-soft: #fef3c7;
+  --rs-bad: #b91c1c;
+  --rs-bad-soft: #fee2e2;
+  --rs-border: rgba(11, 11, 11, 0.10);
+  margin: 1.5rem 0;
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: 14px;
+  padding: 16px 18px 12px;
+  color: var(--rs-ink);
+}
+html.dark .vm-rstep {
+  --rs-surface: #1a1a19;
+  --rs-ink: #fff;
+  --rs-ink2: #c3c2b7;
+  --rs-muted: #898781;
+  --rs-track: #2c2c2a;
+  --rs-canary: #4a8de0;
+  --rs-canary-soft: #22334a;
+  --rs-stable: #4ade80;
+  --rs-stable-soft: #1e3a2a;
+  --rs-warn: #f59e0b;
+  --rs-warn-soft: #3a2e12;
+  --rs-bad: #f87171;
+  --rs-bad-soft: #431516;
+  --rs-border: rgba(255, 255, 255, 0.10);
+}
+
+.rs-svg { display: block; width: 100%; height: auto; }
+
+.rs-step { fill: var(--rs-muted); font-size: 15px; font-weight: 600; transition: fill 0.2s; }
+.rs-step-on { fill: var(--rs-canary); font-size: 18px; font-weight: 800; }
+.rs-badge { fill: var(--rs-canary); font-size: 13px; font-weight: 800; letter-spacing: 0.02em; }
+.rs-lane { fill: var(--rs-ink); font-size: 12px; font-weight: 800; }
+
+/* ── 스텝 레일 ── 한 칸이 CanaryStep 하나. 마지막 뒤의 점선 칸은 index == stepCount 자리다 */
+.rs-slot { fill: var(--rs-track); stroke: var(--rs-border); stroke-width: 1; }
+.rs-slot-done { fill: var(--rs-canary-soft); stroke: var(--rs-canary); stroke-opacity: 0.45; }
+.rs-slot-on { fill: var(--rs-canary-soft); stroke: var(--rs-canary); stroke-width: 2.2; }
+/* 건너뛴 스텝 — 값은 남아 있는데 밟지 않는다 */
+.rs-slot-skipped { fill: none; stroke: var(--rs-muted); stroke-dasharray: 4 3; }
+/* 건너뛰었는데 역탐색이 도로 집어온 스텝 — 이 도식의 핵 */
+.rs-slot-hit { fill: var(--rs-bad-soft); stroke: var(--rs-bad); stroke-width: 2.4; }
+.rs-slot-end { fill: none; stroke: var(--rs-muted); stroke-dasharray: 5 3; }
+.rs-slottext { fill: var(--rs-ink2); font-size: 12.5px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.rs-slottext-on { fill: var(--rs-ink); font-weight: 800; }
+.rs-slottext-skipped { fill: var(--rs-muted); font-weight: 600; }
+.rs-slottext-end { fill: var(--rs-muted); font-weight: 700; }
+.rs-slotsub { fill: var(--rs-muted); font-size: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.rs-strike { stroke: var(--rs-muted); stroke-width: 1.4; }
+.rs-mark { fill: var(--rs-canary); font-size: 11px; font-weight: 800; }
+.rs-mark-hit { fill: var(--rs-bad); }
+
+/* 스킵 호 — 인덱스가 스텝 구간 위를 뛰어넘는다 */
+.rs-skip { fill: none; stroke: var(--rs-warn); stroke-width: 2; stroke-dasharray: 7 4; stroke-linecap: round; }
+.rs-skiptext { fill: var(--rs-warn); font-size: 11.5px; font-weight: 800; }
+
+/* 역탐색 — 끝 자리에서 거꾸로. 스킵 호와 반대 방향이라는 게 보여야 한다 */
+.rs-rev { fill: none; stroke: var(--rs-bad); stroke-width: 1.8; stroke-linecap: round; }
+.rs-revtext { fill: var(--rs-bad); font-size: 10.5px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* ── 가중치 바 ── 확보된 몫(초록)과 확보되지 않았는데 라우팅된 몫(빨강)을 겹쳐 그린다 */
+.rs-bartrack { fill: var(--rs-track); }
+.rs-tick { stroke: var(--rs-surface); stroke-width: 1; stroke-opacity: 0.8; }
+.rs-bar-have { fill: var(--rs-stable); opacity: 0.62; }
+.rs-bar-short { fill: var(--rs-bad); opacity: 0.85; }
+.rs-wmark { stroke: var(--rs-ink); stroke-width: 2; }
+.rs-wtext { fill: var(--rs-ink); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rs-wtext-bad { fill: var(--rs-bad); }
+.rs-htext { fill: var(--rs-ink2); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rs-barval { font-size: 12.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rs-barval-ok { fill: var(--rs-stable); }
+.rs-barval-bad { fill: var(--rs-bad); }
+
+/* 이 가중치를 정한 코드 갈래 */
+.rs-src { font-size: 11px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.rs-src-neutral { fill: var(--rs-muted); }
+.rs-src-ok { fill: var(--rs-ink2); }
+.rs-src-warn { fill: var(--rs-warn); }
+.rs-src-bad { fill: var(--rs-bad); }
+
+/* ── ReplicaSet 카드 ── */
+.rs-card { fill: var(--rs-surface); stroke: var(--rs-border); stroke-width: 1.4; }
+.rs-card-canary { stroke: var(--rs-canary); }
+.rs-card-stable { stroke: var(--rs-stable); }
+.rs-card-short { stroke: var(--rs-bad); stroke-width: 2.4; fill: var(--rs-bad-soft); }
+.rs-card-gone { stroke: var(--rs-muted); stroke-dasharray: 5 3; fill: var(--rs-track); }
+.rs-cardtitle { fill: var(--rs-ink); font-size: 12px; font-weight: 800; }
+.rs-cardsub { fill: var(--rs-ink2); font-size: 11px; font-variant-numeric: tabular-nums; }
+.rs-avail { fill: var(--rs-ink); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rs-avail-bad { fill: var(--rs-bad); }
+
+/* 파드 — 진한 것이 Available, 점선 원이 desired 중 아직 안 뜬 자리 */
+.rs-pod { stroke: var(--rs-surface); stroke-width: 1.6; }
+.rs-pod-canary { fill: var(--rs-canary); }
+.rs-pod-stable { fill: var(--rs-stable); }
+.rs-pod-pending { fill: none; stroke: var(--rs-muted); stroke-width: 1.4; stroke-dasharray: 2.5 2; }
+
+/* AnalysisRun 상태 */
+.rs-pill { fill: var(--rs-track); stroke: var(--rs-muted); stroke-width: 1.2; }
+.rs-pill-run { fill: var(--rs-canary-soft); stroke: var(--rs-canary); stroke-width: 1.6; }
+.rs-pill-ok { fill: var(--rs-stable-soft); stroke: var(--rs-stable); stroke-width: 1.6; }
+.rs-pill-off { fill: none; stroke: var(--rs-muted); stroke-dasharray: 4 3; }
+.rs-pilltext { fill: var(--rs-ink); font-size: 12px; font-weight: 700; }
+.rs-pilltext-off { fill: var(--rs-muted); }
+
+/* 우측 게이트·판정 */
+.rs-gate { fill: var(--rs-ink2); font-size: 10.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.rs-verdict { font-size: 12.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rs-verdict-neutral { fill: var(--rs-ink2); }
+.rs-verdict-ok { fill: var(--rs-stable); }
+.rs-verdict-warn { fill: var(--rs-warn); }
+.rs-verdict-bad { fill: var(--rs-bad); }
+
+.rs-caption { font-size: 12.5px; color: var(--rs-ink2); margin: 10px 0 0; line-height: 1.6; }

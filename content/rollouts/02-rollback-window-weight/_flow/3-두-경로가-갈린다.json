@@ -1,0 +1,28 @@
+{
+  "caption": "index == stepCount 일 때 ReplicaSet 크기와 트래픽 가중치는 서로 다른 함수가 정합니다. 크기 쪽은 currentStep == nil 을 보고 100을 쓰고, 가중치 쪽은 스텝 목록을 거꾸로 훑습니다. 둘 다 100에 도달하지만 크기는 파드가 뜨는 시간이 걸리고 가중치는 즉시입니다 — 그 시차가 사고 구간입니다.",
+  "font": 1.15,
+  "nodes": [
+    { "id": "st", "col": 0, "row": 1, "label": "index = stepCount", "sub": "currentStep = nil", "kind": "src" },
+    { "id": "r1", "col": 1, "row": 0, "label": "L75 RS 크기", "sub": "reconcileCanaryReplicaSets", "layer": "deploy" },
+    { "id": "r2", "col": 2, "row": 0, "label": "GetCurrentSetWeight", "sub": "nil 이면 MaxTrafficWeight", "layer": "deploy" },
+    { "id": "r3", "col": 3, "row": 0, "label": "목표 20대", "sub": "하한은 이미 넘어 무효", "layer": "deploy" },
+    { "id": "w1", "col": 1, "row": 2, "label": "L57 가중치", "sub": "reconcileTrafficRouting", "layer": "access" },
+    { "id": "w2", "col": 2, "row": 2, "label": ":245 역탐색", "sub": "i := index−1; i >= 0; i−−", "layer": "access" },
+    { "id": "w3", "col": 3, "row": 2, "label": "100%", "sub": "Ready 2대가 받는다", "layer": "access" },
+    { "id": "g", "col": 4, "row": 1, "label": "게이트", "sub": "stable 만 검사 · canary 미검증", "kind": "query" }
+  ],
+  "groups": [
+    { "id": "gr", "label": "먼저 확정되지만 도달에 시간이 걸린다", "members": ["r1", "r2", "r3"], "pad": 12 },
+    { "id": "gw", "label": "즉시 적용된다", "members": ["w1", "w2", "w3"], "pad": 12 }
+  ],
+  "edges": [
+    { "from": "st", "to": "r1" },
+    { "from": "st", "to": "w1" },
+    { "from": "r1", "to": "r2", "rate": 900 },
+    { "from": "r2", "to": "r3", "rate": 900 },
+    { "from": "w1", "to": "w2", "rate": 380 },
+    { "from": "w2", "to": "w3", "rate": 380 },
+    { "from": "r3", "to": "g", "dashed": true },
+    { "from": "w3", "to": "g", "dashed": true }
+  ]
+}

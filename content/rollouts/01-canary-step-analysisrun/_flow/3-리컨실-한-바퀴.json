@@ -1,0 +1,24 @@
+{
+  "caption": "리컨실 한 바퀴의 호출 순서. 트래픽 가중치가 ReplicaSet 크기보다 먼저 결정되고, 스텝 인덱스를 손대는 코드는 맨 마지막에 있어 그 효과가 다음 바퀴부터 반영됩니다. 이 순서를 알아야 2편의 사고가 읽힙니다 — rollout/canary.go:20-96",
+  "token": true,
+  "font": 1.15,
+  "nodes": [
+    { "id": "a", "col": 0, "row": 0, "label": "L22 조기 반환", "sub": "템플릿·스텝이 바뀐 바퀴", "kind": "src" },
+    { "id": "b", "col": 1, "row": 0, "label": "L53 서비스", "sub": "canary·stable selector", "kind": "proc" },
+    { "id": "c", "col": 2, "row": 0, "label": "L57 트래픽", "sub": "가중치를 여기서 정한다", "kind": "query" },
+    { "id": "d", "col": 3, "row": 0, "label": "L61 실험", "sub": "Experiment", "kind": "proc" },
+    { "id": "e", "col": 3, "row": 1, "label": "L66 analysis", "sub": "스킵 판정·실행분 취소", "kind": "store" },
+    { "id": "f", "col": 2, "row": 1, "label": "L75 ReplicaSet", "sub": "크기를 여기서 정한다", "kind": "query" },
+    { "id": "g", "col": 1, "row": 1, "label": "L84 pause", "sub": "duration 경과 판정", "kind": "proc" },
+    { "id": "h", "col": 0, "row": 1, "label": "L95 status", "sub": "인덱스·승격 판정", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "a", "to": "b" },
+    { "from": "b", "to": "c" },
+    { "from": "c", "to": "d" },
+    { "from": "d", "to": "e" },
+    { "from": "e", "to": "f" },
+    { "from": "f", "to": "g" },
+    { "from": "g", "to": "h" }
+  ]
+}

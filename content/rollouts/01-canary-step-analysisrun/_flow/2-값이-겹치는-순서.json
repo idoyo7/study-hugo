@@ -1,0 +1,20 @@
+{
+  "caption": "Rollout 하나가 만들어지기까지 값이 다섯 번 겹칩니다. 뒤가 앞을 덮고, 맵은 깊게 합쳐지지만 리스트는 통째로 교체됩니다 — canary.steps 가 리스트라 서비스 쪽에 한 줄이라도 선언하면 base 기본값은 그 컴포넌트 렌더에 참여하지 않습니다. 2026-08-13 스냅샷 기준 228개 앱 중 221개가 정확히 이 4단을 씁니다.",
+  "token": true,
+  "font": 1.2,
+  "nodes": [
+    { "id": "b", "col": 0, "row": 0, "label": "base values.yaml", "sub": "차트 기본값 · steps 3단", "kind": "src" },
+    { "id": "v1", "col": 1, "row": 0, "label": "value.yaml", "sub": "서비스 공통", "kind": "proc" },
+    { "id": "v2", "col": 2, "row": 0, "label": "value-<env>.yaml", "sub": "서비스 × 환경", "kind": "proc" },
+    { "id": "v3", "col": 3, "row": 0, "label": "service-manager", "sub": "플랫폼팀 일괄 스윕 관할", "kind": "proc" },
+    { "id": "v4", "col": 4, "row": 0, "label": "argo-repo values", "sub": "앱 등록 쪽", "kind": "proc" },
+    { "id": "out", "col": 4, "row": 1, "label": "렌더된 Rollout", "sub": "228 앱 · 221개가 이 4단", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "b", "to": "v1", "label": "덮는다" },
+    { "from": "v1", "to": "v2", "label": "덮는다" },
+    { "from": "v2", "to": "v3", "label": "덮는다" },
+    { "from": "v3", "to": "v4", "label": "덮는다" },
+    { "from": "v4", "to": "out" }
+  ]
+}

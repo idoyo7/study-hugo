@@ -1,0 +1,26 @@
+{
+  "caption": "AnalysisRun 의 측정 루프와 실패가 배포를 멈추는 경로. 사내 기본값은 interval 20s · failureLimit 2 이고, 판정은 result.Failed > failureLimit 입니다 — 연속이 아니라 누적입니다. 20초 간격으로 세 번째 실패가 쌓이면 metric 이 Failed 가 되고 Rollout 이 abort 됩니다.",
+  "participants": [
+    { "id": "C", "label": "rollout 컨트롤러" },
+    { "id": "A", "label": "AnalysisRun" },
+    { "id": "P", "label": "Prometheus" }
+  ],
+  "steps": [
+    { "msg": ["C", "A"], "label": "1. 생성 — background, 리비전마다 하나" },
+    { "note": ["A", "P"], "lines": ["아래 2·3이 interval 20s 로 반복된다", "count 를 주지 않으면 Rollout 이 끝날 때까지"] },
+    { "msg": ["A", "P"], "label": "2. errorRateQuery" },
+    { "msg": ["P", "A"], "label": "3. result 배열", "dashed": true },
+    { "note": ["A", "A"], "lines": ["4. failureCondition: result[0] >= 0.001", "참이면 result.Failed 를 1 올린다"] },
+    {
+      "alt": "result.Failed <= failureLimit 2",
+      "steps": [
+        { "msg": ["A", "P"], "label": "5. 20초 뒤 다시 측정" }
+      ],
+      "elseLabel": "Failed 가 3 이 되는 순간",
+      "elseSteps": [
+        { "msg": ["A", "C"], "label": "6. phase = Failed" },
+        { "note": ["C", "P"], "lines": ["7. status.abort = true", "GetCurrentSetWeight 가 Abort 를 먼저 보고 0 을 반환한다", "→ 가중치 0, stable RS 가 전량을 받는다"] }
+      ]
+    }
+  ]
+}

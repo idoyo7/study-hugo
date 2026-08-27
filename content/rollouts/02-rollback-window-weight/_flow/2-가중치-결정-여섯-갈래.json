@@ -1,0 +1,36 @@
+{
+  "caption": "트래픽 가중치를 정하는 if/else 체인. 여섯 갈래가 위에서 아래 순서로 평가되고 먼저 걸린 하나가 이깁니다. abort(:199)가 역탐색이 있는 마지막 갈래(:243)보다 앞이므로, abort 상태에서는 역탐색 사다리가 아예 실행되지 않습니다 — 이 사고는 abort 되지 않은 rollbackWindow 경로에서만 성립합니다. promote --full 은 :229 에 자기 갈래가 있어 현재 가중치를 동결하지만, rollbackWindow 는 자기 갈래가 없어 마지막 갈래로 떨어집니다 — rollout/trafficrouting.go:187-263",
+  "token": true,
+  "font": 1.2,
+  "nodes": [
+    { "id": "in", "col": 0, "row": 2, "label": "가중치 결정 진입", "sub": "reconcileTrafficRouting", "kind": "src" },
+    { "id": "b187", "col": 1, "row": 0, "label": ":187 stable 복귀", "sub": "동적 복귀 중", "kind": "query" },
+    { "id": "b194", "col": 1, "row": 1, "label": ":194 완전 승격", "sub": "IsFullyPromoted", "kind": "query" },
+    { "id": "b199", "col": 1, "row": 2, "label": ":199 abort", "sub": "IsAborted()", "kind": "query" },
+    { "id": "b217", "col": 1, "row": 3, "label": ":217 canary 0대", "sub": "Available 0", "kind": "query" },
+    { "id": "b229", "col": 1, "row": 4, "label": ":229 PromoteFull", "sub": "status 필드", "kind": "query" },
+    { "id": "b243", "col": 1, "row": 5, "label": ":243 그 밖", "sub": "index != nil", "kind": "query" },
+    { "id": "w187", "col": 2, "row": 0, "label": "가중치 재계산", "sub": "stable 가용량 기준", "kind": "sink" },
+    { "id": "w194", "col": 2, "row": 1, "label": "라우팅만 정리", "sub": "가중치 손대지 않음", "kind": "sink" },
+    { "id": "w199", "col": 2, "row": 2, "label": "가중치 0", "sub": "stable 100%", "kind": "sink" },
+    { "id": "w217", "col": 2, "row": 3, "label": "가중치 0", "sub": "canary 로 안 보냄", "kind": "sink" },
+    { "id": "w229", "col": 2, "row": 4, "label": "가중치 동결", "sub": "RS 만 전량 확장", "kind": "sink" },
+    { "id": "rev", "col": 2, "row": 5, "label": ":245 역탐색", "sub": "미도달 & !PromoteFull", "kind": "proc" },
+    { "id": "w100", "col": 3, "row": 5, "label": "마지막 setWeight", "sub": "우리 형태면 100", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "in", "to": "b187", "label": "①" },
+    { "from": "in", "to": "b194", "label": "②" },
+    { "from": "in", "to": "b199", "label": "③" },
+    { "from": "in", "to": "b217", "label": "④" },
+    { "from": "in", "to": "b229", "label": "⑤" },
+    { "from": "in", "to": "b243", "label": "⑥" },
+    { "from": "b187", "to": "w187" },
+    { "from": "b194", "to": "w194" },
+    { "from": "b199", "to": "w199" },
+    { "from": "b217", "to": "w217" },
+    { "from": "b229", "to": "w229" },
+    { "from": "b243", "to": "rev" },
+    { "from": "rev", "to": "w100" }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "caption": "하한 하나가 방향에 따라 정반대 증상을 냅니다. desired 가 1이면 canary 2 + stable 1 = 3 이 되어 승격 조건이 영영 성립하지 않고, desired 가 0이면 하한이 목표보다 커서 스케일이 진동합니다. 원인은 같은 값 하나이고 증상은 서로 닮은 데가 없습니다.",
+  "font": 1.15,
+  "nodes": [
+    { "id": "f", "col": 0, "row": 0, "label": "하한 2", "sub": "base 기본값 · trafficRouting 있을 때", "kind": "src" },
+    { "id": "a", "col": 1, "row": 0, "label": "desired 1", "sub": "KEDA min=max=1", "layer": "deploy" },
+    { "id": "a2", "col": 2, "row": 0, "label": "canary 2 + stable 1", "sub": "합계 3 vs desired 1", "layer": "deploy" },
+    { "id": "a3", "col": 3, "row": 0, "label": "Degraded", "sub": "ProgressDeadlineExceeded", "layer": "deploy" },
+    { "id": "b", "col": 1, "row": 1, "label": "desired 0", "sub": "컨슈머 정지", "layer": "state" },
+    { "id": "b2", "col": 2, "row": 1, "label": "하한 1 > 목표 0", "sub": "count == 0 분기를 못 탄다", "layer": "state" },
+    { "id": "b3", "col": 3, "row": 1, "label": "파드 진동", "sub": "생성과 삭제 반복", "layer": "state" }
+  ],
+  "groups": [
+    { "id": "ga", "label": "위로 막힌다 — 승격이 수렴하지 않는다", "members": ["a", "a2", "a3"], "pad": 12 },
+    { "id": "gb", "label": "아래로 샌다 — 스케일이 멈추지 않는다", "members": ["b", "b2", "b3"], "pad": 12 }
+  ],
+  "edges": [
+    { "from": "f", "to": "a" },
+    { "from": "f", "to": "b" },
+    { "from": "a", "to": "a2", "rate": 620 },
+    { "from": "a2", "to": "a3", "rate": 620 },
+    { "from": "b", "to": "b2", "rate": 380 },
+    { "from": "b2", "to": "b3", "rate": 380 }
+  ]
+}

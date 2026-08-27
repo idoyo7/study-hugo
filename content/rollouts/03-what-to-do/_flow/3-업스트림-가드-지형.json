@@ -1,0 +1,29 @@
+{
+  "caption": "2021 년부터 붙은 가드 넷은 모두 이 구멍의 옆을 지킵니다. 둘은 canary 가 0대일 때만, 하나는 stable 만 검사하고, 하나는 promote --full 전용입니다. 게다가 #4639 는 master 전용이라 우리가 쓰는 v1.8.2 에는 없습니다 — 실제로 작동하는 가드는 넷이 아니라 셋입니다. #3878 이 stable 만 가드했기 때문에 v1.8.3 에서 #3941 이 재발했고, 그 자리를 메우는 PR #4852 는 2026-07-24 APPROVED 뒤에도 2026-08-27 조회 시점까지 미머지입니다.",
+  "font": 1.15,
+  "nodes": [
+    { "id": "w", "col": 0, "row": 1, "label": "미가용 상태의 가중치", "sub": "canary 2대 · weight 100%", "kind": "src" },
+    { "id": "g1", "col": 1, "row": 0, "label": ":217 Available 0", "sub": "0대일 때만 막는다", "kind": "proc" },
+    { "id": "g2", "col": 1, "row": 1, "label": ":266 가용량 게이트", "sub": "#3878 · stable 만 본다", "kind": "proc" },
+    { "id": "g3", "col": 1, "row": 2, "label": ":229 동결", "sub": "#1683 · promote --full 전용", "kind": "proc" },
+    { "id": "g4", "col": 1, "row": 3, "label": "#4639 조기 리셋", "sub": "master 전용 · v1.8.2 없음", "kind": "proc", "ghost": true },
+    { "id": "hole", "col": 2, "row": 1, "label": "걸리는 가드 없음", "sub": "2 / 20 인데 100%", "kind": "query" },
+    { "id": "again", "col": 2, "row": 3, "label": "#3941 재발", "sub": "2026-04 · v1.8.3", "kind": "query" },
+    { "id": "fix", "col": 3, "row": 1, "label": "PR #4852", "sub": "가용 replica 비례 캡 · 미머지", "kind": "sink", "ghost": true }
+  ],
+  "groups": [
+    { "id": "gg", "label": "붙은 가드 넷 — 우리 v1.8.2 에 있는 것은 셋", "members": ["g1", "g2", "g3", "g4"], "pad": 12 }
+  ],
+  "edges": [
+    { "from": "w", "to": "g1" },
+    { "from": "w", "to": "g2" },
+    { "from": "w", "to": "g3" },
+    { "from": "w", "to": "g4" },
+    { "from": "g1", "to": "hole", "label": "통과", "dashed": true },
+    { "from": "g2", "to": "hole", "label": "통과", "dashed": true },
+    { "from": "g3", "to": "hole", "label": "무관", "dashed": true },
+    { "from": "g4", "to": "hole", "label": "부재", "dashed": true },
+    { "from": "g2", "to": "again", "label": "재발", "dashed": true },
+    { "from": "hole", "to": "fix", "label": "대기", "dashed": true }
+  ]
+}

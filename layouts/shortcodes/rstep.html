@@ -1,0 +1,12 @@
+{{- /* vm-rstep: canary step 진행 중에 인덱스·트래픽 가중치·ReplicaSet 가용량·AnalysisRun 이
+       동시에 움직이는 것을 단계별로 보이는 애니메이션.
+       사용: {{< rstep variant="rollback" >}}  (variant: deploy | rollback | fixed, 기본 deploy)
+         deploy   — 정상 배포. 인덱스가 순차로 오르고 스텝마다 가용량 게이트가 걸린다
+         rollback — rollbackWindow 롤백. 인덱스가 끝으로 점프하고 역탐색이 마지막 setWeight 를 집는다
+         fixed    — 마지막 setWeight:100 을 지운 뒤의 같은 롤백
+       deploy 와 rollback 은 steps 가 같다(base 차트 기본값 3개) — 갈리는 건 인덱스 점프 하나다.
+       caption을 주면 그 문장이 고정되고, 생략하면 캡션이 단계마다 바뀐다.
+       엔진/스타일은 /flow/rstep.js, /flow/rstep.css (custom/head-end.html에서 로드) */ -}}
+<figure class="vm-rstep" data-variant="{{ default "deploy" (.Get "variant") }}">
+<figcaption class="rs-caption">{{ with .Get "caption" }}{{ . }}{{ end }}</figcaption>
+</figure>

@@ -1,6 +1,6 @@
 # 도식 shortcode 레퍼런스
 
-이 레포는 자체 도식 엔진 다섯 개를 쓴다. **mermaid가 아니다.**
+이 레포는 자체 도식 엔진 여섯 개를 쓴다. **mermaid가 아니다.**
 
 | shortcode | 용도 | 엔진 |
 |---|---|---|
@@ -9,8 +9,11 @@
 | `{{< cfstl >}}` | CFS period 타임라인 (재생 헤드 애니메이션) | `static/flow/cfstl.js`, `static/flow/cfstl.css` |
 | `{{< bscore >}}` | Balanced 스코어 조립 (5단계 상태머신) | `static/flow/bscore.js`, `static/flow/bscore.css` |
 | `{{< mnode >}}` | 노드 삭제 → 파드 이동 (5단계 상태머신, variant 둘) | `static/flow/mnode.js`, `static/flow/mnode.css` |
+| `{{< rstep >}}` | canary step 진행·스킵·가중치·가용량·AnalysisRun (6단계 상태머신, variant 넷) | `static/flow/rstep.js`, `static/flow/rstep.css` |
 
 전부 `layouts/partials/custom/head-end.html`에서 로드된다(공용 "크게 보기"는 `flow/expand.js`).
+
+로딩은 **그 문서가 실제로 쓰는 것만** 싣는다 — `.RawContent`에서 `{{< 이름` 을 찾아 판정한다. 새 엔진을 넣으면 `head-end.html`의 `$use…` 판정과 `expand.js`의 셀렉터 목록 **양쪽**에 등록해야 한다. 한쪽만 하면 도식은 뜨는데 "크게 보기"가 없거나, 반대로 조용히 로드가 안 된다.
 
 ---
 
@@ -232,20 +235,22 @@ CFS bandwidth control의 period 타임라인. **JSON 스펙이 아니라 `varian
 
 ---
 
-## `{{< bscore >}}` · `{{< mnode >}}` — 단계형 상태머신
+## `{{< bscore >}}` · `{{< mnode >}}` · `{{< rstep >}}` — 단계형 상태머신
 
-`flow`가 정해진 선 위로 파티클을 계속 흘리는 것과 달리, 이 둘은 **단계마다 멈춰 보여주는** 방식이다. nextra 블로그의 `ThrottleGate`에서 가져온 구조로, `cfstl`처럼 **JSON 스펙이 아니라 인자가 없다** — 데이터가 곧 개념이라 엔진에 박아뒀다.
+`flow`가 정해진 선 위로 파티클을 계속 흘리는 것과 달리, 이 셋은 **단계마다 멈춰 보여주는** 방식이다. nextra 블로그의 `ThrottleGate`에서 가져온 구조로, `cfstl`처럼 **JSON 스펙이 아니라 인자가 없다** — 데이터가 곧 개념이라 엔진에 박아뒀다.
 
 ````
 {{< bscore >}}
 {{< mnode variant="single" >}}
 {{< mnode variant="multi" >}}
+{{< rstep variant="rollback" >}}
 ````
 
 | shortcode | 5단계 |
 |---|---|
 | `bscore` | 후보 확정 → disruptionCost 누적 → savings → 풀 기준선 → 심사(승인/거부) |
 | `mnode` | 후보와 파드 → SavingsRatio 정렬 → 집어서 가상 배치(시뮬레이션) → 실제 파드 이동 → 옛 노드 반납 |
+| `rstep` | (6단계) RS 생성(하한) → 인덱스 이동·스킵 → 가중치 결정 → 램프업 → 요구=실제 도달 → 승격 |
 
 `mnode`의 두 variant는 **"앞에서 몇 대를 집는가" 하나만 다르다**(`single` 1대, `multi` 3대). 후보 넷과 정렬은 공유하므로 두 그림을 나란히 두면 차이가 그 한 지점으로 보인다. 개념은 `single`이 쉬우니 문서에서도 그 순서로 놓고, **실행 순서가 반대(multi 먼저)라는 건 산문이 말한다** — 그림으로 그리면 오히려 헷갈린다.
 
@@ -253,20 +258,51 @@ CFS bandwidth control의 period 타임라인. **JSON 스펙이 아니라 `varian
 
 `caption`을 주면 그 문장이 고정되고, 생략하면 **캡션이 단계마다 바뀐다**(그 단계 설명으로). 애니메이션이 꺼진 상태(`prefers-reduced-motion`)에서는 마지막 단계 정지 화면 + 기본 설명이 남는다.
 
+### `{{< rstep >}}` 의 variant 넷
+
+canary 배포에서 **동시에 움직이는 다섯 가지**를 한 판에 겹쳐 놓는다.
+
+1. 스텝 인덱스와 **스킵**
+2. 그 가중치를 정한 **코드 갈래** (`:217` · `:229` · `:245` · `:255` · `:261`)
+3. 트래픽 가중치
+4. 그 가중치가 **요구하는 파드 수 vs 실제 Available**
+5. AnalysisRun 상태
+
+`flow`로는 안 된다. 선 위를 흐르는 그림이 아니라 **같은 판이 단계마다 다시 칠해지는** 그림이기 때문이다.
+
+| variant | 보여주는 것 | steps | 스킵 시작 |
+|---|---|---|---|
+| `deploy` | 정상 배포 — 인덱스를 하나씩 밟고 스텝마다 가용량 게이트가 걸린다 | 3 (base 기본값) | 없음 |
+| `promote` | `promote --full` — 스텝은 건너뛰지만 `:229` 가 가중치를 **동결**한다 | 3 (같음) | index 1 |
+| `rollback` | `rollbackWindow` — 같은 자리에서 같이 건너뛰는데 `:245` 역탐색이 마지막 `setWeight` 를 집는다 | 3 (같음) | index 0 |
+| `fixed` | 마지막 `setWeight: 100` 을 지운 뒤의 같은 롤백 | 2 | index 0 |
+
+**`promote` 와 `rollback` 을 나란히 두는 게 이 도식의 존재 이유다.** 스킵도 AnalysisRun 취소도 같은 코드 같은 줄(`canary.go:390`, `analysis.go:77`)이고, 갈리는 건 가중치 갈래 하나다. 세 그림을 순서대로 놓으면 차이가 그 한 지점으로 좁혀진다 — `mnode` 의 `single`/`multi` 와 같은 설계다.
+
+읽는 법 세 가지:
+
+- **스텝 레일의 마지막 뒤 점선 칸은 스텝이 아니다.** `index == stepCount` 자리이고 `currentStep` 이 `nil` 이 되는 상태다.
+- **위로 넘어가는 주황 호가 스킵**이고, **아래로 되돌아오는 빨간 화살표가 역탐색**이다. 방향이 반대인 게 요점이다 — 건너뛴 스텝의 값을 도로 집어온다.
+- **가중치 바는 두 겹이다.** 초록이 실제 Available 로 감당되는 몫, 빨강이 확보되지 않았는데 라우팅된 몫이다. 이 빨간 칸이 곧 사고다.
+
+수치는 파일 상단 상수 블록(`REPLICAS`·`MIN_PODS`·`RPS`·`POD_CEIL`)에 있다. `MIN_PODS` 를 바꾸면 ① 단계의 RS 크기와 이후 단계의 "요구 n대 / n대 부족" 문구가 같이 따라간다 — 서로 유도되므로 한 곳만 고치면 된다. **`weight` 와 `cAvail` 은 절대 직접 쓰지 말고 단계 서술에서 유도할 것** — 둘이 어긋나면 빨간 칸이 거짓말을 한다.
+
 ### 구조
 
 ```js
-PHASE_MS = 2600, PHASE_COUNT = 5
+PHASE_MS = 2600, PHASE_COUNT = 5   // rstep 만 3200 · 6단계
 computeFrame(phase, t) → Frame      // (단계, 0~1 진행률)의 순수 함수
 ```
 
 **파티클 배열을 들고 있지 않는 게 핵심이다.** 매 프레임 `(phase, t)`만으로 전체 상태를 다시 계산하고 SVG 속성만 갈아끼운다. 그래서 단계를 넣고 빼거나 순서를 바꿀 때 `computeFrame`의 분기 하나만 손대면 된다.
 
-수치를 바꿀 땐 파일 상단 상수 블록만 고친다 — `bscore`는 가격·파드 수·풀 총계가 서로 맞아떨어져야 하고(`SCORE`가 유도값이라 임계 `0.5`와의 관계가 저절로 정해진다), `mnode`는 `NODES`의 `from`/`to`가 `ratio` 내림차순과 일치해야 정렬 애니메이션이 맞고, `VARIANTS`의 `meterMax`가 그 variant의 총 cost보다 커야 미터가 넘치지 않는다.
+수치를 바꿀 땐 파일 상단 상수 블록만 고친다 — `bscore`는 가격·파드 수·풀 총계가 서로 맞아떨어져야 하고(`SCORE`가 유도값이라 임계 `0.5`와의 관계가 저절로 정해진다), `mnode`는 `NODES`의 `from`/`to`가 `ratio` 내림차순과 일치해야 정렬 애니메이션이 맞고, `VARIANTS`의 `meterMax`가 그 variant의 총 cost보다 커야 미터가 넘치지 않는다. `rstep`은 스텝 레일 폭이 `STEP_W`(168) × (스텝 수 + 1) + 간격이라 **스텝을 4개 넘게 늘리면 viewBox(940) 를 벗어난다** — 스모크가 잡는다.
 
 ### 렌더 검증
 
-브라우저 없이 확인하려면 최소 DOM 스텁 위에서 rAF 루프를 여러 시점으로 돌려 `NaN`·`undefined` 속성과 viewBox 이탈을 본다. 단계형이라 **한 시점만 보면 안 되고 전 구간을 훑어야** 한다 — 특정 단계에서만 음수 `width`가 나오는 식으로 깨진다. 숨겨진(`opacity="0"`) 요소는 범위 검사에서 빼되, **좌표 자체는 항상 유효하게** 둘 것.
+`rstep` 은 스크립트가 있다 — `node tools/flow-render/rstep-smoke.js static/flow/rstep.js`. `variant × phase × t` 격자를 훑어 `NaN`·이탈·음수 폭·빈 caption 을 본다. 자세한 건 `tools/flow-render/README.md`.
+
+`bscore`·`mnode` 는 브라우저 없이 확인하려면 최소 DOM 스텁 위에서 rAF 루프를 여러 시점으로 돌려 `NaN`·`undefined` 속성과 viewBox 이탈을 본다. 단계형이라 **한 시점만 보면 안 되고 전 구간을 훑어야** 한다 — 특정 단계에서만 음수 `width`가 나오는 식으로 깨진다. 숨겨진(`opacity="0"`) 요소는 범위 검사에서 빼되, **좌표 자체는 항상 유효하게** 둘 것.
 
 한 가지 함정: 프레임 루프의 시작 시각을 `if (!t0) t0 = ts` 로 잡으면 **첫 타임스탬프가 정확히 0일 때 영영 안 걸린다.** 브라우저의 `ts`는 0이 아니라 안 드러나지만, 시계를 주입해 테스트하거나 스크럽을 붙이면 바로 터진다. `t0 = -1` 로 두고 `if (t0 < 0)` 로 검사한다.
 
@@ -279,3 +315,23 @@ computeFrame(phase, t) → Frame      // (단계, 0~1 진행률)의 순수 함�
 - **`rate`로 부하 차이를 표현한다.** 같은 그림에서 `rate: 380`과 `rate: 900`은 "이쪽이 훨씬 자주"를 색 없이 전달한다.
 - **인라인은 본문 폭에 맞춰 축소**되고, 우상단 "크게 보기"로 전체화면 확대된다. 넓은 도식도 넣을 수 있지만 인라인 가독성은 스스로 확인할 것.
 - 렌더 확인: `hugo server` 또는 `hugo --gc --minify` 후 `public/<경로>/index.html`.
+
+---
+
+## 검증 스크립트
+
+```
+./tools/flow-render/run.sh
+```
+
+세 겹이다. **스크립트나 스펙을 고쳤으면 셋 다 돌린다.**
+
+| 스크립트 | 무엇을 보나 |
+|---|---|
+| `rstep-smoke.js` | 좌표·`NaN`·viewBox 이탈·음수 폭·빈 caption. variant × phase × t 격자를 훑는다 |
+| `rstep-assert.js` | **그림이 참말을 하나.** 빨간 칸은 `rollback`에서만, 역탐색 화살표는 `promote`에서 안 나오고, `요구 n대`가 `ceil(replicas × w / 100)`과 일치하는지 |
+| `spec-lint.js` | `flow`·`seq` JSON. group `id` 누락, 없는 `kind`/`layer`, 엣지 끝점 오타, 가로 라벨 폭 초과, `token: true`인데 시작 노드 없음. 그다음 실제 엔진을 태워 렌더 좌표까지 본다 |
+
+`rstep-assert.js`가 이 셋 중 유일하게 **의미**를 본다. 좌표가 멀쩡해도 도식이 거짓말을 할 수 있다 — 가중치와 요구 파드 수를 각각 손으로 적어 두면 둘이 어긋나고, 그러면 독자는 틀린 수치를 읽는다. 그래서 단계 서술에서 유도하고, 유도가 맞는지 이 스크립트가 검사한다.
+
+**검사기를 고쳤으면 일부러 깨뜨려 FAIL이 나는지 확인할 것.** 통과만 보고 믿으면 안 된다 — 필드 이름을 바꾼 뒤 `sed` 패턴이 안 맞아 negative 테스트가 조용히 no-op이 된 적이 있다.
