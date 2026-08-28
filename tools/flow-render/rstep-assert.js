@@ -84,6 +84,8 @@ function readState(container) {
   const skip = cls('rs-skip')[0];
   const rev = cls('rs-rev')[0];
   const pill = flat.find((e) => (e.attrs.class || '').startsWith('rs-pilltext'));
+  const gate = flat.find((e) => (e.attrs.class || '') === 'rs-gate');
+  const verdict = flat.find((e) => (e.attrs.class || '').startsWith('rs-verdict'));
   return {
     shortVisible: short ? Number(short.attrs.opacity) > 0.01 && Number(short.attrs.width) > 1 : false,
     shortWidth: short ? Number(short.attrs.width) : 0,
@@ -96,6 +98,8 @@ function readState(container) {
     revVisible: rev ? Number(rev.attrs.opacity) > 0.01 : false,
     analysis: pill ? pill._text : '',
     caption: (container.querySelector('.rs-caption') || { _text: '' })._text,
+    gate: gate ? gate._text : '',
+    verdict: verdict ? verdict._text : '',
   };
 }
 
@@ -189,9 +193,68 @@ for (const v of VARIANTS) {
   check(caps.length >= PHASE_COUNT, `${v}: 캡션이 ${caps.length}종뿐이다 — 6단계면 6종이어야 한다`);
 }
 
+/* 10. 리컨실 순서 — ③단계(phase 2)에서 가중치 전환이 cDesired(요구 파드) 상승보다 먼저 온다.
+   reconcileTrafficRouting(:57) 이 reconcileCanaryReplicaSets(:75) 보다 앞이므로, 한 바퀴 안에서
+   가중치가 먼저 정해지고 RS 목표가 뒤따라야 한다 — content/rollouts/02-.../index.md:235.
+   10분할 표본(위 seen)은 0.5 와 0.55 사이 경계를 놓칠 수 있으니 phase 2 안을 촘촘히 훑어
+   각 값이 "처음 바뀌는 t"를 찾아 비교한다. promote 는 가중치가 5%에 동결돼 안 바뀌므로 대상 밖. */
+function fineFrame(variant, phase, t) {
+  const ts = 1 + phase * PHASE_MS + t * PHASE_MS;
+  const pending = RAFS.splice(0, RAFS.length);
+  for (const fn of (pending.length ? pending : frames)) fn(ts);
+  return readState(byVariant[variant]);
+}
+function firstChangeT(variant, phase, steps, extract) {
+  const base = extract(fineFrame(variant, phase, 0));
+  for (let k = 1; k <= steps; k++) {
+    const t = k / steps;
+    const cur = extract(fineFrame(variant, phase, t));
+    if (cur !== base) return t;
+  }
+  return null;
+}
+const weightOf = (s) => { const m = s.wtext.match(/canary (\d+)%/); return m ? Number(m[1]) : 0; };
+const desiredOf = (s) => { const m = s.canaryAvail.match(/desired (\d+)/); return m ? Number(m[1]) : null; };
+for (const v of ['rollback', 'fixed']) {
+  const STEPS = 400;
+  const tWeight = firstChangeT(v, 2, STEPS, weightOf);
+  const tDesired = firstChangeT(v, 2, STEPS, desiredOf);
+  check(tWeight !== null, `${v}: ③단계에서 가중치가 t∈(0,1] 구간에서 한 번도 안 바뀌었다 — 전환 지점을 못 찾았다`);
+  check(tDesired !== null,
+    `${v}: ③단계에서 cDesired(요구 파드) 가 t∈(0,1] 구간에서 한 번도 안 바뀌었다 — t=0 에 이미 다 올라있을 수 있다(즉시 상승 버그)`);
+  if (tWeight !== null && tDesired !== null) {
+    check(tWeight < tDesired,
+      `${v}: ③단계 리컨실 순서 위반 — cDesired 상승(t≈${tDesired.toFixed(3)})이 가중치 전환(t≈${tWeight.toFixed(3)})보다 먼저거나 같다(가중치가 먼저여야 한다)`);
+  }
+}
+
+/* 11. verdict 문구의 '요구 N대'·'Ready N대' 수치가, 그 시점 화면에 실제로 찍힌 가중치·Available 과
+   어긋나지 않는다 — phase 2 전 구간(10분할 표본). '요구' 는 cDesired(RS 스케일 목표)가 아니라
+   가중치가 요구하는 파드 수(requiredPods, 가중치 바의 '요구 N대'와 같은 값)여야 참이 유지된다 —
+   cDesired 를 그대로 썼으면 가중치가 아직 안 바뀐 t 구간에서 캡션만 앞서 나갔을 것이다. */
+for (const v of VARIANTS) {
+  for (const s of seen[v]) {
+    if (s.phase !== 2) continue;
+    const mVNeed = s.verdict.match(/요구 (\d+)대/);
+    const mVReady = s.verdict.match(/Ready (\d+)대/);
+    if (!mVNeed || !mVReady) continue;
+    const vNeed = Number(mVNeed[1]), vReady = Number(mVReady[1]);
+    const mW = s.wtext.match(/canary (\d+)%/);
+    const expectNeed = mW ? Math.ceil(20 * Number(mW[1]) / 100) : null;
+    const mAvail = s.canaryAvail.match(/Available (\d+)/);
+    const expectReady = mAvail ? Number(mAvail[1]) : null;
+    if (expectNeed !== null && vNeed !== expectNeed) {
+      fails.push(`${v} ph${s.phase} t${s.t}: verdict '요구 ${vNeed}대' 인데 화면 가중치(${mW[1]}%) 로는 ${expectNeed}대 — 캡션이 화면과 어긋난다 (${s.verdict})`);
+    }
+    if (expectReady !== null && vReady !== expectReady) {
+      fails.push(`${v} ph${s.phase} t${s.t}: verdict 'Ready ${vReady}대' 인데 화면 Available 은 ${expectReady}대 — 캡션이 화면과 어긋난다 (${s.verdict})`);
+    }
+  }
+}
+
 if (fails.length) {
   console.log(`FAIL — ${fails.length}건`);
   fails.forEach((f) => console.log('  ' + f));
   process.exit(1);
 }
-console.log(`OK — variant ${VARIANTS.length}종 × ${PHASE_COUNT}단계 × 10시점, 의미 검사 9종 통과`);
+console.log(`OK — variant ${VARIANTS.length}종 × ${PHASE_COUNT}단계 × 10시점, 의미 검사 11종 통과`);

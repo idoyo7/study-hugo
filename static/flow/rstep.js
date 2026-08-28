@@ -218,7 +218,12 @@
         f.gate = 'analysis.go:77 이 같은 조건으로 실행분까지 취소';
         f.verdict = '스텝 ' + (N - jumpAt) + '개 스킵 · AnalysisRun 취소'; f.tone = 'warn';
       } else if (phase === 2) {
-        f.idx = N - 1; f.atEnd = true; f.skipFrom = jumpAt; f.cDesired = REPLICAS;
+        f.idx = N - 1; f.atEnd = true; f.skipFrom = jumpAt;
+        /* 리컨실 순서 재현 — reconcileTrafficRouting(:57) 이 reconcileCanaryReplicaSets(:75) 보다
+           앞이므로, 한 바퀴 안에서 가중치가 먼저 정해지고 RS 목표(cDesired)가 뒤따른다.
+           그래서 cDesired 상승(0.55)을 가중치 전환(0.5)보다 늦춘다. promote 는 가중치 값 자체가
+           안 바뀌어(5% 동결) 전환이 안 보이지만, 같은 리컨실 순서이므로 임계는 그대로 맞춘다. */
+        f.cDesired = t > 0.55 ? REPLICAS : MIN_PODS;
         f.cAvail = V === 'promote' ? MIN_PODS : Math.floor(ease(winP(t, 0.05, 0.35)) * (MIN_PODS + 0.999));
         f.analysis = 'cancelled';
         if (V === 'promote') {
@@ -233,10 +238,14 @@
           f.src = ':245  미도달 → 역탐색  →  ' + (V === 'rollback' ? '마지막 setWeight = 100' : 'pause 를 지나 setWeight = 5');
           f.srcTone = V === 'rollback' ? 'bad' : 'ok';
           f.gate = 'checkReplicasAvailable 은 stable 만 본다 — canary 는 검사되지 않는다';
-          f.verdict = V === 'rollback'
-            ? '요구 ' + REPLICAS + '대 > Ready ' + MIN_PODS + '대 — ' + (REPLICAS - MIN_PODS) + '대 부족'
-            : '요구 1대 ≤ Ready ' + MIN_PODS + '대';
-          f.tone = V === 'rollback' ? 'bad' : 'ok';
+          /* verdict 는 가중치 바의 '요구'·'Ready' 문구와 같은 두 값(need, cAvail)을 그대로 쓴다 —
+             REPLICAS·MIN_PODS 상수를 박아두면 가중치가 아직 안 바뀐 t 구간에서 캡션만 앞서 나간다. */
+          var wNeed = Math.ceil(REPLICAS * f.weight / 100);
+          var wShort = wNeed - f.cAvail;
+          f.verdict = wShort > 0
+            ? '요구 ' + wNeed + '대 > Ready ' + f.cAvail + '대 — ' + wShort + '대 부족'
+            : '요구 ' + wNeed + '대 ≤ Ready ' + f.cAvail + '대';
+          f.tone = wShort > 0 ? 'bad' : 'ok';
         }
       } else if (phase === 3) {
         f.idx = N - 1; f.atEnd = true; f.skipFrom = jumpAt; f.cDesired = REPLICAS;

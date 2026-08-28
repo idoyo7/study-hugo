@@ -11,7 +11,7 @@
     { "id": "b229", "col": 1, "row": 4, "label": ":229 PromoteFull", "sub": "status 필드", "kind": "query" },
     { "id": "b243", "col": 1, "row": 5, "label": ":243 그 밖", "sub": "index != nil", "kind": "query" },
     { "id": "w187", "col": 2, "row": 0, "label": "가중치 재계산", "sub": "stable 가용량 기준", "kind": "sink" },
-    { "id": "w194", "col": 2, "row": 1, "label": "라우팅만 정리", "sub": "가중치 손대지 않음", "kind": "sink" },
+    { "id": "w194", "col": 2, "row": 1, "label": "가중치 0", "sub": "라우팅 정리 · 승격 시 한 번에", "kind": "sink" },
     { "id": "w199", "col": 2, "row": 2, "label": "가중치 0", "sub": "stable 100%", "kind": "sink" },
     { "id": "w217", "col": 2, "row": 3, "label": "가중치 0", "sub": "canary 로 안 보냄", "kind": "sink" },
     { "id": "w229", "col": 2, "row": 4, "label": "가중치 동결", "sub": "RS 만 전량 확장", "kind": "sink" },

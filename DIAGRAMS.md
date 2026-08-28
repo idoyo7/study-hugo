@@ -290,6 +290,8 @@ canary 배포에서 **동시에 움직이는 다섯 가지**를 한 판에 겹�
 
 수치는 파일 상단 상수 블록(`REPLICAS`·`MIN_PODS`·`RPS`·`POD_CEIL`)에 있다. `MIN_PODS` 를 바꾸면 ① 단계의 RS 크기와 이후 단계의 "요구 n대 / n대 부족" 문구가 같이 따라간다 — 서로 유도되므로 한 곳만 고치면 된다. **`weight` 와 `cAvail` 은 절대 직접 쓰지 말고 단계 서술에서 유도할 것** — 둘이 어긋나면 빨간 칸이 거짓말을 한다.
 
+**③단계(`phase === 2`)에서 `cDesired`(RS 목표)가 가중치보다 늦게 오르는 건 의도된 순서다 — 되돌리지 말 것.** `reconcileTrafficRouting`(`:57`)이 `reconcileCanaryReplicaSets`(`:75`)보다 앞이므로 한 바퀴 리컨실 안에서 가중치가 먼저 정해지고 RS 목표가 뒤따른다(산문: `content/rollouts/02-rollback-window-weight/index.md`). 그래서 엔진은 `cDesired` 상승을 가중치 전환(`t>0.5`)보다 늦은 `t>0.55`에 놓는다 — `rrev`의 ③→④(해시가 desired 상승보다 먼저 써지는 것)와 같은 원칙이다. `verdict` 의 "요구 n대"도 `cDesired`가 아니라 가중치에서 유도한다(`ceil(REPLICAS×weight/100)`) — 그래야 가중치가 아직 안 바뀐 t 구간에서 캡션이 화면보다 앞서 나가지 않는다. `tools/flow-render/rstep-assert.js` 가 이 순서(가중치 먼저)와 캡션·화면 일치를 단정으로 잡는다.
+
 ### `{{< rrev >}}` 의 6단계
 
 "리비전이 바뀌면 트래픽은 어떻게 따라가는가" — **해시가 언제 써지는가**라는 시간축을 보여준다. `rstep` 이 스텝·가중치·가용량·AnalysisRun 을 겹쳐 보이는 것과 달리, `rrev` 는 **층 셋(파드/트래픽/판정)을 항상 띄워두고 그 사이를 흐르는 트래픽 패킷**으로 "지금 몇 %가 어디로 가는가"를 보인다. variant 는 `handoff` 하나뿐이다.
@@ -355,7 +357,7 @@ computeFrame(phase, t) → Frame      // (단계, 0~1 진행률)의 순수 함�
 | 스크립트 | 무엇을 보나 |
 |---|---|
 | `rstep-smoke.js` | 좌표·`NaN`·viewBox 이탈·음수 폭·빈 caption. variant × phase × t 격자를 훑는다 |
-| `rstep-assert.js` | **그림이 참말을 하나.** 빨간 칸은 `rollback`에서만, 역탐색 화살표는 `promote`에서 안 나오고, `요구 n대`가 `ceil(replicas × w / 100)`과 일치하는지 |
+| `rstep-assert.js` | **그림이 참말을 하나.** 빨간 칸은 `rollback`에서만, 역탐색 화살표는 `promote`에서 안 나오고, `요구 n대`가 `ceil(replicas × w / 100)`과 일치하는지, ③단계에서 가중치 전환이 `cDesired` 상승보다 먼저인지, `verdict`·`gate` 문구 수치가 그 시점 화면과 어긋나지 않는지 |
 | `rrev-smoke.js` | 좌표·`NaN`·viewBox 이탈·음수 폭·빈 caption. phase × t 격자를 훑는다 (variant 는 `handoff` 하나) |
 | `rrev-assert.js` | **그림이 참말을 하나.** 6단계 전부에서 canary/stable 의 Available·desired·해시 칩·VS weight·가드 유무가 단계표 리터럴과 정확히 일치하는지, canary weight 가 0인 단계에서 canary 패킷이 도달하지 않는지, 캡션이 단계마다 다른지 등 |
 | `port-parity.js` | 앞 넷과 달리 "도식이 참말을 하나"가 아니라 **"Hugo 엔진과 nextra 이식 모듈이 같은 그림을 내는가"**를 본다(rstep·rrev 각각) — `tools/flow-render/README.md`, `nextra-port/README.md` 참고 |
