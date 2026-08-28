@@ -60,6 +60,7 @@
 {{- $useBscore := strings.Contains $raw "{{< bscore" -}}
 {{- $useMnode := strings.Contains $raw "{{< mnode" -}}
 {{- $useRstep := strings.Contains $raw "{{< rstep" -}}
+{{- $useRrev := strings.Contains $raw "{{< rrev" -}}
 {{- if $useFlow }}
 {{- /* vm-flow 애니메이션 플로우 다이어그램 엔진 + 스타일 */ -}}
 <link rel="stylesheet" href="{{ "flow/flow.css" | relURL }}">
@@ -90,8 +91,13 @@
 <link rel="stylesheet" href="{{ "flow/rstep.css" | relURL }}">
 <script defer src="{{ "flow/rstep.js" | relURL }}"></script>
 {{- end }}
-{{- if or $useFlow $useSeq $useCfstl $useBscore $useMnode $useRstep }}
-{{- /* vm-flow/seq/cfstl/bscore/mnode/rstep 공용 "크게 보기"(전체화면 확대) — 하나라도 쓰면 싣는다 */ -}}
+{{- if $useRrev }}
+{{- /* vm-rrev 리비전 핸드오프(해시가 언제 써지는가) 애니메이션 엔진 + 스타일 */ -}}
+<link rel="stylesheet" href="{{ "flow/rrev.css" | relURL }}">
+<script defer src="{{ "flow/rrev.js" | relURL }}"></script>
+{{- end }}
+{{- if or $useFlow $useSeq $useCfstl $useBscore $useMnode $useRstep $useRrev }}
+{{- /* vm-flow/seq/cfstl/bscore/mnode/rstep/rrev 공용 "크게 보기"(전체화면 확대) — 하나라도 쓰면 싣는다 */ -}}
 <link rel="stylesheet" href="{{ "flow/expand.css" | relURL }}">
 <script defer src="{{ "flow/expand.js" | relURL }}"></script>
 {{- end }}

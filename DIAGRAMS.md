@@ -1,6 +1,6 @@
 # 도식 shortcode 레퍼런스
 
-이 레포는 자체 도식 엔진 여섯 개를 쓴다. **mermaid가 아니다.**
+이 레포는 자체 도식 엔진 일곱 개를 쓴다. **mermaid가 아니다.**
 
 | shortcode | 용도 | 엔진 |
 |---|---|---|
@@ -10,6 +10,7 @@
 | `{{< bscore >}}` | Balanced 스코어 조립 (5단계 상태머신) | `static/flow/bscore.js`, `static/flow/bscore.css` |
 | `{{< mnode >}}` | 노드 삭제 → 파드 이동 (5단계 상태머신, variant 둘) | `static/flow/mnode.js`, `static/flow/mnode.css` |
 | `{{< rstep >}}` | canary step 진행·스킵·가중치·가용량·AnalysisRun (6단계 상태머신, variant 넷) | `static/flow/rstep.js`, `static/flow/rstep.css` |
+| `{{< rrev >}}` | 리비전 핸드오프 — 해시가 언제 써지고 VS weight 가 언제 움직이는가 (6단계 상태머신, variant 하나) | `static/flow/rrev.js`, `static/flow/rrev.css` |
 
 전부 `layouts/partials/custom/head-end.html`에서 로드된다(공용 "크게 보기"는 `flow/expand.js`).
 
@@ -235,22 +236,24 @@ CFS bandwidth control의 period 타임라인. **JSON 스펙이 아니라 `varian
 
 ---
 
-## `{{< bscore >}}` · `{{< mnode >}}` · `{{< rstep >}}` — 단계형 상태머신
+## `{{< bscore >}}` · `{{< mnode >}}` · `{{< rstep >}}` · `{{< rrev >}}` — 단계형 상태머신
 
-`flow`가 정해진 선 위로 파티클을 계속 흘리는 것과 달리, 이 셋은 **단계마다 멈춰 보여주는** 방식이다. nextra 블로그의 `ThrottleGate`에서 가져온 구조로, `cfstl`처럼 **JSON 스펙이 아니라 인자가 없다** — 데이터가 곧 개념이라 엔진에 박아뒀다.
+`flow`가 정해진 선 위로 파티클을 계속 흘리는 것과 달리, 이 넷은 **단계마다 멈춰 보여주는** 방식이다. nextra 블로그의 `ThrottleGate`에서 가져온 구조로, `cfstl`처럼 **JSON 스펙이 아니라 인자가 없다** — 데이터가 곧 개념이라 엔진에 박아뒀다.
 
 ````
 {{< bscore >}}
 {{< mnode variant="single" >}}
 {{< mnode variant="multi" >}}
 {{< rstep variant="rollback" >}}
+{{< rrev >}}
 ````
 
-| shortcode | 5단계 |
+| shortcode | 단계 |
 |---|---|
-| `bscore` | 후보 확정 → disruptionCost 누적 → savings → 풀 기준선 → 심사(승인/거부) |
-| `mnode` | 후보와 파드 → SavingsRatio 정렬 → 집어서 가상 배치(시뮬레이션) → 실제 파드 이동 → 옛 노드 반납 |
+| `bscore` | (5단계) 후보 확정 → disruptionCost 누적 → savings → 풀 기준선 → 심사(승인/거부) |
+| `mnode` | (5단계) 후보와 파드 → SavingsRatio 정렬 → 집어서 가상 배치(시뮬레이션) → 실제 파드 이동 → 옛 노드 반납 |
 | `rstep` | (6단계) RS 생성(하한) → 인덱스 이동·스킵 → 가중치 결정 → 램프업 → 요구=실제 도달 → 승격 |
+| `rrev` | (6단계) 세 평면 등장(해시는 이미 같다) → canary RS 생성(조기 반환, replicas=0) → 다음 바퀴에 해시만 먼저 써짐 → desired 2 로 확장·Available 미달로 가드 걸림 → 가드 해제·VS weight 이동 → 승격(weight 원점, 리비전 이동) |
 
 `mnode`의 두 variant는 **"앞에서 몇 대를 집는가" 하나만 다르다**(`single` 1대, `multi` 3대). 후보 넷과 정렬은 공유하므로 두 그림을 나란히 두면 차이가 그 한 지점으로 보인다. 개념은 `single`이 쉬우니 문서에서도 그 순서로 놓고, **실행 순서가 반대(multi 먼저)라는 건 산문이 말한다** — 그림으로 그리면 오히려 헷갈린다.
 
@@ -287,20 +290,43 @@ canary 배포에서 **동시에 움직이는 다섯 가지**를 한 판에 겹�
 
 수치는 파일 상단 상수 블록(`REPLICAS`·`MIN_PODS`·`RPS`·`POD_CEIL`)에 있다. `MIN_PODS` 를 바꾸면 ① 단계의 RS 크기와 이후 단계의 "요구 n대 / n대 부족" 문구가 같이 따라간다 — 서로 유도되므로 한 곳만 고치면 된다. **`weight` 와 `cAvail` 은 절대 직접 쓰지 말고 단계 서술에서 유도할 것** — 둘이 어긋나면 빨간 칸이 거짓말을 한다.
 
+### `{{< rrev >}}` 의 6단계
+
+"리비전이 바뀌면 트래픽은 어떻게 따라가는가" — **해시가 언제 써지는가**라는 시간축을 보여준다. `rstep` 이 스텝·가중치·가용량·AnalysisRun 을 겹쳐 보이는 것과 달리, `rrev` 는 **층 셋(파드/트래픽/판정)을 항상 띄워두고 그 사이를 흐르는 트래픽 패킷**으로 "지금 몇 %가 어디로 가는가"를 보인다. variant 는 `handoff` 하나뿐이다.
+
+| 단계 | canary RS | stable RS | canary 해시 칩 | stable 해시 칩 | VS weight (stable/canary) | 가드 배너 |
+|---|---|---|---|---|---|---|
+| ① | 없음 | Available 20/desired 20 · rev N | `hash⟨N⟩` | `hash⟨N⟩` | 100/0 | 없음 |
+| ② | 생성됨 · desired 0/Available 0 | 20/20 · rev N | `hash⟨N⟩` | `hash⟨N⟩` | 100/0 | 없음 |
+| ③ | desired 0/Available 0 | 20/20 · rev N | `hash⟨N+1⟩` | `hash⟨N⟩` | 100/0 | 없음 |
+| ④ | desired 2/Available 0 | 20/20 · rev N | `hash⟨N+1⟩` | `hash⟨N⟩` | 100/0 | **빨강 — 걸림** |
+| ⑤ | desired 2/Available 2 | 20/20 · rev N | `hash⟨N+1⟩` | `hash⟨N⟩` | **95/5** | 없음 |
+| ⑥ | 이 RS 가 stable 이 된다 | 20/20 · rev N+1 | `hash⟨N+1⟩` | `hash⟨N+1⟩`(재작성) | 100/0 | 없음 |
+
+새 RS 는 `replicas=0` 으로 태어나고(`rollout/sync.go`) canary RS 를 실제로 키우는 코드는 트래픽 리컨실보다 뒤에 있다(`rollout/canary.go`) — 그래서 desired 가 2 로 오르는 것도, Available 이 그 뒤를 따라잡는 것도 해시가 써지는 것보다 늦다. desired 2 는 `ceil(20×5%)=1` 에 `minPodsPerReplicaSet` 하한 2 가 걸린 값이다.
+
+읽는 법 세 가지:
+
+- **가드가 먼저 풀리는 건 ③이지, weight 가 움직이는 건 아니다.** ③은 replicas=0 인 canary RS 를 가드가 건너뛰고 해시만 먼저 써버리는 단계다(`UpdateHash()` 진입부, `rollout/trafficrouting/istio/istio.go`) — subset 은 갈라졌지만 weight 가 아직 0 이라 아무도 그쪽으로 가지 않는다.
+- **가드 배너는 ④에서만 보인다.** canary desired 가 2 로 오른 뒤 Available 이 그 목표에 못 미치는 구간이 ④다. 이때 가드가 걸려 그 리컨실의 `SetWeight` 가 실행되지 않는다(`rollout/trafficrouting.go`) — 가드가 막는 것은 해시 쓰기가 아니라 weight 이동이다.
+- **⑥은 weight 가 원점(100/0)인데 가리키는 리비전이 바뀐 상태다.** `status.stableRS` 포인터만 옮겨가고(`rollout/sync.go`) 어떤 RS 도 지워지지 않는다 — 그래서 canary 카드는 ①처럼 다시 빈다. stable subset 해시가 canary 와 같아지고(`hash⟨N+1⟩`), stable RS 의 revision 라벨도 `rev N+1` 로 바뀐다. desired 20 은 전 구간 그대로다 — `dynamicStableScale` 미사용.
+
+수치는 파일 상단 상수 블록(`REPLICAS`·`CANARY_STEP_PCT`·`MIN_PODS_PER_RS`·`PACKET_N`·`LOOPS`)에 있다. `REPLICAS` 는 `rstep.js` 와 같은 값(20)을 그대로 쓴다 — 문서 전체에서 예시 수치를 통일하기 위해서다. `CANARY_DESIRED = max(ceil(REPLICAS × CANARY_STEP_PCT / 100), MIN_PODS_PER_RS)` — 지금 값으로는 `ceil(20×5/100)=1` 인데 `MIN_PODS_PER_RS`(2, `rstep.js` 의 `MIN_PODS` 와 같은 값)에 걸려 2 다. 이 둘 중 하나를 바꾸면 ④~⑤ 단계의 canary desired·caption 문구가 같이 바뀐다. `PACKET_N` 은 트래픽 패킷 개수 — `REPLICAS` 와 같은 값(20)이라 canary weight 5% 가 패킷 1개로 깨끗하게 떨어진다. 이 값을 바꾸면 canary weight 가 0 이 아닌 단계에서 canary 로 향하는 패킷 수(`Math.round(PACKET_N × weightCanary / 100)`)가 달라지므로, `rrev-assert.js` 의 단계표 대조와 `port-parity.js` 의 패킷 대조가 함께 검증한다. 리비전은 `rev N`/`rev N+1`, 해시는 `hash⟨N⟩`/`hash⟨N+1⟩` 심볼로만 표기한다 — 실제 값을 발명하지 않는다.
+
 ### 구조
 
 ```js
-PHASE_MS = 2600, PHASE_COUNT = 5   // rstep 만 3200 · 6단계
-computeFrame(phase, t) → Frame      // (단계, 0~1 진행률)의 순수 함수
+PHASE_MS = 2600, PHASE_COUNT = 5   // rstep 3200·6단계, rrev 3000·6단계
+computeFrame(phase, t) → Frame      // (단계, 0~1 진행률)의 순수 함수. rstep·rrev 는 (variant, phase, t) — variant 가 하나뿐인 rrev 도 이식 모듈과 서명을 맞추려고 그렇게 뒀다
 ```
 
-**파티클 배열을 들고 있지 않는 게 핵심이다.** 매 프레임 `(phase, t)`만으로 전체 상태를 다시 계산하고 SVG 속성만 갈아끼운다. 그래서 단계를 넣고 빼거나 순서를 바꿀 때 `computeFrame`의 분기 하나만 손대면 된다.
+**파티클 배열을 들고 있지 않는 게 핵심이다.** 매 프레임 `(phase, t)`만으로 전체 상태를 다시 계산하고 SVG 속성만 갈아끼운다. 그래서 단계를 넣고 빼거나 순서를 바꿀 때 `computeFrame`의 분기 하나만 손대면 된다. `rrev` 의 트래픽 패킷도 예외가 아니다 — 위치 배열을 들고 있지 않고, 매 프레임 `(phase, t)` 에서 각 패킷의 목표(`target`)와 주기 진행률(`cyc`)을 다시 계산한다.
 
-수치를 바꿀 땐 파일 상단 상수 블록만 고친다 — `bscore`는 가격·파드 수·풀 총계가 서로 맞아떨어져야 하고(`SCORE`가 유도값이라 임계 `0.5`와의 관계가 저절로 정해진다), `mnode`는 `NODES`의 `from`/`to`가 `ratio` 내림차순과 일치해야 정렬 애니메이션이 맞고, `VARIANTS`의 `meterMax`가 그 variant의 총 cost보다 커야 미터가 넘치지 않는다. `rstep`은 스텝 레일 폭이 `STEP_W`(168) × (스텝 수 + 1) + 간격이라 **스텝을 4개 넘게 늘리면 viewBox(940) 를 벗어난다** — 스모크가 잡는다.
+수치를 바꿀 땐 파일 상단 상수 블록만 고친다 — `bscore`는 가격·파드 수·풀 총계가 서로 맞아떨어져야 하고(`SCORE`가 유도값이라 임계 `0.5`와의 관계가 저절로 정해진다), `mnode`는 `NODES`의 `from`/`to`가 `ratio` 내림차순과 일치해야 정렬 애니메이션이 맞고, `VARIANTS`의 `meterMax`가 그 variant의 총 cost보다 커야 미터가 넘치지 않는다. `rstep`은 스텝 레일 폭이 `STEP_W`(168) × (스텝 수 + 1) + 간격이라 **스텝을 4개 넘게 늘리면 viewBox(940) 를 벗어난다** — 스모크가 잡는다. `rrev`는 카드·띠 x/y 가 모두 `MARGIN`(26)·`GAP`(20) 기준으로 유도돼 있어 카드 하나만 폭을 넓히면 오른쪽 카드들이 viewBox(920)를 벗어난다 — 마찬가지로 스모크가 잡는다.
 
 ### 렌더 검증
 
-`rstep` 은 스크립트가 있다 — `node tools/flow-render/rstep-smoke.js static/flow/rstep.js`. `variant × phase × t` 격자를 훑어 `NaN`·이탈·음수 폭·빈 caption 을 본다. 자세한 건 `tools/flow-render/README.md`.
+`rstep`·`rrev` 는 스크립트가 있다 — `node tools/flow-render/rstep-smoke.js static/flow/rstep.js`, `node tools/flow-render/rrev-smoke.js static/flow/rrev.js`. `variant × phase × t` 격자를 훑어 `NaN`·이탈·음수 폭·빈 caption 을 본다. 자세한 건 `tools/flow-render/README.md`.
 
 `bscore`·`mnode` 는 브라우저 없이 확인하려면 최소 DOM 스텁 위에서 rAF 루프를 여러 시점으로 돌려 `NaN`·`undefined` 속성과 viewBox 이탈을 본다. 단계형이라 **한 시점만 보면 안 되고 전 구간을 훑어야** 한다 — 특정 단계에서만 음수 `width`가 나오는 식으로 깨진다. 숨겨진(`opacity="0"`) 요소는 범위 검사에서 빼되, **좌표 자체는 항상 유효하게** 둘 것.
 
@@ -324,14 +350,17 @@ computeFrame(phase, t) → Frame      // (단계, 0~1 진행률)의 순수 함�
 ./tools/flow-render/run.sh
 ```
 
-세 겹이다. **스크립트나 스펙을 고쳤으면 셋 다 돌린다.**
+여섯 겹이다. **스크립트나 스펙을 고쳤으면 전부 돌린다.**
 
 | 스크립트 | 무엇을 보나 |
 |---|---|
 | `rstep-smoke.js` | 좌표·`NaN`·viewBox 이탈·음수 폭·빈 caption. variant × phase × t 격자를 훑는다 |
 | `rstep-assert.js` | **그림이 참말을 하나.** 빨간 칸은 `rollback`에서만, 역탐색 화살표는 `promote`에서 안 나오고, `요구 n대`가 `ceil(replicas × w / 100)`과 일치하는지 |
+| `rrev-smoke.js` | 좌표·`NaN`·viewBox 이탈·음수 폭·빈 caption. phase × t 격자를 훑는다 (variant 는 `handoff` 하나) |
+| `rrev-assert.js` | **그림이 참말을 하나.** 6단계 전부에서 canary/stable 의 Available·desired·해시 칩·VS weight·가드 유무가 단계표 리터럴과 정확히 일치하는지, canary weight 가 0인 단계에서 canary 패킷이 도달하지 않는지, 캡션이 단계마다 다른지 등 |
+| `port-parity.js` | 앞 넷과 달리 "도식이 참말을 하나"가 아니라 **"Hugo 엔진과 nextra 이식 모듈이 같은 그림을 내는가"**를 본다(rstep·rrev 각각) — `tools/flow-render/README.md`, `nextra-port/README.md` 참고 |
 | `spec-lint.js` | `flow`·`seq` JSON. group `id` 누락, 없는 `kind`/`layer`, 엣지 끝점 오타, 가로 라벨 폭 초과, `token: true`인데 시작 노드 없음. 그다음 실제 엔진을 태워 렌더 좌표까지 본다 |
 
-`rstep-assert.js`가 이 셋 중 유일하게 **의미**를 본다. 좌표가 멀쩡해도 도식이 거짓말을 할 수 있다 — 가중치와 요구 파드 수를 각각 손으로 적어 두면 둘이 어긋나고, 그러면 독자는 틀린 수치를 읽는다. 그래서 단계 서술에서 유도하고, 유도가 맞는지 이 스크립트가 검사한다.
+`rstep-assert.js`·`rrev-assert.js` 가 이 여섯 중 **의미**를 보는 둘이다. 좌표가 멀쩡해도 도식이 거짓말을 할 수 있다 — 가중치와 요구 파드 수를 각각 손으로 적어 두면 둘이 어긋나고, 그러면 독자는 틀린 수치를 읽는다. 그래서 단계 서술에서 유도하고, 유도가 맞는지 이 스크립트들이 검사한다.
 
 **검사기를 고쳤으면 일부러 깨뜨려 FAIL이 나는지 확인할 것.** 통과만 보고 믿으면 안 된다 — 필드 이름을 바꾼 뒤 `sed` 패턴이 안 맞아 negative 테스트가 조용히 no-op이 된 적이 있다.

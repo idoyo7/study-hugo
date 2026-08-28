@@ -1,0 +1,9 @@
+{{- /* vm-rrev: "리비전이 바뀌면 트래픽은 어떻게 따라가는가"를 시간축으로 보이는 6단계 상태머신.
+       파드 층(파랑) · 트래픽 층(주황) · 판정 층(청록, 정지) 세 평면을 한 화면에 유지하고,
+       트래픽 패킷이 Service 카드를 떠나 VirtualService 가 정한 비율대로 subset 을 거쳐 갈린다.
+       사용: {{< rrev >}}  (variant: handoff, 기본이자 유일)
+       caption을 주면 그 문장이 고정되고, 생략하면 캡션이 단계마다 바뀐다.
+       엔진/스타일은 /flow/rrev.js, /flow/rrev.css (custom/head-end.html에서 로드) */ -}}
+<figure class="vm-rrev" data-variant="{{ default "handoff" (.Get "variant") }}">
+<figcaption class="rr-caption">{{ with .Get "caption" }}{{ . }}{{ end }}</figcaption>
+</figure>

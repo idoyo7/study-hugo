@@ -1,0 +1,117 @@
+/* vm-rrev — 리비전 핸드오프(해시가 언제 써지는가) 애니메이션. 층 색은 flow.css 의
+   layer 색과 맞춘다: 파드 층 = deploy(파랑), 트래픽 층 = access(주황), 판정 층 = observe(청록).
+   canary/stable 원색은 rstep 과 같은 계열(canary 파랑, stable 초록)을 그대로 쓴다. */
+.vm-rrev {
+  --rr-surface: #fcfcfb;
+  --rr-ink: #0b0b0b;
+  --rr-ink2: #52514e;
+  --rr-muted: #898781;
+  --rr-track: #ecebe4;
+  --rr-border: rgba(11, 11, 11, 0.10);
+  --rr-pod: #2a78d6;
+  --rr-pod-soft: rgba(42, 120, 214, 0.08);
+  --rr-traffic: #d97706;
+  --rr-traffic-soft: rgba(217, 119, 6, 0.08);
+  --rr-judge: #0d9488;
+  --rr-judge-soft: rgba(13, 148, 136, 0.08);
+  --rr-canary: #2a78d6;
+  --rr-canary-soft: #dbeafe;
+  --rr-stable: #15803d;
+  --rr-stable-soft: #dcfce7;
+  --rr-bad: #b91c1c;
+  --rr-bad-soft: #fee2e2;
+  margin: 1.5rem 0;
+  background: var(--rr-surface);
+  border: 1px solid var(--rr-border);
+  border-radius: 14px;
+  padding: 16px 18px 12px;
+  color: var(--rr-ink);
+}
+html.dark .vm-rrev {
+  --rr-surface: #1a1a19;
+  --rr-ink: #fff;
+  --rr-ink2: #c3c2b7;
+  --rr-muted: #898781;
+  --rr-track: #2c2c2a;
+  --rr-border: rgba(255, 255, 255, 0.10);
+  --rr-pod: #4b93e6;
+  --rr-pod-soft: rgba(75, 147, 230, 0.12);
+  --rr-traffic: #f59e0b;
+  --rr-traffic-soft: rgba(245, 158, 11, 0.12);
+  --rr-judge: #2dd4bf;
+  --rr-judge-soft: rgba(45, 212, 191, 0.12);
+  --rr-canary: #4a8de0;
+  --rr-canary-soft: #22334a;
+  --rr-stable: #4ade80;
+  --rr-stable-soft: #1e3a2a;
+  --rr-bad: #f87171;
+  --rr-bad-soft: #431516;
+}
+
+.rr-svg { display: block; width: 100%; height: auto; }
+
+.rr-step { fill: var(--rr-muted); font-size: 15px; font-weight: 600; transition: fill 0.2s; }
+.rr-step-on { fill: var(--rr-pod); font-size: 18px; font-weight: 800; }
+.rr-badge { fill: var(--rr-ink2); font-size: 12.5px; font-weight: 800; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+
+/* 가드 배너 — ③단계에만 보인다 */
+.rr-guard { fill: var(--rr-bad-soft); stroke: var(--rr-bad); stroke-width: 1.4; }
+.rr-guardtext { fill: var(--rr-bad); font-size: 11px; font-weight: 700; }
+
+/* 층 띠 — 항상 있다. 판정 층은 움직이지 않는다 */
+.rr-band { stroke: none; }
+.rr-band-traffic { fill: var(--rr-traffic-soft); }
+.rr-band-pod { fill: var(--rr-pod-soft); }
+.rr-band-judge { fill: var(--rr-judge-soft); }
+.rr-lane { font-size: 12px; font-weight: 800; }
+.rr-lane-traffic { fill: var(--rr-traffic); }
+.rr-lane-pod { fill: var(--rr-pod); }
+.rr-judgetext { fill: var(--rr-judge); font-size: 12px; font-weight: 700; }
+
+/* 카드 공통 */
+.rr-card { fill: var(--rr-surface); stroke: var(--rr-border); stroke-width: 1.4; }
+.rr-card-service { stroke: var(--rr-traffic); }
+.rr-card-dr { stroke: var(--rr-traffic); }
+.rr-card-vs { stroke: var(--rr-traffic); }
+.rr-card-rollout { stroke: var(--rr-pod); }
+.rr-card-stable { stroke: var(--rr-stable); }
+.rr-card-canary { stroke: var(--rr-canary); }
+/* canary RS 가 아직 없거나(①) 승격되어 사라진(⑥) 상태 */
+.rr-card-ghost { stroke: var(--rr-muted); stroke-dasharray: 5 3; fill: var(--rr-track); }
+
+.rr-title { fill: var(--rr-ink); font-size: 12.5px; font-weight: 800; }
+.rr-badgesmall { fill: var(--rr-traffic); font-size: 10.5px; font-weight: 800; }
+.rr-sub { fill: var(--rr-ink2); font-size: 11px; font-weight: 700; }
+.rr-mono { fill: var(--rr-ink2); font-size: 10.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.rr-note { fill: var(--rr-muted); font-size: 10.5px; }
+.rr-note-traffic { fill: var(--rr-traffic); font-weight: 700; }
+.rr-ghosttext { fill: var(--rr-muted); font-size: 11px; font-weight: 700; }
+
+/* 해시 칩 — 비어 있으면 점선, 써지면 채워진다(이 도식의 핵) */
+.rr-chip { fill: none; stroke: var(--rr-muted); stroke-width: 1.2; stroke-dasharray: 3 2; }
+.rr-chip-filled.rr-chip-canary { fill: var(--rr-canary-soft); stroke: var(--rr-canary); stroke-dasharray: none; }
+.rr-chip-filled.rr-chip-stable { fill: var(--rr-stable-soft); stroke: var(--rr-stable); stroke-dasharray: none; }
+.rr-chiptext { fill: var(--rr-ink); font-size: 10px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* VirtualService weight 바 — 두 색 스택 */
+.rr-bar-track { fill: var(--rr-track); }
+.rr-bar-stable { fill: var(--rr-stable); opacity: 0.75; }
+.rr-bar-canary { fill: var(--rr-canary); opacity: 0.85; }
+.rr-vstext { fill: var(--rr-ink); font-size: 11.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Available/desired */
+.rr-avail { fill: var(--rr-ink); font-size: 11.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rr-avail-stable { fill: var(--rr-stable); }
+.rr-avail-canary { fill: var(--rr-canary); }
+
+/* 파드 점 */
+.rr-pod { stroke: var(--rr-surface); stroke-width: 1.4; }
+.rr-pod-stable { fill: var(--rr-stable); }
+.rr-pod-canary { fill: var(--rr-canary); }
+
+/* 트래픽 패킷 — weight 비율대로 stable/canary 로 갈린다 */
+.rr-pkt { stroke: var(--rr-surface); stroke-width: 1; }
+.rr-pkt-stable { fill: var(--rr-stable); }
+.rr-pkt-canary { fill: var(--rr-canary); }
+
+.rr-caption { font-size: 12.5px; color: var(--rr-ink2); margin: 10px 0 0; line-height: 1.6; }

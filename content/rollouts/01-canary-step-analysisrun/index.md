@@ -22,7 +22,7 @@ Rollout에서 "승격(promotion)"이 하는 일은 하나입니다. `status.stab
 
 ## 1. Rollout이 Deployment 자리에 더 붙이는 것
 
-{{< flow src="_flow/1-무엇이-더-붙나.json" />}}
+{{< rrev >}}
 
 파드 층은 Deployment와 다르지 않습니다. ReplicaSet 두 개를 소유하고 pod-template-hash로 구분합니다. 나머지 둘이 새로 생깁니다.
 
@@ -56,7 +56,7 @@ if r.rollout.Spec.Strategy.Canary.CanaryService == "" && r.rollout.Spec.Strategy
 }
 ```
 
-이 가드는 **`spec.Replicas` 대비 Available**을 봅니다. 목표가 2대일 때 2대가 떠 있으면 통과합니다 — 그 2대가 몇 퍼센트의 트래픽을 받게 될지는 보지 않습니다. 2부에서 이 구분이 결정적으로 작동합니다.
+이 가드는 **`spec.Replicas` 대비 Available**을 봅니다. 목표가 2대일 때 2대가 떠 있으면 통과합니다 — 그 2대가 몇 퍼센트의 트래픽을 받게 될지는 보지 않습니다. 검사 대상도 좁습니다 — **`replicas > 0`인 ReplicaSet만** 보고, 새 ReplicaSet은 `replicas=0`으로 태어납니다(`rollout/sync.go:165`). 그래서 첫 트래픽 리컨실에서는 canary 파드가 0대인 채로 해시가 써지고, 가드가 실제로 붙잡는 것은 그 뒤의 `SetWeight`입니다 `✓`. 2부에서 이 구분이 결정적으로 작동합니다.
 
 판정 층은 `analysistemplate.yaml`이 만듭니다. `rollout.analysis.enabled`와 `rollout.enabled`가 둘 다 참일 때 **`<name>-error-rate`와 `<name>-latency` 두 개**를 렌더합니다 `✓`.
 
