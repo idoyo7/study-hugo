@@ -1,0 +1,125 @@
+{{- /* 테마 _markup/render-image.html 의 프로젝트 오버라이드.
+
+       원본은 assets/ 를 먼저 조회하고(resources.Get) 없으면 static/ 경로를 그대로
+       쓴다. 그 구조는 그대로 두고 두 가지를 더한다.
+
+       1) width·height 를 싣는다
+          원본은 크기를 내지 않았다. 테마 CSS 는 max-width:100%;height:auto 뿐이라
+          이미지가 도착하기 전 레이아웃 박스가 예약되지 않고, 도착하는 순간
+          아래 본문이 밀린다(CLS). 마크다운의 순진한 크기 지정 문법은 Hugo 가
+          조용히 무시하므로 훅에서 실제 파일의 픽셀 크기를 읽어 넣는 편이 맞다.
+
+       2) 래스터 이미지는 WebP 를 함께 낸다
+          <picture> 로 감싸 WebP <source> 를 먼저 두고 원본을 <img> 폴백으로
+          남긴다. 실측(8장 합계): PNG 437,660 B → WebP 96,576 B, 77.9% 감소.
+          가장 큰 hyperdx-architecture.png 한 장이 267,288 B 로 사이트 최대 자산이었다.
+
+       SVG·GIF 는 건드리지 않는다. SVG 는 이미 벡터이고 Hugo 의 이미지 처리
+       대상이 아니며(.Width 도 없다), GIF 는 WebP 로 바꾸면 애니메이션이 깨진다.
+       두 경우 모두 원본 경로로 단순 <img> 를 낸다.
+
+       크기를 알 수 없는 경우(static/ 에만 있는 파일, SVG)에도 원본과 동일하게
+       동작한다 — 속성만 빠진다. 그래서 이 훅은 이미지 위치와 무관하게 안전하다. */ -}}
+
+{{- $alt := .PlainText | safeHTML -}}
+{{- $lazyLoading := .Page.Site.Params.enableImageLazyLoading | default true -}}
+{{- $enableImageZoom := .Page.Site.Params.imageZoom.enable | default false -}}
+{{- if not (eq .Page.Params.imageZoom nil) -}}
+  {{- $enableImageZoom = .Page.Params.imageZoom -}}
+{{- end -}}
+{{- $dest := .Destination -}}
+{{- $url := urls.Parse $dest -}}
+
+{{- $isLocal := not $url.Scheme -}}
+{{- $isPage := and (eq .Page.Kind "page") (not .Page.BundleType) -}}
+{{- $startsWithSlash := hasPrefix $dest "/" -}}
+{{- $startsWithRelative := hasPrefix $dest "../" -}}
+
+{{- /* 원본 리소스를 붙잡아 둔다. 크기·WebP 변환에 쓴다. */ -}}
+{{- $res := "" -}}
+
+{{- if and $dest $isLocal -}}
+  {{- if $startsWithSlash -}}
+    {{- with or (.PageInner.Resources.Get $url.Path) (resources.Get $url.Path) -}}
+      {{/* assets 디렉터리의 이미지 */}}
+      {{- $res = . -}}
+      {{- $query := cond $url.RawQuery (printf "?%s" $url.RawQuery) "" -}}
+      {{- $fragment := cond $url.Fragment (printf "#%s" $url.Fragment) "" -}}
+      {{- $dest = printf "%s%s%s" .RelPermalink $query $fragment -}}
+    {{- else -}}
+      {{/* static 디렉터리의 이미지 */}}
+      {{- $dest = (relURL (strings.TrimPrefix "/" $dest)) -}}
+    {{- end -}}
+  {{- else -}}
+    {{/* 다국어 퍼머링크용 페이지 번들 리소스 해석 */}}
+    {{- with .PageInner.Resources.Get (strings.TrimPrefix "./" $url.Path) -}}
+      {{- $res = . -}}
+      {{- $query := cond $url.RawQuery (printf "?%s" $url.RawQuery) "" -}}
+      {{- $fragment := cond $url.Fragment (printf "#%s" $url.Fragment) "" -}}
+      {{- $dest = printf "%s%s%s" .RelPermalink $query $fragment -}}
+    {{- else -}}
+      {{- if and $isPage (not $startsWithRelative) -}}
+        {{ $dest = (printf "../%s" $dest) }}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $attributes := "" -}}
+{{- range $key, $value := .Attributes -}}
+  {{- if $value -}}
+    {{- $pair := printf "%s=%q" $key ($value | transform.HTMLEscape) -}}
+    {{- $attributes = printf "%s %s" $attributes $pair -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if $enableImageZoom -}}
+  {{- .Page.Store.Set "hasImageZoom" true -}}
+{{- end -}}
+
+{{- /* 크기와 WebP. Hugo 의 이미지 처리는 래스터에만 되고 확장 빌드가 필요하다.
+       MediaType.SubType 으로 걸러 SVG·GIF 를 제외한다. */ -}}
+{{- $w := 0 -}}
+{{- $h := 0 -}}
+{{- $webp := "" -}}
+{{- with $res -}}
+  {{- $sub := .MediaType.SubType -}}
+  {{- if in (slice "png" "jpeg" "jpg") $sub -}}
+    {{- $w = .Width -}}
+    {{- $h = .Height -}}
+    {{- with .Resize (printf "%dx webp q82 lanczos" .Width) -}}
+      {{- $webp = .RelPermalink -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $dim := "" -}}
+{{- if and $w $h -}}
+  {{- $dim = printf ` width="%d" height="%d"` $w $h -}}
+{{- end -}}
+{{- $common := printf `%s%s%s%s` $attributes
+      (cond $enableImageZoom " data-zoomable" "")
+      (cond $lazyLoading ` loading="lazy" decoding="async"` "")
+      $dim -}}
+
+{{- define "img-el" -}}
+  {{- $c := . -}}
+  {{- if $c.webp -}}
+    <picture>
+      <source type="image/webp" srcset="{{ $c.webp | safeURL }}" />
+      <img src="{{ $c.dest | safeURL }}" alt="{{ $c.alt }}"{{ with $c.title }} title="{{ . }}"{{ end }}{{ $c.common | safeHTMLAttr }} />
+    </picture>
+  {{- else -}}
+    <img src="{{ $c.dest | safeURL }}" alt="{{ $c.alt }}"{{ with $c.title }} title="{{ . }}"{{ end }}{{ $c.common | safeHTMLAttr }} />
+  {{- end -}}
+{{- end -}}
+
+{{- $ctx := dict "dest" $dest "alt" $alt "webp" $webp "common" $common "title" .Title -}}
+{{- with .Title -}}
+  <figure>
+    {{ template "img-el" $ctx }}
+    <figcaption>{{ . }}</figcaption>
+  </figure>
+{{- else -}}
+  {{- template "img-el" $ctx -}}
+{{- end -}}
