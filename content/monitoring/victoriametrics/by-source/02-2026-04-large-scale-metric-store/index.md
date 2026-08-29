@@ -130,7 +130,9 @@ Hot Tier는 보관 기간이 12개월로 상대적으로 짧았습니다. 그래
 ```
 # 변경 전
 -storageNode=old-A, old-B, ..., old-E
+```
 
+```
 # 변경 후 (한 번에 교체) — 위험
 -storageNode=new-A, new-B, ..., new-E
 ```

@@ -1,0 +1,53 @@
+{{ define "main" }}
+  <div class='hx:mx-auto hx:flex hextra-max-page-width'>
+    {{ partial "sidebar.html" (dict "context" .) }}
+    {{ partial "toc.html" . }}
+    <article class="hx:w-full hx:break-words hx:flex hx:min-h-[calc(100vh-var(--navbar-height))] hx:min-w-0 hx:justify-center hx:pb-8 hx:pr-[calc(env(safe-area-inset-right)-1.5rem)]">
+      <main id="content" class="hx:w-full hx:min-w-0 hextra-max-content-width hx:px-6 hx:pt-4 hx:md:px-12">
+        {{ partial "breadcrumb.html" (dict "page" . "enable" true) }}
+        {{- /* 본문이 이미 H1 로 시작하면 테마 제목 H1 을 내지 않는다.
+
+               176개 문서 중 172개가 본문 맨 위에 `# ` 를 둔다. 그래서 페이지마다
+               h1 이 두 개 나갔고, 화면에서도 제목이 연달아 두 번 보였다:
+
+                 <h1>서비스 메시와 Istio 기초</h1>                         ← 테마
+                 <h1>01 · 서비스 메시와 Istio 기초 — 왜 EKS에 메시를 얹나</h1>  ← 본문
+
+               176개를 분류해보면 본문 H1 쪽이 항상 더 정보량이 많다:
+                 identical      46   프런트매터 title 과 글자 단위로 같음
+                 body-superset  88   본문 H1 이 title 을 포함
+                 divergent      35   포함관계는 아니지만 본문 H1 이 더 자세한 표현
+                 title-superset  3
+                 no-body-h1      4   ← 이 경우만 테마 H1 을 그대로 낸다
+
+               그래서 지우는 쪽은 테마 H1 이다. 본문을 172개 파일에서 고치는 것보다
+               템플릿 두 개를 고치는 편이 되돌리기도 쉽고 본문 표현을 잃지도 않는다.
+               <title> 은 여전히 프런트매터 title 에서 나오므로 검색 결과 제목은
+               그대로다.
+
+               page-context-menu 는 조건과 무관하게 남긴다 — 원본에서 제목과 같은
+               flex 블록에 들어 있어서, 조건을 블록 전체에 걸면 메뉴까지 사라진다. */ -}}
+        {{- /* 판정은 렌더된 .Content 에서 한다. 처음에는 .RawContent 가 `# ` 로
+               시작하는지 봤는데, 페이지 번들(디렉터리 + index.md) 일부에서
+               .RawContent 가 비어 4개 문서가 여전히 h1 을 두 개 냈다.
+               .Content 는 Goldmark 가 이미 판정을 끝낸 결과라 본문 H1 이
+               첫 요소가 아니어도, 원문이 raw HTML 이어도 정확히 잡힌다.
+               코드블록 안의 `# 주석` 을 오탐할 위험도 없다 — 그건 <h1> 이
+               아니라 <pre> 안의 텍스트로 렌더되기 때문이다. */ -}}
+        {{- $bodyStartsWithH1 := strings.Contains .Content "<h1" -}}
+        <div class="content">
+          <div class="hx:flex hx:flex-col hx:sm:flex-row hx:items-start hx:sm:items-center hx:sm:justify-between hx:gap-4 hx:mb-4">
+            {{ if and .Title (not $bodyStartsWithH1) }}<h1 class="hx:mb-0">{{ .Title }}</h1>{{ end }}
+            {{ partial "components/page-context-menu" . }}
+          </div>
+          {{ .Content }}
+        </div>
+        {{ partial "components/last-updated.html" . }}
+        {{- if (site.Params.page.displayPagination | default true) -}}
+          {{- partial "components/pager.html" . -}}
+        {{- end -}}
+        {{ partial "components/comments.html" . }}
+      </main>
+    </article>
+  </div>
+{{ end }}
