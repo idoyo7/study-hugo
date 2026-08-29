@@ -78,3 +78,14 @@ enableRobotsTXT = true
       reactionsEnabled = '1'
       inputPosition = 'top'
       lang = 'ko'
+
+# navbar 검색창. hextra 는 navbar.html:23 에서 menu.main 항목의
+# params.type == "search" 를 만났을 때만 search.html 을 싣는다
+# (themes/hextra/layouts/_partials/navbar.html). 이 항목이 없으면
+# [params.search] 를 켜 두고 flexsearch 인덱스(3.3MB)를 굽더라도
+# 768px 이상 뷰포트에는 검색창이 아예 나오지 않는다 — 실제로 그랬다.
+[[menu.main]]
+  name = 'Search'
+  weight = 90
+  [menu.main.params]
+    type = 'search'
