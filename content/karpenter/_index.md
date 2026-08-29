@@ -1,6 +1,6 @@
 ---
 title: "Karpenter"
-weight: 10
+weight: 110
 cascade:
   type: docs
 aliases: ["/k8s-features/karpenter/"]

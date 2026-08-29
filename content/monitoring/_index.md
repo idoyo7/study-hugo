@@ -1,6 +1,6 @@
 ---
 title: "모니터링"
-weight: 1
+weight: 10
 cascade:
   type: docs
 ---

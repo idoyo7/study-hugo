@@ -1,6 +1,6 @@
 ---
 title: "커넥션 게이트웨이"
-weight: 12
+weight: 140
 cascade:
   type: docs
 ---

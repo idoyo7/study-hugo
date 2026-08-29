@@ -1,6 +1,6 @@
 ---
 title: "Valkey"
-weight: 11
+weight: 130
 cascade:
   type: docs
 ---

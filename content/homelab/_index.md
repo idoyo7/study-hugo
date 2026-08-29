@@ -1,6 +1,8 @@
 ---
 title: "홈랩"
-weight: 9
+weight: 160
+cascade:
+  type: docs
 ---
 
 # 홈랩

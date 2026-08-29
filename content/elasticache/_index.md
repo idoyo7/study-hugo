@@ -1,6 +1,6 @@
 ---
 title: "Redis · Valkey · Memcached"
-weight: 11
+weight: 120
 cascade:
   type: docs
 ---

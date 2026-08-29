@@ -1,6 +1,6 @@
 ---
 title: "로깅"
-weight: 2
+weight: 20
 cascade:
   type: docs
 ---

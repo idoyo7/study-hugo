@@ -1,6 +1,6 @@
 ---
 title: "HyperDX 내재화"
-weight: 7
+weight: 70
 cascade:
   type: docs
 ---

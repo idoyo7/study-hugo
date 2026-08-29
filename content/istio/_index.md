@@ -1,6 +1,6 @@
 ---
 title: "Istio"
-weight: 5
+weight: 50
 cascade:
   type: docs
 ---

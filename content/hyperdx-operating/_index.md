@@ -1,6 +1,6 @@
 ---
 title: "HyperDX 직접 운영하기"
-weight: 8
+weight: 80
 aliases: ["/hyperdx/00-operating-hyperdx/", "/hyperdx/operating/"]
 cascade:
   type: docs

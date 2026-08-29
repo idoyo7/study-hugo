@@ -1,6 +1,6 @@
 ---
 title: "EKS 버전 업그레이드"
-weight: 8
+weight: 90
 cascade:
   type: docs
 ---

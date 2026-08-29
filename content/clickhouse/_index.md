@@ -1,6 +1,6 @@
 ---
 title: "ClickHouse 운영"
-weight: 6
+weight: 60
 cascade:
   type: docs
 ---

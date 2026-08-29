@@ -1,6 +1,6 @@
 ---
 title: "Kubernetes"
-weight: 9
+weight: 100
 cascade:
   type: docs
 ---

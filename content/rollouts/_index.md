@@ -1,6 +1,6 @@
 ---
 title: "Argo Rollouts"
-weight: 13
+weight: 150
 cascade:
   type: docs
 ---
