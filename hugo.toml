@@ -35,8 +35,29 @@ disableKinds = ['taxonomy', 'term']
     [params.search.flexsearch]
       # index page by: content | summary | heading | title
       index = 'content'
-      # 'full' tokenization enables CJK substring search (Korean content)
-      tokenize = 'full'
+      # 'full' 을 쓴 이유로 적혀 있던 주석("CJK 부분 문자열 검색을 켠다")은 사실이
+      # 아니었다. hextra 가 넘기는 커스텀 인코더(themes/hextra/assets/js/flexsearch.js:201)
+      # 는 CJK 를 한 글자짜리 대안으로 잡고(`+` 없음) 라틴·키릴만 연속으로 잡는다.
+      #   encode('노드풀 스케줄링')     -> ["노","드","풀","스","케","줄","링"]
+      #   encode('kubernetes karpenter') -> ["kubernetes","karpenter"]
+      # 한글은 tokenize 가 돌기 전에 이미 음절 단위로 쪼개져 있어서 이 설정이
+      # 한글 검색에 영향을 줄 수가 없다.
+      #
+      # 실제 인덱스(ko.search-data.json 3,289,190 B · 176 라우트 · 문서 7,785개)로
+      # preloadIndex() 를 그대로 재현해 재봤다. node v24.15.0, Apple silicon:
+      #   full     build 1,307 ms   heap 243.5 MB
+      #   forward  build   473 ms   heap  60.1 MB
+      #   strict   build   270 ms   heap  21.4 MB
+      # JSON.parse 는 6.5 ms 다 — 비용은 파싱이 아니라 인덱스 구축이다.
+      # 히트 수(limit 20)는 '스케줄링' '케줄' '노드풀' '드풀' '벤치마크' '치마'
+      # '컨설리데이션' '리데이' 전부 세 모드에서 20으로 같았다. 라틴도 접두
+      # 질의('karp' 'nodepo' 'istio')는 forward 에서 그대로 20이다.
+      # full 만 되는 건 라틴 단어 중간을 치는 경우('arpent' -> karpenter,
+      # 'toriametr' -> victoriametrics)뿐이고, 그 대가로 구축 시간과 힙이 3~4배다.
+      # 게다가 flexsearch.js:235 의 적재 루프는 중간에 양보하지 않아서 느린 기기에서
+      # 검색창을 여는 순간 다음 입력의 INP 를 그대로 먹는다.
+      # 그래서 테마 기본값과 같은 forward 로 내린다. 명시해 두는 건 의도 기록용이다.
+      tokenize = 'forward'
 
   # GitHub Discussions 덧글 (giscus) — idoyo7/blog-comments 공유, 이 사이트는 Ideas 카테고리
   # (Nextra=Announcements, Jekyll=General 과 분리). theme 생략 → hextra가 다크모드 자동 동기화

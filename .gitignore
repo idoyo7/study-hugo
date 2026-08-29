@@ -10,3 +10,22 @@ finance-upgrade/
 
 # humanize-docs 작업 디렉토리
 _workspace/
+
+# OS·에디터 부산물. static/ 아래는 Hugo 가 dotfile 까지 그대로 발행하므로
+# static/images/.DS_Store 하나가 커밋되면 그대로 공개 URL 이 된다
+# (라이브에서 /images/hyperdx/ATTRIBUTION.md 가 200 인 것으로 확인된 경로다).
+# 지금은 오염이 없다 — 트래킹된 .DS_Store 0개, 디스크에도 0개. 예방용이다.
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# 로컬 자격증명
+.env
+.env.*
+!.env.example
+
+# themes/hextra/.gitignore 의 node_modules/ 는 그 서브트리에만 적용된다.
+# 루트나 tools/flow-render/ 는 덮지 못하므로 여기 따로 적는다.
+node_modules/
