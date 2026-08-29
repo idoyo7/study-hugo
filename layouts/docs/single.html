@@ -40,7 +40,7 @@
             {{ if and .Title (not $bodyStartsWithH1) }}<h1 class="hx:mb-0">{{ .Title }}</h1>{{ end }}
             {{ partial "components/page-context-menu" . }}
           </div>
-          {{ .Content }}
+          {{ partial "custom/grade-badges.html" . }}
         </div>
         {{ partial "components/last-updated.html" . }}
         {{- if (site.Params.page.displayPagination | default true) -}}

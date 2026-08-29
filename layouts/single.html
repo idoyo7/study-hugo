@@ -14,7 +14,7 @@
         {{ if and .Title (not $bodyStartsWithH1) }}<h1 class="hx:text-center hx:mt-2 hx:text-4xl hx:font-bold hx:tracking-tight hx:text-slate-900 hx:dark:text-slate-100">{{ .Title }}</h1>{{ end }}
         <div class="hx:mb-16"></div>
         <div class="content">
-          {{ .Content }}
+          {{ partial "custom/grade-badges.html" . }}
         </div>
         <div class="hx:mt-16"></div>
         {{ partial "components/comments.html" . }}

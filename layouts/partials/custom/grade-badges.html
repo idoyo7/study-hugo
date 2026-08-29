@@ -1,0 +1,64 @@
+{{- /* 근거 등급 배지를 빌드 시점에 렌더한다.
+
+       이 사이트는 인라인 코드스팬으로 근거 등급을 표기한다 — `✓`(확인됨),
+       `≈`(추정), `Ⓥ`(벤더 주장), `?`(미확인), `Ⓑ`(퍼블릭 벤치마크),
+       `Σ`(종합 판단). 63개 문서, 2,770개다.
+
+       그동안 이 배지의 class 와 title 을 클라이언트 JS 가 DOMContentLoaded 에서
+       달았다. 문제가 둘이었다.
+
+       1) 레이아웃 시프트. JS 가 font-size 와 vertical-align 을 바꿔서 첫 페인트
+          이후에 글자 박스가 변했다. DOMContentLoaded 는 deferred 스크립트
+          약 86KB 를 기다리므로 모바일에서는 첫 페인트와의 간격이 수백 ms 다.
+          표 안에서도 쓰이므로 리플로가 한 줄에 그치지 않았다.
+       2) JS 를 돌리지 않는 소비자에게는 기호의 뜻이 아예 없다. `Ⓥ`(벤더 주장)가
+          그냥 사라지면 남는 문장은 검증된 사실처럼 읽힌다 — 신호가 없어지는
+          게 아니라 반대로 뒤집힌다.
+
+       그래서 렌더된 .Content 를 문자열로 받아 빌드 시점에 치환한다. 결과 HTML 은
+       JS 가 만들던 것과 같고(같은 class, 같은 title), 첫 페인트에 이미 최종
+       형태다. Hugo 0.164 에는 코드스팬 렌더 훅이 없어서(heading·link·image·
+       table·codeblock·passthrough·blockquote 만 있다) 훅이 아니라 이 방식이다.
+
+       조합은 하드코딩하지 않고 6×6 전체를 돈다. 처음에는 실제로 쓰이는 조합만
+       나열했는데(`✓/≈`, `✓/?`) 7개가 빠졌다 — Ⓥ/✓, ✓/Ⓥ, ≈/✓⁽혼재⁾, Ⓥ/Ⓑ×2,
+       ≈/Ⓥ×2. 앞으로 새 조합이 생겨도 이 파일을 고칠 필요가 없게 일반화했다.
+
+       정규식과 표시 텍스트는 반드시 따로 둔다. 하나로 썼다가 `?` 가 정규식
+       수량자로 해석돼 사고가 났다 — `✓/?` 패턴이 "✓ 뒤에 / 가 와도 되고 안
+       와도 됨" 으로 읽혀 단독 `✓` 1,716개까지 잡아먹고 표시 텍스트마저
+       `✓/?` 로 바꿔 "확인됨 / 미확인" 으로 오분류했다. */ -}}
+
+{{- $syms := slice
+      (dict "re" `✓`  "txt" "✓" "cls" "grade-confirmed" "lbl" "확인됨")
+      (dict "re" `≈`  "txt" "≈" "cls" "grade-est"       "lbl" "추정")
+      (dict "re" `Ⓥ`  "txt" "Ⓥ" "cls" "grade-vendor"    "lbl" "벤더 주장")
+      (dict "re" `\?` "txt" "?" "cls" "grade-unknown"   "lbl" "미확인")
+      (dict "re" `Ⓑ`  "txt" "Ⓑ" "cls" "grade-bench"     "lbl" "퍼블릭 벤치마크")
+      (dict "re" `Σ`  "txt" "Σ" "cls" "grade-synth"     "lbl" "종합 판단")
+-}}
+{{- $note := `(⁽[^⁾<]*⁾)?` -}}
+
+{{- $c := printf "%s" .Content -}}
+
+{{- /* ── 2기호 조합을 먼저 ── 클래스는 앞 기호 기준(기존 JS 와 동일 동작).
+       주석은 어느 쪽 기호에도 붙을 수 있어 양쪽에 $note 를 둔다. ── */ -}}
+{{- range $a := $syms -}}
+  {{- range $b := $syms -}}
+    {{- $c = replaceRE
+          (printf `<code>%s%s/%s%s</code>` $a.re $note $b.re $note)
+          (printf `<code class="grade %s" title="%s$1 / %s$2">%s$1/%s$2</code>`
+                  $a.cls $a.lbl $b.lbl $a.txt $b.txt)
+          $c -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* ── 단일 기호(+주석) ── 표시 텍스트는 캡처($1)에서 그대로 가져온다 ── */ -}}
+{{- range $s := $syms -}}
+  {{- $c = replaceRE
+        (printf `<code>(%s)%s</code>` $s.re $note)
+        (printf `<code class="grade %s" title="%s$2">$1$2</code>` $s.cls $s.lbl)
+        $c -}}
+{{- end -}}
+
+{{- $c | safeHTML -}}
