@@ -1,0 +1,75 @@
+{{- /* 테마 _partials/search.html 의 프로젝트 오버라이드.
+       원본과 다른 점은 딱 하나 — 래퍼에 data-search-location 을 달고,
+       navbar 인스턴스를 768px 미만에서 숨기는 규칙을 함께 싣는다.
+       본문 마크업은 원본 그대로다.
+
+       왜 필요한가. 테마 flexsearch.js:48-58 의 getActiveSearchElement() 는
+       "보이는" .hextra-search-wrapper 를 세어 정확히 1개일 때만 객체를
+       반환하고, 그렇지 않으면 undefined 를 반환한다.
+
+         const inputs = Array.from(document.querySelectorAll(
+           '.hextra-search-wrapper')).filter(el => el.clientHeight > 0);
+         if (inputs.length === 1) { return {...} }
+         return undefined;
+
+       그런데 호출부는 반환값을 곧바로 구조분해한다 (같은 파일 63-64, 89-90행).
+
+         document.addEventListener('keydown', function (e) {
+           const { inputElement } = getActiveSearchElement();
+
+       undefined 를 구조분해하면 TypeError 다 — 문서 전체의 모든 keydown 과
+       모든 mousedown 에서 던진다.
+
+       그래서 "보이는 래퍼가 정확히 1개"라는 조건을 모든 뷰포트에서 지켜야 한다.
+
+         768px 이상  사이드바 래퍼는 hx:md:hidden(display:none) → 0개.
+                     navbar 항목이 없으면 총 0개 → TypeError.
+                     이 PR 이 navbar 항목을 넣어 1개로 만든다.
+         768px 미만  사이드바 래퍼는 transform 으로 화면 밖에 있을 뿐
+                     display 는 살아 있어 clientHeight > 0 → 1개.
+                     여기에 navbar 래퍼까지 보이면 2개가 되어 TypeError 가
+                     되돌아온다 → navbar 쪽을 숨긴다.
+
+       Tailwind 클래스(hx:max-md:hidden)로는 못 한다. 테마는 CSS 를 미리
+       컴파일해 싣기 때문에(head.html 의 resources.Get "css/compiled/main.css")
+       테마가 쓰지 않는 클래스는 컴파일 결과에 없다 — 실제로 compiled/main.css
+       에서 max-md 는 사이드바 transform 한 곳뿐이다. 그래서 실제 CSS 를 쓴다. */ -}}
+
+{{- $location := .location | default "" -}}
+{{- if eq $location "navbar" -}}
+  <style>
+    @media (max-width: 767px) {
+      .hextra-search-wrapper[data-search-location="navbar"] { display: none !important; }
+    }
+  </style>
+{{- end -}}
+{{- $placeholder := (T "searchPlaceholder") | default "Search..." -}}
+
+
+<div class="hextra-search-wrapper hx:relative hx:md:w-64" data-search-location="{{ $location }}">
+  <div class="hx:relative hx:flex hx:items-center hx:text-gray-900 hx:contrast-more:text-gray-800 hx:dark:text-gray-300 hx:contrast-more:dark:text-gray-300">
+    <input
+      placeholder="{{ $placeholder }}"
+      aria-label="{{ $placeholder }}"
+      class="hextra-search-input hx:hextra-focus-visible hx:block hx:w-full hx:appearance-none hx:rounded-lg hx:px-3 hx:py-2 hx:transition-colors hx:text-base hx:leading-tight hx:md:text-sm hx:bg-black/[.05] hx:dark:bg-gray-50/10 hx:focus-visible:bg-white hx:dark:focus-visible:bg-dark hx:placeholder:text-gray-500 hx:dark:placeholder:text-gray-400 hx:contrast-more:border hx:contrast-more:border-current"
+      type="search"
+      autocomplete="off"
+      value=""
+      spellcheck="false"
+    />
+    <kbd
+      class="hx:absolute hx:my-1.5 hx:select-none hx:ltr:right-1.5 hx:rtl:left-1.5 hx:h-5 hx:rounded-sm hx:bg-white hx:px-1.5 hx:font-mono hx:text-[10px] hx:font-medium hx:text-gray-500 hx:border hx:border-gray-200 hx:dark:border-gray-100/20 hx:dark:bg-dark/50 hx:contrast-more:border-current hx:contrast-more:text-current hx:contrast-more:dark:border-current hx:items-center hx:gap-1 hx:transition-opacity hx:pointer-events-none hx:hidden hx:sm:flex"
+    >
+      CTRL K
+    </kbd>
+  </div>
+
+  <div>
+    <ul
+      class="hextra-search-results hextra-scrollbar hx:hidden hx:border hx:border-gray-200 hx:bg-white hx:text-gray-100 hx:dark:border-neutral-800 hx:dark:bg-neutral-900 hx:absolute hx:top-full hx:z-20 hx:mt-2 hx:overflow-auto hx:overscroll-contain hx:rounded-xl hx:py-2.5 hx:shadow-xl hx:max-h-[min(calc(50vh-11rem-env(safe-area-inset-bottom)),400px)] hx:md:max-h-[min(calc(100vh-5rem-env(safe-area-inset-bottom)),400px)] hx:inset-x-0 hx:ltr:md:left-auto hx:rtl:md:right-auto hx:contrast-more:border hx:contrast-more:border-gray-900 hx:contrast-more:dark:border-gray-50 hx:w-screen hx:min-h-[100px] hx:max-w-[min(calc(100vw-2rem),calc(100%+20rem))]"
+      aria-label="{{ (T "searchResults") | default "Search results" }}"
+      style="transition: max-height 0.2s ease 0s;"
+    ></ul>
+    <div class="hextra-search-status hx:sr-only" aria-live="polite" role="status"></div>
+  </div>
+</div>
