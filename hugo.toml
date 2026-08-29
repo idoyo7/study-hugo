@@ -7,8 +7,13 @@ locale = 'ko-KR'
 defaultContentLanguage = 'ko'
 hasCJKLanguage = true
 
-disableKinds = ['taxonomy', 'term']
-
+# ── 아래 한 줄의 위치 주의 ───────────────────────────────────────────────
+# enableGitInfo 는 최상위 키다. [outputs] 나 [params] 같은 테이블 헤더 뒤에
+# 놓이면 TOML 이 그 테이블의 하위 키로 파싱해 조용히 무효가 된다
+# (hugo 가 'Unknown kind "enablegitinfo" in outputs configuration' 경고만
+#  내고 넘어간다). 그래서 테이블이 시작되기 전인 이 위치에 둔다.
+# 다른 브랜치가 disableKinds 뒤에 [outputs] 를 추가하고 있어서, 같은 앵커를
+# 쓰면 머지 후 정확히 그 사고가 난다 — 실제로 통합 머지에서 한 번 밟았다.
 # 176개 문서 전부 발행일·수정일 신호가 0이었다. 프런트매터에 date 가 없고
 # enableGitInfo 도 꺼져 있어서 .Lastmod / .PublishDate 가 zero time 이었다.
 # 결과적으로 article:published_time / article:modified_time 이 0건이고,
@@ -24,6 +29,9 @@ disableKinds = ['taxonomy', 'term']
 #   · CI checkout 이 얕은 클론이면 안 된다 (fetch-depth: 0)
 #     depth 1 이면 모든 파일의 lastmod 가 마지막 커밋 하나의 날짜로 같아진다.
 enableGitInfo = true
+
+disableKinds = ['taxonomy', 'term']
+
 
 [markup]
   [markup.goldmark.renderer]
