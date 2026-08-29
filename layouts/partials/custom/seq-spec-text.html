@@ -1,0 +1,19 @@
+{{- /* vm-seq 스텝 배열을 접힌 목록용 텍스트로 펼친다. 컨텍스트(.)는 steps 배열.
+       스텝 종류는 셋이다 — note 는 lines(여러 줄), msg 는 label(한 줄),
+       alt 는 조건 문자열과 steps/elseSteps 두 갈래를 갖는다.
+       alt 갈래는 같은 스텝 모양이므로 자기 자신을 다시 부른다.
+       </li> 뒤의 개행은 지우지 말 것 — 이유는 shortcodes/flow.html 주석에 있다.
+       스텝 경계에서도 붙지 않게 각 <li> 가 자기 개행을 들고 있다. */ -}}
+<ol>
+{{ range . }}
+  {{- $step := . }}
+  {{- with $step.lines }}<li>{{ delimit . " · " }}</li>
+{{ end }}
+  {{- with $step.label }}<li>{{ . }}</li>
+{{ end }}
+  {{- with $step.alt }}<li>분기 — {{ . }}{{ with $step.steps }}{{ partial "custom/seq-spec-text.html" . }}{{ end }}</li>
+{{ end }}
+  {{- with $step.elseSteps }}<li>{{ with $step.elseLabel }}{{ . }}{{ else }}else{{ end }}{{ partial "custom/seq-spec-text.html" . }}</li>
+{{ end }}
+{{- end }}
+</ol>

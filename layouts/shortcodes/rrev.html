@@ -3,7 +3,14 @@
        트래픽 패킷이 Service 카드를 떠나 VirtualService 가 정한 비율대로 subset 을 거쳐 갈린다.
        사용: {{< rrev >}}  (variant: handoff, 기본이자 유일)
        caption을 주면 그 문장이 고정되고, 생략하면 캡션이 단계마다 바뀐다.
+       alt 을 주면 JS 없이도 읽히는 접힌 텍스트가 캡션 아래 붙는다 (캡션 애니메이션은 그대로).
        엔진/스타일은 /flow/rrev.js, /flow/rrev.css (custom/head-end.html에서 로드) */ -}}
 <figure class="vm-rrev" data-variant="{{ default "handoff" (.Get "variant") }}">
 <figcaption class="rr-caption">{{ with .Get "caption" }}{{ . }}{{ end }}</figcaption>
+{{- /* alt: JS 없이 오는 쪽(텍스트 추출기·색인기)에는 이 도식이 빈 figure 로만 보인다.
+       캡션은 단계마다 바뀌므로 서버에서 채우면 그 애니메이션이 얼어붙는다 —
+       그래서 접힌 details 로 따로 낸다. 엔진은 .rr-caption 만 건드리므로 이 블록은 그대로 남는다. */ -}}
+{{- with .Get "alt" }}
+<details class="vm-spec-text"><summary>도식 텍스트</summary><p>{{ . }}</p></details>
+{{- end }}
 </figure>

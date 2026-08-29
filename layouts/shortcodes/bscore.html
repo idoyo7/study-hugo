@@ -1,7 +1,14 @@
 {{- /* vm-bscore: Balanced 스코어가 조립되는 5단계 애니메이션.
        사용: {{< bscore >}}  (인자 없음 — 데이터가 곧 개념이라 엔진에 박아뒀다)
        caption을 주면 그 문장이, 생략하면 엔진의 기본 설명이 들어간다.
+       alt 을 주면 JS 없이도 읽히는 접힌 텍스트가 캡션 아래 붙는다 (캡션 애니메이션은 그대로).
        엔진/스타일은 /flow/bscore.js, /flow/bscore.css (custom/head-end.html에서 로드) */ -}}
 <figure class="vm-bscore">
 <figcaption class="bs-caption">{{ with .Get "caption" }}{{ . }}{{ end }}</figcaption>
+{{- /* alt: JS 없이 오는 쪽(텍스트 추출기·색인기)에는 이 도식이 빈 figure 로만 보인다.
+       캡션은 단계마다 바뀌므로 서버에서 채우면 그 애니메이션이 얼어붙는다 —
+       그래서 접힌 details 로 따로 낸다. 엔진은 .bs-caption 만 건드리므로 이 블록은 그대로 남는다. */ -}}
+{{- with .Get "alt" }}
+<details class="vm-spec-text"><summary>도식 텍스트</summary><p>{{ . }}</p></details>
+{{- end }}
 </figure>

@@ -55,7 +55,7 @@ period가 시작하면 quota가 리필됩니다. 소진하면 period 끝까지 �
 | limit 없음 | **30ms** | 몰아 쓰고 끝 |
 | limit 0.2 CPU | **110ms** | 20ms 쓰고 80ms 대기 → 다음 period에 10ms |
 
-{{< cfstl variant="latency" >}}
+{{< cfstl variant="latency" caption="quota를 다 쓴 순간부터 다음 구간이 시작될 때까지 애플리케이션 전체가 멈춘다. 평균 사용률은 0.1코어로 limit(0.2코어) 아래인데도 요청은 80ms 더 걸린다." >}}
 
 이래서 버그에 가깝다고 부릅니다. 사용자 입장에선 "준 것의 절반밖에 안 쓰는데 왜 느려지지?"가 됩니다. 커뮤니티에서 오래 굴러온 문제이기도 합니다 — [#67577](https://github.com/kubernetes/kubernetes/issues/67577), [#51135](https://github.com/kubernetes/kubernetes/issues/51135).
 
@@ -94,7 +94,7 @@ quota 20ms / period 100ms / buffer 20ms일 때:
 
 같은 장부를 wall time으로 펴면 이렇게 보입니다.
 
-{{< cfstl variant="burst" >}}
+{{< cfstl variant="burst" caption="안 쓴 quota를 버퍼에 모아뒀다 필요할 때 당겨 쓴다. 버퍼가 비면 그때는 그대로 스로틀된다 — 긴 구간 평균은 여전히 limit을 넘지 않는다." >}}
 
 위쪽은 3 period 동안 40ms밖에 못 쓰고 나머지는 멈춰 있습니다 — 일이 있는데도 그렇습니다. 아래쪽은 60ms — **`300ms × 0.2 = 60ms`**, 즉 limit이 원래 허락한 총량입니다.
 
