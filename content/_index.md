@@ -10,7 +10,7 @@ toc: false
 
 ## 도메인
 
-- [모니터링]({{< relref "monitoring/_index.md" >}}) — VictoriaMetrics 내부·운영, 메트릭 400일 장기 보관 아키텍처.
+- [모니터링]({{< relref "monitoring/_index.md" >}}) — VictoriaMetrics 내부·운영, 메트릭 400일 장기 보관 아키텍처, Prometheus·Thanos·VictoriaMetrics를 서로 어떻게 붙이는가(그리고 어떤 조합이 성립하지 않는가).
 - [로깅]({{< relref "logging/_index.md" >}}) — ES(OpenSearch) 외 로그 내재화(Loki·VictoriaLogs·ClickHouse·HyperDX·StarRocks), RUM 대안, OpenSearch 비용 최적화, 최소 조합 아키텍처.
 - [APM (Datadog)]({{< relref "apm/_index.md" >}}) — Datadog APM 최적화. 작성 예정.
 - [RUM 내재화]({{< relref "rum/_index.md" >}}) — Datadog RUM(RWoL) 탈출: 웹은 HyperDX, 모바일은 대안 미성숙. HyperDX 도입 실사·Datadog RUM 커버리지 매트릭스·dd 프로토콜 프록시 검증·전 제품군 대체 매트릭스·이관 로드맵.
