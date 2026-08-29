@@ -45,9 +45,11 @@ weight: 1
 
 그래서 지도는 이렇게 다시 그려집니다. 중간 지대였던 Graal JIT이 빠진 자리에 JDK 24/25에 들어온 AOT 캐시가 새 중간 지대로 들어왔습니다.
 
-{{< flow src="_flow/1-같은-일을-언제-하는가.json" />}}
+{{< lane src="_lane/1-일이-옮겨간다.json" />}}
 
-세 줄이 하는 일의 총량은 같습니다. 다른 건 **언제 하느냐**입니다. C2는 전부 런타임에 합니다. AOT 캐시는 로드·링크와 프로파일 수집을 훈련 실행으로 당겨 놓고 컴파일만 런타임에 남깁니다. Native Image는 컴파일까지 빌드로 당기고 런타임에는 아무것도 남기지 않습니다 — 그래서 런타임에 되돌릴 수도 없습니다.
+세 줄이 하는 일의 총량은 같습니다. 다른 건 **언제 하느냐**입니다. 아래로 내려갈수록 막대가 왼쪽으로 몰립니다.
+
+C2는 전부 런타임에 합니다. AOT 캐시는 로드·링크와 프로파일 수집을 훈련 실행으로 당겨 놓고 컴파일만 런타임에 남깁니다. Native Image는 컴파일까지 빌드로 당기고 운영 중에는 할 일이 없습니다 — 그래서 런타임에 되돌릴 수도 없습니다. 점선 칸이 그 자리입니다.
 
 ## 2. JIT과 AOT가 실제로 맞바꾸는 것
 
@@ -91,6 +93,8 @@ Native Image가 쓸 수 있는 GC는 셋입니다.
 > the GC needs some extra memory when performing a garbage collection (2x of the maximum heap size is the worst case, usually, it is significantly less). Therefore, the resident set size, RSS, can increase temporarily during a garbage collection which can be an issue in any environment with memory constraints (such as a container).
 >
 > — 출처: GraalVM Native Image Memory Management 레퍼런스
+
+{{< lane src="_lane/3-기본-힙이-limit을-넘는다.json" />}}
 
 Serial GC가 mark-copy semi-space 방식이라 살아남은 객체를 복사할 여유 공간이 필요하기 때문입니다. 컨테이너 메모리 limit에 맞춰 힙을 잡으면 GC 도중에 그 limit을 넘습니다. Quarkus 가이드가 "Setting the maximum heap size, either as a percentage or an explicit value, is generally recommended"라고 쓰는 이유도 여기 있습니다. 기본값에 맡기지 말라는 뜻입니다.
 
@@ -218,6 +222,10 @@ Spring Boot AOT는 BeanFactory를 빌드 타임에 완성합니다. 그래서 **
 Native Image의 PGO와 구조가 닮았는데 결정적으로 다릅니다. PGO에서 프로파일이 틀리면 **틀린 채로 굳습니다.** AOT 캐시에서 프로파일이 틀리면 그냥 워밍업이 조금 덜 빨라질 뿐입니다.
 
 **JEP 514 (JDK 25)**는 이걸 한 단계로 줄입니다. `-XX:AOTCacheOutput=app.aot`만 주면 훈련과 캐시 생성이 한 번의 호출로 끝납니다. 컨테이너에서는 주의할 게 있습니다 — 캐시 생성 하위 호출이 훈련과 같은 크기의 힙을 따로 잡아서 **`-Xmx4g`라면 워크플로 전체에 8GB가 필요합니다.** 좁은 파드에서는 두 단계로 나누는 편이 안전합니다.
+
+세 JEP가 한 흐름 위에 놓입니다.
+
+{{< seq src="_seq/7-훈련이-프로덕션에-넘기는-것.json" />}}
 
 CRaC도 같은 문제를 겨냥한 선택지입니다. CRIU로 워밍업이 끝난 JVM 프로세스를 스냅샷 떠서 복원하는 방식이라 JIT이 그대로 살아 있습니다. Linux 전용이고 Micronaut·Quarkus가 먼저, Spring이 2023년 11월에 지원을 붙였습니다.
 
