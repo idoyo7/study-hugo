@@ -1,0 +1,52 @@
+# Docker 빌드 컨텍스트에서 뺄 것.
+#
+# 이 파일이 없는 동안 Dockerfile 의 `COPY . .` 이 .gitignore 된 로컬 파일까지
+# 전부 컨텍스트로 끌어갔다. CI 는 actions/checkout 이 깨끗한 트리를 주므로
+# 영향이 없지만, 로컬에서 `docker build` 를 한 번 돌리면 그 이미지에 들어간다.
+# 실측(이 레포의 로컬 작업 트리):
+#
+#   public/           87 MB   이전 빌드 산출물. hugo --gc 는 public/ 의 모르는
+#                             파일을 지우지 않으므로 낡은 페이지가 그대로
+#                             이미지에 남아 서빙된다. 실제로 static/ 아래
+#                             .omc 세션 상태가 public/ 으로 복사된 것을 확인했다.
+#   .omc/            6.4 MB   에이전트 세션 상태
+#   _workspace/      1.8 MB   문서 윤문 작업 디렉터리
+#   finance-upgrade/ 524 KB   .gitignore 가 "마스킹 전 계정ID·endpoint·실명
+#                             포함 — 발행 대상 아님" 이라고 적어둔 원본 소스
+#
+# .git 은 일부러 제외하지 않는다. hugo.toml 의 enableGitInfo 가 파일별 마지막
+# 커밋 시각으로 .Lastmod 를 채우는데, .git 이 없으면 그 값이 조용히 빈다.
+# 34 MB 를 컨텍스트로 보내는 비용을 날짜 신호와 맞바꾼 것이다.
+
+# 빌드 산출물 — 컨테이너 안에서 다시 굽는다
+public/
+resources/
+.hugo_build.lock
+
+# 에이전트·툴 세션 상태
+.omc/
+.omx/
+_work/
+_workspace/
+
+# 발행 대상이 아닌 원본 소스 (마스킹 전 식별자 포함)
+finance-upgrade/
+
+# 사이트에 들어가지 않는 작업물
+tools/
+nextra-port/
+archive-2/
+
+# 레포 문서 — 사이트 콘텐츠가 아니다
+README.md
+DESIGN.md
+DIAGRAMS.md
+ri-sp-karpenter-research.md
+CLAUDE.md
+AGENTS.md
+
+# CI·에디터·OS
+.github/
+.vscode/
+.idea/
+.DS_Store
