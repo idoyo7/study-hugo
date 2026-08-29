@@ -3,6 +3,7 @@ title: "APM (Datadog)"
 weight: 3
 cascade:
   type: docs
+comments: false
 ---
 
 # APM (Datadog)

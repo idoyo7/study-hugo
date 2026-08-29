@@ -3,6 +3,7 @@ title: "Argo Rollouts"
 weight: 13
 cascade:
   type: docs
+comments: false
 ---
 
 # Argo Rollouts — 승격 이전의 단계, 그리고 롤백이 실패하는 방식

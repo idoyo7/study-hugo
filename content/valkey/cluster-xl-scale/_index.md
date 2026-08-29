@@ -1,6 +1,7 @@
 ---
 title: "① 2,000노드 Valkey 클러스터 (AWS)"
 weight: 1
+comments: false
 ---
 
 # ① 2,000노드 Valkey 클러스터 (AWS)

@@ -1,6 +1,7 @@
 ---
 title: "② Sentinel HA 581샤드를 Kubernetes로 (Braze)"
 weight: 2
+comments: false
 ---
 
 # ② Sentinel HA 581샤드를 Kubernetes로 (Braze)

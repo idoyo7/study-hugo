@@ -3,6 +3,7 @@ title: "EKS 버전 업그레이드"
 weight: 8
 cascade:
   type: docs
+comments: false
 ---
 
 # EKS 버전 업그레이드 — finance 클러스터 blue-green 이관 케이스

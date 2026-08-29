@@ -3,6 +3,7 @@ title: "HyperDX 내재화"
 weight: 7
 cascade:
   type: docs
+comments: false
 ---
 
 # HyperDX 내재화 — 실전 배포 청사진

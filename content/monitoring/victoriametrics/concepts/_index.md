@@ -1,6 +1,7 @@
 ---
 title: "기본 개념"
 weight: 1
+comments: false
 ---
 
 # 기본 개념 — 네이버 D2 발표 정독

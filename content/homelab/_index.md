@@ -1,6 +1,7 @@
 ---
 title: "홈랩"
 weight: 9
+comments: false
 ---
 
 # 홈랩

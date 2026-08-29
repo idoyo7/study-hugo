@@ -1,0 +1,19 @@
+/* 프로젝트 전용 CSS. hextra 가 assets/css/custom.css 를 main.css 뒤에 이어붙인다
+   (themes/hextra/layouts/_partials/head.html:32,37). 테마 유틸리티는 @layer utilities
+   안에 있고 이 파일 규칙은 레이어 밖이라, 캐스케이드에서 레이어 없는 쪽이 이긴다. */
+
+/* 우측 목차는 테마 기본값이 xl(1280px)부터다 — toc.html:9 의 `hx:hidden hx:xl:block`.
+   768~1279px 에서는 사이드바 드로어 안 인라인 목차도 `hx:md:hidden` 이라 목차가 어디에도
+   없었다. 헤딩 12~31개짜리 문서가 대부분이라 그 구간에서 문서 내 이동 수단이 사라진다.
+   1024px 부터 되살린다. 목차 열 256px 만큼 본문이 좁아진다 — 1024px 에서 768 -> 512px
+   (CDP 로 main#content 의 getBoundingClientRect().width 를 잰 값). 표·코드블록은 테마의
+   overflow-x-auto 로 가로 스크롤되므로 페이지가 옆으로 밀리지는 않는다.
+   - screen 한정: `hx:print:hidden` 을 이기지 않도록. 인쇄물에 목차 열이 끼면 안 된다.
+   - :has(a[href^="#"]): 목차 항목이 실제로 있는 문서만. 항목이 0개인 7장(홈, 섹션 랜딩
+     5개, h2 이하가 없는 문서 1개 — /logging/07-clickhouse-vs-starrocks/)은 빈 256px 열이
+     생기지 않게 그대로 숨겨둔다. :has 미지원 브라우저는 종전 동작(숨김). */
+@media screen and (min-width: 64rem) {
+  .hextra-toc:has(a[href^="#"]) {
+    display: block !important;
+  }
+}

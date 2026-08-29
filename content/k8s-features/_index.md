@@ -3,6 +3,7 @@ title: "Kubernetes"
 weight: 9
 cascade:
   type: docs
+comments: false
 ---
 
 # Kubernetes — 공식 문서 너머의 실사용 판단

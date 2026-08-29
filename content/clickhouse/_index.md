@@ -3,6 +3,7 @@ title: "ClickHouse 운영"
 weight: 6
 cascade:
   type: docs
+comments: false
 ---
 
 # ClickHouse 운영 — 채택을 전제했을 때의 how

@@ -1,6 +1,7 @@
 ---
 title: "잘 쓰는 방법"
 weight: 2
+comments: false
 ---
 
 # 잘 쓰는 방법 — 설계 원칙과 운영 패턴

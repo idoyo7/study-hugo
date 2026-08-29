@@ -1,6 +1,7 @@
 ---
 title: "우리의 운영"
 weight: 3
+comments: false
 ---
 
 # 우리의 운영 — 우리 환경의 구성·튜닝·기준치

@@ -1,6 +1,7 @@
 ---
 title: "VictoriaMetrics"
 weight: 1
+comments: false
 ---
 
 # VictoriaMetrics

@@ -1,6 +1,7 @@
 ---
 title: "원문별 정리"
 weight: 4
+comments: false
 ---
 
 # 원문별 정리 — 네이버 D2 발표·기사 4건
