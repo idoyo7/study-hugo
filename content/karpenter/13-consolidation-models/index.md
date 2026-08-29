@@ -1,5 +1,5 @@
 ---
-title: "13 · consolidation은 무엇을 하는가 — 후보 선별부터 Balanced 심사까지"
+title: "13 · consolidation 후보 선별과 심사"
 linkTitle: "13 consolidation 처리 흐름"
 weight: 13
 ---

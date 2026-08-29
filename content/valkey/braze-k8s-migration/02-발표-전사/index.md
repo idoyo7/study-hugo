@@ -1,5 +1,5 @@
 ---
-title: "부록 · 발표 전사 — Redis on EC2 to Valkey on Kubernetes (KubeCon EU 2026)"
+title: "부록 · 발표 전사 — Braze Redis→Valkey"
 linkTitle: "02 발표 전사"
 weight: 2
 ---

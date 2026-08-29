@@ -1,5 +1,6 @@
 ---
-title: "관측성 — VM-stack·metrics-server·fluentbit·descheduler"
+title: "관측성 — VM-stack·metrics-server"
+linkTitle: "관측성 — VM-stack·metrics-server·fluentbit·descheduler"
 weight: 6
 ---
 

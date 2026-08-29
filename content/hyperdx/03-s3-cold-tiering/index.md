@@ -1,5 +1,6 @@
 ---
-title: "S3 콜드 티어링 — storage_configuration·TTL·IRSA worked example"
+title: "S3 콜드 티어링 — storage_configuration"
+linkTitle: "S3 콜드 티어링 — storage_configuration·TTL·IRSA worked example"
 weight: 3
 aliases: ["/hyperdx-operating/02-tiering/", "/hyperdx/operating/02-tiering/"]
 ---

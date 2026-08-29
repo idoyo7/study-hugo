@@ -52,3 +52,14 @@ disableKinds = ['taxonomy', 'term']
       reactionsEnabled = '1'
       inputPosition = 'top'
       lang = 'ko'
+
+# 홈 <title> 전용. 테마 head.html 은 홈에서 title='Ops Insights' 12자만 내보낸다.
+# 프런트매터 title 을 늘리면 h1·og:title 까지 같이 늘어나므로 title 태그만 따로 둔다.
+# layouts/partials/head.html 오버라이드가 이 값을 읽는다.
+#
+# [params] 직하의 벌거벗은 키로 두지 않는 이유: 형제 브랜치 여러 개가 [params] 바로
+# 다음 줄에 삽입한다([params.author] 서브테이블 포함). 머지 해소에서 이 키가 그 아래로
+# 밀리면 조용히 params.author.homeTitle 이 되고, 빌드는 통과한 채 홈 title 만 12자로
+# 되돌아간다. 전용 서브테이블은 다른 테이블에 삼켜지지 않는다.
+[params.seo]
+  homeTitle = 'Ops Insights — 쿠버네티스·관측성 운영 지식베이스'
