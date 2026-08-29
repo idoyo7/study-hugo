@@ -1,5 +1,6 @@
 ---
 title: "Redis · Valkey · Memcached"
+date: 2026-08-06
 weight: 11
 cascade:
   type: docs

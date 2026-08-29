@@ -1,5 +1,6 @@
 ---
 title: "OpenSearch (EFK)"
+date: 2026-07-12
 weight: 1
 ---
 

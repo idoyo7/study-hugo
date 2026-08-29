@@ -1,5 +1,6 @@
 ---
 title: "ClickHouse (self-hosted)"
+date: 2026-07-12
 weight: 4
 ---
 

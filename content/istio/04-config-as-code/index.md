@@ -1,5 +1,6 @@
 ---
 title: "설정을 코드로: GitOps"
+date: 2026-08-01
 weight: 4
 ---
 

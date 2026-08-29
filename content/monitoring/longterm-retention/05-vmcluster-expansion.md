@@ -1,5 +1,6 @@
 ---
 title: "VMCluster 확장"
+date: 2026-07-12
 weight: 5
 aliases: ["/monitoring/longterm-retention/05-option-d-expansion/"]
 ---

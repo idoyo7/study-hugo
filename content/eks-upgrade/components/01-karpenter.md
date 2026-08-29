@@ -1,5 +1,6 @@
 ---
 title: "karpenter — 0.36.2 → 1.14.0, v1beta1→v1 CRD"
+date: 2026-07-21
 weight: 1
 ---
 

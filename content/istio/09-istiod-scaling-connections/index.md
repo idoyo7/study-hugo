@@ -1,5 +1,6 @@
 ---
 title: "istiod 스케일링과 xDS 커넥션 재분배"
+date: 2026-08-01
 weight: 9
 ---
 

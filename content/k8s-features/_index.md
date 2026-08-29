@@ -1,5 +1,6 @@
 ---
 title: "Kubernetes"
+date: 2026-07-27
 weight: 9
 cascade:
   type: docs

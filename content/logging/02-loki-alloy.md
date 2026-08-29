@@ -1,5 +1,6 @@
 ---
 title: "Loki + Alloy"
+date: 2026-07-12
 weight: 2
 ---
 

@@ -1,5 +1,6 @@
 ---
 title: "Karpenter"
+date: 2026-07-30
 weight: 10
 cascade:
   type: docs

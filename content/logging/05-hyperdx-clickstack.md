@@ -1,5 +1,6 @@
 ---
 title: "HyperDX / ClickStack"
+date: 2026-07-12
 weight: 5
 ---
 

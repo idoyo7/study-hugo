@@ -1,5 +1,6 @@
 ---
 title: "k8s 형태 판정 — Deployment로 끝나는 이유와 종료 설계"
+date: 2026-08-06
 linkTitle: "06 k8s 형태 판정"
 weight: 6
 ---

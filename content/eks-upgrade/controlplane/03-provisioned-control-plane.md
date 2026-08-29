@@ -1,5 +1,6 @@
 ---
 title: "용량 축 — Provisioned Control Plane 티어와 복귀 제약"
+date: 2026-08-15
 weight: 3
 ---
 

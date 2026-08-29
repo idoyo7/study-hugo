@@ -1,5 +1,6 @@
 ---
 title: "모니터링"
+date: 2026-07-12
 weight: 1
 cascade:
   type: docs

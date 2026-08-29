@@ -21,6 +21,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # 전체 이력을 받는다. hugo.toml 의 enableGitInfo 가 파일별 마지막
+          # 커밋 시각으로 .Lastmod 를 채우는데, 기본값인 얕은 클론(depth 1)
+          # 에서는 커밋이 하나뿐이라 176개 문서의 수정일이 전부 같은 날짜로
+          # 붕괴한다. 틀린 날짜를 내보내는 건 날짜가 없는 것보다 나쁘다.
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

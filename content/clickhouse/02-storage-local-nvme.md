@@ -1,5 +1,6 @@
 ---
 title: "스토리지 아키텍처 — 로컬 NVMe(i7i/i8g)"
+date: 2026-07-13
 weight: 2
 ---
 

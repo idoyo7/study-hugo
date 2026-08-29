@@ -1,5 +1,6 @@
 ---
 title: "13 · consolidation은 무엇을 하는가 — 후보 선별부터 Balanced 심사까지"
+date: 2026-08-02
 linkTitle: "13 consolidation 처리 흐름"
 weight: 13
 ---

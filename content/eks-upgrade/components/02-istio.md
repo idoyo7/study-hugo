@@ -1,5 +1,6 @@
 ---
 title: "istio — →1.30.3, sidecar 유지·ambient 금지"
+date: 2026-07-21
 weight: 2
 ---
 

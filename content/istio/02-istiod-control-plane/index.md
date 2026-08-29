@@ -1,5 +1,6 @@
 ---
 title: "컨트롤 플레인 해부: istiod"
+date: 2026-08-01
 weight: 2
 ---
 

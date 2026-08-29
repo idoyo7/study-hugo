@@ -1,5 +1,6 @@
 ---
 title: "부록 · 발표 전사 — Redis on EC2 to Valkey on Kubernetes (KubeCon EU 2026)"
+date: 2026-08-06
 linkTitle: "02 발표 전사"
 weight: 2
 ---

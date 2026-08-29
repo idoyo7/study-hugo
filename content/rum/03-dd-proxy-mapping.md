@@ -1,5 +1,6 @@
 ---
 title: "Datadog 프로토콜 프록시 매핑"
+date: 2026-07-13
 weight: 3
 ---
 

@@ -1,5 +1,6 @@
 ---
 title: "HyperDX 직접 운영하기"
+date: 2026-07-18
 weight: 8
 aliases: ["/hyperdx/00-operating-hyperdx/", "/hyperdx/operating/"]
 cascade:

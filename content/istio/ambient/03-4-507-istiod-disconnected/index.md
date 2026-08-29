@@ -1,5 +1,6 @@
 ---
 title: "507과 istiod disconnected 탐지"
+date: 2026-08-01
 weight: 6
 ---
 

@@ -1,5 +1,6 @@
 ---
 title: "Argo Rollouts"
+date: 2026-08-28
 weight: 13
 cascade:
   type: docs

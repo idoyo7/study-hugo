@@ -1,5 +1,6 @@
 ---
 title: "APM (Datadog)"
+date: 2026-07-12
 weight: 3
 cascade:
   type: docs

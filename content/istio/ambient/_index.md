@@ -1,5 +1,6 @@
 ---
 title: "Ambient mode 도입기 (채널코퍼레이션)"
+date: 2026-07-28
 weight: 20
 ---
 

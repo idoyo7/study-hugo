@@ -1,5 +1,6 @@
 ---
 title: "DaemonSet 미기동 노드 격리"
+date: 2026-08-01
 weight: 5
 ---
 

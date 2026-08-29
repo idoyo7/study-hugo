@@ -1,5 +1,6 @@
 ---
 title: "왜 Ambient mode인가"
+date: 2026-08-01
 weight: 1
 ---
 

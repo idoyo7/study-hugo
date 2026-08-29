@@ -1,5 +1,6 @@
 ---
 title: "01 승격 이전 — step과 AnalysisRun"
+date: 2026-08-28
 weight: 1
 ---
 

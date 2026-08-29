@@ -1,5 +1,6 @@
 ---
 title: "01 hub/edge 2-클러스터 구조"
+date: 2026-08-20
 weight: 1
 ---
 

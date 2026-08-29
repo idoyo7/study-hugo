@@ -1,5 +1,6 @@
 ---
 title: "operator 토폴로지·다운타임 — EBS 재부착이 바꾸는 복구 모델"
+date: 2026-08-01
 weight: 4
 aliases: ["/hyperdx-operating/03-availability/", "/hyperdx/operating/03-availability/"]
 ---

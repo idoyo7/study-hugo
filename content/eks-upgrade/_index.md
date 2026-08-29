@@ -1,5 +1,6 @@
 ---
 title: "EKS 버전 업그레이드"
+date: 2026-07-21
 weight: 8
 cascade:
   type: docs

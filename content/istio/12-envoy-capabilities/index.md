@@ -1,5 +1,6 @@
 ---
 title: "Envoy가 제공하는 것"
+date: 2026-08-01
 weight: 12
 ---
 

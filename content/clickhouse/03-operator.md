@@ -1,5 +1,6 @@
 ---
 title: "clickhouse-operator 선택"
+date: 2026-07-13
 weight: 3
 ---
 

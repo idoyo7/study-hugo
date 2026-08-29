@@ -1,5 +1,6 @@
 ---
 title: "consolidation이 되돌리는 것"
+date: 2026-08-01
 weight: 6
 aliases: ["/k8s-features/karpenter/03-consolidation-traps/"]
 ---

@@ -1,5 +1,6 @@
 ---
 title: "출처"
+date: 2026-07-13
 weight: 10
 aliases: ["/clickhouse/08-sources/"]
 ---

@@ -1,5 +1,6 @@
 ---
 title: "15 · NodePool별 MultiNode consolidation — 최소 변경 구현계획"
+date: 2026-08-04
 linkTitle: "15 NodePool별 MultiNode 구현계획"
 weight: 15
 ---

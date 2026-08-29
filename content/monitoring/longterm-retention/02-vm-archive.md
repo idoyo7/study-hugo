@@ -1,5 +1,6 @@
 ---
 title: "VictoriaMetrics"
+date: 2026-07-12
 weight: 2
 aliases: ["/monitoring/longterm-retention/02-option-a-vm-archive/"]
 ---

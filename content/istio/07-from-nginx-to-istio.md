@@ -1,5 +1,6 @@
 ---
 title: "nginx에서 Istio로"
+date: 2026-07-12
 weight: 7
 ---
 

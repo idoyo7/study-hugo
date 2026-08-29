@@ -1,5 +1,6 @@
 ---
 title: "시크릿·오토스케일링 — external-secrets·keda"
+date: 2026-07-21
 weight: 4
 ---
 

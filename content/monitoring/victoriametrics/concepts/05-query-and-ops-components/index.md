@@ -1,5 +1,6 @@
 ---
 title: "쿼리·운영 컴포넌트"
+date: 2026-08-01
 weight: 5
 aliases: ["/monitoring/victoriametrics/05-query-and-ops-components/"]
 ---

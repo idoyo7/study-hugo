@@ -1,5 +1,6 @@
 ---
 title: "왜 찢어졌나 — Commons Clause 부터 AGPL 복귀까지"
+date: 2026-08-06
 weight: 3
 ---
 

@@ -1,5 +1,6 @@
 ---
 title: "수집 (vmagent·vminsert)"
+date: 2026-08-01
 weight: 3
 aliases: ["/monitoring/victoriametrics/03-ingestion/"]
 ---

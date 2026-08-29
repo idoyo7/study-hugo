@@ -1,5 +1,6 @@
 ---
 title: "In-Place Pod Resize (1.35 GA)"
+date: 2026-08-01
 weight: 1
 ---
 

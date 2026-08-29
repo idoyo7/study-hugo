@@ -1,5 +1,6 @@
 ---
 title: "TSDB와 VictoriaMetrics"
+date: 2026-07-12
 weight: 1
 aliases: ["/monitoring/victoriametrics/01-tsdb-and-victoriametrics/"]
 ---

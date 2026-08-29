@@ -1,5 +1,6 @@
 ---
 title: "관측성 — VM-stack·metrics-server·fluentbit·descheduler"
+date: 2026-07-21
 weight: 6
 ---
 

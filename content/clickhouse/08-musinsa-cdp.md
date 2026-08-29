@@ -1,5 +1,6 @@
 ---
 title: "무신사 CDP — self-hosted ClickHouse에서 Cloud로"
+date: 2026-08-12
 weight: 8
 ---
 

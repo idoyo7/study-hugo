@@ -1,5 +1,6 @@
 ---
 title: "커넥션 게이트웨이"
+date: 2026-08-06
 weight: 12
 cascade:
   type: docs

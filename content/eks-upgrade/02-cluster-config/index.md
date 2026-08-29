@@ -1,5 +1,6 @@
 ---
 title: "클러스터 설정 — Fargate+karpenter 토폴로지와 Terraform 리소스"
+date: 2026-08-01
 weight: 3
 ---
 

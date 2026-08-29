@@ -1,5 +1,6 @@
 ---
 title: "② Sentinel HA 581샤드를 Kubernetes로 (Braze)"
+date: 2026-08-06
 weight: 2
 ---
 

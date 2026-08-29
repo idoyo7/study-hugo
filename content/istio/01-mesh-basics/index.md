@@ -1,5 +1,6 @@
 ---
 title: "서비스 메시와 Istio 기초"
+date: 2026-08-01
 weight: 1
 ---
 

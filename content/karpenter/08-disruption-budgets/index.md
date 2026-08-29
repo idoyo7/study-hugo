@@ -1,5 +1,6 @@
 ---
 title: "언제 무엇을 멈출 것인가 — disruption 예산"
+date: 2026-08-01
 weight: 8
 ---
 

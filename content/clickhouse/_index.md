@@ -1,5 +1,6 @@
 ---
 title: "ClickHouse 운영"
+date: 2026-07-13
 weight: 6
 cascade:
   type: docs

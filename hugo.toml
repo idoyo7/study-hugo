@@ -9,6 +9,22 @@ hasCJKLanguage = true
 
 disableKinds = ['taxonomy', 'term']
 
+# 176개 문서 전부 발행일·수정일 신호가 0이었다. 프런트매터에 date 가 없고
+# enableGitInfo 도 꺼져 있어서 .Lastmod / .PublishDate 가 zero time 이었다.
+# 결과적으로 article:published_time / article:modified_time 이 0건이고,
+# 화면에도 "언제 쓴 글인지"가 어디에도 없었다.
+#
+# 날짜를 176개 파일에 손으로 박는 대신 git 커밋 이력에서 끌어온다. 이 레포는
+# 문서 단위로 커밋이 쪼개져 있어(git log --oneline 참고) 파일별 마지막 커밋
+# 시각이 실제 수정일과 거의 일치한다. 프런트매터에 date 를 쓰면 그 값이
+# 우선하므로, 나중에 특정 문서만 명시하고 싶을 때 이 설정과 충돌하지 않는다.
+#
+# 전제 두 개가 붙는다 — 둘 다 이 PR 에서 함께 맞췄다.
+#   · 빌더 이미지에 git 바이너리가 있어야 한다 (Dockerfile)
+#   · CI checkout 이 얕은 클론이면 안 된다 (fetch-depth: 0)
+#     depth 1 이면 모든 파일의 lastmod 가 마지막 커밋 하나의 날짜로 같아진다.
+enableGitInfo = true
+
 [markup]
   [markup.goldmark.renderer]
     unsafe = true
@@ -20,6 +36,12 @@ disableKinds = ['taxonomy', 'term']
     endLevel = 3
 
 [params]
+  # 테마 components/last-updated.html 이 이 스위치를 보고 문서 끝에
+  # "Last updated on <날짜>" 를 렌더한다. enableGitInfo 로 .Lastmod 가
+  # 채워졌으니 이제 표시할 값이 있다. 신선도는 검색·AI 인용 양쪽에서
+  # 값을 갖는 신호인데, 이 사이트는 176편이 전부 최근 문서인데도
+  # 그 사실을 밖으로 내보내지 않고 있었다.
+  displayUpdatedDate = true
   [params.navbar]
     displayTitle = true
     displayLogo = false

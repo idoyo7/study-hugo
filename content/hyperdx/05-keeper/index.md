@@ -1,5 +1,6 @@
 ---
 title: "ClickHouse Keeper — 조정 계층이지 durable queue가 아니다"
+date: 2026-08-01
 weight: 5
 ---
 

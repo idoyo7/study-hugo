@@ -1,5 +1,6 @@
 ---
 title: "운영 런북 — 장애·변경이 났을 때 무엇을 어떤 순서로"
+date: 2026-08-13
 weight: 2
 aliases: ["/hyperdx-operating/04-operator-pattern/", "/hyperdx/operating/04-operator-pattern/"]
 ---

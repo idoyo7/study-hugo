@@ -1,5 +1,6 @@
 ---
 title: "Ops Insights"
+date: 2026-07-12
 type: docs
 toc: false
 ---

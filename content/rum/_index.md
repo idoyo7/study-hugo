@@ -1,5 +1,6 @@
 ---
 title: "RUM 내재화"
+date: 2026-07-12
 weight: 4
 cascade:
   type: docs

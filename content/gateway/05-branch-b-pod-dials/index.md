@@ -1,5 +1,6 @@
 ---
 title: "분기 B — pod가 건다: 링을 만들어야 하는 경우"
+date: 2026-08-06
 linkTitle: "05 분기 B · pod가 건다"
 weight: 5
 ---

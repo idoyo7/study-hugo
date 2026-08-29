@@ -1,5 +1,6 @@
 ---
 title: "Redis 581샤드를 무중단으로 Kubernetes에 올리기 — 그리고 90%라는 숫자의 진실"
+date: 2026-08-06
 linkTitle: "01 무중단 이관"
 weight: 1
 ---

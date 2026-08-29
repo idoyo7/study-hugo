@@ -1,5 +1,6 @@
 ---
 title: "Inside VictoriaMetrics"
+date: 2026-08-01
 weight: 3
 ---
 

@@ -1,5 +1,6 @@
 ---
 title: "로깅"
+date: 2026-07-12
 weight: 2
 cascade:
   type: docs

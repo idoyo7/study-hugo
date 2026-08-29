@@ -1,5 +1,6 @@
 ---
 title: "memcached — 같은 문제를 다르게 푼 6년 선배"
+date: 2026-08-06
 weight: 2
 ---
 
