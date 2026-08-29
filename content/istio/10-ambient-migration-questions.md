@@ -1,6 +1,7 @@
 ---
 title: "Ambient 이행 심사"
 date: 2026-07-28
+lastmod: 2026-08-24
 weight: 10
 ---
 

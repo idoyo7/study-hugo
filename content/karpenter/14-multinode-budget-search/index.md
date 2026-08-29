@@ -1,6 +1,7 @@
 ---
 title: "14 · MultiNode consolidation — NodePool 예산과 전역 후보 탐색"
 date: 2026-08-04
+lastmod: 2026-08-24
 linkTitle: "14 MultiNode 예산과 후보 탐색"
 weight: 14
 ---

@@ -1,6 +1,7 @@
 ---
 title: "vmagent 전송 튜닝"
 date: 2026-07-18
+lastmod: 2026-08-24
 weight: 2
 ---
 

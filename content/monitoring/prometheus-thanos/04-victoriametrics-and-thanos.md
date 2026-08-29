@@ -1,5 +1,7 @@
 ---
 title: "VictoriaMetrics에 Thanos를 붙일 수 있나"
+date: 2026-08-30
+lastmod: 2026-08-30
 weight: 4
 ---
 

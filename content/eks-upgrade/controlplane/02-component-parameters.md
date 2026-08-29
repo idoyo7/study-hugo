@@ -1,6 +1,7 @@
 ---
 title: "레이어 2 — 2026-08 열린 4종과 karpenter 가중치"
 date: 2026-08-15
+lastmod: 2026-08-24
 weight: 2
 ---
 

@@ -1,6 +1,7 @@
 ---
 title: "1.20 → 1.24 — ambient가 실험에서 나온 구간"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 16
 ---
 

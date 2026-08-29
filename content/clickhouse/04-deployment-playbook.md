@@ -1,6 +1,7 @@
 ---
 title: "operator 배포 플레이북 — 로컬 NVMe 실전 구성"
 date: 2026-07-15
+lastmod: 2026-08-24
 weight: 4
 ---
 

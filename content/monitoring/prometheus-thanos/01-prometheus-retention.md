@@ -1,5 +1,7 @@
 ---
 title: "Prometheus가 하지 않는 일"
+date: 2026-08-30
+lastmod: 2026-08-30
 weight: 1
 ---
 

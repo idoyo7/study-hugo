@@ -1,6 +1,7 @@
 ---
 title: "네트워킹·인그레스 — aws-load-balancer-controller"
 date: 2026-07-21
+lastmod: 2026-08-24
 weight: 5
 ---
 

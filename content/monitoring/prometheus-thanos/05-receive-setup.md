@@ -1,5 +1,7 @@
 ---
 title: "Receive 실전 구성"
+date: 2026-08-30
+lastmod: 2026-08-30
 weight: 5
 ---
 

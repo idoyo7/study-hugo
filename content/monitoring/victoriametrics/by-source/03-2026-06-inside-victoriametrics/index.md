@@ -1,6 +1,7 @@
 ---
 title: "Inside VictoriaMetrics"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 3
 ---
 

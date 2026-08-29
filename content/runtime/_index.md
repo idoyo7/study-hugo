@@ -1,5 +1,7 @@
 ---
 title: "런타임"
+date: 2026-08-29
+lastmod: 2026-08-29
 weight: 14
 cascade:
   type: docs

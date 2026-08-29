@@ -1,6 +1,7 @@
 ---
 title: "1.25 → 1.30 — sidecar 운영자가 맞는 청구서"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 17
 ---
 

@@ -1,6 +1,7 @@
 ---
 title: "Valkey"
 date: 2026-08-06
+lastmod: 2026-08-24
 weight: 11
 cascade:
   type: docs

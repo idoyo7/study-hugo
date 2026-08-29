@@ -1,6 +1,7 @@
 ---
 title: "Kotlin 구현 노트 — 무엇이 실제로 어려운가"
 date: 2026-08-06
+lastmod: 2026-08-24
 linkTitle: "07 Kotlin 구현 노트"
 weight: 7
 ---

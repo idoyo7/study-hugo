@@ -1,6 +1,7 @@
 ---
 title: "문제의 형태 — API Gateway를 떠나는 진짜 이유"
 date: 2026-08-06
+lastmod: 2026-08-24
 linkTitle: "01 문제의 형태"
 weight: 1
 ---

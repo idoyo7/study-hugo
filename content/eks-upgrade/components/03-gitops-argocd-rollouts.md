@@ -1,6 +1,7 @@
 ---
 title: "GitOps — argocd·argo-rollouts"
 date: 2026-07-21
+lastmod: 2026-08-24
 weight: 3
 ---
 

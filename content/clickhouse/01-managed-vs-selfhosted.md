@@ -1,6 +1,7 @@
 ---
 title: "Managed vs Self-hosted — TCO 크로스오버"
 date: 2026-07-13
+lastmod: 2026-08-24
 weight: 1
 ---
 

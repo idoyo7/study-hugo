@@ -1,6 +1,7 @@
 ---
 title: "소스맵"
 date: 2026-07-12
+lastmod: 2026-08-24
 weight: 6
 aliases: ["/monitoring/victoriametrics/08-sources/"]
 ---

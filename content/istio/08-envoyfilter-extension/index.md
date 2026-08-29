@@ -1,6 +1,7 @@
 ---
 title: "EnvoyFilter — 표준 CRD의 탈출구"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 8
 ---
 

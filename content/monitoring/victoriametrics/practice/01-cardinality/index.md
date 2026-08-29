@@ -1,6 +1,7 @@
 ---
 title: "카디널리티"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 1
 aliases: ["/monitoring/victoriametrics/06-cardinality/"]
 ---

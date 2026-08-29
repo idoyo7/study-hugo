@@ -1,6 +1,7 @@
 ---
 title: "CRD 카탈로그와 연계"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 15
 ---
 

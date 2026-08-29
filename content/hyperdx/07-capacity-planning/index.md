@@ -1,6 +1,7 @@
 ---
 title: "용량 산정 — 월 0.7TB RUM 워크드 모델(3개월·6개월·1년)"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 7
 aliases: ["/hyperdx-operating/05-capacity/", "/hyperdx/operating/05-capacity/"]
 ---

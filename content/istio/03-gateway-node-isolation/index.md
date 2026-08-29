@@ -1,6 +1,7 @@
 ---
 title: "데이터 플레인과 Ingress Gateway"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 3
 ---
 

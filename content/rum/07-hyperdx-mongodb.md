@@ -1,6 +1,7 @@
 ---
 title: "HyperDX의 MongoDB — 역할·부하 프로파일·운영"
 date: 2026-07-15
+lastmod: 2026-08-24
 weight: 6
 ---
 

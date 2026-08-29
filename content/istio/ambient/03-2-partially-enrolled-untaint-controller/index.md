@@ -1,6 +1,7 @@
 ---
 title: "3-2편 — Partially Enrolled Pod와 Untaint Controller"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 4
 ---
 

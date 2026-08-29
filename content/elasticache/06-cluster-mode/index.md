@@ -1,6 +1,7 @@
 ---
 title: "cluster mode — 16384 슬롯이 강제하는 것"
 date: 2026-08-06
+lastmod: 2026-08-24
 weight: 6
 ---
 

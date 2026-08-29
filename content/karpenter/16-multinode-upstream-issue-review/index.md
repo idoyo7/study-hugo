@@ -1,6 +1,7 @@
 ---
 title: "16 · NodePool-aware MultiNode consolidation — upstream 이슈 조사와 기여 경로"
 date: 2026-08-06
+lastmod: 2026-08-24
 linkTitle: "16 MultiNode upstream 이슈 조사"
 weight: 16
 ---

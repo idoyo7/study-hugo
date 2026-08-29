@@ -1,6 +1,7 @@
 ---
 title: "저장과 압축"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 4
 aliases: ["/monitoring/victoriametrics/04-storage-and-compression/"]
 ---

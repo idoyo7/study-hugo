@@ -1,6 +1,7 @@
 ---
 title: "Node Problem Detector"
 date: 2026-07-31
+lastmod: 2026-08-24
 weight: 4
 ---
 

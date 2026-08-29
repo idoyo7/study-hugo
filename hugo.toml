@@ -59,3 +59,10 @@ disableKinds = ['taxonomy', 'term']
       reactionsEnabled = '1'
       inputPosition = 'top'
       lang = 'ko'
+
+# 날짜 해석 순서 — 프런트매터 lastmod 를 :git 보다 우선한다.
+# 메타데이터 일괄 커밋이 GitInfo 의 .Lastmod 를 오염시키므로(전 파일이 같은 날짜가 됨),
+# 실제 본문 수정일을 lastmod 로 핀해 둔다. 본문을 고칠 때 lastmod 를 갱신하거나 지우면
+# 그 다음부터는 :git(해당 수정 커밋)이 이어받는다.
+[frontmatter]
+  lastmod = ['lastmod', ':git', 'date']

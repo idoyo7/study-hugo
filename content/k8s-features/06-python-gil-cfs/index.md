@@ -1,6 +1,7 @@
 ---
 title: "Python GIL × CPU Limit"
 date: 2026-08-06
+lastmod: 2026-08-29
 weight: 6
 ---
 

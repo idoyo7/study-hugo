@@ -1,5 +1,7 @@
 ---
 title: "Sidecar vs Receive"
+date: 2026-08-30
+lastmod: 2026-08-30
 weight: 3
 ---
 

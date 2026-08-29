@@ -1,6 +1,7 @@
 ---
 title: "3-3편 — Ambient 안전하게 업그레이드하기"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 5
 ---
 

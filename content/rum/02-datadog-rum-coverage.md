@@ -1,6 +1,7 @@
 ---
 title: "Datadog RUM 커버리지 — 어디까지 대체되나"
 date: 2026-07-13
+lastmod: 2026-08-24
 weight: 2
 ---
 

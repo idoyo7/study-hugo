@@ -1,6 +1,7 @@
 ---
 title: "우리 배포 형상 — 자체 RUM 컨버터·6 실행 단위·stage/prod 격차"
 date: 2026-08-13
+lastmod: 2026-08-24
 weight: 1
 aliases: ["/hyperdx/11-our-rum-ingest/", "/hyperdx-operating/01-architecture/", "/hyperdx/operating/01-architecture/"]
 ---

@@ -1,6 +1,7 @@
 ---
 title: "3-1편 — 503과 Half-open Connection"
 date: 2026-08-01
+lastmod: 2026-08-24
 weight: 3
 ---
 
