@@ -15,7 +15,7 @@ weight: 6
 
 왜 이 문서가 따로 있나. [02 CPU Throttling]({{< relref "02-cpu-throttling.md" >}})이 "스로틀이 무엇이고, 어떻게 보이고, 무엇으로 대응하나"를 다룬다면 이 문서는 같은 문제를 **언어 런타임 쪽에서** 봅니다. 파이썬의 GIL은 두 개의 그럴듯한 오해를 만듭니다 — "GIL은 1코어를 갈구도록 설계된 구조다"와 "limit 1은 4코어에서 25%씩 배급받는다는 뜻이다". 이 문서는 두 오해를 커널·CPython 소스 수준에서 바로잡고 그 위에서 "그런데 왜 실제 파이썬 컨테이너는 잘리는가"를 답합니다. 02 §4의 런타임 표(Go·JVM·Node.js)에서 비어 있던 Python 행이 이 문서입니다.
 
-자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 스로틀의 증상·관측·대응 일반론은 [02 CPU Throttling]({{< relref "02-cpu-throttling.md" >}}) · 안 쓴 quota를 적립하는 커널 기능은 [03 CPU Burst]({{< relref "03-cpu-burst.md" >}}) · limit을 무중단으로 바꾸는 [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}})
+자매 문서: [챕터 개요]({{< relref "_index.md" >}}) · 스로틀의 증상·관측·대응 일반론은 [02 CPU Throttling]({{< relref "02-cpu-throttling.md" >}}) · 안 쓴 quota를 적립하는 커널 기능은 [03 CPU Burst]({{< relref "03-cpu-burst.md" >}}) · limit을 무중단으로 바꾸는 [01 In-Place Pod Resize]({{< relref "01-inplace-pod-resize.md" >}}) · 이 사실들을 배포 배치 선택에 적용한 [런타임 02 Python 워커와 스레드]({{< relref "../../runtime/02-python-worker-thread/index.md" >}})
 
 ## 1. 오해 ① — "GIL은 1코어를 갈구도록 설계된 구조다"
 

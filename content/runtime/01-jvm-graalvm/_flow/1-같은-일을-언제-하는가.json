@@ -1,0 +1,30 @@
+{
+  "caption": "클래스 로드·링크, 프로파일 수집, 최적화 컴파일은 어느 런타임에서도 사라지지 않는다. 런타임 교체는 그 일을 다른 시점으로 옮기는 것이다.",
+  "font": 1.15,
+  "nodes": [
+    { "id": "A1", "col": 0, "row": 0, "label": "javac까지만", "sub": "바이트코드", "kind": "src" },
+    { "id": "A2", "col": 1, "row": 0, "label": "로드·링크", "sub": "매 시동마다 처음부터", "kind": "proc" },
+    { "id": "A3", "col": 2, "row": 0, "label": "C1 → C2", "sub": "프로파일 쌓아 재컴파일", "kind": "sink" },
+
+    { "id": "B1", "col": 0, "row": 2, "label": "훈련 실행", "sub": "AOT 캐시 생성", "kind": "src" },
+    { "id": "B2", "col": 1, "row": 2, "label": "캐시에서 복원", "sub": "로드·링크 끝난 상태", "kind": "proc" },
+    { "id": "B3", "col": 2, "row": 2, "label": "C2 조기 진입", "sub": "프로파일 선탑재", "kind": "sink" },
+
+    { "id": "C1", "col": 0, "row": 4, "label": "정적 분석 · AOT", "sub": "closed world", "kind": "src" },
+    { "id": "C2", "col": 1, "row": 4, "label": "즉시 시작", "sub": "로드할 클래스 없음", "kind": "proc" },
+    { "id": "C3", "col": 2, "row": 4, "label": "재컴파일 없음", "sub": "PGO가 유일한 프로파일", "kind": "sink", "ghost": true }
+  ],
+  "edges": [
+    { "from": "A1", "to": "A2", "label": "시동" },
+    { "from": "A2", "to": "A3", "label": "운영" },
+    { "from": "B1", "to": "B2", "label": "시동" },
+    { "from": "B2", "to": "B3", "label": "운영" },
+    { "from": "C1", "to": "C2", "label": "시동" },
+    { "from": "C2", "to": "C3", "label": "운영", "dashed": true }
+  ],
+  "groups": [
+    { "id": "g1", "label": "C2 JVM", "members": ["A1", "A2", "A3"] },
+    { "id": "g2", "label": "AOT 캐시 (JDK 24+)", "members": ["B1", "B2", "B3"] },
+    { "id": "g3", "label": "Native Image", "members": ["C1", "C2", "C3"] }
+  ]
+}
