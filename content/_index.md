@@ -11,7 +11,7 @@ toc: false
 
 ## 도메인
 
-- [모니터링]({{< relref "monitoring/_index.md" >}}) — VictoriaMetrics 내부·운영, 메트릭 400일 장기 보관 아키텍처.
+- [모니터링]({{< relref "monitoring/_index.md" >}}) — VictoriaMetrics 내부·운영, 메트릭 400일 장기 보관 아키텍처, Prometheus·Thanos·VictoriaMetrics를 서로 어떻게 붙이는가(그리고 어떤 조합이 성립하지 않는가).
 - [로깅]({{< relref "logging/_index.md" >}}) — ES(OpenSearch) 외 로그 내재화(Loki·VictoriaLogs·ClickHouse·HyperDX·StarRocks), RUM 대안, OpenSearch 비용 최적화, 최소 조합 아키텍처.
 - [APM (Datadog)]({{< relref "apm/_index.md" >}}) — Datadog APM 최적화. 작성 예정.
 - [RUM 내재화]({{< relref "rum/_index.md" >}}) — Datadog RUM(RWoL) 탈출: 웹은 HyperDX, 모바일은 대안 미성숙. HyperDX 도입 실사·Datadog RUM 커버리지 매트릭스·dd 프로토콜 프록시 검증·전 제품군 대체 매트릭스·이관 로드맵.
@@ -27,3 +27,4 @@ toc: false
 - [커넥션 게이트웨이]({{< relref "gateway/_index.md" >}}) — POS 단말 1만~5만 대에 중앙에서 푸시하는 게이트웨이를 API Gateway WebSocket에서 자체 SSE로 옮길 때, 파드끼리 상태를 나눠 갖는 링이 정말 필요한지를 판정합니다. Loki ingester·vmagent·Alloy·Thanos compactor·Kafka consumer group이 각각 왜 다른 답을 냈는지 해부하고 그 전제가 우리에게 있는지 대조합니다. 결론은 수립 방향에 따라 달라집니다 — 클라이언트가 걸면 링은 낭비이고 파드가 걸면 링 위에 lease까지 필요합니다.
 - [Argo Rollouts]({{< relref "rollouts/_index.md" >}}) — Deployment를 Rollout으로 바꾸면 스텝 인덱스 하나가 생기고, 그 인덱스를 서로 다른 함수 둘이 읽습니다. 하나는 ReplicaSet을 몇 대로 띄울지, 다른 하나는 트래픽을 몇 퍼센트 보낼지 정하는데 도달 시각이 다릅니다. 1편은 그 정상 경로(세 평면·값 다섯 층·step 여덟 종류·승격의 정의·AnalysisRun의 측정 루프)를, 2편은 롤백에서 그 시차가 벌어지는 구조를 봅니다 — 오류율 쿼리에 리비전 필터가 없어 롤백이 스스로를 abort하는 경로, 그것을 막으려 넣은 `rollbackWindow`가 역탐색으로 마지막 `setWeight: 100`을 도로 집어오는 경로, 그리고 가용량 게이트가 canary를 보지 않는다는 사실. 업스트림 수정은 2026-07-15에 열린 PR 하나로 아직 머지 전입니다.
 - [홈랩]({{< relref "homelab/_index.md" >}}) — 두 집 2-클러스터 홈랩: hub(중앙 스토리지·관측·SSO)와 edge(스토리지 없는 stateless 스포크)로 역할을 나누고 공인망을 건너는 유일한 트래픽(메트릭 remote write)에 vmauth 인증을 붙인 구조.
+- [런타임]({{< relref "runtime/_index.md" >}}) — 런타임을 바꾸면 무엇이 어디로 옮겨가나. JVM에서 GraalVM Native Image로 갈 때 내주는 것(되돌림 능력·Serial GC·JVMTI)과 2025년 9월 Oracle 발표로 바뀐 선택지 지도, 그리고 같은 질문의 파이썬 판 — 동기 워커 16개와 워커 2개 + 스레드 32개는 최대 처리량이 같은데 지연 분포·메모리·DB 커넥션·장애 반경이 갈립니다.
