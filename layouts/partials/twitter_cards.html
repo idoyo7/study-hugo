@@ -1,0 +1,43 @@
+{{- /* Hugo 내부 템플릿 _internal/twitter_cards.html 의 프로젝트 오버라이드.
+
+       테마는 twitter_cards.html 파일을 제공하지 않아 그동안 Hugo 내부 템플릿이
+       쓰였다. 내부 템플릿은 이미지가 없으면 card 를 summary 로 떨어뜨리는데,
+       이 사이트는 이미지가 한 장도 없었으므로 176/176 페이지가 summary 였다.
+
+       여기서 하는 일:
+         - opengraph.html 과 같은 이미지 폴백 체인을 써서 항상 이미지를 붙이고
+           card 를 summary_large_image 로 올린다.
+         - description 을 utils/page-description.html 로 통일한다(내부 템플릿은
+           .Summary 를 상한 없이 흘려보냈다).
+         - twitter:image:alt 를 추가한다. 내부 템플릿에는 없다. */ -}}
+
+{{- $desc := partial "utils/page-description.html" . -}}
+
+{{- $twImage := "" -}}
+{{- $isDefaultCard := false -}}
+{{- with .Params.images -}}
+  {{- $first := index . 0 -}}
+  {{- with $.Resources.GetMatch $first -}}
+    {{- $twImage = .Permalink -}}
+  {{- else -}}
+    {{- $twImage = $first | absURL -}}
+  {{- end -}}
+{{- else -}}
+  {{- with site.Params.images -}}
+    {{- $twImage = (index . 0) | absURL -}}
+  {{- else -}}
+    {{- $twImage = "og-default.png" | absURL -}}
+    {{- $isDefaultCard = true -}}
+  {{- end -}}
+{{- end -}}
+
+<meta name="twitter:card" content="{{ cond (ne $twImage "") "summary_large_image" "summary" }}">
+<meta name="twitter:title" content="{{ .Title | default site.Title }}">
+<meta name="twitter:description" content="{{ $desc }}">
+{{- with $twImage }}
+<meta name="twitter:image" content="{{ . }}">
+<meta name="twitter:image:alt" content="{{ if $isDefaultCard }}{{ site.Params.title | default site.Title }}{{ with site.Params.description }} — {{ . | truncate 90 "…" }}{{ end }}{{ else }}{{ $.Title | default site.Title }}{{ end }}">
+{{- end }}
+{{- with site.Params.social.twitter }}
+<meta name="twitter:site" content="{{ . }}">
+{{- end }}
