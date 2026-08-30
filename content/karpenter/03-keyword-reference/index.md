@@ -1,5 +1,7 @@
 ---
 title: "키워드 레퍼런스 — NodePool로 스케줄링을 통제한다"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 3
 ---
 

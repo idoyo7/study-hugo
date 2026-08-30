@@ -38,6 +38,12 @@ enableRobotsTXT = true
     endLevel = 3
 
 [params]
+  # 테마 components/last-updated.html 이 이 스위치를 보고 문서 끝에
+  # "Last updated on <날짜>" 를 렌더한다. enableGitInfo 로 .Lastmod 가
+  # 채워졌으니 이제 표시할 값이 있다. 신선도는 검색·AI 인용 양쪽에서
+  # 값을 갖는 신호인데, 이 사이트는 176편이 전부 최근 문서인데도
+  # 그 사실을 밖으로 내보내지 않고 있었다.
+  displayUpdatedDate = true
   # og:site_name 이 참조하는 값 (테마 opengraph.html 은 .Site.Params.title 을 본다.
   # 최상위 title 이 아니라 params.title 이라 별도로 둔다).
   title = 'Ops Insights'
@@ -79,6 +85,12 @@ enableRobotsTXT = true
       inputPosition = 'top'
       lang = 'ko'
 
+# 날짜 해석 순서 — 프런트매터 lastmod 를 :git 보다 우선한다.
+# 메타데이터 일괄 커밋이 GitInfo 의 .Lastmod 를 오염시키므로(전 파일이 같은 날짜가 됨),
+# 실제 본문 수정일을 lastmod 로 핀해 둔다. 본문을 고칠 때 lastmod 를 갱신하거나 지우면
+# 그 다음부터는 :git(해당 수정 커밋)이 이어받는다.
+[frontmatter]
+  lastmod = ['lastmod', ':git', 'date']
 # navbar 검색창. hextra 는 navbar.html:23 에서 menu.main 항목의
 # params.type == "search" 를 만났을 때만 search.html 을 싣는다
 # (themes/hextra/layouts/_partials/navbar.html). 이 항목이 없으면

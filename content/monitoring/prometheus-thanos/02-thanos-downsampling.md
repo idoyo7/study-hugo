@@ -1,5 +1,7 @@
 ---
 title: "Thanos Compactor가 채우는 자리"
+date: 2026-08-30
+lastmod: 2026-08-30
 weight: 2
 ---
 

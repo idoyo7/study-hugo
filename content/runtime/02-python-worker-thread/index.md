@@ -1,5 +1,7 @@
 ---
 title: "Python 워커 16개 vs 워커 2 + 스레드 32"
+date: 2026-08-29
+lastmod: 2026-08-29
 linkTitle: "02 Python 워커와 스레드"
 weight: 2
 ---

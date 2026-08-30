@@ -1,5 +1,7 @@
 ---
 title: "Kubernetes"
+date: 2026-07-27
+lastmod: 2026-08-24
 weight: 9
 cascade:
   type: docs

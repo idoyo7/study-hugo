@@ -1,5 +1,7 @@
 ---
 title: "JVM vs GraalVM"
+date: 2026-08-29
+lastmod: 2026-08-29
 linkTitle: "01 JVM vs GraalVM"
 weight: 1
 ---

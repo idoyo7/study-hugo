@@ -1,5 +1,7 @@
 ---
 title: "분기 A — POS가 건다: 라우팅을 없애는 설계"
+date: 2026-08-06
+lastmod: 2026-08-24
 linkTitle: "04 분기 A · POS가 건다"
 weight: 4
 ---

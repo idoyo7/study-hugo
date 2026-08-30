@@ -1,5 +1,7 @@
 ---
 title: "부록 · 발표 전사 — Scaling Valkey the Right Way (KubeCon EU 2026)"
+date: 2026-08-06
+lastmod: 2026-08-24
 linkTitle: "02 발표 전사"
 weight: 2
 ---
