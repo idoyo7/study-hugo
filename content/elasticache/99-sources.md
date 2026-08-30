@@ -1,5 +1,6 @@
 ---
-title: "출처"
+title: "Redis·Valkey·Memcached 참고 자료"
+linkTitle: "출처"
 date: 2026-08-06
 lastmod: 2026-08-18
 weight: 99
