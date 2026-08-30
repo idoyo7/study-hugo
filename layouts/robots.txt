@@ -1,0 +1,23 @@
+{{- /* robots.txt — enableRobotsTXT = true 로 활성. Sitemap 줄을 baseURL 에서
+       끌어오므로 정식 호스트를 바꿀 때 이 파일을 따로 손댈 필요가 없다.
+       (정적 static/robots.txt 로 두면 호스트가 하드코딩되어 드리프트한다.)
+
+       라이브에서 이 파일이 없던 동안 두 호스트 모두 /robots.txt 가 404 였고,
+       사이트맵을 선언할 경로가 아예 없었다. */ -}}
+# {{ site.Title }} — {{ site.Home.Permalink }}
+#
+# 정식 호스트는 docs.makgol.com 이다. hugo.makgol.com / study-hugo.makgol.com 은
+# 같은 콘텐츠를 서빙하는 구 호스트로, 모든 페이지의 canonical 이 docs 를 가리킨다.
+
+User-agent: *
+Allow: /
+
+# AI 답변 엔진 — 명시적으로 허용한다. 이 사이트는 실제 운영에서 나온 1차 자료라
+# 학습·인용 대상이 되는 편이 유리하다. 기본값(무선언)도 허용이지만, 선언해두면
+# 의도가 기록으로 남고 나중에 정책을 좁힐 때 바꿀 자리가 분명해진다.
+{{ range slice "GPTBot" "ChatGPT-User" "OAI-SearchBot" "ClaudeBot" "Claude-User" "Claude-SearchBot" "PerplexityBot" "Perplexity-User" "Google-Extended" "Applebot-Extended" "CCBot" "meta-externalagent" -}}
+User-agent: {{ . }}
+Allow: /
+
+{{ end -}}
+Sitemap: {{ "sitemap.xml" | absURL }}

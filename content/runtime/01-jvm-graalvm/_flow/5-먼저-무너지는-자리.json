@@ -1,0 +1,17 @@
+{
+  "caption": "6만 동시 연결 실측(i5-14600K · Corretto 25.0.3 · Spring Boot 4.1.0 · 힙 2GB 고정). Tomcat은 CPU가 20%인데 2만에서 무너진다 — 처리 능력이 아니라 연결 수용의 한계다. 그 문턱을 넘긴 뒤에야 실행 모델 차이가 보인다.",
+  "font": 1.15,
+  "nodes": [
+    { "id": "L", "col": 0, "row": 1, "label": "k6 부하", "sub": "6만 동시 연결", "kind": "src" },
+    { "id": "T", "col": 1, "row": 0, "label": "Tomcat acceptor", "sub": "2만에서 오류 99.9%", "kind": "proc" },
+    { "id": "N", "col": 1, "row": 1, "label": "Netty 이벤트루프", "sub": "수용은 통과", "kind": "proc" },
+    { "id": "V", "col": 2, "row": 1, "label": "가상 스레드", "sub": "10.97M 처리 · GC 12초", "kind": "sink" },
+    { "id": "R", "col": 2, "row": 2, "label": "Reactor", "sub": "7.57M 처리 · GC 108초", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "L", "to": "T", "label": "거부", "dashed": true },
+    { "from": "L", "to": "N", "label": "수용" },
+    { "from": "N", "to": "V", "label": "1.6KB" },
+    { "from": "N", "to": "R", "label": "1.6KB" }
+  ]
+}

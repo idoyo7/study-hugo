@@ -1,5 +1,7 @@
 ---
 title: "세대 선호 만들기"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 5
 aliases: ["/k8s-features/karpenter/02-generation-preference/"]
 ---

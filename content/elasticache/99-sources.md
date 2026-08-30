@@ -1,5 +1,7 @@
 ---
 title: "출처"
+date: 2026-08-06
+lastmod: 2026-08-18
 weight: 99
 ---
 

@@ -1,0 +1,23 @@
+{
+  "caption": "4GB 컨테이너 기준. Serial GC는 최대 힙을 안 주면 물리 메모리의 80%를 잡고, GC 도중 그만큼이 한 번 더 필요할 수 있다 — 기본값 그대로 두면 limit을 넘는 건 예외가 아니라 기본 동작이다.",
+  "font": 1.1,
+  "note": "빗금은 GC 중 일시 확대분(최악의 경우 최대 힙의 2배)",
+  "axis": { "kind": "linear", "max": 7, "unit": "GB", "ticks": [0, 1, 2, 3, 4, 5, 6, 7] },
+  "lanes": [
+    { "label": "Serial GC", "sub": "CE 기본값", "segments": [
+      { "start": 0, "end": 3.2, "label": "최대 힙 3.2GB", "sub": "물리 메모리의 80%", "kind": "store" },
+      { "start": 3.2, "end": 6.4, "label": "GC 중 확대", "style": "hatch", "kind": "query" }
+    ]},
+    { "label": "G1 GC", "sub": "Oracle GraalVM", "segments": [
+      { "start": 0, "end": 1.0, "label": "최대 힙 1GB", "sub": "물리 메모리의 25%", "kind": "store" },
+      { "start": 1.0, "end": 2.0, "label": "GC 중 확대", "style": "hatch", "kind": "query" }
+    ]},
+    { "label": "-Xmx 명시", "sub": "권장", "segments": [
+      { "start": 0, "end": 1.5, "label": "최대 힙 1.5GB", "kind": "store" },
+      { "start": 1.5, "end": 3.0, "label": "GC 중 확대", "style": "hatch", "kind": "query" }
+    ]}
+  ],
+  "markers": [
+    { "at": 4, "label": "컨테이너 limit 4GB", "kind": "query" }
+  ]
+}

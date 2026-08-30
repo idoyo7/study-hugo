@@ -1,5 +1,7 @@
 ---
 title: "Mimir"
+date: 2026-07-12
+lastmod: 2026-08-24
 weight: 4
 aliases: ["/monitoring/longterm-retention/04-option-c-mimir/"]
 ---
