@@ -5,6 +5,7 @@ lastmod: 2026-08-24
 weight: 70
 cascade:
   type: docs
+comments: false
 ---
 
 # HyperDX 내재화 — 실전 배포 청사진

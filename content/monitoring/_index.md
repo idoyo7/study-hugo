@@ -5,6 +5,7 @@ lastmod: 2026-08-30
 weight: 10
 cascade:
   type: docs
+comments: false
 ---
 
 # 모니터링

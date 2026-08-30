@@ -5,6 +5,7 @@ lastmod: 2026-08-24
 weight: 90
 cascade:
   type: docs
+comments: false
 ---
 
 # EKS 버전 업그레이드 — finance 클러스터 blue-green 이관 케이스

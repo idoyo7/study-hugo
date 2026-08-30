@@ -3,6 +3,7 @@ title: "② Sentinel HA 581샤드를 Kubernetes로 (Braze)"
 date: 2026-08-06
 lastmod: 2026-08-24
 weight: 2
+comments: false
 ---
 
 # ② Sentinel HA 581샤드를 Kubernetes로 (Braze)

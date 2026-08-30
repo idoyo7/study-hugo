@@ -5,6 +5,7 @@ lastmod: 2026-08-24
 weight: 50
 cascade:
   type: docs
+comments: false
 ---
 
 # Istio · 서비스 메시 운영기 — EKS 위에 메시를 얹고 겪은 것들

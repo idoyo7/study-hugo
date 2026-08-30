@@ -5,6 +5,7 @@ lastmod: 2026-08-24
 weight: 20
 cascade:
   type: docs
+comments: false
 ---
 
 # 로깅 · 옵저버빌리티 — ES 말고 어떻게 관리할까

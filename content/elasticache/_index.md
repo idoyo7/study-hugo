@@ -5,6 +5,7 @@ lastmod: 2026-08-24
 weight: 120
 cascade:
   type: docs
+comments: false
 ---
 
 # Redis · Valkey · Memcached — 17년치 설계 결정의 연쇄

@@ -5,6 +5,7 @@ lastmod: 2026-08-24
 weight: 140
 cascade:
   type: docs
+comments: false
 ---
 
 # 커넥션 게이트웨이 — 링이 필요한 순간과 필요 없는 순간

@@ -5,6 +5,7 @@ lastmod: 2026-08-24
 weight: 40
 cascade:
   type: docs
+comments: false
 ---
 
 # RUM 내재화 — Datadog RUM에서 빠져나오기

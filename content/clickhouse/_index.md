@@ -5,6 +5,7 @@ lastmod: 2026-08-24
 weight: 60
 cascade:
   type: docs
+comments: false
 ---
 
 # ClickHouse 운영 — 채택을 전제했을 때의 how

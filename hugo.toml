@@ -39,9 +39,6 @@ enableRobotsTXT = true
   [markup.highlight]
     # Hextra ships its own Chroma CSS (light/dark aware); classes required
     noClasses = false
-  [markup.tableOfContents]
-    startLevel = 2
-    endLevel = 3
 
 [params]
   # 테마 components/last-updated.html 이 이 스위치를 보고 문서 끝에

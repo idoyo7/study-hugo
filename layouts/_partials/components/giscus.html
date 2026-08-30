@@ -1,0 +1,136 @@
+{{- /* 테마 partial(themes/hextra/layouts/_partials/components/giscus.html) 프로젝트 오버라이드.
+       원본은 DOMContentLoaded 에서 무조건 giscus client.js 를 붙인다. 덧글 슬롯은 176개
+       페이지 전부에서 폴드 한참 아래(pager 다음, footer 직전)인데도 첫 로드에 giscus.app
+       연결이 열린다. 이 저장소는 도식 엔진은 이미 쓰는 문서만 싣는데(layouts/partials/custom/head-end.html:49)
+       giscus 에는 같은 원칙이 없었다.
+       바꾼 곳은 네 군데뿐이다. 나머지는 테마 원본 그대로다 — 업그레이드 때 diff 하기 쉽게.
+         1) giscusAttributes 에 "data-loading": "lazy" — giscus 가 만드는 iframe 에
+            네이티브 lazy 로딩을 건다.
+         2) script 태그 생성을 IntersectionObserver 뒤로 옮긴다. 슬롯이 뷰포트
+            600px 앞까지 와야 client.js 를 받는다. IO 미지원이면 즉시 붙여 종전과 같다.
+         3) 슬롯 div 에 min-height:150px — 붙는 순간 문서가 늘어나지 않게. 아래 참조.
+         4) data-theme 은 부착 직전에 다시 계산한다. (2) 때문에 필요해진 보정이다 —
+            아래 mountGiscus 주석 참조.
+       setGiscusTheme(테마 토글 동기화)와 mapping = pathname 은 원본 그대로다. 로드 시점이
+       바뀌어도 토론 매핑은 변하지 않는다. */ -}}
+{{- $lang := site.Language.Lang | default `en` -}}
+{{- if hasPrefix $lang "zh" -}}
+  {{- /* See: https://github.com/giscus/giscus/tree/main/locales */}}
+  {{- $lang = partial "utils/hugo-compat/language-locale.html" site.Language | default `zh-CN` -}}
+{{- end -}}
+
+{{- with site.Params.comments.giscus -}}
+<script>
+  function getGiscusTheme() {
+    const giscusTheme = '{{ .theme }}';
+    if (giscusTheme === 'light' || giscusTheme === 'dark') {
+      return giscusTheme;
+    }
+
+    const hugoTheme = localStorage.getItem("color-theme");
+    if (hugoTheme === 'light' || hugoTheme === 'dark') {
+      return hugoTheme;
+    }
+
+    if (hugoTheme === 'system') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    const defaultTheme = '{{ site.Params.theme.default }}';
+    if (defaultTheme === 'light' || defaultTheme === 'dark') {
+      return defaultTheme;
+    }
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function setGiscusTheme() {
+    const iframe = document.querySelector('iframe.giscus-frame');
+    if (!iframe) return;
+
+    const msg = {
+      giscus: {
+        setConfig: {
+          theme: getGiscusTheme(),
+        },
+      },
+    }
+
+    iframe.contentWindow.postMessage(msg, 'https://giscus.app');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const giscusAttributes = {
+      "src": "https://giscus.app/client.js",
+      "data-repo": "{{ .repo }}",
+      "data-repo-id": "{{ .repoId }}",
+      "data-category": "{{ .category }}",
+      "data-category-id": "{{ .categoryId }}",
+      "data-mapping": "{{ .mapping | default `pathname` }}",
+      "data-strict": "{{ (string .strict) | default 0 }}",
+      "data-reactions-enabled": "{{ (string .reactionsEnabled) |  default 1 }}",
+      "data-emit-metadata": "{{ (string .emitMetadata) | default 0 }}",
+      "data-input-position": "{{ .inputPosition | default `top` }}",
+      "data-theme": getGiscusTheme(),
+      "data-lang": "{{ .lang | default $lang }}",
+      "crossorigin": "anonymous",
+      "async": "",
+      "data-loading": "lazy",
+    };
+
+    // Random hash id to avoid conflicts with titles inside pages.
+    const giscusSlot = document.getElementById('giscus-hextra-bb112b9f807c37c1752e5da6a1652a29');
+
+    // Dynamically create script tag, deferred until the slot nears the viewport.
+    function mountGiscus() {
+      const giscusScript = document.createElement("script");
+      Object.entries(giscusAttributes).forEach(([key, value]) => giscusScript.setAttribute(key, value));
+      // 위 리터럴의 data-theme 은 DOMContentLoaded 때 값이다. 부착이 스크롤까지 밀렸으니
+      // 그 사이 테마 토글을 누른 경우 낡은 값이다 — setGiscusTheme 은 iframe 이 없어
+      // no-op 이었다. 붙이는 시점에 다시 계산해야 위젯이 페이지 테마와 맞는다.
+      giscusScript.setAttribute("data-theme", getGiscusTheme());
+      giscusSlot.appendChild(giscusScript);
+    }
+
+    if (giscusSlot) {
+      if (!('IntersectionObserver' in window)) {
+        mountGiscus();
+      } else {
+        const giscusObserver = new IntersectionObserver(function (entries) {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              giscusObserver.disconnect();
+              mountGiscus();
+              return;
+            }
+          }
+        }, { rootMargin: '600px 0px' });
+        giscusObserver.observe(giscusSlot);
+      }
+    }
+
+    // Listen for system theme changes
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", setGiscusTheme);
+
+    // Update giscus theme when theme switcher is clicked.
+    const themeToggleOptions = document.querySelectorAll(".hextra-theme-toggle-options [data-item]");
+    if (themeToggleOptions) {
+      themeToggleOptions.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+          setTimeout(setGiscusTheme, 0);
+        });
+      });
+    }
+  });
+</script>
+
+{{- /* 슬롯 높이를 미리 잡아둔다. 150px 은 giscus 가 만드는 iframe 의 초기 높이
+       실측값이다(이 문서 기준 붙는 순간 150px, 스레드가 그려지면 372px 로 자란다 —
+       뒤쪽 성장은 giscus 쪽 동작이라 origin/main 도 똑같다).
+       예약하지 않으면 위 옵저버가 붙는 순간 문서가 150px 늘어난다. 하필 독자가
+       바닥 쪽으로 스크롤하는 중이라 스크롤이 튄다. 첫 페인트부터 잡아두면 0 이다.
+       옵저버 자체는 높이 0 짜리 대상에서도 정상 동작한다(실측). 이건 CLS 예약이다. */ -}}
+<div id="giscus-hextra-bb112b9f807c37c1752e5da6a1652a29" style="min-height:150px"></div>
+{{- else -}}
+  {{ warnf "giscus is not configured" }}
+{{- end -}}

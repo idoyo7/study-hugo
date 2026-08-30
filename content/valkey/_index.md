@@ -5,6 +5,7 @@ lastmod: 2026-08-24
 weight: 130
 cascade:
   type: docs
+comments: false
 ---
 
 # Valkey — 같은 방에서 15분 간격으로 갈린 두 아키텍처

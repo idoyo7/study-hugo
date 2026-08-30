@@ -3,6 +3,7 @@ title: "Ambient mode 도입기 (채널코퍼레이션)"
 date: 2026-07-28
 lastmod: 2026-08-24
 weight: 20
+comments: false
 ---
 
 # Ambient mode 도입기 — 채널코퍼레이션이 사이드카를 건너뛴 기록 (2026-03 ~ 2026-07)

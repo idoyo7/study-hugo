@@ -10,6 +10,7 @@ sitemap:
   disable: true
 cascade:
   type: docs
+comments: false
 ---
 
 # APM (Datadog)

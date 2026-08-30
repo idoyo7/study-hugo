@@ -6,6 +6,7 @@ weight: 80
 aliases: ["/hyperdx/00-operating-hyperdx/", "/hyperdx/operating/"]
 cascade:
   type: docs
+comments: false
 ---
 
 # HyperDX 직접 운영하기

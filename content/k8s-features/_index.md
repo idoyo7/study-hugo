@@ -5,6 +5,7 @@ lastmod: 2026-08-24
 weight: 100
 cascade:
   type: docs
+comments: false
 ---
 
 # Kubernetes — 공식 문서 너머의 실사용 판단
