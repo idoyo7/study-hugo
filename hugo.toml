@@ -1,4 +1,8 @@
-baseURL = '/'
+# 절대 baseURL 은 선택이 아니다. '/' 였던 동안 canonical·og:url·sitemap 176건·RSS 가
+# 전부 상대 경로로 나갔고, sitemaps.org 는 <loc> 에 절대 URL을 요구하기 때문에
+# 사이트맵 파일이 통째로 무효 처리됐다. 정식 호스트는 docs.makgol.com 이다
+# (hugo.makgol.com·study-hugo.makgol.com 은 같은 콘텐츠를 서빙하는 구 호스트).
+baseURL = 'https://docs.makgol.com/'
 title = 'Ops Insights'
 theme = 'hextra'
 
@@ -8,6 +12,20 @@ defaultContentLanguage = 'ko'
 hasCJKLanguage = true
 
 disableKinds = ['taxonomy', 'term']
+
+# layouts/robots.txt 를 렌더한다. 켜지 않으면 Hugo 는 robots.txt 를 만들지 않고,
+# 라이브에서 두 호스트 모두 404 였다 — 사이트맵 선언 경로가 아예 없었다.
+enableRobotsTXT = true
+
+# 테마(hextra)가 themes/hextra/hugo.toml 에서 outputFormats.llms 와
+# outputFormats.markdown 을 정의하지만 활성화는 하지 않는다. 여기서 켠다.
+#   /llms.txt              — 176개 문서의 섹션 트리 + 요약 (AI 크롤러 진입점)
+#   /<경로>/<파일>.md       — 페이지별 원문 마크다운
+# JS 를 돌리지 않는 크롤러가 사이드바 마크업 83% 를 헤집지 않고 본문만 읽을 수 있다.
+[outputs]
+  home = ['html', 'rss', 'llms']
+  page = ['html', 'markdown']
+  section = ['html', 'rss', 'markdown']
 
 [markup]
   [markup.goldmark.renderer]
@@ -20,6 +38,14 @@ disableKinds = ['taxonomy', 'term']
     endLevel = 3
 
 [params]
+  # og:site_name 이 참조하는 값 (테마 opengraph.html 은 .Site.Params.title 을 본다.
+  # 최상위 title 이 아니라 params.title 이라 별도로 둔다).
+  title = 'Ops Insights'
+
+  # 홈과 28개 목록 페이지의 meta description·og:description 원천. 없던 동안
+  # 홈은 값이 빈 <meta name="description"> 를, 목록 페이지는 공백만 든
+  # og:description 을 내보냈다.
+  description = 'Kubernetes·관측성·데이터스토어를 직접 운영하며 남은 판단 근거를 도메인별로 정리한 지식베이스. Istio, Karpenter, VictoriaMetrics, ClickHouse, ElastiCache.'
   [params.navbar]
     displayTitle = true
     displayLogo = false
@@ -52,3 +78,14 @@ disableKinds = ['taxonomy', 'term']
       reactionsEnabled = '1'
       inputPosition = 'top'
       lang = 'ko'
+
+# navbar 검색창. hextra 는 navbar.html:23 에서 menu.main 항목의
+# params.type == "search" 를 만났을 때만 search.html 을 싣는다
+# (themes/hextra/layouts/_partials/navbar.html). 이 항목이 없으면
+# [params.search] 를 켜 두고 flexsearch 인덱스(3.3MB)를 굽더라도
+# 768px 이상 뷰포트에는 검색창이 아예 나오지 않는다 — 실제로 그랬다.
+[[menu.main]]
+  name = 'Search'
+  weight = 90
+  [menu.main.params]
+    type = 'search'

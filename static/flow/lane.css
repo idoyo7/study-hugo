@@ -1,0 +1,88 @@
+/* vm-lane — 가로축(시점/연속) + 레인별 막대 다이어그램 (정적 호스팅용, 의존성 없음)
+   flow.css와 이름은 같은 CSS 변수를 쓰지만 파일은 독립이다 — flow.css를 참조하지 않는다. */
+.vm-lane {
+  --lane-surface: #fcfcfb;
+  --lane-border: rgba(11, 11, 11, 0.08);
+  --lane-ink: #1a1a1a;
+  --lane-sub: #8a8a82;
+  --lane-edge: #c7c6bb;
+  --lane-src: #2a78d6;
+  --lane-proc: #0d9488;
+  --lane-store: #7c3aed;
+  --lane-query: #eb6834;
+  --lane-sink: #0ca30c;
+  margin: 1.4rem 0;
+  padding: 14px 16px 8px;
+  background: var(--lane-surface);
+  border: 1px solid var(--lane-border);
+  border-radius: 14px;
+}
+html.dark .vm-lane {
+  --lane-surface: #1b1b1a;
+  --lane-border: rgba(255, 255, 255, 0.09);
+  --lane-ink: #f2f2ef;
+  --lane-sub: #9a978d;
+  --lane-edge: #4c4b45;
+  --lane-src: #4b93e6;
+  --lane-proc: #2dd4bf;
+  --lane-store: #a78bfa;
+  --lane-query: #f0894e;
+  --lane-sink: #34d06a;
+}
+.vm-lane > script { display: none; }
+.vm-lane .lane-svg { display: block; width: 100%; height: auto; margin-inline: auto; }
+
+/* 레인 라벨 */
+.vm-lane .lane-nlabel {
+  fill: var(--lane-ink);
+  font-size: 12.5px;
+  font-weight: 650;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+.vm-lane .lane-nsub { fill: var(--lane-sub); font-size: 9.5px; font-weight: 500; }
+
+/* 축 헤더 */
+.vm-lane .lane-axis-label { fill: var(--lane-sub); font-size: 11px; font-weight: 650; text-anchor: middle; }
+.vm-lane .lane-axis-sep { stroke: var(--lane-edge); stroke-width: 1; opacity: 0.6; }
+.vm-lane .lane-axis-grid { stroke: var(--lane-edge); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.5; }
+.vm-lane .lane-axis-tick { stroke: var(--lane-edge); stroke-width: 1; }
+.vm-lane .lane-axis-tlabel { fill: var(--lane-sub); font-size: 10px; text-anchor: middle; }
+
+/* note */
+.vm-lane .lane-note { fill: var(--lane-sub); font-size: 10.5px; text-anchor: middle; }
+
+/* caption */
+.vm-lane .lane-caption {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--lane-sub);
+  text-align: center;
+}
+
+/* 세그먼트 — 종류별 색 */
+.vm-lane .seg-src   .lane-rect { stroke: var(--lane-src); }
+.vm-lane .seg-proc  .lane-rect { stroke: var(--lane-proc); }
+.vm-lane .seg-store .lane-rect { stroke: var(--lane-store); }
+.vm-lane .seg-query .lane-rect { stroke: var(--lane-query); }
+.vm-lane .seg-sink  .lane-rect { stroke: var(--lane-sink); }
+.vm-lane .seg-src   .lane-rect.is-solid { fill: color-mix(in srgb, var(--lane-src) 12%, var(--lane-surface)); }
+.vm-lane .seg-proc  .lane-rect.is-solid { fill: color-mix(in srgb, var(--lane-proc) 12%, var(--lane-surface)); }
+.vm-lane .seg-store .lane-rect.is-solid { fill: color-mix(in srgb, var(--lane-store) 12%, var(--lane-surface)); }
+.vm-lane .seg-query .lane-rect.is-solid { fill: color-mix(in srgb, var(--lane-query) 12%, var(--lane-surface)); }
+.vm-lane .seg-sink  .lane-rect.is-solid { fill: color-mix(in srgb, var(--lane-sink) 12%, var(--lane-surface)); }
+.vm-lane .lane-rect { stroke-width: 1.5; }
+
+/* empty — 할 일 없음: 점선 테두리·채움 없음·라벨 흐림 */
+.vm-lane .lane-rect.is-empty { fill: none; stroke: var(--lane-edge); stroke-dasharray: 4 4; stroke-width: 1.5; }
+.vm-lane .seg-empty .lane-slabel, .vm-lane .seg-empty .lane-ssub { fill: var(--lane-sub); opacity: 0.75; }
+
+/* hatch — GC 중 일시 확대분처럼 "실제로 쓰는 게 아니라 순간적으로 부푸는 몫" */
+.vm-lane .lane-rect.is-hatch { stroke-width: 1.5; }
+
+/* 세그먼트 라벨 */
+.vm-lane .lane-slabel { fill: var(--lane-ink); font-size: 12px; font-weight: 600; }
+.vm-lane .lane-ssub { fill: var(--lane-sub); font-size: 9.5px; font-weight: 500; }
+
+/* marker (linear 전용) */
+.vm-lane .lane-marker-line { stroke: var(--lane-query); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.vm-lane .lane-marker-label { font-size: 10px; font-weight: 650; fill: var(--lane-query); text-anchor: middle; }

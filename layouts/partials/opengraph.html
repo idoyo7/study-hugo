@@ -1,0 +1,93 @@
+{{- /* 테마 _partials/opengraph.html 의 프로젝트 오버라이드.
+
+       테마 원본이 og:description·og:type 을 여러 줄 {{ if }} 블록으로 조립하면서
+       공백을 트림하지 않아, 속성값에 raw 개행이 실려 나갔다. 실측:
+
+         og:type        "\n    article\n  "
+         og:description "\n    \n      01 · 서비스 메시와 …"
+
+       og:type 은 열거형이다. "\n    article\n  " 는 유효한 토큰이 아니라
+       176/176 페이지에서 타입 판정이 실패했다.
+
+       추가로 원본에는 없던 것 셋.
+         - og:image / twitter:image 폴백. 176 페이지 전부 이미지가 없어 모든
+           소셜 공유가 이미지 없는 텍스트 링크로 나갔다.
+         - og:locale. 원본은 페이지 파라미터만 보므로 사이트 전역 기본값이 없었다.
+         - og:site_name 폴백. 원본은 .Site.Params.title 만 보는데 그 키가 없으면
+           통째로 빠진다 — 최상위 title 로 폴백한다.
+
+       description 은 utils/page-description.html 하나로 통일했다. meta
+       description 과 og:description 이 같은 정규화·상한을 지나게 하려는 것이다. */ -}}
+
+{{- $desc := partial "utils/page-description.html" . -}}
+
+{{- /* 이미지 폴백: 페이지 params.images → 사이트 params.images → 사이트 기본 카드 */ -}}
+{{- $ogImage := "" -}}
+{{- $isDefaultCard := false -}}
+{{- with .Params.images -}}
+  {{- $first := index . 0 -}}
+  {{- with $.Resources.GetMatch $first -}}
+    {{- $ogImage = .Permalink -}}
+  {{- else -}}
+    {{- $ogImage = $first | absURL -}}
+  {{- end -}}
+{{- else -}}
+  {{- with site.Params.images -}}
+    {{- $ogImage = (index . 0) | absURL -}}
+  {{- else -}}
+    {{- $ogImage = "og-default.png" | absURL -}}
+    {{- $isDefaultCard = true -}}
+  {{- end -}}
+{{- end -}}
+
+<meta property="og:title" content="{{ .Title | default site.Title }}">
+<meta property="og:description" content="{{ $desc }}">
+<meta property="og:type" content="{{ cond .IsPage "article" "website" }}">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:site_name" content="{{ site.Params.title | default site.Title }}">
+<meta property="og:locale" content="{{ .Params.locale | default site.Params.locale | default "ko_KR" }}">
+{{- with $ogImage }}
+<meta property="og:image" content="{{ . }}">
+{{- if $isDefaultCard }}
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ site.Params.title | default site.Title }}{{ with site.Params.description }} — {{ . | truncate 90 "…" }}{{ end }}">
+{{- end }}
+{{- end }}
+
+{{- if .IsPage }}
+  {{- $iso8601 := "2006-01-02T15:04:05-07:00" -}}
+<meta property="article:section" content="{{ .Section }}">
+  {{- with .PublishDate }}
+<meta property="article:published_time" {{ .Format $iso8601 | printf "content=%q" | safeHTMLAttr }}>
+  {{- end }}
+  {{- with .Lastmod }}
+<meta property="article:modified_time" {{ .Format $iso8601 | printf "content=%q" | safeHTMLAttr }}>
+  {{- end }}
+{{- end }}
+
+{{- with .Params.audio }}
+<meta property="og:audio" content="{{ . }}">
+{{- end }}
+{{- range .Params.videos }}
+<meta property="og:video" content="{{ . | absURL }}">
+{{- end }}
+
+{{- /* 시리즈물이면 형제 글을 og:see_also 로 건다 (테마 원본과 동일 동작). */ -}}
+{{- $permalink := .Permalink }}
+{{- $siteSeries := site.Taxonomies.series }}
+{{- with .Params.series }}
+  {{- range $name := . }}
+    {{- with index $siteSeries ($name | urlize) }}
+      {{- range $page := first 6 .Pages }}
+        {{- if ne $page.Permalink $permalink }}
+<meta property="og:see_also" content="{{ $page.Permalink }}">
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- with site.Params.social.facebook_admin }}
+<meta property="fb:admins" content="{{ . }}">
+{{- end }}

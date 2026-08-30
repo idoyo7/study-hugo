@@ -1,3 +1,9 @@
+{{- /* JSON-LD 구조화 데이터. head-end.html 이 테마가 head 안에서 부르는
+       유일한 커스텀 훅이라(themes/hextra/layouts/_partials/head.html:80) 여기서
+       싣는다. 별도 파일로 뺀 이유는 이 파일이 이미 근거 배지 + 도식 엔진 로더로
+       충분히 길기 때문이다. */ -}}
+{{ partial "custom/schema-jsonld.html" . }}
+
 {{- /* 근거 표기 기호(✓ ≈ Ⓥ ? Ⓑ Σ) 색상 배지 — 스타일만 싣는다.
 
        클래스와 title 은 layouts/partials/custom/grade-badges.html 이 빌드
@@ -55,6 +61,7 @@
 {{- $useMnode := strings.Contains $raw "{{< mnode" -}}
 {{- $useRstep := strings.Contains $raw "{{< rstep" -}}
 {{- $useRrev := strings.Contains $raw "{{< rrev" -}}
+{{- $useLane := strings.Contains $raw "{{< lane" -}}
 {{- if $useFlow }}
 {{- /* vm-flow 애니메이션 플로우 다이어그램 엔진 + 스타일 */ -}}
 <link rel="stylesheet" href="{{ "flow/flow.css" | relURL }}">
@@ -90,8 +97,13 @@
 <link rel="stylesheet" href="{{ "flow/rrev.css" | relURL }}">
 <script defer src="{{ "flow/rrev.js" | relURL }}"></script>
 {{- end }}
-{{- if or $useFlow $useSeq $useCfstl $useBscore $useMnode $useRstep $useRrev }}
-{{- /* vm-flow/seq/cfstl/bscore/mnode/rstep/rrev 공용 "크게 보기"(전체화면 확대) — 하나라도 쓰면 싣는다 */ -}}
+{{- if $useLane }}
+{{- /* vm-lane 가로축+레인 막대 다이어그램 엔진 + 스타일 */ -}}
+<link rel="stylesheet" href="{{ "flow/lane.css" | relURL }}">
+<script defer src="{{ "flow/lane.js" | relURL }}"></script>
+{{- end }}
+{{- if or $useFlow $useSeq $useCfstl $useBscore $useMnode $useRstep $useRrev $useLane }}
+{{- /* vm-flow/seq/cfstl/bscore/mnode/rstep/rrev/lane 공용 "크게 보기"(전체화면 확대) — 하나라도 쓰면 싣는다 */ -}}
 <link rel="stylesheet" href="{{ "flow/expand.css" | relURL }}">
 <script defer src="{{ "flow/expand.js" | relURL }}"></script>
 {{- end }}
