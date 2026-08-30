@@ -1,0 +1,40 @@
+{{- /* 404 페이지.
+
+       테마 기본 404(themes/hextra/layouts/404.html)는 baseof 를 쓰지 않는
+       독립 페이지다. 실측하면 링크가 0개다 — "404 / This page could not be
+       found." 영문 한 줄이 전부라, 잘못된 URL 로 들어온 방문자에게 돌아갈
+       길이 없다. nginx 기본 404(153바이트)보다 조금 나은 수준이었다.
+
+       여기서는 baseof 를 타서 navbar·검색·footer 를 그대로 얻고, 본문에
+       섹션 목록을 깐다. 섹션은 site.Sections 에서 뽑으므로 콘텐츠가 늘어도
+       이 파일을 고칠 일이 없다. */ -}}
+{{ define "main" }}
+  <style>
+    .nf-wrap { max-width: 56rem; margin: 0 auto; padding: 5rem 1.5rem 6rem; }
+    .nf-code { font-size: 3.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 0; line-height: 1; }
+    .nf-lead { font-size: 1.05rem; margin: 1rem 0 0.35rem; }
+    .nf-sub { font-size: 0.9rem; opacity: 0.65; margin: 0 0 2.5rem; }
+    .nf-h2 { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+             opacity: 0.55; margin: 0 0 0.9rem; }
+    .nf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.5rem 1rem; }
+    .nf-grid a { display: block; padding: 0.55rem 0.7rem; border-radius: 0.5rem; text-decoration: none;
+                 font-size: 0.93rem; border: 1px solid rgba(120, 130, 150, 0.22); }
+    .nf-grid a:hover { border-color: rgba(56, 189, 248, 0.6); }
+    .nf-home { display: inline-block; margin-top: 2.25rem; font-size: 0.93rem; }
+  </style>
+
+  <div class="nf-wrap" id="content">
+    <p class="nf-code">404</p>
+    <p class="nf-lead">이 주소에는 문서가 없습니다.</p>
+    <p class="nf-sub">주소가 바뀌었거나, 아직 쓰지 않은 문서일 수 있습니다. 위쪽 검색으로 찾거나 아래 도메인에서 들어가 보세요.</p>
+
+    <h2 class="nf-h2">도메인</h2>
+    <div class="nf-grid">
+      {{- range site.Sections.ByWeight }}
+        <a href="{{ .RelPermalink }}">{{ partial "utils/title" . }}</a>
+      {{- end }}
+    </div>
+
+    <a class="nf-home" href="{{ site.Home.RelPermalink }}">← {{ site.Title }} 처음으로</a>
+  </div>
+{{ end }}
