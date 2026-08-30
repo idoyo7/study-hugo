@@ -1,5 +1,7 @@
 ---
 title: "Karpenter"
+date: 2026-07-30
+lastmod: 2026-08-24
 weight: 110
 cascade:
   type: docs

@@ -1,5 +1,7 @@
 ---
 title: "Istio의 Envoy 조립"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 13
 ---
 

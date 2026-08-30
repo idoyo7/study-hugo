@@ -1,5 +1,7 @@
 ---
 title: "부트스트랩 오케스트레이션 — 순서·ArgoCD 3-tier·endpoint 재바인딩"
+date: 2026-07-21
+lastmod: 2026-08-24
 weight: 5
 ---
 

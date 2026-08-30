@@ -1,5 +1,7 @@
 ---
 title: "Argo Rollouts"
+date: 2026-08-28
+lastmod: 2026-08-28
 weight: 150
 cascade:
   type: docs

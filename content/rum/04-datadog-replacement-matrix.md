@@ -1,5 +1,7 @@
 ---
 title: "Datadog 전 제품군 대체 매트릭스"
+date: 2026-07-13
+lastmod: 2026-08-24
 weight: 4
 ---
 

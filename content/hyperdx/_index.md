@@ -1,5 +1,7 @@
 ---
 title: "HyperDX 내재화"
+date: 2026-07-15
+lastmod: 2026-08-24
 weight: 70
 cascade:
   type: docs

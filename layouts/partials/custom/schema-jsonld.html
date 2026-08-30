@@ -1,0 +1,134 @@
+{{- /* JSON-LD 구조화 데이터.
+
+       이 사이트에는 JSON-LD 가 176/176 페이지에서 0건이었다. Hugo 내부 템플릿
+       _internal/schema.html 이 쓰이고 있었는데(테마가 schema.html 을 제공하지
+       않아서) 그건 itemprop microdata 만 낸다 — 화면에 이미 그려지는 breadcrumb
+       계층조차 기계 판독이 안 됐다.
+
+       문자열로 조립하지 않고 map/slice 를 만들어 jsonify 로 직렬화한다. 본문이
+       한글이고 제목에 따옴표·꺾쇠가 섞일 수 있어, 수동 이스케이프는 언젠가
+       깨진 JSON 을 낸다. jsonify 는 그 클래스의 사고를 원천에서 없앤다.
+
+       @graph 로 노드를 한 스크립트에 모으고 @id 로 상호 참조한다. 노드마다
+       스크립트를 따로 내면 크롤러가 author/publisher 를 같은 실체로 묶지 못한다.
+
+       저자·발행처 값은 site.Params 에서 읽고 기본값을 둔다. hugo.toml 에
+       [params.schema] 를 넣으면 이 파일을 고치지 않고 덮을 수 있다. */ -}}
+
+{{- $home := site.Home.Permalink -}}
+{{- $webSiteID := printf "%s#website" $home -}}
+{{- $authorID := printf "%s#author" $home -}}
+
+{{- $authorName := site.Params.schema.authorName | default "Mont" -}}
+{{- $authorURL := site.Params.schema.authorURL | default "https://makgol.com" -}}
+{{- $lang := site.Language.Lang | default "ko" -}}
+{{- $siteName := site.Params.title | default site.Title -}}
+{{- $siteDesc := site.Params.description | default "" -}}
+{{- $ogImage := "og-default.png" | absURL -}}
+{{- with site.Params.images -}}
+  {{- $ogImage = (index . 0) | absURL -}}
+{{- end -}}
+
+{{- /* ── 사이트 정체성: WebSite + Person. author/publisher 가 @id 로 가리킬
+       대상이 존재하려면 이 두 노드가 먼저 있어야 한다. ── */ -}}
+{{- $webSite := dict
+      "@type" "WebSite"
+      "@id" $webSiteID
+      "url" $home
+      "name" $siteName
+      "inLanguage" $lang
+      "publisher" (dict "@id" $authorID)
+-}}
+{{- with $siteDesc }}{{ $webSite = merge $webSite (dict "description" .) }}{{ end -}}
+
+{{- $person := dict
+      "@type" "Person"
+      "@id" $authorID
+      "name" $authorName
+      "url" $authorURL
+-}}
+{{- with site.Params.schema.sameAs }}{{ $person = merge $person (dict "sameAs" .) }}{{ end -}}
+
+{{- $graph := slice $webSite $person -}}
+
+{{- /* ── BreadcrumbList: 화면의 breadcrumb 과 같은 계층을 기계 판독 형태로.
+       홈을 1번 항목으로 넣는다 — 테마의 화면 breadcrumb 은 홈을 빼는데,
+       schema.org 쪽은 루트가 있어야 경로가 완결된다. ── */ -}}
+{{- if not .IsHome -}}
+  {{- $items := slice (dict "@type" "ListItem" "position" 1 "name" $siteName "item" $home) -}}
+  {{- $pos := 1 -}}
+  {{- range .Ancestors.Reverse -}}
+    {{- if not .IsHome -}}
+      {{- $pos = add $pos 1 -}}
+      {{- $items = $items | append (dict "@type" "ListItem" "position" $pos "name" .Title "item" .Permalink) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $pos = add $pos 1 -}}
+  {{- $items = $items | append (dict "@type" "ListItem" "position" $pos "name" .Title "item" .Permalink) -}}
+  {{- $graph = $graph | append (dict
+        "@type" "BreadcrumbList"
+        "@id" (printf "%s#breadcrumb" .Permalink)
+        "itemListElement" $items) -}}
+{{- end -}}
+
+{{- /* ── 본문 노드. 문서는 TechArticle, 섹션 목록은 CollectionPage. ── */ -}}
+{{- /* description 은 meta description 과 같은 원천을 쓴다 — 두 값이 어긋나면
+       크롤러가 보는 요약이 페이지마다 두 갈래가 된다. htmlUnescape 를 한 번 더
+       거는 이유는 테마 기본 구현이 남기는 수치 엔티티(&#43; 등)가 JSON 문자열에
+       그대로 실려 나가기 때문이다. 이미 디코드된 문자열에는 무해하다. */ -}}
+{{- $desc := partial "utils/page-description.html" . | htmlUnescape -}}
+
+{{- if .IsPage -}}
+  {{- $article := dict
+        "@type" "TechArticle"
+        "@id" (printf "%s#article" .Permalink)
+        "headline" .Title
+        "url" .Permalink
+        "inLanguage" $lang
+        "image" $ogImage
+        "author" (dict "@id" $authorID)
+        "publisher" (dict "@id" $authorID)
+        "isPartOf" (dict "@id" $webSiteID)
+        "mainEntityOfPage" (dict "@type" "WebPage" "@id" .Permalink)
+  -}}
+  {{- with $desc }}{{ $article = merge $article (dict "description" .) }}{{ end -}}
+  {{- with .Section }}{{ $article = merge $article (dict "articleSection" .) }}{{ end -}}
+  {{- with .WordCount }}{{ $article = merge $article (dict "wordCount" .) }}{{ end -}}
+  {{- /* 날짜는 프런트매터·enableGitInfo 어느 쪽도 아직 값을 주지 않는다.
+         zero time 을 그대로 내면 0001-01-01 이 실려 나가므로 IsZero 로 막는다.
+         날짜 신호를 붙이는 건 별도 PR. 들어오면 여기 자동으로 실린다. */ -}}
+  {{- if not .PublishDate.IsZero }}{{ $article = merge $article (dict "datePublished" (.PublishDate.Format "2006-01-02T15:04:05-07:00")) }}{{ end -}}
+  {{- if not .Lastmod.IsZero }}{{ $article = merge $article (dict "dateModified" (.Lastmod.Format "2006-01-02T15:04:05-07:00")) }}{{ end -}}
+  {{- $graph = $graph | append $article -}}
+{{- else if not .IsHome -}}
+  {{- $coll := dict
+        "@type" "CollectionPage"
+        "@id" (printf "%s#collection" .Permalink)
+        "name" .Title
+        "url" .Permalink
+        "inLanguage" $lang
+        "isPartOf" (dict "@id" $webSiteID)
+  -}}
+  {{- with $desc }}{{ $coll = merge $coll (dict "description" .) }}{{ end -}}
+  {{- $pages := .RegularPagesRecursive -}}
+  {{- with $pages -}}
+    {{- $els := slice -}}
+    {{- range $i, $p := first 30 . -}}
+      {{- $els = $els | append (dict "@type" "ListItem" "position" (add $i 1) "name" $p.Title "url" $p.Permalink) -}}
+    {{- end -}}
+    {{- $coll = merge $coll (dict "mainEntity" (dict
+          "@type" "ItemList"
+          "numberOfItems" (len $pages)
+          "itemListElement" $els)) -}}
+  {{- end -}}
+  {{- $graph = $graph | append $coll -}}
+{{- end -}}
+
+{{- /* safeJS 가 필요하다. <script> 안은 Go 템플릿의 JS 컨텍스트라, 표시하지
+       않으면 jsonify 가 만든 JSON 문자열을 다시 JS 문자열 리터럴로 인코딩해
+       {"@context":…} 대신 "{\"@context\":…}" 가 실린다(이중 인코딩).
+
+       jsonify 의 기본 HTML 이스케이프(&, <, > → \u0026 등)는 끄지 않는다.
+       본문에 </script> 가 등장할 때 스크립트가 조기 종료되는 것을 막아준다.
+       \u003c 형태도 유효한 JSON 이라 크롤러가 읽는 데 문제가 없다. */ -}}
+<script type="application/ld+json">{{ (dict "@context" "https://schema.org" "@graph" $graph) | jsonify | safeJS }}</script>

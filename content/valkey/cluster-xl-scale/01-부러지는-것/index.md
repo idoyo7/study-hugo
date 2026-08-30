@@ -1,5 +1,7 @@
 ---
 title: "2,000노드 Valkey — 무엇이 먼저 부러지고, 그중 무엇이 Kubernetes로 넘어오는가"
+date: 2026-08-06
+lastmod: 2026-08-24
 linkTitle: "01 2,000노드에서 부러지는 것"
 weight: 1
 ---
