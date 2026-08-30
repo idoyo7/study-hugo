@@ -177,19 +177,32 @@
     if (paths && !paths.length) paths = null;
 
     var running = false, rafId = 0, prev = 0;
+    /* 파티클 <circle>은 만들어 두고 속성만 갱신한다. 예전에는 프레임마다 마크업
+       문자열을 만들어 gPk.innerHTML 에 넣었는데, 그러면 rAF 콜백 안에서 HTML 파싱과
+       기존 노드 파괴·재생성이 매 프레임 돈다. 가장 큰 도식(rollouts/02, 엣지 13개)
+       에서 프레임당 28개까지 이 왕복을 탔다. 같은 폴더의 bscore·cfstl·mnode·rstep·rrev
+       는 이미 el() 로 만든 노드의 속성만 건드린다 — 그쪽으로 맞췄다.
+       남는 노드는 지우지 않고 display:none 으로 접어 둔다(파티클 수가 프레임마다
+       오르내리므로 매번 붙였다 떼면 같은 비용이 돌아온다). */
+    var pool = [];
+    function circleAt(i) {
+      if (!pool[i]) { pool[i] = el('circle', { r: '3.5' }); gPk.appendChild(pool[i]); }
+      return pool[i];
+    }
     function frame(ts) {
-      if (!prev) prev = ts; var dt = Math.min((ts - prev) / 1000, 0.05); prev = ts; var buf = '';
+      if (!prev) prev = ts; var dt = Math.min((ts - prev) / 1000, 0.05); prev = ts; var n = 0;
       for (var i = 0; i < anim.length; i++) {
         var e = anim[i]; e.last += dt * 1000;
         if (e.last >= e.rate) { e.last = 0; e.particles.push({ t: 0 }); }
         for (var j = 0; j < e.particles.length; j++) e.particles[j].t += dt / e.dur;
         e.particles = e.particles.filter(function (p) { return p.t <= 1; });
-        for (var k = 0; k < e.particles.length; k++) { var p = e.particles[k], x = e.x1 + (e.x2 - e.x1) * p.t, y = e.y1 + (e.y2 - e.y1) * p.t, op = p.t < 0.14 ? p.t / 0.14 : (p.t > 0.86 ? (1 - p.t) / 0.14 : 1); buf += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3.5" class="pk-' + e.kind + '" opacity="' + op.toFixed(2) + '"/>'; }
+        for (var k = 0; k < e.particles.length; k++) { var p = e.particles[k], x = e.x1 + (e.x2 - e.x1) * p.t, y = e.y1 + (e.y2 - e.y1) * p.t, op = p.t < 0.14 ? p.t / 0.14 : (p.t > 0.86 ? (1 - p.t) / 0.14 : 1), c = circleAt(n++); c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1)); c.setAttribute('class', 'pk-' + e.kind); c.setAttribute('opacity', op.toFixed(2)); c.style.display = ''; }
       }
-      gPk.innerHTML = buf; rafId = requestAnimationFrame(frame);
+      for (var q = n; q < pool.length; q++) pool[q].style.display = 'none';
+      rafId = requestAnimationFrame(frame);
     }
     /* ── 토큰 모드 상태 ── */
-    var lap = 0, segIdx = 0, segT = 0;
+    var lap = 0, segIdx = 0, segT = 0, tok = null;
     function tokenFrame(ts) {
       if (!prev) prev = ts; var dt = Math.min((ts - prev) / 1000, 0.05); prev = ts;
       var path = paths[lap % paths.length], ed = path[segIdx];
@@ -203,8 +216,10 @@
       }
       var x = ed._x1 + (ed._x2 - ed._x1) * segT;
       var y = ed._y1 + (ed._y2 - ed._y1) * segT;
-      gPk.innerHTML = '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
-        '" r="6.5" class="flow-token pk-' + ed._kind + '"/>';
+      if (!tok) { tok = el('circle', { r: '6.5' }); gPk.appendChild(tok); }
+      tok.setAttribute('cx', x.toFixed(1));
+      tok.setAttribute('cy', y.toFixed(1));
+      tok.setAttribute('class', 'flow-token pk-' + ed._kind);
       rafId = requestAnimationFrame(tokenFrame);
     }
 

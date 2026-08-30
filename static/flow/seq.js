@@ -118,13 +118,21 @@
 
     if (REDUCE || !anim.length) return;
     var M_ = anim.length, period = M_ * STEP_DELAY + TAIL, rafId = 0, running = false;
+    /* 도트 <circle>을 메시지마다 하나씩 잡아 두고 속성만 갱신한다. anim.length 가
+       고정이라 인덱스를 그대로 쓸 수 있다. 예전에는 프레임마다 마크업 문자열을
+       gPk.innerHTML 에 넣어 rAF 콜백 안에서 HTML 을 다시 파싱했다 — flow.js 와 같은
+       패턴이었고, 나머지 다섯 엔진은 처음부터 이렇게 하지 않았다. */
+    var pool = [];
     function frame(ts) {
-      var tau = ts % period, buf = '';
+      var tau = ts % period;
       for (var i = 0; i < anim.length; i++) {
         var a = anim[i], s = a.order * STEP_DELAY;
-        if (tau >= s && tau <= s + TRAVEL) { var p = (tau - s) / TRAVEL, x = a.x1 + (a.x2 - a.x1) * p, op = p < 0.15 ? p / 0.15 : (p > 0.85 ? (1 - p) / 0.15 : 1); buf += '<circle cx="' + x.toFixed(1) + '" cy="' + a.y + '" r="4" class="sq-dot" opacity="' + op.toFixed(2) + '"/>'; }
+        if (!pool[i]) { pool[i] = el('circle', { r: '4', class: 'sq-dot' }); gPk.appendChild(pool[i]); }
+        var c = pool[i];
+        if (tau >= s && tau <= s + TRAVEL) { var p = (tau - s) / TRAVEL, x = a.x1 + (a.x2 - a.x1) * p, op = p < 0.15 ? p / 0.15 : (p > 0.85 ? (1 - p) / 0.15 : 1); c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', a.y); c.setAttribute('opacity', op.toFixed(2)); c.style.display = ''; }
+        else c.style.display = 'none';
       }
-      gPk.innerHTML = buf; rafId = requestAnimationFrame(frame);
+      rafId = requestAnimationFrame(frame);
     }
     function start() { if (running) return; running = true; rafId = requestAnimationFrame(frame); }
     function stop() { running = false; cancelAnimationFrame(rafId); }
