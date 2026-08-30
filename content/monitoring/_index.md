@@ -2,7 +2,7 @@
 title: "모니터링"
 date: 2026-07-12
 lastmod: 2026-08-30
-weight: 1
+weight: 10
 cascade:
   type: docs
 ---

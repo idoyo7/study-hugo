@@ -2,7 +2,7 @@
 title: "ClickHouse 운영"
 date: 2026-07-13
 lastmod: 2026-08-24
-weight: 6
+weight: 60
 cascade:
   type: docs
 ---

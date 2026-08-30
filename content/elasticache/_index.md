@@ -2,7 +2,7 @@
 title: "Redis · Valkey · Memcached"
 date: 2026-08-06
 lastmod: 2026-08-24
-weight: 11
+weight: 120
 cascade:
   type: docs
 ---

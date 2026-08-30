@@ -2,7 +2,9 @@
 title: "홈랩"
 date: 2026-08-20
 lastmod: 2026-08-25
-weight: 9
+weight: 160
+cascade:
+  type: docs
 ---
 
 # 홈랩

@@ -2,7 +2,7 @@
 title: "로깅"
 date: 2026-07-12
 lastmod: 2026-08-24
-weight: 2
+weight: 20
 cascade:
   type: docs
 ---

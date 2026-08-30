@@ -2,7 +2,7 @@
 title: "커넥션 게이트웨이"
 date: 2026-08-06
 lastmod: 2026-08-24
-weight: 12
+weight: 140
 cascade:
   type: docs
 ---
