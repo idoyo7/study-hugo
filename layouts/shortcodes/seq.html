@@ -17,9 +17,24 @@
 {{- else -}}
   {{- $spec = $.Inner -}}
 {{- end -}}
+{{- $data := $spec | transform.Unmarshal -}}
 <figure class="vm-seq">
-<script type="application/json" class="seq-spec">{{ $spec | safeJS }}</script>
 {{- with $caption }}
 <figcaption class="seq-caption">{{ . }}</figcaption>
 {{- end }}
+<script type="application/json" class="seq-spec">{{ $spec | safeJS }}</script>
+{{- /* flow.html 과 같은 이유 — 참가자·메시지 라벨이 script 안에만 있으면 텍스트로 안 남는다.
+       스텝은 alt 분기가 중첩되므로 재귀 partial 로 펼친다.
+       <li> 뒤의 개행 이유는 flow.html 주석과 같다. */ -}}
+<details class="vm-spec-text">
+<summary>도식 텍스트</summary>
+{{- with $data.participants }}
+<ul>
+{{ range . }}<li>{{ .label }}</li>
+{{ end }}</ul>
+{{- end }}
+{{- with $data.steps }}
+{{ partial "custom/seq-spec-text.html" . }}
+{{- end }}
+</details>
 </figure>

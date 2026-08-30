@@ -17,9 +17,48 @@
 {{- else -}}
   {{- $spec = $.Inner -}}
 {{- end -}}
+{{- $data := $spec | transform.Unmarshal -}}
+{{- /* groups·edges 는 label 이 없는 항목이 섞여 있고 아예 하나도 없는 스펙도 있다
+       (edges 배열은 106개 스펙 전부에 있지만 그중 20개는 라벨을 가진 간선이 없다).
+       리스트를 먼저 열고 안에서 걸러내면 그 20개가 빈 <ul></ul> 로 남으므로,
+       낼 것이 있는지부터 확인하고 리스트를 연다. nodes 는 label 이 필수라 그대로 둔다. */ -}}
+{{- $gl := slice }}
+{{- range $data.groups }}{{ with .label }}{{ $gl = $gl | append . }}{{ end }}{{ end }}
+{{- $el := slice }}
+{{- range $data.edges }}{{ with .label }}{{ $el = $el | append . }}{{ end }}{{ end -}}
 <figure class="vm-flow">
-<script type="application/json" class="flow-spec">{{ $spec | safeJS }}</script>
+{{- /* figcaption 은 script 앞에 둔다 — 뒤에 details 가 붙으면서 서버 HTML 에서
+       가운데 자식이 되기 때문이다. 콘텐츠 모델은 첫째나 마지막을 요구한다.
+       엔진이 svg 를 firstChild 앞에 꽂으므로 런타임 DOM 에서는 script 자식 때문에
+       어느 배치로도 양쪽을 동시에 만족시킬 수 없다. 브라우저는 어느 쪽이든 이 figure 로
+       매핑하니 실질 영향은 없고, 여기서 맞추는 건 서버가 내는 HTML 쪽이다. */ -}}
 {{- with $caption }}
 <figcaption class="flow-caption">{{ . }}</figcaption>
 {{- end }}
+<script type="application/json" class="flow-spec">{{ $spec | safeJS }}</script>
+{{- /* 노드·간선 라벨은 JS 가 위 JSON 을 읽어 SVG 로 그린다.
+       script 안에 있는 동안은 텍스트 추출기가 통째로 버려서 도식이 담은 말이 하나도 안 남는다 —
+       도식 141개의 라벨 2,251개가 그렇게 사라졌다. 같은 라벨을 접힌 목록으로 한 번 더 낸다.
+       접힌 details 는 브라우저가 DOM 에 그대로 두므로 추출기·색인기가 읽는다.
+       <li> 뒤의 개행은 지우지 말 것 — plainify(StripHTML)는 \n·</p>·<br> 만 공백으로 바꾸고
+       </li><li> 사이에는 아무것도 안 넣는다. 붙여 내면 검색 인덱스에서 라벨 두 개가
+       한 단어로 엉킨다. 최종 HTML 에서는 minifier 가 이 개행을 다시 지운다. */ -}}
+<details class="vm-spec-text">
+<summary>도식 텍스트</summary>
+{{- with $gl }}
+<ul>
+{{ range . }}<li>{{ . }}</li>
+{{ end }}</ul>
+{{- end }}
+{{- with $data.nodes }}
+<ul>
+{{ range . }}<li>{{ .label }}{{ with .sub }} — {{ . }}{{ end }}</li>
+{{ end }}</ul>
+{{- end }}
+{{- with $el }}
+<ul>
+{{ range . }}<li>{{ . }}</li>
+{{ end }}</ul>
+{{- end }}
+</details>
 </figure>

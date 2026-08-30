@@ -58,3 +58,8 @@ html.dark .vm-seq {
 .vm-seq .sq-frame-else { fill: var(--sq-frame-ink); font-size: 10px; font-weight: 600; }
 .vm-seq .sq-dot { fill: var(--sq-dot); }
 .vm-seq .seq-caption { margin-top: 6px; font-size: 12px; color: var(--sq-label); text-align: center; }
+
+/* 접힌 도식 텍스트 — flow.css 와 같은 규칙. 색만 이 엔진의 변수를 쓴다. */
+.vm-seq .vm-spec-text { margin-top: 6px; font-size: 11.5px; color: var(--sq-label); }
+.vm-seq .vm-spec-text summary { cursor: pointer; }
+.vm-seq .vm-spec-text ul, .vm-seq .vm-spec-text ol { margin: 4px 0 0 18px; }

@@ -76,3 +76,49 @@
   max-height: 100% !important;
 }
 html.vm-expand-lock { overflow: hidden; }
+
+/* 좁은 화면에서는 "화면에 맞게 축소"가 오히려 라벨을 못 읽게 만든다 —
+   도식 폭을 본문 폭에 맞추면 375px 화면에서 rstep(viewBox 940)은 3분의 1 이하로 줄고
+   rstep.css:62 의 10px 라벨이 4px 아래로 내려간다. 그래서 확대 시에는 줄이지 않고
+   그 도식의 native viewBox 폭으로 두고 좌우로 미는 쪽을 택한다.
+   폭은 expand.js 가 열 때 --vm-native-w 로 넣어준다 — 도식마다 412~1720 으로 달라서
+   CSS 에 한 값을 박을 수 없다. 못 읽어오면 var 기본값이 지금까지의 "화면에 맞게"로 되돌린다.
+   바깥 클릭 히트 영역(padding)이 12px 로 줄어드니 종료는 ✕ 버튼과 Esc 가 주 경로다.
+
+   이 파일 위쪽의 position:relative 와 .is-expanded 기본 규칙은 flow/seq/cfstl 3종만
+   다룬다. expand.js 는 7종 전부에 버튼을 달지만 bscore·mnode·rstep·rrev 는 그 두 규칙이
+   없어서 클릭해도 오버레이가 안 뜨고 html.vm-expand-lock 만 걸린다. 그 줄을 고치는 일은
+   seo/search-and-diagram-ux 가 맡고 있어서 같은 줄을 두 번 건드리지 않는다 — 대신 아래
+   svg 규칙이 그 4종에도 걸리므로, 기반 규칙 없이 오면 도식이 본문 흐름 안에서 native 폭으로
+   벌어지기만 하고 페이지 스크롤은 잠기는 어정쩡한 상태가 된다. 그래서 4종의 기반 규칙을
+   같은 값으로 이 @media 안에 한 번 더 적어 좁은 화면에서는 이 파일만으로 성립하게 둔다.
+   두 브랜치가 합쳐지면 같은 값이 겹칠 뿐이고, 데스크톱 폭의 4종은 그쪽 브랜치가 고친다. */
+@media (max-width: 48rem) {
+  .vm-bscore, .vm-mnode, .vm-rstep, .vm-rrev { position: relative; }
+  .vm-bscore.is-expanded, .vm-mnode.is-expanded,
+  .vm-rstep.is-expanded, .vm-rrev.is-expanded {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    display: grid;
+  }
+  .vm-flow.is-expanded, .vm-seq.is-expanded, .vm-cfstl.is-expanded,
+  .vm-bscore.is-expanded, .vm-mnode.is-expanded,
+  .vm-rstep.is-expanded, .vm-rrev.is-expanded {
+    padding: 12px;
+    place-items: start;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .is-expanded .flow-svg, .is-expanded .seq-svg, .is-expanded .cft-svg,
+  .is-expanded .bs-svg,   .is-expanded .mn-svg,
+  .is-expanded .rs-svg,   .is-expanded .rr-svg {
+    width: max(100%, var(--vm-native-w, 100%)) !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+}

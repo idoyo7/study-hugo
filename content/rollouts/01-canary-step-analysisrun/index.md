@@ -24,7 +24,7 @@ Rollout에서 "승격(promotion)"이 하는 일은 하나입니다. `status.stab
 
 ## 1. Rollout이 Deployment 자리에 더 붙이는 것
 
-{{< rrev >}}
+{{< rrev alt="리비전 핸드오프 — Service 는 하나지만 라우팅은 두 곳에서 갈립니다. 컨트롤러가 써넣는 해시가 DestinationRule subset 을 가르고, 그다음에야 VirtualService weight 가 트래픽 비율을 정합니다. 해시가 먼저 써지고 weight 는 그다음에야 움직입니다 — 순서가 바뀌면 두 subset 이 여전히 존재하면서도 selector 가 같아 트래픽이 갈리지 않고 뒤섞일 수 있기 때문입니다." >}}
 
 파드 층은 Deployment와 다르지 않습니다. ReplicaSet 두 개를 소유하고 pod-template-hash로 구분합니다. 나머지 둘이 새로 생깁니다.
 
@@ -217,7 +217,7 @@ base 기본값인 `setWeight: 5`에 `replicas: 20`이라면 `ceil(5% × 20) = 1`
 
 여섯 단계로 그렸습니다. 스텝 인덱스, 가중치를 정한 코드 갈래, 트래픽 가중치, **그 가중치가 요구하는 파드 수와 실제 Available**, AnalysisRun 상태가 함께 움직입니다.
 
-{{< rstep variant="deploy" >}}
+{{< rstep variant="deploy" alt="정상 배포 — 인덱스를 하나씩 밟습니다. 스텝마다 canary 가 Available 이 될 때까지 가중치가 앞 스텝 값에 묶이므로, 요구 파드 수가 실제 Ready 를 넘어서는 구간이 생기지 않습니다." >}}
 
 가중치 바가 두 겹인 것에 주의해서 보십시오. 초록이 실제 Available로 감당되는 구간이고 정상 배포에서는 **빨간 칸이 한 번도 나타나지 않습니다.** 2부의 같은 그림에서는 나타납니다.
 

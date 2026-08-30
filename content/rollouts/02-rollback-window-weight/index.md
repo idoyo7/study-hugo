@@ -148,7 +148,7 @@ if isAborted || c.rollout.Status.PromoteFull || rollbackToScaleDownDelay || init
 
 먼저 `promote --full`이 어떻게 도는지 봅니다.
 
-{{< rstep variant="promote" >}}
+{{< rstep variant="promote" alt="promote --full — 스텝을 전부 건너뛰고 AnalysisRun 도 취소하지만, 가중치는 :229 갈래가 현재 값에 동결합니다. ReplicaSet 만 전량으로 오르고 전환은 20/20 에서 한 번에 일어납니다." >}}
 
 ②단계에서 스텝 셋 중 둘을 건너뛰고 AnalysisRun을 취소합니다. ③단계에서 길이 나뉩니다 — **가중치가 5%에 동결됩니다.** 코드는 이렇습니다.
 
@@ -212,7 +212,7 @@ if isAborted || c.rollout.Status.PromoteFull || rollbackToScaleDownDelay || init
 
 `index - 1`은 마지막 스텝, 즉 방금 건너뛴 `setWeight: 100`입니다. 첫 반복에서 잡힙니다(아래 그림은 base 기본값 3단 기준이라 `steps[2]`이고 §6의 사고 컴포넌트는 5단이라 `steps[4]`입니다).
 
-{{< rstep variant="rollback" >}}
+{{< rstep variant="rollback" alt="rollbackWindow 롤백 — 스킵과 AnalysisRun 취소는 promote --full 과 같은데, 가중치 동결 갈래가 없어 :245 역탐색으로 떨어집니다. 건너뛴 스텝의 마지막 setWeight:100 을 도로 집어와 Ready 2대에 전량을 싣습니다." >}}
 
 ③단계에서 **위로 넘어간 주황 호(스킵)와 아래로 되돌아오는 빨간 화살표(역탐색)가 반대 방향**인 것을 보십시오. 이 사고가 바로 거기서 나옵니다 — 건너뛴 스텝의 값을 도로 집어옵니다.
 
