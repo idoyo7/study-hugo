@@ -12,7 +12,7 @@
        single.html 2회, list.html 1회) 루트 템플릿도 같이 덮는다. */ -}}
         {{- $bodyStartsWithH1 := strings.Contains .Content "<h1" -}}
           {{ if and .Title (not $bodyStartsWithH1) }}<h1>{{ .Title }}</h1>{{ end }}
-          {{ .Content }}
+          {{ partial "custom/grade-badges.html" . }}
         </div>
         <div class="hx:mt-16"></div>
         {{ partial "components/last-updated.html" . }}
