@@ -1,5 +1,7 @@
 ---
 title: "HyperDX / ClickStack 심층 분석"
+date: 2026-07-13
+lastmod: 2026-08-24
 weight: 1
 ---
 

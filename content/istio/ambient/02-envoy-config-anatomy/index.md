@@ -1,5 +1,7 @@
 ---
 title: "Envoy config로 해부하는 Ambient mode"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 2
 ---
 

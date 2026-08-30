@@ -1,0 +1,29 @@
+{
+  "caption": "스레드 32개가 실제로 겹치는 자리는 GIL을 놓는 구간뿐이다. psycopg2는 libpq 호출을 Py_BEGIN_ALLOW_THREADS로 감싸므로 DB 대기가 여기 들어가고, 결과를 객체로 바꾸는 순간부터는 다시 한 줄이다.",
+  "font": 1.15,
+  "nodes": [
+    { "id": "R", "col": 0, "row": 2, "label": "요청 하나", "sub": "처리 시간의 분해", "kind": "src" },
+
+    { "id": "G1", "col": 1, "row": 0, "label": "DB 대기", "sub": "psycopg2가 GIL을 놓는다", "kind": "proc" },
+    { "id": "G2", "col": 1, "row": 1, "label": "외부 HTTP 대기", "sub": "I/O는 항상 GIL 밖", "kind": "proc" },
+    { "id": "G3", "col": 1, "row": 3, "label": "ORM 행 → 객체", "sub": "객체 생성 = GIL 보유", "kind": "proc" },
+    { "id": "G4", "col": 1, "row": 4, "label": "직렬화 · 템플릿", "sub": "JSON C 가속기도 안 놓는다", "kind": "proc" },
+
+    { "id": "O", "col": 2, "row": 0, "label": "겹친다", "sub": "스레드 수만큼 병렬", "kind": "sink" },
+    { "id": "X", "col": 2, "row": 3, "label": "겹치지 않는다", "sub": "프로세스 수만큼만", "kind": "sink", "ghost": true }
+  ],
+  "edges": [
+    { "from": "R", "to": "G1" },
+    { "from": "R", "to": "G2" },
+    { "from": "R", "to": "G3" },
+    { "from": "R", "to": "G4" },
+    { "from": "G1", "to": "O" },
+    { "from": "G2", "to": "O" },
+    { "from": "G3", "to": "X", "dashed": true },
+    { "from": "G4", "to": "X", "dashed": true }
+  ],
+  "groups": [
+    { "id": "out", "label": "GIL 밖", "members": ["G1", "G2"] },
+    { "id": "in", "label": "GIL 안", "members": ["G3", "G4"] }
+  ]
+}

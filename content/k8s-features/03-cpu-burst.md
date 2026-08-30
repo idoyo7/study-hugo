@@ -1,5 +1,7 @@
 ---
 title: "CPU Burst (커널 5.14)"
+date: 2026-07-27
+lastmod: 2026-08-24
 weight: 3
 aliases:
   - /k8s-features/02-cpu-burst/   # 02는 CPU Throttling에 내주고 03으로 이동했다

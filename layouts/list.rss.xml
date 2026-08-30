@@ -1,0 +1,62 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    {{- /* 홈은 .Title 이 .Site.Title 과 같아 테마 원본대로면 'Ops Insights – Ops Insights' 가
+           된다. 아래 description 이 쓰는 것과 같은 조건으로 홈만 사이트 제목 하나로 둔다.
+           head-end.html 의 자동 발견 링크 title 이 이 규칙을 그대로 따라간다. */ -}}
+    <title>{{ .Site.Title }}{{ if ne .Title .Site.Title }} – {{ .Title }}{{ end }}</title>
+    <link>{{ .Permalink }}</link>
+    <description>Recent content {{ if ne  .Title  .Site.Title }}{{ with .Title }}in {{.}} {{ end }}{{ end }}on {{ .Site.Title }}</description>
+    <generator>Hugo -- gohugo.io</generator>{{ with partial "utils/hugo-compat/language-locale.html" .Site.Language }}
+    <language>{{.}}</language>{{end}}{{ with .Site.Params.Author.email }}
+    <managingEditor>{{.}}{{ with $.Site.Params.Author.name }} ({{.}}){{end}}</managingEditor>{{end}}{{ with .Site.Params.Author.email }}
+    <webMaster>{{.}}{{ with $.Site.Params.Author.name }} ({{.}}){{end}}</webMaster>{{end}}{{ with .Site.Copyright }}
+    <copyright>{{.}}</copyright>{{end}}{{ if not .Date.IsZero }}
+    <lastBuildDate>{{ .Date.Format "Mon, 02 Jan 2006 15:04:05 -0700" | safeHTML }}</lastBuildDate>{{ end }}
+    {{ with .OutputFormats.Get "RSS" }}
+	  {{ printf "<atom:link href=%q rel=\"self\" type=%q />" .Permalink .MediaType | safeHTML }}
+    {{ end }}
+    {{- /* 홈은 사이트 전체 문서, 섹션은 그 아래 모든 문서를 깊이에 상관없이 재귀로 모은다.
+           테마 원본(themes/hextra/layouts/list.rss.xml)은 홈에서 params.rss.sections(기본값
+           ["blog"])로, 최상위 섹션에서는 Type == Section 으로 걸렀다. 이 사이트는 blog 타입이
+           없고 섹션 _index.md 가 cascade type: docs 를 주므로 두 조건 모두 0건이 되어
+           홈 + 최상위 섹션 15개, 총 16개 피드가 빈 채로 발행됐다.
+
+           정렬을 명시하지 않으면 Hugo 기본 페이지 정렬(Weight 오름차순 우선)이 걸린다.
+           이 사이트는 정규 문서 148편 전부가 weight 를 달고 date 는 0편이라 weight 가
+           정렬을 독점하고, 50칸 피드에는 weight 3 이하 문서만 들어간다. 시리즈에 글을
+           덧붙이면 weight 가 4 이상이 되므로(148편 중 81편) 홈 피드에 영구히 못 들어온다.
+           channel description 이 'Recent content' 를 광고하는데 최신순이 아니었다.
+
+           .ByDate.Reverse 는 쓰지 않는다 — 날짜가 전부 제로값인 지금은 안정 정렬이
+           입력 순서를 보존한 뒤 슬라이스를 통째로 뒤집어 weight 내림차순이 되고,
+           그러면 시리즈 첫 글(weight 3 이하 67편)이 밀려난다. sort 의 "desc" 는
+           동률일 때 입력 순서를 유지하므로 날짜가 없는 동안은 현재 순서 그대로다.
+
+           정렬 키는 .Date 가 아니라 .Lastmod 다. Hugo 기본 frontmatter 설정에서
+           lastmod 는 [':git', 'lastmod', 'modified', 'date', ...] 순으로 풀리므로
+           enableGitInfo 만 켜도, 프런트매터 date 만 있어도 값이 찬다 — .Date 는
+           프런트매터 필드에서만 풀려서 enableGitInfo 로는 채워지지 않는다.
+           실측: --enableGitInfo 빌드에서 item 260개 중 .Lastmod 247개, .Date 0개. */ -}}
+    {{ .Store.Set "rssPages" (first 50 (sort .RegularPagesRecursive "Lastmod" "desc")) }}
+    {{ range (.Store.Get "rssPages")  }}
+    <item>
+      <title>{{ .Title }}</title>
+      <link>{{ .Permalink }}</link>
+      {{- /* 날짜 없는 문서는 .Date 가 제로값이라 pubDate 가 0001년으로 나간다.
+             채널의 lastBuildDate(위 10행)와 같은 방식으로 막는다 — RSS 2.0 에서 pubDate 는 선택 항목. */ -}}
+      {{ if not .Date.IsZero }}<pubDate>{{ .Date.Format "Mon, 02 Jan 2006 15:04:05 -0700" | safeHTML }}</pubDate>{{ end }}
+      {{ with .Site.Params.Author.email }}<author>{{.}}{{ with $.Site.Params.Author.name }} ({{.}}){{end}}</author>{{end}}
+      <guid>{{ .Permalink }}</guid>
+      <description>
+        {{ $img := (.Resources.ByType "image").GetMatch "*featured*" }}
+        {{ with $img }}
+        {{ $img := .Resize "640x" }}
+        {{ printf "<![CDATA[<img src=\"%s\" width=\"%d\" height=\"%d\"/>]]>" $img.Permalink $img.Width $img.Height | safeHTML }}
+        {{ end }}
+        {{- /* 전문(.Content) 대신 요약 — 홈 피드가 문서 50편 전문을 실으면 XML 하나가 수 MB 가 된다 */ -}}
+        {{ .Summary | html }}
+      </description>
+    </item>
+    {{ end }}
+  </channel>
+</rss>

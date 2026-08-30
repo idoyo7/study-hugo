@@ -1,0 +1,51 @@
+{{- /* 테마 utils/page-description.html 의 프로젝트 오버라이드.
+
+       테마 원본은 값을 그대로 흘려보낸다. 그 결과 `description:` 프런트매터가
+       없는 176개 문서 전부가 meta description 을 .Summary 로 채웠고, 길이 상한이
+       없어 149개가 160자를 넘겼다(최대 2,736자). Google 은 앞부분만 쓰고 나머지를
+       버리는데 잘리는 지점이 문장 중간이라 스니펫이 말이 끊긴 채 나온다.
+       공백 정규화도 없어 og:description 에 raw 개행이 그대로 실렸다.
+
+       여기서 하는 일 넷.
+         1) plainify·htmlUnescape — 마크업과 엔티티 제거 (테마도 하던 것)
+         2) 공백 정규화 — 개행·탭·연속 공백을 단일 공백으로
+         3) 160 runes 상한 — Hugo 의 truncate 는 rune 단위라 한글에서도 글자 수로
+            동작한다. 단어 경계에서 자르고 말줄임표를 붙인다.
+         4) 폴백 체인 분리 — 원본은 문서가 아니면 곧장 사이트 설명으로 떨어져
+            28개 섹션 목록이 전부 같은 문구를 쓰거나(사이트 설명이 있을 때)
+            빈 값을 냈다(없을 때 — 실제로 그랬다). 섹션은 자기 _index.md 본문이
+            있으니 그걸 먼저 쓴다.
+
+       `description:` 프런트매터를 채우는 일은 이 파일이 대신할 수 없다 —
+       별도 콘텐츠 작업으로 남는다. 이 파일은 상한과 정규화만 보장한다. */ -}}
+
+{{- $limit := 160 -}}
+{{- $raw := "" -}}
+
+{{- if .Description -}}
+  {{- $raw = .Description -}}
+{{- else if .IsHome -}}
+  {{- /* 홈 본문은 카드 그리드라 요약이 무의미하다. 사이트 설명을 쓴다. */ -}}
+  {{- $raw = site.Params.description | default "" -}}
+{{- else -}}
+  {{- $raw = .Summary -}}
+  {{- /* 본문 첫 요소가 헤딩이면 떼어낸다. 이 사이트는 176개 문서 중 173개가
+         본문 맨 위에 `# ` 를 두는데, 테마가 이미 .Title 을 h1 으로 렌더하므로
+         그 헤딩 텍스트는 <title> 과 그대로 중복된다. 떼지 않으면 description 이
+         제목을 되풀이하며 시작해 스니펫에서 실질 정보가 그만큼 밀려난다.
+         (본문의 중복 h1 자체를 없애는 건 별도 콘텐츠 작업이다 — 이건 그때까지
+         description 만 지키는 조치이고, 없어진 뒤에도 무해하게 통과한다.) */ -}}
+  {{- $raw = replaceRE `(?s)^\s*<h[1-6][^>]*>.*?</h[1-6]>` "" $raw -}}
+  {{- if not (strings.TrimSpace (replaceRE `<[^>]*>` " " $raw)) -}}
+    {{- $raw = site.Params.description | default "" -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* 태그를 지우지 말고 공백으로 바꾼다. plainify 는 태그를 삭제하기 때문에
+       인접한 블록의 텍스트가 붙어버렸다 — 실측: "…겪은 것들EKS 클러스터 위에서".
+       바꾼 뒤 연속 공백을 한 칸으로 접는다. */ -}}
+{{- $clean := replaceRE `<[^>]*>` " " $raw | htmlUnescape -}}
+{{- $clean = replaceRE `\s+` " " $clean | strings.TrimSpace -}}
+{{- with $clean -}}
+  {{- . | truncate $limit "…" -}}
+{{- end -}}

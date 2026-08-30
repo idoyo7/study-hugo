@@ -1,5 +1,7 @@
 ---
 title: "15 · NodePool별 MultiNode 최소 변경 계획"
+date: 2026-08-04
+lastmod: 2026-08-24
 linkTitle: "15 NodePool별 MultiNode 구현계획"
 weight: 15
 ---

@@ -1,5 +1,7 @@
 ---
 title: "13 · consolidation 후보 선별과 심사"
+date: 2026-08-02
+lastmod: 2026-08-24
 linkTitle: "13 consolidation 처리 흐름"
 weight: 13
 ---

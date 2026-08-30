@@ -1,5 +1,7 @@
 ---
 title: "배경 — 왜 CAPI in-place를 버리고 blue-green인가"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 1
 ---
 

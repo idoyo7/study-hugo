@@ -1,5 +1,7 @@
 ---
 title: "Valkey 8.0 → 9.1 — 엔진이 갈라진 지점"
+date: 2026-08-06
+lastmod: 2026-08-24
 weight: 5
 ---
 
