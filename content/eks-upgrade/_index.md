@@ -1,6 +1,8 @@
 ---
 title: "EKS 버전 업그레이드"
-weight: 8
+date: 2026-07-21
+lastmod: 2026-08-24
+weight: 90
 cascade:
   type: docs
 ---

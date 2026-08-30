@@ -1,5 +1,7 @@
 ---
 title: "EKS managed addon — 5종 버전·nftables 정정·ebs-csi 연결"
+date: 2026-07-21
+lastmod: 2026-08-24
 weight: 4
 ---
 

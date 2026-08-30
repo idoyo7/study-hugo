@@ -1,5 +1,7 @@
 ---
 title: "hot 스토리지 — EBS gp3 / io2 실전 (로컬 NVMe는 옵셔널)"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 2
 ---
 

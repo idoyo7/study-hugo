@@ -1,5 +1,7 @@
 ---
 title: "초대규모 운영과 무중단 전환"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 2
 aliases: ["/monitoring/victoriametrics/07-operations-at-scale/"]
 ---

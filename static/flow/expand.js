@@ -1,4 +1,4 @@
-/* vm-flow/seq/cfstl/bscore/mnode/rstep/rrev 공용 "크게 보기" — 도식을 전체화면 오버레이로 확대(화면 전체 사용).
+/* vm-flow/seq/cfstl/bscore/mnode/rstep/rrev/lane 공용 "크게 보기" — 도식을 전체화면 오버레이로 확대(화면 전체 사용).
    버튼 클릭으로 열고, Esc·바깥 클릭·닫기 버튼으로 닫는다. 확대 중에도 애니메이션 유지. */
 (function () {
   'use strict';
@@ -29,7 +29,7 @@
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && cur) closeBox(); });
 
   function init() {
-    var l = document.querySelectorAll('.vm-flow, .vm-seq, .vm-cfstl, .vm-bscore, .vm-mnode, .vm-rstep, .vm-rrev');
+    var l = document.querySelectorAll('.vm-flow, .vm-seq, .vm-cfstl, .vm-bscore, .vm-mnode, .vm-rstep, .vm-rrev, .vm-lane');
     for (var i = 0; i < l.length; i++) enhance(l[i]);
   }
   if (document.readyState !== 'loading') init();

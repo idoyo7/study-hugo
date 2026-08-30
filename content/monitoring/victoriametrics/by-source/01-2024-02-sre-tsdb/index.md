@@ -1,5 +1,7 @@
 ---
 title: "네이버 검색 SRE 시계열 DB 운영기"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 1
 ---
 

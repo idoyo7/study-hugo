@@ -1,5 +1,7 @@
 ---
 title: "의사결정 가이드 — 기본값·승급 트리거·실측 체크리스트"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 3
 aliases: ["/hyperdx-operating/06-decision-guide/", "/hyperdx/operating/06-decision-guide/"]
 ---

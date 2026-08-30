@@ -1,5 +1,7 @@
 ---
 title: "용량이 없을 때 — ICE와 폴백 지연"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 7
 aliases: ["/k8s-features/karpenter/04-ice-fallback/"]
 ---
