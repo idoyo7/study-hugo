@@ -85,7 +85,6 @@ enableRobotsTXT = true
       inputPosition = 'top'
       lang = 'ko'
 
-<<<<<<< HEAD
 # 홈 <title> 전용. 테마 head.html 은 홈에서 title='Ops Insights' 12자만 내보낸다.
 # 프런트매터 title 을 늘리면 h1·og:title 까지 같이 늘어나므로 title 태그만 따로 둔다.
 # layouts/partials/head.html 오버라이드가 이 값을 읽는다.
@@ -96,7 +95,6 @@ enableRobotsTXT = true
 # 되돌아간다. 전용 서브테이블은 다른 테이블에 삼켜지지 않는다.
 [params.seo]
   homeTitle = 'Ops Insights — 쿠버네티스·관측성 운영 지식베이스'
-=======
 # 날짜 해석 순서 — 프런트매터 lastmod 를 :git 보다 우선한다.
 # 메타데이터 일괄 커밋이 GitInfo 의 .Lastmod 를 오염시키므로(전 파일이 같은 날짜가 됨),
 # 실제 본문 수정일을 lastmod 로 핀해 둔다. 본문을 고칠 때 lastmod 를 갱신하거나 지우면
@@ -113,4 +111,3 @@ enableRobotsTXT = true
   weight = 90
   [menu.main.params]
     type = 'search'
->>>>>>> origin/main
