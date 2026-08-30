@@ -1,11 +1,12 @@
 # 도식 shortcode 레퍼런스
 
-이 레포는 자체 도식 엔진 일곱 개를 쓴다. **mermaid가 아니다.**
+이 레포는 자체 도식 엔진 여덟 개를 쓴다. **mermaid가 아니다.**
 
 | shortcode | 용도 | 엔진 |
 |---|---|---|
 | `{{< flow >}}` | 노드·엣지 흐름도 (파티클 애니메이션) | `static/flow/flow.js`, `static/flow/flow.css` |
 | `{{< seq >}}` | 시퀀스 다이어그램 (왕복 화살표) | `static/flow/seq.js`, `static/flow/seq.css` |
+| `{{< lane >}}` | 가로축 위 레인 막대 (시점 축 · 연속 축) | `static/flow/lane.js`, `static/flow/lane.css` |
 | `{{< cfstl >}}` | CFS period 타임라인 (재생 헤드 애니메이션) | `static/flow/cfstl.js`, `static/flow/cfstl.css` |
 | `{{< bscore >}}` | Balanced 스코어 조립 (5단계 상태머신) | `static/flow/bscore.js`, `static/flow/bscore.css` |
 | `{{< mnode >}}` | 노드 삭제 → 파드 이동 (5단계 상태머신, variant 둘) | `static/flow/mnode.js`, `static/flow/mnode.css` |
@@ -213,6 +214,114 @@ PBOX_W: 142,  PGAP: 182,  STEP_H: 46,  M: 20
 메시지는 **문서에 쓴 순서대로** 점이 하나씩 이동한다(`STEP_DELAY 640ms`). `alt` 안의 메시지도 같은 순번을 받으므로, 정상/실패 분기가 번갈아 재생되는 게 아니라 위에서 아래로 한 번씩 흐른다.
 
 사용처는 `content/` 에서 `{{< seq` 로 검색. 스펙 파일은 `content/**/_seq/*.json`.
+
+---
+
+## `{{< lane >}}`
+
+````
+{{< lane src="_lane/이름.json" />}}
+````
+
+```jsonc
+{
+  "caption": "한 줄 설명",              // figcaption + svg aria-label. flow와 동일 규약
+  "font": 1.15,                         // 선택. 글자 배율
+  "note": "아래로 갈수록 왼쪽으로 몰린다", // 선택. 축 아래 한 줄(작은 글씨)
+
+  "axis": {
+    "kind": "category",                 // "category" | "linear". 기본 "category"
+    "cols": ["빌드", "훈련 실행", "시동", "정상 운영"],   // category 전용
+    "max": 8,                           // linear 전용. 트랙 오른쪽 끝의 값
+    "unit": "GB",                       // linear 전용. 눈금 라벨에 붙는다
+    "ticks": [0, 2, 4, 6, 8]            // linear 전용. 생략하면 0과 max만
+  },
+
+  "lanes": [
+    { "label": "C2 JVM", "sub": "OpenJDK 기본", "segments": [ /* ... */ ] }
+  ],
+
+  "markers": [                          // 선택. linear 축에서만 그린다
+    { "at": 4, "label": "컨테이너 limit", "kind": "query" }
+  ]
+}
+```
+
+**flow와 갈리는 지점 — flow는 "무엇이 무엇으로 흐르는가", lane은 "무엇이 축의 어디에 얼마만큼 놓이는가".** 순서·의존이 있으면 flow, 위치·양이 있으면 lane.
+
+### segment — 축 종류에 따라 위치 지정이 다르다
+
+**category 축**
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `col` | ✅ | 몇 번째 칸인가(0부터) |
+| `w` | | 그 칸 안에서 막대가 차지하는 폭 비율 0~1. 기본 1. 막대는 칸 왼쪽에 **좌측 정렬**된다 — "칸 시작점에서 얼마나 뻗는가"로 읽는다 |
+| `label` | | 막대 위에 붙는 이름 |
+| `sub` | | 라벨 아래 작은 둘째 줄 |
+| `kind` | | 색 계열. `src`·`proc`·`store`·`query`·`sink` 다섯 개뿐. 기본 `proc` |
+| `empty` | | `true`면 "이 시점엔 할 일 없음". 점선 테두리·채움 없음·라벨 흐리게. `label` 생략 시 `없음` |
+| `style` | | `"hatch"`면 대각 빗금 채움 — 실제로 쓰는 게 아니라 순간적으로 부푸는 몫 같은 것 |
+
+**linear 축**
+
+`col`/`w` 대신 `start`·`end`를 쓴다. 둘 다 `axis.max`와 같은 단위의 실제 값이다. 나머지 필드는 category와 동일.
+
+**두 방식을 한 도식 안에서 섞지 마라.** `axis.kind`와 안 맞는 세그먼트(category인데 `start`/`end`, linear인데 `col`)는 조용히 건너뛰지 않고 `console.warn`을 남기고 그 세그먼트만 버린다. linear에서 `end`가 `axis.max`를 넘는 세그먼트도 **잘리지 않고** 그대로 그리며 경고만 남긴다 — viewBox가 그만큼 늘어난다.
+
+### 막대는 양만, 텍스트는 막대 위 — 그리고 절대 칸을 넘지 않는다
+
+막대 폭은 "일의 양"을 나타낸다. 라벨을 막대 **안에** 넣으면 라벨을 담으려고 막대가 넓어져야 해서 두 요구가 충돌한다. 그래서 라벨·서브는 막대 위에 별도로 얹는다 — 막대는 빈 색 블록일 뿐이다.
+
+레인 한 줄의 세로 구성(위→아래):
+
+```
+  라벨   (12px, 줄당 15px×font)
+  서브   (9.5px, 줄당 12px×font) ← 있을 때만
+  4px 간격
+  막대   (BAR_H = 18px 고정)
+```
+
+- 라벨·서브는 세그먼트 왼쪽 끝에 `text-anchor: start`로 좌측 정렬된다.
+- **텍스트는 자기 칸(category) 또는 다음 세그먼트의 시작점(linear)을 절대 넘지 않는다.** `wrap()`으로 최대 2줄까지 접고, 2줄로도 안 들어가면 `console.warn`을 남기고 2줄까지만 그린다 — 잘라내는 대신 다른 세그먼트의 칸을 침범하는 쪽을 완전히 막았다(이전 버전은 막대 바깥에 라벨을 놓아 남의 칸에 걸치는 문제가 있었다).
+  - category: 접는 기준 폭은 **그 칸의 폭**(`COL_W − 좌우 패딩`)으로 고정 — 막대의 `w`가 작아도 텍스트는 칸 전체 폭까지 쓸 수 있다.
+  - linear: 접는 기준 폭은 `max(세그먼트 폭, 120)`이되 **다음 세그먼트의 시작 x를 넘지 않게** 잘린다. 마지막 세그먼트는 트랙 오른쪽 끝까지 쓸 수 있다.
+- 이 규칙 덕에 **세그먼트 텍스트가 viewBox를 넓히는 일은 없다.** category 총 폭은 `MARGIN + GUTTER_W + cols×COL_W + MARGIN`으로 항상 딱 떨어진다(linear는 `end > max`로 막대 자체가 넘치는 경우만 여전히 예외 — 잘리지 않고 그대로 그리며 viewBox가 늘어난다).
+
+### 레인 높이는 계산값이다
+
+레인마다 라벨·서브 줄 수가 다르므로 높이도 다르다. 고정 상수가 아니라 레인마다 이렇게 계산한다.
+
+```js
+laneH = Math.max(46, maxLabelLines * 15*font + maxSubLines * 12*font + 4 + 18 /* BAR_H */ + 6)
+```
+
+`maxLabelLines`·`maxSubLines`는 그 레인 세그먼트들 중 최댓값이다. 최소 46px은 유지한다(왼쪽 거터의 레인 이름이 2줄일 수 있어서다). 총 높이는 이 레인별 높이의 합 + 레인 사이 간격이다.
+
+### 레이아웃 상수 (`lane.js`)
+
+```js
+GUTTER_W: 118,  COL_W: 150,  TRACK_W: 640,  LANE_GAP: 14,
+HEAD_H: 28,  FOOT_H: 22,  MARGIN: 16,  SEG_R: 5,  BAR_H: 18
+```
+
+- category 축 헤더: 각 칸 중앙에 칸 이름, 칸 경계마다(양끝 포함, `cols.length+1`개) 옅은 세로 구분선이 레인 영역 전체 높이로 그려진다.
+- linear 축 헤더: `ticks`(생략 시 `[0, max]`) 위치마다 눈금선 + `값+unit` 라벨, 레인 영역을 관통하는 옅은 세로 격자선.
+- marker(linear 전용): 해당 위치에 점선 세로선 + 위쪽에 라벨. 색은 `kind`(기본 `query`).
+- 레인 라벨(왼쪽 거터)은 `flow.js`의 `wrap()`을 이식해 `GUTTER_W - 10` 기준으로 줄바꿈한다. 세그먼트 라벨·서브도 같은 `wrap()`을 쓰되 기준 폭이 다르다(위 참고).
+- `hatch` 패턴의 `<pattern>` id는 도식(컨테이너)마다 유일한 접두어가 붙는다 — 페이지에 `lane` 도식이 여럿이어도 안전하다.
+
+### 애니메이션
+
+막대가 왼쪽에서 오른쪽으로 자라는 draw-in을 **한 번만** 한다(레인당 600ms, 레인마다 80ms stagger, 반복 없음). 텍스트는 애니메이션 없이 처음부터 고정 위치에 보인다. `IntersectionObserver`로 화면에 들어올 때 시작하고, `prefers-reduced-motion: reduce`면 애니메이션 없이 완성 상태로 즉시 그린다.
+
+### 렌더 검증
+
+```
+node tools/lane_smoke.js content/runtime/01-jvm-graalvm/_lane/*.json
+```
+
+브라우저 없이 최소 DOM 스텁 위에서 엔진을 돌려 여섯 가지를 본다: ①`NaN`·음수 폭 없음 ②모든 요소가 viewBox 안 ③`<pattern>` id 유일성 ④category 칸 구분선 수와 `cols.length` 일치 ⑤linear `end > max` 세그먼트가 잘리지 않고 경고가 나는지 ⑥**세그먼트 텍스트가 자기 칸(category) 또는 다음 세그먼트 시작점(linear)을 넘지 않는지** — `lane.js`와 같은 텍스트 폭 추정 공식을 스크립트 안에 복제해서 잰다. 합성(synthetic) 케이스로 축 불일치 skip 경고와 linear 초과 경고도 같이 검증한다.
 
 ---
 

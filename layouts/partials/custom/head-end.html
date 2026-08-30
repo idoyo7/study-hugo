@@ -1,11 +1,36 @@
-{{- /* 근거 표기 기호(✓ ≈ Ⓥ ? Ⓑ Σ) 색상 배지 — 본문 인라인 code 스팬만 대상, 코드블록(pre) 제외 */ -}}
+{{- /* JSON-LD 구조화 데이터. head-end.html 이 테마가 head 안에서 부르는
+       유일한 커스텀 훅이라(themes/hextra/layouts/_partials/head.html:80) 여기서
+       싣는다. 별도 파일로 뺀 이유는 이 파일이 이미 근거 배지 + 도식 엔진 로더로
+       충분히 길기 때문이다. */ -}}
+{{ partial "custom/schema-jsonld.html" . }}
+
+{{- /* 근거 표기 기호(✓ ≈ Ⓥ ? Ⓑ Σ) 색상 배지 — 스타일만 싣는다.
+
+       클래스와 title 은 layouts/partials/custom/grade-badges.html 이 빌드
+       시점에 붙인다. 예전에는 이 자리에 DOMContentLoaded 스크립트가 있었는데
+       두 가지 문제가 있었다.
+
+       1) font-size·vertical-align 을 첫 페인트 이후에 바꿔 레이아웃 시프트를
+          만들었다. 그래서 아래 규칙에는 기하(geometry)를 건드리는 속성을
+          하나도 두지 않았다 — font-weight 만 남겼고, 이 사이트의 code 폰트는
+          등폭이라 굵기를 바꿔도 글자폭이 변하지 않는다. color 와
+          background-color 는 박스 크기와 무관하다.
+       2) JS 를 돌리지 않는 소비자에게는 기호의 뜻이 전달되지 않았다.
+
+       스타일도 배지를 실제로 쓰는 문서에만 싣는다 — 63/211 페이지다. */ -}}
+{{- /* 게이트는 변환 전 .Content 를 본다. 배지에 class 를 붙이는 건 본문
+       템플릿의 custom/grade-badges.html 이고, head 는 그보다 먼저 실행되므로
+       여기서 보이는 .Content 에는 아직 class 가 없다. 그래서 원본 형태
+       <code>기호 를 찾는다. (처음에 class 를 찾도록 썼다가 게이트가 항상
+       거짓이 되어 63개 페이지에서 배지 색이 통째로 빠졌다.) */ -}}
+{{- $hasGrade := false -}}
+{{- $rendered := printf "%s" .Content -}}
+{{- range slice "<code>✓" "<code>≈" "<code>Ⓥ" "<code>Ⓑ" "<code>Σ" "<code>?" -}}
+  {{- if strings.Contains $rendered . -}}{{- $hasGrade = true -}}{{- end -}}
+{{- end -}}
+{{- if $hasGrade }}
 <style>
-  code.grade {
-    font-weight: 700;
-    font-size: 0.78em;
-    vertical-align: 0.08em;
-    border: none;
-  }
+  code.grade { font-weight: 700; }
   code.grade-confirmed { color: #15803d; background: rgba(22, 163, 74, 0.12); }
   code.grade-est       { color: #b45309; background: rgba(217, 119, 6, 0.12); }
   code.grade-vendor    { color: #1d4ed8; background: rgba(37, 99, 235, 0.10); }
@@ -19,32 +44,7 @@
   html.dark code.grade-bench     { color: #a78bfa; background: rgba(167, 139, 250, 0.13); }
   html.dark code.grade-synth     { color: #2dd4bf; background: rgba(45, 212, 191, 0.13); }
 </style>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    var CLASS_BY_SYMBOL = {
-      '✓': 'grade-confirmed',
-      '≈': 'grade-est',
-      'Ⓥ': 'grade-vendor',
-      '?': 'grade-unknown',
-      'Ⓑ': 'grade-bench',
-      'Σ': 'grade-synth',
-    };
-    // 기호(+선택적 ⁽부가설명⁾)를 /로 병기한 형태까지 허용: ✓, ✓⁽계산⁾, ✓/≈, ≈/✓⁽혼재⁾ ...
-    var GRADE_RE = /^([✓≈ⓋⒷΣ?])(⁽[^⁾]*⁾)?(\/[✓≈ⓋⒷΣ?](⁽[^⁾]*⁾)?)*$/;
-    document.querySelectorAll('article code').forEach(function (el) {
-      if (el.closest('pre')) return; // 코드블록 제외
-      var t = el.textContent.trim();
-      var m = t.match(GRADE_RE);
-      if (!m) return;
-      el.classList.add('grade', CLASS_BY_SYMBOL[m[1]]);
-      var full = { '✓': '확인됨', '≈': '추정', 'Ⓥ': '벤더 주장', '?': '미확인', 'Ⓑ': '퍼블릭 벤치마크', 'Σ': '종합 판단' };
-      el.title = t.split('/').map(function (part) {
-        var q = part.match(/⁽([^⁾]*)⁾/);
-        return full[part[0]] + (q ? ' (' + q[1] + ')' : '');
-      }).join(' / ');
-    });
-  });
-</script>
+{{- end }}
 
 {{- /* 도식 엔진은 그 문서가 실제로 쓰는 것만 싣는다.
        전부 무조건 싣던 때는 도식이 없는 문서도 6종 86KB 를 받았다 —
@@ -61,6 +61,7 @@
 {{- $useMnode := strings.Contains $raw "{{< mnode" -}}
 {{- $useRstep := strings.Contains $raw "{{< rstep" -}}
 {{- $useRrev := strings.Contains $raw "{{< rrev" -}}
+{{- $useLane := strings.Contains $raw "{{< lane" -}}
 {{- if $useFlow }}
 {{- /* vm-flow 애니메이션 플로우 다이어그램 엔진 + 스타일 */ -}}
 <link rel="stylesheet" href="{{ "flow/flow.css" | relURL }}">
@@ -96,8 +97,13 @@
 <link rel="stylesheet" href="{{ "flow/rrev.css" | relURL }}">
 <script defer src="{{ "flow/rrev.js" | relURL }}"></script>
 {{- end }}
-{{- if or $useFlow $useSeq $useCfstl $useBscore $useMnode $useRstep $useRrev }}
-{{- /* vm-flow/seq/cfstl/bscore/mnode/rstep/rrev 공용 "크게 보기"(전체화면 확대) — 하나라도 쓰면 싣는다 */ -}}
+{{- if $useLane }}
+{{- /* vm-lane 가로축+레인 막대 다이어그램 엔진 + 스타일 */ -}}
+<link rel="stylesheet" href="{{ "flow/lane.css" | relURL }}">
+<script defer src="{{ "flow/lane.js" | relURL }}"></script>
+{{- end }}
+{{- if or $useFlow $useSeq $useCfstl $useBscore $useMnode $useRstep $useRrev $useLane }}
+{{- /* vm-flow/seq/cfstl/bscore/mnode/rstep/rrev/lane 공용 "크게 보기"(전체화면 확대) — 하나라도 쓰면 싣는다 */ -}}
 <link rel="stylesheet" href="{{ "flow/expand.css" | relURL }}">
 <script defer src="{{ "flow/expand.js" | relURL }}"></script>
 {{- end }}
