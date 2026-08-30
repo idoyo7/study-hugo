@@ -1,0 +1,97 @@
+{{- /* themes/hextra/layouts/_partials/head.html (Hextra v0.12.3, 42882bc) 의 프로젝트 오버라이드.
+       테마 원본과 다른 곳은 <title> 블록 한 군데뿐 — 홈에서 site.Params.seo.homeTitle 을 먼저 본다.
+       테마 원본은 홈에서 site.Title('Ops Insights') 만 내보내 12자짜리 제목이 나갔다.
+       그 값이 사라지면 홈 title 이 소리 없이 12자로 되돌아가므로 폴백에 warnf 를 달았다.
+       title 태그만 바꾸려고 이 파일을 통째로 복사했다. 프런트매터 title 을 늘리는 쪽은
+       docs/list.html:11 이 그 값을 h1 로 한 번 더 찍고 opengraph.html:3 이 og:title 로 쓰기 때문에
+       부작용이 딸려온다.
+       테마는 vendoring 이라 업그레이드가 수동 재임포트다 — hextra 를 올릴 때 원본 head.html 과
+       이 파일을 다시 diff 해서 새 태그를 옮겨와야 한다. */ -}}
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {{- $noindex := .Params.noindex | default false -}}
+  {{ if and (hugo.IsProduction) (not $noindex) -}}
+    <meta name="robots" content="index, follow" />
+  {{ else -}}
+    <meta name="robots" content="noindex, nofollow" />
+  {{ end -}}
+  {{ partialCached "favicons.html" . -}}
+  <title>
+    {{- if .IsHome -}}
+      {{- $homeTitle := "" -}}
+      {{- with site.Params.seo -}}{{- $homeTitle = .homeTitle | default "" -}}{{- end -}}
+      {{- with $homeTitle -}}
+        {{ . -}}
+      {{- else -}}
+        {{- warnf "hugo.toml 의 [params.seo].homeTitle 이 없다 — 홈 <title> 이 site.Title(12자)로 되돌아간다" -}}
+        {{ site.Title -}}
+      {{- end -}}
+    {{ else -}}
+      {{ with .Title }}{{ . }} – {{ end -}}
+      {{ site.Title -}}
+    {{ end -}}
+  </title>
+  <meta name="description" content="{{ partial "utils/page-description.html" . }}" />
+
+  {{- with .Params.canonical -}}
+    <link rel="canonical" href="{{ . }}" itemprop="url" />
+  {{- else -}}
+    <link rel="canonical" href="{{ .Permalink }}" itemprop="url" />
+  {{- end -}}
+
+  {{- partial "opengraph.html" . -}}
+  {{- partial "schema.html" . -}}
+  {{- partial "twitter_cards.html" . -}}
+
+  {{- $mainCss := resources.Get "css/compiled/main.css" -}}
+  {{- $customCss := resources.Get "css/custom.css" -}}
+  {{- $variablesCss := resources.Get "css/variables.css" | resources.ExecuteAsTemplate "css/variables.css" . -}}
+
+  {{- /* Production build */ -}}
+  {{- if hugo.IsProduction }}
+    {{- $styles := slice $variablesCss $mainCss $customCss | resources.Concat "css/compiled/main.css" | minify | fingerprint }}
+    <link rel="preload" href="{{ $styles.RelPermalink }}" as="style" integrity="{{ $styles.Data.Integrity }}" />
+    <link href="{{ $styles.RelPermalink }}" rel="stylesheet" integrity="{{ $styles.Data.Integrity }}" />
+
+  {{- /* Theme development mode (non-production + theme environment) */ -}}
+  {{- else if eq hugo.Environment "theme" }}
+    {{- $devStyles := resources.Get "css/styles.css" | postCSS (dict "inlineImports" true) }}
+    <link href="{{ $devStyles.RelPermalink }}" rel="stylesheet" />
+    <link href="{{ $variablesCss.RelPermalink }}" rel="stylesheet" />
+    <link href="{{ $customCss.RelPermalink }}" rel="stylesheet" />
+
+  {{- /* User local development */ -}}
+  {{- else }}
+    {{- $styles := resources.Get "css/compiled/main.css" -}}
+    <link href="{{ $styles.RelPermalink }}" rel="stylesheet" />
+    <link href="{{ $variablesCss.RelPermalink }}" rel="stylesheet" />
+    <link href="{{ $customCss.RelPermalink }}" rel="stylesheet" />
+  {{- end }}
+
+  {{ partial "components/analytics/analytics.html" . }}
+
+  {{- $scriptsHead := slice -}}
+  {{- range resources.Match "js/head/*.js" -}}
+    {{ $scriptsHead = $scriptsHead | append (resources.ExecuteAsTemplate .Name $ .) }}
+  {{- end -}}
+
+  {{- $scripts := $scriptsHead | resources.Concat "js/main-head.js" -}}
+
+  {{- if hugo.IsProduction -}}
+  {{- $scripts = $scripts | minify | fingerprint -}}
+  {{- end -}}
+  <script src="{{ $scripts.RelPermalink }}" integrity="{{ $scripts.Data.Integrity }}"></script>
+
+  <!-- Math engine -->
+  {{ $noop := .WordCount -}}
+  {{- $engine := site.Params.math.engine | default "katex" -}}
+  {{ if and (.Page.Store.Get "hasMath") (eq $engine "katex") -}}
+    {{ partialCached "scripts/katex.html" . -}}
+  {{ else if and (.Page.Store.Get "hasMath") (eq $engine "mathjax") -}}
+    {{ partialCached "scripts/mathjax.html" . -}}
+  {{ end -}}
+
+  {{ partial "utils/page-width-override.html" . }}
+  {{ partial "custom/head-end.html" . -}}
+</head>

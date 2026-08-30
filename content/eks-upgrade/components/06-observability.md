@@ -1,5 +1,6 @@
 ---
-title: "관측성 — VM-stack·metrics-server·fluentbit·descheduler"
+title: "관측성 — VM-stack·metrics-server"
+linkTitle: "관측성 — VM-stack·metrics-server·fluentbit·descheduler"
 date: 2026-07-21
 lastmod: 2026-08-24
 weight: 6
