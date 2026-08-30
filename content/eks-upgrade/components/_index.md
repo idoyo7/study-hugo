@@ -1,5 +1,7 @@
 ---
 title: "컴포넌트별 마이그레이션"
+date: 2026-07-21
+lastmod: 2026-08-24
 weight: 7
 comments: false
 ---

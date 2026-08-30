@@ -1,5 +1,17 @@
-/* vm-flow/seq/cfstl "크게 보기" 오버레이 스타일 */
-.vm-flow, .vm-seq, .vm-cfstl { position: relative; }
+/* 도식 7종 공용 "크게 보기" 오버레이 스타일.
+ *
+ * expand.js 는 7종(vm-flow/seq/cfstl/bscore/mnode/rstep/rrev)에 전부 버튼을
+ * 달지만, 이 파일은 앞의 3종만 다루고 있었다. 나머지 4종에서는
+ *
+ *   - position:relative 가 없어 절대 배치된 .vm-expand-btn 이 도식이 아니라
+ *     그 위쪽 positioned 조상을 기준으로 잡혀 문서 최상단으로 튀어나갔고,
+ *   - .is-expanded 규칙이 없어 클릭해도 확대는 일어나지 않는데
+ *     expand.js 가 html.vm-expand-lock(overflow:hidden)은 걸어서
+ *     페이지 스크롤만 잠겼다.
+ *
+ * 영향 문서 6편(bscore 1 · mnode 1 · rstep 3 · rrev 1). */
+.vm-flow, .vm-seq, .vm-cfstl,
+.vm-bscore, .vm-mnode, .vm-rstep, .vm-rrev { position: relative; }
 
 .vm-expand-btn {
   position: absolute;
@@ -40,7 +52,8 @@
 }
 
 /* 전체화면 확대 */
-.vm-flow.is-expanded, .vm-seq.is-expanded, .vm-cfstl.is-expanded {
+.vm-flow.is-expanded, .vm-seq.is-expanded, .vm-cfstl.is-expanded,
+.vm-bscore.is-expanded, .vm-mnode.is-expanded, .vm-rstep.is-expanded, .vm-rrev.is-expanded {
   position: fixed;
   inset: 0;
   z-index: 9999;
@@ -55,7 +68,8 @@
 .is-expanded .vm-expand-btn { display: none; }
 .is-expanded .vm-expand-close { display: inline-flex; align-items: center; justify-content: center; }
 /* 확대 시 도식 전체가 화면에 맞게(축소만, 비율 유지) — 한눈에 크게 */
-.is-expanded .flow-svg, .is-expanded .seq-svg, .is-expanded .cft-svg {
+.is-expanded .flow-svg, .is-expanded .seq-svg, .is-expanded .cft-svg,
+.is-expanded .bs-svg, .is-expanded .mn-svg, .is-expanded .rs-svg, .is-expanded .rr-svg {
   width: auto !important;
   height: auto !important;
   max-width: 100% !important;

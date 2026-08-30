@@ -1,0 +1,23 @@
+{
+  "caption": "커널의 accept 큐는 하나다. 동기 워커 16개는 그 한 줄에서 비는 순서대로 집어가고, gthread 워커 2개는 커넥션을 최대 1000개까지 미리 집어와 자기 스레드풀 큐에 쌓는다. 한 줄이 두 줄로 갈리는 순간 워커 간 재분배가 사라진다.",
+  "font": 1.15,
+  "nodes": [
+    { "id": "L", "col": 0, "row": 1, "label": "커널 accept 큐", "sub": "backlog 2048 · 하나뿐", "kind": "src" },
+
+    { "id": "A1", "col": 1, "row": 0, "label": "동기 워커 ×16", "sub": "비는 워커가 하나씩", "kind": "proc" },
+    { "id": "A2", "col": 2, "row": 0, "label": "동시 16", "sub": "대기열은 계속 공유", "kind": "sink" },
+
+    { "id": "B1", "col": 1, "row": 2, "label": "gthread 워커 ×2", "sub": "최대 1000개 미리 집는다", "kind": "proc" },
+    { "id": "B2", "col": 2, "row": 2, "label": "동시 64", "sub": "초과분은 워커 안 큐에", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "L", "to": "A1", "label": "A" },
+    { "from": "L", "to": "B1", "label": "B" },
+    { "from": "A1", "to": "A2" },
+    { "from": "B1", "to": "B2" }
+  ],
+  "groups": [
+    { "id": "ga", "label": "A · 워커 16 · 대기열 한 줄", "members": ["A1", "A2"] },
+    { "id": "gb", "label": "B · 워커 2 × 스레드 32 · 두 줄", "members": ["B1", "B2"] }
+  ]
+}

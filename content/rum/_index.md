@@ -1,6 +1,8 @@
 ---
 title: "RUM 내재화"
-weight: 4
+date: 2026-07-12
+lastmod: 2026-08-24
+weight: 40
 cascade:
   type: docs
 comments: false

@@ -1,5 +1,7 @@
 ---
 title: "우리의 운영"
+date: 2026-07-18
+lastmod: 2026-08-24
 weight: 3
 comments: false
 ---

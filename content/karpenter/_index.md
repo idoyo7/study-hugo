@@ -1,6 +1,8 @@
 ---
 title: "Karpenter"
-weight: 10
+date: 2026-07-30
+lastmod: 2026-08-24
+weight: 110
 cascade:
   type: docs
 aliases: ["/k8s-features/karpenter/"]

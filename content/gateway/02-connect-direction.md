@@ -1,5 +1,7 @@
 ---
 title: "수립 방향이라는 분기점"
+date: 2026-08-06
+lastmod: 2026-08-24
 linkTitle: "02 수립 방향 분기"
 weight: 2
 ---

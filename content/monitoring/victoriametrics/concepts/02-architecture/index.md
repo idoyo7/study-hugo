@@ -1,5 +1,7 @@
 ---
 title: "아키텍처"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 2
 aliases: ["/monitoring/victoriametrics/02-architecture/"]
 ---

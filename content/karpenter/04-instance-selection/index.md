@@ -1,5 +1,7 @@
 ---
 title: "인스턴스는 누가 고르는가"
+date: 2026-08-01
+lastmod: 2026-08-24
 weight: 4
 aliases: ["/k8s-features/karpenter/01-instance-selection/"]
 ---

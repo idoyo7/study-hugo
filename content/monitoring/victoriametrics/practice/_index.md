@@ -1,5 +1,7 @@
 ---
 title: "잘 쓰는 방법"
+date: 2026-07-18
+lastmod: 2026-08-24
 weight: 2
 comments: false
 ---

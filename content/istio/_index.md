@@ -1,6 +1,8 @@
 ---
 title: "Istio"
-weight: 5
+date: 2026-07-12
+lastmod: 2026-08-24
+weight: 50
 cascade:
   type: docs
 comments: false

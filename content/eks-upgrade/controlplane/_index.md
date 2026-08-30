@@ -1,5 +1,7 @@
 ---
 title: "컨트롤 플레인 파라미터"
+date: 2026-08-15
+lastmod: 2026-08-24
 weight: 8
 comments: false
 ---

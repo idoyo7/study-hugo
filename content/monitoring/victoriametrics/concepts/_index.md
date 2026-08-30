@@ -1,5 +1,7 @@
 ---
 title: "기본 개념"
+date: 2026-07-18
+lastmod: 2026-08-24
 weight: 1
 comments: false
 ---
