@@ -5,6 +5,12 @@
 baseURL = 'https://docs.makgol.com/'
 title = 'Ops Insights'
 theme = 'hextra'
+# .Site.Copyright — RSS <copyright> 로 나간다. 푸터 문구는 i18n/ko.yaml 의 copyright 키.
+# 최상위 bare key 라 첫 테이블 헤더([markup]) 앞에 있어야 한다 — 아래로 내려가면
+# 그 테이블 하위 키로 파싱돼 경고 없이 죽는다. 그래서 title·theme 옆에 붙여 둔다.
+# 연도는 i18n/ko.yaml 의 copyright 와 한 쌍이다. 해가 바뀌면 두 곳을 같이 고쳐라 —
+# 한쪽만 고치면 RSS 와 푸터의 연도가 갈리고 빌드는 경고 없이 성공한다.
+copyright = '© 2026 Mont'
 
 # Korean content
 locale = 'ko-KR'
@@ -85,6 +91,27 @@ enableRobotsTXT = true
       inputPosition = 'top'
       lang = 'ko'
 
+  # 아래 두 테이블은 일부러 파일 끝에 둔다. TOML 은 테이블 헤더 뒤의 bare key 를 그
+  # 테이블 소속으로 파싱하므로, 이 테이블들을 [params] 직후에 두면 나중에 [params]
+  # 직속 키(description·displayUpdatedDate 같은 것)를 추가하는 사람이 그 키를 아래에
+  # 붙였을 때 조용히 [params.footer] 하위로 들어간다. Hugo 는 경고 없이 성공하고 해당
+  # 기능만 죽는다. [params] 직속 bare key 는 [params] 줄과 [params.navbar] 사이에 넣어라.
+
+  # 저자 이름. 테마 list.rss.xml:7-9,30 은 managingEditor·webMaster·<author> 를 전부
+  # `with .Site.Params.Author.email` 로 감싸므로 email 이 없는 지금 이 name 은 산출물에
+  # 나오지 않는다(실측 0장). email 을 넣기로 할 때를 위한 자리로만 남긴다 — 넣으면
+  # 주소가 RSS 28개 피드에 그대로 공개된다.
+  # 형제 브랜치 seo/structured-data 는 이 키를 읽지 않고 자기 기본값
+  # (`site.Params.schema.authorName | default "Mont"`)으로 JSON-LD Person 을 낸다.
+  # 이름이 두 군데 따로 박혀 있으니 머지할 때 authorName 을 이 키로 돌려 두는 편이 낫다.
+  [params.author]
+    name = 'Mont'
+    # email = ''
+
+  # displayPoweredBy 는 적지 않는다. footer.html:4,28 이 `| default true` 로 읽어
+  # 이미 켜져 있고, 명시해도 렌더 결과가 같다.
+  [params.footer]
+    displayCopyright = true
 # 홈 <title> 전용. 테마 head.html 은 홈에서 title='Ops Insights' 12자만 내보낸다.
 # 프런트매터 title 을 늘리면 h1·og:title 까지 같이 늘어나므로 title 태그만 따로 둔다.
 # layouts/partials/head.html 오버라이드가 이 값을 읽는다.

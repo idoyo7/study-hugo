@@ -1,0 +1,10 @@
+# 테마(themes/hextra/i18n/ko.yaml)의 문자열을 키 단위로 덮어쓴다.
+# 여기 없는 키는 그대로 테마에서 해석된다 — copyright 하나만 바꾼다.
+# 테마 기본값은 "© 2026 Hextra Project." 로, footer.html 이 T "copyright" 로 읽는다.
+#
+# 연도는 hugo.toml 최상위 copyright 와 한 쌍이다. 이쪽이 푸터 177장, 저쪽이 RSS
+# <copyright> 28피드에 나가므로 해가 바뀌면 두 곳을 같이 고쳐야 한다. 한쪽만
+# 고치면 푸터와 피드의 연도가 갈리고 빌드는 경고 없이 성공한다. i18n 값은
+# 템플릿이 아니어서 now.Year 를 쓸 수 없다 — 자동화하려면
+# layouts/partials/custom/footer.html 을 만들어 거기서 렌더해야 한다.
+copyright: "© 2026 Mont · [makgol.com](https://makgol.com)"
