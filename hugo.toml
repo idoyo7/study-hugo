@@ -13,6 +13,13 @@ hasCJKLanguage = true
 
 disableKinds = ['taxonomy', 'term']
 
+# 파일별 최종 커밋일을 .Lastmod 로 준다. 이게 없던 동안 사이트맵 187개 URL 에
+# lastmod 가 0건, article:modified_time 과 dateModified 도 전 페이지 0건이었다.
+# 짝이 되는 발행일은 프런트매터가 아니라 data/pubdates.yaml 에서 온다
+# (이유는 tools/gen-pubdates.py 주석). 빌드 환경에 git 실행 파일이 필요하다 —
+# Dockerfile builder 스테이지의 apt 목록에 git 이 들어 있는 게 그래서다.
+enableGitInfo = true
+
 # layouts/robots.txt 를 렌더한다. 켜지 않으면 Hugo 는 robots.txt 를 만들지 않고,
 # 라이브에서 두 호스트 모두 404 였다 — 사이트맵 선언 경로가 아예 없었다.
 enableRobotsTXT = true

@@ -56,13 +56,16 @@
 {{- end }}
 
 {{- if .IsPage }}
-  {{- $iso8601 := "2006-01-02T15:04:05-07:00" -}}
+{{- /* 날짜는 utils/page-dates.html 에서 온다. 테마 원본은 .PublishDate·.Lastmod 를
+       직접 봤는데 둘 다 zero 라 176 페이지 전부에서 이 두 태그가 빠져 있었다.
+       partial 은 이미 포맷된 ISO 8601 문자열을 주므로 여기서 Format 하지 않는다. */ -}}
+  {{- $dates := partial "utils/page-dates.html" . -}}
 <meta property="article:section" content="{{ .Section }}">
-  {{- with .PublishDate }}
-<meta property="article:published_time" {{ .Format $iso8601 | printf "content=%q" | safeHTMLAttr }}>
+  {{- with $dates.published }}
+<meta property="article:published_time" content="{{ . }}">
   {{- end }}
-  {{- with .Lastmod }}
-<meta property="article:modified_time" {{ .Format $iso8601 | printf "content=%q" | safeHTMLAttr }}>
+  {{- with $dates.modified }}
+<meta property="article:modified_time" content="{{ . }}">
   {{- end }}
 {{- end }}
 
