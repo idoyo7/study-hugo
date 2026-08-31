@@ -1,5 +1,6 @@
 ---
 title: "3-3편 — Ambient 안전하게 업그레이드하기"
+description: "Ambient mode 업그레이드 순서를 istiod → istio-cni → ztunnel로 잡은 근거와, long-lived connection이 끊기는 ztunnel만 node pool 단위 blue-green으로 돌리는 구현 방식을 남깁니다."
 date: 2026-08-01
 lastmod: 2026-08-24
 weight: 5

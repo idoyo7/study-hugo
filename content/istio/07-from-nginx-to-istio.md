@@ -1,5 +1,6 @@
 ---
 title: "nginx에서 Istio로"
+description: "location·rewrite·auth_request 같은 nginx 지시어가 VirtualService·Gateway·AuthorizationPolicy·ext_authz 중 어디로 갔는지 대응표로 짚습니다. 레이트 리밋은 EnvoyFilter로 넘어갑니다."
 date: 2026-07-12
 lastmod: 2026-08-18
 weight: 7
