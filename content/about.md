@@ -1,5 +1,6 @@
 ---
 title: "이 사이트에 대하여"
+date: 2026-08-30
 type: docs
 weight: 999
 description: "Ops Insights를 누가 쓰는지, 무엇을 쓰는지, 근거 표기와 출처 정리 방식."
