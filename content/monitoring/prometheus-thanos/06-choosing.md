@@ -1,5 +1,6 @@
 ---
-title: "무엇을 고를 것인가"
+title: "Thanos·VM·Mimir 선택 가이드"
+linkTitle: "무엇을 고를 것인가"
 date: 2026-08-30
 lastmod: 2026-08-30
 weight: 6

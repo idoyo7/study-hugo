@@ -1,5 +1,6 @@
 ---
-title: "VictoriaMetrics"
+title: "VictoriaMetrics 내부 동작과 운영"
+linkTitle: "VictoriaMetrics"
 date: 2026-07-12
 lastmod: 2026-08-24
 weight: 1

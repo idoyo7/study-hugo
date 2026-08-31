@@ -1,5 +1,6 @@
 ---
-title: "무엇을 고를 것인가"
+title: "Redis·Valkey·Memcached 판단표"
+linkTitle: "무엇을 고를 것인가"
 date: 2026-08-06
 lastmod: 2026-08-24
 weight: 8
