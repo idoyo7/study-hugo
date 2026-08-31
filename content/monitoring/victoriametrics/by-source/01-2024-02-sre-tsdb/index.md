@@ -1,5 +1,6 @@
 ---
 title: "네이버 검색 SRE 시계열 DB 운영기"
+description: "네이버 검색 SRE가 DEVIEW 2023에서 밝힌 VictoriaMetrics 도입기입니다. SingleNode의 한계로 Cluster를 택했고 접근 패턴별 멀티클러스터와 recording rules 선계산, vmauth 라우팅 게이트웨이로 부하를 풀었습니다."
 date: 2026-08-01
 lastmod: 2026-08-24
 weight: 1

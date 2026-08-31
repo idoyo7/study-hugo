@@ -1,5 +1,6 @@
 ---
 title: "우리 배포 형상 — 자체 RUM 컨버터·6 실행 단위·stage/prod 격차"
+description: "Datadog Agent 방식을 참조해 만든 자체 RUM 컨버터가 표준 5실행 단위에 하나를 더해 6개가 됐습니다. stage는 replica 1·인메모리 큐로 prod 목표의 축소판입니다."
 date: 2026-08-13
 lastmod: 2026-08-24
 weight: 1
