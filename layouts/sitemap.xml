@@ -1,0 +1,22 @@
+{{- /* Hugo 내장 sitemap 템플릿의 오버라이드.
+
+       내장 템플릿은 lastmod 를 .Lastmod 에서 직접 뽑는다. 그 값이 한글 경로
+       5개에서 비어 사이트맵 186 URL 중 181 건에만 lastmod 가 실렸다(원인은
+       utils/page-dates.html 주석). 여기서 partial 을 거치게 해서 메타 태그·
+       JSON-LD 와 같은 값을 쓰게 한다 — 세 자리의 날짜가 갈라지지 않는다.
+
+       내장 템플릿과 다른 점은 lastmod 한 줄뿐이다. changefreq·priority 는
+       원래도 출력에 없었고(Google 이 무시한다) 이 사이트는 단일 언어라
+       xhtml:link 대체 링크도 나오지 않는다. */ -}}
+{{ printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  {{- range .Pages }}
+  {{- $dates := partial "utils/page-dates.html" . }}
+  <url>
+    <loc>{{ .Permalink }}</loc>
+    {{- with $dates.modified }}
+    <lastmod>{{ . }}</lastmod>
+    {{- end }}
+  </url>
+  {{- end }}
+</urlset>

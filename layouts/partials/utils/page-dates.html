@@ -1,0 +1,51 @@
+{{- /* 페이지의 발행일·수정일을 한 곳에서 낸다. ISO 8601 문자열 두 개를 dict 로
+       돌려준다 — {published, modified}. 값이 없으면 빈 문자열이다.
+
+       왜 partial 로 묶었나. 날짜를 쓰는 자리가 셋이다 — JSON-LD 의
+       datePublished/dateModified, og 의 article:published_time/modified_time,
+       사이트맵의 lastmod. 셋이 서로 다른 원천을 보면 크롤러가 같은 페이지에서
+       어긋난 날짜를 여러 벌 읽는다. description 을 utils/page-description.html
+       로 통일한 것과 같은 이유다.
+
+       원천은 둘이다.
+         수정일 ← .Lastmod (enableGitInfo 가 주는 파일별 최종 커밋일)
+         발행일 ← data/pubdates.yaml (tools/gen-pubdates.py 가 뽑은 최초 커밋일)
+
+       발행일을 프런트매터에 박지 않은 이유는 tools/gen-pubdates.py 주석에 있다.
+       요약하면, 186개 파일을 한 커밋에 건드리는 순간 git 이 주는 수정일이 전부
+       그날로 리셋되어 실제 이력이 사라진다. */ -}}
+
+{{- $iso := "2006-01-02T15:04:05-07:00" -}}
+{{- $published := "" -}}
+{{- $modified := "" -}}
+
+{{- if not .Lastmod.IsZero -}}
+  {{- $modified = .Lastmod.Format $iso -}}
+{{- end -}}
+
+{{- /* 생성된 목록 페이지처럼 원본 파일이 없는 경우가 있어 .File 을 먼저 확인한다.
+       키는 content/ 를 뗀 상대 경로이고 이는 .File.Path 와 같은 형식이다.
+       site.Data 는 0.156 에서 폐기됐다 — hugo.Data 를 쓴다. */ -}}
+{{- with .File -}}
+  {{- with index (hugo.Data.pubdates | default dict) .Path -}}
+    {{- with .published }}{{ $published = . }}{{ end -}}
+    {{- /* GitInfo 가 비었을 때만 데이터 파일의 수정일을 쓴다. 한글 경로에서
+           실제로 빈다 — git 의 core.quotepath 기본값이 비ASCII 경로를 8진
+           이스케이프로 내보내 Hugo 가 파일을 못 찾는다. 실측으로 valkey 5개
+           문서가 여기 걸려 사이트맵 lastmod 가 186 중 181 건이었다.
+           로컬에서 `git config core.quotepath false` 로도 풀리지만 그 설정은
+           클론과 함께 오지 않는다. 저장소 안에 값을 두면 어디서 빌드하든 같다. */ -}}
+    {{- if eq $modified "" -}}
+      {{- with .modified }}{{ $modified = . }}{{ end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* 데이터 파일에 없는 문서 — 새로 추가하고 tools/gen-pubdates.py 를 아직
+       안 돌린 경우다. 발행일을 비워두느니 수정일로 채운다. 날짜 신호가 아예
+       없는 것보다 낫고, 스크립트를 돌리면 정확한 값으로 바뀐다. */ -}}
+{{- if and (eq $published "") (ne $modified "") -}}
+  {{- $published = $modified -}}
+{{- end -}}
+
+{{- return dict "published" $published "modified" $modified -}}

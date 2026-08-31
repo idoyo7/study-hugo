@@ -1,0 +1,561 @@
+# 생성 파일 — 직접 고치지 마라. tools/gen-pubdates.py 가 만든다.
+# 키: content/ 를 뗀 상대 경로 (Page.File.Path).
+# published = 최초 커밋일, modified = 최종 커밋일. 둘 다 ISO 8601.
+"_index.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-30T00:48:08+09:00"
+"apm/_index.md":
+  published: "2026-07-12T23:19:45+09:00"
+  modified: "2026-08-17T02:03:58+09:00"
+"clickhouse/01-managed-vs-selfhosted.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"clickhouse/02-storage-local-nvme.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"clickhouse/03-operator.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"clickhouse/04-deployment-playbook.md":
+  published: "2026-07-15T01:01:26+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"clickhouse/05-altinity-operations.md":
+  published: "2026-07-15T16:50:00+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"clickhouse/06-production-usecases.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"clickhouse/07-local-nvme-datastore-patterns.md":
+  published: "2026-07-14T01:33:35+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"clickhouse/08-musinsa-cdp.md":
+  published: "2026-08-12T23:28:09+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"clickhouse/09-iceberg-lakehouse.md":
+  published: "2026-08-12T23:28:09+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"clickhouse/10-sources.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-18T00:42:05+09:00"
+"clickhouse/_index.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/00-background/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/01-target-version.md":
+  published: "2026-07-21T23:51:36+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/02-cluster-config/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/03-managed-addons.md":
+  published: "2026-07-21T23:51:36+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/04-cluster-bootstrap.md":
+  published: "2026-07-21T23:51:36+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/05-cutover-rollback.md":
+  published: "2026-07-21T23:51:36+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/_index.md":
+  published: "2026-07-21T17:59:00+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/components/01-karpenter.md":
+  published: "2026-07-21T17:59:00+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/components/02-istio.md":
+  published: "2026-07-21T17:59:00+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/components/03-gitops-argocd-rollouts.md":
+  published: "2026-07-21T17:59:00+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/components/04-secrets-autoscaling.md":
+  published: "2026-07-21T17:59:00+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/components/05-networking-ingress.md":
+  published: "2026-07-21T17:59:00+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/components/06-observability.md":
+  published: "2026-07-21T17:59:00+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/components/_index.md":
+  published: "2026-07-21T17:59:00+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/controlplane/01-cluster-parameters.md":
+  published: "2026-08-15T23:51:07+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/controlplane/02-component-parameters.md":
+  published: "2026-08-15T23:51:07+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/controlplane/03-provisioned-control-plane.md":
+  published: "2026-08-15T23:51:07+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/controlplane/04-not-tunable.md":
+  published: "2026-08-15T23:51:07+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"eks-upgrade/controlplane/_index.md":
+  published: "2026-08-15T23:51:07+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"elasticache/01-origins-and-design/index.md":
+  published: "2026-08-06T10:52:08+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"elasticache/02-memcached/index.md":
+  published: "2026-08-06T10:52:08+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"elasticache/03-license-and-fork.md":
+  published: "2026-08-06T10:52:08+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"elasticache/04-redis-7-to-8.md":
+  published: "2026-08-06T10:52:08+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"elasticache/05-valkey-8-to-9/index.md":
+  published: "2026-08-06T10:52:08+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"elasticache/06-cluster-mode/index.md":
+  published: "2026-08-06T10:52:08+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"elasticache/07-aws-endpoints/index.md":
+  published: "2026-08-06T10:52:08+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"elasticache/08-choosing.md":
+  published: "2026-08-06T10:52:08+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"elasticache/99-sources.md":
+  published: "2026-08-06T10:52:08+09:00"
+  modified: "2026-08-18T00:42:05+09:00"
+"elasticache/_index.md":
+  published: "2026-08-06T10:52:08+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"gateway/01-problem-shape.md":
+  published: "2026-08-06T10:26:34+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"gateway/02-connect-direction.md":
+  published: "2026-08-06T10:26:34+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"gateway/03-platform-precedents.md":
+  published: "2026-08-06T10:26:34+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"gateway/04-branch-a-client-dials/index.md":
+  published: "2026-08-06T10:26:34+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"gateway/05-branch-b-pod-dials/index.md":
+  published: "2026-08-06T10:26:34+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"gateway/06-k8s-shape.md":
+  published: "2026-08-06T10:26:34+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"gateway/07-kotlin-notes.md":
+  published: "2026-08-06T10:26:34+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"gateway/_index.md":
+  published: "2026-08-06T10:26:34+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"homelab/01-hub-edge-architecture/index.md":
+  published: "2026-08-20T01:21:07+09:00"
+  modified: "2026-08-24T23:42:51+09:00"
+"homelab/02-dev-workspace/index.md":
+  published: "2026-08-25T14:43:49+09:00"
+  modified: "2026-08-25T23:11:10+09:00"
+"homelab/_index.md":
+  published: "2026-08-20T01:21:07+09:00"
+  modified: "2026-08-25T14:44:59+09:00"
+"hyperdx-operating/01-our-deployment/index.md":
+  published: "2026-08-13T08:50:12+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx-operating/02-runbook.md":
+  published: "2026-08-13T08:50:12+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx-operating/03-decision-guide/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx-operating/_index.md":
+  published: "2026-07-18T00:02:57+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx/01-stack-topology/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx/02-hot-storage-ebs/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T11:05:35+09:00"
+"hyperdx/03-s3-cold-tiering/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx/04-operator-topology-downtime/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx/05-keeper/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx/06-replication-failover/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx/07-capacity-planning/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx/08-block-only-tuning/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx/09-version-upgrade-compat/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"hyperdx/10-sources.md":
+  published: "2026-07-15T23:42:33+09:00"
+  modified: "2026-08-17T13:31:34+09:00"
+"hyperdx/_index.md":
+  published: "2026-07-15T23:42:33+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/01-mesh-basics/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/02-istiod-control-plane/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/03-gateway-node-isolation/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/04-config-as-code/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/05-incident-intermittent-5xx/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/06-observability-points.md":
+  published: "2026-07-12T15:13:36+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/07-from-nginx-to-istio.md":
+  published: "2026-07-12T15:13:36+00:00"
+  modified: "2026-08-18T00:42:05+09:00"
+"istio/08-envoyfilter-extension/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/09-istiod-scaling-connections/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T11:05:35+09:00"
+"istio/10-ambient-migration-questions.md":
+  published: "2026-07-28T15:43:03+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/11-request-path-anatomy/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/12-envoy-capabilities/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/13-istio-envoy-assembly/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/14-why-service-mesh/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/15-crd-catalog/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/16-changelog-1.20-1.24/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/17-changelog-1.25-1.30/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/_index.md":
+  published: "2026-07-12T23:23:38+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/ambient/01-why-ambient-mode/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/ambient/02-envoy-config-anatomy/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/ambient/03-1-503-half-open-connection/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/ambient/03-2-partially-enrolled-untaint-controller/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/ambient/03-3-ambient-upgrade-in-place/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/ambient/03-4-507-istiod-disconnected/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"istio/ambient/_index.md":
+  published: "2026-07-28T13:45:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"k8s-features/01-inplace-pod-resize/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"k8s-features/02-cpu-throttling/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"k8s-features/03-cpu-burst.md":
+  published: "2026-07-27T01:59:29+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"k8s-features/04-node-problem-detector.md":
+  published: "2026-07-31T02:31:22+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"k8s-features/05-daemonset-gap-isolation/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"k8s-features/06-python-gil-cfs/index.md":
+  published: "2026-08-06T17:20:10+09:00"
+  modified: "2026-08-29T23:02:06+09:00"
+"k8s-features/_index.md":
+  published: "2026-07-27T01:09:21+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/01-changelog-v1-transition/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/02-changelog-maturity.md":
+  published: "2026-07-30T02:54:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/03-keyword-reference/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/04-instance-selection/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/05-generation-preference/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/06-consolidation-traps/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/07-ice-fallback/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/08-disruption-budgets/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/09-metrics-logs-events.md":
+  published: "2026-07-30T19:50:02+09:00"
+  modified: "2026-08-16T10:40:59+09:00"
+"karpenter/10-metric-cost.md":
+  published: "2026-07-30T19:50:02+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/13-consolidation-models/index.md":
+  published: "2026-08-02T17:47:03+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/14-multinode-budget-search/index.md":
+  published: "2026-08-04T13:01:47+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/15-nodepool-multinode-plan/index.md":
+  published: "2026-08-04T13:30:04+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/16-multinode-upstream-issue-review/index.md":
+  published: "2026-08-06T10:26:09+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"karpenter/_index.md":
+  published: "2026-07-30T02:54:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"logging/01-opensearch.md":
+  published: "2026-07-12T15:00:19+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"logging/02-loki-alloy.md":
+  published: "2026-07-12T15:00:19+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"logging/03-victorialogs.md":
+  published: "2026-07-12T15:00:19+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"logging/04-clickhouse.md":
+  published: "2026-07-12T15:00:19+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"logging/05-hyperdx-clickstack.md":
+  published: "2026-07-12T15:00:19+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"logging/06-starrocks.md":
+  published: "2026-07-12T15:00:19+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"logging/07-clickhouse-vs-starrocks.md":
+  published: "2026-07-12T15:00:19+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"logging/08-recommendation.md":
+  published: "2026-07-12T14:33:28+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"logging/_index.md":
+  published: "2026-07-12T23:19:45+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/_index.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-30T00:48:08+09:00"
+"monitoring/longterm-retention/01-problem-and-axes.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/longterm-retention/02-vm-archive.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/longterm-retention/03-thanos-s3.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/longterm-retention/04-mimir.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/longterm-retention/05-vmcluster-expansion.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/longterm-retention/06-storage-pricing.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/longterm-retention/07-streamaggr-vs-downsampling.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/longterm-retention/08-recommendation-and-pitfalls.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/longterm-retention/_index.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/prometheus-thanos/01-prometheus-retention.md":
+  published: "2026-08-30T00:48:08+09:00"
+  modified: "2026-08-30T00:48:08+09:00"
+"monitoring/prometheus-thanos/02-thanos-downsampling.md":
+  published: "2026-08-30T00:48:08+09:00"
+  modified: "2026-08-30T00:48:08+09:00"
+"monitoring/prometheus-thanos/03-sidecar-vs-receive.md":
+  published: "2026-08-30T00:48:08+09:00"
+  modified: "2026-08-30T00:48:08+09:00"
+"monitoring/prometheus-thanos/04-victoriametrics-and-thanos.md":
+  published: "2026-08-30T00:48:08+09:00"
+  modified: "2026-08-30T00:48:08+09:00"
+"monitoring/prometheus-thanos/05-receive-setup.md":
+  published: "2026-08-30T00:48:08+09:00"
+  modified: "2026-08-30T00:48:08+09:00"
+"monitoring/prometheus-thanos/06-choosing.md":
+  published: "2026-08-30T00:48:08+09:00"
+  modified: "2026-08-30T00:48:08+09:00"
+"monitoring/prometheus-thanos/_index.md":
+  published: "2026-08-30T00:48:08+09:00"
+  modified: "2026-08-30T00:48:08+09:00"
+"monitoring/victoriametrics/_index.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/by-source/01-2024-02-sre-tsdb/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/by-source/02-2026-04-large-scale-metric-store/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/by-source/03-2026-06-inside-victoriametrics/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/by-source/04-2026-07-three-stage-optimization/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/by-source/_index.md":
+  published: "2026-07-21T20:22:59+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/concepts/01-tsdb-and-victoriametrics.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/concepts/02-architecture/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/concepts/03-ingestion/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/concepts/04-storage-and-compression/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/concepts/05-query-and-ops-components/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/concepts/06-sources.md":
+  published: "2026-07-12T12:16:55+00:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/concepts/_index.md":
+  published: "2026-07-18T15:55:53+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/ours/01-stack-overview/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/ours/02-vmagent-transport-tuning.md":
+  published: "2026-07-18T15:55:53+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/ours/03-self-monitoring-metrics.md":
+  published: "2026-07-18T15:55:53+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/ours/04-scaling-thresholds.md":
+  published: "2026-07-18T15:55:53+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/ours/_index.md":
+  published: "2026-07-18T15:55:53+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/practice/01-cardinality/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/practice/02-operations-at-scale/index.md":
+  published: "2026-08-01T23:57:58+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/practice/03-query-patterns.md":
+  published: "2026-07-18T18:53:55+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"monitoring/victoriametrics/practice/_index.md":
+  published: "2026-07-18T15:55:53+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"rollouts/01-canary-step-analysisrun/index.md":
+  published: "2026-08-28T00:24:18+09:00"
+  modified: "2026-08-28T11:06:55+09:00"
+"rollouts/02-rollback-window-weight/index.md":
+  published: "2026-08-28T00:24:18+09:00"
+  modified: "2026-08-28T09:53:44+09:00"
+"rollouts/03-what-to-do/index.md":
+  published: "2026-08-28T00:24:18+09:00"
+  modified: "2026-08-28T09:53:44+09:00"
+"rollouts/_index.md":
+  published: "2026-08-28T00:24:18+09:00"
+  modified: "2026-08-28T00:24:18+09:00"
+"rum/01-hyperdx-deep-dive.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"rum/02-datadog-rum-coverage.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"rum/03-dd-proxy-mapping.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"rum/04-datadog-replacement-matrix.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"rum/05-migration-roadmap.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"rum/06-sources.md":
+  published: "2026-07-13T22:59:19+09:00"
+  modified: "2026-08-17T13:31:34+09:00"
+"rum/07-hyperdx-mongodb.md":
+  published: "2026-07-15T16:50:15+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"rum/_index.md":
+  published: "2026-07-12T23:19:45+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"runtime/01-jvm-graalvm/index.md":
+  published: "2026-08-29T23:02:06+09:00"
+  modified: "2026-08-30T08:57:18+09:00"
+"runtime/02-python-worker-thread/index.md":
+  published: "2026-08-29T23:02:06+09:00"
+  modified: "2026-08-29T23:02:06+09:00"
+"runtime/_index.md":
+  published: "2026-08-29T23:02:06+09:00"
+  modified: "2026-08-29T23:02:39+09:00"
+"valkey/00-두-갈래.md":
+  published: "2026-08-06T10:26:54+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"valkey/_index.md":
+  published: "2026-08-06T10:26:54+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"valkey/braze-k8s-migration/01-무중단-이관/index.md":
+  published: "2026-08-06T10:26:54+09:00"
+  modified: "2026-08-24T10:49:45+09:00"
+"valkey/braze-k8s-migration/02-발표-전사/index.md":
+  published: "2026-08-06T10:26:54+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"valkey/braze-k8s-migration/_index.md":
+  published: "2026-08-06T10:26:54+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"valkey/cluster-xl-scale/01-부러지는-것/index.md":
+  published: "2026-08-06T10:26:54+09:00"
+  modified: "2026-08-24T10:49:45+09:00"
+"valkey/cluster-xl-scale/02-발표-전사/index.md":
+  published: "2026-08-06T10:26:54+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
+"valkey/cluster-xl-scale/_index.md":
+  published: "2026-08-06T10:26:54+09:00"
+  modified: "2026-08-24T10:14:36+09:00"
