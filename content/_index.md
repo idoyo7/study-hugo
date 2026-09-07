@@ -1,7 +1,7 @@
 ---
 title: "Ops Insights"
 date: 2026-07-12
-lastmod: 2026-08-30
+lastmod: 2026-09-07
 type: docs
 toc: false
 comments: false
@@ -30,3 +30,4 @@ comments: false
 - [Argo Rollouts]({{< relref "rollouts/_index.md" >}}) — Deployment를 Rollout으로 바꾸면 스텝 인덱스 하나가 생기고, 그 인덱스를 서로 다른 함수 둘이 읽습니다. 하나는 ReplicaSet을 몇 대로 띄울지, 다른 하나는 트래픽을 몇 퍼센트 보낼지 정하는데 도달 시각이 다릅니다. 1편은 그 정상 경로(세 평면·값 다섯 층·step 여덟 종류·승격의 정의·AnalysisRun의 측정 루프)를, 2편은 롤백에서 그 시차가 벌어지는 구조를 봅니다 — 오류율 쿼리에 리비전 필터가 없어 롤백이 스스로를 abort하는 경로, 그것을 막으려 넣은 `rollbackWindow`가 역탐색으로 마지막 `setWeight: 100`을 도로 집어오는 경로, 그리고 가용량 게이트가 canary를 보지 않는다는 사실. 업스트림 수정은 2026-07-15에 열린 PR 하나로 아직 머지 전입니다.
 - [홈랩]({{< relref "homelab/_index.md" >}}) — 두 집 2-클러스터 홈랩: hub(중앙 스토리지·관측·SSO)와 edge(스토리지 없는 stateless 스포크)로 역할을 나누고 공인망을 건너는 유일한 트래픽(메트릭 remote write)에 vmauth 인증을 붙인 구조.
 - [런타임]({{< relref "runtime/_index.md" >}}) — 런타임을 바꾸면 무엇이 어디로 옮겨가나. JVM에서 GraalVM Native Image로 갈 때 내주는 것(되돌림 능력·Serial GC·JVMTI)과 2025년 9월 Oracle 발표로 바뀐 선택지 지도, 그리고 같은 질문의 파이썬 판 — 동기 워커 16개와 워커 2개 + 스레드 32개는 최대 처리량이 같은데 지연 분포·메모리·DB 커넥션·장애 반경이 갈립니다.
+- [S3]({{< relref "s3/_index.md" >}}) — S3 데이터를 다른 계정으로 옮길 때 aws s3 sync·rclone·rsync가 어디서 갈리나. aws cli는 서버사이드 복사이고 rclone은 플래그 하나가 빠지면 조용히 클라이언트 경유로 돌아서며 rsync는 마운트 위에서 델타 전송을 잃습니다. 버전 이력이 걸리면 Replication, 억 단위면 Batch Operations.
