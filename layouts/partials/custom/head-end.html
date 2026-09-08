@@ -131,3 +131,8 @@
 {{- with $feed }}
 <link rel="alternate" type="application/rss+xml" title="{{ $feedTitle }}" href="{{ . }}">
 {{- end }}
+
+{{- /* HyperDX RUM 로더. self-contained 스크립트라 여기서는 태그만 싣는다 —
+       document.currentScript(또는 script[data-service][src*="hyperdx-rum"] 폴백)의
+       dataset 에서 서비스명을 읽어가므로 별도 초기화 코드가 필요 없다. */ -}}
+<script defer src="https://cdn.makgol.com/rum/hyperdx-rum.js" data-service="study-hugo"></script>
