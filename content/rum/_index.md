@@ -1,7 +1,7 @@
 ---
 title: "RUM 내재화"
 date: 2026-07-12
-lastmod: 2026-08-24
+lastmod: 2026-09-08
 weight: 40
 cascade:
   type: docs
@@ -44,7 +44,9 @@ Datadog RUM이 RWoL(RUM without Limits) 재요율로 실질 ~2배 올랐습니�
 
 착수 전에 반드시 확인할 것이 있습니다. Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 잽니다. 모바일이 과반이면 웹 전용 HyperDX로는 청구서가 별로 안 줄고, 관리 스택(CH+MongoDB)만 늘어납니다.
 
-이후 조사에서 웹 코어 지표는 SDK만 갈아끼우면 곧바로 대체된다고 확인했습니다. Frustration·Product Analytics 등 나머지 슬라이스는 CH SQL로 직접 만들어야 합니다. 패키지드 ClickStack이 웹 RUM을 전면 대체한 전례도 아직 없습니다 → [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}}) 판정에 따라 Wave 1에 PoC 게이트를 추가합니다.
+웹 코어 지표의 수집 경로는 있지만, SDK 교체만으로 기존 리포트·세션 분류·모니터가 그대로 대체되는 것은 아닙니다. Frustration·Product Analytics 등은 별도 구현과 검증이 필요합니다. [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}}) 판정에 따라 Wave 1에 PoC 게이트를 둡니다.
+
+2026-09의 기능 변경은 [HyperDX 커버리지 재판정]({{< relref "08-datadog-coverage-2026-09.md" >}})에 정리했습니다. PromQL 실험 경로·Terraform Beta·알림 운영 기능과 Datadog 수신 호환 범위를 구분합니다. [우리 배포]({{< relref "../hyperdx-operating/01-our-deployment/index.md" >}})는 자체 RUM 컨버터를 쓰므로 표준 SDK 교체 경로와 별도로 검증합니다.
 
 > `≈`은 자릿수 추정으로, 실 계약 할인·트래픽으로 교정이 필요합니다. 시점 기준 2026-07.
 
@@ -59,5 +61,6 @@ Datadog RUM이 RWoL(RUM without Limits) 재요율로 실질 ~2배 올랐습니�
 | [마이그레이션 로드맵]({{< relref "05-migration-roadmap.md" >}}) | Executive 판정·리스크 Top5·Sprint 체크리스트·오픈 퀘스천·전제 차이 조정 |
 | [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}}) | MongoDB 역할(메타데이터 전용)·부하 특성·배포 경로별 형태·운영 가이드 공백·무인증 노출 실사고 |
 | [출처]({{< relref "06-sources.md" >}}) | RUM 섹션 조사 문서의 출처 URL을 4분류(HyperDX·Datadog 공식·SDK/OTel·커뮤니티/사례) 표로 정리 |
+| [HyperDX 커버리지 재판정 — Datadog 대비 2026-09]({{< relref "08-datadog-coverage-2026-09.md" >}}) | PromQL·Terraform·알림·Datadog 수신 변경점과 자체 RUM 컨버터의 검증 경계 |
 
 > **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻합니다.

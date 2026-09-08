@@ -1,11 +1,13 @@
 ---
 title: "마이그레이션 로드맵"
 date: 2026-07-13
-lastmod: 2026-08-24
+lastmod: 2026-09-08
 weight: 5
 ---
 
 # 마이그레이션 로드맵 — Datadog 이관 실행 계획
+
+이 로드맵은 **2026-07의 표준 SDK 교체·로컬 NVMe 전제에 따른 계획**입니다. 아래 체크리스트는 실행 완료 기록이 아닙니다. 이후의 [우리 배포 형상]({{< relref "../hyperdx-operating/01-our-deployment/index.md" >}})은 자체 RUM 컨버터·EBS 기반 stage를 기록하므로 그 경로에 맞춰 검증 항목을 조정해야 합니다. 2026-09의 PromQL·Terraform·Datadog 수신 변경은 [커버리지 재판정]({{< relref "08-datadog-coverage-2026-09.md" >}})을 기준으로 읽습니다.
 
 {{< callout type="info" >}}
 - rip-and-replace는 하지 않습니다. dual-write/dual-instrument → 병행 검증 → 단계적 컷오버로 갑니다. 프록시는 서버사이드 신호(로그·메트릭·APM)의 단기 브릿지일 뿐입니다.

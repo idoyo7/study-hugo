@@ -1,7 +1,7 @@
 ---
 title: "Datadog 전 제품군 대체 매트릭스"
 date: 2026-07-13
-lastmod: 2026-08-24
+lastmod: 2026-09-08
 weight: 4
 ---
 
@@ -9,7 +9,7 @@ weight: 4
 
 {{< callout type="info" >}}
 - HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어**(Logs·Traces·RUM 웹코어·Session Replay)를 커버하지만 나머지 절반(Security·Synthetics·NPM/DBM·CI·On-Call 등)은 범위 밖 — 전용 OSS 개별 이관 또는 Datadog 잔류.
-- **메트릭 계층은 VictoriaMetrics+Grafana**로 분리합니다 — HyperDX에는 PromQL이 없고 ClickHouse SQL을 겨냥한 변환기도 없습니다.
+- **메트릭 계층은 VictoriaMetrics+Grafana**로 분리합니다 — HyperDX의 PromQL은 실험 기능이고 일반 `otel_metrics_*`에 자동 적용되지 않으며 ClickHouse SQL을 겨냥한 변환기도 없습니다.
 - Wave 이관: 1 RUM웹코어 → 2 Logs → 3 APM → 4 Metrics(VM) → 5 나머지 개별. **Wave 4를 HyperDX로 잡으면 공수가 2~4배 팽창**합니다.
 - 절감은 대부분 스토리지 이관에서 나오지만 host high-water mark·custom metrics tax 같은 과금 함정과 인건비 상쇄를 함께 계산해야 합니다.
 - **Grafana OnCall OSS는 2026-03-24 아카이브 예정**이므로 On-Call 대안으로 신규 채택하지 않습니다.
@@ -28,7 +28,7 @@ HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어(Logs·Traces·
 - 🟢 **Log Management** · ClickStack/ClickHouse(CH 네이티브) — 최대 절감 영역 `✓`, 계측 교체 거의 불필요 `≈`.
 - 🟢 **APM/분산 트레이싱** · OTel SDK 재계측 + ClickStack(과도기 `datadogreceiver`, CH) — dd-trace↔OTel 개념 1:1, 점진 전환 `✓`.
 - 🟢 **RUM 웹코어/Session Replay** · `@hyperdx/browser` SDK 교체(HyperDX=CH) — 세션 단가 과금 회피, 공개 전례 부재 → PoC 게이트 필수 `✓`(대등성)/`?`(전례).
-- 🟡 **Metrics(Infra)** · **VictoriaMetrics/Prometheus + Grafana**(HyperDX 아님, VM=자체 TSDB) — PromQL 미지원·변환기 부재가 결정, 아래 절 참조 `✓`.
+- 🟡 **Metrics(Infra)** · **VictoriaMetrics/Prometheus + Grafana**(HyperDX 아님, VM=자체 TSDB) — HyperDX PromQL의 실험 상태·기존 OTel 테이블 비호환·변환기 부재가 결정, 아래 절 참조 `✓`.
 - 🟡 **Serverless** · OTel Lambda layer → ClickStack(CH), cold start는 CloudWatch 병행 — dd Lambda extension 제거·OTel layer 도입 `≈`.
 - 🟡 **Error Tracking** · GlitchTip(드롭인, PG) 또는 SigNoz Exceptions(CH) — GlitchTip은 DSN만 교체(코드 무변경) `✓`.
 - 🟡 **LLM Observability** · **Langfuse**(ClickHouse 소속, CH) / OpenLLMetry / Arize Phoenix — CH 운영 시 자연 시너지 `✓`.
@@ -50,7 +50,7 @@ HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어(Logs·Traces·
 
 ## 이관의 지렛대 — datadogreceiver 프록시 매핑
 
-서버사이드 🟢 항목(Logs·APM·서버 Metrics)을 옮길 때 결정적 지렛대가 OpenTelemetry Collector의 `datadogreceiver`입니다. dd-agent/dd-trace가 보내는 traces·metrics·logs를 그대로 수신해 OTLP로 바꿔 ClickHouse/HyperDX로 export합니다 `✓`. 애플리케이션 계측을 즉시 걷어내지 않고 **백엔드부터 갈아끼우는 무중단 전환**이 성립합니다. 128-bit trace ID 재구성(기본 on)으로 dd-instrumented 서비스와 OTel 스팬이 같은 트레이스에서 상관됩니다 `✓`.
+서버사이드 🟢 항목(Logs·APM·서버 Metrics)을 옮길 때 결정적 지렛대가 OpenTelemetry Collector의 `datadogreceiver`입니다. dd-agent/dd-trace가 보내는 traces·metrics·logs를 그대로 수신해 OTLP로 바꿔 ClickHouse/HyperDX로 export합니다 `✓`. HyperDX 저장소의 현재 Collector 빌드에도 포함되어 API/OpAMP 모드에서는 `ENABLE_DATADOG_RECEIVER=true`, standalone에서는 receiver/pipeline config로 활성화합니다. 다만 실제 배포 이미지에 포함됐다고 가정하지 말고 이미지 태그와 빌드 목록을 먼저 고정해 확인해야 합니다([HyperDX Collector 공식 README](https://github.com/hyperdxio/hyperdx/blob/main/packages/otel-collector/README.md)). 애플리케이션 계측을 즉시 걷어내지 않고 **백엔드부터 갈아끼우는 무중단 전환**이 성립합니다. 128-bit trace ID 재구성(기본 on)으로 dd-instrumented 서비스와 OTel 스팬이 같은 트레이스에서 상관됩니다 `✓`.
 
 한계도 있습니다.
 
@@ -63,11 +63,11 @@ HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어(Logs·Traces·
 
 전 제품군 이관에서 가장 흔한 실수가 "ClickHouse로 다 합치자"며 **메트릭·대시보드·모니터·SLO까지 HyperDX로 미는 것**입니다. 이건 이관 비용을 비현실적으로 부풀립니다. 메트릭 계층은 반드시 [VictoriaMetrics 스택]({{< relref "../monitoring/victoriametrics/_index.md" >}})으로 분리 존치합니다. 근거는 아래와 같습니다.
 
-- **PromQL이 없습니다.** HyperDX 메트릭 대시보드·알림은 ClickHouse SQL + Lucene로 작성하고 PromQL은 로드맵입니다 `✓`. 수백 개 레거시 Datadog monitor를 그대로 옮길 언어 기반이 애초에 다릅니다.
+- **PromQL은 실험 기능입니다.** 2026-06부터 ClickHouse TimeSeries Engine에 저장한 메트릭을 직접 조회하거나 외부 Prometheus 호환 서버로 프록시할 수 있습니다. 외부 경로는 `NEXT_PUBLIC_ENABLE_PROMQL=true`로 켜야 하며 기본 비활성이고, 기존 일반 `otel_metrics_*` 테이블에 자동 적용되는 기능도 아닙니다([ClickStack 2026-06 공식 변경사항](https://clickhouse.com/blog/whats-new-in-clickstack-june-2026)). 수백 개 레거시 Datadog monitor를 그대로 옮길 만큼 안정된 언어 호환 계층으로 보기는 이릅니다.
 - **변환기는 PromQL/Grafana 타겟에만 있습니다.** Chronosphere·groundcover는 Datadog Query Language → PromQL **AST 결정론적 변환기**(약 90% 자동, 마지막 10% 수작업)를 갖췄습니다. 대시보드 스키마 변환기(graang, 구조 ~87%)도 Grafana를 향합니다 `✓`. **ClickHouse SQL 타겟 변환기는 조사 시점 어떤 벤더도 내놓지 않았습니다** — 가장 근접한 SigNoz의 LLM 기반 도구조차 SigNoz 전용이고 HyperDX엔 대응물이 없습니다 `✓/≈`. HyperDX로 메트릭을 몰면 "SQL로 하나씩 수작업 재구축" 경로가 됩니다.
 - **무계측 dual-ship이 VM에서만 자연스럽습니다.** VictoriaMetrics는 Datadog agent / DogStatsD를 네이티브로 수신(`/datadog/api/v2/series`)하고 `DD_ADDITIONAL_ENDPOINTS`로 Datadog과 VM에 **동시 전송(dual-ship)** → 병행 검증 후 컷오버가 가능합니다 `✓`. 계측을 안 건드리고 백엔드만 갈아끼웁니다.
 
-알림·SLO 성숙도도 VM 축이 앞섭니다. Grafana Alerting은 mute timing/silence/notification policy로 Datadog monitor에 근접합니다. SLO는 **Sloth/Pyrra**(Prometheus recording rule + multiwindow-multiburn)로 표준 이관 경로가 있습니다 `✓`. HyperDX/ClickStack 알림은 OSS 자체호스팅에서도 동작하고 `GROUP BY`별 발화·SQL 기반 이상탐지까지 됩니다. Alertmanager식 grouping/inhibition/silencing과 네이티브 SLO는 미달·부재입니다 `✓`. (이 알림 성숙도는 2025-11 OSS 패리티·2026-05 SQL 기반 이상탐지 반영 시점 기준 — [로깅 챕터]({{< relref "../logging/05-hyperdx-clickstack.md" >}})의 "알림은 rule당 단일 임계값, anomaly detection 없음" 서술은 그 이전 스냅샷이라 상충처럼 보이나 동일 제품의 다른 시점 서술입니다.)
+알림·SLO 성숙도도 VM 축이 앞섭니다. Grafana Alerting은 mute timing/silence/notification policy로 Datadog monitor에 근접합니다. SLO는 **Sloth/Pyrra**(Prometheus recording rule + multiwindow-multiburn)로 표준 이관 경로가 있습니다 `✓`. HyperDX/ClickStack 알림은 OSS 자체호스팅에서도 동작하며 그룹별 평가·발화, 평가 이력, SQL 사용자 정의 통계 조건을 지원합니다([공식 알림 문서](https://clickhouse.com/docs/clickstack/features/alerts)). SQL 통계 조건을 내장 ML 이상탐지로 보거나 Alertmanager식 grouping/inhibition/silencing과 동등하다고 볼 수는 없고 네이티브 SLO도 부재합니다. Terraform Provider는 self-hosted와 Cloud 모두 지원하지만 Terraform provider `ClickHouse/clickhouse` v3.25 이상에서 Beta입니다([공식 발표](https://clickhouse.com/blog/clickstack-terraform-provider)). (알림 성숙도는 2026-09 확인 기준입니다 — [로깅 챕터]({{< relref "../logging/05-hyperdx-clickstack.md" >}})의 알림 서술은 2026 초 스냅샷이라 상충처럼 보이나 동일 제품의 다른 시점 서술입니다.)
 
 두 축은 Grafana에서 봉합합니다. Grafana가 ClickHouse datasource로 로그·트레이스도 조회하게 하면 한 화면에서 VM 메트릭 + ClickHouse 로그/트레이스를 함께 봅니다 `≈`. HyperDX가 필요한 상관 딥다이브는 HyperDX에서. "전 제품군 대체"의 현실적 형태는 **역할 분담(메트릭=VM+Grafana / 로그·트레이스·RUM=HyperDX·ClickHouse)** 입니다. 단일 백엔드로 수렴하지 않습니다.
 
@@ -131,4 +131,4 @@ Host high-water mark는 오토스케일에 특히 취약합니다.
 
 이 페이지의 매트릭스는 "무엇을 무엇으로 대체 가능한가"의 전체 지도입니다. **우리의 실제 착수 순서는 로깅·모니터링 챕터의 서 있는 결정(로그=VictoriaLogs, 메트릭=VM+Grafana, 통합 저장소=최후)을 우선**합니다. 통합 ClickHouse 축은 범용 분석이라는 D4 트리거가 실제로 발화할 때 이 매트릭스대로 확장합니다. ClickHouse 자체 운영의 managed vs self-host 판단은 [ClickHouse 챕터]({{< relref "../clickhouse/_index.md" >}}) 참조.
 
-근거 등급은 조사 문서의 판정을 이어받으며 임의 승격하지 않습니다. 시점 기준 조사 2026-07.
+근거 등급은 조사 문서의 판정을 이어받으며 임의 승격하지 않습니다. 본문은 2026-07 조사이며, 2026-09 이후 확인된 기능 변경점은 [HyperDX 커버리지 재판정(2026-09)]({{< relref "08-datadog-coverage-2026-09.md" >}})에서 다룹니다.

@@ -1,7 +1,7 @@
 ---
 title: "Datadog RUM 커버리지 — 어디까지 대체되나"
 date: 2026-07-13
-lastmod: 2026-08-24
+lastmod: 2026-09-08
 weight: 2
 ---
 
@@ -9,7 +9,7 @@ weight: 2
 
 {{< callout type="info" >}}
 - RUM을 하나로 묶어 "대체된다/안 된다"고 답하면 틀립니다 — 성격이 다른 하위 제품 4개로 쪼개야 판정이 섭니다.
-- RUM-Core(세션 리플레이+CWV/에러+트레이스 상관) 🟢 즉시(Wave 1) · RUM-Frustration 🟡 SQL 사후계산 · RUM-PA(퍼널/리텐션) 🔴 자작/PostHog 병행 · RUM-Mobile 🔴 OTel+Embrace/OpenReplay.
+- RUM-Core(세션 리플레이+CWV 수집/에러+트레이스 상관) 🟢 PoC(Wave 1) · RUM-Frustration 🟡 SQL 사후계산 · RUM-PA(퍼널/리텐션) 🔴 자작/PostHog 병행 · RUM-Mobile 🔴 OTel+Embrace/OpenReplay.
 - 대체는 프록시가 아니라 `@hyperdx/browser` SDK 교체입니다 — `datadogreceiver`는 브라우저 RUM intake(`/api/v2/rum`)를 아예 수신하지 않습니다.
 - 좌절 신호·모바일 리플레이는 네이티브 프리미티브가 없다고 확인했습니다(추측 격상 아님) — ClickHouse SQL(`sequenceMatch`/`windowFunnel`) 자작 또는 전용 툴이 필요합니다.
 - "Datadog RUM을 HyperDX로 대체한 공개 프로덕션 사례"는 찾지 못했습니다 → dual-instrument PoC 성공을 Wave 1 진입 게이트로 명문화합니다.
@@ -41,7 +41,7 @@ View에는 Core Web Vitals(LCP/FCP/CLS/INP/FID)와 navigation timing이, Action�
 | Datadog RUM 기능 | HyperDX 커버 | 방법·근거 | 격차 |
 |---|:---:|---|:---:|
 | **세션 추적**(Session) | ✅ | OTel `session.id` semconv + `rum.sessionId` 조인키 `✓` | 낮음 |
-| **Core Web Vitals**(LCP/FCP/CLS/INP/FID) | ✅ 대부분 | otel-web web-vitals 계열이 수집 | 중간 `≈` |
+| **Core Web Vitals**(LCP/FCP/CLS/INP/FID) | ⚠️ 수집 가능 | browser SDK가 Web Vitals를 수집. Datadog의 집계·보고서·서브파트 동등성은 별도 PoC 필요 | 중간 `≈` |
 | **Navigation/Resource timing** | ✅ | `instrumentation-document-load` + `fetch`/`xhr` + PerformanceResourceTiming `✓` | 낮음 |
 | **Long Task** | ⚠️ 부분 | otel-web long-task instrumentation 존재하나 스키마·UI 노출 제한 `≈` | 중간 |
 | **User Action**(자동+커스텀) | ✅ | `instrumentation-user-interaction` + `HyperDX.addAction()` `✓` | 낮음 |
@@ -56,9 +56,9 @@ View에는 Core Web Vitals(LCP/FCP/CLS/INP/FID)와 navigation timing이, Action�
 | **데이터 보존·샘플링** | ✅ | OTel SDK 샘플링 + ClickHouse TTL로 자체 통제 `✓` | 유리 |
 | **지리/디바이스 메타** | ✅ | Collector geoip processor + UA 파싱 `✓` | 낮음(파이프라인 구성 필요) |
 
-`tracePropagationTargets`는 정규식 배열입니다. 프론트↔백엔드 트레이스 연결은 리플레이된 세션에서 백엔드 트레이스로 양방향 내비게이션까지 가능합니다 `✓⁽3-0⁾`. Core Web Vitals는 INP와 서브파트 정밀도를 직접 재구성해야 해서 손실이 있습니다 `≈`. 모바일 RUM의 `@hyperdx/otel-react-native`는 ★4에 Zipkin·signalfx를 추종하는 얇은 포크입니다 `✓`. Session Replay는 ClickStack에 리플레이 UI가 내장돼 있고 둘 다 rrweb 계열이라 격차가 낮습니다 `✓`. User Action은 자동 액션 네이밍 품질에 차이가 있으나 격차는 낮습니다 `✓`. 프론트→백엔드 트레이스 연결은 OTel 네이티브라 오히려 Datadog보다 우수합니다.
+`tracePropagationTargets`는 정규식 배열입니다. 프론트↔백엔드 트레이스 연결은 리플레이된 세션에서 백엔드 트레이스로 양방향 내비게이션까지 가능합니다 `✓⁽3-0⁾`. browser SDK가 Web Vitals를 수집한다는 사실만으로 Datadog의 CWV 집계·보고서·INP 서브파트까지 동등하다고 판정하지 않습니다. 이벤트 필드, 집계값, 누락률과 UI 보고서를 dual-instrument PoC에서 나란히 비교해야 합니다 `≈`. 모바일 RUM의 `@hyperdx/otel-react-native`는 ★4에 Zipkin·signalfx를 추종하는 얇은 포크입니다 `✓`. Session Replay는 ClickStack에 리플레이 UI가 내장돼 있고 둘 다 rrweb 계열이라 격차가 낮습니다 `✓`. User Action은 자동 액션 네이밍 품질에 차이가 있으나 격차는 낮습니다 `✓`.
 
-패턴이 뚜렷합니다. "디버깅형 RUM"(리플레이·CWV·에러·리소스·트레이스 상관)은 HyperDX가 OTel 네이티브라 대등하거나 우수합니다. 분석·좌절신호·모바일은 격차가 명확합니다. 좌절 신호는 초기 조사(문서 02)에서 `?`이었으나 후속 보강조사가 ClickStack 리플레이 UI에 rage/dead/error 필터 프리미티브가 전혀 없음을 확인해 `✓⁽부재⁾`로 마감했습니다.
+패턴이 뚜렷합니다. "디버깅형 RUM"에서 리플레이·에러·리소스·트레이스 상관은 HyperDX의 강점이고 CWV는 수집 가능하지만 보고서 동등성 검증이 남습니다. 분석·좌절신호·모바일은 격차가 명확합니다. 좌절 신호는 초기 조사(문서 02)에서 `?`이었으나 후속 보강조사가 ClickStack 리플레이 UI에 rage/dead/error 필터 프리미티브가 전혀 없음을 확인해 `✓⁽부재⁾`로 마감했습니다.
 
 ## RUM을 4슬라이스로 분해한 판정표
 
@@ -141,4 +141,4 @@ Wave 1(RUM-Core) 리스크를 "낮음"으로만 표기하면 위험합니다. �
 - 모바일은 넘기지 않습니다 — [RUM 내재화 결론]({{< relref "_index.md" >}})의 "웹 YES / 모바일 NO"와 정합. HyperDX 모바일은 RN 얇은 포크뿐이고 네이티브 리플레이가 없어 모바일은 Datadog 잔류가 현실적입니다. 착수 전 Datadog RUM usage를 웹/모바일로 분해해 모바일 비중부터 측정합니다 — 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택만 늘립니다.
 - 전례 부재를 리스크로 명시합니다. RUM 대체는 공개 프로덕션 레퍼런스가 없는 개척 경로입니다. dual-instrument PoC 성공을 Wave 1 진입의 필수 게이트로 삼습니다.
 
-> 근거 등급은 조사 문서의 판정을 이어받으며 임의 승격하지 않습니다(좌절신호·모바일 리플레이의 `✓⁽부재⁾`는 후속 보강조사가 확정했습니다). 시점 기준 조사 2026-07.
+> 근거 등급은 조사 문서의 판정을 이어받으며 임의 승격하지 않습니다(좌절신호·모바일 리플레이의 `✓⁽부재⁾`는 후속 보강조사가 확정했습니다). 본문은 2026-07 조사이며, 2026-09 이후 확인된 기능 변경점은 [HyperDX 커버리지 재판정(2026-09)]({{< relref "08-datadog-coverage-2026-09.md" >}})에서 다룹니다.

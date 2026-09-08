@@ -1,7 +1,7 @@
 ---
 title: "Datadog 프로토콜 프록시 매핑"
 date: 2026-07-13
-lastmod: 2026-08-24
+lastmod: 2026-09-08
 weight: 3
 ---
 
@@ -47,7 +47,7 @@ Datadog Agent intake API를 OTel 모델로 번역하는 리시버입니다. **�
 | metrics | alpha | Development | delta↔cumulative 변환 processor 필요, sketches/distribution 매핑 미성숙 |
 | logs | alpha | Development | `logs.decode_json_message` 기본 true |
 
-- 배포판은 `contrib` 한정 — Datadog 공식(DDOT)·core 배포판에는 들어 있지 않아 커스텀 빌드나 contrib 이미지를 따로 운영해야 합니다 `✓`.
+- OTel 공식 배포판 기준으로는 `contrib` 컴포넌트이며 Datadog 공식(DDOT)·core 배포판에는 들어 있지 않습니다. 다만 HyperDX 저장소의 현재 `packages/otel-collector` 빌드는 `datadogreceiver`를 이미 포함합니다. API/OpAMP 경로는 `ENABLE_DATADOG_RECEIVER=true`로 켜고, standalone은 collector config에 receiver와 pipeline을 명시합니다. 이것은 `main` 소스의 상태이므로 실제 배포 이미지가 이 변경을 담았는지는 이미지 태그와 Collector 빌드 목록을 고정해 확인해야 합니다([HyperDX Collector 공식 README](https://github.com/hyperdxio/hyperdx/blob/main/packages/otel-collector/README.md)).
 - 활성 메인테이너가 2명(boostchicken, MovieStoreGuy)이고 contrib는 대략 격주 릴리스라 alpha 시그니처가 자주 움직입니다 — 버스 팩터·회귀 리스크를 따져야 합니다 `✓`.
 - 하류 `clickhouseexporter`도 traces/logs=beta, metrics=alpha라 **수신→변환→export 파이프라인 전 구간이 alpha~beta**입니다 `✓`.
 - 트레이스는 `/v0.3`~`/v0.7/traces` + `/api/v0.2/traces`를 수신하고 dd-trace 클라이언트의 startup probe를 통과시키는 `/info` 엔드포인트도 구현합니다. 128-bit trace ID 재구성은 `Enable128BitTraceID` 게이트가 제어합니다 `✓⁽3-0⁾`. 애플리케이션 쪽은 `DD_AGENT_HOST` + `DD_TRACE_AGENT_PORT=8126`만 Collector로 지정하면 **코드 변경 없이** 전환됩니다 `✓`.
@@ -125,7 +125,7 @@ dd 프록시 전용 처리량/CPU/손실률 벤치마크는 공개된 것이 없
 
 ### 통합 현실 — ClickStack에 붙이는 비용
 
-프록시가 성립하는 영역이라도 ClickStack에 물리는 방식이 매끄럽지 않습니다. HyperDX/ClickStack은 자체 opinionated OTel Collector와 스키마를 쓰므로 datadogreceiver를 붙이려면 **(a) ClickStack collector에 커스텀 빌드로 datadogreceiver를 합치거나(빌드 복잡도가 올라감), (b) 별도 collector에서 수신·변환 후 OTLP로 ClickStack collector에 재전송하는 2-hop 구성**이 됩니다. 추가 홉은 곧 추가 변환·지연·장애 지점입니다 `≈`. "성립"과 "운영 부담 없음"은 별개입니다.
+프록시가 성립하는 영역이라도 ClickStack에 물리는 운영 검증은 남습니다. HyperDX 저장소의 현재 Collector 빌드는 `datadogreceiver`를 포함해, API/OpAMP 모드에서는 `ENABLE_DATADOG_RECEIVER=true`로 활성화하거나 standalone config에 receiver와 pipeline을 추가할 수 있습니다([공식 README](https://github.com/hyperdxio/hyperdx/blob/main/packages/otel-collector/README.md)). 따라서 현재 `main`을 기준으로 커스텀 바이너리가 필수라는 설명은 맞지 않습니다. 다만 배포 중인 이미지가 해당 빌드를 포함하는지 먼저 태그로 고정해 확인해야 하며, 포함하지 않는 릴리스라면 별도 contrib Collector에서 수신·변환 후 OTLP로 넘기는 2-hop 구성이 필요합니다. 추가 홉은 변환·지연·장애 지점을 늘립니다 `≈`.
 
 ### 더 안전한 대안
 
@@ -146,3 +146,5 @@ dd 프록시 전용 처리량/CPU/손실률 벤치마크는 공개된 것이 없
 - 선택적 통합(D4): traces+RUM 통합이 우선순위가 될 때만 ClickStack을 붙입니다. 그 시점에도 RUM은 SDK 경로, traces는 OTel 재계측이 정석이라 프록시가 붙을 자리는 **레거시 dd-trace 트레이스를 재계측 전까지 잇는 단기 브릿지**로 극히 좁습니다. 메트릭은 D4에서 빠지므로 metrics 프록시의 temporality 리스크도 우리 결정과는 무관합니다.
 
 우리 케이스에서 dd 프록시는 로그(경로 다름)·RUM(SDK 교체)·메트릭(범위 밖) 어디에도 필요하지 않고 유일하게 고려할 만한 곳은 D4 이후 레거시 트레이스의 과도기 다리뿐입니다. 그마저도 alpha 성숙도와 CPU 세금을 고려하면 **재계측을 앞당기는 편이 낫습니다**. 프록시는 최후의 임시 수단으로만 남깁니다.
+
+본문은 2026-07 조사이며, Collector 패키징 설명은 2026-09의 upstream `main` 기준으로 갱신했습니다. 그 밖의 2026-09 변경점은 [HyperDX 커버리지 재판정(2026-09)]({{< relref "08-datadog-coverage-2026-09.md" >}})에서 다룹니다.

@@ -1,7 +1,7 @@
 ---
 title: "HyperDX / ClickStack 심층 분석"
 date: 2026-07-13
-lastmod: 2026-08-24
+lastmod: 2026-09-08
 weight: 1
 ---
 
@@ -11,7 +11,7 @@ weight: 1
 - 웹 RUM 대체 후보로는 사실상 유일하지만 OSS 접근통제 공백(SSO·RBAC·멀티테넌시·감사로그 전무)이 다중 팀 도입의 결정적 게이트입니다.
 - 3 코어(ClickHouse·HyperDX·OTel Collector)에 메타데이터 전용 MongoDB가 필수 의존성으로 붙습니다. 자체(self-hosted) ClickHouse에 연결하는 'HyperDX Only' 모드에서도 사라지지 않습니다.
 - 배포 6모드 중 프로덕션 적합은 Managed 또는 Helm뿐이고 자체 인프라를 지키려면 HyperDX Only가 정답 축입니다.
-- 기능 성숙도: 로그검색·트레이스·웹 세션 리플레이는 🟢, 모바일 RUM은 🔴(네이티브 리플레이 없음), 메트릭은 🟡(PromQL 미지원).
+- 기능 성숙도: 로그검색·트레이스·웹 세션 리플레이는 🟢, 모바일 RUM은 🔴(네이티브 리플레이 없음), 메트릭은 🟡(PromQL은 실험 기능이며 기본 비활성).
 - RBAC는 Managed(ClickHouse Cloud) 전용으로만 GA됐고 OSS는 SSO/RBAC/멀티테넌시/감사로그가 전무합니다. self-host를 고수하려면 oauth2-proxy·팀별 인스턴스·row policy를 조합해야 합니다.
 {{< /callout >}}
 
@@ -57,7 +57,7 @@ ClickStack은 신호별 최적화 스키마를 자동 생성합니다(codecs·TT
 |---|---|---|
 | `otel_logs` | 로그/이벤트 | `TraceId` text index, 속성 bloom filter, `Body` 토큰 검색 |
 | `otel_traces` | 분산 트레이스 | **`rum.sessionId`를 컬럼으로 materialize** → 세션↔트레이스 조인 근거 `✓` |
-| `otel_metrics_*` | 메트릭(타입별 분리 테이블) | Exemplar 배열 포함하나 쿼리 계층에 PromQL 없음(아래) |
+| `otel_metrics_*` | 메트릭(타입별 분리 테이블) | Exemplar 배열 포함. 이 일반 OTel 테이블에 PromQL이 자동 적용되지는 않음(아래) |
 | `hyperdx_sessions` | 세션 리플레이(rrweb) | `otel_logs`를 미러링한 독립 DDL·TTL 전용 테이블 `✓` |
 
 `otel_traces`의 세션↔트레이스 조인에는 bloom filter가 붙습니다(`TraceId` bloom FP율 0.001, `Duration` minmax). `otel_metrics_*`는 gauge/sum/histogram/exp-hist/summary 타입별로 테이블이 나뉩니다. `hyperdx_sessions`는 `Body`=이벤트 페이로드, `LogAttributes`=메타데이터 맵으로 `otel_logs`와 동일한 컬럼 구조를 쓰고 bloom_filter 인덱스도 갖습니다 `✓`.
@@ -103,13 +103,15 @@ Helm 경로의 operator 함정: 활성 개발이 `ClickHouse/ClickStack-helm-cha
 | **분산 트레이스(APM)** | 🟢 | HTTP→DB 쿼리 스팬, `rum.sessionId` 상관. 코드레벨 continuous profiler는 없음 `✓` |
 | **세션 리플레이 / 웹 RUM** | 🟢(디버깅) | `@hyperdx/browser`가 rrweb 리플레이+에러+Web Vitals+네트워크 캡처 `✓` |
 | **모바일 RUM** | 🔴 | 네이티브 iOS/Android/Flutter 리플레이 없음. RN 포크는 트레이스·에러·네트워크만 `✓` |
-| **대시보드** | 🟢 | import/export·필터. 단 템플릿 변수 없음, 프리셋 라이브러리 작음 `✓` |
-| **알림(Alerting)** | 🟡 | Search/Chart+`GROUP BY`별 발화·SQL 이상탐지. grouping/silencing·IaC 미성숙 `✓` |
-| **메트릭** | 🟡 | OTel 메트릭 저장·차트는 되나 **PromQL 미지원**. 신호 중 가장 약함 `✓` |
+| **대시보드** | 🟢 | import/export·필터, 연결된 필터·SQL 매크로 지원. 프리셋 라이브러리는 작음 `✓` |
+| **알림(Alerting)** | 🟡 | Search/Chart+그룹별 평가·평가 이력·SQL 사용자 정의 통계 조건. Alertmanager식 grouping/inhibition/silencing과 내장 ML은 미달 `✓` |
+| **메트릭** | 🟡 | OTel 메트릭 저장·차트. PromQL은 TimeSeries Engine 또는 외부 Prometheus 프록시를 쓰는 실험 기능이며 기본 비활성 `✓` |
 | **Service Maps / Event Deltas** | 🟠 | Service Maps beta, Event Deltas 구성 가능 `✓` |
 | **AI 노트북 / 자연어 쿼리** | 🟠 | private preview·로드맵 `✓` |
 
-세션 리플레이는 replay→trace→log 조인까지 되는데 대부분의 OSS 경쟁자가 못 따라오는 시그니처 강점입니다 `✓`. 알림 세부: Search/Chart 알림(단일 임계값)에 `GROUP BY`별 발화와 SQL 기반 이상탐지(2026-05)가 더해졌습니다. Alertmanager식 grouping/silencing·alert history·IaC는 여전히 미성숙합니다. OSS는 Slack/Generic Webhook 위주입니다(Slack API·PagerDuty OAuth는 Cloud 전용) `✓`(2025-11 OSS 패리티·2026-05 SQL 이상탐지 반영 시점 기준 — [dd 대체 매트릭스]({{< relref "04-datadog-replacement-matrix.md" >}}) 알림 서술과 동일 스냅샷). 메트릭은 SQL/Lucene only이고 PromQL 개선은 2026 로드맵입니다 `✓`. Service Maps는 2025-11 beta, Event Deltas는 2025-10부터 구성 가능합니다 `✓`.
+세션 리플레이는 replay→trace→log 조인까지 되는데 대부분의 OSS 경쟁자가 못 따라오는 시그니처 강점입니다 `✓`. 알림은 Search/Chart 조건, 그룹별 평가와 발화, 평가 이력, SQL로 작성하는 사용자 정의 통계 조건을 지원합니다. 다만 이 SQL 조건을 내장 ML 이상탐지로 보거나 Alertmanager식 grouping/inhibition/silencing과 동등하다고 볼 수는 없습니다([ClickStack 알림 공식 문서](https://clickhouse.com/docs/clickstack/features/alerts)). Terraform Provider는 self-hosted와 ClickHouse Cloud 양쪽에서 대시보드·차트·검색·알림 등을 관리하지만 Terraform provider `ClickHouse/clickhouse` v3.25 이상에서 Beta입니다([공식 발표](https://clickhouse.com/blog/clickstack-terraform-provider)). OSS 알림 채널은 Slack/Generic Webhook 위주입니다(Slack API·PagerDuty OAuth는 Cloud 전용) `✓`.
+
+PromQL도 더 이상 단순한 “없음”은 아닙니다. 2026-06 기준으로 ClickHouse TimeSeries Engine에 저장한 메트릭을 직접 조회하는 경로와 외부 Prometheus 호환 서버로 프록시하는 경로가 실험적으로 추가됐습니다. 외부 서버 경로는 `NEXT_PUBLIC_ENABLE_PROMQL=true`로 켜야 하며 기본값은 꺼짐입니다. 기존 `otel_metrics_*` 테이블이 자동으로 PromQL 저장소가 되는 것은 아니므로, 현재 운영 판단에서는 여전히 SQL/Lucene 또는 별도 VictoriaMetrics 경로가 안전합니다([ClickStack 2026-06 공식 변경사항](https://clickhouse.com/blog/whats-new-in-clickstack-june-2026)). Service Maps는 2025-11 beta, Event Deltas는 2025-10부터 구성 가능합니다 `✓`.
 
 RUM 실사의 결론입니다. (1) 웹 세션 리플레이·프론트↔백엔드 상관은 즉시 대체 가능한 🟢입니다. 모바일 리플레이는 존재하지 않는 🔴라 착수 전 Datadog RUM usage를 웹/모바일로 분해해야 합니다. (2) 대체는 프록시 매핑이 아니라 `@hyperdx/browser` SDK 교체로 갑니다 — `datadogreceiver`는 브라우저 RUM intake를 아예 수신하지 않습니다. 두 논점의 상세는 [Datadog RUM 커버리지]({{< relref "02-datadog-rum-coverage.md" >}})·[dd 프록시 매핑]({{< relref "03-dd-proxy-mapping.md" >}}) 참조.
 
@@ -135,7 +137,7 @@ RUM 실사의 결론입니다. (1) 웹 세션 리플레이·프론트↔백엔�
 | 통제 축 | OSS 자체 호스팅 현실 |
 |---|---|
 | **로그인** | HyperDX 자체 계정. **인증 자체를 끌 수 없음**(선언적 크레덴셜 미구현, #1329 OPEN) `✓` |
-| **SSO / SAML** | **없음**. SSO=Cloud, SAML=Enterprise 전용 `✓` |
+| **SSO / SAML** | OSS **없음**. Managed는 ClickHouse Cloud 인증에 통합(SAML은 Cloud Enterprise 티어) `✓` |
 | **RBAC** | **없음** — 리소스별 역할/권한 개념 자체가 OSS에 부재 `✓` |
 | **멀티테넌시** | **없음** — 인스턴스당 단일 팀. multi-tenant는 Cloud 전용 `✓` |
 | **감사로그** | **없음**(전 배포 공통 미출시) `✓` |
@@ -176,5 +178,7 @@ oauth2-proxy는 HyperDX 자체 로그인을 못 꺼 이중 로그인이 생기�
 
 - RUM은 SDK 교체(`@hyperdx/browser`)로 갑니다. 프록시 매핑은 쓰지 않습니다. 웹 세션 리플레이·CWV·프론트↔백엔드 상관을 dual-instrument로 병행 검증한 뒤 컷오버합니다. RUM 대체는 대규모 프로덕션 레퍼런스가 아직 얇아 PoC 성공을 진입 게이트로 삼습니다 `≈`.
 - ClickHouse는 HyperDX Only로 붙입니다. ClickStack 내장 CH를 켜지 말고 자체 운영 CH(범용 분석 겸용)에 연결해 operator를 일원화합니다. CH 배포·operator 판단은 [ClickHouse 심층]({{< relref "../clickhouse/_index.md" >}})에서 다룹니다.
-- 메트릭은 HyperDX로 몰지 않습니다. PromQL 부재·대시보드/알림 미성숙 때문에 메트릭 계층은 VictoriaMetrics + Grafana로 분리 존치합니다 `✓`.
+- 메트릭은 HyperDX로 몰지 않습니다. PromQL이 실험 기능이고 일반 `otel_metrics_*`에 자동 적용되지 않으며 대시보드/알림도 기존 Prometheus 운영 모델과 동등하지 않기 때문에, 메트릭 계층은 VictoriaMetrics + Grafana로 분리 존치합니다 `✓`.
 - 최대 리스크는 OSS 접근통제 공백입니다. 다중 팀 광범위 롤아웃을 단일 OSS 인스턴스로 하면 Datadog 대비 거버넌스가 후퇴합니다 → 파일럿은 oauth2-proxy 경계 SSO, 중간 롤아웃은 팀별 인스턴스 + row policy, 규제/감사 필수 팀만 Managed로 분리하는 단계적 하이브리드로 완화합니다.
+
+본문은 2026-07 조사이며, 2026-09 재검증에서 달라진 기능은 위에 갱신했습니다. 이후 확인된 변경점은 [HyperDX 커버리지 재판정(2026-09)]({{< relref "08-datadog-coverage-2026-09.md" >}})에서 다룹니다.
