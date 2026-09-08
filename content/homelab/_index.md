@@ -16,4 +16,3 @@ cascade:
 |------|-----------|
 | [01 hub/edge 2-클러스터 구조]({{< relref "01-hub-edge-architecture/index.md" >}}) | prod/stage를 버리고 hub/edge로 — 통합 전체 지도, stateless 원칙, 메트릭·GitOps·인증 파이프라인 |
 | [02 개발환경]({{< relref "02-dev-workspace/index.md" >}}) | hub 위의 code-server 하나에 브라우저(Keycloak)와 아이패드(Claude Code 릴레이) 두 길로 붙는다 — 터미널은 tmux, 파일은 NAS |
-| [03 Claude Code 관측]({{< relref "03-claude-code-otel/index.md" >}}) | code-server 안의 Claude Code 사용량을 OTel로 hub 관측 스택에 — delta/increase 함정, 대시보드 셋, /context 프리픽스 프로브, 트랜스크립트 백필 |

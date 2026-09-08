@@ -1,13 +1,15 @@
 ---
-title: "03 Claude Code 관측 — OTel 내보내기·대시보드·백필"
+title: "01 Claude Code 관측 — OTel 내보내기·대시보드·백필"
 date: 2026-09-08
 lastmod: 2026-09-08
-weight: 3
+weight: 1
+aliases:
+  - /homelab/03-claude-code-otel/
 ---
 
 # Claude Code 관측 — 토큰이 어디로 새는지 숫자로 보기
 
-앞 편의 code-server 터미널에서 하루 종일 Claude Code를 돌립니다. 얼마를 쓰는지는 `/cost`로 그때그때 볼 수 있지만, 어느 에이전트가 먹는지, 세션을 새로 열 때마다 얼마가 고정비로 나가는지, 훅이 몇 분을 잡아먹는지는 안 보입니다. 이 글은 그걸 hub 클러스터의 관측 스택(VictoriaMetrics·VictoriaLogs·Tempo·Grafana)으로 끌어온 하루치 기록입니다. 공식 문서는 [monitoring-usage](https://code.claude.com/docs/ko/monitoring-usage) 한 장이고, 실제로 발목을 잡은 건 문서 밖에 있었습니다.
+[홈랩 개발환경 편]({{< relref "homelab/02-dev-workspace/index.md" >}})의 code-server 터미널에서 하루 종일 Claude Code를 돌립니다. 얼마를 쓰는지는 `/cost`로 그때그때 볼 수 있지만, 어느 에이전트가 먹는지, 세션을 새로 열 때마다 얼마가 고정비로 나가는지, 훅이 몇 분을 잡아먹는지는 안 보입니다. 이 글은 그걸 hub 클러스터의 관측 스택(VictoriaMetrics·VictoriaLogs·Tempo·Grafana)으로 끌어온 하루치 기록입니다. 공식 문서는 [monitoring-usage](https://code.claude.com/docs/ko/monitoring-usage) 한 장이고, 실제로 발목을 잡은 건 문서 밖에 있었습니다.
 
 ## 어디로 보내나
 
