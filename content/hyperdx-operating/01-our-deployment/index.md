@@ -1,7 +1,7 @@
 ---
 title: "우리 배포 형상 — 자체 RUM 컨버터·6 실행 단위·stage/prod 격차"
 date: 2026-08-13
-lastmod: 2026-08-24
+lastmod: 2026-09-08
 weight: 1
 aliases: ["/hyperdx/11-our-rum-ingest/", "/hyperdx-operating/01-architecture/", "/hyperdx/operating/01-architecture/"]
 ---
@@ -19,7 +19,7 @@ aliases: ["/hyperdx/11-our-rum-ingest/", "/hyperdx-operating/01-architecture/", 
 {{< /callout >}}
 
 {{< callout type="warning" >}}
-stage 실제 vs prod 목표 — 현재 hdx는 stage 전용입니다(`values/stage/chain/hdx.yaml`만 있고 prod values 없음) `✓`. 아래 규모·HA는 대부분 prod 목표 설계이며 실제 돌아가는 건 그 축소판입니다.
+stage 실제 vs prod 목표 — 2026-08 배포 기록에서 hdx는 stage 전용입니다(`values/stage/chain/hdx.yaml`만 있고 prod values 없음) `✓`. 아래 규모·HA는 대부분 prod 목표 설계이며 기록 당시 실행 구성은 그 축소판입니다. 2026-09 문서 수정은 현재 클러스터의 재실측을 뜻하지 않습니다.
 
 | 항목 | prod 목표 | stage 실제 |
 | --- | --- | --- |
@@ -82,7 +82,7 @@ stage 실제 vs prod 목표 — 현재 hdx는 stage 전용입니다(`values/stag
 | hdx (app·api·OpAMP) | **단일 Deployment** | 무상태 replica 2+ 수평 확장 `≈` | replicas **1** `✓` | UI·쿼리만 — 적재 경로와 무관 `Σ` |
 | RUM 컨버터(자체) | Deployment | 무상태면 replica 수평 확장 `≈` | 구성 확인 필요 `?` | RUM 신규 수집만 정지 (텔레메트리·조회 무관) `Σ` |
 | OTel Collector | Deployment | replica ≥2 + `file_storage` 큐 `≈` | replica, **인메모리 큐** `✓` | ingest 정지, stage는 유실 위험 `Σ` |
-| ClickHouse | StatefulSet(CHI) | 1shard×RF2, 2AZ `≈` | **Phase 1 replica 1** `✓` | replica 1대 상실은 정족수 내 유지 `✓` |
+| ClickHouse | StatefulSet(CHI) | 1shard×RF2, 2AZ `≈` | **Phase 1 replica 1** `✓` | stage는 유일한 replica 상실 시 서비스 중단. RF2도 쓰기 지속 여부는 `insert_quorum` 설정에 따라 다름 |
 | ClickHouse Keeper | StatefulSet(CHK) | 3노드 정족수, 3AZ `≈` | 3노드 `✓` | **정족수 상실 시 CH 쓰기 정지** — SPOF `✓` |
 | MongoDB | ReplicaSet | `members:3` + `mongodump`→S3 `≈` | **`members:1`** `✓` | 설정·알럿·UI만 — 적재 데이터 무관 `✓` |
 

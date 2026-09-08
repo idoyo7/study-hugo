@@ -2,13 +2,22 @@
 title: "RUM 참고 자료"
 linkTitle: "출처"
 date: 2026-07-13
-lastmod: 2026-08-17
+lastmod: 2026-09-08
 weight: 7
 ---
 
 # 출처 — RUM 섹션 조사 문서 원본 링크
 
 RUM 섹션(01~05)의 근거는 `research/hyperdx-clickhouse/` 아래 조사 문서 8개입니다 — 01-hyperdx-deep-dive, 02-rum-replacement, 03-datadog-replacement-matrix, 07-recommendation, 08-supplement-1~2·4~5. 이 페이지는 그 문서들의 "## 출처" 섹션에 나열된 URL을 전부 모아 중복을 걷어내고 주제별로 재정리했습니다. 개별 URL이 본문 어느 주장을 뒷받침하는지는 각 조사 문서를 직접 대조해야 합니다. 이 페이지는 색인 목적으로만 씁니다. [HyperDX의 MongoDB]({{< relref "07-hyperdx-mongodb.md" >}})(07)는 별도 딥리서치(3-vote 적대검증, 2026-07-15) 기반입니다. 그 근거 URL도 아래 표에 포함했습니다. 조사 기준 2026-07.
+
+2026-09의 [커버리지 재판정]({{< relref "08-datadog-coverage-2026-09.md" >}})은 아래 1차 출처를 추가로 대조했습니다. 이전 조사 시점의 미지원 판정은 최신 기능의 부재 근거로 사용하지 않습니다.
+
+| 추가 출처 | 확인 범위 |
+|---|---|
+| [ClickStack June + July 업데이트](https://clickhouse.com/blog/whats-new-in-clickstack-june-2026) | 실험적 PromQL 두 경로·연결 필터·연속 윈도 알림 |
+| [ClickStack Terraform provider](https://clickhouse.com/blog/clickstack-terraform-provider) | 셀프호스트·Cloud 지원, v3.25부터 Beta, 대시보드 drift 제한 |
+| [ClickStack 알림](https://clickhouse.com/docs/clickstack/features/alerts) | 평가 이력·그룹별 발화·SQL 조건·채널별 배포 제약 |
+| [upstream Collector README](https://github.com/hyperdxio/hyperdx/blob/main/packages/otel-collector/README.md) | Datadog receiver 포함·활성화 경로. 배포 이미지 포함 여부는 별도 확인 |
 
 ## HyperDX·ClickStack 공식
 
@@ -198,7 +207,7 @@ HN·벤더 비교 블로그·이관 사례·서드파티 도구·이슈 트래�
 | [HN — Show HN: ClickStack (별도 스레드)](https://news.ycombinator.com/item?id=44194082) | OTLP 네이티브 인제스트 논의 |
 | [CubeAPM — HyperDX Pricing & Review 2026](https://cubeapm.com/blog/hyperdx-pricing-review/) | 요금제 리뷰 |
 | [Better Stack vs HyperDX (2026)](https://betterstack.com/community/comparisons/better-stack-vs-hyperdx/) | RUM 기능 비교(product analytics lighter) |
-| [Tasrie — ClickStack vs Prometheus (2026)](https://tasrieit.com/blog/clickstack-vs-prometheus-observability-comparison-2026) | PromQL 미지원 비교 |
+| [Tasrie — ClickStack vs Prometheus (2026)](https://tasrieit.com/blog/clickstack-vs-prometheus-observability-comparison-2026) | 과거 PromQL 미지원 비교. 현재 판정에는 위 공식 업데이트를 사용 |
 | [Tasrie — What Is ClickStack (2026)](https://tasrieit.com/blog/what-is-clickstack-clickhouse-observability-explained-2026) | 제품 개요 3자 설명 |
 | [OneUptime — Datadog Receiver in OTel Collector](https://oneuptime.com/blog/post/2026-02-06-datadog-receiver-opentelemetry-collector/view) | 설정 가이드(성능 수치 없음) |
 | [Altinity Kubernetes Operator](https://altinity.com/kubernetes-operator/) | Altinity operator 소개 |
