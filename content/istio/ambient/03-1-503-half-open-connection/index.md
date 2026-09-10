@@ -1,5 +1,6 @@
 ---
 title: "3-1편 — 503과 Half-open Connection"
+description: "롤아웃마다 새던 503의 원인을 pcap·로그·소켓 세 각도로 추적합니다. waypoint가 IP:Port만을 키로 죽은 Pod의 HBONE 터널을 재사용했고 retry 조건을 reset까지 넓혀 해소했습니다."
 date: 2026-08-01
 lastmod: 2026-08-24
 weight: 3

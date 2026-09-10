@@ -1,5 +1,6 @@
 ---
 title: "Envoy config로 해부하는 Ambient mode"
+description: "프로덕션 Envoy config 덤프를 따라가며 HBONE이 InternalUpstreamTransport·tunneling_config·UpstreamTlsContext 세 부품의 조합임을 보입니다. 리다이렉션 무한루프는 패킷 마크 두 개로 막습니다."
 date: 2026-08-01
 lastmod: 2026-08-24
 weight: 2

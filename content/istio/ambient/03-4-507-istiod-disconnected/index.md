@@ -1,5 +1,6 @@
 ---
 title: "507과 istiod disconnected 탐지"
+description: "507이 스토리지 부족이 아니라 retry 시 request body를 재생하지 못해 걸리는 1MB 버퍼 상한이었던 사례와, xDS 단절을 못 잡는 readinessProbe를 보완한 두 번째 사례를 묶었습니다."
 date: 2026-08-01
 lastmod: 2026-08-24
 weight: 6

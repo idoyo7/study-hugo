@@ -1,5 +1,6 @@
 ---
 title: "Redis 581샤드를 무중단으로 Kubernetes에 올리기"
+description: "Braze가 Sentinel 감시 581샤드를 무중단으로 Kubernetes에 올린 기록입니다. ClusterIP가 안 보이는 문제를 NLB와 announce-ip로 풀었고 Valkey 전환은 이미지 두 줄로 끝났습니다."
 date: 2026-08-06
 lastmod: 2026-08-24
 linkTitle: "01 무중단 이관"
