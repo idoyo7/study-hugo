@@ -19,7 +19,7 @@ lastmod: 2026-09-14
 
 [01 경계와 위협 모델]({{< relref "../01-boundaries/index.md" >}})에서 Kata가 지우는 위협과 남기는 위협을 봤습니다. 이 편은 그 경계를 실제로 세우는 물건, 즉 Kata의 구조로 내려갑니다. shim이 무엇을 하고 VMM을 어떻게 고르며 VM 크기가 어떻게 정해지는지, 그리고 그 선택 하나하나가 어디서 청구서로 돌아오는지를 봅니다.
 
-도입 전에 답해야 할 운영 체크리스트도 이 편에 함께 둡니다. Kata를 켜는 결정은 런타임 하나만 바꾸는 일이 아니라 노드 프로비저닝부터 관측 파이프라인까지 열 군데를 함께 건드리는 일이기 때문입니다.
+도입 전에 답해야 할 운영 체크리스트도 이 편에 함께 둡니다.
 
 자매 문서: 세 물건의 경계와 위협 모델은 [01 경계와 위협 모델]({{< relref "../01-boundaries/index.md" >}})에, gVisor는 [03 gVisor]({{< relref "../03-gvisor/index.md" >}})에, KubeVirt는 [04 KubeVirt]({{< relref "../04-kubevirt/index.md" >}})에, 성능 실측은 [05 성능 실측]({{< relref "../05-performance/index.md" >}})에, 시나리오별 판단은 [06 판단]({{< relref "../06-decision/index.md" >}})에 있습니다.
 
@@ -27,7 +27,7 @@ lastmod: 2026-09-14
 
 호스트에서 도는 것은 셋입니다. `containerd-shim-kata-v2`가 shimv2 API를 구현해 컨테이너 몇 개든 바이너리 인스턴스 하나로 관리하고, VMM이 VM을 띄우고, `virtiofsd`가 파일을 공유합니다. 게스트 안에는 Rust로 쓰인 kata-agent가 있고 shim과는 VSOCK 위 ttRPC로 말합니다.
 
-**4.0.0(2026-07-20)**에서 runtime-rs(Rust)가 기본 런타임이 되고 원래 Go 런타임은 deprecated로 남았습니다. 최신은 **4.1.0(2026-08-21)**입니다 `✓`. 하이퍼바이저 기본값도 최근 바뀌어서, **3.30.0**에서 runtime-rs의 기본 하이퍼바이저가 QEMU로 지정됐습니다. Kata 3.0 초기에 runtime-rs가 Dragonball만 지원하던 시절과는 상황이 다릅니다.
+**4.0.0(2026-07-20)**에서 runtime-rs(Rust)가 기본 런타임이 되고 원래 Go 런타임은 deprecated로 남았습니다. 최신은 **4.1.0(2026-08-21)**입니다 `✓`. 하이퍼바이저 기본값도 최근 바뀌어 **3.30.0**에서 runtime-rs의 기본 하이퍼바이저가 QEMU로 지정됐습니다. Kata 3.0 초기에 runtime-rs가 Dragonball만 지원하던 시절과는 상황이 다릅니다.
 
 {{< seq src="_seq/1-파드-기동.json" />}}
 
@@ -45,15 +45,15 @@ VMM은 다섯 중에서 고릅니다. GPU와 기밀 컴퓨팅이 필요하면 �
 
 Firecracker는 virtio-fs 없이 블록 장치(devmapper 스냅샷터)로 rootfs를 받습니다 `✓`.
 
-rootfs를 게스트로 넣는 길은 네 갈래입니다. **virtio-fs**가 Kata 2.0부터 기본이고 9pfs 대비 성능과 POSIX 준수 양쪽이 낫습니다. virtiofsd는 vhost-user 장치로 호스트의 일반 프로세스로 돌면서 게스트 메모리를 직접 읽고 씁니다 — 이 "직접 읽고 쓴다"가 앞서 본 2026년 탈출 취약점의 무대였습니다 `Σ`. **9p**는 예전 방식이고, **게스트 내부 이미지 pull**(nydus 스냅샷터 경유)은 Kata 3.3.0에서 들어온 네 번째 길입니다. 기밀 컨테이너가 이걸 요구하는 이유는 명확합니다. 호스트가 이미지를 풀고 복호화하면 평문이 TEE 밖 호스트 메모리를 지나가므로 기밀성 보장이 통째로 무너지기 때문입니다 `✓`. 네트워킹은 CNI veth를 TAP으로 리다이렉트하는 **tcfilter**가 기본이고 — "설정이 단순하고 CNI 플러그인 호환성이 좋으며 성능이 MACVTAP과 대등해서 기본값"이라는 게 문서의 설명입니다 — macvtap은 예전 구현, bridge는 성능 열위로 권장하지 않습니다.
+rootfs를 게스트로 넣는 길은 네 갈래입니다. **virtio-fs**가 Kata 2.0부터 기본이고 9pfs 대비 성능과 POSIX 준수 양쪽이 낫습니다. virtiofsd는 vhost-user 장치로 호스트의 일반 프로세스로 돌면서 게스트 메모리를 직접 읽고 씁니다 — 이 "직접 읽고 쓴다"가 앞서 본 2026년 탈출 취약점의 무대였습니다 `Σ`. **9p**는 예전 방식이고, **게스트 내부 이미지 pull**(nydus 스냅샷터 경유)은 Kata 3.3.0에서 들어온 네 번째 길입니다. 기밀 컨테이너가 이걸 요구하는 이유는, 호스트가 이미지를 풀고 복호화하면 평문이 TEE 밖 호스트 메모리를 지나가 기밀성 보장이 통째로 무너지기 때문입니다 `✓`. 네트워킹은 CNI veth를 TAP으로 리다이렉트하는 **tcfilter**가 기본입니다. "설정이 단순하고 CNI 플러그인 호환성이 좋으며 성능이 MACVTAP과 대등해서 기본값"이라는 게 문서의 설명입니다. macvtap은 예전 구현, bridge는 성능 열위로 권장하지 않습니다.
 
 Dragonball을 VMM으로 쓰면 shim·VMM·virtio-fs 데몬이 한 프로세스 안에 들어갑니다 `Ⓥ`. Ant Group이 만든 이 조합은 프로세스 경계를 줄여 오버헤드를 낮추려는 설계인데, 업스트림에는 "Dragonball Performance Degradation Compared to other Kata Runtimes"라는 성능 회귀 이슈(#5644)가 아직 열려 있어 "가장 빠른 Kata VMM"이라고 단정하기는 이릅니다 `Σ`. `static_sandbox_resource_mgmt`를 켜면 워크로드 요구사항과 `default_vcpus`로 부팅 전에 크기를 정하고 이후 리사이즈하지 않습니다. Firecracker는 CPU·메모리 hotplug 자체를 지원하지 않아 이 모드가 사실상 강제됩니다 `✓`.
 
-VM 크기 산정이 Kata 운영의 핵심 난점입니다. vCPU는 `vCPUs = ceiling(quota / period)` 공식으로 정해지고 `✓`, CPU limit이 없으면 vCPU 1개로 고정됩니다. 결정적인 문장은 이것입니다 — "Kata shim은 request를 보지 못한다. 따라서 CPU limit이 선언되지 않으면 pod VM은 1 vCPU로 제한된다" `✓`. request만 크게 잡고 limit을 비워두던 관행이 Kata에서는 그대로 성능 사고가 됩니다. 이 대목은 [k8s 02 CPU Throttling]({{< relref "../../k8s-features/02-cpu-throttling/index.md" >}})에서 다룬 CPU limit의 일반론과 정확히 이어집니다. 메모리 오버헤드 수치의 실측 근거는 [05 성능 실측]({{< relref "../05-performance/index.md" >}}) 6장에 있습니다.
+VM 크기 산정이 Kata 운영의 난점입니다. vCPU는 `vCPUs = ceiling(quota / period)` 공식으로 정해집니다 `✓`. CPU limit이 없으면 vCPU 1개로 고정됩니다. 문서는 이 조건을 이렇게 적습니다 — "Kata shim은 request를 보지 못한다. 따라서 CPU limit이 선언되지 않으면 pod VM은 1 vCPU로 제한된다" `✓`. request만 크게 잡고 limit을 비워두던 관행이 Kata에서는 그대로 성능 사고가 됩니다. CPU limit 일반론은 [k8s 02 CPU Throttling]({{< relref "../../k8s-features/02-cpu-throttling/index.md" >}})에서 따로 다뤘습니다. 메모리 오버헤드 수치의 실측 근거는 [05 성능 실측]({{< relref "../05-performance/index.md" >}}) 6장에 있습니다.
 
 RuntimeClass 이름도 하이퍼바이저·보안 기능 조합별로 나뉩니다. `kata-deploy`가 만드는 이름은 `kata-qemu`, `kata-clh`, `kata-qemu-tdx`, `kata-qemu-sev`, `kata-qemu-snp`, `kata-qemu-nvidia-gpu` 식으로, 어떤 조합을 쓸지가 곧 어떤 RuntimeClass를 참조할지를 정합니다 `Ⓥ`. `overhead.podFixed`는 v1.24부터 stable이고 `scheduling.nodeSelector`·`tolerations`는 v1.16부터 beta라, Kata 노드풀을 별도로 분리하는 스케줄링 규칙은 오래전부터 안정적으로 쓸 수 있었습니다 `✓`.
 
-메모리 쪽도 기본값을 그냥 넘기면 안 됩니다. Kata 업스트림 `default_memory`는 2048MiB입니다(Makefile의 `DEFMEMSZ`) `✓`. AKS는 이보다 훨씬 작게 잡아 pod VM 메모리 기본값을 512Mi로, 지정이 없을 때 RuntimeClass overhead를 600Mi로 둡니다 `✓`. `overhead.podFixed`에 담기는 건 호스트 컴포넌트 몫뿐입니다. 게스트 컴포넌트 소비량은 담을 필요가 없습니다.
+메모리 쪽도 기본값을 그냥 넘기면 안 됩니다. Kata 업스트림 `default_memory`는 2048MiB입니다(Makefile의 `DEFMEMSZ`) `✓`. AKS는 이보다 훨씬 작게 잡아 pod VM 메모리 기본값을 512Mi로, 지정이 없을 때 RuntimeClass overhead를 600Mi로 둡니다 `✓`. `overhead.podFixed`에 담는 값은 호스트 컴포넌트가 쓰는 양뿐입니다. 게스트 컴포넌트 소비량은 여기 들어가지 않습니다.
 
 이렇게 산정된 VM은 네이티브 컨테이너와 완전히 같은 방식으로 동작하지는 않습니다. 문서가 명시한 것과 구조상 따라오는 것이 뒤섞여 있어 하나씩 확인해 둘 필요가 있습니다.
 
@@ -70,7 +70,7 @@ RuntimeClass 이름도 하이퍼바이저·보안 기능 조합별로 나뉩니�
 | `exec`/`logs`/`port-forward` | shim과 agent를 거쳐 정상 동작 |
 | 사이드카 | 같은 파드의 컨테이너가 한 VM을 공유하므로 정상 동작 `≈` |
 
-GPU는 VFIO 패스스루가 필수이고 호스트에 NVIDIA 드라이버가 없어야 합니다. "Kata는 VFIO로 GPU를 VM에 직접 전달하며 호스트 레벨 GPU 드라이버는 VFIO 장치 바인딩을 방해한다"는 게 NVIDIA GPU Operator 문서의 설명입니다 `✓`. IOMMU를 켠(`intel_iommu=on` 또는 `amd_iommu=on`) 베어메탈이 필요하고, 제약이 둘 큽니다. 노드의 GPU 전부가 한 Kata VM에 배정돼야 하고("일부 GPU만 Kata용으로 구성하는 것은 지원되지 않는다"), vGPU는 지원되지 않으며, 컨테이너 런타임은 containerd만 지원됩니다 `✓`. MIG나 time-slicing 같은 GPU 분할 기법은 이 문서가 지원 구성으로 언급하지 않습니다 `?`.
+GPU는 VFIO 패스스루가 필수이고 호스트에 NVIDIA 드라이버가 없어야 합니다. "Kata는 VFIO로 GPU를 VM에 직접 전달하며 호스트 레벨 GPU 드라이버는 VFIO 장치 바인딩을 방해한다"는 게 NVIDIA GPU Operator 문서의 설명입니다 `✓`. IOMMU를 켠(`intel_iommu=on` 또는 `amd_iommu=on`) 베어메탈이 필요합니다. 제약도 둘 큽니다. 노드의 GPU 전부가 한 Kata VM에 배정돼야 하고("일부 GPU만 Kata용으로 구성하는 것은 지원되지 않는다"), vGPU는 지원되지 않으며, 컨테이너 런타임은 containerd만 지원됩니다 `✓`. MIG나 time-slicing 같은 GPU 분할 기법은 이 문서가 지원 구성으로 언급하지 않습니다 `?`.
 
 ## 2. 운영 비용 체크리스트 (Kata 도입 전에 답할 것)
 
