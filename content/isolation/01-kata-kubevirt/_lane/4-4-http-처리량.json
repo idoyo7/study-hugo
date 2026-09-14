@@ -1,0 +1,16 @@
+{
+  "caption": "2026년 nginx + wrk(-t4 -c100 -d30s) 3자 비교입니다. 처리량은 runc가 가장 높고 Kata가 가장 낮습니다.",
+  "font": 1.1,
+  "axis": { "kind": "linear", "max": 30000, "unit": " req/s", "ticks": [0, 10000, 20000, 30000] },
+  "lanes": [
+    { "label": "runc", "segments": [
+      { "start": 0, "end": 26400, "label": "26,400", "kind": "proc" }
+    ]},
+    { "label": "gVisor", "segments": [
+      { "start": 0, "end": 15310, "label": "15,310", "sub": "−42%", "kind": "query" }
+    ]},
+    { "label": "Kata", "sub": "Cloud Hypervisor", "segments": [
+      { "start": 0, "end": 2888, "label": "2,888", "sub": "−89%", "kind": "store" }
+    ]}
+  ]
+}

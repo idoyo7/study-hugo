@@ -1,0 +1,20 @@
+{
+  "caption": "2026년 3자 비교(fio 랜덤 4K 혼합 R/W, K8s Job, 3회 중앙값)와 gVisor 공식 fio tmpfs 결과를 runc=100 기준 비율로 겹쳐 놓았습니다. 캐시가 먹히지 않는 구간에서 구조적 비용이 그대로 드러납니다.",
+  "font": 1.1,
+  "note": "순차 read는 캐시 효과로 역전되므로 이 축에 올리지 않았다",
+  "axis": { "kind": "linear", "max": 110, "unit": "%", "ticks": [0, 25, 50, 75, 100] },
+  "lanes": [
+    { "label": "runc", "segments": [
+      { "start": 0, "end": 100, "label": "100", "kind": "proc" }
+    ]},
+    { "label": "gVisor", "sub": "release-20260202", "segments": [
+      { "start": 0, "end": 24, "label": "24", "sub": "−76%", "kind": "query" }
+    ]},
+    { "label": "Kata", "sub": "Cloud Hypervisor v48", "segments": [
+      { "start": 0, "end": 1.2, "label": "1.2", "sub": "−99% · IO마다 VM exit", "kind": "store" }
+    ]},
+    { "label": "gVisor tmpfs", "sub": "랜덤 read", "segments": [
+      { "start": 0, "end": 5.6, "label": "5.6", "sub": "17.7배 느림 · gVisor 공식 fio", "kind": "query" }
+    ]}
+  ]
+}

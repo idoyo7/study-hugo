@@ -1,0 +1,26 @@
+{
+  "caption": "AKS 공식 문서의 실측 표입니다(kata-vm-isolation RuntimeClass). Pod VM 메모리가 커질수록 오버헤드 비율이 줄어듭니다.",
+  "font": 1.1,
+  "note": "비율은 overhead ÷ pod VM 메모리. 호스트 컴포넌트 여유는 450~490Mi에 수렴한다",
+  "axis": { "kind": "linear", "max": 1100, "unit": "Mi", "ticks": [0, 256, 512, 768, 1024] },
+  "lanes": [
+    { "label": "128Mi", "sub": "Pod VM", "segments": [
+      { "start": 0, "end": 16, "label": "16Mi", "sub": "12.5%", "kind": "store" }
+    ]},
+    { "label": "1Gi", "sub": "Pod VM", "segments": [
+      { "start": 0, "end": 128, "label": "128Mi", "sub": "12.5%", "kind": "store" }
+    ]},
+    { "label": "4Gi", "sub": "Pod VM", "segments": [
+      { "start": 0, "end": 374, "label": "374Mi", "sub": "9.1%", "kind": "store" }
+    ]},
+    { "label": "8Gi", "sub": "Pod VM", "segments": [
+      { "start": 0, "end": 512, "label": "512Mi", "sub": "6.25%", "kind": "store" }
+    ]},
+    { "label": "32Gi", "sub": "Pod VM", "segments": [
+      { "start": 0, "end": 640, "label": "640Mi", "sub": "1.95%", "kind": "store" }
+    ]},
+    { "label": "128Gi", "sub": "Pod VM", "segments": [
+      { "start": 0, "end": 1024, "label": "1,024Mi", "sub": "0.78%", "kind": "store" }
+    ]}
+  ]
+}

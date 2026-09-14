@@ -1,0 +1,22 @@
+{
+  "caption": "NSDI 2020이 잰 VMM 비공유 세그먼트 오버헤드는 VM 크기와 무관한 상수입니다. Kata·gVisor 값은 다른 조건에서 나온 별개 측정이라 나란히만 두었습니다.",
+  "font": 1.1,
+  "axis": { "kind": "linear", "max": 200, "unit": "MB", "ticks": [0, 50, 100, 150, 200] },
+  "lanes": [
+    { "label": "Firecracker", "segments": [
+      { "start": 0, "end": 3, "label": "3MB", "sub": "NSDI 2020 · VM 크기 무관", "kind": "src" }
+    ]},
+    { "label": "Cloud Hypervisor", "segments": [
+      { "start": 0, "end": 13, "label": "13MB", "sub": "NSDI 2020 · VM 크기 무관", "kind": "src" }
+    ]},
+    { "label": "QEMU", "segments": [
+      { "start": 0, "end": 131, "label": "131MB", "sub": "NSDI 2020 · VM 크기 무관", "kind": "src" }
+    ]},
+    { "label": "Kata 1.13", "sub": "QEMU busybox 샌드박스", "segments": [
+      { "start": 0, "end": 184.3, "label": "184.3MB", "sub": "게스트 커널 포함 · Quark 논문 · 다른 측정", "kind": "store" }
+    ]},
+    { "label": "gVisor", "sub": "빈 컨테이너 증가분", "segments": [
+      { "start": 0, "end": 18.7, "label": "18.7", "sub": "MiB · density.csv", "kind": "query" }
+    ]}
+  ]
+}

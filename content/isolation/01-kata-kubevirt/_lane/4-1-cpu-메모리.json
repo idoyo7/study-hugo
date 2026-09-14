@@ -1,0 +1,28 @@
+{
+  "caption": "2026년 K8s 1.32 실측입니다(DigitalOcean c5-8vcpu, 2 CPU/4Gi 제한, 3회 중앙값, bikramkgupta/container-runtime-benchmarks). sysbench CPU와 메모리 대역폭 모두 runc를 100으로 두면 Kata·gVisor가 3% 안쪽에 몰립니다.",
+  "font": 1.1,
+  "axis": { "kind": "linear", "max": 110, "unit": "%", "ticks": [0, 25, 50, 75, 100] },
+  "lanes": [
+    { "label": "sysbench CPU · runc", "sub": "기준", "segments": [
+      { "start": 0, "end": 100, "label": "100", "sub": "2,258 events/s", "kind": "proc" }
+    ]},
+    { "label": "sysbench CPU · Kata", "sub": "Cloud Hypervisor v48", "segments": [
+      { "start": 0, "end": 97.3, "label": "97.3", "sub": "−2.7% · 2,197 events/s", "kind": "store" }
+    ]},
+    { "label": "sysbench CPU · gVisor", "sub": "release-20260202", "segments": [
+      { "start": 0, "end": 98.3, "label": "98.3", "sub": "−1.7% · 2,220 events/s", "kind": "query" }
+    ]},
+    { "label": "메모리 대역폭 · runc", "sub": "기준", "segments": [
+      { "start": 0, "end": 100, "label": "100", "sub": "34,002 MiB/s", "kind": "proc" }
+    ]},
+    { "label": "메모리 대역폭 · Kata", "sub": "Cloud Hypervisor v48", "segments": [
+      { "start": 0, "end": 96.6, "label": "96.6", "sub": "−3.4% · 32,829 MiB/s", "kind": "store" }
+    ]},
+    { "label": "메모리 대역폭 · gVisor", "sub": "release-20260202", "segments": [
+      { "start": 0, "end": 100.1, "label": "100.1", "sub": "0% · 34,025 MiB/s", "kind": "query" }
+    ]}
+  ],
+  "markers": [
+    { "at": 100, "label": "runc = 100", "kind": "proc" }
+  ]
+}

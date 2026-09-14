@@ -1,0 +1,20 @@
+{
+  "caption": "비용이 붙는 자리는 3번(VM 부팅)과 2번(공유 파일시스템·네트워크 연결)입니다. 6번 이후는 runc와 같은 모양으로 흘러갑니다.",
+  "participants": [
+    { "id": "kl", "label": "kubelet · containerd" },
+    { "id": "shim", "label": "containerd-shim-kata-v2" },
+    { "id": "vmm", "label": "VMM · 게스트 커널" },
+    { "id": "agent", "label": "kata-agent" }
+  ],
+  "steps": [
+    { "msg": ["kl", "shim"], "label": "1. RunPodSandbox" },
+    { "note": ["shim", "vmm"], "lines": ["CNI veth를 TAP으로 tcfilter 리다이렉트", "virtiofsd 기동 (rootfs 공유)"] },
+    { "msg": ["shim", "vmm"], "label": "3. VM 생성 · 부팅" },
+    { "msg": ["vmm", "agent"], "label": "4. init → agent 기동" },
+    { "msg": ["agent", "shim"], "label": "5. VSOCK ttRPC 연결", "dashed": true },
+    { "msg": ["kl", "shim"], "label": "6. CreateContainer" },
+    { "msg": ["shim", "agent"], "label": "7. OCI spec 전달" },
+    { "note": ["agent"], "lines": ["게스트 안에서 cgroup·namespace 생성", "guest seccomp 기본 미적용"] },
+    { "msg": ["agent", "shim"], "label": "9. Running", "dashed": true }
+  ]
+}

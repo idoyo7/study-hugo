@@ -1,0 +1,26 @@
+{
+  "caption": "KubeVirt 소스 GetMemoryOverhead의 상수를 8GiB · 4 vCPU 예시로 조립한 값입니다. 옵션이 하나씩 붙을 때마다 오버헤드가 계단식으로 뜁니다.",
+  "font": 1.1,
+  "note": "기본 296Mi = virt-launcher 100 + libvirt·모니터·로그 90 + qemu 50 + vCPU·IO·페이지 56. 그래픽 슬라이스는 296→328",
+  "axis": { "kind": "linear", "max": 1500, "unit": "Mi", "ticks": [0, 300, 600, 900, 1200, 1500] },
+  "lanes": [
+    { "label": "8GiB · 4 vCPU 기본", "segments": [
+      { "start": 0, "end": 100, "label": "100", "kind": "sink" },
+      { "start": 100, "end": 190, "label": "90", "kind": "sink" },
+      { "start": 190, "end": 240, "label": "50", "kind": "sink" },
+      { "start": 240, "end": 296, "label": "56", "kind": "sink" }
+    ]},
+    { "label": "+ 그래픽 · 전용 CPU", "segments": [
+      { "start": 0, "end": 296, "label": "기본 296", "kind": "sink" },
+      { "start": 296, "end": 328, "kind": "sink" },
+      { "start": 328, "end": 428, "label": "전용 CPU", "sub": "100Mi", "kind": "sink" }
+    ]},
+    { "label": "+ VFIO(GPU·SR-IOV)", "segments": [
+      { "start": 0, "end": 428, "label": "기본 428", "kind": "sink" },
+      { "start": 428, "end": 1452, "label": "VFIO +1,024", "style": "hatch", "kind": "sink" }
+    ]}
+  ],
+  "markers": [
+    { "at": 288, "label": "Red Hat 스케일 테스트 실측 약 288MB", "kind": "sink" }
+  ]
+}

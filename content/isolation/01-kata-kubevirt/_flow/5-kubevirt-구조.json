@@ -1,0 +1,25 @@
+{
+  "caption": "QEMU가 파드의 cgroup·namespace 안에서 돕니다. 그래서 파드가 축출되면 VM도 함께 끝납니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "user", "col": 0, "row": 0, "label": "kubectl · virtctl", "sub": "VM CRD 적용", "kind": "proc" },
+    { "id": "api", "col": 1, "row": 0, "label": "virt-api", "sub": "검증 · subresource", "kind": "sink" },
+    { "id": "ctrl", "col": 2, "row": 0, "label": "virt-controller", "sub": "VMI → 파드", "kind": "sink" },
+    { "id": "kapi", "col": 3, "row": 0, "label": "kube-apiserver", "sub": "VM · VMI · Pod", "kind": "store" },
+
+    { "id": "handler", "col": 2, "row": 1, "label": "virt-handler", "sub": "노드 DaemonSet · privileged", "kind": "sink" },
+
+    { "id": "op", "col": 0, "row": 2, "label": "virt-operator", "sub": "설치 · 업그레이드", "kind": "sink" },
+    { "id": "launcher", "col": 2, "row": 2, "label": "virt-launcher 파드", "sub": "libvirt · QEMU 프로세스", "kind": "sink" },
+    { "id": "kvm", "col": 3, "row": 2, "label": "노드 커널", "sub": "/dev/kvm · vhost-net", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "user", "to": "api", "label": "적용" },
+    { "from": "api", "to": "ctrl", "label": "승인" },
+    { "from": "ctrl", "to": "kapi", "label": "VMI 생성" },
+    { "from": "kapi", "to": "handler", "label": "watch VMI" },
+    { "from": "handler", "to": "launcher", "label": "도메인 동기화" },
+    { "from": "launcher", "to": "kvm", "label": "KVM" },
+    { "from": "op", "to": "api", "label": "롤아웃", "dashed": true }
+  ]
+}

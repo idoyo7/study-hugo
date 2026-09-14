@@ -1,0 +1,32 @@
+{
+  "caption": "HotCloud '19(Young 외, CloudLab c220 M4, Docker 18.09.3)에서 gettimeofday를 1억 회 반복한 평균 지연입니다. native와 runc는 이 축 위에서 거의 보이지 않고, gVisor의 경로별 격차만 눈에 들어옵니다.",
+  "font": 1.1,
+  "note": "native와 runc 막대가 이 축에서 보이지 않는 것 자체가 격차의 크기다",
+  "axis": { "kind": "linear", "max": 55, "unit": "µs", "ticks": [0, 10, 20, 30, 40, 50] },
+  "lanes": [
+    { "label": "native", "segments": [
+      { "start": 0, "end": 0.22, "label": "0.22µs", "sub": "1.0×", "kind": "proc" }
+    ]},
+    { "label": "runc", "segments": [
+      { "start": 0, "end": 0.29, "label": "0.29µs", "sub": "1.3×", "kind": "proc" }
+    ]},
+    { "label": "gVisor KVM", "sub": "Sentry 내부 처리", "segments": [
+      { "start": 0, "end": 0.63, "label": "0.63µs", "sub": "2.9×", "kind": "query" }
+    ]},
+    { "label": "gVisor KVM", "sub": "호스트 호출", "segments": [
+      { "start": 0, "end": 5.96, "label": "5.96µs", "sub": "27×", "kind": "query" }
+    ]},
+    { "label": "gVisor ptrace", "sub": "Sentry 내부 처리", "segments": [
+      { "start": 0, "end": 9.23, "label": "9.23µs", "sub": "42×", "kind": "query" }
+    ]},
+    { "label": "gVisor ptrace", "sub": "호스트 호출", "segments": [
+      { "start": 0, "end": 9.71, "label": "9.71µs", "sub": "44×", "kind": "query" }
+    ]},
+    { "label": "gVisor KVM", "sub": "Gofer 경유", "segments": [
+      { "start": 0, "end": 45.5, "label": "45.5µs", "sub": "207×", "kind": "query" }
+    ]},
+    { "label": "gVisor ptrace", "sub": "Gofer 경유", "segments": [
+      { "start": 0, "end": 51.1, "label": "51.1µs", "sub": "232×", "kind": "query" }
+    ]}
+  ]
+}

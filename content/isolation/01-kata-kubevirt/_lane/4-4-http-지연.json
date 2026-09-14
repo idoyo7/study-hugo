@@ -1,0 +1,16 @@
+{
+  "caption": "같은 2026년 nginx + wrk 측정의 평균 지연입니다. 순서를 값 오름차순으로 두어 처리량 순위와 다르다는 걸 보이게 했습니다 — gVisor는 처리량은 잃지만 지연은 runc보다 낮습니다.",
+  "font": 1.1,
+  "axis": { "kind": "linear", "max": 40, "unit": "ms", "ticks": [0, 10, 20, 30, 40] },
+  "lanes": [
+    { "label": "gVisor", "segments": [
+      { "start": 0, "end": 6.62, "label": "6.62ms", "sub": "runc보다 34% 낮음", "kind": "query" }
+    ]},
+    { "label": "runc", "segments": [
+      { "start": 0, "end": 10.04, "label": "10.04ms", "kind": "proc" }
+    ]},
+    { "label": "Kata", "sub": "Cloud Hypervisor", "segments": [
+      { "start": 0, "end": 35.08, "label": "35.08ms", "kind": "store" }
+    ]}
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "caption": "NSDI 2020 iperf3 1스트림 RX(EC2 m5d.metal, 2 vCPU/512MB VM)입니다. 링크가 병목이면 격차가 사라지고, loopback처럼 링크가 없으면 그대로 드러납니다.",
+  "font": 1.1,
+  "axis": { "kind": "linear", "max": 50, "unit": "Gb/s", "ticks": [0, 10, 20, 30, 40, 50] },
+  "lanes": [
+    { "label": "호스트 loopback", "segments": [
+      { "start": 0, "end": 44.14, "label": "44.14", "kind": "proc" }
+    ]},
+    { "label": "QEMU", "segments": [
+      { "start": 0, "end": 23.76, "label": "23.76", "kind": "src" }
+    ]},
+    { "label": "Cloud Hypervisor", "segments": [
+      { "start": 0, "end": 23.12, "label": "23.12", "kind": "src" }
+    ]},
+    { "label": "Firecracker", "segments": [
+      { "start": 0, "end": 15.61, "label": "15.61", "sub": "호스트의 35%", "kind": "src" }
+    ]}
+  ],
+  "markers": [
+    { "at": 9.3, "label": "10GbE 포화 — Felter 2015 native·Docker·KVM 동률", "kind": "proc" }
+  ]
+}

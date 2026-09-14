@@ -1,0 +1,20 @@
+{
+  "caption": "VEE 2020(CloudLab xl170, gVisor release-20200127.0 KVM, Firecracker v0.19.1)의 ping RTT입니다. 4-4-대역폭.json의 순위와 여기서 뒤집힙니다.",
+  "font": 1.1,
+  "note": "대역폭 순위(Firecracker가 host급, gVisor 최하)와 지연 순위가 뒤집힌다",
+  "axis": { "kind": "linear", "max": 400, "unit": "µs", "ticks": [0, 100, 200, 300, 400] },
+  "lanes": [
+    { "label": "host", "segments": [
+      { "start": 0, "end": 146, "label": "146µs", "kind": "proc" }
+    ]},
+    { "label": "LXC", "segments": [
+      { "start": 0, "end": 149, "label": "149µs", "kind": "proc" }
+    ]},
+    { "label": "gVisor", "sub": "KVM", "segments": [
+      { "start": 0, "end": 319, "label": "319µs", "kind": "query" }
+    ]},
+    { "label": "Firecracker", "segments": [
+      { "start": 0, "end": 371, "label": "371µs", "kind": "src" }
+    ]}
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "caption": "세 경로 모두 결국 호스트 커널에 닿지만, 그 사이에 몇 겹을 지나느냐가 다릅니다. 층이 늘어날수록 비용과 격리가 함께 붙습니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "app1", "col": 0, "row": 0, "label": "앱", "sub": "runc 컨테이너", "kind": "proc" },
+    { "id": "hostk1", "col": 3, "row": 0, "label": "호스트 커널", "sub": "namespace · cgroup", "kind": "store" },
+
+    { "id": "app2", "col": 0, "row": 1, "label": "앱", "sub": "gVisor 컨테이너", "kind": "proc" },
+    { "id": "sentry", "col": 1, "row": 1, "label": "Sentry", "sub": "유저스페이스 커널 · Go", "kind": "query" },
+    { "id": "gofer", "col": 2, "row": 1, "label": "Gofer", "sub": "파일 대리", "kind": "query" },
+    { "id": "hostk2", "col": 3, "row": 1, "label": "호스트 커널", "sub": "seccomp로 좁힌 표면", "kind": "store" },
+
+    { "id": "app3", "col": 0, "row": 2, "label": "앱", "sub": "Kata 컨테이너", "kind": "proc" },
+    { "id": "guestk", "col": 1, "row": 2, "label": "게스트 커널", "sub": "kata-agent 동거", "kind": "store" },
+    { "id": "vmm", "col": 2, "row": 2, "label": "VMM", "sub": "QEMU · CLH · FC", "kind": "src" },
+    { "id": "hostk3", "col": 3, "row": 2, "label": "호스트 커널", "sub": "KVM", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "app1", "to": "hostk1", "label": "syscall" },
+
+    { "from": "app2", "to": "sentry", "label": "syscall" },
+    { "from": "sentry", "to": "gofer", "label": "파일 IO" },
+    { "from": "gofer", "to": "hostk2", "label": "파일 접근" },
+    { "from": "sentry", "to": "hostk2", "label": "제한콜", "dashed": true },
+
+    { "from": "app3", "to": "guestk", "label": "syscall" },
+    { "from": "guestk", "to": "vmm", "label": "VM exit" },
+    { "from": "vmm", "to": "hostk3", "label": "KVM" }
+  ]
+}
