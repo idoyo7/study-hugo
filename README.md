@@ -1,7 +1,7 @@
 # study-hugo — Ops Insights
 
 Kubernetes·관측성·데이터스토어를 직접 운영하며 남은 판단 근거를 도메인 단위로
-정리한 지식베이스. 194개 문서, 20개 도메인.
+정리한 지식베이스. 199개 문서, 20개 도메인.
 
 - 운영 사이트: https://docs.makgol.com
 - 테마: [hextra](https://github.com/imfing/hextra) v0.12.3 (`themes/hextra/` 벤더링)

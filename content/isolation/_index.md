@@ -14,11 +14,18 @@ runc는 namespace와 cgroup으로 컨테이너를 나눕니다. 그 아래에는
 
 [런타임]({{< relref "../runtime/_index.md" >}}) 챕터가 "일이 어디로 옮겨가나"를 묻는다면, 이 챕터는 "경계가 어디에 생기고 그 경계의 요금은 누가 내나"를 묻습니다. 격리를 한 겹 추가하는 결정은 계산을 없애지 않습니다. 계산이 지나가는 경로를 늘리고, 그 경로마다 값을 매깁니다.
 
+여섯 편으로 나눴고 어디서부터 읽어도 되지만, 숫자를 먼저 보고 싶으면 05, 결론만 보고 싶으면 06부터 보셔도 됩니다.
+
 ## 문서 지도
 
 | 문서 | 다루는 것 |
 |---|---|
-| [01 Kata · KubeVirt · gVisor]({{< relref "01-kata-kubevirt/index.md" >}}) | 세 물건이 경계를 긋는 위치, 위협 모델과 2026년 CVE 현황, Kata의 VM 크기 산정과 제약, 성능 실측 11개 축, KubeVirt의 파드-VM 구조와 운영 제약, 시나리오별 판단 |
+| [01 경계와 위협 모델]({{< relref "01-boundaries/index.md" >}}) | 세 물건이 경계를 긋는 위치, Kata의 위협 모델과 2026년 CVE 현황 |
+| [02 Kata Containers]({{< relref "02-kata/index.md" >}}) | Kata의 구조, VMM 선택, VM 크기 산정, 운영 비용 체크리스트 |
+| [03 gVisor]({{< relref "03-gvisor/index.md" >}}) | Sentry·Gofer 구조, 호환성, 보안 실적, GKE Sandbox |
+| [04 KubeVirt]({{< relref "04-kubevirt/index.md" >}}) | 파드-VM 구조, 스토리지·네트워킹 계약, 오버헤드, 채택 현황 |
+| [05 성능 실측]({{< relref "05-performance/index.md" >}}) | CPU·메모리·시스템콜·IO·네트워크·기동·밀도 11개 축의 실측 |
+| [06 판단]({{< relref "06-decision/index.md" >}}) | Kata vs KubeVirt 겹치는 자리, 시나리오별 선택, 확인하지 못한 것 |
 
 ## 공통 축
 
