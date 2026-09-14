@@ -1,5 +1,5 @@
 {
-  "caption": "죽은 노드에서 파드가 무한 Terminating에 빠지는 과정 — 개입 없으면 파드 교체가 사실상 무한 지연됩니다.",
+  "caption": "비정상 종료 노드에서 파드와 볼륨 정리가 지연되는 경우. 종료가 확인된 노드에 out-of-service taint를 적용하는 복구 경로이며, 시간은 환경과 CSI 상태에 따라 달라집니다.",
   "participants": [
     {
       "id": "N",
@@ -52,7 +52,7 @@
       ],
       "lines": [
         "StatefulSet+RWO: 파드는 Terminating에",
-        "무한정 잔류(kubelet 확인 불가)"
+        "종료 확인 불가 시 장시간 잔류 가능"
       ]
     },
     {
@@ -69,7 +69,7 @@
         "CP"
       ],
       "lines": [
-        "개입 없으면 파드 Pending 대체 안 됨 → 사실상 무한"
+        "파드 정리·볼륨 해제가 끝나야 대체 가능"
       ]
     },
     {
@@ -77,7 +77,7 @@
         "CP",
         "New"
       ],
-      "label": "out-of-service taint 개입 시 재스케줄 → 같은 AZ 볼륨 reattach",
+      "label": "노드 종료 확인 → out-of-service taint → 같은 AZ 재부착",
       "dashed": true
     }
   ]

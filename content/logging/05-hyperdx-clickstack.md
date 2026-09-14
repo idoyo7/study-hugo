@@ -5,39 +5,38 @@ lastmod: 2026-08-24
 weight: 5
 ---
 
-# HyperDX / ClickStack — ClickHouse 위의 통합 프론트
+# HyperDX / ClickStack으로 로그와 RUM을 함께 보기
 
-{{< callout type="info" >}}
-- 로그·트레이스 검색이 강합니다 — ClickHouse 컬럼 압축(Elasticsearch 대비 12~19x)과 native JSON의 이점을 그대로 받습니다.
-- replay → trace → log 상관이 시그니처 강점입니다 — 웹 프론트엔드 한정으로는 Datadog RUM을 현실성 있게 대체합니다.
-- 네이티브 모바일 RUM이 없습니다(결정적). iOS/Android/Flutter 퍼스트파티 SDK가 없고 유일한 RN 포크도 세션 리플레이는 지원하지 않습니다.
-- 메트릭이 가장 약합니다 — OTel 메트릭을 저장은 하지만 PromQL이 없습니다(SQL/Lucene only).
-- 우리 케이스: 로그는 더 가벼운 VictoriaLogs로 가고 ClickStack은 채택하지 않습니다 — CH+MongoDB 운영 표면이 이번 로그 규모에는 과합니다.
-{{< /callout >}}
+HyperDX는 로그를 찾다가 같은 요청의 트레이스와 브라우저 세션 리플레이까지 이어 보는 데 유용합니다. ClickHouse를 저장소로 쓰고, HyperDX UI·API, 전용 OTel Collector, 앱 설정용 MongoDB를 함께 운영합니다. ClickHouse Inc.가 2025-03에 HyperDX를 인수한 뒤 2025-05에 이 조합을 ClickStack으로 출시했습니다.
 
-ClickHouse Inc.가 HyperDX를 인수(2025-03)해 ClickStack으로 출시(2025-05)했습니다. ClickHouse를 백엔드로 쓰는 OpenTelemetry-native 관측성 스택입니다. HyperDX UI/API + 전용 OTel Collector + ClickHouse + 상태 저장용 MongoDB를 조합해 로그·트레이스·세션 리플레이를 한 화면에서 다룹니다. 메인 repo는 MIT 라이선스라 Grafana AGPL·SigNoz보다 관대합니다. ClickHouse Inc.가 정식 스튜어드를 맡아 월간 릴리스를 낼 만큼 개발도 빠릅니다(~9.7k stars, 활발한 릴리스 라인).
+로그 저장소만 고르는 경우와 웹 RUM까지 옮기는 경우에는 도입 비용을 다르게 봐야 합니다. 이 글은 로깅 관점의 평가이며, 플랫폼 구성과 접근통제는 [HyperDX 심층 분석]({{< relref "../rum/01-hyperdx-deep-dive.md" >}})에서 자세히 다룹니다.
 
-## 강점
+## 세션에서 트레이스와 로그로 {#강점}
 
-- 로그·트레이스 검색이 강합니다. 밑단이 ClickHouse라 컬럼 압축(Elasticsearch 대비 12~19x `Ⓥ`)과 native JSON type("10x faster searches, 100x less data scanned" `Ⓥ`)의 이점을 그대로 받습니다. 고카디널리티에서 per-series 메모리 폭발이 없고 Lucene 스타일 검색과 풀 SQL을 함께 씁니다. `bloom_filter` 인덱스 개선(검색 ~5x `Ⓥ`)과 inverted text index(beta, bloom 대비 ~9x `Ⓥ`, ClickHouse v25.12+)로 로그 검색 경로가 계속 빨라집니다. OpenSearch를 걷어낼 때 가장 설득력 있는 대상이 로그입니다.
-- replay → trace → log 상관이 시그니처 강점입니다. `@hyperdx/browser`는 rrweb 세션 리플레이 + 에러 + Web Vitals + 네트워크 캡처(헤더·바디, 키워드 기반 민감정보 필터)를 함께 다룹니다. 리플레이의 네트워크 요청/에러를 클릭하면 백엔드 트레이스·로그·스팬·DB 쿼리로 바로 조인됩니다. 이 조인은 SigNoz를 포함한 OSS 경쟁자 대부분이 못 따라오고 실무자들은 웹 세션 리플레이를 "exceptional"로 부릅니다. 웹 프론트엔드 한정으로는 Datadog RUM을 현실성 있게 대체합니다.
-- 스키마와 수집 경로가 유연합니다. 스키마를 고정하지 않고 bring-your-own ClickHouse를 허용합니다 — HyperDX-only 모드로 기존 ClickHouse를 그대로 가리킬 수 있고 OTLP뿐 아니라 Vector, Kafka/S3 table engine, raw insert 등 여러 수집 경로를 받습니다. 이미 ClickHouse를 운영 중이거나 기존 파이프라인(예: fluent-bit/Vector)을 재사용하려는 조직에 잘 맞습니다.
-- OTel-native 트레이싱/APM: 트레이스 워터폴, Service Maps(beta, 2025-11), Event Deltas(root-cause 상관 지원). Datadog APM보다 어리지만(코드레벨 continuous profiler 없음) 탄탄하고 개선 속도가 빠릅니다.
-- 밑단이 성숙하고 라이선스가 관대하며 백킹도 있습니다. ClickHouse 자체는 페타바이트급에서 검증됐고 스키마 최적화가 "up to tens of TB/day" `Ⓥ`를 커버합니다. MIT 라이선스와 ClickHouse Inc. 스튜어드십은 PLG 스택의 abandonware 리스크를 실질적으로 낮춥니다. Datadog 대비 인프라 비용이 5~20x 저렴한 만큼 시장은 이 조합을 받아들일 만한 tradeoff로 봅니다 `≈`.
+`@hyperdx/browser`는 rrweb 기반 리플레이, 에러, Web Vitals, 네트워크 요청을 수집합니다. 세션의 요청이나 에러에서 백엔드 트레이스로 이동하고 관련 로그를 찾을 수 있습니다. 웹 화면에서 발생한 문제와 서버 요청을 따로 검색하던 작업을 연결할 수 있다는 점이 도입 이유가 됩니다.
 
-## 약점 · 한계
+검색은 Lucene 스타일 문법과 ClickHouse SQL을 함께 지원합니다. 기존 ClickHouse에 HyperDX Only로 연결할 수도 있어, 이미 운영 중인 저장소와 수집 파이프라인을 활용할 수 있습니다. 저장 효율과 쿼리 성능은 [ClickHouse 자체의 평가]({{< relref "04-clickhouse.md" >}})를 참고하되, 벤더의 압축·검색 배수를 모든 schema에 적용하지는 않습니다.
 
-- 네이티브 모바일 RUM이 없습니다(결정적). 세션 리플레이는 rrweb 기반 브라우저 전용이고 iOS(Swift)/Android(Kotlin)/Flutter 퍼스트파티 SDK가 없습니다. 유일한 모바일 SDK인 `@hyperdx/otel-react-native`는 트레이스·에러·네트워크만 수집하고 리플레이가 없습니다. Datadog RUM의 모바일 부분은 ClickStack만으로 내재화할 수 없습니다.
-- 메트릭이 가장 약합니다. OTel 메트릭을 저장은 하지만 PromQL이 없습니다(SQL/Lucene only, PromQL은 로드맵). exemplars 부재 등으로 메트릭→트레이스 상관도 얕습니다. VictoriaMetrics/PromQL 대비 regression입니다.
-- 알림·대시보드가 어립니다. 알림은 rule당 단일 임계값, anomaly detection 없음(로드맵). 대시보드는 템플릿 변수 없음, chart aggregation 옵션 제한, 프리셋 라이브러리가 작습니다(SigNoz 30+·Grafana 생태계 대비 소수 `≈`). curated 대시보드보다 ad-hoc 고카디널리티 탐색에 강합니다. (이 알림 서술은 2026 초 시점 스냅샷입니다 — 이후 `GROUP BY`별 발화·SQL 기반 이상탐지(2026-05), 알림 평가 이력, Terraform Provider(2026-09, Beta)가 추가됐습니다. 최신 성숙도는 [HyperDX / ClickStack 심층 분석]({{< relref "../rum/01-hyperdx-deep-dive.md" >}})의 기능 성숙도 매트릭스 참고.)
-- 운영 표면이 넓습니다. 상태 저장용 MongoDB가 별도 데이터스토어로 붙습니다(구버전 insecure default 이력). 스케일에서는 ClickHouse ops(Keeper 기반 replication, sharding, part merge, TTL, async insert 배치)를 직접 떠안습니다. 관리형 ClickStack은 아직 Beta입니다. 첫 기동 시 app/API URL·CORS 설정이 흔한 트립 해저드입니다. MongoDB는 관측 데이터가 아니라 메타데이터만 저장해 데이터량으로는 커지지 않지만 인증·백업은 별도로 챙겨야 합니다 — 상세는 [HyperDX의 MongoDB]({{< relref "../rum/07-hyperdx-mongodb.md" >}}) 참고.
-- 대규모 레퍼런스가 얇습니다. ClickHouse(DB) 채택 사례는 많지만(Netflix/eBay/Cloudflare 등) 패키지드 ClickStack 자체의 대규모 named 프로덕션 사례는 제품이 ~1년 되어 아직 적습니다.
+트레이스 워터폴, Service Maps, Event Deltas도 조사한 기능에 포함됩니다. 다만 ClickHouse의 대규모 운영 사례를 곧바로 ClickStack 전체의 운영 사례로 셀 수는 없습니다. UI·수집기·MongoDB까지 묶은 구성의 부하와 장애 대응은 별도로 검증해야 합니다.
 
-## 적합 / 부적합
+## 옮기기 전에 확인할 기능 {#약점--한계}
 
-- 적합: 로그 + 웹 세션 리플레이 + 트레이스를 한 UI로 묶고 싶고 ClickHouse를 오너십할 수 있는 팀. OpenSearch를 압축·S3 티어링으로 걷어내려는 로그 중심 워크로드. ClickHouse 저장소 자체의 상세는 [ClickHouse (self-hosted)]({{< relref "04-clickhouse.md" >}}) 참고.
-- 부적합: 네이티브 모바일 RUM이 핵심이거나 PromQL·성숙한 알림/대시보드가 우선인 메트릭 헤비 조직. ClickHouse 오너를 정하지 못하는 팀.
+브라우저 리플레이 지원만으로 Datadog RUM 전체를 대체할 수는 없습니다. 조사한 표준 SDK에서 네이티브 iOS·Android·Flutter 리플레이는 지원되지 않았고, React Native SDK도 트레이스·에러·네트워크 수집 범위였습니다. 기존 녹화 포맷과 세션·trace ID 연결도 이관 시험 대상입니다. [Datadog RUM 커버리지]({{< relref "../rum/02-datadog-rum-coverage.md" >}})에서 비교합니다.
 
-## 우리 케이스에서는
+2026-09에 재검토한 결과, PromQL을 단순히 미지원이라고 쓰는 것은 맞지 않습니다. TimeSeries Engine 질의와 외부 Prometheus 호환 저장소 프록시가 실험적으로 제공됩니다. 기존 `otel_metrics_*` 테이블에 자동 적용되는 기능은 아니므로 메트릭 화면과 알림을 옮기려면 저장소·schema·쿼리를 대조해야 합니다.
 
-로그는 더 가벼운 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})로 가고 ClickStack은 채택하지 않습니다 — CH+MongoDB라는 운영 표면을 새로 더하는 비용이 이번 로그 규모에는 과합니다. 통합 프론트를 욕심내기 전에 Datadog RUM usage를 소스별(웹/모바일)로 분해해 모바일 비중부터 확인해야 합니다. 모바일이 과반이면 웹 전용 HyperDX는 청구서를 별로 못 줄이면서 관리 스택만 늘립니다. RUM 내재화 자체는 [RUM 내재화]({{< relref "../rum/_index.md" >}}) 도메인에서 다룹니다. HyperDX 플랫폼 심층 분석(아키텍처·배포 모드·접근통제 갭)과 Datadog RUM 커버리지 매트릭스는 [HyperDX / ClickStack 심층 분석]({{< relref "../rum/01-hyperdx-deep-dive.md" >}}) · [Datadog RUM 커버리지]({{< relref "../rum/02-datadog-rum-coverage.md" >}}) 참조합니다.
+알림에는 그룹별 발화, 평가 이력, SQL로 작성하는 통계 조건이 있고, Terraform으로 ClickStack 설정을 관리하는 Beta 경로도 있습니다. 이 기능들이 Datadog 모니터와 Alertmanager의 억제·유지보수 정책을 그대로 옮겨 주지는 않습니다. 세부 변경점과 공식 출처는 [2026-09 기능 재검토]({{< relref "../rum/08-datadog-coverage-2026-09.md" >}})에 정리했습니다.
+
+## 추가되는 운영 작업
+
+ClickHouse에서는 복제·merge·TTL·수집 배치를, MongoDB에서는 인증·백업·가용성을 관리해야 합니다. MongoDB에는 대시보드·사용자·알림 설정이 들어갑니다. 로그 보관량과 같은 비율로 커지는 저장소는 아니지만, 잃으면 앱 설정을 복원해야 합니다. [MongoDB 운영]({{< relref "../rum/07-hyperdx-mongodb.md" >}})에서 배포 경로별 기본값을 확인할 수 있습니다.
+
+HyperDX UI·API는 MIT 라이선스입니다. 그러나 오픈소스 라이선스와 제품 기능 범위는 별개입니다. OSS의 SSO·RBAC 제약 때문에 여러 팀을 한 인스턴스에 넣을 수 있는지 먼저 판단해야 합니다. 초기 설치에서는 app/API URL, CORS, MongoDB 연결도 확인합니다.
+
+<span id="우리-케이스에서는"></span>
+
+## 로그만 옮길 때의 판단 {#적합--부적합}
+
+우리 로깅 조사에서는 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})를 우선 선택했습니다. 당시 로그 규모에서 ClickHouse와 MongoDB를 새로 운영할 만큼 웹 RUM 통합의 필요가 확인되지 않았기 때문입니다.
+
+RUM까지 옮기려면 웹·모바일 사용량과 비용부터 분리해 봐야 합니다. 웹 리플레이가 필요한 비중이 크고 ClickHouse 운영을 맡을 수 있다면 ClickStack을 다시 검토할 수 있습니다. 실제 배포에는 자체 RUM 컨버터도 포함되므로 표준 SDK 지원표와 우리 수집 경로의 동작을 따로 확인해야 합니다. 그 배경은 [RUM 내재화]({{< relref "../rum/_index.md" >}})와 [우리 배포 형상]({{< relref "../hyperdx-operating/01-our-deployment.md" >}})에 있습니다.

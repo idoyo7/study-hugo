@@ -1,5 +1,5 @@
 {
-  "caption": "우리 케이스 K8s 배치 — 전체는 Kubernetes(EKS, multi-AZ) 클러스터 내부: Altinity operator 영역(범용분석 겸용 CH) / HyperDX-only(clickhouse.enabled=false) / 메타스토어(택1). S3만 클러스터 외부 cold tier. CHI↔CHK는 한 축의 양방향 조정이다(CH가 Keeper에 복제 메타를 등록 ↔ Keeper가 복제·머지·DDL을 지시). Collector↔api도 OpAMP 4320 양방향(Collector가 접속, api가 설정 배포).",
+  "caption": "prod 설계 예시이며 stage 실행 상태와 다를 수 있습니다. K8s 배치 — 전체는 Kubernetes(EKS, multi-AZ) 클러스터 내부: Altinity operator 영역(범용분석 겸용 CH) / HyperDX-only(clickhouse.enabled=false) / 메타스토어(택1). S3만 클러스터 외부 cold tier. CHI↔CHK는 한 축의 양방향 조정이다(CH가 Keeper에 복제 메타를 등록 ↔ Keeper가 복제·머지·DDL을 지시). Collector↔api도 OpAMP 4320 양방향(Collector가 접속, api가 설정 배포).",
   "groups": [
     {
       "id": "altinity",

@@ -6,13 +6,11 @@ lastmod: 2026-08-17
 weight: 10
 ---
 
-# 출처 — HyperDX 내재화(실전 배포) 조사 자료
+# HyperDX 참고 자료
 
-이 페이지는 [개요]({{< relref "_index.md" >}}), [스택 토폴로지·MongoDB 최소 규모]({{< relref "01-stack-topology.md" >}}), [hot 스토리지(EBS)]({{< relref "02-hot-storage-ebs.md" >}}), [S3 cold 티어링]({{< relref "03-s3-cold-tiering.md" >}}), [operator 토폴로지·다운타임]({{< relref "04-operator-topology-downtime.md" >}}), [Keeper]({{< relref "05-keeper.md" >}}), [복제·멀티마스터·failover]({{< relref "06-replication-failover.md" >}}), [용량 산정]({{< relref "07-capacity-planning.md" >}}), [블록 온리 튜닝]({{< relref "08-block-only-tuning.md" >}}), [버전 호환·업그레이드]({{< relref "09-version-upgrade-compat.md" >}}) 열 페이지가 인용한 1차 조사(R1~R9)의 `## 출처` 섹션을 모은 목록입니다. 중복을 걷어내고 주제별로 분류했습니다. 조사 기준일은 **2026-07-16**입니다.
+[HyperDX 내재화 시리즈]({{< relref "_index.md" >}})의 배포·스토리지·복제·용량 산정에 사용한 자료입니다. 공식 제품 문서, 설정 파일과 소스, 운영 사례를 나누어 찾을 수 있도록 모았습니다.
 
-각 조사가 다룬 범위는 ClickStack 4컴포넌트 배포 토폴로지와 MongoDB 최소 규모 운영, EBS(gp3/io2/io2 Block Express) hot 스토리지 선택, S3 cold 티어링 worked example, Altinity operator 기반 replication·sharding·다운타임 시나리오, ClickHouse Keeper 상세와 "큐가 아니다" 정정, 0.7TB/월 RUM 워크로드의 용량 산정입니다.
-
-개별 URL의 등급(`✓`/`≈`/`?`/`Ⓥ`/`Ⓑ`)은 각 페이지 본문의 인라인 태그를 따릅니다 — 이 목록은 출처 목록일 뿐이고 등급을 재판정하지 않습니다. 기존 study-hugo 코퍼스(`content/clickhouse/*`, `content/rum/*`)와 선행 research(`research/hyperdx-clickhouse/*`) 참조는 각 페이지에서 relref로 인라인 연결하며 외부 URL이 아니므로 아래 목록에는 싣지 않았습니다.
+초기 조사 기준일은 2026-07-16이며, 이후 보강한 자료는 해당 절에 시점을 적었습니다. 본문의 `✓`·`≈`·`?`·`Ⓥ`·`Ⓑ`는 각 주장을 확인한 범위를 나타냅니다. 출처 목록에 있다는 사실만으로 문서의 모든 예시나 수치가 검증된 것은 아닙니다.
 
 ## ClickStack · HyperDX 공식
 
@@ -191,12 +189,12 @@ third-party 기술 블로그와 실사례, RUM 리플레이 벤더 문서, EBS �
 
 ## 추가 조사 — S3 백엔드·티어링 비용 경로 (2026-08)
 
-self-host에서 S3를 어디까지 쓸 수 있는지 다시 조사한 결과 가운데 이 챕터로 들어온 출처입니다. 티어링의 요청 단가, HyperDX가 붙는 CH 계정 권한, Express One Zone 경계가 여기에 속합니다.
+직접 운영하는 S3 티어링의 요청 비용, HyperDX용 ClickHouse 계정 권한, Express One Zone 지원 범위를 확인한 자료입니다.
 
 - ClickStack Going to production(HyperDX용 CH 계정은 readonly + `max_rows_to_read`(최소 100만)·`read_overflow_mode`·`cancel_http_readonly_queries_on_client_close`·`wait_end_of_query` 변경 권한 필요, 기본 계정 대신 전용 사용자 권고) — [clickhouse.com/docs/.../clickstack/production](https://clickhouse.com/docs/use-cases/observability/clickstack/production)
 - AWS Price List Bulk API — ap-northeast-2 S3 오퍼 index.json(서울 S3 Standard GB 단가·PUT/GET/DELETE 요청 단가를 직접 조회한 경로. gp3 GB 단가는 같은 API의 EC2 오퍼를 같은 방식으로 조회한다) — [pricing.us-east-1.amazonaws.com/.../AmazonS3/current/ap-northeast-2/index.json](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/ap-northeast-2/index.json)
 - GitHub issue — S3 Express One Zone 디렉터리 버킷 엔드포인트 `IncompleteBody` #72078 — [github.com/ClickHouse/ClickHouse/issues/72078](https://github.com/ClickHouse/ClickHouse/issues/72078)
 
-아래 넷은 본문이 인용하지만 1차 URL이 원 조사 산출물에 남아 있지 않아 이 목록에 아직 싣지 못했습니다 — S3 Gateway VPC Endpoint의 무료 정책과 NAT Gateway 데이터 처리요금(서울), S3 Express One Zone 제공 리전 목록, wide part 파일 수 증폭 실측 예시(컬럼 109개 → part당 227 파일, ClickHouse 공식 KB), Packed storage `min_level_for_full_part_storage`와 `system.parts.part_storage_type` 문서. URL을 확보하는 대로 이 절에 채웁니다.
+다음 항목은 원 조사 기록에 1차 URL이 남아 있지 않습니다: S3 Gateway VPC Endpoint의 무료 정책과 NAT Gateway 데이터 처리요금(서울), S3 Express One Zone 제공 리전 목록, wide part 파일 수 증폭 실측 예시(컬럼 109개 → part당 227 파일, ClickHouse 공식 KB), Packed storage `min_level_for_full_part_storage`와 `system.parts.part_storage_type` 문서. 해당 주장을 사용할 때는 원문을 추가 확인해야 합니다.
 
 시점 기준 2026-08.

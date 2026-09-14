@@ -6,94 +6,61 @@ weight: 1
 aliases: ["/hyperdx/11-our-rum-ingest/", "/hyperdx-operating/01-architecture/", "/hyperdx/operating/01-architecture/"]
 ---
 
-# 우리 배포 형상 — 자체 RUM 컨버터·6 실행 단위·stage/prod 격차
+# 우리 배포 형상
 
-{{< callout type="info" >}}
-우리가 실제로 돌리는 것은 표준 조립에 컴포넌트 하나가 더 붙은 형상입니다.
+우리 RUM 데이터는 자체 컨버터를 거쳐 ClickHouse에 들어갑니다. 브라우저 SDK와 Mobile RUM이 보내는 데이터를 받기 위해 Datadog Agent의 RUM 전송 방식을 참고해 구현했습니다. 표준 로그·트레이스·메트릭은 별도의 OTel Collector로 수집합니다. 두 수집기는 서로 호출하지 않고 ClickHouse에서 데이터를 합칩니다 `✓`.
 
-- 구성: 자체 개발 RUM 컨버터 + ClickStack(HyperDX Only) + Altinity operator(ClickHouse·Keeper) `✓`.
-- 인제스트 경로는 둘이고 ClickHouse에서 합류합니다 — ① RUM(브라우저 SDK·Mobile RUM)은 자체 컨버터가 ClickHouse에 직접 적재하고(Datadog Agent의 RUM 전송 방식을 참조해 구현), ② 표준 텔레메트리는 OTel Collector가 적재합니다. 컨버터와 Collector는 서로 직접 호출하지 않습니다 `✓`.
-- 실행 단위는 표준 조립대로 5개, 우리 실제로는 6개입니다 — 차이는 자체 RUM 컨버터 하나입니다(§2) `✓`.
-- HA 설계 목표: ClickHouse RF2(2 AZ) + `insert_quorum`, Keeper 3노드 정족수(client 2181), MongoDB `members:3`. 이 수치는 prod 목표입니다 `≈`. 현재 실제 배포는 stage 축소판입니다 `✓`.
-- 지금 stage는 EBS gp3 단일 티어라 사실상 블록 온리 형상입니다 — 그 형상 자체의 손익·튜닝은 [블록 온리 튜닝]({{< relref "../../hyperdx/08-block-only-tuning.md" >}})이 기준 문서입니다 `✓`.
-{{< /callout >}}
+HyperDX는 이 데이터를 조회하는 UI와 API를 제공하며, 웹 데이터 경로 일부를 커스터마이즈했습니다. ClickStack 차트의 `clickhouse.enabled:false` 설정으로 내장 ClickHouse를 끄고 Altinity operator의 CHI·CHK에 연결합니다. operator 선택 배경과 표준 포트는 [스택 토폴로지]({{< relref "../../hyperdx/01-stack-topology.md" >}})에 있습니다.
 
-{{< callout type="warning" >}}
-stage 실제 vs prod 목표 — 2026-08 배포 기록에서 hdx는 stage 전용입니다(`values/stage/chain/hdx.yaml`만 있고 prod values 없음) `✓`. 아래 규모·HA는 대부분 prod 목표 설계이며 기록 당시 실행 구성은 그 축소판입니다. 2026-09 문서 수정은 현재 클러스터의 재실측을 뜻하지 않습니다.
-
-| 항목 | prod 목표 | stage 실제 |
-| --- | --- | --- |
-| hdx replicas | 2+ `≈` | **1** `✓` |
-| ClickHouse replica | RF2 (2) `≈` | **Phase 1은 1** (values는 RF2) `✓` |
-| MongoDB | `members:3` `≈` | **`members:1`** `✓` |
-| OTel Collector 큐 | `file_storage` 퍼시스턴트 큐 `≈` | **인메모리 큐만** (미구성 → 재시작 시 in-flight 유실 리스크) `✓` |
-| 스토리지 | hot gp3 + cold S3 (검토) `≈` | **EBS gp3 단일 티어** (S3 cold 미구성 = 블록 온리) `✓` |
-
-다이어그램은 values/설계(RF2·Keeper 3·members:3) 기준으로 그렸고 위 항목만 stage에서 다릅니다.
-{{< /callout >}}
-
-기준 문서는 표준이 어떻게 생겼고 왜 그렇게 정했나를 다룹니다. 이 장은 우리 클러스터가 지금 어떤 상태인가만 다룹니다. 표준 4컴포넌트의 배치·포트·의존은 [스택 토폴로지]({{< relref "../../hyperdx/01-stack-topology.md" >}}), 컴포넌트별 가용성 종합·blast radius·무손실 2트랙은 [operator 토폴로지·다운타임]({{< relref "../../hyperdx/04-operator-topology-downtime.md" >}}), Keeper의 역할과 유실 지점은 [Keeper]({{< relref "../../hyperdx/05-keeper.md" >}}), 승격 없는 복제와 EBS reattach는 [복제·failover]({{< relref "../../hyperdx/06-replication-failover.md" >}})가 소유합니다. 여기서 반복하지 않습니다.
-
-표준과 다른 점은 하나입니다. RUM 데이터(브라우저 SDK·Mobile RUM)를 받으려고 따로 만든 자체 RUM 컨버터입니다 `✓` — Datadog Agent가 RUM을 보내는 방식을 참조해 구현했습니다. OTel Collector를 거치지 않고 ClickHouse에 직접 적재합니다. HyperDX 웹 데이터 경로도 일부 커스터마이즈했습니다 `✓`.
-
-## 1. 수집·저장 토폴로지 — 두 경로가 ClickHouse에서 합류한다
+## 1. 두 수집 경로 {#1-수집저장-토폴로지--두-경로가-clickhouse에서-합류한다}
 
 {{< flow src="_flow/수집-저장-토폴로지.json" />}}
 
-## 2. 실행 단위 — 표준 조립 5개, 우리 실제 6개
+RUM 컨버터가 멈추면 RUM 신규 수집을, Collector가 멈추면 표준 텔레메트리 수집을 조사합니다. ClickHouse나 공통 인프라의 장애가 없다면 한 수집기의 장애가 다른 수집기를 직접 멈추지는 않습니다. 다만 RUM 컨버터의 재시도·버퍼 동작은 Collector 설정만 보고 판단할 수 없습니다.
 
-"4컴포넌트"는 논리 구분이고 실제 배치(실행) 단위는 그보다 많습니다. 그런데 세는 수가 두 개입니다 — 표준 조립대로 세면 5개, 우리가 실제로 돌리는 것은 6개입니다. 세는 축이 다를 뿐이라 두 숫자는 서로 충돌하지 않습니다.
+## 2. 배포한 컴포넌트 {#2-실행-단위--표준-조립-5개-우리-실제-6개}
 
-| 축 | 실행 단위 | 목록 |
-|---|---|---|
-| **표준 조립**(HyperDX Only 경로) | **5** `≈` | hdx(app·api·OpAMP 한 Deployment) · OTel Collector · ClickHouse(CHI) · Keeper(CHK) · MongoDB |
-| **우리 실제** | **6** `✓` | 위 5개 + **자체 RUM 컨버터** |
-
-차이는 자체 RUM 컨버터 하나입니다 `Σ`. 표준 ClickStack에는 없는 우리 추가 컴포넌트라서 "표준이 5개"라는 서술과 "우리가 6개"라는 서술을 같은 자리에 두면 어느 쪽이 틀린 것처럼 보입니다 — 조립 문서(기준 문서)는 5를, 현황 문서(이 장)는 6을 씁니다.
-
-소유권 경계도 같은 그림에서 나뉩니다. 차트가 관리하는 영역(`clickhouse:false`로 CH를 뺀 뒤 남는 것)과 Altinity operator가 관리하는 영역이 다릅니다.
+HyperDX Only 구성의 hdx, OTel Collector, ClickHouse, Keeper, MongoDB에 자체 RUM 컨버터를 더해 여섯 단위를 운영합니다. hdx는 app·api·OpAMP 기능을 한 Deployment에서 띄우므로 replica를 늘리면 함께 확장됩니다.
 
 {{< flow src="_flow/3-데이터-흐름-rum-인제스트.json" />}}
 
-배치 형태와 상태 보유는 컴포넌트마다 한 줄씩 적었습니다. 표준 리슨 포트·의존 방향의 정본은 [스택 토폴로지]({{< relref "../../hyperdx/01-stack-topology.md" >}}) §2 표입니다. 여기서는 그 기본값과 어긋나는 우리 값만 짚습니다(Altinity CHK의 클라이언트 포트 등).
+| 실행 단위 | 배포·관리 | 저장하는 상태 |
+|---|---|---|
+| hdx(app·api·OpAMP) | ClickStack 차트의 Deployment | 텔레메트리는 ClickHouse, 앱 설정은 MongoDB에 저장 `✓` |
+| 자체 RUM 컨버터 | 자체 Deployment | 무상태 애플리케이션. RUM을 ClickHouse에 직접 적재 `✓` |
+| OTel Collector | ClickStack 차트의 Deployment | stage는 인메모리 큐. prod에서는 gp3 기반 영속 큐 검토 `✓/≈` |
+| ClickHouse(CHI) | Altinity operator의 StatefulSet | 텔레메트리. stage는 gp3, prod는 S3 cold 추가 검토 `✓/≈` |
+| Keeper(CHK) | Altinity operator의 StatefulSet | gp3에 복제 조정용 메타데이터 저장 `✓` |
+| MongoDB | MCK ReplicaSet 또는 Atlas | 사용자·대시보드·알림·소스 설정. gp3 10Gi는 설계값 `≈` |
 
-| 실행 단위 | 배포 형태 | 관리 주체 | 스토리지 | 상태 |
-|---|---|---|---|---|
-| hdx(app·api·OpAMP) | Deployment(단일) | clickstack 차트 | 없음 | 무상태 — 한 파드에서 `concurrently`로 함께 기동 `✓` |
-| RUM 컨버터 | Deployment | 우리 자체 배포 | 없음 | 무상태(표준 ClickStack엔 없는 단위) `✓` |
-| OTel Collector | Deployment(게이트웨이) | clickstack 차트 | 큐만 소량(gp3) `≈` | 준무상태 — stage는 큐가 인메모리라 사실상 무상태 `✓` |
-| ClickHouse(CHI) | StatefulSet | Altinity operator | EBS gp3(hot) + S3(cold, prod 목표) `≈` | 스테이트풀 `✓` |
-| Keeper(CHK) | StatefulSet | Altinity operator | gp3(메타·소량) `✓` | 스테이트풀 `✓` |
-| MongoDB | ReplicaSet | MCK 또는 Atlas | gp3 10Gi `≈` | 스테이트풀(소량) `✓` |
+ClickHouse의 `default` DB에 표준 텔레메트리 테이블과 `hyperdx_sessions`를 둡니다. 쓰기는 `otelcollector` 계정(rw), 조회는 `app` 계정(ro)으로 분리했습니다 `✓`. 읽기 계정에도 변경을 허용해야 하는 쿼리 설정이 있으므로 [스택 토폴로지의 계정 설정]({{< relref "../../hyperdx/01-stack-topology.md" >}})을 함께 적용해야 합니다.
 
-- RUM 컨버터(자체 개발) — 브라우저 SDK와 Mobile RUM이 보내는 RUM 데이터를 받아 ClickHouse에 직접 적재합니다 `✓`. Datadog Agent가 RUM 데이터를 전송하는 방식을 참조해 구현했습니다. OTel Collector를 거치지 않는 별도 인제스트 경로입니다. 표준 ClickStack엔 없는 우리 추가 컴포넌트입니다.
-- OTel Collector — 표준 OTLP 텔레메트리(로그·트레이스·메트릭)를 받아 ClickHouse로 export하는 인제스트 게이트웨이 `✓`. RUM 경로(컨버터)와 독립이며 서로 직접 호출하지 않습니다. 큐는 현재 stage에서 인메모리만 씁니다 `✓` — `file_storage` 퍼시스턴트 큐는 prod 목표입니다 `≈`. 지금처럼 미구성 상태면 재시작 때 in-flight가 유실될 수 있습니다.
-- HyperDX (app·api·OpAMP) — 단일 Deployment/파드에서 조회 UI(app)·백엔드 api(쿼리 오케스트레이션·알럿 평가)·OpAMP 서버를 `concurrently`로 함께 기동합니다 `✓`. 2 프로세스지만 배포·스케일 노브는 하나입니다(replicas 하나로 함께 확장). 무상태(메타=MongoDB, 텔레메트리=ClickHouse). 웹 데이터 경로는 일부 커스터마이즈했습니다 `✓`.
-- ClickHouse (Altinity CHI) — 두 경로가 적재하는 텔레메트리 저장소(`otel_logs`/`traces`/`otel_metrics_*` + `hyperdx_sessions`, DB `default`) `✓`. 우리는 쓰기(`otelcollector`, rw)·읽기(`app`, ro) 유저를 분리합니다 `✓` — 읽기 계정이 readonly로 충분한 이유와 그럼에도 변경 권한이 필요한 4개 설정은 [스택 토폴로지]({{< relref "../../hyperdx/01-stack-topology.md" >}}) §2가 소유합니다. 1 shard × RF2 설계(values 기준 replica 2; stage Phase 1은 1) `✓`.
-- ClickHouse Keeper (Altinity CHK) — replica 복제 조정. 이벤트 데이터는 보관하지 않고 쓰기 정족수만 좌우합니다 `✓`. 클라이언트 포트는 2181입니다(Altinity CHK 관례; 독립형 Keeper 기본값 9181이 아닙니다) `✓`. raft는 operator 기본 9444입니다 `✓`.
-- MongoDB — 대시보드·알럿·유저·소스 메타데이터. 인제스트 경로 밖(UI 전용) `✓`. `members:3`(prod) `≈` / stage는 `members:1` `✓`.
+Keeper는 이벤트 본문을 보관하지 않습니다. 우리 Altinity CHK 구성의 클라이언트 포트는 2181, Raft 포트는 9444입니다 `✓`. 독립형 Keeper 기본 클라이언트 포트인 9181과 혼동하지 않도록 연결 설정을 확인합니다. [Keeper의 역할]({{< relref "../../hyperdx/05-keeper.md" >}})과 [복제 과정]({{< relref "../../hyperdx/06-replication-failover.md" >}})에서 동작을 설명합니다.
 
-`clickhouse.enabled:false`(HyperDX Only)로 HyperDX 차트는 자체 ClickHouse를 띄우지 않고 Altinity operator가 관리하는 CHI/CHK 클러스터에 연결합니다 `✓`. 이 분기를 왜 택했는지(공식 operator 2종 공존 회피·범용분석 CH와 일원화)는 [스택 토폴로지]({{< relref "../../hyperdx/01-stack-topology.md" >}}) §1이 기준 문서입니다. 그 분기 위에서 사건이 났을 때 무엇을 어떤 순서로 하는지는 [운영 런북]({{< relref "02-runbook.md" >}})이 담당합니다.
+<span id="우리-케이스에서는"></span>
 
-## 3. 컴포넌트별 HA — prod 목표와 stage 실제
+## 3. stage 구성과 prod 목표 {#3-컴포넌트별-ha--prod-목표와-stage-실제}
 
-| 컴포넌트 | 배포 종류 | HA 설계(prod 목표) | stage 실제 | 다운 시 영향 |
-| --- | --- | --- | --- | --- |
-| hdx (app·api·OpAMP) | **단일 Deployment** | 무상태 replica 2+ 수평 확장 `≈` | replicas **1** `✓` | UI·쿼리만 — 적재 경로와 무관 `Σ` |
-| RUM 컨버터(자체) | Deployment | 무상태면 replica 수평 확장 `≈` | 구성 확인 필요 `?` | RUM 신규 수집만 정지 (텔레메트리·조회 무관) `Σ` |
-| OTel Collector | Deployment | replica ≥2 + `file_storage` 큐 `≈` | replica, **인메모리 큐** `✓` | ingest 정지, stage는 유실 위험 `Σ` |
-| ClickHouse | StatefulSet(CHI) | 1shard×RF2, 2AZ `≈` | **Phase 1 replica 1** `✓` | stage는 유일한 replica 상실 시 서비스 중단. RF2도 쓰기 지속 여부는 `insert_quorum` 설정에 따라 다름 |
-| ClickHouse Keeper | StatefulSet(CHK) | 3노드 정족수, 3AZ `≈` | 3노드 `✓` | **정족수 상실 시 CH 쓰기 정지** — SPOF `✓` |
-| MongoDB | ReplicaSet | `members:3` + `mongodump`→S3 `≈` | **`members:1`** `✓` | 설정·알럿·UI만 — 적재 데이터 무관 `✓` |
+아래 stage 열은 2026-08 배포 기록입니다. 당시 `values/stage/chain/hdx.yaml`만 있었고 prod values는 없었습니다. 다이어그램에 표시한 RF2·Keeper 3노드·MongoDB 3멤버는 values 또는 설계에 따른 구성이며, 실행 상태는 표와 차이가 있습니다. 2026-09의 문서 수정은 클러스터를 재실측했다는 뜻이 아닙니다.
 
-광범위 관측 정지는 두 지점뿐입니다 — ClickHouse 전체 다운(저장 원천)과 Keeper 정족수 상실(쓰기 경로) `Σ`. 나머지 컴포넌트 다운은 수집 일부·조회·설정에 국한됩니다. 특히 RUM 컨버터와 OTel Collector는 독립 경로라 한쪽이 죽어도 다른 경로 적재는 계속됩니다 `Σ`. 단 stage는 위 축소 구성(replica 1·인메모리 큐·단일 티어)이라 이 방어선이 아직 prod만큼 두껍지 않습니다 `Σ`. 컴포넌트별 blast radius의 근거와 무손실 2트랙의 종합은 [operator 토폴로지·다운타임]({{< relref "../../hyperdx/04-operator-topology-downtime.md" >}}) §1·§6이 소유합니다.
+| 항목 | stage 기록 | prod 목표 | 장애 시 확인할 점 |
+|---|---|---|---|
+| hdx | replica 1 `✓` | replica 2 이상 `≈` | UI·조회·알림 처리. 적재가 계속되는지 별도 확인 |
+| RUM 컨버터 | replica 구성 미확인 `?` | 수평 확장 `≈` | RUM 수신과 재시도 상태 |
+| OTel Collector | 인메모리 큐 `✓` | replica 2 이상·`file_storage` 큐 `≈` | 재시작 시 큐에 남은 데이터 유실 가능 |
+| ClickHouse | Phase 1 replica 1, values는 RF2 `✓` | 1 shard × RF2, 2 AZ `≈` | stage는 단일 replica 장애로 읽기·쓰기 중단 |
+| Keeper | 3노드 `✓` | 3노드, 3 AZ `≈` | 정족수 상실 시 복제 테이블 쓰기 중단 |
+| MongoDB | `members:1` `✓` | `members:3` 또는 Atlas, 정기 백업 `≈` | 사용자·설정·UI·알림 영향 |
+| ClickHouse 스토리지 | EBS gp3 단일 티어 `✓` | hot gp3 + cold S3 검토 `≈` | stage에는 S3로 이동할 경로가 없음 |
 
-## 4. 검토했으나 채택하지 않은 것 — S3Queue / s3Cluster
+RF2를 적용해도 쓰기 가용성은 `insert_quorum`에 따라 달라집니다. 두 replica의 확인을 모두 요구하면 한 대가 재연결 중인 동안 쓰기가 대기하거나 실패할 수 있습니다. 컴포넌트별 장애 영향과 수집·저장 단계의 유실 조건은 [토폴로지와 다운타임]({{< relref "../../hyperdx/04-operator-topology-downtime.md" >}})에서 다룹니다.
 
-S3를 인제스트 경로에 끼우는 방식(S3에 객체를 떨어뜨리고 ClickHouse가 그걸 빨아들이는 형태)은 우리 경로에 없습니다. 이유는 하나입니다 — 우리 인제스트는 OTel Collector와 자체 RUM 컨버터가 ClickHouse에 직접 쓰므로 S3를 경유할 지점 자체가 없습니다 `✓`. 굳이 끼우면 경로가 하나 늘어납니다. `S3Queue`는 23.11에 production ready로 발표됐지만 exactly-once를 보장하지 않는다고 공식 문서가 명시하므로 `✓` 중복 제거 책임을 우리가 새로 져야 합니다. 여기에 ClickHouse Cloud의 S3 ClickPipes 광고를 self-host의 `S3Queue`와 같은 것으로 읽으면 판단이 뒤집힙니다 `Σ`. 두 엔진의 기능 서술과 S3를 메인 스토리지로 쓰는 갈래의 판정은 [Iceberg·레이크하우스]({{< relref "../../clickhouse/09-iceberg-lakehouse.md" >}})가 소유합니다. 이 장은 "우리 경로에 왜 없나"만 기록합니다.
+stage 스토리지의 실제 튜닝은 [블록 스토리지만 쓰는 구성]({{< relref "../../hyperdx/08-block-only-tuning.md" >}})을 따릅니다. S3 티어링 예제를 stage에 이미 적용된 설정으로 취급하면 안 됩니다.
 
-## 우리 케이스에서는
+## 4. S3를 거치는 수집을 채택하지 않은 이유 {#4-검토했으나-채택하지-않은-것--s3queue--s3cluster}
 
-지금 돌아가는 것은 stage 축소판 하나입니다 — hdx replicas 1, ClickHouse Phase 1 replica 1, MongoDB `members:1`, Collector 인메모리 큐, EBS gp3 단일 티어. 표에 적힌 prod 목표(RF2 2AZ·Keeper 3노드·`members:3`·`file_storage` 큐·hot gp3+cold S3)는 아직 설계이고 그 격차가 곧 승급 작업 목록입니다 — 무엇을 어떤 신호에서 올리는지는 [의사결정 가이드]({{< relref "03-decision-guide.md" >}})가 소유합니다.
+현재 수집 경로에서는 컨버터와 Collector가 ClickHouse에 직접 씁니다. 중간에 S3를 두는 방식을 채택하지 않았으므로 `S3Queue`나 `s3Cluster`를 통한 수집도 없습니다.
 
-표준과 우리 사이의 차이는 자체 RUM 컨버터 한 컴포넌트이고 이 하나 때문에 실행 단위가 5에서 6이 됩니다. 이 컨버터가 OTel Collector와 독립 경로라는 점은 이득이자 부채입니다 — 한쪽이 죽어도 다른 경로 적재는 계속됩니다 `Σ`. 대신 표준 문서의 Collector 중심 서술이 우리 RUM 경로에는 그대로 적용되지 않습니다. stage 스토리지가 블록 온리 형상이라는 점도 같은 성격입니다 — S3 티어링을 전제한 기준 문서 대신 [블록 온리 튜닝]({{< relref "../../hyperdx/08-block-only-tuning.md" >}})을 읽어야 지금 형상의 손익이 맞습니다. 사건이 났을 때의 순서는 [운영 런북]({{< relref "02-runbook.md" >}})으로 넘깁니다. 시점 기준 2026-08.
+S3를 경유하면 객체를 만드는 단계와 읽어 들이는 단계를 추가로 운영해야 합니다. `S3Queue`는 23.11에서 production ready로 발표됐지만 exactly-once 보장을 전제로 쓸 수 없어 중복 처리도 검토해야 합니다 `✓`. ClickHouse Cloud의 S3 ClickPipes와 직접 운영하는 `S3Queue`는 기능과 운영 책임이 다릅니다. [Iceberg·레이크하우스]({{< relref "../../clickhouse/09-iceberg-lakehouse.md" >}})에서 각 수집·저장 방식을 비교합니다.
+
+prod 준비 작업은 위 표의 차이를 해소하는 일입니다. 실제 조치 순서는 [운영 런북]({{< relref "02-runbook.md" >}}), 변경 전에 확인할 조건과 실측 항목은 [의사결정 가이드]({{< relref "03-decision-guide.md" >}})에 정리했습니다.

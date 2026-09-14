@@ -7,45 +7,29 @@ weight: 9
 
 # Iceberg·레이크하우스 — 테이블 포맷이 뭐고, S3 메인의 답이 되는가
 
-{{< callout type="info" >}}
-Iceberg 는 "S3 를 싸게 쓰는 방법"이 아니라 "여러 엔진이 공유하는 개방 테이블을 만드는 방법"입니다. 그래서 우리의 "S3 를 메인 스토리지로" 문제의 답이 아닙니다 `Σ`.
+S3에 Parquet 파일을 쌓으면 여러 엔진이 읽을 수 있습니다. 하지만 파일을 추가하거나 교체하는 중에 어떤 파일 집합이 하나의 테이블인지 정하는 규칙이 필요합니다. Iceberg는 스냅샷, 스키마, 유효한 데이터 파일 목록을 메타데이터로 관리해 이 문제를 다룹니다.
 
-- 층을 나누면 간단합니다. 파일 포맷(Parquet) / 테이블 포맷(Iceberg) / 카탈로그(Glue·REST·Unity·Nessie) / 쿼리 엔진(ClickHouse·Spark·Trino)의 4층입니다. Iceberg 는 그중 2층입니다. 커밋의 원자성은 3층, 곧 카탈로그 포인터 교체가 만듭니다 `✓`.
-- ClickHouse 는 이미 읽고 쓰지만 버전 게이트 뒤에 있습니다. INSERT 는 25.7 `✓`, CREATE·ALTER DELETE·DROP TABLE 은 25.8 `✓`, ALTER UPDATE 는 25.9 `✓`, 매니페스트 compaction 은 26.7 에 들어왔고 아직 Experimental 입니다 `✓`.
-- 성능 격차는 층 차이에서 옵니다. ClickBench 콜드 43쿼리 합산은 MergeTree 28초 vs Parquet 56초, 개별 쿼리는 최대 약 5배 `Ⓑ`/`Ⓥ`. MergeTree 는 정렬키+sparse index 로 스킵하고 Iceberg 는 파일·row group 통계로 스킵하니 해상도가 다릅니다 `✓`.
-- 관측성 메인 스토리지로는 공식적으로도 비권장입니다. ClickHouse 저자들이 포인트 조회 지연·JSON 비효율·매니페스트 폭증·커밋 컨텐션·요청 증폭 다섯 가지를 직접 열거합니다. 현실 대안으로는 "핫=MergeTree, 콜드=오픈 테이블 포맷" 이중 쓰기를 듭니다 `✓`.
-- 우리는 지금 도입하지 않습니다. 재검토 트리거는 "보존 1년+ 이면서 콜드 데이터를 관측성 UI 가 아닌 다른 엔진이 읽어야 할 때"입니다. 그때의 형태는 이전이 아니라 아카이브 경로입니다 `Σ`.
-{{< /callout >}}
+ClickHouse도 Iceberg를 읽고 쓸 수 있습니다. 그렇다고 기존 MergeTree 테이블을 Iceberg로 바꾸는 것만으로 관측성 저장소가 더 단순해지지는 않습니다. `trace_id` 한 건 조회, 계속 추가되는 JSON 속성, 높은 적재율에서는 파일 배치와 인덱스, compaction 비용을 함께 비교해야 합니다.
 
-이 페이지는 질문 하나에 답합니다 — "Iceberg 가 대체 뭔가. 그리고 그게 'self-host 에서 S3 를 메인 스토리지로' 문제의 답이 되는가." [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})는 self-host 의 스토리지 매체를 골랐습니다. 결론은 "S3 는 primary 가 아니라 cold tier"였습니다. [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})는 그 이유를 아키텍처(SharedMergeTree 는 Cloud 전용)로 설명했습니다. 그 두 페이지를 읽고 나면 미련이 하나 남습니다 — "업계가 다 한다는 그 레이크하우스로 가면 S3 를 메인으로 쓸 수 있는 거 아닌가."
-
-답은 "아니다"입니다. 그 이유가 "Iceberg 가 미성숙해서"는 아닙니다 — 애초에 다른 문제를 푸는 기술입니다. 그래서 결론을 먼저 던지지 않고 층을 쌓아 올립니다. Iceberg 를 한 번도 안 다뤄봤다는 독자를 전제로 §1~§2 에서 개념을 세웁니다. §3 에서 ClickHouse 가 실제로 할 수 있는 일을 버전·설정키 단위로 확정하고 §4~§6 에서 성능·워크로드 적합성을 따진 뒤 §7 에서 "S3 메인"의 세 갈래를 분리합니다.
-
-{{% details title="근거 등급 태그 · 출처 규칙" closed="true" %}}
-근거 등급 태그는 입력 조사의 판정을 이어받습니다(`✓`·`Ⓥ`·`Ⓑ`·`≈`·`?`, 이 페이지의 신규 종합 판단은 `Σ`). ClickHouse Inc./Altinity 블로그의 자사 유리한 수치는 `Ⓥ`로 격하하고 `✓`로 승격하지 않습니다. URL 출처는 이 페이지에 두지 않고 [출처]({{< relref "10-sources.md" >}})가 담당합니다.
-
-1차 출처 범위는 이렇습니다. 버전 게이트는 로컬 CHANGELOG 원문으로 축어 검증했습니다. 2023·2024·2025 연도별 changelog 와 26.1~26.7(2026-01-29~2026-07-22)을 모두 사용했습니다. 25.7~25.9 항목은 2025 changelog 의 해당 릴리스 섹션에 그대로 있습니다 — 25.7 #82692 / 25.8 #83983·#85549·#85843·#85395·#85848 / 25.9 #86059·#86783 `✓`. 이 장에서 `≈`·`?` 로 남은 것은 CHANGELOG 가 다루지 않는 항목(설정키 리네임의 새 이름, 카탈로그 커넥터의 self-host 성숙도, Antalya 준비도)에 한합니다.
-
-§7-② 의 축어 인용은 공식 "Separation of storage and compute" 가이드, 아래 25.7 인용은 PR #82692 본문에서 가져왔습니다 — URL 은 [출처]({{< relref "10-sources.md" >}}).
-{{% /details %}}
+이 글은 2026-08 조사 범위에서 Iceberg의 구조와 ClickHouse 지원 버전을 정리하고, 현재 RUM 저장소에 도입할 이득을 검토합니다. [S3 cold tier 설계]({{< relref "02-storage-local-nvme.md" >}})와 [Cloud의 공유 스토리지]({{< relref "01-managed-vs-selfhosted.md" >}})는 각각 다른 구성이므로 뒤에서 구분합니다. 버전·출처 등급은 기존 조사 결과를 유지하며 원문은 [출처]({{< relref "10-sources.md" >}})에 있습니다.
 
 ## S3 에 없는 것 — Iceberg 가 존재하는 이유
 
-S3 는 데이터베이스가 아니고 파일시스템도 아닙니다. S3 에 없는 것을 꼽아 보면 이렇습니다 `Σ`.
+S3의 오브젝트 키에는 테이블의 상태를 나타내는 규칙이 없습니다. 파일을 여러 개 저장하는 것과 일관된 테이블을 제공하는 것 사이에 다음 작업이 남습니다 `Σ`.
 
 - 디렉토리가 없습니다. `s3://bucket/a/b/c.parquet` 의 슬래시는 그냥 키 문자열의 일부입니다. "폴더"는 접두사 조회(LIST)를 예쁘게 보여주는 클라이언트의 착시입니다.
 - 여러 파일에 걸친 원자적 변경이 없습니다. 파일 하나의 PUT 은 원자적이지만 "파일 200개를 지우고 새 파일 150개를 추가한다"를 한 번에 성공/실패시킬 방법이 없습니다.
 - "이 테이블의 현재 상태"라는 개념이 없습니다. 지금 이 접두사 아래 있는 파일 중 어느 것이 유효한 데이터인지 S3 는 모릅니다.
 
-Hive 시절엔 이걸 경로 규약으로 때웠습니다. `s3://bucket/tbl/dt=2026-08-12/*.parquet` 같은 디렉토리 관례를 쿼리 엔진이 알아서 해석하게 하는 방식입니다. 결과는 고질병이었습니다 `Σ` — 파티션을 찾으려면 LIST 를 반복해야 해서 느립니다. 쓰는 중에 읽으면 절반만 올라간 파일 집합을 테이블로 착각합니다. 스키마를 바꾸면 과거 파일과 현재 쿼리의 계약이 깨집니다.
+Hive 스타일 배치는 `s3://bucket/tbl/dt=2026-08-12/*.parquet`처럼 경로에 파티션 정보를 담습니다. 엔진은 이 규칙을 해석하고 LIST로 파일을 찾습니다. 파일을 교체하는 중에 읽는 문제나 여러 스키마 버전의 파일을 함께 읽는 문제는 추가 조정이 필요합니다 `Σ`.
 
-Iceberg 는 그 경로 규약을 명시적 메타데이터로 승격시켰습니다. "어디에 뭐가 있는지"를 디렉토리 구조에 암묵적으로 인코딩하는 대신, 유효한 파일 목록·스키마·파티션 규칙·파일별 통계를 메타데이터 파일에 적어둡니다. "지금 유효한 메타데이터는 이것"이라는 포인터도 한 곳에 둡니다. 이게 전부입니다. 나머지 성질(스냅샷 격리·time travel·스키마 진화)은 이 설계에서 자동으로 따라 나오는 부산물입니다 `Σ`.
+Iceberg는 유효한 파일 목록, 스키마, 파티션 규칙, 통계를 메타데이터 파일에 기록합니다. 읽는 쪽은 현재 스냅샷의 목록을 따라가므로 쓰기 중인 파일을 임의로 테이블에 포함하지 않습니다. 과거 스냅샷을 남기면 time travel에 사용할 수 있고, 필드 식별자와 스키마 이력으로 스키마 변경도 다룹니다 `Σ`.
 
 ClickHouse 저자들의 표현을 그대로 옮기면, 테이블 포맷은 "loose collections of files"를 "coherent, mutable tables"로 바꿉니다 `✓`.
 
-## 4층 케이크 — 파일 포맷 / 테이블 포맷 / 카탈로그 / 엔진
+## Parquet·Iceberg·카탈로그·쿼리 엔진의 역할 {#4층-케이크--파일-포맷--테이블-포맷--카탈로그--엔진}
 
-레이크하우스 논의가 어려운 이유의 절반은 이 네 층을 섞어 부르는 데서 옵니다. "Parquet 로 갈까 Iceberg 로 갈까"는 애초에 성립하지 않는 질문입니다. Iceberg 는 Parquet 위에 올라가는 층입니다 `✓`.
+Parquet은 파일 내부의 저장 형식이고 Iceberg는 파일 여러 개를 테이블로 묶는 규칙입니다. 카탈로그는 현재 메타데이터를 가리키고 쿼리 엔진이 이를 읽어 계산합니다 `✓`. 같은 테이블을 Spark와 ClickHouse가 읽는 구조를 네 구성요소로 나누면 다음과 같습니다.
 
 | 층 | 대표 구현 | 무엇을 담당하나 | 없으면 무슨 일이 생기나 |
 |---|---|---|---|
@@ -54,13 +38,13 @@ ClickHouse 저자들의 표현을 그대로 옮기면, 테이블 포맷은 "loos
 | **③ 카탈로그** | AWS Glue, Iceberg REST, Unity, Hive Metastore, Nessie `✓` | "테이블 이름 → 지금 유효한 메타데이터 파일"의 포인터. 커밋 = 이 포인터의 **원자적 교체** `✓` | 테이블을 이름으로 못 찾고, 커밋의 원자성이 사라진다 |
 | **④ 쿼리 엔진** | Spark, Trino, Flink, DuckDB, **ClickHouse** | ①~③ 을 해석해 실제 계산 수행. **여러 엔진이 같은 테이블을 동시에 붙을 수 있다** `✓` | 계산 주체가 없다 |
 
-① 을 조금 더 풀면 ② 가 왜 필요한지가 선명해집니다. Parquet 파일 하나는 컬럼별 **column chunk** 로 나뉩니다. chunk 는 다시 수 MB 규모의 **page** 로 쪼개져 page 단위로 압축됩니다. 그 chunk 들을 데이터셋의 가로 슬라이스인 **row group** 으로 묶습니다. 대부분의 엔진이 이 row group 을 병렬 처리 단위로 씁니다 `✓`. 파일 맨 뒤 **footer** 에 스키마·인코딩·컬럼 min/max 가 들어갑니다. page 에도 min/max 가 붙고 row group 단위로 Bloom filter 를 지원합니다 `✓`. 여기까지가 "파일 한 개"의 이야기입니다. 파일 여러 개를 하나의 테이블로 취급하는 규칙은 Parquet 스펙에 없습니다. 그 공백이 ② 의 존재 이유입니다 `Σ`.
+Parquet의 row group은 같은 행 범위에 속하는 컬럼 데이터를 묶습니다. 각 컬럼의 column chunk는 page로 나뉘며 page 단위로 압축됩니다. 파일 끝 footer에는 스키마와 인코딩, 통계 정보가 있습니다. 엔진은 통계와 Bloom filter 등을 사용해 읽을 범위를 줄입니다 `✓`. 이 구조는 파일 하나 안의 정보이므로, 여러 파일 중 현재 유효한 목록은 Iceberg 메타데이터에서 찾습니다.
 
-층을 나눠 보면 가장 실용적인 결론이 하나 나옵니다. 원자성의 소재지는 ③ 입니다. 쓰는 쪽은 새 데이터 파일과 새 메타데이터 파일을 다 써둡니다. 마지막에 카탈로그 포인터만 바꿉니다. 읽는 쪽은 쿼리 시작 시점의 포인터를 잡고 그 스냅샷만 봅니다. 그래서 전환 순간에도 반쪽 데이터가 보이지 않습니다 — 저자들의 표현으로 "commits are handled atomically by the catalog" `✓`.
+쓰기 작업은 새 데이터 파일과 메타데이터 파일을 준비한 뒤 카탈로그가 가리키는 메타데이터 위치를 원자적으로 바꿉니다. 읽기는 선택한 스냅샷을 따라가므로 파일 교체 도중의 부분 상태를 보지 않습니다 `✓`.
 
-④ 의 "여러 엔진 공유"는 Iceberg 의 정치적 존재 이유입니다. ClickHouse 저자들조차 이건 명확히 인정합니다 — 테이블 포맷은 "eliminate vendor lock-in"하고 "decouple storage from compute, creating a neutral storage layer that any query engine can attach to" 합니다 `✓`. Iceberg 를 도입하는 회사가 실제로 사는 것은 성능이 아니라 엔진 교체 자유입니다 `Σ`.
+동일한 테이블을 여러 엔진으로 읽을 수 있다는 점은 도입 목적과 직접 연결됩니다. ClickHouse 저자들도 테이블 포맷이 벤더 종속성을 낮추고 중립적인 스토리지 계층을 만든다고 설명합니다 `✓`. 분석·배치·ML 팀이 같은 데이터를 서로 다른 엔진으로 사용해야 한다면 이 이점이 커집니다 `Σ`.
 
-### 층에서 파생되는 네 가지 성질
+### 스냅샷과 스키마 변경 {#층에서-파생되는-네-가지-성질}
 
 | 성질 | 어떻게 나오나 | 근거 |
 |---|---|---|
@@ -70,12 +54,13 @@ ClickHouse 저자들의 표현을 그대로 옮기면, 테이블 포맷은 "loos
 | **hidden partitioning** | 파티션 규칙을 메타데이터가 소유 → 쿼리가 파티션 컬럼을 몰라도 프루닝 | `?` 이 조사의 1차 출처가 다루지 않았다 |
 
 {{< callout type="important" >}}
-공정하게 짚어두면, 스키마 진화는 관측성에 특히 값비싼 기능입니다. 텔레메트리는 속성이 계속 새로 생깁니다. 그걸 커스텀 메타데이터 레이어로 직접 관리하는 일이 원래 로그 파이프라인의 고질적 부채입니다. 테이블 포맷은 그 부채를 표준화해서 없앱니다 `✓`. Iceberg 를 깎을 이유가 없는 영역입니다.
+텔레메트리에는 새 속성이 계속 추가됩니다. 이를 테이블 메타데이터로 관리하면 파이프라인마다 별도 스키마 관리 계층을 구현하는 부담을 줄일 수 있습니다 `✓`.
+
 {{< /callout >}}
 
-### 층이 청구하는 것 — 정렬·compaction·row group 크기는 누가 하나
+### 파일 배치와 compaction 운영 {#층이-청구하는-것--정렬compactionrow-group-크기는-누가-하나}
 
-②③ 이 데이터베이스 같은 의미론을 주지만 데이터베이스가 자동으로 해주던 일 몇 가지를 사용자에게 되돌려줍니다. 이게 레이크하우스 도입의 실제 비용입니다. 이 장의 결론이 걸리는 부분이기도 합니다.
+테이블의 일관성이 확보돼도 파일 크기와 배치는 관리해야 합니다. 적재가 작은 파일을 계속 만들면 compaction이 필요하고, 과거 스냅샷과 고아 파일도 정리해야 합니다. MergeTree와 비교하면 담당할 운영 작업이 다음과 같이 달라집니다.
 
 | 유지보수 작업 | Iceberg 레이크하우스 | MergeTree |
 |---|---|---|
@@ -86,11 +71,11 @@ ClickHouse 저자들의 표현을 그대로 옮기면, 테이블 포맷은 "loos
 | **row group 크기 선택** | 작게 잡으면 통계가 촘촘해져 스킵·병렬성이 좋아지지만 footer 가 커져 플래닝이 느려지고, 크게 잡으면 메타데이터는 줄지만 프루닝·병렬성이 떨어지고 압축 해제 메모리가 늘어난다. **최적값은 워크로드 의존이고 자명하지 않다** `✓` | 해당 없음 |
 | **메타데이터 관리** | 매니페스트 병합, 스냅샷 만료, 가비지 컬렉션을 주기적으로 돌려야 하고 조정·컴퓨트 자원이 든다 `✓` | 해당 없음 |
 
-저자들이 이 대목에 붙인 문장이 이 표의 요약입니다 — row group 크기 같은 최적화는 "low-level and often extremely time-consuming to get right"이며 "well beyond the interests or responsibilities of most observability teams, who generally want a storage engine that simply works" `✓`. 벤더 편향을 감안해도 이 판단은 달라지지 않습니다. 위 표의 왼쪽 열은 우리가 새로 소유해야 하는 운영 항목 목록입니다 `Σ`.
+row group 크기는 프루닝, 병렬성, 메타데이터 크기와 메모리 사용량을 함께 바꿉니다. 한 값을 고정해 모든 워크로드에 적용하기 어렵습니다. 위 작업 중 어떤 것을 관리형 서비스가 맡고 어떤 것을 우리 팀이 맡을지 정해야 운영비를 비교할 수 있습니다 `Σ`.
 
 ## ClickHouse 는 Iceberg 로 무엇을 할 수 있나 (2026-08 기준)
 
-여기서부터는 추측을 섞지 않습니다. 확인된 버전·설정키만 씁니다. 확인 못 한 것은 `?`로 남깁니다.
+아래는 조사 시점에 확인한 릴리스와 설정입니다. 이름 변경이나 self-host 동작을 확인하지 못한 부분에는 `?`를 남겼습니다.
 
 ### 읽기·쓰기 기능 매트릭스
 
@@ -107,9 +92,9 @@ ClickHouse 저자들의 표현을 그대로 옮기면, 테이블 포맷은 "loos
 | **스냅샷 만료** | `ALTER TABLE ... EXECUTE expire_snapshots('<timestamp>')` | **26.3**(2026-03-26, PR #97904) | `✓` |
 | **파티션 프루닝** | `use_iceberg_partition_pruning=1` | 버전 미확인 | `✓` / 버전 `?` |
 
-25.7 도입 당시 PR 본문은 범위를 스스로 명시했습니다 — "The current version supports only `insert` operations for local tables ... Integration with catalogs and support for `create` will be in next MRs" `✓`. 쓰기는 처음부터 단계적으로 열렸습니다. 그 계단이 25.7 → 25.8 → 25.9 입니다.
+쓰기 지원은 25.7의 INSERT에서 시작해 25.8의 CREATE·DELETE·DROP, 25.9의 UPDATE로 추가됐습니다. PR #82692도 최초 범위를 local table의 insert로 제한하고 카탈로그 통합과 create를 후속 작업으로 설명했습니다 `✓`.
 
-성숙도를 읽는 다른 신호도 있습니다. 26.7 CHANGELOG 에는 "Fix a crash when reading Iceberg tables with equality delete files"(#109551)가 버그픽스로 올라와 있습니다 `✓`. equality delete 읽기가 25.8 에 들어온 뒤 1년가량 지난 시점에도 크래시 수정이 나온다는 뜻입니다. 기능 존재와 프로덕션 신뢰도는 별개라는 판단의 근거가 됩니다 `Σ`.
+26.7 CHANGELOG에는 equality delete 파일을 가진 Iceberg 테이블을 읽을 때의 크래시 수정(#109551)이 있습니다 `✓`. 지원 기능표에 있어도 실제 파일·스키마 조합에서 오류가 날 수 있으므로 사용할 읽기·쓰기 경로를 스테이징에서 확인해야 합니다 `Σ`.
 
 ### 삭제·스키마 진화·타임트래블의 실제 경계
 
@@ -127,14 +112,15 @@ ClickHouse 저자들의 표현을 그대로 옮기면, 테이블 포맷은 "loos
 `DataLakeCatalog` 데이터베이스 엔진이 Glue·Unity Catalog·Hive Metastore·Iceberg REST·OneLake 를 붙입니다. 활성화에는 카탈로그별 설정이 필요합니다 — `allow_experimental_database_iceberg`, `allow_experimental_database_unity_catalog`, `allow_experimental_database_glue_catalog`, `allow_experimental_database_hms_catalog`, `allow_experimental_database_paimon_rest_catalog` `≈`. 이 중 Unity·Glue·REST·Hive Metastore 네 개는 PR #85848(25.8 반영)로 experimental → beta 승격됐습니다 — 2025 CHANGELOG 25.8 섹션 축어로 "Unity, Glue, Rest, and Hive Metastore data lake catalogs are promoted from experimental to beta" `✓`. 승격과 함께 `allow_experimental_database_*` 에 `allow_database_*` 별칭이 붙었으나 문서 축어로 확인되는 것은 `allow_experimental_database_iceberg` ↔ `allow_database_iceberg` 한 쌍입니다. 나머지는 같은 규칙의 유추입니다 `≈`. 이름에는 아직 experimental 이 남아 있습니다. 공식 설정 레퍼런스의 Beta 표 등재 여부는 원문을 확보하지 못했습니다 `?`.
 
 {{< callout type="important" >}}
-여기서는 정직하게 짚어야 할 게 있습니다. 엔진 코드 자체는 OSS 이지만 카탈로그 통합을 소개하는 ClickHouse 공식 자료는 Cloud 맥락에 치우쳐 있습니다. 대표 블로그가 "엔진 자체는 오픈소스이나 이 글은 Cloud 에 초점을 둔다"고 스스로 명시합니다 `≈`. 그래서 self-host 에서 Glue/Unity 연동이 실제로 얼마나 매끄러운지는 1차 근거가 우리에게 없습니다. 도입을 검토한다면 반드시 스테이징 실측으로 메워야 하는 공백입니다 `Σ`.
-{{< /callout >}}
+카탈로그 엔진은 OSS에 있지만 조사한 공식 소개 자료는 Cloud 사용에 초점을 맞춥니다 `≈`. self-host의 Glue/Unity 연결, 권한과 실패 복구는 스테이징 검증이 남아 있습니다 `Σ`.
 
 Unity Catalog 데뷔는 24.12 무렵, Glue + Delta-on-Unity 는 25.3 언급으로 보이지만 정확한 마이너 버전은 확인하지 못했습니다 `?`.
 
+{{< /callout >}}
+
 ### 인접 경로 — Delta/Hudi, s3/s3Cluster, S3Queue
 
-Iceberg 만 보면 시야가 좁아집니다. S3 를 데이터 소스로 쓰는 경로가 여럿입니다. 층도 서로 겹칩니다.
+S3 파일을 읽거나 적재하는 용도라면 Iceberg 외의 경로도 있습니다. 테이블 포맷을 읽는 기능과 파일을 MergeTree로 가져오는 기능은 구분해서 선택합니다.
 
 | 경로 | 무엇인가 | 상태 |
 |---|---|---|
@@ -154,7 +140,7 @@ ClickHouse Cloud 의 S3 ClickPipes 는 "S3 ClickPipe guarantees exactly-once sem
 
 ## 성능 — MergeTree 와 Parquet-on-S3 의 실제 격차
 
-숫자는 두 진영에서 나옵니다. 두 진영 다 자기에게 유리한 조건을 깔았습니다. 그래서 등급을 나눠 읽어야 합니다.
+ClickHouse와 Altinity가 공개한 벤치마크는 엔진, 노드 수, 튜닝 조건이 다릅니다. 아래 수치는 각 실험의 결과로 읽고 우리 쿼리의 속도 비율로 사용하지 않습니다.
 
 | 측정 | 결과 | 등급 |
 |---|---|---|
@@ -163,13 +149,13 @@ ClickHouse Cloud 의 S3 ClickPipes 는 "S3 ClickPipe guarantees exactly-once sem
 | 25.8 신규 Parquet 리더 v3 | ClickBench 쿼리 **평균 1.81배** 개선, 예시 쿼리 1.513s→0.703s | `Ⓑ`/`Ⓥ` |
 | Altinity 벤치마크(NYC Taxi 13억 행, c7g.8xlarge, 5쿼리) | Iceberg/Parquet 가 MergeTree 와 비슷하거나 **더 빠름**(Q1: MergeTree 1.5s vs Iceberg 0.7s) | `Ⓥ` |
 
-ClickBench 수치에는 저자들이 직접 단 면책이 붙어 있습니다. 공정한 비교가 아니라고 스스로 밝힙니다. Parquet 은 범용 포맷이고 MergeTree 는 전용 튜닝된 엔진이라는 취지입니다 `✓`. 이 면책을 떼고 "2배 느리다"만 인용하면 부정확합니다. 리더 v3 개선(Arrow 중간 레이어 제거, row group 내 컬럼 병렬 처리, PREWHERE 지원)은 격차가 좁혀지는 방향이라는 신호로 읽는 게 맞습니다 `Σ`.
+ClickBench 작성자도 범용 Parquet과 전용 엔진 MergeTree의 비교가 완전히 공정하지 않다고 설명합니다 `✓`. 25.8 리더 v3는 Arrow 중간 레이어 제거, 컬럼 병렬 처리, PREWHERE 지원으로 성능을 개선했습니다. 버전에 따라 차이가 변하므로 “Parquet은 2배 느리다”처럼 고정된 비율로 볼 수 없습니다 `Σ`.
 
-Altinity 수치는 `Ⓥ`로 격하해야 합니다. 이유는 이렇습니다 `Σ` — (1) MergeTree 쪽을 튜닝하지 않은 기본 설정으로 두고 비교했습니다(ZSTD 압축·pread 등 수동 설정이 필요한데 그걸 하지 않았습니다), (2) Iceberg 쪽에는 4노드 swarm 을 동원했습니다, (3) 애초에 바닐라 OSS 가 아니라 Antalya 라는 별도 배포판 자료입니다. 비교 대상 버전도 특정이 어렵습니다 `?`. "Iceberg 가 MergeTree 를 이겼다"는 헤드라인을 우리 결정의 근거로 쓸 수 없다는 뜻이지 측정이 거짓이라는 뜻은 아닙니다.
+Altinity 실험은 MergeTree를 기본 설정으로 두고 Iceberg 쪽에 4노드 swarm을 사용했습니다. 바닐라 OSS가 아닌 Antalya 배포판의 결과이며 비교 버전도 확인이 필요합니다 `?`. 따라서 수치는 `Ⓥ`로 유지합니다. 이 결과만으로 단일 OSS ClickHouse의 Iceberg 쿼리 성능을 예측하기는 어렵습니다.
 
-## 왜 Iceberg 가 MergeTree 를 대체하지 못하는가 — 같은 층이 아니다
+## 조회 패턴에 따른 MergeTree와 Iceberg 비교 {#왜-iceberg-가-mergetree-를-대체하지-못하는가--같은-층이-아니다}
 
-성능 차이의 원인을 "Iceberg 가 덜 최적화돼서"로 요약하면 틀립니다. 둘은 다른 층에서 다른 일을 합니다.
+MergeTree의 정렬키와 sparse index, Parquet의 파일·row group 통계는 데이터를 건너뛰는 단위가 다릅니다. Iceberg 도입으로 얻는 데이터 공유의 이점과 실제 조회 성능을 함께 비교해야 합니다.
 
 | 축 | MergeTree | Iceberg (+ Parquet) |
 |---|---|---|
@@ -178,7 +164,7 @@ Altinity 수치는 `Ⓥ`로 격하해야 합니다. 이유는 이렇습니다 `�
 | **데이터 소유** | 엔진 배타 — 그 데이터는 ClickHouse 것이다 | **여러 엔진 공유** — 중립 스토리지 층이고, 이게 존재 이유다 `✓` |
 | **잘 맞는 워크로드** | 고카디널리티 포인트 조회 + 실시간 인제스트 + 대시보드 저지연 `Σ` | 대규모 순차 스캔, 장기 아카이브, 스키마가 계속 변하는 데이터, 여러 팀·여러 엔진이 같은 데이터를 읽는 조직 `Σ` |
 
-MergeTree 는 "빠른 엔진"이고 Iceberg 는 "중립 테이블"입니다. 전자를 후자로 바꾸는 것은 업그레이드가 아니라 교환입니다. 대가는 포인트 조회 지연과 compaction 운영이고 얻는 것은 엔진 자유와 저장 비용입니다 `Σ`.
+고카디널리티 식별자로 소량을 찾는 쿼리와 장기 데이터를 넓게 읽는 쿼리는 요구가 다릅니다. 엔진 공유가 필요해 Iceberg를 사용하더라도 조회 지연과 compaction 운영 비용은 별도로 측정해야 합니다 `Σ`.
 
 ## 관측성에는 맞는가 — 저자들이 열거한 다섯 가지 한계
 
@@ -192,9 +178,9 @@ ClickHouse 공식 블로그 "Are open-table-formats + lakehouses the future of o
 | 4 | **커밋 컨텐션** | "at very high ingestion rates common in observability workloads, contention on the table's metadata pointer can become a bottleneck, leading to repeated retries and slower commit throughput" | `✓` |
 | 5 | **요청 증폭** | "even a small query can trigger dozens of sequential HTTP range requests before any data is processed. This “request amplification” effect makes Parquet inherently “chatty” on object stores." | `✓` |
 
-편향을 먼저 밝힙니다. 이 글은 MergeTree 를 만든 회사가 썼습니다. 같은 글에서 MergeTree 가 "combines many of the strengths of lakehouse and open table formats while also addressing and simplifying their challenges"라고 자사 엔진을 옹호합니다 `✓`. 열거된 한계가 자사에 유리한 방향으로 선택됐을 가능성을 배제할 수 없습니다.
+이 글은 MergeTree를 개발한 ClickHouse가 작성했습니다. 자사 엔진의 장점을 설명하는 자료라는 점을 감안해, 아래 한계가 우리 쿼리에서도 나타나는지 확인해야 합니다.
 
-그럼에도 다섯 개 모두 메커니즘상 타당합니다 `Σ`. 1·2·5 는 Parquet 의 물리 레이아웃(page 단위 압축, footer 선행 읽기, definition/repetition level 순차 디코딩)에서 직접 따라 나오는 결과입니다. 3·4 는 §2 에서 본 "카탈로그 포인터 원자 교체"라는 커밋 모델의 필연적 부산물입니다. 관측성 워크로드가 요구하는 것(`trace_id` 한 건 조회, 초당 수만 건 인제스트, 계속 새로 생기는 속성)이 이 다섯 곳을 그대로 때립니다.
+포인트 조회와 JSON 필드 접근은 Parquet의 page 압축·디코딩과 관련되고, 적재율이 높으면 매니페스트 수와 메타데이터 갱신 빈도도 늘어납니다. 우리 RUM의 `trace_id` 조회, 계속 추가되는 속성, 상시 인제스트가 이 비용을 얼마나 만드는지는 실측 대상입니다 `Σ`.
 
 무엇보다 저자들이 제시하는 현실 대안이 이중 쓰기입니다. "In real-world observability deployments, some users have adopted a dual-write architecture. Observability data is written both to ClickHouse's MergeTree tables for hot, real-time analysis and to open table formats for long-term cold retention." `✓` 이 패턴을 Netflix 같은 조직이 쓰고 있습니다. 저자들 스스로 비효율도 인정합니다 — "remains popular but introduces inefficiency - data must be written twice and managed separately" `✓`.
 
@@ -202,7 +188,7 @@ ClickHouse 공식 블로그 "Are open-table-formats + lakehouses the future of o
 
 ### 격차를 좁히는 것들 — 재검토의 기술적 조건
 
-같은 글이 다섯 한계를 메우려는 움직임도 정리해 둡니다. 그 움직임이 어디까지 왔는지가 곧 §8 의 재검토 시점을 정하므로 항목별로 무엇을 해결하는지 붙여 읽습니다.
+같은 글은 포맷과 인덱스를 개선하는 움직임도 소개합니다. 현재 제약을 완화할 후보들이지만 조사 시점의 적용 가능성은 각각 다릅니다.
 
 | 움직임 | 무슨 한계를 겨냥하나 | 상태 |
 |---|---|---|
@@ -214,9 +200,9 @@ ClickHouse 공식 블로그 "Are open-table-formats + lakehouses the future of o
 
 저자들 스스로 신규 포맷들을 두고 "none have yet been tested at the full scale or complexity of production observability pipelines"라고 적어 둡니다 `✓`. 다섯 한계는 사라지지 않고 자리를 옮기는 중입니다. 지금 결정을 내리는 사람에게는 아직 존재하는 한계입니다 `Σ`.
 
-## 그래서 S3 메인의 답인가 — 세 갈래를 분리한다
+## S3 cold tier·주 볼륨·데이터레이크 비교 {#그래서-s3-메인의-답인가--세-갈래를-분리한다}
 
-"S3 를 메인으로"라는 한 문장 안에 서로 다른 세 갈래가 뭉쳐 있습니다. 이걸 분리하는 것이 이 장이 독자에게 남기려는 결론입니다 `Σ`.
+S3를 사용해도 데이터 형식과 복제 방식이 같지는 않습니다. 기존 MergeTree의 cold tier, S3를 주 볼륨으로 쓰는 MergeTree, Iceberg 데이터레이크를 구분하면 도입 목적이 분명해집니다 `Σ`.
 
 | 갈래 | 무엇인가 | self-host 가능성 | 우리 판단 |
 |---|---|---|---|
@@ -241,15 +227,15 @@ SETTINGS storage_policy = 's3_main';
 
 같은 가이드가 명시하는 제약은 이렇습니다 `✓` — (1) "Don't configure any AWS/GCS life cycle policy. This isn't supported and could lead to broken tables.", (2) "implementing and managing a separation of storage and compute architecture is more complicated compared to standard ClickHouse deployments", (3) 적합 사용 사례를 "use cases where query performance on 'cold' data is less critical"로 한정. self-host 로 이 구성을 하는 독자에게는 "we recommend using ClickHouse Cloud, which allows you to use ClickHouse in this architecture without configuration using the SharedMergeTree table engine"라고 권합니다 `✓`. self-host 를 금지하는 문장은 아니고 "설정 없이 하려면 Cloud"라는 뜻입니다.
 
-여기에 우리 도메인이 이미 확정한 3중 제약이 겹칩니다 — 사본 배수(shared-nothing 이라 RF2 면 S3 에도 2벌), 메타데이터 지역성(part metadata 가 로컬에 남아 filesystem cache 가 사실상 필수), 지연(콜드 쿼리가 느립니다). 상세는 반복하지 않고 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})와 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})에 위임합니다. "S3 를 1벌만 두고 컴퓨트가 캐시로 읽는" OSS 경로(`plain_rewritable` + readonly part refresh)를 왜 기각하는지는 [스토리지 · S3 primary 의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}})가 소유합니다. 기각 사유 6개 중 결정적인 것은 mutation·테이블 복제 미지원으로 RMT 와 배타라는 사유입니다.
+여기에 우리 도메인이 이미 확정한 3중 제약이 겹칩니다 — 사본 배수(shared-nothing 이라 RF2 면 S3 에도 2벌), 메타데이터 지역성(part metadata 가 로컬에 남아 filesystem cache 가 사실상 필수), 지연(콜드 쿼리가 느립니다). 상세는 반복하지 않고 [스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})와 [Managed vs Self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}})에 위임합니다. "S3 를 1벌만 두고 컴퓨트가 캐시로 읽는" OSS 경로(`plain_rewritable` + readonly part refresh)를 왜 기각하는지는 [스토리지 · S3 primary 의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}})에서 다룹니다. 기각 사유 6개 중 결정적인 것은 mutation·테이블 복제 미지원으로 RMT 와 배타라는 사유입니다.
 
-③ 은 아예 다른 축입니다. ①② 가 "S3 를 싸게 쓴다"는 비용 문제라면 ③ 은 "여러 엔진이 공유하는 개방 테이블을 만든다"는 거버넌스·lock-in 문제를 풉니다. 목적이 다르므로 ③ 을 ② 의 우회로로 쓰려는 발상 자체가 층위 혼동입니다 `Σ`. 관측성 메인 스토리지로 쓰는 ③ 은 §6 대로 공식적으로도 비권장입니다.
+Iceberg를 선택하면 Spark·Trino·DuckDB 등과 테이블을 공유할 수 있습니다. 현재 ClickHouse의 S3 저장 비용만 낮추려는 목적이라면 이 기능을 위해 카탈로그와 compaction을 추가할 이득이 있는지 따져야 합니다. 관측성 조회 성능과 HyperDX의 테이블 계약도 함께 검토합니다.
 
 ### Altinity Antalya 는 어디에 놓나
 
 "Iceberg 를 메인으로"가 실제로 통한다는 주장의 출처는 바닐라 OSS 가 아니라 대부분 Altinity Antalya 입니다. Antalya 는 ClickHouse 에 stateless compute swarm, 분산 캐싱, tiered storage-on-Iceberg 를 더한 별도 브랜치/배포판입니다. Altinity.Cloud(관리형/BYOC)와 self-managed 설치 양쪽에 쓰입니다 `≈`. "10배 저렴한 Iceberg 스토리지 위에서 무한 확장 쿼리"는 그 배포판의 아키텍처 산물입니다. OSS 표준 기능이 아닙니다 `Ⓥ`.
 
-실무 함의는 단순합니다 `Σ`. 바닐라 OSS 로 가면 Antalya 의 swarm·캐싱 최적화 없이 §3 의 기본 Iceberg 읽기/쓰기 기능만 갖습니다. Antalya 벤치마크를 근거로 바닐라 OSS 의 성능을 기대하면 안 됩니다. Antalya 자체의 프로덕션 준비도 등급(벤더가 프로덕션 레디로 표기하는지 여부)은 이 조사에서 확인하지 못했습니다 `?`. 별도 배포판이라는 사실만 확정됐습니다. 채택 검토를 한다면 이 등급부터 벤더에게 확인해야 합니다.
+Antalya의 swarm과 분산 캐시는 바닐라 OSS의 Iceberg 읽기·쓰기 기능과 별도 구성입니다. Antalya 벤치마크를 OSS의 성능 근거로 사용할 수 없는 이유입니다. 조사 당시 Antalya의 프로덕션 준비성 표기를 확인하지 못했으므로 `?`로 남깁니다. 채택 검토 시 설치 형태와 지원 범위를 확인해야 합니다.
 
 {{% details title="후속 조사거리 (지금은 근거가 없어 결론을 내리지 않은 것들)" closed="true" %}}
 - `DataLakeCatalog` 의 Glue/Unity/REST/HMS 커넥터가 self-host OSS 환경에서 실제로 얼마나 안정적인가 — 공식 자료가 Cloud 맥락에 치우쳐 self-host 실사용 보고가 없습니다 `?`.
@@ -259,15 +245,14 @@ SETTINGS storage_policy = 's3_main';
 - 26.2(PR #97483)에서 추가된 `allow_experimental_insert_into_iceberg` 별칭의 새 이름이 `allow_insert_into_iceberg` 인지 — CHANGELOG 가 이름을 적지 않아 축어 확인이 필요합니다 `?`.
 {{% /details %}}
 
-## 우리 케이스에서는
+## 현재 RUM에서는 도입을 미룬다 {#우리-케이스에서는}
 
-우리 스택은 EKS self-host + ReplicatedMergeTree 입니다. 콜드는 S3 tier 입니다. hot 매체는 전제에 따라 달라집니다. 이 챕터의 전제(인력·20TB+·스토리지 성능 세 조건)에서는 로컬 NVMe([스토리지 · 로컬 NVMe]({{< relref "02-storage-local-nvme.md" >}})), 실제 현 시점 RUM 규모(월 유입 약 0.7TB)에서는 EBS-first 가 결론입니다([HyperDX 내재화]({{< relref "../hyperdx/_index.md" >}})). 이 장의 판단은 두 경우 모두 같습니다 — Iceberg 를 지금 도입하지 않습니다 `Σ`. 근거는 성숙도가 아니라 워크로드 불일치와 규모입니다.
+현재 RUM 유입은 월 약 0.7TB이며 [HyperDX 내재화]({{< relref "../hyperdx/_index.md" >}})에서는 EBS-first로 시작합니다. 대규모·상시 부하를 가정한 [로컬 NVMe 설계]({{< relref "02-storage-local-nvme.md" >}})와 매체는 다르지만, 두 경우 모두 RMT와 S3 cold tier를 사용하고 Iceberg 도입은 보류합니다.
 
-- 워크로드가 §6 의 다섯 한계를 정면으로 때립니다. RUM/트레이스 조사는 `trace_id`·`session_id` 포인트 조회가 주 동작입니다. 속성은 계속 새로 생기는 준정형 JSON 이고 인제스트는 상시입니다. Parquet 이 가장 약한 세 곳과 그대로 겹칩니다.
-- 월 0.7TB 규모에서는 얻을 것이 없습니다. Iceberg 가 주는 것은 저장 단가와 엔진 자유입니다. 우리는 이미 S3 cold tier 로 단가를 잡았고 엔진을 바꿀 계획이 없습니다. 반대로 지불할 것은 확실합니다 — 외부 compaction 운영, 매니페스트 관리, experimental 플래그 추적, 그리고 이중 쓰기 파이프라인입니다 `Σ`.
-- HyperDX 가 스키마를 소유한다는 제약도 있습니다. ClickStack OTel collector 가 `otel_logs`·`otel_traces`·`hyperdx_sessions` 등을 MergeTree 로 생성합니다. HyperDX 는 그 테이블을 전제로 쿼리합니다. 관측성 메인을 Iceberg 테이블로 바꾸면 UI 쪽 계약을 우리가 직접 떠안습니다 `✓`([HyperDX 내재화]({{< relref "../hyperdx/_index.md" >}})). 제품 선택의 맥락은 [로깅 · HyperDX/ClickStack]({{< relref "../logging/05-hyperdx-clickstack.md" >}})에 있습니다.
-- S3 primary(② 갈래)도 여전히 아닙니다. 이 장이 확인한 것은 "문법적으로 가능하다"와 "이름이 엔진명이 아니다"까지입니다. 사본 배수·메타데이터 지역성·지연 3중 제약은 그대로입니다. OSS 경로의 기각 근거는 [스토리지 · S3 primary 의 OSS 경로]({{< relref "02-storage-local-nvme.md" >}}) 에 있습니다.
+RUM과 트레이스 조사에는 `trace_id`·`session_id` 조회가 필요하고 JSON 속성도 계속 늘어납니다. 현재 규모에서는 여러 엔진이 같은 테이블을 읽어야 한다는 요구가 없습니다. Iceberg를 추가하면 카탈로그, 파일 compaction, 메타데이터 정리를 운영해야 하는데 이를 감수할 이득은 아직 확인하지 못했습니다 `Σ`.
 
-언제 재검토할 가치가 생기는가 — 조건을 미리 적어 둡니다 `Σ`. (1) 보존이 1년+ 로 늘어 콜드 데이터가 hot 대비 수 배로 커지고, (2) 그 콜드 데이터를 관측성 UI 가 아니라 배치 분석·ML 이 다른 엔진(Spark/Trino/DuckDB 등)으로 읽어야 하는 요구가 실제로 생기고, (3) 그 요구를 ClickHouse 에서 뽑아 쓰는 것(SELECT → 외부 전달)보다 개방 포맷으로 두는 것이 명백히 싸질 때. 세 조건이 함께 서야 하고 하나만 서면 재검토 트리거가 아닙니다.
+HyperDX의 조회 계약도 고려해야 합니다. ClickStack collector가 생성하는 `otel_logs`·`otel_traces`·`hyperdx_sessions` 등의 MergeTree 테이블을 Iceberg로 바꾸면 UI 쿼리와 스키마 호환성을 직접 유지해야 합니다. 제품 선택 배경은 [HyperDX/ClickStack]({{< relref "../logging/05-hyperdx-clickstack.md" >}})에 있습니다.
 
-그때의 형태도 미리 정해둡니다. "관측성 메인을 Iceberg 로 이전"이 아니라 "MergeTree 에서 TTL 로 만료되는 데이터를 Iceberg 로 내보내는 아카이브 경로"입니다 `Σ`. 이 형태는 §6 의 이중 쓰기와 달리 같은 데이터를 두 번 쓰지 않습니다. 관측성 조회 경로(HyperDX → MergeTree)도 건드리지 않고 실패해도 되돌릴 수 있습니다. 검토를 시작할 때의 첫 두 작업은 (a) self-host 에서 `DataLakeCatalog` + Glue 연동 스테이징 실측, (b) 그 시점의 Iceberg 쓰기 설정 등급(Beta/Experimental) 재확인입니다. 이 장의 `?` 항목들이 그때까지 `✓`로 승격돼 있을지가 판단을 좌우합니다. 시점 기준 2026-08.
+보존 기간이 1년 이상으로 늘고 Spark·Trino·DuckDB에서 cold 데이터를 분석해야 한다면 아카이브 경로를 검토할 수 있습니다. 이때는 보존 종료 전에 MergeTree 데이터를 Iceberg로 내보내고, 내보내기 성공과 재처리·삭제 순서를 설계합니다. 이 경로도 MergeTree에 있던 데이터를 다시 기록하지만 hot 조회 경로를 유지한 채 장기 보존 형식을 바꾸는 방식입니다.
+
+검토를 시작할 때는 self-host `DataLakeCatalog` + Glue 연동과 해당 버전의 Iceberg 쓰기 지원을 확인합니다. S3 primary를 원하는 경우의 `plain_rewritable` 제약은 [스토리지 글]({{< relref "02-storage-local-nvme.md" >}})에서 별도로 다룹니다. 시점 기준 2026-08.

@@ -5,65 +5,46 @@ lastmod: 2026-08-24
 weight: 4
 ---
 
-# ClickHouse (self-hosted on EKS) — 통합 저장소로서의 야심
+# ClickHouse를 로그 저장소로 운영한다면
 
-{{< callout type="info" >}}
-- 압축·저장 밀도가 이 클래스 최상급입니다 — OTel 로그 벤치에서 CH 내부 압축 ~16.3x, 디스크 상 Elasticsearch 대비 ~4.95x 작음.
-- 분석 쿼리 성능이 뛰어나고(Uber 10x 처리량·50x aggregation) PB 스케일에서 실전 검증됐습니다(Trip.com 4→50PB+, Cloudflare quadrillion-row).
-- **셀프호스트 운영 부담이 실재합니다** — 스키마·`ORDER BY`·TTL 설계가 상시 스킬 요구사항이고 `clickhouse-backup`의 incremental 체인은 fragile합니다.
-- **진짜 storage-compute 분리는 Cloud 전용**(SharedMergeTree)입니다 — self-host는 shared-nothing이라 RF2여도 S3에서 사본이 두 배가 됩니다.
-- 우리 케이스: PLG 방치 이력이 있는 소규모 플랫폼 팀이라 **self-host CH를 1차 채택안으로 밀지 않습니다** — 지배적 위험은 기술이 아니라 오너십입니다.
-{{< /callout >}}
+ClickHouse는 로그를 SQL로 검색하고 집계할 수 있는 컬럼형 OLAP 데이터베이스입니다. Yandex에서 시작한 Apache-2.0 프로젝트로, 로그·트레이스·이벤트를 함께 저장하는 용도로도 쓰입니다. 저장량을 줄이고 대규모 집계를 빠르게 처리할 여지가 있지만, 직접 운영하려면 스키마와 복제, 백업을 담당할 사람이 필요합니다.
 
-컬럼형(column-oriented) OLAP 데이터베이스입니다. Yandex에서 출발해 오픈소스로 공개된 Apache-2.0 프로젝트이고 대규모 분석 쿼리에 최적화된 성숙한 엔진입니다. 로그·트레이스·이벤트·웹 RUM을 **한 스키마 계열·SQL 인터페이스로 흡수**하는 "통합 관측성 저장소" 후보로 자주 거론됩니다.
+이 글은 로그 내재화 후보로 ClickHouse를 평가한 기록입니다. 이미 도입을 결정한 뒤의 EKS 구성은 [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}})에서 다룹니다. 아래 성능·비용 수치는 조사 당시의 벤치마크와 사례이며 우리 로그로 측정한 결과는 아닙니다.
 
-## 강점
+## 압축과 집계에서 얻는 것 {#강점}
 
-- **압축·저장 밀도가 이 클래스에서 최상급입니다.** 컬럼 파일 위에 타입별 codec을 깔고 그 위에 LZ4/ZSTD를 한 번 더 겁니다 — timestamp에는 DoubleDelta, 느린 float에는 Gorilla, 단조 int에는 Delta. Elasticsearch처럼 `_source`(원본 JSON의 거의 완전한 사본)와 inverted index를 함께 들고 있지 않고 컬럼에서 행을 재구성하므로 디스크가 근본적으로 작습니다.
-  - OTel 로그 벤치에서 **CH 내부 압축 ~16.3x**, **디스크 상 Elasticsearch 대비 ~4.95x 작음** `Ⓑ` (ClickHouse blog, OSS v26.3, 2026-04-23; 1B/10B/50B rows 전 구간에서 유지).
-  - 실무 관측치로는 구조화 로그 **~10:1–20:1** `≈/Ⓥ`, Uber는 보수적으로 **3x, 경우에 따라 30x** `Ⓥ`. nginx류처럼 반복성이 높은 access log는 **>100x**(178x 인용 사례)까지 갑니다 `Ⓥ`. 용량 계획용 raw→디스크 비율은 **8~12x가 보수적**이고 좋은 schema면 **10~30x** 도달도 가능합니다 `≈`.
-- **분석 쿼리 성능이 뛰어납니다.** 대규모 병렬 컬럼 스캔과 벡터화 실행으로 aggregation·필터가 매우 빠릅니다. Uber는 단일 노드에서 **300K logs/s ≈ ES 노드의 약 10x**를 처리하고 타입드 schema에서 **aggregation 50x 빠름**을 보고했습니다 `Ⓥ`. Trip.com은 ES 대비 **4~30x 빠른 쿼리**(P90 <300ms, P99 <1.5s) `Ⓥ`, Cloudflare는 **96조(96T) 이벤트를 <2s에 스캔** `Ⓥ`.
-- **인프라 비용이 크게 낮습니다.** OpenSearch/ELK 대비 인프라 기준 큰 절감(대략 **7~15배** 보고 사례) `Ⓥ`. Uber의 ELK 대비 **hardware >50% 절감** 주장은 2026-07 적대 검증에서 원문 근거 불충분으로 기각됐습니다(1-2) `?`. Didi는 **machine cost ~30% 절감**(2024-04 스냅샷, 엔지니어링·마이그레이션 비용 제외)을 보고했습니다 `Ⓥ`. 한 crypto-derivatives 플랫폼은 OTel 통합으로 관측성 청구를 high-six-figures에서 **~$50K(약 90% 절감)**까지 내렸습니다 `Ⓥ`.
-- **통합 저장소 잠재력.** 로그·트레이스·이벤트를 한 스키마 계열로 다루고 SQL로 조회합니다. TTL 티어링, materialized view, AggregatingMergeTree 같은 프리미티브로 pre-aggregation·다운샘플·hot→cold 이동을 엔진 안에서 처리합니다. 로그 검색에 필요한 **풀텍스트 text index GA(2026-03)**, **native JSON GA(25.3)**도 이미 정식입니다.
-- **PB 스케일에서 실전 검증됨.** Trip.com은 **4PB→50PB+**로 성장했습니다 `Ⓥ`. Cloudflare는 quadrillion-row 스케일을 active-active로 운영합니다. 성능·비용 방향은 매우 큰 규모에서도 일관됩니다.
-- **넓은 생태계와 성숙한 운영 도구.** 드라이버/BI/OTel/Vector 연동이 풍부합니다. **Altinity clickhouse-operator**는 약 7년간 사실상 표준입니다(라인 0.27.x, 0.27.1은 2026-06-04·FIPS 지원). ClickHouse Inc.의 **공식 first-party operator**도 2026-01 등장했습니다. 조율 계층인 **ClickHouse Keeper**는 JVM/GC가 없어 ZooKeeper보다 가볍습니다 — Bonree는 교체로 **CPU/메모리 >75% 절감, IO·성능 ~8x** `Ⓥ`. `clickhouse-backup`, Terraform EKS blueprint 등 도구가 갖춰져 있습니다.
-- **유연한 스토리지 티어링.** EBS gp3(churn 이후 생존, snapshot 용이), 로컬 NVMe(최고 throughput·최저 latency; i7ie는 노드당 최대 **120 TB**, i3en 대비 실시간 성능 ~65%↑·I/O latency ~50%↓ `Ⓥ`), TTL MOVE로 S3 콜드 티어까지 워크로드에 맞춰 조합할 수 있습니다. 인스턴스 패밀리 선택의 현재 권고(i8g 기본, i7i/i7ie는 대용량·x86 의존 시)는 [ClickHouse 스토리지 · 로컬 NVMe]({{< relref "../clickhouse/02-storage-local-nvme.md" >}}) 참고.
+ClickHouse는 컬럼의 타입과 값 분포에 맞춰 codec을 적용하고 LZ4·ZSTD로 압축합니다. timestamp에 DoubleDelta, 변동이 적은 float에 Gorilla, 정수에 Delta 등을 조합할 수 있습니다. Elasticsearch의 `_source`와 역색인 구성과는 저장 방식이 달라, 같은 로그라도 디스크 사용량에 큰 차이가 날 수 있습니다.
 
-## 약점 · 한계
+2026-04-23의 OTel 로그 벤치마크(ClickHouse OSS v26.3)는 내부 압축비 약 16.3배, Elasticsearch 대비 약 4.95배 작은 디스크 사용량을 보고했습니다 `Ⓑ`. 구조화 로그의 10~20배 압축, 반복적인 nginx 로그의 100배 이상 압축도 보고돼 있지만 `Ⓥ`, 이를 그대로 용량 계산에 넣지는 않습니다. 기존 산정에서는 raw 대비 8~12배를 보수적인 가정으로 두었으며 실제 schema로 확인해야 합니다 `≈`.
 
-- **스키마·테이블 설계가 상시 스킬 요구사항입니다.** 좋은 `ORDER BY`·partition·codec·TTL·materialized view에는 보상하고 나쁜 설계에는 낮은 압축과 느린 쿼리로 벌을 줍니다. "JSON을 index하고 시작"하는 OpenSearch와 달리 CH는 의도적인 설계를 요구하고 로그 형태가 바뀌면 그 설계를 다시 검토해야 합니다. 특히 **field와 query pattern을 알 때 빛나며** unknown/volatile field가 지배적이면 효율이 "may suffer significantly depending on schema."
-- **셀프호스트 운영 부담이 실재합니다.** 잦은(때로 breaking) 버전 업그레이드 검증, multi-TB 테이블의 `ALTER`/`INSERT SELECT` backfill, 백업 운영이 사용자 몫입니다. 표준 도구 `clickhouse-backup`의 **incremental 체인은 fragile**합니다 — incremental restore에 체인의 모든 이전 백업이 필요하고 하나라도 손상되면 복구 불가라 weekly-full + daily-incremental·정기 restore drill을 직접 소유해야 합니다. TCO 추정으로 대략 **엔지니어 시간 ~10–20%(~$2–4k/월)** `≈`이며 관리형 이전은 ops를 ~10 hrs/월 줄이는 대신 10 TB에서 비용을 **~3.4x** 올린 사례가 있습니다 `≈/Ⓥ`.
-- **진짜 storage-compute 분리는 Cloud 전용입니다.** SharedMergeTree는 proprietary·Cloud 전용이고 self-host의 zero-copy-S3는 사실상 폐기됐습니다(데이터 손상 이력 #39560, 22.8부터 default off, ~2024-04 이후 upstream 기여 거부). self-host는 shared-nothing이고 **RF2는 S3에서도 사본이 두 배**가 되며 스케일아웃 = 리샤딩입니다. OSS 대안인 Altinity **Antalya**(Iceberg/Parquet + stateless swarm)는 유망하나 아직 성숙 중입니다.
-- **EKS stateful 엣지케이스.** EBS는 **AZ 고정**이라 node churn 시 `volume node affinity conflict`가 나 `WaitForFirstConsumer` + per-AZ node group / shard-per-AZ 설계가 필요합니다. 로컬 NVMe는 **ephemeral**이라 RF2 + node 손실 시 네트워크 rebuild가 전제됩니다. PDB `maxUnavailable:1`, topology spread는 필수입니다.
-- **S3 콜드 티어의 숨은 비용.** data가 S3에 있어도 **part metadata는 로컬 디스크**에 남고 desync 시 orphan S3 파일이 생깁니다(백업 필요). disk cache가 사실상 필수이며 콜드 쿼리는 로컬보다 느립니다.
-- **turnkey 로그 UI가 아닙니다.** Kibana/OpenSearch Dashboards에 대응하는 내장 로그 검색 UI가 없습니다 — Grafana나 [HyperDX / ClickStack]({{< relref "05-hyperdx-clickstack.md" >}})를 따로 붙여야 합니다.
+컬럼 스캔과 벡터화 실행은 많은 행을 읽어 집계하는 쿼리에 유리합니다. Uber는 단일 노드 300K logs/s, Elasticsearch 대비 약 10배 처리량과 타입을 지정한 schema에서 약 50배 빠른 집계를 보고했습니다 `Ⓥ`. Trip.com의 4~30배 쿼리 개선, Cloudflare의 96조 이벤트 2초 미만 스캔도 각 워크로드의 결과입니다 `Ⓥ`. Trip.com의 4PB에서 50PB 이상으로의 성장과 Cloudflare의 대규모 운영은 확장 사례로 참고할 수 있습니다.
 
-{{< callout type="warning" >}}
-**S3 lifecycle policy 사용은 금지**입니다(테이블 손상 위험).
-{{< /callout >}}
+비용 사례도 같은 조건부로 읽어야 합니다. Didi의 장비 비용 약 30% 절감은 엔지니어링·마이그레이션 비용을 제외한 2024-04 기록입니다 `Ⓥ`. OTel 통합으로 연간 관측성 비용을 약 $50K까지 줄인 플랫폼 사례도 있지만 `Ⓥ`, 저장 엔진 하나의 효과로 분리할 수는 없습니다. 원문을 확인하지 못한 Uber의 하드웨어 50% 이상 절감 주장은 비용 근거에서 제외합니다.
 
-## 적합 / 부적합
+## 직접 설계하고 유지할 부분 {#약점--한계}
 
-**적합**
+`ORDER BY`, partition, codec, TTL, materialized view를 쿼리와 데이터 형태에 맞춰 정해야 합니다. 자주 찾는 필드와 집계 패턴이 알려져 있을수록 설계하기 쉽습니다. 필드가 자주 바뀌는 로그에서는 검색 방식과 schema를 함께 시험해야 합니다. 조사에 반영한 native JSON GA(25.3)와 text index GA(2026-03)가 있어도 이 설계 작업이 사라지지는 않습니다.
 
-- 대규모(수십 TB~PB/day) 로그·이벤트
-- 알려진/안정적 schema와 query pattern
-- 강한 aggregation·analytics 요구
-- SQL 친화 팀
-- 통합 저장소 야심
-- 비용 최적화가 절실하고 **전담 오너가 있는** 조직
+ReplicatedMergeTree 복제와 Keeper, 업그레이드, 대용량 backfill, 백업 복원도 운영 범위에 들어갑니다. `clickhouse-backup`의 증분 복원은 앞선 백업에 의존하므로 주간 full·일간 incremental 같은 정책과 복원 리허설을 함께 운영해야 합니다. 기존 TCO 모델의 엔지니어 시간 10~20%, 월 $2~4K는 인건비와 역할 분담을 가정한 값입니다 `≈`.
 
-**부적합**
+Altinity operator, 드라이버·BI·OTel·Vector 연동 등 도구는 갖춰져 있습니다. Keeper로 ZooKeeper를 대체해 CPU·메모리와 I/O 부담을 줄였다는 Bonree 사례도 있습니다 `Ⓥ`. 다만 operator가 모든 변경의 데이터 이동과 복원을 대신 판단하지는 않습니다. 실제 변경 절차는 [Altinity 운영]({{< relref "../clickhouse/05-altinity-operations.md" >}})에서 설명합니다.
 
-- unknown/volatile field가 지배적인 로그(임의 access log 등)
-- 소규모·오너 없는 팀
-- turnkey 관리형을 원하는 경우
-- self-host에서 즉시 storage-compute 분리가 필요한 경우
+## 저장소 선택은 복구 방식까지 바꾼다
 
-StarRocks와의 정면 비교는 [ClickHouse vs StarRocks]({{< relref "07-clickhouse-vs-starrocks.md" >}}) 참고.
+EBS는 노드 교체 후 볼륨을 다시 연결할 수 있지만 AZ에 묶입니다. StorageClass의 `WaitForFirstConsumer`와 노드 배치 조건을 맞춰야 합니다. 로컬 NVMe는 높은 처리량을 얻는 대신 인스턴스 소실 후 살아 있는 replica에서 데이터를 복구해야 합니다. 인스턴스 선택과 Karpenter 설정은 [스토리지·로컬 NVMe]({{< relref "../clickhouse/02-storage-local-nvme.md" >}})를 참고합니다.
 
-## 우리 케이스에서는
+S3 cold 티어링으로 오래된 데이터를 옮겨도 로컬 part 메타데이터와 cache 운영이 남습니다. 이 시리즈의 직접 운영 구성은 replica별로 S3 사본을 저장하므로 RF2라면 그 비용도 두 벌로 계산합니다. Cloud의 SharedMergeTree와 같은 저장소 공유를 전제로 잡으면 비용과 복구 계획이 달라집니다. zero-copy는 실험 기능으로 남아 있으나 이 구성의 프로덕션 대안으로 삼지 않습니다.
 
-우리는 PLG 방치 이력이 있는 소규모 플랫폼 팀입니다. self-hosted CH는 managed OpenSearch보다 운영 부담이 **더 크지 덜하지 않습니다** — 여기서 지배적 위험은 기술이 아니라 오너십입니다. 명시적 오너 + 런북 + 정기 리뷰를 정해 두지 못한다면 관리형(ClickHouse Cloud / Altinity.Cloud) 견적과 반드시 비교해야 합니다. volatile한 istio access log 경로에는 단일 바이너리로 임의 field를 처리하는 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})가 더 가벼운 후보입니다. self-hosted CH를 1차 채택안으로 밀지 않습니다.
+ClickHouse가 사용하는 S3 객체를 외부 lifecycle 규칙으로 삭제하거나, 즉시 읽을 수 없는 Glacier 계층으로 옮기면 쿼리가 실패할 수 있습니다. 테이블의 TTL과 백업 버킷 정책을 구분해 관리합니다. S3·Iceberg 기반의 다른 운영 방식은 [레이크하우스 글]({{< relref "../clickhouse/09-iceberg-lakehouse.md" >}})에서 다룹니다.
 
-채택을 전제했을 때의 배포·스토리지·operator 운영 전략 심화(how)는 [ClickHouse 운영]({{< relref "../clickhouse/_index.md" >}}) 도메인 참조 — 여기(로그 내재화 관점의 채택 여부)와 전제가 다릅니다.
+로그 검색 UI도 따로 필요합니다. Grafana나 [HyperDX / ClickStack]({{< relref "05-hyperdx-clickstack.md" >}})을 연결할 수 있으며, 각각의 사용자 관리와 설정·백업이 추가됩니다.
+
+<span id="우리-케이스에서는"></span>
+
+## 이 팀의 로그 저장소로 선택할 것인가 {#적합--부적합}
+
+대규모 로그를 SQL로 분석하고, 반복되는 집계가 많고, 전담 운영자가 있다면 ClickHouse를 검토할 이유가 있습니다. 반대로 로그 규모가 작거나 관리 책임이 불분명하면 저장 효율만으로 도입을 정당화하기 어렵습니다. 저장소·컴퓨트 분리가 필수 요구라면 [StarRocks와의 비교]({{< relref "07-clickhouse-vs-starrocks.md" >}})도 함께 봐야 합니다.
+
+우리 로깅 조사에서는 기존 PLG 운영이 방치된 이력과 작은 플랫폼 팀 규모를 고려했습니다. ClickHouse를 추가하기 전에 담당자, 런북, 정기 리뷰를 정할 수 있는지가 문제였습니다. 이 조건에서 self-hosted ClickHouse를 첫 후보로 선택하지 않았고, 변동이 많은 Istio access log에는 [VictoriaLogs]({{< relref "03-victorialogs.md" >}})를 우선 검토했습니다.
+
+RUM과 범용 분석까지 ClickHouse로 운영할 계획이 생기면 비용을 나눠 볼 수 있습니다. 그때도 관리형 견적과 직접 운영 인건비·복구 부담을 함께 비교해야 합니다.

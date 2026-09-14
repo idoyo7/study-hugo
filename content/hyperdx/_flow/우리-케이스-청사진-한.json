@@ -1,5 +1,5 @@
 {
-  "caption": "브라우저 SDK(@hyperdx/browser — rrweb+errors+Web Vitals)는 OTel Collector로 직접 전송, HyperDX api가 CHI(ReplicatedMergeTree, 1 shard×RF2·2AZ, hot:EBS gp3/io2·cold:S3)를 쿼리하고 CHK(Keeper 3노드, 3AZ·gp3 영속)와 조정, MongoDB(메타데이터 전용, MCK members:3 또는 Atlas)는 UI 설정만 담당. Altinity operator 영역은 범용 분석 겸용 CH, HyperDX-only는 clickhouse.enabled=false 구성. OTel Collector는 deployment ×2 + file_storage 큐. CHI↔CHK는 한 축의 양방향 조정(CH가 복제 메타 등록 ↔ Keeper가 복제·머지 지시), Collector↔api도 OpAMP 4320 양방향(Collector가 접속, api가 설정 배포).",
+  "caption": "prod 설계 참고도이며 실제 stage의 replica·큐·티어 상태는 운영 트랙의 배포 기록을 따릅니다. 브라우저 SDK(@hyperdx/browser — rrweb+errors+Web Vitals)는 OTel Collector로 직접 전송, HyperDX api가 CHI(ReplicatedMergeTree, 1 shard×RF2·2AZ, hot:EBS gp3/io2·cold:S3)를 쿼리하고 CHK(Keeper 3노드, 3AZ·gp3 영속)와 조정, MongoDB(메타데이터 전용, MCK members:3 또는 Atlas)는 UI 설정만 담당. Altinity operator 영역은 범용 분석 겸용 CH, HyperDX-only는 clickhouse.enabled=false 구성. OTel Collector는 deployment ×2 + file_storage 큐. CHI↔CHK는 한 축의 양방향 조정(CH가 복제 메타 등록 ↔ Keeper가 복제·머지 지시), Collector↔api도 OpAMP 4320 양방향(Collector가 접속, api가 설정 배포).",
   "groups": [
     {
       "id": "k8s",

@@ -5,29 +5,29 @@ lastmod: 2026-08-24
 weight: 7
 ---
 
-# ClickHouse vs StarRocks (로그/관측성 한정)
+# 로그 저장소로 비교하는 ClickHouse와 StarRocks
 
-{{< callout type="info" >}}
-- 결정축은 **3–3(+ 워크로드 의존 2축)** — 무조건 승자는 없고 워크로드 shape가 답을 정합니다.
-- self-host storage/compute 분리·JOIN/mutable/레이크하우스·K8s 탄력 스케일은 **StarRocks 승**.
-- 단일 테이블 스캔·압축·풀텍스트/JSON·생태계/매니지드는 **ClickHouse 승**.
-- **로그/관측성 한정 판정 = ClickHouse.** 결정타는 검색 축 — 가장 필요한 풀텍스트가 CH는 GA, SR은 Beta입니다.
-- 둘 다 BM25/relevance 스코어링이 없습니다 — ES식 랭킹 검색이 진짜 필요하면 전용 검색층을 남겨야 합니다.
-{{< /callout >}}
+로그가 계속 추가되는 큰 테이블을 검색·집계하려는지, 다른 업무 테이블과 JOIN하고 자주 수정하려는지에 따라 선택이 달라집니다. 이 비교는 2026-07~08 조사 당시의 기능과 로그·관측성 워크로드를 기준으로 합니다.
 
-정면으로 붙여보면 결정축이 3–3(+ 워크로드 의존 2축)으로 나뉘어 "무조건 승"이 나오지 않습니다. 워크로드 shape가 답을 정합니다. (아래 표는 결정축 중심 요약)
+## 저장 방식과 질의의 차이
 
-| 축 | 승자 | 한 줄 |
+| 비교 항목 | ClickHouse | StarRocks |
 |---|---|---|
-| self-host storage/compute 분리 | **StarRocks** | S3 + stateless CN이 OSS 바이너리에 포함. CH 진짜 분리는 Cloud 전용 |
-| 단일 테이블 스캔·압축 | **ClickHouse** | 로그의 홈그라운드(MergeTree), ClickBench hot ~20~33%↑ `Ⓑ` |
-| JOIN·mutable·레이크하우스 | **StarRocks** | Primary-Key upsert, Iceberg 네이티브 |
-| 풀텍스트 index / JSON | **ClickHouse** | text index GA(2026-03) vs SR shared-data Beta |
-| K8s 탄력 스케일 | **StarRocks** | CN 오토스케일 vs CH 리샤딩 |
-| 생태계·매니지드·관측성 제품 | **ClickHouse** | ClickStack/HyperDX 턴키 vs SR UI 전무 |
+| 직접 운영하는 저장소·컴퓨트 분리 | 이 시리즈의 ReplicatedMergeTree 구성은 replica별 저장. SharedMergeTree는 Cloud 전용 | OSS shared-data 모드에서 S3와 stateless CN 사용 |
+| 단일 테이블 스캔·압축 | MergeTree 기반 대량 스캔·집계에 적합. ClickBench hot 비교에서 약 20~33% 우세한 결과 `Ⓑ` | 실제 schema와 쿼리로 비교 필요 |
+| JOIN·변경 데이터 | 선택한 엔진과 데이터 모델에 따라 설계 | Primary-Key upsert와 JOIN, Iceberg 연계가 주요 검토 이유 |
+| 풀텍스트·JSON | 조사에 반영한 text index는 2026-03 GA | 비교 대상 shared-data 모드의 풀텍스트는 Beta |
+| Kubernetes 확장 | shard 추가 시 기존 데이터 재분배 계획 필요 | CN을 확장하는 shared-data 구성 가능 |
+| 관측성 UI | ClickStack·HyperDX 연결 가능 | 별도 조회 UI 구성 필요 |
 
-**로그/관측성 한정 판정 = ClickHouse.** 로그는 append-only 단일 wide 테이블에 needle-search를 걸면서 ingest는 높은 shape라 MergeTree의 홈그라운드입니다. StarRocks가 앞세우는 강점(JOIN·고동시성·upsert·레이크하우스)은 이 shape와 거의 무관합니다. 결정타는 검색 축입니다 — 가장 필요한 풀텍스트가 CH는 GA, SR은 (쓸 모드에서) Beta입니다. StarRocks가 확실히 이기는 축은 self-host storage-compute 분리 하나이므로 "S3 위 탄력 오토스케일"이 하드 요구가 아니면 로그 숏리스트에서 빠집니다.
+벤치마크 차이만으로 선택하지는 않습니다. 특정 조건의 hot 쿼리 결과가 cold 조회, 동시성, 비용까지 대표하지 않기 때문입니다. 기능이 GA인지 Beta인지도 실제 사용할 버전과 배포 모드에서 확인해야 합니다.
 
-> 정직한 단서 2개: (1) 둘 다 BM25/relevance 스코어링이 없습니다 — ES식 랭킹 검색이 진짜 필요하면 전용 검색층을 남겨야 합니다. (2) 둘이 공존한다면 split-brain(CH=관측성 logs+traces+RUM, SR=Iceberg 위 BI/mutable)이 자연스럽고 공유 S3/Iceberg 레이크가 브릿지가 됩니다.
+## 이 로그 워크로드에서는 ClickHouse를 우선 검토한다
 
-각 엔진의 단독 평가는 [ClickHouse (self-hosted)]({{< relref "04-clickhouse.md" >}}) · [StarRocks]({{< relref "06-starrocks.md" >}}) 참고.
+append-only 로그에서 시간 범위를 좁혀 특정 이벤트를 찾거나 대량 집계를 수행하는 패턴은 ClickHouse를 검토하기에 적합합니다. 기존 조사에서는 풀텍스트 지원 상태와 관측성 UI 생태계도 선택 이유였습니다. StarRocks의 JOIN·upsert가 중요한 업무라면 별도 쿼리 집합으로 비교해야 하지만, 여기서 다루는 로그의 주된 요구는 아니었습니다.
+
+자체 인프라의 S3 위에서 컴퓨트만 탄력적으로 늘리는 것이 필수라면 StarRocks를 후보에 남겨야 합니다. 반대로 그 요구가 없다면 로그 검색과 운영 도구를 중심으로 ClickHouse를 평가할 수 있습니다.
+
+조사 당시 두 엔진의 비교에서 Elasticsearch식 BM25·relevance 랭킹을 대체할 근거는 확보하지 못했습니다. 관련도 순 검색이 필수라면 전용 검색층을 함께 검토합니다. 두 엔진을 함께 쓰는 경우에는 ClickHouse에 관측성 이벤트를, StarRocks에 Iceberg 기반 BI·변경 데이터를 두는 분담도 가능하지만, 공유 S3만으로 두 엔진의 데이터 관리가 자동 통합되지는 않습니다.
+
+각 엔진의 운영 부담은 [ClickHouse]({{< relref "04-clickhouse.md" >}})와 [StarRocks]({{< relref "06-starrocks.md" >}}) 평가에서 이어집니다.

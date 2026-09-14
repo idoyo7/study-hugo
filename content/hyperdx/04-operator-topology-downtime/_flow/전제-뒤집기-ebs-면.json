@@ -1,11 +1,11 @@
 {
-  "caption": "노드 급사 시 복구 경로 — 로컬 NVMe(전량 재수화) vs EBS(reattach+델타 catch-up)",
+  "caption": "인스턴스 교체 시 복구 경로 — 로컬 NVMe는 새 노드에 전량 복사, 보존된 EBS는 같은 AZ 재부착 후 동기화. 단순 재부팅은 로컬 NVMe도 보존되며, 복구 중 서비스 가능한 replica 수는 두 구성 모두 줄어듭니다.",
   "nodes": [
     {
       "id": "A1",
       "col": 0,
       "row": 0,
-      "label": "노드 급사",
+      "label": "인스턴스 교체",
       "sub": "로컬 NVMe (기존 corpus 전제)",
       "kind": "src"
     },
@@ -21,14 +21,14 @@
       "col": 2,
       "row": 0,
       "label": "healthy replica에서 전량 재수화",
-      "sub": "(수 시간, RF2→실질 RF1)",
+      "sub": "(복구 중 서비스 가능 replica 1개)",
       "kind": "proc"
     },
     {
       "id": "B1",
       "col": 0,
       "row": 1,
-      "label": "노드 급사",
+      "label": "인스턴스 교체",
       "sub": "EBS gp3/io2 (이 문서 전제)",
       "kind": "src"
     },
@@ -51,7 +51,7 @@
       "col": 3,
       "row": 1,
       "label": "기존 파트 그대로 + Keeper 로그 델타만 catch-up",
-      "sub": "(수 분, RF 안 떨어짐*)",
+      "sub": "(기존 사본 보존, 가용 replica 감소)",
       "kind": "proc"
     }
   ],

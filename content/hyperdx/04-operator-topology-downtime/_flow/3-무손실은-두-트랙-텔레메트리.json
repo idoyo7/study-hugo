@@ -1,5 +1,5 @@
 {
-  "caption": "무손실 방어의 두 트랙 — 트랙1(텔레메트리·대량·스트리밍)은 OTel file_storage 퍼시스턴트 큐 + ClickHouse RMT 복제(RF2/3 + insert_quorum), 트랙2(메타데이터·소량·문서)는 MongoDB ReplicaSet(members:3) + mongodump→S3다. Keeper 3노드는 두 트랙 어디에도 이벤트 데이터를 보관하지 않고, 트랙1의 쓰기 가용성만 좌우한다(정족수 필요).",
+  "caption": "무손실 방어의 두 트랙 — 트랙1(텔레메트리·대량·스트리밍)은 OTel file_storage 퍼시스턴트 큐 + ClickHouse RMT 복제(RF2/3, 필요에 따른 insert_quorum), 트랙2(메타데이터·소량·문서)는 MongoDB ReplicaSet(members:3) + mongodump→S3다. Keeper 3노드는 두 트랙 어디에도 이벤트 데이터를 보관하지 않고, 트랙1의 쓰기 가용성만 좌우한다(정족수 필요).",
   "groups": [
     {
       "id": "T1",
@@ -41,7 +41,7 @@
       "col": 2,
       "row": 0,
       "label": "ClickHouse",
-      "sub": "RMT RF2/3+quorum",
+      "sub": "RMT RF2/3 · quorum 선택",
       "kind": "store"
     },
     {

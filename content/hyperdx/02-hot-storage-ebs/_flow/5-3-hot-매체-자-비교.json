@@ -66,8 +66,8 @@
       "id": "REHY",
       "col": 4,
       "row": 1,
-      "label": "재부팅·재스케줄 시",
-      "sub": "재수화 0, AZ 장애는 replica에서 재수화",
+      "label": "같은 AZ 노드 교체 시",
+      "sub": "기존 볼륨 재사용, AZ 장애는 다른 AZ replica로 서비스",
       "kind": "sink"
     }
   ],

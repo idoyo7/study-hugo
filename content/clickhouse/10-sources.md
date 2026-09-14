@@ -7,13 +7,11 @@ weight: 10
 aliases: ["/clickhouse/08-sources/"]
 ---
 
-# 출처 — ClickHouse 배포·오퍼레이터·운영사례 조사 자료
+# ClickHouse 참고 자료
 
-이 페이지는 [managed vs self-hosted]({{< relref "01-managed-vs-selfhosted.md" >}}), [로컬 NVMe 스토리지]({{< relref "02-storage-local-nvme.md" >}}), [오퍼레이터]({{< relref "03-operator.md" >}}), [operator 배포 플레이북]({{< relref "04-deployment-playbook.md" >}}), [변경관리·복구]({{< relref "05-altinity-operations.md" >}}), [프로덕션 운영사례]({{< relref "06-production-usecases.md" >}}), [데이터스토어 횡단 벤치마킹]({{< relref "07-local-nvme-datastore-patterns.md" >}}), [무신사 CDP]({{< relref "08-musinsa-cdp.md" >}}), [Iceberg·레이크하우스]({{< relref "09-iceberg-lakehouse.md" >}}) 아홉 페이지가 인용한 1차 조사 문서의 `## 출처` 섹션을 모아 중복을 제거하고 주제별로 분류했습니다.
+[ClickHouse 운영 시리즈]({{< relref "_index.md" >}})에서 사용한 공식 문서, 운영 사례, 벤치마크를 주제별로 모았습니다. 각 자료의 수치와 주장을 어떻게 적용했는지는 해당 본문에서 확인할 수 있습니다.
 
-그 1차 조사 문서가 다룬 범위는 배포 전략·스토리지 아키텍처, clickhouse-operator 채택, operator로 로컬 NVMe에 CH를 배포하는 실전 플레이북·CHI/CHK CRD 심층·local PV 연동·토폴로지 운영 런북, 규모별 스케일링·롤링 업그레이드 운영 실무, 프로덕션 운영 사례 전수조사, managed vs self-host TCO 보강, 로컬 NVMe 데이터스토어 횡단 조사입니다. 조사 기준일은 2026-07-13~15입니다(각 조사 문서 frontmatter `updated` 값 — 데이터스토어 횡단 조사·티어링 검증은 07-14, operator 배포 플레이북 시리즈와 Altinity operator 운영 적대검증은 07-15). 뒤에 붙은 두 페이지는 기준일 2026-08-12의 별도 조사입니다. 그 URL은 무신사 CDP 사례가 「운영 사례 블로그·발표」, Iceberg 지원 현황이 「Iceberg·레이크하우스」에 들어가 있습니다.
-
-개별 URL의 등급(확인됨/추정/미확인)은 원 조사 문서 본문의 인라인 태그를 따릅니다 — 이 표 자체는 출처 목록이며 등급을 재판정하지 않습니다.
+배포·스토리지·operator 조사는 2026-07-13~15, 무신사 CDP와 Iceberg 조사는 2026-08-12를 기준으로 합니다. 이후 보강 자료는 각 절에 시점을 적었습니다. 목록에 있는 URL이 현재 문서로 이동하더라도, 본문의 가격·버전·판단이 자동으로 갱신되는 것은 아닙니다.
 
 ## AWS 공식 스펙
 

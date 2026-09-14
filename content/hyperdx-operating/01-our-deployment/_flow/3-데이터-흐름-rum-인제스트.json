@@ -1,5 +1,5 @@
 {
-  "caption": "sdk=@hyperdx/browser SDK(rrweb 리플레이·에러·Web Vitals). otel=OTel Collector 게이트웨이(deployment ×2 + file_storage 큐). chi=CHI ClickHouse(otel_logs/traces/metrics + hyperdx_sessions). mongo=MCK members:3 또는 Atlas. api↔otel은 OpAMP(:4320) 한 축의 양방향 제어입니다 — Collector가 api에 접속하고 api가 파이프라인 설정을 배포합니다. chi↔chk도 한 축의 양방향 코디네이션(CH가 복제 메타 등록 ↔ Keeper가 복제·머지·DDL 지시, 데이터 흐름 아님).",
+  "caption": "표준 ClickStack 연결 참고도이며 자체 RUM 컨버터를 포함한 실제 배치는 앞의 수집·저장 토폴로지를 따릅니다. 아래 Collector 2개·영속 큐·MongoDB 3멤버는 prod 설계값입니다. sdk=@hyperdx/browser SDK(rrweb 리플레이·에러·Web Vitals). otel=OTel Collector 게이트웨이(deployment ×2 + file_storage 큐). chi=CHI ClickHouse(otel_logs/traces/metrics + hyperdx_sessions). mongo=MCK members:3 또는 Atlas. api↔otel은 OpAMP(:4320) 한 축의 양방향 제어입니다 — Collector가 api에 접속하고 api가 파이프라인 설정을 배포합니다. chi↔chk도 한 축의 양방향 코디네이션(CH가 복제 메타 등록 ↔ Keeper가 복제·머지·DDL 지시, 데이터 흐름 아님).",
   "groups": [
     {
       "id": "browser",
@@ -40,7 +40,7 @@
       "col": 1,
       "row": 0,
       "label": "OTel Collector",
-      "sub": "게이트웨이 ×2+큐",
+      "sub": "prod 목표: ×2+영속 큐",
       "kind": "proc"
     },
     {
@@ -79,7 +79,7 @@
       "col": 3,
       "row": 2,
       "label": "MongoDB",
-      "sub": "MCK 3 / Atlas",
+      "sub": "prod 목표: MCK 3 / Atlas",
       "kind": "store"
     }
   ],
