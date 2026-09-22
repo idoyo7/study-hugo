@@ -16,6 +16,9 @@ copyright = '© 2026 Mont'
 locale = 'ko-KR'
 defaultContentLanguage = 'ko'
 hasCJKLanguage = true
+# 날짜만 적은 frontmatter(2026-09-22)는 기본적으로 UTC 자정으로 읽혀 KST 09:00 전에는
+# "미래 글"로 분류돼 빌드에서 빠진다. 사이트 시간대를 고정해 그 날 00:00 KST부터 발행되게 한다.
+timeZone = 'Asia/Seoul'
 
 disableKinds = ['taxonomy', 'term']
 

@@ -1,0 +1,23 @@
+{
+  "caption": "스레드 풀이 서비스별로 나뉘어 있으면, 서비스 B가 느려져도 그 풀만 찹니다. 다만 이 격리는 한 프로세스 안의 호출 경로에 한정됩니다 — 서비스 B가 의지하는 공유 인프라 자체가 죽으면 이 벌크헤드는 막지 못합니다.",
+  "participants": [
+    { "id": "caller", "label": "호출 서비스" },
+    { "id": "pool", "label": "서비스 B 스레드 풀" },
+    { "id": "svcB", "label": "서비스 B" }
+  ],
+  "steps": [
+    { "msg": ["caller", "pool"], "label": "1. 요청 진입" },
+    {
+      "alt": "스레드 풀 여유",
+      "steps": [
+        { "msg": ["pool", "svcB"], "label": "2. 실행" },
+        { "msg": ["svcB", "caller"], "label": "3. 정상 응답" }
+      ],
+      "elseLabel": "스레드 풀 포화",
+      "elseSteps": [
+        { "note": ["pool"], "lines": ["대기열 가득 참", "새 요청은 큐에 안 들어감"] },
+        { "msg": ["pool", "caller"], "label": "4. 즉시 실패 → fallback", "dashed": true }
+      ]
+    }
+  ]
+}

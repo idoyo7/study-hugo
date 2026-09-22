@@ -1,0 +1,76 @@
+{
+  "caption": "PDT 10월 19일 23시 48분(첫 장애)을 0시간으로 놓은 경과 시간입니다. 세 국면과 전체 복구 구간이 겹치며 14시간 32분을 채웠습니다.",
+  "font": 1.05,
+  "note": "0h = PDT 10-19 23:48 (KST 10-20 15:48)",
+  "axis": {
+    "kind": "linear",
+    "max": 15,
+    "unit": "h",
+    "ticks": [
+      0,
+      3,
+      6,
+      9,
+      12,
+      15
+    ]
+  },
+  "lanes": [
+    {
+      "label": "DNS 장애",
+      "segments": [
+        {
+          "start": 0,
+          "end": 2.87,
+          "label": "빈 DNS 레코드",
+          "kind": "store"
+        }
+      ]
+    },
+    {
+      "label": "EC2 기동 장애",
+      "segments": [
+        {
+          "start": 2.62,
+          "end": 10.8,
+          "label": "신규 인스턴스 기동 실패",
+          "kind": "proc"
+        }
+      ]
+    },
+    {
+      "label": "NLB 플래핑",
+      "segments": [
+        {
+          "start": 5.7,
+          "end": 14.35,
+          "label": "헬스체크 진동·AZ failover",
+          "kind": "query"
+        }
+      ]
+    },
+    {
+      "label": "전체 복구",
+      "segments": [
+        {
+          "start": 12.22,
+          "end": 14.53,
+          "label": "EC2 정상화·종료",
+          "kind": "sink"
+        }
+      ]
+    }
+  ],
+  "markers": [
+    {
+      "at": 0.83,
+      "label": "원인 특정",
+      "kind": "query"
+    },
+    {
+      "at": 2.62,
+      "label": "DNS 복구",
+      "kind": "proc"
+    }
+  ]
+}

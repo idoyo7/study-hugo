@@ -1,0 +1,19 @@
+{
+  "caption": "같은 셀이라는 말이 조직마다 다른 경계를 가리킵니다. Slack은 가용 영역, Roblox는 머신 세트, GitLab은 조직, Shopify는 데이터스토어만 나눕니다.",
+  "font": 1.1,
+  "axis": { "kind": "category", "cols": ["AZ", "머신 세트", "조직·테넌트", "데이터스토어만"] },
+  "lanes": [
+    { "label": "Slack", "segments": [
+      { "col": 0, "label": "AZ 셀", "sub": "드레인 60초", "kind": "proc" }
+    ]},
+    { "label": "Roblox", "segments": [
+      { "col": 1, "label": "~1,400대", "sub": "머신 세트", "kind": "proc" }
+    ]},
+    { "label": "GitLab", "segments": [
+      { "col": 2, "label": "Organization", "sub": "Topology Service", "kind": "proc" }
+    ]},
+    { "label": "Shopify", "segments": [
+      { "col": 3, "label": "pod", "sub": "컴퓨트는 공유", "kind": "proc" }
+    ]}
+  ]
+}

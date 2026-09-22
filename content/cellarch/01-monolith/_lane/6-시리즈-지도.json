@@ -1,0 +1,31 @@
+{
+  "caption": "이 시리즈 전체의 지도입니다. 코드·배포·데이터·인프라 네 축에서 세대마다 한 겹씩 나뉘어 갑니다. MSA가 못 나눈 인프라의 공유 층 하나가 3편의 주제이고, 그걸 마저 나눈 자리가 셀입니다.",
+  "font": 1.05,
+  "axis": { "kind": "category", "cols": ["코드", "배포", "데이터", "인프라"] },
+  "lanes": [
+    { "label": "모놀리스", "sub": "01편", "segments": [
+      { "col": 0, "empty": true, "label": "하나" },
+      { "col": 1, "empty": true, "label": "하나" },
+      { "col": 2, "empty": true, "label": "단일 DB" },
+      { "col": 3, "kind": "proc", "label": "수평 확장" }
+    ]},
+    { "label": "SOA", "sub": "02편", "segments": [
+      { "col": 0, "kind": "store", "label": "서비스 단위" },
+      { "col": 1, "style": "hatch", "label": "부분 조율" },
+      { "col": 2, "empty": true, "label": "공유 DB" },
+      { "col": 3, "kind": "store", "label": "확장됨" }
+    ]},
+    { "label": "MSA", "sub": "02·03편", "segments": [
+      { "col": 0, "kind": "store", "label": "서비스 단위" },
+      { "col": 1, "kind": "store", "label": "독립 배포" },
+      { "col": 2, "kind": "store", "label": "서비스별 DB" },
+      { "col": 3, "style": "hatch", "label": "공유 층" }
+    ]},
+    { "label": "셀", "sub": "04편~", "segments": [
+      { "col": 0, "kind": "store", "label": "서비스 단위" },
+      { "col": 1, "kind": "store", "label": "독립 배포" },
+      { "col": 2, "kind": "store", "label": "완전 격리" },
+      { "col": 3, "kind": "store", "label": "전체 사본" }
+    ]}
+  ]
+}

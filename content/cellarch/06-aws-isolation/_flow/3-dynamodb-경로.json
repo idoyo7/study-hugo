@@ -1,0 +1,119 @@
+{
+  "caption": "데이터 플레인(굵은 선)은 요청마다 돕니다. 컨트롤 플레인(점선)은 파티션 헬스와 스케일링을 다루지만 요청 경로에는 끼지 않습니다 — 그래서 auto admin이 멎어도 이미 뜬 파티션은 계속 읽고 씁니다.",
+  "font": 1.1,
+  "groups": [
+    {
+      "id": "dp",
+      "label": "데이터 플레인",
+      "members": [
+        "router",
+        "memds",
+        "leader",
+        "replica1",
+        "replica2"
+      ]
+    },
+    {
+      "id": "cp",
+      "label": "컨트롤 플레인",
+      "members": [
+        "admin"
+      ],
+      "pad": 6
+    }
+  ],
+  "nodes": [
+    {
+      "id": "client",
+      "col": 0,
+      "row": 0,
+      "label": "클라이언트",
+      "kind": "src"
+    },
+    {
+      "id": "router",
+      "col": 1,
+      "row": 0,
+      "label": "Request Router",
+      "sub": "인증 · 라우팅",
+      "kind": "proc"
+    },
+    {
+      "id": "memds",
+      "col": 1,
+      "row": 1,
+      "label": "MemDS",
+      "sub": "메타데이터 캐시",
+      "kind": "store"
+    },
+    {
+      "id": "leader",
+      "col": 2,
+      "row": 0,
+      "label": "파티션 리더",
+      "sub": "쓰기 · 강한 읽기",
+      "kind": "store"
+    },
+    {
+      "id": "replica1",
+      "col": 3,
+      "row": 0,
+      "label": "복제본 1",
+      "kind": "store"
+    },
+    {
+      "id": "replica2",
+      "col": 3,
+      "row": 1,
+      "label": "복제본 2",
+      "kind": "store"
+    },
+    {
+      "id": "admin",
+      "col": 2,
+      "row": 2,
+      "label": "Auto Admin",
+      "sub": "파티션 헬스 · 스케일링",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "client",
+      "to": "router",
+      "label": "요청"
+    },
+    {
+      "from": "router",
+      "to": "memds",
+      "label": "조회"
+    },
+    {
+      "from": "router",
+      "to": "leader",
+      "label": "라우팅"
+    },
+    {
+      "from": "leader",
+      "to": "replica1",
+      "label": "복제"
+    },
+    {
+      "from": "leader",
+      "to": "replica2",
+      "label": "복제"
+    },
+    {
+      "from": "admin",
+      "to": "router",
+      "label": "제어",
+      "dashed": true
+    },
+    {
+      "from": "admin",
+      "to": "leader",
+      "label": "제어",
+      "dashed": true
+    }
+  ]
+}

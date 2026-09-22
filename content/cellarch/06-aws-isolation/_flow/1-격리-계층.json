@@ -1,0 +1,23 @@
+{
+  "caption": "리전 안에 AZ, AZ 안에 셀이 겹겹이 놓입니다. 그런데 이 그림에도 예외가 있습니다 — 오른쪽 점선이 가리키듯 일부 글로벌 서비스의 컨트롤 플레인은 리전 경계를 벗어나 us-east-1 한 곳에 몰려 있습니다.",
+  "font": 1.1,
+  "groups": [
+    { "id": "region", "label": "Region", "members": ["cellA1", "cellA2", "cellB1", "cellB2"] },
+    { "id": "az_a", "label": "AZ-a", "members": ["cellA1", "cellA2"], "pad": 6 },
+    { "id": "az_b", "label": "AZ-b", "members": ["cellB1", "cellB2"], "pad": 6 }
+  ],
+  "nodes": [
+    { "id": "client", "col": 0, "row": 0, "label": "클라이언트", "kind": "src" },
+    { "id": "cellA1", "col": 1, "row": 0, "label": "셀 A-1", "sub": "앱 + 데이터", "kind": "store" },
+    { "id": "cellA2", "col": 1, "row": 1, "label": "셀 A-2", "sub": "앱 + 데이터", "kind": "store" },
+    { "id": "cellB1", "col": 2, "row": 0, "label": "셀 B-1", "sub": "앱 + 데이터", "kind": "store" },
+    { "id": "cellB2", "col": 2, "row": 1, "label": "셀 B-2", "sub": "앱 + 데이터", "kind": "store" },
+    { "id": "cp", "col": 3, "row": 0, "label": "글로벌 컨트롤", "sub": "us-east-1 단일", "kind": "sink", "ghost": true }
+  ],
+  "edges": [
+    { "from": "client", "to": "cellA1", "label": "라우팅" },
+    { "from": "client", "to": "cellB1", "label": "라우팅" },
+    { "from": "cellA1", "to": "cp", "label": "예외", "dashed": true },
+    { "from": "cellB2", "to": "cp", "label": "예외", "dashed": true }
+  ]
+}

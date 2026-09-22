@@ -1,0 +1,25 @@
+{
+  "caption": "워커 8대 중 2대를 고르는 조합은 순서를 세면 56가지, 순서 없이 세면 28가지입니다. 고객 A와 B가 워커 한 대를 함께 쓰더라도, 나머지 한 대씩은 겹치지 않아 한쪽 장애가 다른 쪽 전체를 덮치지 않습니다.",
+  "font": 1.1,
+  "groups": [
+    { "id": "pool", "label": "워커 풀 · 8대", "members": ["w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8"] }
+  ],
+  "nodes": [
+    { "id": "custA", "col": 0, "row": 0, "label": "고객 A", "kind": "src" },
+    { "id": "custB", "col": 3, "row": 0, "label": "고객 B", "kind": "query" },
+    { "id": "w1", "col": 0, "row": 1, "label": "워커1", "kind": "proc" },
+    { "id": "w2", "col": 1, "row": 1, "label": "워커2", "kind": "proc" },
+    { "id": "w3", "col": 2, "row": 1, "label": "워커3", "kind": "proc" },
+    { "id": "w4", "col": 3, "row": 1, "label": "워커4", "kind": "proc" },
+    { "id": "w5", "col": 0, "row": 2, "label": "워커5", "kind": "proc" },
+    { "id": "w6", "col": 1, "row": 2, "label": "워커6", "sub": "겹침 지점", "kind": "proc" },
+    { "id": "w7", "col": 2, "row": 2, "label": "워커7", "kind": "proc" },
+    { "id": "w8", "col": 3, "row": 2, "label": "워커8", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "custA", "to": "w1", "label": "배정" },
+    { "from": "custA", "to": "w6", "label": "배정" },
+    { "from": "custB", "to": "w6", "label": "배정" },
+    { "from": "custB", "to": "w8", "label": "배정" }
+  ]
+}

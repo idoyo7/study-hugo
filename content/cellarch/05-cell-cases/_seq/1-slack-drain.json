@@ -1,0 +1,18 @@
+{
+  "caption": "Rotor가 RTDS로 가중치를 1%씩 낮추면, siloed 서비스는 60초 안에 셀 A에서 빠집니다. 전체 목표는 5분입니다.",
+  "participants": [
+    { "id": "op", "label": "오퍼레이터" },
+    { "id": "rotor", "label": "Rotor (xDS)" },
+    { "id": "envoy", "label": "Envoy 엣지 LB" },
+    { "id": "silo", "label": "셀 A 서비스" }
+  ],
+  "steps": [
+    { "msg": ["op", "rotor"], "label": "1. AZ 드레인 시작" },
+    { "msg": ["rotor", "envoy"], "label": "2. RTDS 가중치 갱신" },
+    { "note": ["envoy"], "lines": ["가중치 100%→0%", "1% 단위로 이동"] },
+    { "msg": ["envoy", "silo"], "label": "3. 트래픽 점감", "dashed": true },
+    { "note": ["silo"], "lines": ["in-flight 요청 완주", "새 요청 없음"] },
+    { "msg": ["silo", "envoy"], "label": "4. 드레인 완료", "dashed": true },
+    { "note": ["op", "envoy"], "lines": ["siloed 서비스 60초", "전체 목표 5분"] }
+  ]
+}

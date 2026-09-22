@@ -1,0 +1,31 @@
+{
+  "caption": "지속 시간만 보면 자릿수가 다릅니다. Consul 클러스터 하나가 붙잡은 Roblox의 73시간은 이 목록에서 가장 깁니다.",
+  "font": 1.1,
+  "axis": { "kind": "linear", "max": 80, "unit": "h", "ticks": [0, 20, 40, 60, 80] },
+  "lanes": [
+    { "label": "Roblox 2021-10", "segments": [
+      { "start": 0, "end": 73, "label": "73시간", "kind": "store" }
+    ]},
+    { "label": "Datadog 2023-03", "segments": [
+      { "start": 0, "end": 27, "label": "27시간", "kind": "store" }
+    ]},
+    { "label": "GCP 2025-06", "sub": "2차 출처", "segments": [
+      { "start": 0, "end": 7, "label": "~7시간 ?", "kind": "query" }
+    ]},
+    { "label": "Facebook 2021-10", "segments": [
+      { "start": 0, "end": 6, "label": "6시간", "kind": "src" }
+    ]},
+    { "label": "Cloudflare 2025-11", "segments": [
+      { "start": 0, "end": 6, "label": "6시간", "kind": "sink" }
+    ]},
+    { "label": "AWS S3 2017", "segments": [
+      { "start": 0, "end": 4.3, "label": "4시간 17분", "kind": "store" }
+    ]},
+    { "label": "Slack 2021-01", "segments": [
+      { "start": 0, "end": 3.5, "label": "3.5시간", "kind": "src" }
+    ]},
+    { "label": "Cloudflare 2019", "segments": [
+      { "start": 0, "end": 0.45, "label": "27분", "kind": "proc" }
+    ]}
+  ]
+}

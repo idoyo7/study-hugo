@@ -1,0 +1,18 @@
+{
+  "caption": "Consul 클러스터 하나가 서비스 디스커버리·Nomad 스케줄링·Vault 시크릿·관측을 전부 떠받쳤고, 복구를 위한 재조회가 같은 클러스터를 다시 두드리며 73시간을 만들었습니다.",
+  "participants": [
+    { "id": "svc", "label": "서비스 트래픽" },
+    { "id": "consul", "label": "Consul 클러스터" },
+    { "id": "nomad", "label": "Nomad · Vault" },
+    { "id": "obs", "label": "관측 도구" }
+  ],
+  "steps": [
+    { "msg": ["svc", "consul"], "label": "1. 조회 폭주(읽기+쓰기)" },
+    { "note": ["consul"], "lines": ["단일 Go 채널 경합", "BoltDB 프리리스트 매 append 재기록"] },
+    { "msg": ["consul", "nomad"], "label": "3. 응답 지연 2~3초", "dashed": true },
+    { "note": ["nomad"], "lines": ["컨테이너 스케줄링 정지", "Vault 시크릿 조회 실패"] },
+    { "msg": ["consul", "obs"], "label": "5. 메트릭 조회 실패", "dashed": true },
+    { "note": ["obs"], "lines": ["장애 원인을 볼 도구가 Consul에 의존"] },
+    { "msg": ["obs", "consul"], "label": "7. 복구 위해 재조회 폭주" }
+  ]
+}

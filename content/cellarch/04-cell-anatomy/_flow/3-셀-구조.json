@@ -1,0 +1,29 @@
+{
+  "caption": "라우터는 매핑만 읽는 얇은 층 하나이고, 셀마다 앱과 데이터베이스를 통째로 품습니다. 셀 B가 다른 셀의 데이터가 필요할 때도 옆 셀을 직접 찌르지 않고 라우터를 다시 거칩니다.",
+  "font": 1.1,
+  "groups": [
+    { "id": "cellA", "label": "셀 A", "members": ["cellA_app", "cellA_db"] },
+    { "id": "cellB", "label": "셀 B", "members": ["cellB_app", "cellB_db"] },
+    { "id": "cellC", "label": "셀 C", "members": ["cellC_app", "cellC_db"] }
+  ],
+  "nodes": [
+    { "id": "router", "col": 1, "row": 1, "label": "셀 라우터", "sub": "가장 얇은 층", "kind": "proc" },
+    { "id": "cellA_app", "col": 2, "row": 0, "label": "앱", "kind": "proc" },
+    { "id": "cellA_db", "col": 3, "row": 0, "label": "DB", "kind": "store" },
+    { "id": "cellB_app", "col": 2, "row": 1, "label": "앱", "kind": "proc" },
+    { "id": "cellB_db", "col": 3, "row": 1, "label": "DB", "kind": "store" },
+    { "id": "cellC_app", "col": 2, "row": 2, "label": "앱", "kind": "proc" },
+    { "id": "cellC_db", "col": 3, "row": 2, "label": "DB", "kind": "store" },
+    { "id": "cp", "col": 1, "row": 3, "label": "컨트롤 플레인", "sub": "프로비저닝·매핑", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "router", "to": "cellA_app", "label": "라우팅" },
+    { "from": "router", "to": "cellB_app", "label": "라우팅" },
+    { "from": "router", "to": "cellC_app", "label": "라우팅" },
+    { "from": "cellA_app", "to": "cellA_db", "label": "저장" },
+    { "from": "cellB_app", "to": "cellB_db", "label": "저장" },
+    { "from": "cellC_app", "to": "cellC_db", "label": "저장" },
+    { "from": "cellB_app", "to": "router", "label": "재조회", "dashed": true },
+    { "from": "cp", "to": "router", "label": "매핑 갱신", "dashed": true }
+  ]
+}

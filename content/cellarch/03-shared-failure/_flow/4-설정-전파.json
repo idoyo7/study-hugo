@@ -1,0 +1,21 @@
+{
+  "caption": "ClickHouse 권한 변경 하나가 피처 파일을 한계 너머로 부풀렸고, 같은 배포 경로가 5분마다 그 파일을 전 네트워크에 실어 날랐습니다.",
+  "nodes": [
+    { "id": "ch", "col": 0, "row": 0, "label": "ClickHouse 권한 변경", "kind": "store" },
+    { "id": "gen", "col": 1, "row": 0, "label": "피처 파일 생성기", "sub": "행 중복 → 한계 초과", "kind": "proc" },
+    { "id": "push", "col": 2, "row": 0, "label": "배포 경로", "sub": "5분 주기", "kind": "proc" },
+    { "id": "e1", "col": 3, "row": 0, "label": "엣지 A", "kind": "sink" },
+    { "id": "e2", "col": 3, "row": 1, "label": "엣지 B", "kind": "sink" },
+    { "id": "e3", "col": 3, "row": 2, "label": "엣지 N", "kind": "sink", "ghost": true }
+  ],
+  "edges": [
+    { "from": "ch", "to": "gen", "label": "중복 행" },
+    { "from": "gen", "to": "push", "label": "파일 2배" },
+    { "from": "push", "to": "e1", "label": "배포" },
+    { "from": "push", "to": "e2", "label": "배포" },
+    { "from": "push", "to": "e3", "label": "배포", "dashed": true }
+  ],
+  "groups": [
+    { "id": "fleet", "label": "전 네트워크", "members": ["e1", "e2", "e3"] }
+  ]
+}

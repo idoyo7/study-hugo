@@ -1,0 +1,23 @@
+{
+  "caption": "부하가 늘면 앱 서버를 나란히 늘려 견딥니다. 하지만 그 뒤에 놓인 DB가 하나면, 확장은 됐어도 장애가 퍼지는 범위는 처음과 같습니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "lb", "col": 0, "row": 1, "label": "로드밸런서", "sub": "L4/L7", "kind": "proc" },
+    { "id": "app1", "col": 1, "row": 0, "label": "앱 서버 1", "kind": "proc" },
+    { "id": "app2", "col": 1, "row": 1, "label": "앱 서버 2", "kind": "proc" },
+    { "id": "app3", "col": 1, "row": 2, "label": "앱 서버 N", "kind": "proc" },
+    { "id": "db", "col": 2, "row": 1, "label": "단일 DB", "sub": "모든 앱이 공유", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "lb", "to": "app1", "label": "요청" },
+    { "from": "lb", "to": "app2" },
+    { "from": "lb", "to": "app3" },
+    { "from": "app1", "to": "db" },
+    { "from": "app2", "to": "db", "label": "질의" },
+    { "from": "app3", "to": "db" }
+  ],
+  "groups": [
+    { "id": "faildomain", "label": "장애 도메인 하나 — DB가 전체를 묶는다", "members": ["app1", "app2", "app3", "db"], "pad": 28 },
+    { "id": "appscale", "label": "확장은 여기까지 — 앱 서버 대수만 늘어난다", "members": ["app1", "app2", "app3"], "pad": 10 }
+  ]
+}

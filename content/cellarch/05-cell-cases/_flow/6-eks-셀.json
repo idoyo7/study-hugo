@@ -1,0 +1,43 @@
+{
+  "caption": "Route 53가 세 클러스터로 트래픽을 33/33/34로 나누고, ApplicationSet은 같은 매니페스트를 점선으로 각 셀에 찍어 넣습니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "client", "col": 0, "row": 1, "label": "클라이언트", "kind": "src" },
+    { "id": "r53", "col": 1, "row": 1, "label": "Route 53", "sub": "가중 라우팅", "kind": "sink" },
+    { "id": "appset", "col": 1, "row": 3, "label": "ApplicationSet", "sub": "클러스터 제너레이터", "kind": "proc" },
+
+    { "id": "ingA", "col": 2, "row": 0, "label": "Istio ingress", "kind": "proc" },
+    { "id": "appA", "col": 2, "row": 1, "label": "앱", "kind": "proc" },
+    { "id": "dbA", "col": 2, "row": 2, "label": "DB", "kind": "store" },
+
+    { "id": "ingB", "col": 3, "row": 0, "label": "Istio ingress", "kind": "proc" },
+    { "id": "appB", "col": 3, "row": 1, "label": "앱", "kind": "proc" },
+    { "id": "dbB", "col": 3, "row": 2, "label": "DB", "kind": "store" },
+
+    { "id": "ingC", "col": 4, "row": 0, "label": "Istio ingress", "kind": "proc" },
+    { "id": "appC", "col": 4, "row": 1, "label": "앱", "kind": "proc" },
+    { "id": "dbC", "col": 4, "row": 2, "label": "DB", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "client", "to": "r53", "label": "요청" },
+    { "from": "r53", "to": "ingA", "label": "33%" },
+    { "from": "r53", "to": "ingB", "label": "33%" },
+    { "from": "r53", "to": "ingC", "label": "34%" },
+
+    { "from": "ingA", "to": "appA" },
+    { "from": "appA", "to": "dbA" },
+    { "from": "ingB", "to": "appB" },
+    { "from": "appB", "to": "dbB" },
+    { "from": "ingC", "to": "appC" },
+    { "from": "appC", "to": "dbC" },
+
+    { "from": "appset", "to": "ingA", "label": "스탬핑", "dashed": true },
+    { "from": "appset", "to": "ingB", "label": "스탬핑", "dashed": true },
+    { "from": "appset", "to": "ingC", "label": "스탬핑", "dashed": true }
+  ],
+  "groups": [
+    { "id": "cellA", "label": "셀 A · AZ-1", "members": ["ingA", "appA", "dbA"] },
+    { "id": "cellB", "label": "셀 B · AZ-2", "members": ["ingB", "appB", "dbB"] },
+    { "id": "cellC", "label": "셀 C · AZ-3", "members": ["ingC", "appC", "dbC"] }
+  ]
+}

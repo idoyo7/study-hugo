@@ -1,0 +1,22 @@
+{
+  "caption": "DNS 레코드 하나가 빈 뒤 EC2 컨트롤 플레인 → NLB 헬스체크 → 컴퓨트 서비스로 장애가 번졌습니다. 같은 시각 DynamoDB의 저장 계층과 다른 리전은 이 사슬 바깥에 그대로 남았습니다.",
+  "font": 1.05,
+  "nodes": [
+    { "id": "ddns", "col": 0, "row": 0, "label": "DynamoDB DNS", "sub": "리전 엔드포인트 레코드", "kind": "store" },
+    { "id": "dwfm", "col": 1, "row": 0, "label": "EC2 DWFM", "sub": "droplet 리스 재수립", "kind": "proc" },
+    { "id": "netmgr", "col": 2, "row": 0, "label": "Network Manager", "sub": "설정 전파 백로그", "kind": "proc" },
+    { "id": "nlb", "col": 3, "row": 0, "label": "NLB 헬스체크", "sub": "healthy↔failing 진동", "kind": "query" },
+    { "id": "compute", "col": 4, "row": 0, "label": "Lambda·ECS·EKS", "sub": "용량 부족·기동 실패", "kind": "sink" },
+
+    { "id": "storage", "col": 0, "row": 1, "label": "DynamoDB 스토리지·파티션", "sub": "손상 없음", "kind": "store", "ghost": true },
+    { "id": "otherregion", "col": 1, "row": 1, "label": "다른 리전", "sub": "정상 운영", "kind": "store", "ghost": true }
+  ],
+  "edges": [
+    { "from": "ddns", "to": "dwfm", "label": "리스 실패" },
+    { "from": "dwfm", "to": "netmgr", "label": "정체 붕괴" },
+    { "from": "netmgr", "to": "nlb", "label": "전파 지연" },
+    { "from": "nlb", "to": "compute", "label": "AZ failover" },
+    { "from": "ddns", "to": "storage", "label": "격리", "dashed": true },
+    { "from": "ddns", "to": "otherregion", "label": "격리", "dashed": true }
+  ]
+}

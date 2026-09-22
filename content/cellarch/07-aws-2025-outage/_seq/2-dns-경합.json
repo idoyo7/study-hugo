@@ -1,0 +1,31 @@
+{
+  "caption": "Enactor 두 대가 서로 독립적으로 Route 53을 갱신하도록 설계했는데, 그 중복 자체가 경합을 만들었습니다. 지연된 A가 낡은 플랜을 덮어쓰자, B의 정리 절차가 그 낡은 플랜을 지워 레코드가 통째로 비었습니다.",
+  "font": 1.05,
+  "participants": [
+    { "id": "planner", "label": "DNS Planner" },
+    { "id": "enactorA", "label": "DNS Enactor A" },
+    { "id": "enactorB", "label": "DNS Enactor B" },
+    { "id": "route53", "label": "Route 53 레코드" }
+  ],
+  "steps": [
+    { "msg": ["planner", "enactorA"], "label": "1. 플랜 N 배포" },
+    { "msg": ["planner", "enactorB"], "label": "2. 플랜 N+9 배포" },
+    {
+      "alt": "Enactor A가 지연될 때",
+      "steps": [
+        { "note": ["enactorA"], "lines": ["엔드포인트마다 재시도하며 지연", "시작 시 최신성 검사는 단 1회뿐"] },
+        { "msg": ["enactorB", "route53"], "label": "3. N+9 적용 완료" },
+        { "msg": ["enactorB", "route53"], "label": "4. 오래된 플랜 정리 시작", "dashed": true },
+        { "msg": ["enactorA", "route53"], "label": "5. 지연된 N 적용" },
+        { "note": ["route53"], "lines": ["최신성 검사는 이미 stale", "활성 플랜이 N으로 덮어써짐"] },
+        { "msg": ["enactorB", "route53"], "label": "6. 정리 절차가 N을 삭제" },
+        { "note": ["route53"], "lines": ["레코드의 모든 IP 즉시 제거", "빈 레코드 · 수동 개입 필요"] }
+      ],
+      "elseLabel": "지연 없이 순서대로일 때",
+      "elseSteps": [
+        { "msg": ["enactorA", "route53"], "label": "3. N 적용 · 검사 통과" },
+        { "note": ["route53"], "lines": ["다음 주기에 N+9로", "정상 교체"] }
+      ]
+    }
+  ]
+}

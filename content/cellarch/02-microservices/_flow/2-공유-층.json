@@ -1,0 +1,38 @@
+{
+  "caption": "서비스마다 DB는 따로 있지만, 이벤트 버스와 설정·디스커버리는 셋이 함께 씁니다. 위가 여러 개라도 아래가 하나면 장애 도메인은 여전히 하나입니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "gw", "col": 0, "row": 1, "label": "API 게이트웨이", "kind": "proc" },
+
+    { "id": "svcA", "col": 1, "row": 0, "label": "서비스 A", "kind": "proc" },
+    { "id": "svcB", "col": 1, "row": 1, "label": "서비스 B", "kind": "proc" },
+    { "id": "svcC", "col": 1, "row": 2, "label": "서비스 C", "kind": "proc" },
+
+    { "id": "dbA", "col": 2, "row": 0, "label": "DB A", "kind": "store" },
+    { "id": "dbB", "col": 2, "row": 1, "label": "DB B", "kind": "store" },
+    { "id": "dbC", "col": 2, "row": 2, "label": "DB C", "kind": "store" },
+
+    { "id": "kafka", "col": 1, "row": 3, "label": "이벤트 버스", "sub": "Kafka", "kind": "query" },
+    { "id": "cfgdisco", "col": 0, "row": 3, "label": "설정·디스커버리", "sub": "공유 저장소", "kind": "query" }
+  ],
+  "edges": [
+    { "from": "gw", "to": "svcA", "label": "요청" },
+    { "from": "gw", "to": "svcB", "label": "요청" },
+    { "from": "gw", "to": "svcC", "label": "요청" },
+
+    { "from": "svcA", "to": "dbA" },
+    { "from": "svcB", "to": "dbB" },
+    { "from": "svcC", "to": "dbC" },
+
+    { "from": "svcA", "to": "kafka", "dashed": true },
+    { "from": "svcB", "to": "kafka", "dashed": true },
+    { "from": "svcC", "to": "kafka", "dashed": true },
+
+    { "from": "svcA", "to": "cfgdisco", "dashed": true },
+    { "from": "svcB", "to": "cfgdisco", "dashed": true },
+    { "from": "svcC", "to": "cfgdisco", "dashed": true }
+  ],
+  "groups": [
+    { "id": "shared", "label": "공유 층", "members": ["kafka", "cfgdisco"] }
+  ]
+}
