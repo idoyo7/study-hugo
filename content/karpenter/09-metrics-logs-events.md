@@ -1,5 +1,6 @@
 ---
 title: "무엇을 봐야 하나 — 메트릭·로그·이벤트"
+description: "코어가 export하는 메트릭 60개를 전량 열거하고 disrupted_total의 reason 라벨로 노드가 왜 갈렸는지 가릅니다. 판정 로그는 debug 레벨에서만 나오고 이벤트에는 dedupe 창이 있습니다."
 date: 2026-07-30
 lastmod: 2026-08-16
 weight: 9

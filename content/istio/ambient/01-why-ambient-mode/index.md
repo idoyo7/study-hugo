@@ -1,5 +1,6 @@
 ---
 title: "왜 Ambient mode인가"
+description: "채널코퍼레이션이 검증된 Sidecar mode 대신 Istio 1.24 GA Ambient mode를 첫 도입 대상으로 고른 이유를 다룹니다. 사이드카 240Gi 메모리와 컨트롤 플레인 polynomial scaling이 결정을 갈랐습니다."
 date: 2026-08-01
 lastmod: 2026-08-24
 weight: 1

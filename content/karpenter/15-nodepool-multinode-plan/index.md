@@ -1,5 +1,6 @@
 ---
 title: "15 · NodePool별 MultiNode 최소 변경 계획"
+description: "전역 SavingsRatio 정렬 후 prefix만 이진 탐색하는 현재 구조가 후보 30개 중 4개 prefix만 평가한다는 문제를 짚고, NodePool별 opt-in coverage를 추가하는 최소 변경 계획을 세웁니다."
 date: 2026-08-04
 lastmod: 2026-08-24
 linkTitle: "15 NodePool별 MultiNode 구현계획"

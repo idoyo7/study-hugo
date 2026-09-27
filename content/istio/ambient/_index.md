@@ -1,5 +1,6 @@
 ---
 title: "Ambient mode 도입기 (채널코퍼레이션)"
+description: "채널코퍼레이션이 8개월에 걸쳐 Ambient mode를 프로덕션에 올린 기록 6편을 요약합니다. 4,000파드·240Gi 메모리 계산과 노드·namespace 단위로 커진 장애 격리 대가를 다룹니다."
 date: 2026-07-28
 lastmod: 2026-08-24
 weight: 20

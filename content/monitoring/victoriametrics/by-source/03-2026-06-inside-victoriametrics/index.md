@@ -1,5 +1,6 @@
 ---
 title: "Inside VictoriaMetrics"
+description: "vmagent·vminsert·vmstorage·vmselect 네 컴포넌트를 데이터 흐름 순서로 훑습니다. 이름·레이블은 IndexDB로, timestamp·value는 DataDB로 나누고 Gorilla 계열 차분 인코딩으로 압축합니다."
 date: 2026-08-01
 lastmod: 2026-08-24
 weight: 3

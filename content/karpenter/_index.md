@@ -1,5 +1,6 @@
 ---
 title: "Karpenter"
+description: "0.36부터 1.14까지 버전별 행동 변화와, 인스턴스 가격을 실제로 정하는 주체가 EC2 CreateFleet이라는 알고리즘 두 축을 함수·PR 단위로 뜯어 무엇을 켜고 조심할지 판단합니다."
 date: 2026-07-30
 lastmod: 2026-08-24
 weight: 110

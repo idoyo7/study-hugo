@@ -1,5 +1,6 @@
 ---
 title: "Redis · Valkey · Memcached"
+description: "Redis는 8.10에서 멈췄고 9.x는 Valkey에만 있습니다. RDB 버전이 마이그레이션 방향을 정하고 ElastiCache의 Redis OSS는 7.1에 묶여 있다는 사실까지 엔진별로 정리합니다."
 date: 2026-08-06
 lastmod: 2026-08-24
 weight: 120
