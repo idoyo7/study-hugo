@@ -2,7 +2,7 @@
 title: "우리의 운영"
 date: 2026-07-18
 lastmod: 2026-09-27
-weight: 3
+weight: 2
 comments: false
 ---
 
@@ -10,7 +10,7 @@ comments: false
 
 {{< callout type="info" >}}
 - 이 서브섹션은 네이버 D2 사례 대신 우리 환경의 실제 구성·튜닝·기준치·노하우를 다룹니다.
-- 출발점은 k8s 위에 VM operator로 띄운 stateless vmagent입니다. 이 vmagent가 중앙 VM 클러스터의 vminsert로 `remote_write` 합니다.
+- 각 워크로드 클러스터의 vmagent가 수집·전송을 맡고, 원격 저장 클러스터의 vmstorage가 메트릭을 영속 보관합니다.
 - Phase 1에서는 VM native protocol(zstd)을 고정하고(`forceVMProto`) 디스크 큐 상한을 명시했습니다(`maxDiskUsagePerURL`).
 - 개념(concepts)에서 배운 원리와 실전(practice)의 설계 원칙을 우리 값·우리 임계로 옮긴 계층입니다.
 {{< /callout >}}
@@ -37,7 +37,7 @@ concepts는 네이버 D2/DEVIEW 발표를 정독해 VM의 내부 동작을 잡�
 | [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) | Phase 1 | `forceVMProto`(zstd 고정)·`maxDiskUsagePerURL`(디스크 큐 상한), 적용 순서 |
 | [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) | 관측 | 전송 재시도·드랍·바이트·pending 큐 4지표 + 카디널리티 인벤토리 |
 | [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) | 용량 | 디스크 큐 산정식, 리소스 기준치, HA 트레이드오프, slow insert 임계 |
-| [05 vmagent AZ 분할]({{< relref "05-vmagent-az-split.md" >}}) | 비용 | Node 메타데이터로 CR-A/CR-B 분리, cross-AZ scrape 제거, 전환 실측·쓰기 경로 잔여 비용 |
+| [05 클러스터 간 전송과 AZ 분할]({{< relref "05-vmagent-az-split.md" >}}) | 통신·비용 | 클러스터별 수집 → 원격 저장 구조, AZ별 scrape 분할과 전환 실측 |
 
 ## 읽는 순서
 
@@ -45,4 +45,4 @@ concepts는 네이버 D2/DEVIEW 발표를 정독해 VM의 내부 동작을 잡�
 - 02에서 Phase 1의 zstd 고정·디스크 큐 상한 변경 근거를 봅니다.
 - 03의 자기감시 메트릭 4개로 적용 효과와 이상을 판정합니다.
 - 04에서 큐 상한 산정식과 리소스·HA 기준치를 정리합니다.
-- 05에서 vmagent를 AZ별로 나눠 cross-AZ scrape 비용을 없앤 과정과 남은 쓰기 경로 비용을 봅니다.
+- 05에서 클러스터별 수집과 원격 저장 사이의 통신 구조를 잡고, vmagent의 AZ 분할로 scrape 경로를 개선한 과정을 봅니다.

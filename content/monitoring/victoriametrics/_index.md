@@ -9,7 +9,7 @@ comments: false
 
 # VictoriaMetrics
 
-VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스입니다. ① 기본 개념은 네이버 D2/DEVIEW 발표 2편과 텍스트 기사 2편을 정독해 데이터가 들어와서 → 저장되고 → 쿼리로 나가기까지 VM 내부 동작을 파헤칩니다. ② 잘 쓰는 방법은 그렇게 얻은 내부 동작에서 끌어낸 설계 원칙과 초대규모 운영 패턴입니다. ③ 우리의 운영은 실제 우리 스택의 구성·튜닝·기준치·노하우를 기록합니다.
+VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스입니다. ① 기본 개념은 네이버 D2/DEVIEW 발표 2편과 텍스트 기사 2편을 정독해 데이터가 들어와서 → 저장되고 → 쿼리로 나가기까지 VM 내부 동작을 파헤칩니다. ② 우리의 운영은 실제 우리 스택의 구성·튜닝·기준치·노하우를 기록합니다. ③ 잘 쓰는 방법은 내부 동작에서 끌어낸 설계 원칙과 초대규모 운영 패턴입니다.
 
 > 원본 출처와 전사 방법은 [소스맵]({{< relref "concepts/06-sources.md" >}}) 참고.
 > 원문(발표·기사)별로 보고 싶으면 [원문별 정리]({{< relref "by-source/_index.md" >}}) — 네이버 D2 자료 4건을 게시 순서대로 각각 한 문서에 충실히 재구성했습니다.
@@ -28,17 +28,7 @@ VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스입�
 | [05 쿼리·운영 컴포넌트]({{< relref "concepts/05-query-and-ops-components.md" >}}) | vmselect fanout·3-prefix 검색·캐시, vmalert 선계산, vmauth 라우팅 |
 | [06 소스맵]({{< relref "concepts/06-sources.md" >}}) | 발표 영상·기사·전사본 원본 가이드 |
 
-## ② 잘 쓰는 방법
-
-내부 동작에서 끌어낸 설계 원칙과 수천만~수십억 시계열 규모의 실전 운영 패턴입니다. 운영자라면 이 갈래가 실무에 바로 붙습니다.
-
-| 문서 | 한 줄 요약 |
-|------|-----------|
-| [01 카디널리티]({{< relref "practice/01-cardinality.md" >}}) | New TSID 폭발의 원리, best/worst case, churn·slow insert 감시 지표 |
-| [02 초대규모 운영과 무중단 전환]({{< relref "practice/02-operations-at-scale.md" >}}) | 멀티버스(멀티클러스터), Hot/Warm 2계층, 12.5억 시계열, 무중단 장비 전환 |
-| [03 쿼리 패턴]({{< relref "practice/03-query-patterns.md" >}}) | PromQL 기본(rate·histogram_quantile·sum by)·MetricsQL 확장, 무거운 쿼리 회피, 카디널리티 점검 |
-
-## ③ 우리의 운영
+## ② 우리의 운영
 
 우리 스택을 어떻게 구성했는지, 운영하며 정리한 튜닝·기준치·노하우가 무엇인지를 담았습니다. 우리 환경을 파악하려면 여기를 봅니다.
 
@@ -48,7 +38,17 @@ VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스입�
 | [02 vmagent 전송 튜닝]({{< relref "ours/02-vmagent-transport-tuning.md" >}}) | 중앙 vminsert로 향하는 remote write 전송 파라미터(큐·동시성·재시도) 튜닝 |
 | [03 자기감시 메트릭]({{< relref "ours/03-self-monitoring-metrics.md" >}}) | VM 스택 자체를 감시하는 핵심 메트릭과 관측 포인트 |
 | [04 스케일링·용량 기준치]({{< relref "ours/04-scaling-thresholds.md" >}}) | 언제 스케일아웃할지 판단하는 용량 기준치와 지표 |
-| [05 vmagent AZ 분할]({{< relref "ours/05-vmagent-az-split.md" >}}) | Node 메타데이터로 vmagent를 AZ별 CR 둘로 나눠 cross-AZ scrape 비용을 없앤 과정 |
+| [05 클러스터 간 전송과 AZ 분할]({{< relref "ours/05-vmagent-az-split.md" >}}) | 클러스터별 vmagent 수집 → 원격 저장 구조와 AZ별 scrape 분할 과정 |
+
+## ③ 잘 쓰는 방법
+
+내부 동작에서 끌어낸 설계 원칙과 수천만~수십억 시계열 규모의 실전 운영 패턴입니다. 운영자라면 이 갈래가 실무에 바로 붙습니다.
+
+| 문서 | 한 줄 요약 |
+|------|-----------|
+| [01 카디널리티]({{< relref "practice/01-cardinality.md" >}}) | New TSID 폭발의 원리, best/worst case, churn·slow insert 감시 지표 |
+| [02 초대규모 운영과 무중단 전환]({{< relref "practice/02-operations-at-scale.md" >}}) | 멀티버스(멀티클러스터), Hot/Warm 2계층, 12.5억 시계열, 무중단 장비 전환 |
+| [03 쿼리 패턴]({{< relref "practice/03-query-patterns.md" >}}) | PromQL 기본(rate·histogram_quantile·sum by)·MetricsQL 확장, 무거운 쿼리 회피, 카디널리티 점검 |
 
 ## 원문별로 보기 — 참조한 D2 원문 4건
 
@@ -65,7 +65,7 @@ VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스입�
 
 - 처음이라면 기본 개념 01 → 02 → 03 → 04 → 05 순으로 큰 그림을 잡고 컴포넌트별 내부 동작을 따라갑니다. 원본이 궁금하면 06 소스맵.
 - 운영자·설계자라면 잘 쓰는 방법 01(카디널리티) → 02(초대규모 운영)가 실무 직결입니다. 02의 무중단 전략(랑데부 역순 추가)은 기본 개념 03의 랑데부 해싱·복제 원리를 먼저 이해해야 와닿습니다.
-- 우리 환경을 파악하려면 우리의 운영 01(스택 구성) → 02 → 03 → 04.
+- 우리 환경을 파악하려면 우리의 운영 01(스택 구성) → 02 → 03 → 04 → 05(클러스터 간 전송과 AZ 분할).
 
 ## 공통 핵심
 

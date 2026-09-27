@@ -1,5 +1,5 @@
 {
-  "caption": "ASIS는 2a의 vmagent 한 대가 2c 타깃까지 긁어 scrape 응답이 AZ를 넘고, TOBE는 CR-A·CR-B가 각자 AZ만 맡아 CR-B의 remoteWrite 한 갈래만 AZ를 넘는다. 주황 파티클이 AZ를 넘는 흐름이다.",
+  "caption": "변경 전후 모두 stage의 vmagent가 원격 저장 클러스터로 remote write한다. 변경 후에는 2c 타깃의 scrape 응답을 같은 AZ의 CR-B가 받고, 모아서 전송하는 CR-B → 쓰기 진입점 구간이 AZ를 넘는다. 큰 상자는 클러스터, 노드 아래 2a·2c는 AZ다. 주황 흐름은 AZ 횡단이며, 저장 클러스터 내부의 AZ 분산은 뒤의 상세 그림에 표시한다.",
   "font": 1.15,
   "nodes": [
     {
@@ -15,7 +15,7 @@
       "col": 0,
       "row": 1,
       "label": "2c 타깃",
-      "sub": "전체의 약 1/3",
+      "sub": "Pod · Service · Node",
       "kind": "src"
     },
     {
@@ -30,8 +30,8 @@
       "id": "LB1",
       "col": 2,
       "row": 0,
-      "label": "쓰기 LB",
-      "sub": "IP 1개 · 2a",
+      "label": "쓰기 진입점",
+      "sub": "LB · ingress / 2a",
       "kind": "proc"
     },
     {
@@ -47,7 +47,7 @@
       "col": 0,
       "row": 4,
       "label": "2c 타깃",
-      "sub": "전체의 약 1/3",
+      "sub": "Pod · Service · Node",
       "kind": "src"
     },
     {
@@ -55,7 +55,7 @@
       "col": 1,
       "row": 3,
       "label": "CR-A",
-      "sub": "2a · drop 2c (catch-all)",
+      "sub": "vmagent · 2a / drop 2c",
       "kind": "proc"
     },
     {
@@ -63,96 +63,126 @@
       "col": 1,
       "row": 4,
       "label": "CR-B",
-      "sub": "2c · keep 2c",
+      "sub": "vmagent · 2c / keep 2c",
       "kind": "proc"
     },
     {
       "id": "LB2",
       "col": 2,
       "row": 3,
-      "label": "쓰기 LB",
-      "sub": "IP 1개 · 2a",
+      "label": "쓰기 진입점",
+      "sub": "LB · ingress / 2a",
       "kind": "proc"
+    },
+    {
+      "id": "STORE1",
+      "col": 3,
+      "row": 0,
+      "label": "VM 저장소",
+      "sub": "vminsert → vmstorage",
+      "kind": "store"
+    },
+    {
+      "id": "STORE2",
+      "col": 3,
+      "row": 3,
+      "label": "VM 저장소",
+      "sub": "vminsert → vmstorage",
+      "kind": "store"
     }
   ],
   "edges": [
     {
       "from": "T2A",
       "to": "VA",
-      "label": "scrape",
+      "label": "응답",
       "rate": 500
     },
     {
       "from": "T2C",
       "to": "VA",
-      "label": "cross-AZ",
+      "label": "AZ 횡단",
       "kind": "query",
       "rate": 320
     },
     {
       "from": "VA",
       "to": "LB1",
-      "label": "write",
+      "label": "전송",
       "rate": 500
     },
     {
       "from": "T2A2",
       "to": "CRA",
-      "label": "scrape",
+      "label": "응답",
       "rate": 500
     },
     {
       "from": "T2C2",
       "to": "CRB",
-      "label": "scrape",
+      "label": "응답",
       "rate": 500
     },
     {
       "from": "CRA",
       "to": "LB2",
-      "label": "write",
+      "label": "전송",
       "rate": 500
     },
     {
       "from": "CRB",
       "to": "LB2",
-      "label": "cross-AZ",
+      "label": "AZ 횡단",
       "kind": "query",
       "rate": 320
+    },
+    {
+      "from": "LB1",
+      "to": "STORE1",
+      "label": "전달",
+      "rate": 500
+    },
+    {
+      "from": "LB2",
+      "to": "STORE2",
+      "label": "전달",
+      "rate": 500
     }
   ],
   "groups": [
     {
-      "id": "asis-2a",
-      "label": "ASIS · ap-northeast-2a",
+      "id": "before-stage",
+      "label": "변경 전 · stage 클러스터",
       "members": [
         "T2A",
-        "VA",
-        "LB1"
+        "T2C",
+        "VA"
       ]
     },
     {
-      "id": "asis-2c",
-      "label": "ASIS · ap-northeast-2c",
+      "id": "before-storage",
+      "label": "변경 전 · 원격 저장 클러스터",
       "members": [
-        "T2C"
+        "LB1",
+        "STORE1"
       ]
     },
     {
-      "id": "tobe-2a",
-      "label": "TOBE · ap-northeast-2a",
+      "id": "after-stage",
+      "label": "변경 후 · stage 클러스터",
       "members": [
         "T2A2",
+        "T2C2",
         "CRA",
-        "LB2"
+        "CRB"
       ]
     },
     {
-      "id": "tobe-2c",
-      "label": "TOBE · ap-northeast-2c",
+      "id": "after-storage",
+      "label": "변경 후 · 원격 저장 클러스터",
       "members": [
-        "T2C2",
-        "CRB"
+        "LB2",
+        "STORE2"
       ]
     }
   ]

@@ -1,5 +1,5 @@
 {
-  "caption": "쓰기 경로 네 구간. 이번 변경이 바꾼 건 CR-B → 쓰기 LB 첫 구간뿐이다. ingress → vminsert는 43%, vminsert → vmstorage는 약 2/3가 그대로 AZ를 넘는다. 주황 파티클이 AZ를 넘는 흐름이다.",
+  "caption": "CR-B는 stage 클러스터에서 원격 저장 클러스터의 쓰기 LB로 전송한다. 첫 구간은 클러스터와 AZ 경계를 함께 넘고, 이후는 저장 클러스터 내부 통신이다. ingress → vminsert의 43%, vminsert → vmstorage의 약 2/3가 AZ를 넘는다. 주황 흐름은 AZ 횡단이다.",
   "font": 1.15,
   "nodes": [
     {
@@ -71,7 +71,7 @@
     {
       "from": "CRB",
       "to": "LB",
-      "label": "cross-AZ",
+      "label": "AZ 횡단",
       "kind": "query",
       "rate": 320
     },
@@ -130,28 +130,22 @@
   ],
   "groups": [
     {
-      "id": "az-2a",
-      "label": "ap-northeast-2a",
+      "id": "stage",
+      "label": "stage · 수집",
+      "members": [
+        "CRB"
+      ]
+    },
+    {
+      "id": "remote-storage",
+      "label": "원격 저장 클러스터 · 수신 → 분산 → 영속 저장",
       "members": [
         "LB",
         "ING",
         "VIA",
-        "VSA"
-      ]
-    },
-    {
-      "id": "az-2b",
-      "label": "ap-northeast-2b",
-      "members": [
         "VIB",
-        "VSB"
-      ]
-    },
-    {
-      "id": "az-2c",
-      "label": "ap-northeast-2c",
-      "members": [
-        "CRB",
+        "VSA",
+        "VSB",
         "VSC"
       ]
     }

@@ -1,26 +1,47 @@
 ---
-title: "vmagent AZ 분할"
+title: "클러스터 간 전송과 AZ 분할"
 date: 2026-09-27
 lastmod: 2026-09-27
 weight: 5
 ---
 
-# 05 · vmagent AZ 분할 — cross-AZ scrape 트래픽 없애기
+# 05 · 클러스터 간 메트릭 전송과 vmagent AZ 분할
 
 {{< callout type="info" >}}
-- vmagent 한 대가 `ap-northeast-2a`에 있고 타깃의 상당수가 `ap-northeast-2c`에 있어, scrape 응답 2.89MB/s(하루 약 250GB)가 매번 AZ 경계를 넘었습니다. AWS는 AZ 간 전송에 방향마다 $0.01/GB를 부과하므로 월 $150 안팎의 비용이 들었습니다.
+- 우리는 각 워크로드 클러스터의 vmagent로 메트릭을 모으고, 원격 저장 클러스터의 vmstorage에 영속 보관합니다. 수집과 전송은 타깃 가까이에서, stateful한 저장소 운영은 원격 클러스터에서 맡는 구조입니다.
+- stage에서는 2a의 vmagent가 2c 타깃까지 수집해 scrape 응답 2.89MB/s(하루 약 250GB)가 AZ 경계를 넘었습니다. 이 수집 구간을 AZ별로 나누고, 원격 저장 클러스터로 보내는 remote write는 유지했습니다.
 - `promscrape.kubernetes.attachNodeMetadataAll=true`로 Node 라벨을 스크랩 메타라벨에 붙이고, 그 라벨을 기준으로 vmagent를 CR-A(2a)·CR-B(2c) 둘로 나눴습니다. 먼저 검토했던 Pod 라벨 복제 방식과 달리 별도 컨트롤러의 동기화 시점이나 라벨 정확성에 의존하지 않아 이 방식을 골랐습니다.
 - 전환 과정에서 시리즈 identity가 잠깐 바뀌어 KEDA가 istiod를 8→16으로 과증설했다가 30분 안에 스스로 돌아왔습니다. 라벨 개수 한도를 넘어 일부 라벨이 잘린 시리즈도 나왔습니다.
-- 전환 뒤 게이트는 전부 통과했고 순절감은 월 $133~143로 측정됐습니다. 다만 AZ별로 나눈 것은 scrape 경로뿐이라 쓰기 경로는 여전히 대부분 AZ를 넘습니다.
+- 전환 후 두 검증 시점에서 중복·fallback·down 타깃은 모두 0이었고, 트래픽 실측을 요율로 환산한 순절감은 월 $133~143였습니다. 원격 저장까지의 쓰기 경로에는 별도의 cross-AZ 구간이 남습니다.
 {{< /callout >}}
 
-vmagent가 자기 AZ 밖의 타깃까지 수집하던 구조를 Node 메타데이터를 기준으로 둘로 나눴습니다. 방식을 고르고 설계를 검토할 때는 라벨의 정확성과 수집 누락을 살폈지만, 전환 과정에서는 시리즈 identity와 라벨 한도 문제도 드러났습니다. 비용은 줄었고, 이 분할만으로 줄일 수 없는 비용도 남았습니다.
+이 글은 먼저 수집 클러스터와 저장 클러스터 사이의 통신 구조를 짚고, 그 안에서 stage의 scrape 경로를 AZ별로 나눈 과정을 다룹니다. 원격 저장 원칙을 유지하면서 어느 구간의 트래픽을 줄였는지, 전환 중 어떤 문제가 생겼는지를 함께 기록합니다.
 
 > 관련 문서: [개념 03 수집]({{< relref "../../concepts/03-ingestion.md" >}}) · [01 스택 구성]({{< relref "../01-stack-overview.md" >}}) · [02 vmagent 전송 튜닝]({{< relref "../02-vmagent-transport-tuning.md" >}}) · [03 자기감시 메트릭]({{< relref "../03-self-monitoring-metrics.md" >}}) · [우리의 운영 허브]({{< relref "../_index.md" >}})
 
+## 운영 원칙 — 수집은 각 클러스터에서, 저장은 원격에서
+
+stage·prod 같은 워크로드 클러스터에는 vmagent를 두어 해당 클러스터의 타깃을 scrape합니다. 수집한 샘플은 remote write로 원격 저장 클러스터에 보냅니다. 우리 쓰기 경로는 **vmagent → 쓰기 LB → ingress → vminsert → vmstorage**이며, 메트릭의 영속 데이터와 보관 기간을 책임지는 컴포넌트는 원격의 vmstorage입니다. 이 분리 덕분에 워크로드 클러스터마다 메트릭 저장소의 디스크와 보관 용량을 함께 운영할 필요가 없습니다.
+
+{{< flow src="_flow/0-클러스터-간-메트릭-전송.json" />}}
+
+그림의 화살표는 메트릭 데이터가 흐르는 방향입니다. scrape 요청은 vmagent가 타깃으로 보내고, 응답에 담긴 샘플이 vmagent로 돌아옵니다. 이후 vmagent가 샘플을 모아 압축해 원격 쓰기 엔드포인트로 전송합니다.
+
+vmagent의 디스크 큐는 전송 지연이나 원격 경로 장애 때 미전송 데이터를 잠시 보관하는 버퍼입니다. 조회에 쓰일 메트릭의 영속 보관은 vmstorage가 맡으며, 큐로 버틸 수 있는 시간은 용량과 유입량, 큐 볼륨의 유지 여부에 달려 있습니다. 컴포넌트 역할과 큐 동작은 [공식 vmagent 문서](https://docs.victoriametrics.com/vmagent/)와 [클러스터 아키텍처 문서](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/)에서도 확인할 수 있습니다.
+
+이때 **클러스터 경계와 AZ 경계는 따로 봐야 합니다.** 서로 다른 클러스터에 있어도 같은 AZ일 수 있고, 같은 클러스터 안의 타깃과 vmagent가 다른 AZ에 있을 수도 있습니다.
+
+| 구간 | 클러스터 경계 | 이번 AZ 분할에서의 변화 |
+|---|---|---|
+| 타깃 → vmagent의 scrape 응답 | 워크로드 클러스터 내부 | 같은 AZ의 agent가 받도록 수집 대상을 분할 |
+| vmagent → 쓰기 LB → ingress | 원격 저장 클러스터로 전송 | remote write 목적지는 유지하고, CR-B의 출발 AZ만 2c로 변경 |
+| ingress → vminsert → vmstorage | 원격 저장 클러스터 내부 | 기존 배치와 분산 경로 유지 |
+
+따라서 이번 최적화의 대상은 첫 번째 구간입니다. 수집 응답을 같은 AZ에서 받아 모은 뒤 원격으로 전송하면, 원격 저장 구조를 유지하면서 수집 단계의 AZ 간 전송량을 줄일 수 있습니다. 아래 수치는 이 원칙을 stage에 적용한 결과입니다.
+
 ## ① 문제 — 왜 매달 돈이 새는가
 
-stage 환경의 vmagent는 한 대뿐이고 `ap-northeast-2a`에서 실행됩니다. 그런데 수집 대상 Kubernetes 타깃 중 상당수는 `ap-northeast-2c` 노드에 있습니다. vmagent는 AZ를 가리지 않고 모든 타깃을 수집하므로, 2c 타깃의 scrape 응답은 매번 AZ 경계를 넘어 2a로 들어옵니다.
+변경 전 stage 클러스터의 vmagent는 한 대뿐이고 `ap-northeast-2a`에서 실행됐습니다. 그런데 같은 클러스터의 수집 대상 Kubernetes 타깃 중 상당수는 `ap-northeast-2c` 노드에 있었습니다. vmagent가 AZ를 가리지 않고 모든 타깃을 수집하므로, 2c 타깃의 scrape 응답은 원격 저장 클러스터로 보내기도 전에 AZ 경계를 넘어 2a로 들어왔습니다.
 
 측정해 보니 이 cross-AZ 트래픽은 wire 기준 2.89MB/s, 하루로 환산하면 약 250GB였습니다. AWS는 같은 리전 안에서도 AZ를 넘는 전송에 요금을 부과합니다. 나가는 방향과 받는 방향 각각 $0.01/GB, 합쳐서 $0.02/GB입니다. 이 요율로 환산하면 순전히 AZ 경계를 넘는다는 이유만으로 월 $150 안팎이 청구됩니다.
 
@@ -38,9 +59,11 @@ stage 환경의 vmagent는 한 대뿐이고 `ap-northeast-2a`에서 실행됩니
 
 ## ③ 설계 — CR 둘로 쪼개기
 
-vmagent를 관리하는 VMAgent CR을 두 개로 나눴습니다.
+stage에서 vmagent를 관리하는 VMAgent CR을 두 개로 나눴습니다. 두 agent는 같은 원격 저장 엔드포인트로 전송하며, 각자가 맡는 scrape 타깃과 실행 AZ를 맞췄습니다.
 
 {{< flow src="_flow/3-asis-tobe-비교.json" />}}
+
+그림의 큰 상자는 클러스터 경계이고, 타깃과 agent 아래의 2a·2c는 AZ입니다. 변경 전에도 vmagent → 쓰기 LB는 클러스터 간 통신이었지만 양쪽이 2a에 있었습니다. 변경 후에는 2c의 scrape 응답이 CR-B 안에서 모이고, CR-B가 보내는 remote write가 클러스터와 AZ 경계를 함께 넘습니다.
 
 CR-A는 기존 위치인 2a에 그대로 두고, 2c 타깃만 걸러내는 catch-all로 구성했습니다. `drop` 규칙 하나로 "2c가 아닌 전부"를 받도록 했습니다. 여기서 `keep 2a`가 아니라 `drop 2c`를 쓴 이유가 중요합니다. 양쪽에 `keep`을 쓰면 2a도 2c도 아닌 값(신규 AZ, 아직 라벨이 안 붙은 타깃)은 양쪽 모두의 수집 대상에서 제외됩니다. `drop`으로 여집합을 표현하면 그런 타깃은 자동으로 CR-A 쪽에 남습니다. Node zone을 판정할 수 없는 타깃에는 `az_bucket=fallback` 라벨을 붙여 CR-A가 수집합니다. 메트릭 전량 누락보다 일시적인 cross-AZ 비용을 택한 fail-open 정책입니다.
 
@@ -154,16 +177,16 @@ count(up{cluster="stage"}==0) or vector(0)
 sum by (prometheus)(rate(vm_promscrape_conn_bytes_read_total{cluster="stage"}[5m]))
 ```
 
-## ⑥ 남은 것 — 쓰기 경로는 그대로다
+## ⑥ 원격 저장까지의 경로 — AZ를 넘는 구간
 
-AZ별로 분할한 것은 scrape 경로뿐입니다. vmagent가 데이터를 쓰는 경로는 agent → 쓰기 LB → ingress → vminsert → vmstorage의 네 구간을 거치는데, 이 경로에는 AZ affinity가 없습니다.
+수집을 AZ별로 나눈 뒤에도 원격 저장소로 향하는 통신은 계속 필요합니다. CR-B에서 출발한 데이터는 클러스터 경계를 넘어 쓰기 LB와 ingress에 도착하고, 저장 클러스터 안에서 vminsert를 거쳐 vmstorage에 기록됩니다. 이 경로에는 같은 AZ의 목적지를 우선하는 라우팅이 적용돼 있지 않습니다.
 
 {{< flow src="_flow/6-쓰기-경로-횡단.json" />}}
 
 쓰기 LB의 IP는 하나뿐이고 2a에 있습니다. CR-B(2c)의 원격 쓰기는 이 구간에서 그대로 AZ를 넘습니다. LB 뒤의 ingress 파드 4대는 모두 2a 노드에 있어 LB에서 ingress까지는 같은 AZ 안입니다. 그런데 ingress에서 vminsert로 넘어갈 때는 2a·2b로 57:43 비율로 나뉘어 43%가 다시 AZ를 넘고, vminsert에서 vmstorage로 넘어갈 때는 세 AZ에 거의 고르게 나뉘어 약 3분의 2가 AZ를 넘습니다. 이 분산 비율은 변경 전과 같아, locality를 고려한 라우팅이 적용되고 있지 않은 것으로 보입니다.
 
-즉 이번 변경으로 전체 쓰기 경로에서 달라진 곳은 첫 구간뿐이고, 나머지 세 구간은 손대지 않았습니다. 나머지 구간의 cross-AZ 비용까지 줄이려면 청구서의 `DataTransfer-Regional-Bytes` 항목과 VPC Flow Logs로 실제 AZ 간 전송량을 먼저 확인해야 합니다. prod로 확장하는 결정도 stage 파일럿을 1주일 정도 더 관찰한 뒤에 하기로 했습니다.
+이번 변경으로 쓰기 경로에서 달라진 곳은 CR-B → 쓰기 LB의 출발 위치입니다. 이후 세 구간은 기존 구성 그대로입니다. 원격 저장 클러스터로 보내는 트래픽과 저장 클러스터 내부에서 AZ를 넘는 트래픽은 구간별로 나눠 살펴봐야 합니다. 추가 최적화는 청구서의 `DataTransfer-Regional-Bytes` 항목과 VPC Flow Logs로 실제 전송량을 확인한 뒤 판단할 과제입니다. prod로 확장하는 결정도 stage 파일럿을 1주일 정도 더 관찰한 뒤에 하기로 했습니다.
 
 ## 결론
 
-Node 메타데이터로 타깃을 나눠 scrape 경로의 cross-AZ 비용을 없앤 결과는 그 대가와 함께 평가해야 합니다. 전환 순간의 이중 합산과 라벨 한도 문제를 새로 안았고, 쓰기 경로의 cross-AZ는 변경 범위 밖이라 그대로 남아 있기 때문입니다.
+우리 운영의 기준은 각 클러스터에서 vmagent로 수집하고, stateful한 메트릭 저장은 원격 클러스터에 모으는 것입니다. 이번 AZ 분할은 그 구조 안에서 타깃과 agent의 거리를 줄인 변경입니다. stage 실측에서 scrape의 cross-AZ 트래픽은 0이 됐고, 원격 저장으로 향하는 전송은 유지됐습니다. 전환 중 겪은 시리즈 이중 합산·라벨 한도 문제와 쓰기 경로의 구간별 전송량은 다음 적용에서도 함께 확인해야 합니다.

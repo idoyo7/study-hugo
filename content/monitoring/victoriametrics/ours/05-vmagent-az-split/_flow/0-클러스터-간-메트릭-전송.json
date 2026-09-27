@@ -1,0 +1,91 @@
+{
+  "caption": "각 워크로드 클러스터에서 vmagent가 타깃을 scrape하고, 원격 저장 클러스터로 HTTPS remote write를 보낸다. 화살표는 샘플의 이동 방향이며, vmagent의 큐는 전송 대기용이고 영속 메트릭은 vmstorage에 저장된다. AZ 배치와 agent 개수는 다음 그림에서 다룬다.",
+  "font": 1.2,
+  "nodes": [
+    {
+      "id": "TARGET",
+      "col": 0,
+      "row": 0,
+      "label": "수집 타깃",
+      "sub": "Pod · Service · Node",
+      "kind": "src"
+    },
+    {
+      "id": "AGENT",
+      "col": 1,
+      "row": 0,
+      "label": "vmagent",
+      "sub": "수집 · 전송 대기 큐",
+      "kind": "proc"
+    },
+    {
+      "id": "ENTRY",
+      "col": 2,
+      "row": 0,
+      "label": "쓰기 진입점",
+      "sub": "LB → ingress",
+      "kind": "proc"
+    },
+    {
+      "id": "INSERT",
+      "col": 3,
+      "row": 0,
+      "label": "vminsert",
+      "sub": "수신 · 분산",
+      "kind": "proc"
+    },
+    {
+      "id": "STORAGE",
+      "col": 4,
+      "row": 0,
+      "label": "vmstorage",
+      "sub": "영속 저장 · 보관 기간",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "TARGET",
+      "to": "AGENT",
+      "label": "응답",
+      "rate": 500
+    },
+    {
+      "from": "AGENT",
+      "to": "ENTRY",
+      "label": "전송",
+      "rate": 700
+    },
+    {
+      "from": "ENTRY",
+      "to": "INSERT",
+      "label": "전달",
+      "rate": 700
+    },
+    {
+      "from": "INSERT",
+      "to": "STORAGE",
+      "label": "저장",
+      "rate": 700
+    }
+  ],
+  "groups": [
+    {
+      "id": "workload",
+      "label": "워크로드 클러스터 · stage / prod 각각",
+      "members": [
+        "TARGET",
+        "AGENT"
+      ]
+    },
+    {
+      "id": "remote",
+      "label": "원격 저장 클러스터",
+      "members": [
+        "ENTRY",
+        "INSERT",
+        "STORAGE"
+      ]
+    }
+  ]
+}
