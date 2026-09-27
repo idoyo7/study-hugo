@@ -1,16 +1,159 @@
 {
-  "caption": "쓰기 경로 4구간 중 이번 변경이 바꾼 건 agent → LB 첫 구간뿐이다",
+  "caption": "쓰기 경로 네 구간. 이번 변경이 바꾼 건 CR-B → 쓰기 LB 첫 구간뿐이다. ingress → vminsert는 43%, vminsert → vmstorage는 약 2/3가 그대로 AZ를 넘는다. 주황 파티클이 AZ를 넘는 흐름이다.",
+  "font": 1.15,
   "nodes": [
-    { "id": "CRB", "col": 0, "row": 0, "label": "CR-B", "sub": "2c", "kind": "proc" },
-    { "id": "LB", "col": 1, "row": 0, "label": "쓰기 LB", "sub": "IP 1개 · 2a", "kind": "proc" },
-    { "id": "ING", "col": 2, "row": 0, "label": "ingress", "sub": "파드 4개 · 2a", "kind": "proc" },
-    { "id": "VI", "col": 3, "row": 0, "label": "vminsert", "sub": "2a 57% · 2b 43%", "kind": "proc" },
-    { "id": "VS", "col": 4, "row": 0, "label": "vmstorage", "sub": "2a·2b·2c 균등", "kind": "store" }
+    {
+      "id": "CRB",
+      "col": 0,
+      "row": 2,
+      "label": "CR-B",
+      "sub": "vmagent · 2c",
+      "kind": "proc"
+    },
+    {
+      "id": "LB",
+      "col": 1,
+      "row": 0,
+      "label": "쓰기 LB",
+      "sub": "IP 1개 · 2a",
+      "kind": "proc"
+    },
+    {
+      "id": "ING",
+      "col": 2,
+      "row": 0,
+      "label": "ingress",
+      "sub": "파드 4개 · 2a",
+      "kind": "proc"
+    },
+    {
+      "id": "VIA",
+      "col": 3,
+      "row": 0,
+      "label": "vminsert",
+      "sub": "2a · 57%",
+      "kind": "proc"
+    },
+    {
+      "id": "VIB",
+      "col": 3,
+      "row": 1,
+      "label": "vminsert",
+      "sub": "2b · 43%",
+      "kind": "proc"
+    },
+    {
+      "id": "VSA",
+      "col": 4,
+      "row": 0,
+      "label": "vmstorage",
+      "sub": "2a",
+      "kind": "store"
+    },
+    {
+      "id": "VSB",
+      "col": 4,
+      "row": 1,
+      "label": "vmstorage",
+      "sub": "2b",
+      "kind": "store"
+    },
+    {
+      "id": "VSC",
+      "col": 4,
+      "row": 2,
+      "label": "vmstorage",
+      "sub": "2c",
+      "kind": "store"
+    }
   ],
   "edges": [
-    { "from": "CRB", "to": "LB", "label": "cross-AZ", "rate": 260 },
-    { "from": "LB", "to": "ING", "rate": 600 },
-    { "from": "ING", "to": "VI", "label": "43%", "rate": 400 },
-    { "from": "VI", "to": "VS", "label": "≈2/3", "rate": 300 }
+    {
+      "from": "CRB",
+      "to": "LB",
+      "label": "cross-AZ",
+      "kind": "query",
+      "rate": 320
+    },
+    {
+      "from": "LB",
+      "to": "ING",
+      "rate": 500
+    },
+    {
+      "from": "ING",
+      "to": "VIA",
+      "label": "57%",
+      "rate": 500
+    },
+    {
+      "from": "ING",
+      "to": "VIB",
+      "label": "43%",
+      "kind": "query",
+      "rate": 400
+    },
+    {
+      "from": "VIA",
+      "to": "VSA",
+      "rate": 600
+    },
+    {
+      "from": "VIA",
+      "to": "VSB",
+      "kind": "query",
+      "rate": 600
+    },
+    {
+      "from": "VIA",
+      "to": "VSC",
+      "kind": "query",
+      "rate": 600
+    },
+    {
+      "from": "VIB",
+      "to": "VSA",
+      "kind": "query",
+      "rate": 700
+    },
+    {
+      "from": "VIB",
+      "to": "VSB",
+      "rate": 700
+    },
+    {
+      "from": "VIB",
+      "to": "VSC",
+      "kind": "query",
+      "rate": 700
+    }
+  ],
+  "groups": [
+    {
+      "id": "az-2a",
+      "label": "ap-northeast-2a",
+      "members": [
+        "LB",
+        "ING",
+        "VIA",
+        "VSA"
+      ]
+    },
+    {
+      "id": "az-2b",
+      "label": "ap-northeast-2b",
+      "members": [
+        "VIB",
+        "VSB"
+      ]
+    },
+    {
+      "id": "az-2c",
+      "label": "ap-northeast-2c",
+      "members": [
+        "CRB",
+        "VSC"
+      ]
+    }
   ]
 }
