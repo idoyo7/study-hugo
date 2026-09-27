@@ -1,29 +1,159 @@
 {
-  "caption": "ASIS는 2a의 vmagent 한 대가 2c 타깃까지 긁어 cross-AZ가 생기고, TOBE는 CR-A·CR-B가 각자 AZ만 맡는다",
+  "caption": "ASIS는 2a의 vmagent 한 대가 2c 타깃까지 긁어 scrape 응답이 AZ를 넘고, TOBE는 CR-A·CR-B가 각자 AZ만 맡아 CR-B의 remoteWrite 한 갈래만 AZ를 넘는다. 주황 파티클이 AZ를 넘는 흐름이다.",
+  "font": 1.15,
   "nodes": [
-    { "id": "T2A", "col": 0, "row": 0, "label": "2a 타깃", "kind": "src" },
-    { "id": "T2C", "col": 0, "row": 1, "label": "2c 타깃", "kind": "src" },
-    { "id": "VA", "col": 1, "row": 0, "label": "vmagent", "sub": "단일 · 2a", "kind": "proc" },
-    { "id": "VI1", "col": 2, "row": 0, "label": "vminsert", "sub": "중앙", "kind": "proc" },
-
-    { "id": "T2A2", "col": 0, "row": 3, "label": "2a 타깃", "kind": "src" },
-    { "id": "T2C2", "col": 0, "row": 4, "label": "2c 타깃", "kind": "src" },
-    { "id": "CRA", "col": 1, "row": 3, "label": "CR-A", "sub": "2a", "kind": "proc" },
-    { "id": "CRB", "col": 1, "row": 4, "label": "CR-B", "sub": "2c", "kind": "proc" },
-    { "id": "VI2", "col": 2, "row": 3, "label": "vminsert", "sub": "LB · 2a", "kind": "proc" }
+    {
+      "id": "T2A",
+      "col": 0,
+      "row": 0,
+      "label": "2a 타깃",
+      "sub": "Pod · Service · Node",
+      "kind": "src"
+    },
+    {
+      "id": "T2C",
+      "col": 0,
+      "row": 1,
+      "label": "2c 타깃",
+      "sub": "전체의 약 1/3",
+      "kind": "src"
+    },
+    {
+      "id": "VA",
+      "col": 1,
+      "row": 0,
+      "label": "vmagent",
+      "sub": "1대 · 2a",
+      "kind": "proc"
+    },
+    {
+      "id": "LB1",
+      "col": 2,
+      "row": 0,
+      "label": "쓰기 LB",
+      "sub": "IP 1개 · 2a",
+      "kind": "proc"
+    },
+    {
+      "id": "T2A2",
+      "col": 0,
+      "row": 3,
+      "label": "2a 타깃",
+      "sub": "Pod · Service · Node",
+      "kind": "src"
+    },
+    {
+      "id": "T2C2",
+      "col": 0,
+      "row": 4,
+      "label": "2c 타깃",
+      "sub": "전체의 약 1/3",
+      "kind": "src"
+    },
+    {
+      "id": "CRA",
+      "col": 1,
+      "row": 3,
+      "label": "CR-A",
+      "sub": "2a · drop 2c (catch-all)",
+      "kind": "proc"
+    },
+    {
+      "id": "CRB",
+      "col": 1,
+      "row": 4,
+      "label": "CR-B",
+      "sub": "2c · keep 2c",
+      "kind": "proc"
+    },
+    {
+      "id": "LB2",
+      "col": 2,
+      "row": 3,
+      "label": "쓰기 LB",
+      "sub": "IP 1개 · 2a",
+      "kind": "proc"
+    }
   ],
   "edges": [
-    { "from": "T2A", "to": "VA", "rate": 600 },
-    { "from": "T2C", "to": "VA", "label": "cross-AZ", "rate": 260 },
-    { "from": "VA", "to": "VI1", "rate": 600 },
-
-    { "from": "T2A2", "to": "CRA", "rate": 600 },
-    { "from": "T2C2", "to": "CRB", "rate": 600 },
-    { "from": "CRA", "to": "VI2", "rate": 600 },
-    { "from": "CRB", "to": "VI2", "label": "cross-AZ", "rate": 260 }
+    {
+      "from": "T2A",
+      "to": "VA",
+      "label": "scrape",
+      "rate": 500
+    },
+    {
+      "from": "T2C",
+      "to": "VA",
+      "label": "cross-AZ",
+      "kind": "query",
+      "rate": 320
+    },
+    {
+      "from": "VA",
+      "to": "LB1",
+      "label": "write",
+      "rate": 500
+    },
+    {
+      "from": "T2A2",
+      "to": "CRA",
+      "label": "scrape",
+      "rate": 500
+    },
+    {
+      "from": "T2C2",
+      "to": "CRB",
+      "label": "scrape",
+      "rate": 500
+    },
+    {
+      "from": "CRA",
+      "to": "LB2",
+      "label": "write",
+      "rate": 500
+    },
+    {
+      "from": "CRB",
+      "to": "LB2",
+      "label": "cross-AZ",
+      "kind": "query",
+      "rate": 320
+    }
   ],
   "groups": [
-    { "id": "asis", "label": "ASIS", "members": ["T2A", "T2C", "VA", "VI1"] },
-    { "id": "tobe", "label": "TOBE", "members": ["T2A2", "T2C2", "CRA", "CRB", "VI2"] }
+    {
+      "id": "asis-2a",
+      "label": "ASIS · ap-northeast-2a",
+      "members": [
+        "T2A",
+        "VA",
+        "LB1"
+      ]
+    },
+    {
+      "id": "asis-2c",
+      "label": "ASIS · ap-northeast-2c",
+      "members": [
+        "T2C"
+      ]
+    },
+    {
+      "id": "tobe-2a",
+      "label": "TOBE · ap-northeast-2a",
+      "members": [
+        "T2A2",
+        "CRA",
+        "LB2"
+      ]
+    },
+    {
+      "id": "tobe-2c",
+      "label": "TOBE · ap-northeast-2c",
+      "members": [
+        "T2C2",
+        "CRB"
+      ]
+    }
   ]
 }
