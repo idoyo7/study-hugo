@@ -39,7 +39,7 @@ comments: false
 | [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) | Phase 1 | `forceVMProto`(zstd 고정)·`maxDiskUsagePerURL`(디스크 큐 상한), 적용 순서 |
 | [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) | 관측 | 전송 재시도·드랍·바이트·pending 큐 4지표 + 카디널리티 인벤토리 |
 | [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) | 용량 | 디스크 큐 산정식, 리소스 기준치, HA 트레이드오프, slow insert 임계 |
-| [05 클러스터 간 전송과 AZ 분할]({{< relref "05-vmagent-az-split.md" >}}) | 통신·비용 | 클러스터별 수집 → 원격 저장 구조, AZ별 scrape 분할과 전환 실측 |
+| [05 클러스터 간 전송과 AZ 분할]({{< relref "05-vmagent-az-split.md" >}}) | 통신·비용 | prod 전송 규모와 AZ 분할 예상 효과, stage 검증 결과 |
 
 ## 읽는 순서
 
@@ -47,4 +47,4 @@ comments: false
 - 02에서 Phase 1의 zstd 고정·디스크 큐 상한 변경 근거를 봅니다.
 - 03의 자기감시 메트릭 4개로 적용 효과와 이상을 판정합니다.
 - 04에서 큐 상한 산정식과 리소스·HA 기준치를 정리합니다.
-- 05에서 클러스터별 수집과 원격 저장 사이의 통신 구조를 잡고, vmagent의 AZ 분할로 scrape 경로를 개선한 과정을 봅니다.
+- 05에서 prod의 AZ 간 전송 규모와 분할 설계를 살펴보고, 예상 절감액과 stage 검증 결과를 봅니다.

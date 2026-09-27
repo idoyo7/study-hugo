@@ -1,5 +1,5 @@
 {
-  "caption": "2c 타깃의 scrape 응답을 같은 AZ의 CR-B가 수집하도록 변경했다. 큰 상자는 클러스터 경계, 2a·2c는 AZ, 주황 화살표는 AZ 간 전송이다.",
+  "caption": "stage 검증 구성. 2c 타깃의 scrape 응답을 같은 AZ의 CR-B가 수집하도록 변경했다. 큰 상자는 클러스터 경계, 2a·2c는 AZ, 주황 화살표는 AZ 간 전송이다.",
   "font": 1.15,
   "nodes": [
     {

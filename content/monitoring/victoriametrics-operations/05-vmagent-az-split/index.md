@@ -1,17 +1,17 @@
 ---
 title: "클러스터 간 전송과 AZ 분할"
-description: "클러스터별 vmagent와 원격 저장소 구성, AZ별 수집 분할 방법, stage에서 확인한 AZ 간 전송량과 네트워크 비용 감소를 정리합니다."
+description: "prod의 월 62.7~64.8TB AZ 간 scrape 전송 추정과 vmagent 분할 설계, 월 $1,254~1,296의 수집 구간 절감 여지 및 stage 검증 결과를 정리합니다."
 date: 2026-09-27
 lastmod: 2026-09-27
 aliases: ["/monitoring/victoriametrics/ours/05-vmagent-az-split/"]
 weight: 5
 ---
 
-# 05 · 클러스터 간 메트릭 전송과 vmagent AZ 분할
+# 05 · prod 메트릭 전송 규모와 vmagent AZ 분할
 
 ## 수집·저장 구조
 
-stage·prod 클러스터에는 각각 vmagent를 두어 해당 클러스터의 메트릭을 수집합니다. 수집한 샘플은 remote write로 원격 저장 클러스터에 보냅니다. 쓰기 경로는 **vmagent → 쓰기 LB → ingress → vminsert → vmstorage**입니다. 메트릭의 영속 데이터와 보관 용량은 원격 저장 클러스터에서 관리합니다.
+stage·prod 클러스터에는 각각 vmagent를 두어 해당 클러스터의 메트릭을 수집합니다. prod는 용도별로 두 계열의 vmagent를 운영합니다. 수집한 샘플은 remote write로 원격 저장 클러스터에 보냅니다. 쓰기 경로는 **vmagent → 쓰기 LB → ingress → vminsert → vmstorage**입니다. 메트릭의 영속 데이터와 보관 용량은 원격 저장 클러스터에서 관리합니다.
 
 {{< flow src="_flow/0-클러스터-간-메트릭-전송.json" />}}
 
@@ -25,17 +25,28 @@ vmagent가 타깃에 scrape 요청을 보내면 응답에 담긴 샘플이 vmage
 | vmagent → 쓰기 LB → ingress | 워크로드 클러스터 → 원격 저장 클러스터 | 수집한 샘플 전송 |
 | ingress → vminsert → vmstorage | 원격 저장 클러스터 내부 | 샘플 분산·저장 |
 
-클러스터가 달라도 같은 AZ에 있을 수 있고, 같은 클러스터 안에서도 AZ를 넘을 수 있습니다. 이번 변경은 **stage의 타깃과 vmagent를 같은 AZ에 배치해 첫 번째 구간의 AZ 간 전송을 줄이는 작업**입니다.
+클러스터가 달라도 같은 AZ에 있을 수 있고, 같은 클러스터 안에서도 AZ를 넘을 수 있습니다. 최적화 대상은 **타깃과 vmagent 사이의 AZ 간 전송**입니다. prod의 전송 규모를 기준으로 효과를 산정하고, AZ 분할은 stage에 먼저 적용해 검증했습니다.
 
-## 기존 구조의 문제
+## prod에서 월 62.7~64.8TB가 AZ를 넘는 구조
 
-변경 전 stage의 vmagent는 `ap-northeast-2a`에서 한 대만 실행됐습니다. 이 agent가 2a·2c의 모든 타깃을 수집했기 때문에, 2c 타깃의 scrape 응답은 AZ 경계를 넘어 2a로 들어왔습니다.
+분석 당시 prod의 워크로드 수집 vmagent는 2c에 한 대 있었고, 타깃 파드는 2a에 약 51%, 2c에 약 49%가 있었습니다. 2a 타깃의 scrape 응답이 2c의 agent로 넘어오면서 원격 저장소에 쓰기 전부터 AZ 간 전송 비용이 발생했습니다. 아래 수치는 이 agent를 기준으로 하며 다른 용도의 agent는 포함하지 않습니다.
 
-이 구간의 실제 네트워크 전송량(wire)은 **2.89MB/s, 하루 약 250GB**였습니다. 이를 양쪽 전송 비용을 합친 $0.02/GB로 환산하면 월 약 $150입니다. 타깃과 agent의 배치 때문에 원격 저장소로 보내기 전부터 AZ 간 전송 비용이 발생하고 있었습니다.
+2026-09-26~27에 수집한 자료에서 야간 1시간의 scrape 네트워크 전송량(wire)은 **28.64MB/s**였습니다. 이를 당시 샘플 수와 7일 평균 샘플 수의 비율로 보정하면 평균 부하에 해당하는 전송량은 **47.4~49.0MB/s**로 추정됩니다.
+
+| prod 지표 | 규모 | 산정 기준 |
+|---|---|---|
+| 야간 scrape wire | 28.64MB/s | `vm_promscrape_conn_bytes_read_total`의 1시간 rate |
+| 7일 평균 부하로 보정한 wire | 47.4~49.0MB/s | 야간 wire × 7일 평균 98.7k samples/s ÷ 야간 환산 57.7~59.6k samples/s |
+| AZ 간 scrape 전송량 | 월 약 62.7~64.8TB | 보정 wire × 2a 타깃 비중 51% × 30일 |
+| 해당 구간의 전송 비용 | 월 약 $1,254~1,296 | 62,700~64,800GB × $0.02/GB |
+
+월 환산은 30일(2,592,000초), 단위는 1MB=1,000,000B·1TB=1,000GB, 비용은 양쪽 전송을 합친 $0.02/GB를 사용했습니다. **파드의 AZ별 비중이 바이트 비중과 같고, 샘플당 바이트가 유지된다는 가정**이 들어갑니다. 청구서 대조 전의 추정치입니다.
 
 ## vmagent를 AZ별로 분리
 
-stage의 VMAgent CR을 두 개로 나누고, 각 agent의 실행 AZ와 수집 대상 AZ를 맞췄습니다. 원격 저장 엔드포인트는 그대로 유지했습니다.
+prod의 기존 2c agent는 2c 타깃을 맡기고, 2a에 agent를 추가해 2a 타깃을 수집하도록 나눕니다. 각 agent가 샘플을 모아 압축한 뒤 기존 원격 저장 엔드포인트로 보냅니다. 기존 두 계열은 용도에 따른 구분이므로, 이번 분할에서도 워크로드 수집 범위를 유지합니다.
+
+같은 방식은 stage에 먼저 적용해 검증했습니다. stage는 기존 agent가 2a에 있어 prod와 방향이 반대입니다. 2c에 VMAgent CR을 추가하고 각 agent의 실행 AZ와 수집 대상 AZ를 맞췄습니다.
 
 {{< flow src="_flow/3-asis-tobe-비교.json" />}}
 
@@ -73,9 +84,25 @@ podScrapeRelabelTemplate:
 
 `debug_zone`은 수집 대상의 AZ를 검증하려고 붙인 라벨입니다. 분할 자체는 Node 메타라벨로 처리합니다.
 
-## 적용 결과
+## prod 예상 효과와 stage 검증
 
-### 전송량과 비용
+### prod에서 기대하는 개선
+
+prod에서도 타깃을 같은 AZ에서 수집하면 수집 구간의 AZ 간 전송을 거의 없앨 수 있습니다. 기존 전송량 추정에 따른 절감 여지는 다음과 같습니다.
+
+| prod 워크로드 수집 agent | 변경 전 | 분할 후 예상 |
+|---|---|---|
+| AZ 간 scrape 전송량 | 월 62.7~64.8TB 추정 | 약 0 |
+| 해당 scrape 구간의 비용 | 월 $1,254~1,296 추정 | 약 0 |
+| agent당 피크 CPU | 약 3.8코어 | 약 1.9코어 |
+| agent당 최대 RSS | 3.43GB | 약 1.8GB |
+| CPU·메모리 요청 합계 | 7 CPU / 10Gi | 제안값 2 × (2 CPU / 3Gi) = 4 CPU / 6Gi |
+
+CPU·RSS 예상은 부하가 두 agent에 비슷하게 나뉜다는 가정입니다. 요청량은 원자료의 제안값이며 prod 적용 후 측정값은 아닙니다. 총 수집량을 유지하면서 AZ 간 통신과 agent 한 대에 몰리는 부하를 줄이는 설계입니다.
+
+**월 $1,254~1,296는 scrape 구간에서 줄일 수 있는 비용**입니다. remote write 경로의 AZ 간 전송 변화와 agent 실행 비용을 반영한 순절감액은 prod 적용 후 따로 산정해야 합니다. 원자료에서 야간~평균 부하와 AZ 비중 45~55%를 조합한 비용 범위는 월 $668~1,397였습니다.
+
+### stage에서 확인한 전송량
 
 | 지표 | 변경 전 | 변경 후 |
 |---|---|---|
@@ -91,7 +118,7 @@ scrape 총량과 remote write 총량은 전환 전후 비슷한 수준이었고,
 
 월 $133~143는 새로 생긴 remote write 비용을 차감하고, 측정 전송량을 $0.02/GB로 환산한 **네트워크 비용 추정치**입니다. 청구서로 확인한 절감액이나 vmagent 추가 실행 비용까지 반영한 총비용 절감액은 아닙니다.
 
-### 수집 상태와 전환 중 문제
+### stage 전환에서 확인한 문제
 
 | 항목 | 전환 +8분 | 전환 +1시간44분 |
 |---|---|---|
@@ -110,9 +137,9 @@ scrape 총량과 remote write 총량은 전환 전후 비슷한 수준이었고,
 | 라벨 개수 상한 초과 | 일부 cadvisor 시리즈가 vminsert의 50개 라벨 상한을 넘어 `prometheus` 라벨을 잃었습니다. zone 정보가 이미 있는 nodeScrape에서는 `debug_zone` 추가 규칙을 제거해야 합니다. |
 | agent 장애 시 수집 중단 | CR-B는 replica 1이고 CR-A가 대신 수집하는 경로가 없습니다. CR-B 장애 시 2c 수집이 중단되므로 별도 장애 알림이 필요합니다. |
 
-### 남은 AZ 간 전송
+### 원격 저장 경로의 남은 AZ 간 전송
 
-원격 저장 클러스터의 쓰기 경로는 변경하지 않았습니다.
+AZ 분할 후에도 원격 저장 클러스터의 쓰기 경로에는 AZ 간 전송이 남습니다. stage 검증에서 확인한 배치는 다음과 같습니다.
 
 {{< flow src="_flow/6-쓰기-경로-횡단.json" />}}
 
@@ -123,6 +150,6 @@ scrape 총량과 remote write 총량은 전환 전후 비슷한 수준이었고,
 | ingress → vminsert | 2a·2b로 57:43 분산. 43%가 AZ 경계를 넘음 |
 | vminsert → vmstorage | 세 AZ로 분산. 약 3분의 2가 AZ 경계를 넘음 |
 
-앞서 계산한 약 95% 감소는 **타깃 → vmagent와 vmagent → 쓰기 LB 두 구간에 한정**됩니다. 저장 클러스터 내부의 AZ 간 전송은 그대로 남아 있습니다. 후속 최적화는 `DataTransfer-Regional-Bytes`와 VPC Flow Logs로 구간별 전송량·비용을 확인한 뒤 판단해야 합니다. 이 글의 적용 결과는 stage 측정값입니다.
+stage의 약 95% 감소는 **타깃 → vmagent와 vmagent → 쓰기 LB 두 구간에 한정**됩니다. prod 적용 후에는 이 두 구간의 감소량을 다시 측정하고, `DataTransfer-Regional-Bytes`와 VPC Flow Logs로 비용을 대조해야 합니다. 저장 클러스터 내부 전송은 별도 최적화 대상입니다.
 
 > 관련 문서: [스택 구성]({{< relref "../01-stack-overview.md" >}}) · [vmagent 전송 튜닝]({{< relref "../02-vmagent-transport-tuning.md" >}}) · [자기감시 메트릭]({{< relref "../03-self-monitoring-metrics.md" >}})
