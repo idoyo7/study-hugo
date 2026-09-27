@@ -2,6 +2,7 @@
 title: "클러스터 간 전송과 AZ 분할"
 date: 2026-09-27
 lastmod: 2026-09-27
+aliases: ["/monitoring/victoriametrics/ours/05-vmagent-az-split/"]
 weight: 5
 ---
 
@@ -17,7 +18,7 @@ weight: 5
 
 이 글은 먼저 수집 클러스터와 저장 클러스터 사이의 통신 구조를 짚고, 그 안에서 stage의 scrape 경로를 AZ별로 나눈 과정을 다룹니다. 원격 저장 원칙을 유지하면서 어느 구간의 트래픽을 줄였는지, 전환 중 어떤 문제가 생겼는지를 함께 기록합니다.
 
-> 관련 문서: [개념 03 수집]({{< relref "../../concepts/03-ingestion.md" >}}) · [01 스택 구성]({{< relref "../01-stack-overview.md" >}}) · [02 vmagent 전송 튜닝]({{< relref "../02-vmagent-transport-tuning.md" >}}) · [03 자기감시 메트릭]({{< relref "../03-self-monitoring-metrics.md" >}}) · [우리의 운영 허브]({{< relref "../_index.md" >}})
+> 관련 문서: [개념 03 수집]({{< relref "../../victoriametrics/concepts/03-ingestion.md" >}}) · [01 스택 구성]({{< relref "../01-stack-overview.md" >}}) · [02 vmagent 전송 튜닝]({{< relref "../02-vmagent-transport-tuning.md" >}}) · [03 자기감시 메트릭]({{< relref "../03-self-monitoring-metrics.md" >}}) · [VictoriaMetrics 사용기]({{< relref "../_index.md" >}})
 
 ## 운영 원칙 — 수집은 각 클러스터에서, 저장은 원격에서
 

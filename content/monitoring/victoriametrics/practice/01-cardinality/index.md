@@ -1,7 +1,7 @@
 ---
 title: "카디널리티"
 date: 2026-08-01
-lastmod: 2026-08-24
+lastmod: 2026-09-27
 weight: 1
 aliases: ["/monitoring/victoriametrics/06-cardinality/"]
 ---
@@ -78,7 +78,7 @@ New TSID가 마구 발급되는 상황이 곧 카디널리티 폭발입니다. �
 - 파드 이름 대신 서비스 이름을 씁니다. 파드 이름(`my-order-7f9c-abcde`)은 재시작마다 바뀌지만 서비스 이름(`my-order`)은 잘 바뀌지 않습니다. 서비스 이름을 레이블로 쓰면 파드가 재시작돼도 시계열이 그대로 유지됩니다.
 - 자주 바뀌는 값은 지표 대신 로그·트레이스로 다룹니다. 세션 ID처럼 개별 요청을 추적해야 하는 값은 metric의 레이블이 아니라 로그나 트레이스에 담습니다. 지표는 집계하는 도구이고 개별 식별자 추적은 로그·트레이스의 몫입니다.
 
-설계로 배제하는 쪽이 낫지만 이미 돌고 있는 클러스터라면 현재 카디널리티를 직접 확인할 수 있습니다. vmstorage(단일 노드 포함)의 `/api/v1/status/tsdb` 엔드포인트가 전체 활성 시계열 수를 알려 주고, 카디널리티가 높은 상위 메트릭·레이블도 함께 요약해 줍니다. 시각적으로 파고들려면 vmui의 Cardinality Explorer(`/vmui/#/cardinality`)를 씁니다. 어떤 메트릭·레이블 값이 시계열을 많이 먹는지 훑을 수 있습니다. 구체적인 확인 쿼리와 우리 환경의 인벤토리 도구는 [우리의 운영 03 자기감시 메트릭]({{< relref "../../ours/03-self-monitoring-metrics.md" >}})에 정리해 두었습니다.
+설계로 배제하는 쪽이 낫지만 이미 돌고 있는 클러스터라면 현재 카디널리티를 직접 확인할 수 있습니다. vmstorage(단일 노드 포함)의 `/api/v1/status/tsdb` 엔드포인트가 전체 활성 시계열 수를 알려 주고, 카디널리티가 높은 상위 메트릭·레이블도 함께 요약해 줍니다. 시각적으로 파고들려면 vmui의 Cardinality Explorer(`/vmui/#/cardinality`)를 씁니다. 어떤 메트릭·레이블 값이 시계열을 많이 먹는지 훑을 수 있습니다. 구체적인 확인 쿼리와 우리 환경의 인벤토리 도구는 [VictoriaMetrics 사용기 03 자기감시 메트릭]({{< relref "../../../victoriametrics-operations/03-self-monitoring-metrics.md" >}})에 정리해 두었습니다.
 
 ## 운영 감시 지표 — churn rate와 slow insert rate
 

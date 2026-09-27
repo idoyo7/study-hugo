@@ -2,7 +2,7 @@
 title: "Prometheus · Thanos · VictoriaMetrics 조립"
 date: 2026-08-30
 lastmod: 2026-08-30
-weight: 3
+weight: 4
 ---
 
 # Prometheus · Thanos · VictoriaMetrics 조립

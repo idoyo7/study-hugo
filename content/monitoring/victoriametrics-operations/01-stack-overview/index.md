@@ -1,7 +1,8 @@
 ---
 title: "스택 구성"
 date: 2026-08-01
-lastmod: 2026-08-24
+lastmod: 2026-09-27
+aliases: ["/monitoring/victoriametrics/ours/01-stack-overview/"]
 weight: 1
 ---
 
@@ -14,15 +15,15 @@ weight: 1
 - 공통 수집 설정은 `scrapeInterval 30s` · `promscrape.streamParse=true` · `promscrape.maxScrapeSize=24GiB`.
 {{< /callout >}}
 
-우리 환경에서 지표가 어디서 만들어져 어디로 흘러가는지, 그 구조와 stage/prod 값 차이를 정리합니다. 전송 안정화 Phase 1 튜닝은 [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}})에서, 장기보관 아키텍처는 [메트릭 장기보관]({{< relref "../../../longterm-retention/_index.md" >}}) 챕터에서 따로 다룹니다.
+우리 환경에서 지표가 어디서 만들어져 어디로 흘러가는지, 그 구조와 stage/prod 값 차이를 정리합니다. 전송 안정화 Phase 1 튜닝은 [02 vmagent 전송 튜닝]({{< relref "../02-vmagent-transport-tuning.md" >}})에서, 장기보관 아키텍처는 [메트릭 장기보관]({{< relref "../../longterm-retention/_index.md" >}}) 챕터에서 따로 다룹니다.
 
-> 관련 문서: [개념 03 수집]({{< relref "../../concepts/03-ingestion.md" >}}) · [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) · [메트릭 장기보관]({{< relref "../../../longterm-retention/_index.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
+> 관련 문서: [개념 03 수집]({{< relref "../../victoriametrics/concepts/03-ingestion.md" >}}) · [02 vmagent 전송 튜닝]({{< relref "../02-vmagent-transport-tuning.md" >}}) · [메트릭 장기보관]({{< relref "../../longterm-retention/_index.md" >}}) · [VictoriaMetrics 사용기]({{< relref "../_index.md" >}})
 
 ## 전체 구조
 
 {{< flow src="_flow/전체-구조.json" />}}
 
-vmagent는 k8s 위에서 VM operator가 관리하는 Deployment입니다. 무상태(stateless)라 스크랩한 지표를 자체 보관하지 않고 곧바로 중앙 VM 클러스터의 vminsert로 흘려보냅니다. 7단계 수집 파이프라인과 유실 방지 큐 같은 vmagent 자체의 원리는 [개념 03 수집]({{< relref "../../concepts/03-ingestion.md" >}})에 있습니다 — 이 문서는 그 원리를 우리 값으로 옮긴 결과만 봅니다.
+vmagent는 k8s 위에서 VM operator가 관리하는 Deployment입니다. 무상태(stateless)라 스크랩한 지표를 자체 보관하지 않고 곧바로 중앙 VM 클러스터의 vminsert로 흘려보냅니다. 7단계 수집 파이프라인과 유실 방지 큐 같은 vmagent 자체의 원리는 [개념 03 수집]({{< relref "../../victoriametrics/concepts/03-ingestion.md" >}})에 있습니다 — 이 문서는 그 원리를 우리 값으로 옮긴 결과만 봅니다.
 
 ## 목적지 경로 — `/insert/0/prometheus`
 
@@ -47,7 +48,7 @@ https://<vminsert-endpoint>/insert/0/prometheus/api/v1/write
 | `scrapeInterval` | `30s` | `30s` |
 | `maxDiskUsagePerURL` | `1000MiB` | `2000MiB` |
 
-리소스 기준치의 근거와 "실측 후 조정" 항목은 [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}})에서 정리합니다.
+리소스 기준치의 근거와 "실측 후 조정" 항목은 [04 스케일링·용량 기준치]({{< relref "../04-scaling-thresholds.md" >}})에서 정리합니다.
 
 ## 공통 수집 설정 (`extraArgs`)
 
@@ -59,8 +60,8 @@ https://<vminsert-endpoint>/insert/0/prometheus/api/v1/write
 | `promscrape.streamParse` | `true` | 응답을 스트리밍 파싱해 대형 타깃의 메모리 급증을 억제 |
 | `promscrape.maxScrapeSize` | `24GiB` | 단일 스크랩 응답 허용 상한 |
 
-Phase 1에서 여기에 `remoteWrite.forceVMProto`가 추가됐습니다. 그 근거는 [02]({{< relref "02-vmagent-transport-tuning.md" >}})에서 다룹니다.
+Phase 1에서 여기에 `remoteWrite.forceVMProto`가 추가됐습니다. 그 근거는 [02]({{< relref "../02-vmagent-transport-tuning.md" >}})에서 다룹니다.
 
 ## prod 주의 — 두 계열에 함께 걸린다
 
-prod의 vmagent는 용도에 따라 두 계열로 운영합니다. `extraArgs`는 base 설정이라 양쪽 vmagent에 함께 적용됩니다. [02]({{< relref "02-vmagent-transport-tuning.md" >}})에서 다룰 `remoteWrite.forceVMProto`도 base에 넣으면 두 계열 모두에 걸리는데 둘 다 목적지가 VM이라 안전합니다. 한쪽이라도 VM이 아닌 목적지였다면 base가 아니라 계열별로 나눠 걸어야 합니다.
+prod의 vmagent는 용도에 따라 두 계열로 운영합니다. `extraArgs`는 base 설정이라 양쪽 vmagent에 함께 적용됩니다. [02]({{< relref "../02-vmagent-transport-tuning.md" >}})에서 다룰 `remoteWrite.forceVMProto`도 base에 넣으면 두 계열 모두에 걸리는데 둘 다 목적지가 VM이라 안전합니다. 한쪽이라도 VM이 아닌 목적지였다면 base가 아니라 계열별로 나눠 걸어야 합니다.

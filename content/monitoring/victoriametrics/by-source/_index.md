@@ -2,8 +2,8 @@
 title: "원문별 정리"
 description: "네이버 D2 발표·기사 4건을 원문 단위로 보존한 색인입니다. SingleNode에서 멀티클러스터로 간 2024년 기사부터 조회·저장·수집 3단계 최적화를 다룬 2026년 최신 운영기까지 원문 흐름대로 이어놓았습니다."
 date: 2026-07-21
-lastmod: 2026-08-24
-weight: 4
+lastmod: 2026-09-27
+weight: 3
 comments: false
 ---
 
@@ -21,7 +21,7 @@ comments: false
 {{< /callout >}}
 
 {{< callout type="info" >}}
-- 기본 개념·잘 쓰는 방법·우리의 운영이 **주제별로 보기**라면 이 섹션은 **원문(발표·기사)별로 보기**입니다.
+- 기본 개념·잘 쓰는 방법이 **주제별로 보기**라면 이 섹션은 **원문(발표·기사)별로 보기**입니다.
 - 01은 SingleNode→Cluster→멀티클러스터 확장과 지표 선계산·라우팅 게이트웨이를 다룬 2024년 기사입니다.
 - 02는 12.5억 시계열·555조 데이터포인트·180노드 규모의 Hot/Warm 2계층 운영기(1편)입니다.
 - 03은 vmagent·vminsert·vmstorage·vmselect 내부 동작을 6섹션으로 정독한 발표 영상입니다.
@@ -43,7 +43,7 @@ comments: false
 
 ## 주제별로 보기
 
-원리가 궁금하면 [기본 개념]({{< relref "../concepts/_index.md" >}}), 설계·운영 패턴이 알고 싶으면 [잘 쓰는 방법]({{< relref "../practice/_index.md" >}})을 봅니다. 우리 환경에 어떻게 적용했는지는 [우리의 운영]({{< relref "../ours/_index.md" >}})에 있습니다.
+원리가 궁금하면 [기본 개념]({{< relref "../concepts/_index.md" >}}), 설계·운영 패턴이 알고 싶으면 [잘 쓰는 방법]({{< relref "../practice/_index.md" >}})을 봅니다. 우리 환경에 어떻게 적용했는지는 [VictoriaMetrics 사용기]({{< relref "../../victoriametrics-operations/_index.md" >}})에 있습니다.
 
 ## 읽는 순서
 

@@ -1,7 +1,7 @@
 ---
 title: "쿼리 패턴"
 date: 2026-07-18
-lastmod: 2026-08-24
+lastmod: 2026-09-27
 weight: 3
 ---
 
@@ -18,7 +18,7 @@ weight: 3
 
 > 이 문서는 다른 문서와 달리 네이버 D2 발표 정독이 아니라 VictoriaMetrics·Prometheus 공식 문서를 근거로 합니다(문서 말미 출처 참조).
 
-> 관련 문서: [개념 05 쿼리·운영 컴포넌트]({{< relref "../concepts/05-query-and-ops-components.md" >}}) · [01 카디널리티]({{< relref "01-cardinality.md" >}}) · [우리의 운영 03 자기감시 메트릭]({{< relref "../ours/03-self-monitoring-metrics.md" >}})
+> 관련 문서: [개념 05 쿼리·운영 컴포넌트]({{< relref "../concepts/05-query-and-ops-components.md" >}}) · [01 카디널리티]({{< relref "01-cardinality.md" >}}) · [VictoriaMetrics 사용기 03 자기감시 메트릭]({{< relref "../../victoriametrics-operations/03-self-monitoring-metrics.md" >}})
 
 ## 실전 쿼리 패턴 — 지표 타입별
 
@@ -208,7 +208,7 @@ GET /api/v1/status/tsdb?topN=10&match[]={job="my-service"}
 
 ### vmui 카디널리티 익스플로러
 
-같은 데이터를 사람이 보기 좋게 시각화한 화면이 vmui의 카디널리티 익스플로러("Explore cardinality" 탭, 경로 `/vmui/#/cardinality`)입니다. 시계열이 가장 많은 지표 이름·레이블·`label=value` 쌍을 전체 대비 비율과 함께 보여 줍니다. 우리 환경에서 이 도구로 무엇을 뽑아 어떻게 판단하는지는 [우리의 운영 03 자기감시 메트릭]({{< relref "../ours/03-self-monitoring-metrics.md" >}})에 정리돼 있습니다.
+같은 데이터를 사람이 보기 좋게 시각화한 화면이 vmui의 카디널리티 익스플로러("Explore cardinality" 탭, 경로 `/vmui/#/cardinality`)입니다. 시계열이 가장 많은 지표 이름·레이블·`label=value` 쌍을 전체 대비 비율과 함께 보여 줍니다. 우리 환경에서 이 도구로 무엇을 뽑아 어떻게 판단하는지는 [VictoriaMetrics 사용기 03 자기감시 메트릭]({{< relref "../../victoriametrics-operations/03-self-monitoring-metrics.md" >}})에 정리돼 있습니다.
 
 ### 런타임 감시 지표
 
@@ -222,7 +222,7 @@ sum(rate(vm_new_timeseries_created_total[5m]))
 sum(rate(vm_slow_row_inserts_total[5m])) / sum(rate(vm_rows_inserted_total[5m]))
 ```
 
-개념·임계의 근거와 운영 의미는 [01 카디널리티]({{< relref "01-cardinality.md" >}})에 있고 전송 지표와 묶은 실제 감시 구성은 [우리의 운영 03]({{< relref "../ours/03-self-monitoring-metrics.md" >}})에서 다룹니다.
+개념·임계의 근거와 운영 의미는 [01 카디널리티]({{< relref "01-cardinality.md" >}})에 있고 전송 지표와 묶은 실제 감시 구성은 [VictoriaMetrics 사용기 03]({{< relref "../../victoriametrics-operations/03-self-monitoring-metrics.md" >}})에서 다룹니다.
 
 ## 출처
 

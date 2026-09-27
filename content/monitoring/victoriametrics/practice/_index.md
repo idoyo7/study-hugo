@@ -2,7 +2,7 @@
 title: "잘 쓰는 방법"
 date: 2026-07-18
 lastmod: 2026-09-27
-weight: 3
+weight: 2
 comments: false
 ---
 
@@ -28,4 +28,4 @@ comments: false
 - 01 카디널리티는 기본 개념의 04(저장·압축)에서 본 New TSID 발급 경로를 실무 관점으로 잇습니다. 04를 먼저 읽으면 "왜 카디널리티가 곧 메모리·인덱스 폭발인가"가 분명해집니다.
 - 02 무중단 전환은 랑데부 역순 추가로 푸는데, [기본 개념]({{< relref "../concepts/_index.md" >}})의 03 수집에서 다룬 랑데부 해싱·복제 원리를 먼저 알아야 와닿습니다. 03을 건너뛰면 "왜 `-storageNode` 목록을 통째로 바꾸면 장애가 나는가"가 손에 잡히지 않습니다.
 
-우리 환경에 이 원칙들을 어떻게 적용했는지는 [우리의 운영]({{< relref "../ours/_index.md" >}})에서 이어 다룹니다.
+우리 환경에 이 원칙들을 어떻게 적용했는지는 [VictoriaMetrics 사용기]({{< relref "../../victoriametrics-operations/_index.md" >}})에서 이어 다룹니다.

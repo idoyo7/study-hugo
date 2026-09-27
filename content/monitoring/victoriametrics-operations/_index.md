@@ -1,33 +1,35 @@
 ---
-title: "우리의 운영"
+title: "VictoriaMetrics 사용기"
+description: "우리 환경의 VictoriaMetrics 스택 구성, vmagent 전송 튜닝, 자기감시 메트릭, 용량 기준과 클러스터 간 전송·AZ 분할 경험을 기록합니다."
 date: 2026-07-18
 lastmod: 2026-09-27
+aliases: ["/monitoring/victoriametrics/ours/"]
 weight: 2
 comments: false
 ---
 
-# 우리의 운영 — 우리 환경의 구성·튜닝·기준치
+# VictoriaMetrics 사용기
 
 {{< callout type="info" >}}
-- 이 서브섹션은 네이버 D2 사례 대신 우리 환경의 실제 구성·튜닝·기준치·노하우를 다룹니다.
+- 우리 환경의 실제 구성·튜닝·기준치·노하우를 다룹니다.
 - 각 워크로드 클러스터의 vmagent가 수집·전송을 맡고, 원격 저장 클러스터의 vmstorage가 메트릭을 영속 보관합니다.
 - Phase 1에서는 VM native protocol(zstd)을 고정하고(`forceVMProto`) 디스크 큐 상한을 명시했습니다(`maxDiskUsagePerURL`).
 - 개념(concepts)에서 배운 원리와 실전(practice)의 설계 원칙을 우리 값·우리 임계로 옮긴 계층입니다.
 {{< /callout >}}
 
-concepts는 네이버 D2/DEVIEW 발표를 정독해 VM의 내부 동작을 잡은 계층, practice는 그 위에서 카디널리티·초대규모 운영 같은 설계 원칙을 정리한 계층입니다. 이 서브섹션은 그 원리와 원칙을 우리 환경의 실제 값으로 옮깁니다. 어떤 리소스로 vmagent를 띄웠는지, 무엇을 왜 튜닝했는지, 어떤 메트릭을 어떤 임계로 감시하는지 — "네이버는 이렇게 한다"가 아니라 "우리는 이렇게 운영한다"를 담습니다.
+우리 환경에서 VictoriaMetrics를 구성하고 운영하며 남긴 기록입니다. 어떤 리소스로 vmagent를 띄웠는지, 무엇을 왜 튜닝했는지, 어떤 메트릭을 어떤 임계로 감시하는지 다룹니다. 내부 동작과 일반적인 설계 원칙은 별도 [VictoriaMetrics]({{< relref "../victoriametrics/_index.md" >}}) 섹션에서 이어 볼 수 있습니다.
 
-> 관련 문서: [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}}) · [실전 01 카디널리티]({{< relref "../practice/01-cardinality.md" >}}) · [메트릭 장기보관]({{< relref "../../longterm-retention/_index.md" >}}) · [VM Deep Dive 허브]({{< relref "../_index.md" >}})
+> 관련 문서: [개념 03 수집]({{< relref "../victoriametrics/concepts/03-ingestion.md" >}}) · [실전 01 카디널리티]({{< relref "../victoriametrics/practice/01-cardinality.md" >}}) · [메트릭 장기보관]({{< relref "../longterm-retention/_index.md" >}}) · [VictoriaMetrics]({{< relref "../victoriametrics/_index.md" >}})
 
-## 세 계층의 관계
+## 관련 문서의 역할
 
 | 계층 | 무엇을 다루나 | 사실 원천 |
 |------|--------------|-----------|
 | **concepts (기본 개념)** | TSDB·아키텍처·수집·저장·쿼리의 원리 | 네이버 D2/DEVIEW 발표 정독 |
 | **practice (잘 쓰는 방법)** | 카디널리티·초대규모 운영·무중단 전환 설계 원칙 | 위 개념의 실전 적용 |
-| **ours (우리의 운영)** | 우리 클러스터의 실제 구성·튜닝·기준치 | 우리 환경 실측·변경 이력 |
+| **VictoriaMetrics 사용기** | 우리 클러스터의 실제 구성·튜닝·기준치 | 우리 환경 실측·변경 이력 |
 
-원리가 궁금하면 concepts로, "어떻게 설계해야 하나"가 궁금하면 practice로 올라갑니다. "우리는 지금 어떤 값으로 돌고 있나"를 알고 싶으면 이 서브섹션에 머뭅니다.
+원리가 궁금하면 VictoriaMetrics의 기본 개념으로, 설계 패턴이 궁금하면 잘 쓰는 방법으로 이어집니다. 우리 환경의 실제 값과 변경 이력은 이 사용기에 모읍니다.
 
 ## 문서 지도
 

@@ -1,7 +1,8 @@
 ---
 title: "vmagent 전송 튜닝"
 date: 2026-07-18
-lastmod: 2026-08-24
+lastmod: 2026-09-27
+aliases: ["/monitoring/victoriametrics/ours/02-vmagent-transport-tuning/"]
 weight: 2
 ---
 
@@ -16,7 +17,7 @@ weight: 2
 
 Phase 1의 목표는 전송 안정화입니다. 전송 프로토콜을 zstd로 고정했고 디스크 큐에 상한을 명시했습니다. 각 변경의 근거와 트레이드오프, 적용 순서를 아래에 정리했습니다.
 
-> 관련 문서: [개념 03 수집]({{< relref "../concepts/03-ingestion.md" >}}) · [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) · [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) · [우리의 운영 허브]({{< relref "_index.md" >}})
+> 관련 문서: [개념 03 수집]({{< relref "../victoriametrics/concepts/03-ingestion.md" >}}) · [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) · [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) · [VictoriaMetrics 사용기]({{< relref "_index.md" >}})
 
 ## ① `remoteWrite.forceVMProto=true` — zstd 고정
 
@@ -26,7 +27,7 @@ vmagent와 수신측은 remote_write 프로토콜을 자동 협상합니다. 이
 
 - 전송량 2~4x 절감을 보장합니다. 다운그레이드 여지를 없애므로 항상 zstd로 나갑니다.
 - 수신측(vminsert)이 v1.88+ 여야 합니다. native protocol을 받는 최소 버전입니다.
-- 문제가 생기면 대역폭이 몰래 새는 대신 write 에러로 즉시 드러납니다. 에러가 나는 동안에도 디스크 큐가 지표를 버퍼링하므로 유실되지 않습니다(→ 큐 원리는 [개념 03]({{< relref "../concepts/03-ingestion.md" >}})).
+- 문제가 생기면 대역폭이 몰래 새는 대신 write 에러로 즉시 드러납니다. 에러가 나는 동안에도 디스크 큐가 지표를 버퍼링하므로 유실되지 않습니다(→ 큐 원리는 [개념 03]({{< relref "../victoriametrics/concepts/03-ingestion.md" >}})).
 
 이 설정은 아무도 모르게 나가는 손해(snappy 다운그레이드)를 눈에 보이는 실패(write 에러)로 바꿉니다. 실패는 눈에 보이므로 대응할 수 있습니다.
 
