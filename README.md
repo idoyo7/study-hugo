@@ -30,7 +30,7 @@ hugo server            # http://localhost:1313
 hugo --gc --minify     # 결과: public/  (Dockerfile 과 같은 명령)
 ```
 
-Hugo **extended** 0.164.0 이 필요하다. 이미지 처리(WebP)가 extended 빌드에만
+Hugo **extended** 0.166.0 이 필요하다. 이미지 처리(WebP)가 extended 빌드에만
 있고, `Dockerfile` 도 같은 버전을 고정한다.
 
 ## 배포

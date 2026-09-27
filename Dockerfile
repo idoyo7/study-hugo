@@ -1,6 +1,6 @@
 # Build stage — pin Hugo extended (hugo-book theme needs >= 0.158)
-FROM debian:bookworm-slim AS builder
-ARG HUGO_VERSION=0.164.0
+FROM debian:trixie-slim AS builder
+ARG HUGO_VERSION=0.166.0
 # git 은 enableGitInfo(hugo.toml) 때문에 필요하다. Hugo 가 파일별 마지막 커밋
 # 시각을 읽어 .Lastmod 를 채우는데, 바이너리가 없으면 그 값이 비어버린다.
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git \
@@ -39,7 +39,7 @@ RUN find /src/public -type f \
       -size +1k -exec gzip -9 -k -f {} +
 
 # Serve stage
-FROM nginx:alpine
+FROM nginx:1.31.6-alpine3.24
 # 기본 설정을 덮는다. 기본값으로 서빙하는 동안 압축·캐시·404·리다이렉트 스킴이
 # 전부 깨져 있었다 — 자세한 근거는 nginx/default.conf 주석.
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
