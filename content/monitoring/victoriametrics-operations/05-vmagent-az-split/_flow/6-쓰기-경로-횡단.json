@@ -1,5 +1,5 @@
 {
-  "caption": "CR-B는 stage 클러스터에서 원격 저장 클러스터의 쓰기 LB로 전송한다. 첫 구간은 클러스터와 AZ 경계를 함께 넘고, 이후는 저장 클러스터 내부 통신이다. ingress → vminsert의 43%, vminsert → vmstorage의 약 2/3가 AZ를 넘는다. 주황 흐름은 AZ 횡단이다.",
+  "caption": "CR-B의 원격 쓰기 경로. 쓰기 LB 이후는 저장 클러스터 내부 통신이며, 주황 화살표는 AZ 간 전송이다.",
   "font": 1.15,
   "nodes": [
     {

@@ -1,5 +1,5 @@
 {
-  "caption": "변경 전후 모두 stage의 vmagent가 원격 저장 클러스터로 remote write한다. 변경 후에는 2c 타깃의 scrape 응답을 같은 AZ의 CR-B가 받고, 모아서 전송하는 CR-B → 쓰기 진입점 구간이 AZ를 넘는다. 큰 상자는 클러스터, 노드 아래 2a·2c는 AZ다. 주황 흐름은 AZ 횡단이며, 저장 클러스터 내부의 AZ 분산은 뒤의 상세 그림에 표시한다.",
+  "caption": "2c 타깃의 scrape 응답을 같은 AZ의 CR-B가 수집하도록 변경했다. 큰 상자는 클러스터 경계, 2a·2c는 AZ, 주황 화살표는 AZ 간 전송이다.",
   "font": 1.15,
   "nodes": [
     {
