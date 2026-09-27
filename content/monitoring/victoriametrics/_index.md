@@ -2,7 +2,7 @@
 title: "VictoriaMetrics 내부 동작과 운영"
 linkTitle: "VictoriaMetrics"
 date: 2026-07-12
-lastmod: 2026-08-24
+lastmod: 2026-09-27
 weight: 1
 comments: false
 ---
@@ -48,6 +48,7 @@ VictoriaMetrics(이하 VM)를 세 갈래로 나눠 정리한 지식베이스입�
 | [02 vmagent 전송 튜닝]({{< relref "ours/02-vmagent-transport-tuning.md" >}}) | 중앙 vminsert로 향하는 remote write 전송 파라미터(큐·동시성·재시도) 튜닝 |
 | [03 자기감시 메트릭]({{< relref "ours/03-self-monitoring-metrics.md" >}}) | VM 스택 자체를 감시하는 핵심 메트릭과 관측 포인트 |
 | [04 스케일링·용량 기준치]({{< relref "ours/04-scaling-thresholds.md" >}}) | 언제 스케일아웃할지 판단하는 용량 기준치와 지표 |
+| [05 vmagent AZ 분할]({{< relref "ours/05-vmagent-az-split.md" >}}) | Node 메타데이터로 vmagent를 AZ별 CR 둘로 나눠 cross-AZ scrape 비용을 없앤 과정 |
 
 ## 원문별로 보기 — 참조한 D2 원문 4건
 

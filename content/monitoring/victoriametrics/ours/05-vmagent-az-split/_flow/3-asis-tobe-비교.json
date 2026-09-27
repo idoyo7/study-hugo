@@ -1,0 +1,29 @@
+{
+  "caption": "ASIS는 2a의 vmagent 한 대가 2c 타깃까지 긁어 cross-AZ가 생기고, TOBE는 CR-A·CR-B가 각자 AZ만 맡는다",
+  "nodes": [
+    { "id": "T2A", "col": 0, "row": 0, "label": "2a 타깃", "kind": "src" },
+    { "id": "T2C", "col": 0, "row": 1, "label": "2c 타깃", "kind": "src" },
+    { "id": "VA", "col": 1, "row": 0, "label": "vmagent", "sub": "단일 · 2a", "kind": "proc" },
+    { "id": "VI1", "col": 2, "row": 0, "label": "vminsert", "sub": "중앙", "kind": "proc" },
+
+    { "id": "T2A2", "col": 0, "row": 3, "label": "2a 타깃", "kind": "src" },
+    { "id": "T2C2", "col": 0, "row": 4, "label": "2c 타깃", "kind": "src" },
+    { "id": "CRA", "col": 1, "row": 3, "label": "CR-A", "sub": "2a", "kind": "proc" },
+    { "id": "CRB", "col": 1, "row": 4, "label": "CR-B", "sub": "2c", "kind": "proc" },
+    { "id": "VI2", "col": 2, "row": 3, "label": "vminsert", "sub": "LB · 2a", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "T2A", "to": "VA", "rate": 600 },
+    { "from": "T2C", "to": "VA", "label": "cross-AZ", "rate": 260 },
+    { "from": "VA", "to": "VI1", "rate": 600 },
+
+    { "from": "T2A2", "to": "CRA", "rate": 600 },
+    { "from": "T2C2", "to": "CRB", "rate": 600 },
+    { "from": "CRA", "to": "VI2", "rate": 600 },
+    { "from": "CRB", "to": "VI2", "label": "cross-AZ", "rate": 260 }
+  ],
+  "groups": [
+    { "id": "asis", "label": "ASIS", "members": ["T2A", "T2C", "VA", "VI1"] },
+    { "id": "tobe", "label": "TOBE", "members": ["T2A2", "T2C2", "CRA", "CRB", "VI2"] }
+  ]
+}
