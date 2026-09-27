@@ -72,7 +72,7 @@
   "groups": [
     {
       "id": "workload",
-      "label": "워크로드 클러스터 · stage / prod 각각",
+      "label": "워크로드 클러스터 · 수집",
       "members": [
         "TARGET",
         "AGENT"

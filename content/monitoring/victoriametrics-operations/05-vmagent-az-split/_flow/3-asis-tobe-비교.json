@@ -1,89 +1,89 @@
 {
-  "caption": "stage 검증 구성. 2c 타깃의 scrape 응답을 같은 AZ의 CR-B가 수집하도록 변경했다. 큰 상자는 클러스터 경계, 2a·2c는 AZ, 주황 화살표는 AZ 간 전송이다.",
+  "caption": "현재 구성과 개선안. 2a 타깃의 하루 약 2.1TB 응답을 같은 AZ에서 받도록 바꾼다. 전송량은 평균 부하로 환산한 추정치이며, 주황 화살표는 AZ 간 scrape 전송이다.",
   "font": 1.15,
   "nodes": [
     {
-      "id": "T2A",
+      "id": "B_T2A",
       "col": 0,
       "row": 0,
-      "label": "2a 타깃",
-      "sub": "Pod · Service · Node",
+      "label": "2a 타깃 · 51%",
+      "sub": "약 2.1TB/일",
       "kind": "src"
     },
     {
-      "id": "T2C",
+      "id": "B_T2C",
       "col": 0,
       "row": 1,
-      "label": "2c 타깃",
-      "sub": "Pod · Service · Node",
+      "label": "2c 타깃 · 49%",
+      "sub": "같은 AZ에서 수집",
       "kind": "src"
     },
     {
-      "id": "VA",
+      "id": "B_AGENT",
       "col": 1,
-      "row": 0,
-      "label": "vmagent",
-      "sub": "1대 · 2a",
+      "row": 1,
+      "label": "vmagent · 2c",
+      "sub": "전체 타깃 수집",
       "kind": "proc"
     },
     {
-      "id": "LB1",
+      "id": "B_ENTRY",
       "col": 2,
-      "row": 0,
+      "row": 1,
       "label": "쓰기 진입점",
-      "sub": "LB · ingress / 2a",
+      "sub": "LB → ingress",
       "kind": "proc"
     },
     {
-      "id": "T2A2",
-      "col": 0,
-      "row": 3,
-      "label": "2a 타깃",
-      "sub": "Pod · Service · Node",
-      "kind": "src"
-    },
-    {
-      "id": "T2C2",
-      "col": 0,
-      "row": 4,
-      "label": "2c 타깃",
-      "sub": "Pod · Service · Node",
-      "kind": "src"
-    },
-    {
-      "id": "CRA",
-      "col": 1,
-      "row": 3,
-      "label": "CR-A",
-      "sub": "vmagent · 2a / drop 2c",
-      "kind": "proc"
-    },
-    {
-      "id": "CRB",
-      "col": 1,
-      "row": 4,
-      "label": "CR-B",
-      "sub": "vmagent · 2c / keep 2c",
-      "kind": "proc"
-    },
-    {
-      "id": "LB2",
-      "col": 2,
-      "row": 3,
-      "label": "쓰기 진입점",
-      "sub": "LB · ingress / 2a",
-      "kind": "proc"
-    },
-    {
-      "id": "STORE1",
+      "id": "B_STORE",
       "col": 3,
-      "row": 0,
+      "row": 1,
       "label": "VM 저장소",
       "sub": "vminsert → vmstorage",
       "kind": "store"
     },
     {
-      "id": "STORE2",
+      "id": "A_T2A",
+      "col": 0,
+      "row": 3,
+      "label": "2a 타깃 · 51%",
+      "sub": "약 2.1TB/일 유지",
+      "kind": "src"
+    },
+    {
+      "id": "A_T2C",
+      "col": 0,
+      "row": 4,
+      "label": "2c 타깃 · 49%",
+      "sub": "수집량 유지",
+      "kind": "src"
+    },
+    {
+      "id": "A_AGENT2A",
+      "col": 1,
+      "row": 3,
+      "label": "vmagent · 2a",
+      "sub": "같은 AZ에서 수집",
+      "kind": "proc"
+    },
+    {
+      "id": "A_AGENT2C",
+      "col": 1,
+      "row": 4,
+      "label": "vmagent · 2c",
+      "sub": "같은 AZ에서 수집",
+      "kind": "proc"
+    },
+    {
+      "id": "A_ENTRY",
+      "col": 2,
+      "row": 3,
+      "label": "쓰기 진입점",
+      "sub": "기존 목적지 유지",
+      "kind": "proc"
+    },
+    {
+      "id": "A_STORE",
       "col": 3,
       "row": 3,
       "label": "VM 저장소",
@@ -93,96 +93,95 @@
   ],
   "edges": [
     {
-      "from": "T2A",
-      "to": "VA",
-      "label": "응답",
-      "rate": 500
-    },
-    {
-      "from": "T2C",
-      "to": "VA",
+      "from": "B_T2A",
+      "to": "B_AGENT",
       "label": "AZ 횡단",
       "kind": "query",
       "rate": 320
     },
     {
-      "from": "VA",
-      "to": "LB1",
-      "label": "전송",
-      "rate": 500
-    },
-    {
-      "from": "T2A2",
-      "to": "CRA",
+      "from": "B_T2C",
+      "to": "B_AGENT",
       "label": "응답",
       "rate": 500
     },
     {
-      "from": "T2C2",
-      "to": "CRB",
-      "label": "응답",
-      "rate": 500
-    },
-    {
-      "from": "CRA",
-      "to": "LB2",
+      "from": "B_AGENT",
+      "to": "B_ENTRY",
       "label": "전송",
       "rate": 500
     },
     {
-      "from": "CRB",
-      "to": "LB2",
-      "label": "AZ 횡단",
-      "kind": "query",
-      "rate": 320
-    },
-    {
-      "from": "LB1",
-      "to": "STORE1",
-      "label": "전달",
+      "from": "B_ENTRY",
+      "to": "B_STORE",
+      "label": "저장",
       "rate": 500
     },
     {
-      "from": "LB2",
-      "to": "STORE2",
-      "label": "전달",
+      "from": "A_T2A",
+      "to": "A_AGENT2A",
+      "label": "AZ 내부",
+      "rate": 500
+    },
+    {
+      "from": "A_T2C",
+      "to": "A_AGENT2C",
+      "label": "AZ 내부",
+      "rate": 500
+    },
+    {
+      "from": "A_AGENT2A",
+      "to": "A_ENTRY",
+      "label": "전송",
+      "rate": 500
+    },
+    {
+      "from": "A_AGENT2C",
+      "to": "A_ENTRY",
+      "label": "전송",
+      "rate": 500
+    },
+    {
+      "from": "A_ENTRY",
+      "to": "A_STORE",
+      "label": "저장",
       "rate": 500
     }
   ],
   "groups": [
     {
-      "id": "before-stage",
-      "label": "변경 전 · stage 클러스터",
+      "id": "before-workload",
+      "label": "AS-IS · 현재 수집 클러스터",
       "members": [
-        "T2A",
-        "T2C",
-        "VA"
+        "B_T2A",
+        "B_T2C",
+        "B_AGENT"
       ]
     },
     {
       "id": "before-storage",
-      "label": "변경 전 · 원격 저장 클러스터",
+      "label": "AS-IS · 원격 저장 클러스터",
       "members": [
-        "LB1",
-        "STORE1"
+        "B_ENTRY",
+        "B_STORE"
       ]
     },
     {
-      "id": "after-stage",
-      "label": "변경 후 · stage 클러스터",
+      "id": "after-workload",
+      "label": "TO-BE · 수집 분할안",
       "members": [
-        "T2A2",
-        "T2C2",
-        "CRA",
-        "CRB"
+        "A_T2A",
+        "A_T2C",
+        "A_AGENT2A",
+        "A_AGENT2C"
       ]
     },
     {
       "id": "after-storage",
-      "label": "변경 후 · 원격 저장 클러스터",
+      "label": "TO-BE · 원격 저장 클러스터",
       "members": [
-        "LB2",
-        "STORE2"
+        "A_ENTRY",
+        "A_STORE"
       ]
     }
   ]
