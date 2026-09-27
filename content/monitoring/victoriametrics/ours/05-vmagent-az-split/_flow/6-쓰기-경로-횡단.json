@@ -1,0 +1,16 @@
+{
+  "caption": "쓰기 경로 4구간 중 이번 변경이 바꾼 건 agent → LB 첫 구간뿐이다",
+  "nodes": [
+    { "id": "CRB", "col": 0, "row": 0, "label": "CR-B", "sub": "2c", "kind": "proc" },
+    { "id": "LB", "col": 1, "row": 0, "label": "쓰기 LB", "sub": "IP 1개 · 2a", "kind": "proc" },
+    { "id": "ING", "col": 2, "row": 0, "label": "ingress", "sub": "파드 4개 · 2a", "kind": "proc" },
+    { "id": "VI", "col": 3, "row": 0, "label": "vminsert", "sub": "2a 57% · 2b 43%", "kind": "proc" },
+    { "id": "VS", "col": 4, "row": 0, "label": "vmstorage", "sub": "2a·2b·2c 균등", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "CRB", "to": "LB", "label": "cross-AZ", "rate": 260 },
+    { "from": "LB", "to": "ING", "rate": 600 },
+    { "from": "ING", "to": "VI", "label": "43%", "rate": 400 },
+    { "from": "VI", "to": "VS", "label": "≈2/3", "rate": 300 }
+  ]
+}

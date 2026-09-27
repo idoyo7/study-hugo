@@ -1,7 +1,7 @@
 ---
 title: "우리의 운영"
 date: 2026-07-18
-lastmod: 2026-08-24
+lastmod: 2026-09-27
 weight: 3
 comments: false
 ---
@@ -37,6 +37,7 @@ concepts는 네이버 D2/DEVIEW 발표를 정독해 VM의 내부 동작을 잡�
 | [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) | Phase 1 | `forceVMProto`(zstd 고정)·`maxDiskUsagePerURL`(디스크 큐 상한), 적용 순서 |
 | [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) | 관측 | 전송 재시도·드랍·바이트·pending 큐 4지표 + 카디널리티 인벤토리 |
 | [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) | 용량 | 디스크 큐 산정식, 리소스 기준치, HA 트레이드오프, slow insert 임계 |
+| [05 vmagent AZ 분할]({{< relref "05-vmagent-az-split.md" >}}) | 비용 | Node 메타데이터로 CR-A/CR-B 분리, cross-AZ scrape 제거, 전환 실측·쓰기 경로 잔여 비용 |
 
 ## 읽는 순서
 
@@ -44,3 +45,4 @@ concepts는 네이버 D2/DEVIEW 발표를 정독해 VM의 내부 동작을 잡�
 - 02에서 Phase 1의 zstd 고정·디스크 큐 상한 변경 근거를 봅니다.
 - 03의 자기감시 메트릭 4개로 적용 효과와 이상을 판정합니다.
 - 04에서 큐 상한 산정식과 리소스·HA 기준치를 정리합니다.
+- 05에서 vmagent를 AZ별로 나눠 cross-AZ scrape 비용을 없앤 과정과 남은 쓰기 경로 비용을 봅니다.
