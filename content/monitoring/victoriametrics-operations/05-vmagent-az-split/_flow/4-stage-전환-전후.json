@@ -1,0 +1,28 @@
+{
+  "caption": "stage는 prod와 방향이 반대입니다. 기존 agent가 2a에 있고 새 agent를 2c에 띄웠습니다. 분할 뒤 scrape의 AZ 횡단은 0이 되고, 2a에만 있는 쓰기 LB로 가는 새 agent의 remote write가 새로 AZ를 넘습니다.",
+  "font": 1.15,
+  "nodes": [
+    { "id": "B_T2A", "col": 0, "row": 0, "label": "2a 타깃 · 61%", "sub": "같은 AZ에서 수집", "kind": "src" },
+    { "id": "B_T2C", "col": 0, "row": 1, "label": "2c 타깃 · 39%", "sub": "2.89MB/s", "kind": "src" },
+    { "id": "B_AGENT", "col": 1, "row": 0, "label": "vmagent · 2a", "sub": "기존 agent · 전체 수집", "kind": "proc" },
+    { "id": "B_LB", "col": 2, "row": 0, "label": "쓰기 LB · 2a", "sub": "remote write", "kind": "proc" },
+    { "id": "A_T2A", "col": 0, "row": 3, "label": "2a 타깃", "sub": "4.51MB/s", "kind": "src" },
+    { "id": "A_T2C", "col": 0, "row": 4, "label": "2c 타깃", "sub": "2.89MB/s", "kind": "src" },
+    { "id": "A_AGENT2A", "col": 1, "row": 3, "label": "vmagent · 2a", "sub": "기존 agent · fallback", "kind": "proc" },
+    { "id": "A_AGENT2C", "col": 1, "row": 4, "label": "vmagent · 2c", "sub": "새 agent · 2c만 keep", "kind": "proc" },
+    { "id": "A_LB", "col": 2, "row": 3, "label": "쓰기 LB · 2a", "sub": "하루 11.7GB 유입", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "B_T2A", "to": "B_AGENT", "label": "AZ 내부", "rate": 500 },
+    { "from": "B_T2C", "to": "B_AGENT", "label": "AZ 횡단", "cross": true, "w": 3, "rate": 380 },
+    { "from": "B_AGENT", "to": "B_LB", "label": "전송", "rate": 600 },
+    { "from": "A_T2A", "to": "A_AGENT2A", "label": "AZ 내부", "rate": 500 },
+    { "from": "A_T2C", "to": "A_AGENT2C", "label": "AZ 내부", "rate": 500 },
+    { "from": "A_AGENT2A", "to": "A_LB", "label": "전송", "rate": 600 },
+    { "from": "A_AGENT2C", "to": "A_LB", "label": "AZ 횡단", "cross": true, "w": 1, "rate": 900 }
+  ],
+  "groups": [
+    { "id": "before", "label": "AS-IS · stage agent 1대", "members": ["B_T2A", "B_T2C", "B_AGENT", "B_LB"] },
+    { "id": "after", "label": "TO-BE · stage agent 2대", "members": ["A_T2A", "A_T2C", "A_AGENT2A", "A_AGENT2C", "A_LB"] }
+  ]
+}
