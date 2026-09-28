@@ -39,7 +39,7 @@ comments: false
 | [02 vmagent 전송 튜닝]({{< relref "02-vmagent-transport-tuning.md" >}}) | Phase 1 | `forceVMProto`(zstd 고정)·`maxDiskUsagePerURL`(디스크 큐 상한), 적용 순서 |
 | [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) | 관측 | 전송 재시도·드랍·바이트·pending 큐 4지표 + 카디널리티 인벤토리 |
 | [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) | 용량 | 디스크 큐 산정식, 리소스 기준치, HA 트레이드오프, slow insert 임계 |
-| [05 vmagent AZ 분할]({{< relref "05-vmagent-az-split.md" >}}) | 통신·전송량 | 전체 트래픽의 약 90%인 inter-AZ 통신을 두 AZ의 분산 수집으로 약 10% 줄인 과정 |
+| [05 vmagent AZ 분할]({{< relref "05-vmagent-az-split.md" >}}) | 통신·전송량 | AZ a/c 분산 수집으로 전체 inter-AZ 트래픽을 약 10% 줄인 설계와 전환·검증 경험 |
 
 ## 읽는 순서
 
@@ -47,4 +47,4 @@ comments: false
 - 02에서 Phase 1의 zstd 고정·디스크 큐 상한 변경 근거를 봅니다.
 - 03의 자기감시 메트릭 4개로 적용 효과와 이상을 판정합니다.
 - 04에서 큐 상한 산정식과 리소스·HA 기준치를 정리합니다.
-- 05에서 vmagent AZ 분할 전후의 전송 경로와 예상 절감량, 전환 시 확인할 사항을 봅니다.
+- 05에서 vmagent AZ 분할 설계와 전송량 감소, 라벨 변경에 따른 자동 확장 문제와 검증 방법을 봅니다.
