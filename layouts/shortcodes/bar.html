@@ -1,0 +1,6 @@
+{{- /* vm-bar: 표 셀 안에서 쓰는 비중 막대. 인자 1개=0~100 비율 막대(청록),
+       인자 2개=두 값을 양끝에서 채우는 비교 막대(첫째 청록·둘째 보라 — 2a/2c 같은 AZ 비교).
+       숫자 텍스트는 그리지 않는다(값은 옆 칸에 쓴다). 폭 고정, aria-label에 값.
+       마크다운 표 셀을 깨지 않도록 개행 없는 한 줄 인라인 span만 낸다.
+       사용: {{< bar 81.6 >}}  또는  {{< bar 52.2 47.7 >}}
+       스타일은 assets/css/custom.css. */ -}}{{- $a := .Get 0 -}}{{- $b := .Get 1 -}}<span class="vm-bar{{ if $b }} split{{ end }}" role="img" aria-label="{{ $a }}%{{ if $b }} / {{ $b }}%{{ end }}"><span class="a" style="width:{{ $a }}%"></span>{{ if $b }}<span class="b" style="width:{{ $b }}%"></span>{{ end }}</span>

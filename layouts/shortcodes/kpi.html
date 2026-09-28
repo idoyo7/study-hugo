@@ -1,0 +1,11 @@
+{{- /* vm-kpi: kpis 안에서 쓰는 수치 타일 하나.
+       사용: {{< kpi label="agent 경로 AZ 간 전송" value="−95.3%" sub="하루 249.7GB → 11.7GB" tone="good" >}}
+       tone: good(초록) · warn(주황) · 생략 시 중립. value는 크게(monospace), label은 작게, sub는 흐리게.
+       스타일은 assets/css/custom.css. */ -}}
+<div class="vm-kpi{{ with .Get "tone" }} tone-{{ . }}{{ end }}">
+<span class="vm-kpi-l">{{ .Get "label" }}</span>
+<span class="vm-kpi-v">{{ .Get "value" }}</span>
+{{- with .Get "sub" }}
+<span class="vm-kpi-s">{{ . }}</span>
+{{- end }}
+</div>

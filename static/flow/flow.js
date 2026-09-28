@@ -134,9 +134,14 @@
         x1 = a.x + a.w; y1 = a.y + a.h / 2; x2 = bb.x; y2 = bb.y + bb.h / 2;
       }
       var dashed = !!ed.dashed;
-      gEdges.appendChild(el('line', { x1: x1, y1: y1, x2: x2, y2: y2, class: 'flow-edge' + (dashed ? ' is-dashed' : '') }));
+      /* cross — AZ(경계) 횡단 강조. 선·화살표·라벨을 access 레이어 색(주황)으로.
+         w — 선 굵기 배수(1~4, 전송량 크기 표현). 둘 다 미지정이면 기존과 동일. */
+      var crossCls = ed.cross ? ' is-cross' : '';
+      var lineAttrs = { x1: x1, y1: y1, x2: x2, y2: y2, class: 'flow-edge' + (dashed ? ' is-dashed' : '') + crossCls };
+      if (ed.w) lineAttrs.style = 'stroke-width:' + (1.5 * ed.w) + 'px';
+      gEdges.appendChild(el('line', lineAttrs));
       var ang = Math.atan2(y2 - y1, x2 - x1), ax = x2 - 8 * Math.cos(ang), ay = y2 - 8 * Math.sin(ang);
-      gEdges.appendChild(el('path', { d: 'M ' + x2 + ' ' + y2 + ' L ' + (ax - 4.5 * Math.sin(ang)) + ' ' + (ay + 4.5 * Math.cos(ang)) + ' L ' + (ax + 4.5 * Math.sin(ang)) + ' ' + (ay - 4.5 * Math.cos(ang)) + ' Z', class: 'flow-arrow' }));
+      gEdges.appendChild(el('path', { d: 'M ' + x2 + ' ' + y2 + ' L ' + (ax - 4.5 * Math.sin(ang)) + ' ' + (ay + 4.5 * Math.cos(ang)) + ' L ' + (ax + 4.5 * Math.sin(ang)) + ' ' + (ay - 4.5 * Math.cos(ang)) + ' Z', class: 'flow-arrow' + crossCls }));
       if (ed.label) {
         var lw = estw(ed.label, EF), lx, ly, anchor, bx0;
         if (Math.abs(x2 - x1) < 1) {
@@ -146,7 +151,7 @@
           lx = (x1 + x2) / 2; ly = (y1 + y2) / 2 - 6; anchor = 'middle'; bx0 = lx - lw / 2 - 3;
         }
         gEdges.appendChild(el('rect', { x: bx0, y: ly - 10 * F, width: lw + 6, height: 13 * F, rx: 3, class: 'flow-elabel-bg' }));
-        var lt = el('text', { x: lx, y: ly, class: 'flow-elabel', 'text-anchor': anchor, style: fs(EF) }); lt.textContent = ed.label; gEdges.appendChild(lt);
+        var lt = el('text', { x: lx, y: ly, class: 'flow-elabel' + crossCls, 'text-anchor': anchor, style: fs(EF) }); lt.textContent = ed.label; gEdges.appendChild(lt);
       }
       ed._x1 = x1; ed._y1 = y1; ed._x2 = x2; ed._y2 = y2;
       ed._dur = Math.hypot(x2 - x1, y2 - y1) / (SPEED[ed.speed] || SPEED.normal);

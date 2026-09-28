@@ -1,0 +1,5 @@
+{{- /* vm-basis: 측정 기준 줄. 위치 인자 N개를 점 구분자로 이은 작은 칩 한 줄로 낸다.
+       글 머리에서 표·수치의 전제(기준 시각, 범위, 단가 등)를 고정할 때 쓴다.
+       사용: {{< basis "기준 2026-09-28 10:40 KST" "범위 stage 클러스터" "단가 $0.02/GB" >}}
+       스타일은 assets/css/custom.css. */ -}}
+<p class="vm-basis">{{ range $i, $v := .Params }}{{ if $i }}<span class="vm-basis-sep">·</span>{{ end }}<span class="vm-basis-item">{{ $v }}</span>{{ end }}</p>

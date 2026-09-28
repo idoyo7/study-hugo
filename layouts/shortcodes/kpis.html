@@ -1,0 +1,9 @@
+{{- /* vm-kpis: 상단 수치 타일 그리드. 안에 kpi shortcode 여러 개를 넣어 쓴다.
+       사용:
+       {{< kpis >}}
+       {{< kpi label="..." value="..." sub="..." tone="good" >}}
+       {{< /kpis >}}
+       데스크톱 2~4열 auto-fit, 760px 이하에서는 2열 고정(스타일은 assets/css/custom.css). */ -}}
+<div class="vm-kpis">
+{{ .Inner }}
+</div>

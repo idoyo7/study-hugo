@@ -163,6 +163,9 @@ function lintFlow(spec, file, errs, warns) {
         else errs.push(`${file}: edge ${e.from}→${e.to} 의 ${side} "${v}" 가 node·group 어디에도 없다`);
       }
     }
+    if (e.w !== undefined && (typeof e.w !== 'number' || e.w < 1 || e.w > 4)) {
+      warns.push(`${file}: edge ${e.from}→${e.to} 의 w=${e.w} 는 1~4 범위 밖(선 굵기 배수)`);
+    }
     if (!e.label) continue;
     const a = byId[e.from], b = byId[e.to];
     if (!a || !b) continue;

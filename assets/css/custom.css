@@ -17,3 +17,104 @@
     display: block !important;
   }
 }
+
+/* vm-kpis/kpi/basis/badge/bar — 본문·표 안 인라인 컴포넌트. 새 프런트엔드 의존성 없음.
+   색은 static/flow/flow.css 의 layer/kind 토큰과 같은 값을 쓴다(그쪽 변수는 `.vm-flow` 안에만
+   선언돼 있어 표·머리글에서는 못 읽으므로, 같은 값을 `:root` 스코프로 다시 선언한다).
+   `--vm-bad`(빨강)만 예외 — 기존 다섯 kind·네 layer 어디에도 빨강이 없어 새로 추가했다. */
+:root {
+  --vm-good: #0ca30c; --vm-good-soft: #dcf1e3;
+  --vm-warn: #d97706; --vm-warn-soft: #f8ecd2; /* = --flow-layer-access */
+  --vm-bad: #b3261e;  --vm-bad-soft: #f7dcd9;
+  --vm-info: #6b7280; --vm-info-soft: #e7e8e6;
+  --vm-az-a: #0d9488; /* = --flow-proc / --flow-layer-observe */
+  --vm-az-c: #7c3aed; /* = --flow-store / --flow-layer-state */
+  --vm-ink: #1a1a1a; --vm-muted: #52514e; --vm-faint: #8a8a82;
+  --vm-line: #dcddd3; --vm-surface: #fcfcfb; --vm-sunk: #ececeb;
+}
+html.dark {
+  --vm-good: #34d06a; --vm-good-soft: #153222;
+  --vm-warn: #f59e0b; --vm-warn-soft: #352812;
+  --vm-bad: #f07a70;  --vm-bad-soft: #3a1a18;
+  --vm-info: #9ca3af; --vm-info-soft: #2c2c2a;
+  --vm-az-a: #2dd4bf;
+  --vm-az-c: #a78bfa;
+  --vm-ink: #f2f2ef; --vm-muted: #c3c2b7; --vm-faint: #9a978d;
+  --vm-line: #3a3a35; --vm-surface: #242422; --vm-sunk: #2c2c2a;
+}
+
+.vm-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 1.2rem 0;
+}
+@media (max-width: 760px) {
+  .vm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.vm-kpi {
+  background: var(--vm-surface);
+  border: 1px solid var(--vm-line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  overflow-wrap: anywhere;
+}
+.vm-kpi .vm-kpi-v {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--vm-ink);
+}
+.vm-kpi .vm-kpi-l { font-size: 12.5px; color: var(--vm-muted); }
+.vm-kpi .vm-kpi-s { font-size: 12px; color: var(--vm-faint); }
+.vm-kpi.tone-good .vm-kpi-v { color: var(--vm-good); }
+.vm-kpi.tone-warn .vm-kpi-v { color: var(--vm-warn); }
+
+.vm-basis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0.6rem 0 1.2rem;
+  font-size: 12.5px;
+  color: var(--vm-muted);
+}
+.vm-basis-item { white-space: nowrap; }
+.vm-basis-sep { color: var(--vm-faint); }
+
+.vm-badge {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  padding: 1px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--vm-info-soft);
+  color: var(--vm-info);
+}
+.vm-badge.tone-good { background: var(--vm-good-soft); color: var(--vm-good); }
+.vm-badge.tone-warn { background: var(--vm-warn-soft); color: var(--vm-warn); }
+.vm-badge.tone-bad  { background: var(--vm-bad-soft);  color: var(--vm-bad); }
+.vm-badge.tone-info { background: var(--vm-info-soft); color: var(--vm-info); }
+
+.vm-bar {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  width: 6.5rem;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--vm-sunk);
+}
+.vm-bar > .a, .vm-bar > .b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 4px;
+  background: var(--vm-az-a);
+}
+.vm-bar.split > .b { left: auto; right: 0; background: var(--vm-az-c); }

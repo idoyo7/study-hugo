@@ -1,0 +1,4 @@
+{{- /* vm-badge: 표 셀 안에서 쓰는 판정 배지. 위치 인자 1=텍스트, 2=tone(good·warn·bad·info, 생략 시 중립).
+       마크다운 표 셀을 깨지 않도록 개행 없는 한 줄 인라인 span만 낸다.
+       사용: {{< badge "정상" good >}}
+       스타일은 assets/css/custom.css. */ -}}<span class="vm-badge{{ with .Get 1 }} tone-{{ . }}{{ end }}">{{ .Get 0 }}</span>

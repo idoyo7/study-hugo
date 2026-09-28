@@ -42,9 +42,9 @@
 
 ## Components
 - Existing components to reuse: Hugo `flow` shortcode, flow group, layer, ghost node
-- New/changed components: 없음
-- Variants and states: 실제 컴포넌트는 실선 카드, 논리적 WAN 통로와 부재는 ghost 카드
-- Token/component ownership: `static/flow/flow.css`와 `static/flow/flow.js`
+- New/changed components: `kpis`/`kpi`(상단 수치 타일) · `basis`(측정 기준 줄) · `badge`(표 셀 판정 배지) · `bar`(표 셀 비중 막대) · flow 엣지 `cross`/`w`(AZ 횡단 강조·선 굵기 배수) — 전부 JS 엔진 없는 정적 HTML+CSS, `assets/css/custom.css`에 스타일. 색은 `flow.css`의 layer/kind 토큰과 같은 값을 재사용(`--vm-bad` 빨강만 신규 — 기존 토큰에 없던 값)
+- Variants and states: 실제 컴포넌트는 실선 카드, 논리적 WAN 통로와 부재는 ghost 카드. `kpi`/`badge`는 `tone`(good·warn·bad·info)으로 상태를 표현하고, `bar`는 단일/2분할로 비중을 표현한다
+- Token/component ownership: `static/flow/flow.css`와 `static/flow/flow.js`(엣지 `cross`/`w`), `assets/css/custom.css`와 `layouts/shortcodes/{kpis,kpi,basis,badge,bar}.html`(표·머리글 인라인 컴포넌트)
 
 ## Accessibility
 - Target standard: 텍스트와 구조만으로 색상 의미를 보완한다.

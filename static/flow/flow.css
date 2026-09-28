@@ -87,6 +87,10 @@ html.dark .vm-flow {
 /* ghost — 비어 있는 자리(없음·예정·미구현)를 점선 반투명으로. layer/kind 색은 그대로 쓰되 바탕은 없앤다 */
 .vm-flow .flow-node.is-ghost .flow-rect { fill: transparent; stroke-dasharray: 5 4; stroke-width: 1.5; opacity: 0.55; }
 .vm-flow .flow-node.is-ghost .flow-nlabel, .vm-flow .flow-node.is-ghost .flow-nsub { opacity: 0.6; }
+/* cross — AZ(경계) 횡단 엣지 강조. access 레이어 색(주황) 재사용, w(선 굵기)는 인라인 style 로 온다 */
+.vm-flow .flow-edge.is-cross { stroke: var(--flow-layer-access); }
+.vm-flow .flow-arrow.is-cross { fill: var(--flow-layer-access); }
+.vm-flow .flow-elabel.is-cross { fill: var(--flow-layer-access); }
 .vm-flow .flow-group-box { fill: var(--flow-group-fill); stroke: var(--flow-group-stroke); stroke-width: 1.3; stroke-dasharray: 4 4; }
 .vm-flow .flow-group-label { fill: var(--flow-sub); font-size: 11px; font-weight: 650; }
 .vm-flow .flow-caption {
