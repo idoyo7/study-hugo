@@ -77,7 +77,7 @@ Vector는 2021년에 Datadog이 인수한 MPL-2.0 프로젝트로, 여섯 주쯤
 | #25385 | 한 Pod 경로에 watcher가 여럿 붙어 source lag이 2천 초대로 늘어남 | open |
 | #26465 | 0.55 이후 백로그를 한꺼번에 읽어 메모리 폭증, 1분 안팎에 OOM | 2026-09-28 closed |
 
-마지막 이슈는 129MB 백로그에 1.7GiB를 썼다는 보고이고 0.58.0도 영향 버전에 들어 있습니다. 닫히기는 했지만 수정이 어느 릴리스에 실리는지는 확인하지 못했습니다 `?`. 그때까지는 `read_from: end`로 두거나 메모리 한도를 넉넉히 주는 우회가 보고돼 있습니다. 홈랩에서 Fluent Bit과 Vector를 나란히 돌렸을 때 수집 건수는 2,400,004건과 2,399,840건으로 거의 같았지만, 그건 로그가 적은 클러스터에서의 결과입니다.
+마지막 이슈는 129MB 백로그에 1.7GiB를 썼다는 보고이고 0.58.0도 영향 버전에 들어 있습니다. 닫히기는 했지만 수정이 어느 릴리스에 실리는지는 확인하지 못했습니다 `?`. 그때까지는 `read_from: end`로 두거나 메모리 한도를 넉넉히 주는 우회가 보고돼 있습니다. 홈랩에서 체크포인트 없이 새로 띄운 0.58.0 파드로 재현해 보니 `read_from: end`는 듣지 않았습니다. 일주일 전 로그부터 읽기 시작했고, 한도 512Mi에서는 파일을 찾은 직후 OOM으로 죽었습니다. 3Gi로 올리자 2분 남짓 동안 225만 건을 읽으며 1.1GiB를 넘겼다가 700MiB 선에서 멎었습니다 `✓`. 이 파드는 agent와 aggregator 역할을 한 프로세스에서 돌렸으니 소스만의 사용량은 아니지만, 새 노드에 agent가 처음 뜰 때의 메모리는 평소 한도와 따로 잡아야 한다는 점은 분명합니다. 홈랩에서 Fluent Bit과 Vector를 나란히 돌렸을 때 수집 건수는 2,400,004건과 2,399,840건으로 거의 같았지만, 그건 로그가 적은 클러스터에서의 결과입니다.
 
 OTel Collector와는 역할이 겹칩니다. 둘 다 agent와 gateway를 겸하는데, Collector는 OTLP 세 신호와 수신기 생태계가, Vector는 VRL과 버퍼·acknowledgement 모델, 다중 sink 라우팅이 강점입니다. Vector의 `opentelemetry` 소스와 sink는 둘 다 beta이고 트레이스는 내부 타입 없이 key/value 맵으로 다룹니다. 로그만 Vector로 나르고 트레이스와 메트릭은 Collector에 두는 분담이 무리가 없습니다.
 
@@ -109,7 +109,7 @@ OpenSearch에 `_bulk`를 보낼 때는 3~5MiB 요청을 자주 보내도 됐습�
 
 {{< flow src="_flow/6-통합-구성.json" />}}
 
-테이블은 OTel Collector의 `clickhouse` exporter가 만드는 `otel_logs` DDL을 뼈대로 삼고 컬럼을 쿠버네티스 중심으로 줄였습니다. 아래 DDL과 설정은 문서와 exporter 원문에서 조립한 것이고 아직 클러스터에서 돌려 보지 않았습니다.
+테이블은 OTel Collector의 `clickhouse` exporter가 만드는 `otel_logs` DDL을 뼈대로 삼고 컬럼을 쿠버네티스 중심으로 줄였습니다. 아래 DDL과 설정은 문서와 exporter 원문에서 조립한 뒤 홈랩(Vector 0.58.0, ClickHouse 25.3.14)에서 돌려 봤습니다. 설정은 `vector validate`를 통과했고, 임시 파드에서 `kubernetes_logs` → `vector` sink → `vector` 소스 → `remap`을 거친 실제 로그 225만 건이 오류 없이 변환됐으며, 그 출력 표본을 `JSONEachRow`로 넣어 컬럼이 모두 채워지는 것을 확인했습니다 `✓`. `clickhouse` sink가 HTTP로 직접 넣는 구간(배치, 디스크 버퍼, acknowledgement)은 아직 돌려 보지 못했습니다.
 
 ```sql
 CREATE TABLE logs.k8s_logs
@@ -132,7 +132,7 @@ TTL toDateTime(timestamp) + INTERVAL 30 DAY DELETE
 SETTINGS index_granularity = 8192, ttl_only_drop_parts = 1;
 ```
 
-코덱과 `LowCardinality`, 일 단위 파티션, `ttl_only_drop_parts`는 exporter DDL을 그대로 따랐습니다. 정렬키는 다르게 잡았습니다. exporter 기본은 `(toStartOfFiveMinutes(Timestamp), ServiceName, Timestamp)`이고 ClickHouse 사내 플랫폼은 `(PodName, Timestamp)`를 씁니다. 여기서는 조회가 대개 namespace와 container로 좁힌 뒤 시간 범위를 본다고 가정했습니다. 가장 자주 쓰는 필터를 앞에 두는 것이 원칙이므로 실제 쿼리 패턴이 다르면 바꿔야 합니다. 텍스트 인덱스는 5절에서 본 비용이 있어 `message`에만 붙였고, 26.2보다 낮은 버전이라면 이 줄을 빼거나 bloom filter 계열로 바꿉니다. 복제를 쓰면 엔진이 `ReplicatedMergeTree`가 되고 Keeper가 따라옵니다. 그쪽 구성은 [ClickHouse 운영]({{< relref "/clickhouse/_index.md" >}})에 있습니다.
+코덱과 `LowCardinality`, 일 단위 파티션, `ttl_only_drop_parts`는 exporter DDL을 그대로 따랐습니다. 정렬키는 다르게 잡았습니다. exporter 기본은 `(toStartOfFiveMinutes(Timestamp), ServiceName, Timestamp)`이고 ClickHouse 사내 플랫폼은 `(PodName, Timestamp)`를 씁니다. 여기서는 조회가 대개 namespace와 container로 좁힌 뒤 시간 범위를 본다고 가정했습니다. 가장 자주 쓰는 필터를 앞에 두는 것이 원칙이므로 실제 쿼리 패턴이 다르면 바꿔야 합니다. 텍스트 인덱스는 5절에서 본 비용이 있어 `message`에만 붙였고, 26.2보다 낮은 버전에서는 이 줄 때문에 테이블이 만들어지지 않습니다. 25.3.14는 `Only literals can be skip index arguments` 오류를 냈고, 인덱스 줄을 `INDEX idx_message lower(message) TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 8`로 바꾸자 생성됐습니다 `✓`. 복제를 쓰면 엔진이 `ReplicatedMergeTree`가 되고 Keeper가 따라옵니다. 그쪽 구성은 [ClickHouse 운영]({{< relref "/clickhouse/_index.md" >}})에 있습니다.
 
 aggregator 설정은 이렇습니다.
 
@@ -150,7 +150,7 @@ transforms:
       level = "unknown"
       parsed, err = parse_json(.message)
       if err == null && is_object(parsed) {
-        level = to_string(parsed.level) ?? "unknown"
+        level = string(parsed.level) ?? "unknown"
       }
       . = {
         "timestamp": .timestamp,
@@ -188,7 +188,7 @@ sinks:
         wait_for_processing: true
 ```
 
-sink의 기본 배치는 10MB 또는 1초입니다. 1초마다 insert를 내보내는 설정이라 5절의 권고에 맞춰 5만 건 또는 5초로 늘렸습니다. `wait_for_processing`은 `wait_for_async_insert`에 대응합니다. `date_time_best_effort`가 꺼져 있으면 RFC 3339 형식의 타임스탬프를 `DateTime64`로 읽지 못할 수 있습니다. `skip_unknown_fields`는 일부러 넣지 않았습니다. 켜면 테이블에 없는 필드를 조용히 버리기 때문에, 처음에는 오류가 나게 두고 스키마가 어긋난 곳을 찾는 편이 낫습니다.
+sink의 기본 배치는 10MB 또는 1초입니다. 1초마다 insert를 내보내는 설정이라 5절의 권고에 맞춰 5만 건 또는 5초로 늘렸습니다. `wait_for_processing`은 `wait_for_async_insert`에 대응합니다. `date_time_best_effort`가 꺼져 있으면 RFC 3339 형식의 타임스탬프를 `DateTime64`로 읽지 못합니다. 같은 입력 형식 설정 없이 넣었을 때 `Cannot parse input ... while reading the value of key timestamp`로 실패했습니다 `✓`. VRL에서 level을 꺼낼 때 `to_string`이 아니라 `string`을 쓴 것도 돌려 보고 고친 부분입니다. `to_string`은 null을 빈 문자열로 바꿔 버려서, JSON이지만 `level` 키가 없는 로그가 `unknown`이 아닌 빈 값으로 들어갔습니다. 대소문자도 원문 그대로 들어오므로(`info`와 `DEBUG`가 섞여 있었습니다) 필요하면 여기서 정규화합니다. `skip_unknown_fields`는 일부러 넣지 않았습니다. 켜면 테이블에 없는 필드를 조용히 버리기 때문에, 처음에는 오류가 나게 두고 스키마가 어긋난 곳을 찾는 편이 낫습니다.
 
 이 sink는 HTTP 인터페이스로만 붙고 기본 포맷이 `JSONEachRow`입니다. ClickHouse 문서는 Native 포맷이 가장 효율적이고 JSONEachRow는 파싱 비용이 크다고 적습니다. 대안인 `arrow_stream`은 아직 beta이며 테이블 이름에 템플릿을 쓸 수 없고 시작할 때 스키마를 한 번만 읽습니다. 수집량이 커지면 이 포맷 차이가 ClickHouse 쪽 CPU로 드러날 수 있으니 이중 적재 기간에 같이 재 볼 항목입니다.
 
@@ -219,7 +219,7 @@ ClickHouse에 로그를 넣는 수집기는 Vector만이 아닙니다. OTel Coll
 | 버퍼 | 디스크 버퍼, acknowledgement | `sending_queue`, 재시도 |
 | 조회 도구 | 컬럼 매핑을 직접 | Grafana·ClickStack이 바로 인식 |
 
-트레이스와 로그를 `TraceId`로 잇고 ClickStack 화면을 그대로 쓰려면 exporter 쪽이 손이 덜 갑니다. 앞단이 이미 Vector이고, 컬럼을 줄인 자체 스키마가 필요하고, 이중 적재처럼 sink를 여러 개 다뤄야 한다면 Vector sink가 맞습니다. 홈랩은 둘을 다 둔 경우여서 로그는 Vector로, OTLP로 오는 신호는 HyperDX 컬렉터로 받습니다.
+트레이스와 로그를 `TraceId`로 잇고 ClickStack 화면을 그대로 쓰려면 exporter 쪽이 손이 덜 갑니다. 앞단이 이미 Vector이고, 컬럼을 줄인 자체 스키마가 필요하고, 이중 적재처럼 sink를 여러 개 다뤄야 한다면 Vector sink가 맞습니다. 홈랩은 둘을 이어 붙인 경우입니다. 로그는 Vector가 모으지만 aggregator가 `clickhouse` sink 대신 OTLP로 HyperDX 컬렉터에 넘기고, 컬렉터의 exporter가 트레이스·메트릭과 함께 `otel_logs`에 넣습니다. 변환은 VRL로 하면서 스키마와 조회 화면은 exporter 쪽 것을 그대로 쓰는 절충입니다.
 
 ## 9. 어느 조건에서 무엇을 고를까
 
