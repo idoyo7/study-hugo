@@ -1,6 +1,6 @@
 ---
 title: "Istio 히스토그램 3종이 시리즈의 44%: vmstorage 인덱스 줄이기"
-description: "vmstorage 디스크의 3분의 2를 차지하는 인덱스를 줄이는 계획입니다. Istio 히스토그램 3종이 왜 시리즈의 44%를 차지하는지, 누가 쓰는지, 파드 차원을 접으면 얼마나 줄어드는지와 버전 업그레이드·적용 순서를 다룹니다."
+description: "vmstorage 디스크의 3분의 2를 차지하는 인덱스를 줄이는 계획입니다. Istio 히스토그램 3종이 왜 시리즈의 44%를 차지하는지, 누가 쓰는지, 시리즈에 붙는 라벨 구조와 파드 차원을 접었을 때의 감소량, 그리고 버전 업그레이드·적용 순서를 다룹니다."
 date: 2026-10-04
 lastmod: 2026-10-04
 weight: 6
@@ -13,7 +13,7 @@ weight: 6
 {{< kpis >}}
 {{< kpi label="디스크 중 인덱스 비중" value="약 3분의 2" sub="실측" >}}
 {{< kpi label="Istio 히스토그램 3종" value="약 44%" sub="하루 고유 시리즈 중 · 실측" >}}
-{{< kpi label="3종의 파드 차원을 접으면" value="98% 감소" sub="3종 시리즈 기준 · 계산" tone="good" >}}
+{{< kpi label="파드 신원 라벨을 접으면" value="약 90% 감소" sub="하루 고유 시리즈 전체 · 실측" tone="good" >}}
 {{< /kpis >}}
 
 ## 용량을 차지하는 것은 샘플보다 인덱스
@@ -45,6 +45,67 @@ weight: 6
 
 스케일링에 쓰는 `istio_requests_total`의 비중은 가장 많은 시점의 활성 시리즈 가운데 약 0.8%입니다. 히스토그램이 아니므로 버킷 배수가 붙지 않습니다.
 
+## 시리즈 하나에 붙는 라벨 34개
+
+지연 히스토그램의 시리즈 하나에 붙은 라벨은 다음과 같습니다. 서비스와 네임스페이스 이름은 예시용으로 바꿨습니다.
+
+```json
+{
+  "__name__": "istio_request_duration_milliseconds_bucket",
+
+  "pod": "order-api-7c9d8f6b5-x2k4q",
+  "pod_name": "order-api-7c9d8f6b5-x2k4q",
+  "instance": "10.0.12.34:15090",
+
+  "le": "250",
+  "response_code": "200",
+  "response_flags": "-",
+  "reporter": "destination",
+  "request_protocol": "http",
+  "connection_security_policy": "mutual_tls",
+
+  "source_workload": "ingress-gateway",
+  "source_workload_namespace": "istio-system",
+  "source_app": "ingress-gateway",
+  "source_canonical_service": "ingress-gateway",
+  "source_canonical_revision": "latest",
+  "source_principal": "spiffe://cluster.local/ns/istio-system/sa/ingress-gateway",
+  "source_cluster": "Kubernetes",
+
+  "destination_workload": "order-api",
+  "destination_workload_namespace": "shop",
+  "destination_app": "order-api",
+  "destination_service": "order-api.shop.svc.cluster.local",
+  "destination_service_name": "order-api",
+  "destination_service_namespace": "shop",
+  "destination_canonical_service": "order-api",
+  "destination_canonical_revision": "latest",
+  "destination_principal": "spiffe://cluster.local/ns/shop/sa/order-api",
+  "destination_cluster": "Kubernetes",
+
+  "namespace": "shop",
+  "pod_app": "order-api",
+  "pod_instance": "shop",
+
+  "cluster": "workload",
+  "job": "istio-dataplane",
+  "prometheus": "monitoring/vmagent",
+  "endpoint": "http-envoy-prom",
+  "container": "istio-proxy"
+}
+```
+
+이 라벨들은 네 묶음으로 나눌 수 있습니다.
+
+| 묶음 | 라벨 수 | 시리즈 수에 주는 영향 |
+|---|---|---|
+| 파드 신원: `pod`, `pod_name`, `instance` | 3 | 하루 약 94배 |
+| 요청 차원: `le`, `response_code`, `response_flags` 등 | 6 | `le` 20배, 응답 코드 약 1.9배 |
+| 워크로드·서비스: `source_*`, `destination_*`, `namespace` 등 | 20 | 서비스 쌍을 정함. 라벨 하나를 빼도 줄지 않음 |
+| 상수: `cluster`, `job`, `endpoint` 등 | 5 | 없음 |
+
+크기 히스토그램 2종도 라벨 구조는 같고, `__name__`과 `le` 값만 다릅니다.
+
 ## 파드 교체와 버킷이 늘리는 시리즈
 
 히스토그램 한 종의 하루 고유 시리즈 수는 다음 네 값의 곱으로 풀립니다(실측 산술).
@@ -58,7 +119,7 @@ weight: 6
 
 같은 조합이 파드별로 나뉘는 배수가 큽니다. 실행 중인 파드 수에 배포와 스케일링으로 하루에 약 3.7번 교체되는 효과가 곱해집니다. 파드가 바뀔 때마다 같은 서비스 쌍·응답 코드·버킷 조합이 새 시리즈로 등록됩니다.
 
-라벨을 하나씩 빼 보아도 파드 신원이 시리즈 수를 늘린다는 점을 확인할 수 있습니다. 한 시리즈의 라벨 34개 중 워크로드·서비스를 설명하는 28개는 하나를 빼도 시리즈 수가 줄지 않습니다. 다른 라벨에 따라 값이 정해지는 종속 라벨이기 때문입니다.
+라벨을 하나씩 빼 보아도 파드 신원이 시리즈 수를 늘린다는 점을 확인할 수 있습니다. 파드 신원 라벨과 `le`, 응답 코드를 제외한 나머지 라벨은 하나를 빼도 시리즈 수가 줄지 않습니다. 다른 라벨에 따라 값이 정해지는 종속 라벨이기 때문입니다.
 
 시리즈 수를 바꾸는 것은 파드 신원 라벨과 `le`, 응답 코드(약 1.9배)뿐입니다.
 
@@ -77,18 +138,16 @@ weight: 6
 
 ## 파드 차원을 접는 방법과 감축 효과
 
-vmagent의 스트림 집계로 파드 신원 라벨만 접고 나머지 라벨은 유지하려고 합니다. 메트릭을 drop하지 않고 같은 조합의 파드들을 묶는 방법입니다. 시리즈 하나를 비교하면 다음과 같습니다(이름은 예시).
+vmagent의 스트림 집계로 파드 신원 라벨을 접고 나머지 라벨은 유지하려고 합니다. 메트릭을 drop하지 않고, 나머지 라벨 조합이 같은 파드들을 ReplicaSet 단위로 묶는 방법입니다. 앞의 예시에서 바뀌는 라벨은 파드 신원 라벨 3개뿐입니다.
 
 ```json
 // 지금: 라벨 34개. 같은 조합이 하루 동안 파드 약 94개로 갈라짐
-{ "source_workload": "ingressgateway", "destination_workload": "api",
-  "response_code": "200", "le": "250",
-  "pod": "api-7c9d8f6b5-x2k4q", "pod_name": "api-7c9d8f6b5-x2k4q", "instance": "10.0.12.34:15090" }
+{ "pod": "order-api-7c9d8f6b5-x2k4q", "pod_name": "order-api-7c9d8f6b5-x2k4q", "instance": "10.0.12.34:15090",
+  "…": "나머지 31개" }
 
 // 집계 뒤: 라벨 32개. 같은 조합이 ReplicaSet 하나로 묶임
-{ "source_workload": "ingressgateway", "destination_workload": "api",
-  "response_code": "200", "le": "250",
-  "pod": "api-7c9d8f6b5-" }
+{ "pod": "order-api-7c9d8f6b5-",
+  "…": "나머지 31개 그대로" }
 ```
 
 `pod`를 ReplicaSet 접두사로 바꾸고 `pod_name`과 `instance`를 제거합니다. 배포 리비전 구분은 남아 배포 분석 식이 계속 동작합니다.
@@ -106,7 +165,29 @@ vmagent의 스트림 집계로 파드 신원 라벨만 접고 나머지 라벨�
 
 인덱스 증가량은 시리즈 수에 비례한다고 보고 추정했습니다. 3종을 모두 접으면 장기 필요량은 37~43% 줄어듭니다(추정).
 
-### 먼저 적용할 범위는 크기 2종
+## 모든 수집 대상에서 접으면 약 90%가 줄어든다
+
+Istio를 포함한 모든 수집 대상에서 파드 신원 라벨을 접고 하루 고유 시리즈를 다시 세었습니다(실측).
+
+| 수집 대상 | 하루 고유 시리즈 중 비중 | 접은 뒤 남는 비율 |
+|---|---|---|
+| Istio 사이드카 | 약 66% | 1.1% |
+| cAdvisor | 약 15% | 25.5% |
+| node-exporter | 약 9% | 16.0% |
+| kube-state-metrics | 약 4% | 7.4% |
+| probes | 약 3% | 33.1% |
+| kubelet | 약 3% | 97.1% |
+| **전체** | 100% | **10.0%** |
+
+전체 하루 고유 시리즈는 약 90% 줄어듭니다. Istio는 시리즈 증가가 거의 전부 파드 교체에서 비롯되므로 1.1%만 남습니다.
+
+cAdvisor와 node-exporter는 노드가 교체될 때도 새 시리즈가 생겨 파드 신원 라벨만 접으면 감소 폭이 작습니다. kubelet 메트릭에는 파드 라벨이 거의 없어 효과가 없습니다.
+
+이 비율로 시리즈 수의 여유를 가늠할 수 있습니다. 파드 신원 라벨을 접으면 수집하는 시리즈를 지금의 두 배로 늘려도 하루 고유 시리즈는 지금의 20%입니다. 두 배를 수집하고도 80%가 줄어든 상태입니다.
+
+시리즈를 10.0%까지 줄이는 것은 감축 효과의 상한입니다. Istio 밖의 수집 대상은 장애 진단에 파드·노드 라벨이 필요하므로 원본에서 접지 않기로 했습니다. 실제 적용 범위는 Istio 히스토그램입니다.
+
+## 먼저 적용할 범위는 크기 2종
 
 조회가 확인되지 않은 **크기 2종의 집계**를 먼저 적용하려고 하며, 지금 검증 클러스터에서 확인 중입니다. KEDA와 배포 분석이 읽는 지연 히스토그램의 집계는 보류했습니다. 집계 전후의 분위수를 일정 기간 나란히 비교한 뒤 전환할 계획입니다.
 
