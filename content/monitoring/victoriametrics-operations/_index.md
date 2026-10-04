@@ -40,6 +40,7 @@ comments: false
 | [03 자기감시 메트릭]({{< relref "03-self-monitoring-metrics.md" >}}) | 관측 | 전송 재시도·드랍·바이트·pending 큐 4지표 + 카디널리티 인벤토리 |
 | [04 스케일링·용량 기준치]({{< relref "04-scaling-thresholds.md" >}}) | 용량 | 디스크 큐 산정식, 리소스 기준치, HA 트레이드오프, slow insert 임계 |
 | [05 vmagent AZ 분할]({{< relref "05-vmagent-az-split.md" >}}) | 통신·전송량 | AZ a/c 분산 수집으로 inter-AZ 트래픽을 약 10% 줄인 설계, 두 단계 전환과 검증, AZ를 넘어도 청구되지 않는 구간 |
+| [06 저장 구조에서 바꿀 것]({{< relref "06-storage-index-roadmap.md" >}}) | 저장·용량 | 디스크의 약 65%가 인덱스, 버전 업그레이드와 미조회 시리즈 집계 계획, vmstorage AZ 배치 |
 
 ## 읽는 순서
 
@@ -48,3 +49,4 @@ comments: false
 - 03의 자기감시 메트릭 4개로 적용 효과와 이상을 판정합니다.
 - 04에서 큐 상한 산정식과 리소스·HA 기준치를 정리합니다.
 - 05에서 vmagent AZ 분할 설계와 두 단계 전환, 라벨 변경에 따른 자동 확장 문제, 검증 방법과 구간별 과금 여부를 봅니다.
+- 06에서 분할 뒤 저장 계층에 남은 용량 문제와 개선 순서를 봅니다.
