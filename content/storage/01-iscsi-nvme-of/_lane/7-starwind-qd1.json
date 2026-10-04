@@ -1,0 +1,17 @@
+{
+  "caption": "StarWind 블로그(2024-04, 벤더 자료 Ⓥ)의 4K 랜덤 읽기 QD1 평균 지연입니다. 타깃은 세 전송 모두 SPDK(v23.05, 커널 5.15), initiator는 커널 5.4 Linux이고 Optane P5800X 한 장에 100GbE ConnectX-5를 썼습니다. 로컬 QD1 값은 재지 않았으므로 전송이 더한 시간은 구할 수 없고, 다른 측정의 막대와 같은 차트에 섞지 않습니다.",
+  "font": 1.1,
+  "note": "numjobs=1, iodepth=1. iSCSI는 LUN 6개, 멀티패스, LUN당 세션 4개",
+  "axis": { "kind": "linear", "max": 50, "unit": "µs", "ticks": [0, 10, 20, 30, 40, 50] },
+  "lanes": [
+    { "label": "NVMe/RDMA", "sub": "51,100 IOPS", "segments": [
+      { "start": 0, "end": 18, "label": "18µs", "kind": "query" }
+    ]},
+    { "label": "NVMe/TCP", "sub": "28,600 IOPS", "segments": [
+      { "start": 0, "end": 34, "label": "34µs", "kind": "proc" }
+    ]},
+    { "label": "iSCSI", "sub": "22,600 IOPS", "segments": [
+      { "start": 0, "end": 43, "label": "43µs", "kind": "src" }
+    ]}
+  ]
+}

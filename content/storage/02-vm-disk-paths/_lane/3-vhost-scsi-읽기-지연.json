@@ -1,0 +1,13 @@
+{
+  "caption": "같은 조건에서 SPDK vhost-scsi의 4K 랜덤 읽기 QD1 평균 지연이 커널 vhost-scsi보다 약 10µs 짧습니다. SPDK vhost 24.05 보고서의 값이며 드라이브 1장을 VM 2대가 나눠 쓰고 vhost 코어는 1개입니다(Xeon Gold 6348 2소켓, 호스트 커널 6.1.6, QEMU 7.0.0, 게스트 커널 5.15.7, fio 3.28 libaio direct). 로컬 기준선이 없어 이 값을 VM 가상화가 더한 시간이라고 읽을 수 없습니다. 보고서는 VM CPU를 표에는 2 vCPU, QEMU 인자에는 -smp 1로 적어 서로 어긋납니다.",
+  "font": 1.1,
+  "axis": { "kind": "linear", "max": 100, "unit": "µs", "ticks": [0, 25, 50, 75, 100] },
+  "lanes": [
+    { "label": "SPDK vhost-scsi", "segments": [
+      { "start": 0, "end": 82.24, "label": "82.24µs", "kind": "src" }
+    ]},
+    { "label": "커널 vhost-scsi", "segments": [
+      { "start": 0, "end": 92.0, "label": "92.00µs", "kind": "proc" }
+    ]}
+  ]
+}

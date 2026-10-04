@@ -1,0 +1,17 @@
+{
+  "caption": "RocksDB(db_bench 80/20) 처리량을 로컬 직결(DAS)=100으로 놓은 상대값입니다. 근거 자료(fact sheet)에는 \"NVMe-oF는 2% 차이, iSCSI는 40% 감소\"만 있습니다. NVMe-oF 2%의 방향은 적혀 있지 않아 98은 도식용 근사값(≈)이고, iSCSI의 60도 같은 방식으로 옮긴 값입니다. 같은 연구의 실험이지만 iSCSI 쪽 전송 구성은 근거 자료에 없고, 막대 차이를 전송 프로토콜만의 효과로 읽을 수 없습니다.",
+  "font": 1.1,
+  "note": "호스트당 인스턴스 3개, 호스트 3대와 100GbE RoCEv2로 이은 커널 타깃. NVMe-oF는 RDMA(RoCEv2)",
+  "axis": { "kind": "linear", "max": 100, "unit": "", "ticks": [0, 20, 40, 60, 80, 100] },
+  "lanes": [
+    { "label": "로컬(DAS)", "sub": "기준 = 100", "segments": [
+      { "start": 0, "end": 100, "label": "100", "kind": "store" }
+    ]},
+    { "label": "NVMe-oF", "sub": "RoCEv2, 2% 차이(방향 미확인)", "segments": [
+      { "start": 0, "end": 98, "label": "≈98", "kind": "query" }
+    ]},
+    { "label": "iSCSI", "sub": "40% 감소", "segments": [
+      { "start": 0, "end": 60, "label": "≈60", "kind": "proc" }
+    ]}
+  ]
+}

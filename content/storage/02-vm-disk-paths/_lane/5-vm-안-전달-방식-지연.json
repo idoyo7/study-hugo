@@ -1,0 +1,16 @@
+{
+  "caption": "한 논문의 VM 안 측정에서 VFIO 대비 SPDK vhost는 3.0µs, FPGA 에뮬레이션은 4.0µs 길었습니다(≈). BM-Store 논문(HPCA 2023) Table VII의 4K 랜덤 읽기 QD1 평균 지연입니다(Intel P4510, Xeon Platinum 8163, VM 코어 4개·4GB, fio libaio). SPDK vhost에는 호스트 코어 1개를 더 배정했으므로 같은 CPU 자원으로 잰 값이 아닙니다. BM-Store는 FPGA 카드 한 종류의 값이며 DPU 일반이나 상용 카드의 성능이 아닙니다.",
+  "font": 1.1,
+  "axis": { "kind": "linear", "max": 100, "unit": "µs", "ticks": [0, 25, 50, 75, 100] },
+  "lanes": [
+    { "label": "VFIO", "sub": "passthrough", "segments": [
+      { "start": 0, "end": 79.7, "label": "79.7µs", "kind": "proc" }
+    ]},
+    { "label": "SPDK vhost", "segments": [
+      { "start": 0, "end": 82.7, "label": "82.7µs", "kind": "src" }
+    ]},
+    { "label": "BM-Store", "sub": "FPGA 에뮬레이션", "segments": [
+      { "start": 0, "end": 83.7, "label": "83.7µs", "kind": "query" }
+    ]}
+  ]
+}

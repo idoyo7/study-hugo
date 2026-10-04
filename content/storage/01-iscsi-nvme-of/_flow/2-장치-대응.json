@@ -1,0 +1,28 @@
+{
+  "caption": "호스트가 보는 NVMe 장치와 타깃이 관리하는 대상의 대응 관계입니다. 점선은 포함·대응을 뜻하며 요청이 이 순서로 차례차례 통과한다는 뜻이 아닙니다. 소프트웨어 controller라는 해석은 추정(≈)이고, namespace마다 SPDK bdev가 하나 대응한다는 범위는 SPDK 보고서 기준입니다. bdev 뒤의 lvol, 물리 NVMe, RBD 이미지는 서로 다른 구성 예이며 항상 직렬로 쌓이는 계층이 아닙니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "DEV", "col": 0, "row": 0, "label": "/dev/nvmeXnY", "sub": "호스트가 보는 블록 장치", "kind": "src" },
+    { "id": "DRV", "col": 0, "row": 1, "label": "NVMe 드라이버", "sub": "nvme-tcp · nvme-rdma", "kind": "proc" },
+    { "id": "PORT", "col": 1, "row": 1, "label": "port", "sub": "TCP · RDMA 주소", "kind": "query" },
+    { "id": "CTRL", "col": 2, "row": 0, "label": "소프트웨어 controller", "sub": "타깃 프로그램이 구현", "kind": "proc" },
+    { "id": "NS", "col": 2, "row": 1, "label": "namespace", "sub": "nsid", "kind": "proc" },
+    { "id": "BDEV", "col": 3, "row": 1, "label": "블록 장치", "sub": "SPDK bdev 하나", "kind": "store" },
+    { "id": "LV", "col": 4, "row": 0, "label": "lvol 또는 물리 NVMe", "sub": "구성 예", "kind": "store" },
+    { "id": "RBD", "col": 4, "row": 2, "label": "RBD 이미지의 bdev", "sub": "Ceph gateway 예", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "DRV", "to": "DEV", "label": "생성", "dashed": true },
+    { "from": "DRV", "to": "PORT", "label": "접속", "dashed": true },
+    { "from": "PORT", "to": "sub", "label": "노출", "dashed": true },
+    { "from": "NS", "to": "BDEV", "label": "대응", "dashed": true },
+    { "from": "BDEV", "to": "LV", "label": "예", "dashed": true },
+    { "from": "BDEV", "to": "RBD", "label": "예", "dashed": true }
+  ],
+  "groups": [
+    { "id": "host", "label": "호스트", "members": ["DEV", "DRV"] },
+    { "id": "target", "label": "타깃 소프트웨어", "members": ["PORT", "CTRL", "NS", "BDEV"] },
+    { "id": "sub", "label": "subsystem (NQN으로 식별)", "members": ["CTRL", "NS"], "pad": 6 },
+    { "id": "back", "label": "백엔드", "members": ["LV", "RBD"] }
+  ]
+}

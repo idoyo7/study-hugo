@@ -1,0 +1,34 @@
+{
+  "caption": "같은 블록 요청이 iSCSI와 NVMe/TCP에서 거치는 호스트·타깃 처리 경로입니다. 위 두 줄이 iSCSI, 아래 두 줄이 NVMe/TCP이고 호스트에서 타깃으로 가는 세로 화살표가 네트워크 구간입니다. 계층 순서는 여러 문서의 사실을 이은 구성이며(≈), SCSI 변환을 없앤다는 설명은 Samsung 연구진의 것입니다(Ⓥ). 노드 개수나 화살표 길이를 지연 비율로 읽지 않습니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "A1", "col": 0, "row": 0, "label": "파일시스템·블록 계층", "sub": "blk-mq", "kind": "src" },
+    { "id": "A2", "col": 1, "row": 0, "label": "SCSI 중간 계층", "sub": "sd · scsi-mq", "kind": "proc" },
+    { "id": "A3", "col": 2, "row": 0, "label": "iSCSI initiator", "sub": "iscsi_tcp", "kind": "proc" },
+    { "id": "A4", "col": 2, "row": 1, "label": "LIO", "sub": "iSCSI target", "kind": "proc" },
+    { "id": "A5", "col": 1, "row": 1, "label": "backstore", "sub": "block · fileio 등", "kind": "proc" },
+    { "id": "A6", "col": 0, "row": 1, "label": "백엔드 블록 장치", "kind": "store" },
+    { "id": "N1", "col": 0, "row": 2, "label": "파일시스템·블록 계층", "sub": "blk-mq", "kind": "src" },
+    { "id": "N2", "col": 1, "row": 2, "label": "NVMe host", "sub": "nvme-core", "kind": "proc" },
+    { "id": "N3", "col": 2, "row": 2, "label": "NVMe/TCP", "sub": "nvme-tcp", "kind": "proc" },
+    { "id": "N4", "col": 2, "row": 3, "label": "nvmet", "sub": "NVMe/TCP 타깃", "kind": "proc" },
+    { "id": "N5", "col": 1, "row": 3, "label": "백엔드 블록 장치", "sub": "namespace가 가리킴", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "A1", "to": "A2", "label": "요청", "rate": 600 },
+    { "from": "A2", "to": "A3", "label": "CDB", "rate": 600 },
+    { "from": "A3", "to": "A4", "label": "PDU·TCP", "rate": 600 },
+    { "from": "A4", "to": "A5", "label": "LUN", "rate": 600 },
+    { "from": "A5", "to": "A6", "label": "블록 I/O", "rate": 600 },
+    { "from": "N1", "to": "N2", "label": "요청", "rate": 600 },
+    { "from": "N2", "to": "N3", "label": "명령", "rate": 600 },
+    { "from": "N3", "to": "N4", "label": "capsule·TCP", "rate": 600 },
+    { "from": "N4", "to": "N5", "label": "블록 I/O", "rate": 600 }
+  ],
+  "groups": [
+    { "id": "ah", "label": "iSCSI · initiator 호스트", "members": ["A1", "A2", "A3"] },
+    { "id": "at", "label": "iSCSI · target 서버", "members": ["A4", "A5", "A6"] },
+    { "id": "nh", "label": "NVMe/TCP · 호스트", "members": ["N1", "N2", "N3"] },
+    { "id": "nt", "label": "NVMe/TCP · 타깃 서버", "members": ["N4", "N5"] }
+  ]
+}

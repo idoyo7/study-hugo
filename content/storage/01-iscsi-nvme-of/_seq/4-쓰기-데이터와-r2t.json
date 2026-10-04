@@ -1,0 +1,27 @@
+{
+  "caption": "쓰기 데이터가 오가는 서로 다른 세 경우입니다. 위에서 아래로 한 번씩 재생되지만 한 요청이 세 갈래를 연달아 거치는 것이 아니라 경우별 예시입니다. iSCSI는 협상 결과에 따라 달라지는 개념 순서의 한 예이고(≈), NVMe/TCP의 I/O in-capsule은 선택 기능이며 8KB 경계는 Linux 구현 사례입니다. 왕복 횟수만으로 두 프로토콜의 우열을 가릴 수 없습니다.",
+  "participants": [
+    { "id": "H", "label": "호스트" },
+    { "id": "T", "label": "타깃" }
+  ],
+  "steps": [
+    { "alt": "경우 1 · iSCSI (R2T로 데이터를 요청받는 예)", "steps": [
+      { "msg": ["H", "T"], "label": "1. 쓰기 명령" },
+      { "msg": ["T", "H"], "label": "2. R2T", "dashed": true },
+      { "msg": ["H", "T"], "label": "3. 쓰기 데이터" },
+      { "msg": ["T", "H"], "label": "4. 완료", "dashed": true },
+      { "note": ["H", "T"], "lines": ["협상에 따라 ImmediateData나", "먼저 보내는 데이터가 있을 수 있다"] }
+    ], "elseLabel": "NVMe/TCP", "elseSteps": [
+      { "alt": "경우 2 · 데이터가 capsule에 실림 (Linux 쓰기 ≤8KB)", "steps": [
+        { "msg": ["H", "T"], "label": "1. CapsuleCmd + 데이터" },
+        { "msg": ["T", "H"], "label": "2. CapsuleResp", "dashed": true },
+        { "note": ["H", "T"], "lines": ["I/O 명령의 in-capsule 데이터는 선택 기능"] }
+      ], "elseLabel": "경우 3 · 별도 데이터 (Linux 쓰기 >8KB)", "elseSteps": [
+        { "msg": ["H", "T"], "label": "1. CapsuleCmd" },
+        { "msg": ["T", "H"], "label": "2. R2T", "dashed": true },
+        { "msg": ["H", "T"], "label": "3. H2CData" },
+        { "msg": ["T", "H"], "label": "4. CapsuleResp", "dashed": true }
+      ] }
+    ] }
+  ]
+}

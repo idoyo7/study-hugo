@@ -1,0 +1,39 @@
+{
+  "caption": "게스트에 NVMe로 보여도 물리 장치까지 가는 경로는 다릅니다. SSD가 내는 VF와 카드가 내는 VF는 같은 물리 자원의 분할이 아닙니다(Σ). 맨 아래 경로는 NVIDIA SNAP 문서의 구조이며, AWS Nitro의 카드 내부 경로는 공개되지 않아 그리지 않았습니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "P0", "col": 0, "row": 0, "label": "NVMe 드라이버", "kind": "src" },
+    { "id": "P1", "col": 1, "row": 0, "label": "배정된 물리 PCI 장치", "sub": "BAR 매핑 · IRQ 직접 주입", "kind": "query" },
+    { "id": "P2", "col": 2, "row": 0, "label": "NVMe SSD", "sub": "DMA는 IOMMU 경유", "kind": "sink" },
+
+    { "id": "S0", "col": 0, "row": 1, "label": "NVMe 드라이버", "kind": "src" },
+    { "id": "S1", "col": 1, "row": 1, "label": "배정된 VF", "sub": "SSD가 내는 VF", "kind": "query" },
+    { "id": "S2", "col": 2, "row": 1, "label": "SR-IOV 지원 SSD", "sub": "VF 수는 제품마다 다름", "kind": "sink" },
+
+    { "id": "M0", "col": 0, "row": 2, "label": "NVMe 큐", "sub": "네이티브 드라이버", "kind": "src" },
+    { "id": "M1", "col": 1, "row": 2, "label": "호스트 shadow 큐", "sub": "doorbell trap · 폴링 스레드", "kind": "proc" },
+    { "id": "M2", "col": 2, "row": 2, "label": "물리 NVMe 큐", "kind": "sink" },
+
+    { "id": "D0", "col": 0, "row": 3, "label": "NVMe 또는 virtio-blk 드라이버", "kind": "src" },
+    { "id": "D1", "col": 1, "row": 3, "label": "카드의 가상 function", "sub": "카드가 내는 VF", "kind": "query" },
+    { "id": "D2", "col": 2, "row": 3, "label": "SNAP · bdev", "sub": "카드의 Arm 코어", "kind": "proc" },
+    { "id": "D3", "col": 3, "row": 3, "label": "백엔드 전송", "sub": "NVMe-oF · iSCSI 등", "kind": "query" },
+    { "id": "D4", "col": 4, "row": 3, "label": "원격 스토리지", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "P0", "to": "P1", "rate": 520 },
+    { "from": "P1", "to": "P2", "rate": 520 },
+    { "from": "S0", "to": "S1", "rate": 520 },
+    { "from": "S1", "to": "S2", "rate": 520 },
+    { "from": "M0", "to": "M1", "rate": 520 },
+    { "from": "M1", "to": "M2", "rate": 520 },
+    { "from": "D0", "to": "D1", "rate": 520 },
+    { "from": "D1", "to": "D2", "rate": 520 },
+    { "from": "D2", "to": "D3", "rate": 520 },
+    { "from": "D3", "to": "D4", "rate": 520 }
+  ],
+  "groups": [
+    { "id": "guest", "label": "게스트", "members": ["P0", "S0", "M0", "D0"] },
+    { "id": "card", "label": "DPU 카드", "members": ["D1", "D2"] }
+  ]
+}

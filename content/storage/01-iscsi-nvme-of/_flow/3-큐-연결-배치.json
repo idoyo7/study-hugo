@@ -1,0 +1,33 @@
+{
+  "caption": "Linux 구현의 기본 큐·연결 배치입니다. 위 줄은 Linux 소프트웨어 iSCSI(세션당 하드웨어 큐 1개, TCP 연결 1개), 아래 두 줄은 Linux NVMe/TCP host(온라인 CPU마다 I/O 큐 쌍과 연결 하나)입니다. iSCSI 스펙은 세션당 연결 여러 개를 허용하므로 점선 칸은 프로토콜의 한계가 아니라 구현의 선택입니다. NVMe/TCP의 큐 쌍과 연결이 일대일인 것은 스펙의 규칙이고, CPU 수만큼 만드는 것은 Linux host의 기본값입니다. CPU 수와 큐 수는 임의의 예이며 성능 비례를 뜻하지 않습니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "S0", "col": 0, "row": 0, "label": "제출 경로들", "sub": "여러 CPU의 요청", "kind": "src" },
+    { "id": "S1", "col": 1, "row": 0, "label": "세션 · scsi_host", "sub": "세션마다 하나", "kind": "proc" },
+    { "id": "S2", "col": 2, "row": 0, "label": "하드웨어 큐 1개", "sub": "nr_hw_queues 미설정", "kind": "proc" },
+    { "id": "S3", "col": 3, "row": 0, "label": "TCP 연결 1개", "sub": "세션당 하나", "kind": "query" },
+    { "id": "S4", "col": 4, "row": 0, "label": "연결 추가(MC/S)", "sub": "스펙은 허용, iscsi_tcp는 쓰지 않음", "kind": "query", "ghost": true },
+    { "id": "NA0", "col": 0, "row": 1, "label": "온라인 CPU A", "kind": "src" },
+    { "id": "NA1", "col": 1, "row": 1, "label": "I/O 큐 쌍 A", "sub": "SQ·CQ", "kind": "proc" },
+    { "id": "NA2", "col": 2, "row": 1, "label": "TCP 연결 A", "sub": "큐 쌍과 1:1", "kind": "query" },
+    { "id": "NB0", "col": 0, "row": 2, "label": "온라인 CPU B", "kind": "src" },
+    { "id": "NB1", "col": 1, "row": 2, "label": "I/O 큐 쌍 B", "sub": "SQ·CQ", "kind": "proc" },
+    { "id": "NB2", "col": 2, "row": 2, "label": "TCP 연결 B", "sub": "큐 쌍과 1:1", "kind": "query" },
+    { "id": "NX", "col": 3, "row": 2, "label": "… CPU 수만큼", "sub": "Admin 큐도 연결 하나를 따로 쓴다", "kind": "query", "ghost": true }
+  ],
+  "edges": [
+    { "from": "S0", "to": "S1", "rate": 600 },
+    { "from": "S1", "to": "S2", "rate": 600 },
+    { "from": "S2", "to": "S3", "rate": 600 },
+    { "from": "S3", "to": "S4", "dashed": true },
+    { "from": "NA0", "to": "NA1", "rate": 600 },
+    { "from": "NA1", "to": "NA2", "rate": 600 },
+    { "from": "NB0", "to": "NB1", "rate": 600 },
+    { "from": "NB1", "to": "NB2", "rate": 600 },
+    { "from": "NB2", "to": "NX", "dashed": true }
+  ],
+  "groups": [
+    { "id": "iscsi", "label": "Linux 소프트웨어 iSCSI", "members": ["S0", "S1", "S2", "S3", "S4"] },
+    { "id": "nvme", "label": "Linux NVMe/TCP host", "members": ["NA0", "NA1", "NA2", "NB0", "NB1", "NB2", "NX"] }
+  ]
+}

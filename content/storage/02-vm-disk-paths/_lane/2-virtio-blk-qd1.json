@@ -1,5 +1,5 @@
 {
-  "caption": "KVM Forum 2020 발표의 virtio-blk QD1 4K 랜덤 읽기입니다(Intel Optane P4800X, 호스트 커널 5.7.7, 게스트 커널 5.5.0, fio pvsync2 direct). 퍼센트는 베어메탈 IOPS를 기준으로 나눈 값입니다.",
+  "caption": "기본 virtio-blk는 베어메탈 IOPS의 28%, IOThread를 붙이면 59%입니다. KVM Forum 2020 발표의 QD1 4K 랜덤 읽기이며(Intel Optane P4800X, 호스트 커널 5.7.7, 게스트 커널 5.5.0, QEMU 4.2.0 이상, fio pvsync2 direct), 퍼센트는 베어메탈 IOPS로 나눈 역산값입니다(≈). 게스트 vCPU 수는 슬라이드에서 확정하지 못했습니다(?). nvme://도 게스트에는 virtio-blk로 보입니다.",
   "font": 1.1,
   "axis": { "kind": "linear", "max": 80, "unit": "k IOPS", "ticks": [0, 20, 40, 60, 80] },
   "lanes": [

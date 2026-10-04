@@ -1,0 +1,17 @@
+{
+  "caption": "NVMe/TCP QD1 4KiB 랜덤 읽기의 평균 지연입니다. SPDK 24.05 TCP 보고서에서 null 블록 장치와 타깃 1코어로 미디어 지연을 뺐고, 전송·장비·워크로드를 그대로 둔 채 타깃만 바꾼 경우(둘째 줄)와 initiator까지 바꾼 경우(셋째 줄)를 나눴습니다. 미디어를 제외한 왕복 스택 지연이며 로컬 대비 증가분이나 순수 네트워크 지연이 아닙니다.",
+  "font": 1.1,
+  "note": "커널 6.0.18, 타깃 Xeon Gold 6348, 100GbE ConnectX-5 직결. 꼬리 지연은 아래 표",
+  "axis": { "kind": "linear", "max": 25, "unit": "µs", "ticks": [0, 5, 10, 15, 20, 25] },
+  "lanes": [
+    { "label": "커널 / 커널", "sub": "타깃 / initiator", "segments": [
+      { "start": 0, "end": 21.39, "label": "21.39µs", "kind": "proc" }
+    ]},
+    { "label": "SPDK / 커널", "sub": "타깃만 교체", "segments": [
+      { "start": 0, "end": 20.43, "label": "20.43µs", "kind": "proc" }
+    ]},
+    { "label": "SPDK / SPDK", "sub": "양쪽 교체", "segments": [
+      { "start": 0, "end": 17.5, "label": "17.50µs", "kind": "proc" }
+    ]}
+  ]
+}
