@@ -165,7 +165,7 @@ OTel은 켠 시점부터 쌓이는 스트림입니다. 지난 세션은 `~/.clau
 
 트랜스크립트의 함정은 둘이었습니다. 같은 `requestId`가 content block마다 반복되므로 requestId로 묶지 않으면 두세 배로 셉니다. 그리고 서브에이전트 파일은 `<session>/subagents/agent-*.jsonl` 말고 `subagents/workflows/<wf_id>/` 아래에 훨씬 많습니다. 처음 훑었을 때 539개 파일만 잡혔는데 경로를 다시 보니 Workflow 에이전트 4,525개가 더 있었습니다.
 
-백필 스크립트는 이걸 읽어 OTel과 같은 이름의 누적 카운터로 VictoriaMetrics에 넣습니다. 레이블에 `source="backfill"`과 `query_source=main|subagent|workflow`를 붙이고 OTel로 이미 나간 session_id와 텔레메트리를 켠 뒤 시작한 세션은 건너뜁니다. api_request 이벤트는 VictoriaLogs 보존 기간인 7일 안쪽 것만 jsonline 입력으로 넣게 만들었습니다. VictoriaLogs가 없어져서 지금은 이벤트를 보낼 곳이 없고, 적재 경로를 ClickHouse로 바꾸는 작업은 하지 않았습니다.
+백필 스크립트는 이걸 읽어 OTel과 같은 이름의 누적 카운터로 VictoriaMetrics에 넣습니다. 레이블에 `source="backfill"`과 `query_source=main|subagent|workflow`를 붙이고 OTel로 이미 나간 session_id와 텔레메트리를 켠 뒤 시작한 세션은 건너뜁니다. api_request 이벤트는 7일 안쪽 것만 보냅니다. 처음에는 VictoriaLogs에 jsonline으로 넣었고, 2026-10-04부터는 hdx 컬렉터(`:4328/v1/logs`)에 OTLP로 보내 ClickHouse `otel_logs`에 들어갑니다. 실제 Claude Code 이벤트와 같은 Scope·Service·Body로 보내고 `backfill=true`를 붙입니다. 자라는 트랜스크립트는 매일 다시 읽히기 때문에, 보낸 `request_id`를 기록해 같은 요청은 한 번만 보냅니다.
 
 | 항목 | 값 |
 |---|---|
@@ -186,7 +186,6 @@ vmselect가 `search.maxStalenessInterval=30s`라 30초 이상 샘플이 없으�
 
 ## 남은 것
 
-- 백필 스크립트가 api_request 이벤트를 보내던 VictoriaLogs는 없어졌고, 이벤트를 ClickHouse로 적재하도록 바꾸는 작업은 하지 않았습니다. 지금은 보낼 이벤트도 없습니다.
 - 같은 code-server에 있는 다른 사용자 pod 둘은 각자 홈의 settings.json이라 아직 아무것도 안 들어가 있습니다.
 - Bash 명령별 집계는 [02편]({{< relref "02-codex-otel/index.md" >}})에서 패널로 만들었습니다. 지금은 `tool_parameters` JSON 문자열에서 `bash_command`를 ClickHouse의 `JSONExtractString()`으로 꺼냅니다.
 - 대시보드를 만들던 생성 스크립트는 아직 VictoriaLogs를 전제로 만들어져 있습니다. 이제는 git의 YAML을 원본으로 봅니다.
