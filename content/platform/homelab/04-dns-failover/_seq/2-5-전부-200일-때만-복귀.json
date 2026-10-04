@@ -1,0 +1,26 @@
+{
+  "caption": "edge가 돌아와 Kuma가 다시 깨워도 러너는 edge IP로 apex 10회와 네 호스트가 모두 200일 때만 두 레코드를 edge로 되돌리고, 하나라도 아니면 hub를 유지합니다. 설계한 순서이며 실제 복귀는 아직 시험하지 않았습니다.",
+  "participants": [
+    { "id": "edge", "label": "edge" },
+    { "id": "hub", "label": "hub (Kuma 포함)" },
+    { "id": "gha", "label": "GitHub Actions 러너" },
+    { "id": "aws", "label": "AWS IAM·Route53" }
+  ],
+  "steps": [
+    { "msg": ["hub", "edge"], "label": "1. origin.example.com 확인" },
+    { "note": ["edge", "hub"], "lines": ["Kuma는 응답 한 번으로 UP 판정"] },
+    { "msg": ["hub", "gha"], "label": "2. webhook (방향·IP 없이)" },
+    { "msg": ["gha", "aws"], "label": "3. OIDC로 역할 빌림" },
+    { "msg": ["gha", "aws"], "label": "4. apex A 값 읽기: 현재 hub" },
+    { "msg": ["gha", "edge"], "label": "5. edge IP로 apex 확인" },
+    { "note": ["edge", "gha"], "lines": ["30초 간격으로 10회, 약 5분 동안 연속 확인"] },
+    { "msg": ["gha", "edge"], "label": "6. nextra·kanna·we·us 확인" },
+    { "alt": "apex 10회와 네 호스트가 전부 200", "steps": [
+        { "msg": ["gha", "aws"], "label": "7. 두 레코드를 edge로 UPSERT" },
+        { "msg": ["gha", "hub"], "label": "8. INSYNC 뒤 Kuma push 보고" }
+      ],
+      "elseLabel": "하나라도 200이 아님", "elseSteps": [
+        { "msg": ["gha", "hub"], "label": "7. hub 유지로 Kuma push 보고" }
+      ] }
+  ]
+}

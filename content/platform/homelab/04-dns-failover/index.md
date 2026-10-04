@@ -20,15 +20,19 @@ apex와 와일드카드 A 레코드는 평소 edge IP를 가리키며 TTL은 300
 
 ## 감시와 전환
 
-{{< flow src="_flow/5-최종-구조.json" />}}
+{{< flow src="_flow/2-1-감시는-hub-변경은-집-밖.json" />}}
 
 hub의 Kuma는 edge IP에 고정된 별도 A 레코드 `origin.example.com`을 60초마다 확인합니다. 재시도는 3회, 재시도 간격은 30초이며 2xx와 404를 정상으로 받습니다. apex를 감시하면 전환 뒤 hub의 응답을 edge 복구로 판단하므로 감시 호스트를 분리합니다.
+
+{{< flow src="_flow/2-2-apex를-감시하면-hub를-본다.json" />}}
+
+감시 호스트를 `origin.example.com`으로 분리하면, 전환 뒤에도 Kuma의 요청이 edge에 닿습니다.
+
+{{< flow src="_flow/2-3-고정-호스트는-edge를-본다.json" />}}
 
 DOWN 또는 DOWN→UP 때 webhook이 GitHub API의 `workflows/dns-failover.yml/dispatches`를 호출합니다. 본문은 고정 `{"ref":"main"}`이며 방향과 IP를 싣지 않고, 워크플로에도 `workflow_dispatch` 입력이 없습니다. 헤더에는 `Content-Type: application/json`을 명시합니다. DOWN이 이어지면 30번째 heartbeat마다 약 30분 간격으로 재알림을 보냅니다.
 
 러너는 현재 apex A 레코드 값을 읽고 `curl --resolve <host>:443:<IP>`로 직접 확인합니다. 타임아웃은 10초입니다.
-
-{{< flow src="_flow/5-판정-흐름.json" />}}
 
 | 현재 apex 값 | 확인 | 동작 |
 |---|---|---|
@@ -39,7 +43,11 @@ DOWN 또는 DOWN→UP 때 webhook이 GitHub API의 `workflows/dns-failover.yml/d
 | hub | 위 조건 중 하나라도 아님 | hub 유지(성공 종료) |
 | edge도 hub도 아님 | - | 아무것도 바꾸지 않고 실패 |
 
+{{< seq src="_seq/2-4-hub가-200일-때만-전환.json" />}}
+
 재확인을 러너에 두어 Kuma의 토큰으로 전환 방향을 정할 수 없게 합니다. Kuma는 한 번의 응답으로 복구를 판단하지만, 러너는 약 5분 동안 30초 간격으로 10회 연속 정상을 확인해야 복귀합니다. hub가 200일 때만 전환하며, 집 밖에서 확인해 hub와 edge 사이만 끊긴 경우의 오판을 보완합니다.
+
+{{< seq src="_seq/2-5-전부-200일-때만-복귀.json" />}}
 
 수동 전환과 훈련에는 레포 Actions 변수 `PIN_SITE`를 씁니다. edge 또는 hub를 지정하면 관측과 무관하게 목표로 삼되, 목표가 200일 때만 바꿉니다. Kuma의 Actions 쓰기 토큰으로는 이 변수를 바꿀 수 없습니다.
 
