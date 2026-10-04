@@ -154,7 +154,7 @@ increase_pure(M{sel}[r])
 
 Grafana 대시보드는 VictoriaLogs와 Tempo 데이터소스를 읽고 있었습니다. 저장소를 걷으면 그 데이터소스를 읽던 패널도 옮겨야 하고, 옮길 곳은 RUM 대시보드가 이미 쓰던 ClickHouse-HyperDX 데이터소스였습니다. Tempo 패널은 끄기 전에 옮겼지만 VictoriaLogs 쪽 패널은 그러지 못했습니다. VictoriaLogs를 끄고 데이터소스 파일까지 주석 처리한 뒤에도 AI CLI 대시보드 세 개가 `uid: victorialogs`를 245곳에서 참조하고 있었습니다(claude-code 106, codex 127, ai-cli-common 12). 그 패널들은 빈 화면이 됐습니다.
 
-이관 PR이 진행 중이고 거기서 패널 115개와 변수 4개를 ClickHouse SQL로 옮겼습니다. 바꾼 SQL 126개를 실제 ClickHouse에서 돌려 오류 0을 확인했고 이벤트가 한 번도 없었던 쿼리 8개는 0행이 나왔습니다. 대시보드를 처음 만든 경위는 [Claude Code 관측]({{< relref "../../ai-tools/01-claude-code-otel/index.md" >}})과 [Codex CLI 관측]({{< relref "../../ai-tools/02-codex-otel/index.md" >}})에 있는데, 두 글이 설명하는 수집 경로는 이번 정리 이전의 것입니다. 이 계층의 결정은 로그·트레이스 저장소 결정에 딸려 있어서 따로 다시 볼 조건은 없습니다.
+패널 115개와 변수 4개를 ClickHouse SQL로 옮겼습니다. 바꾼 SQL 126개를 실제 ClickHouse에서 돌려 오류 0을 확인했고 이벤트가 한 번도 없었던 쿼리 8개는 0행이 나왔습니다. 대시보드를 처음 만든 경위는 [Claude Code 관측]({{< relref "../../ai-tools/01-claude-code-otel/index.md" >}})과 [Codex CLI 관측]({{< relref "../../ai-tools/02-codex-otel/index.md" >}})에 있는데, 두 글은 설정·경로 설명을 지금 경로로 고쳤고, 함정과 실측을 적은 절은 이전 경로 기준 기록으로 남겨 두었습니다. 이 계층의 결정은 로그·트레이스 저장소 결정에 딸려 있어서 따로 다시 볼 조건은 없습니다.
 
 ## 옮긴 순서
 
@@ -187,8 +187,8 @@ ClickHouse에는 계층 스토리지가 걸려 있습니다. 최근 7일은 node
 
 Codex 대시보드의 `or` 절 정리와 `tempo-s3-secret` 분리는 각 계층 절에 적었습니다. 그 밖에 남은 일은 다음과 같습니다.
 
-- AI CLI 대시보드 이관 PR이 머지되면 Grafana 화면을 확인합니다. 그룹 시계열 범례 같은 렌더링은 SQL 실행까지만 검증했습니다.
-- Codex 이벤트에는 `workspace.user`와 `ttft_ms` 필드가 없어서 일부 패널이 비거나 사용자 필터에서 빠집니다.
+- 이관한 AI CLI 대시보드의 Grafana 화면을 확인합니다. 그룹 시계열 범례 같은 렌더링은 SQL 실행까지만 검증했습니다.
+- Codex 이벤트에는 `workspace.user` 필드가 없어서 사용자를 골라 보면 Codex 행이 빠집니다.
 - 대시보드를 만들던 로컬 생성 스크립트(`build-*.py`)는 아직 VictoriaLogs를 전제로 만들어져 있습니다. 이제는 git의 YAML을 원본으로 봅니다.
 - VictoriaLogs의 고아 PVC(10Gi)를 삭제합니다. StatefulSet의 volumeClaimTemplates로 만들어진 PVC라 Application을 정리해도 남습니다. 복원용으로 남긴 일몰 파일(tempo·victoria-logs·fluent-bit)은 2주쯤 안정적으로 돌면 지웁니다.
 - CronJob 로그는 service.name에 epoch 접미사가 붙어(`daily-reboot-<epoch>`) 시계열이 갈라집니다. VRL 정규식을 고칠 후보입니다.

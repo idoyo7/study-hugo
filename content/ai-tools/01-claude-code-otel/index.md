@@ -1,7 +1,7 @@
 ---
 title: "01 Claude Code 관측 — OTel 내보내기·대시보드·백필"
 date: 2026-09-08
-lastmod: 2026-09-08
+lastmod: 2026-10-04
 weight: 1
 aliases:
   - /homelab/03-claude-code-otel/
@@ -9,11 +9,15 @@ aliases:
 
 # Claude Code 관측 — 토큰이 어디로 새는지 숫자로 보기
 
-[홈랩 개발환경 편]({{< relref "homelab/02-dev-workspace/index.md" >}})의 code-server 터미널에서 하루 종일 Claude Code를 돌립니다. 얼마를 쓰는지는 `/cost`로 그때그때 볼 수 있지만, 어느 에이전트가 먹는지, 세션을 새로 열 때마다 얼마가 고정비로 나가는지, 훅이 몇 분을 잡아먹는지는 안 보입니다. 이 글은 그걸 hub 클러스터의 관측 스택(VictoriaMetrics·VictoriaLogs·Tempo·Grafana)으로 끌어온 하루치 기록입니다. 공식 문서는 [monitoring-usage](https://code.claude.com/docs/ko/monitoring-usage) 한 장이고, 실제로 발목을 잡은 건 문서 밖에 있었습니다.
+{{< callout type="info" >}}
+10월 초에 수집 경로가 otel-gateway·VictoriaLogs·Tempo에서 HyperDX 컬렉터로 바뀌었습니다. 2026-10-04에 설정·경로·대시보드 쿼리 설명은 지금 기준으로 고쳤고, 함정과 수치를 적은 절은 당시 경로 기준 기록으로 표시해 두었습니다. 바뀐 과정은 [관측 스택 일원화]({{< relref "../../homelab/03-observability-consolidation/index.md" >}})에 있습니다.
+{{< /callout >}}
+
+[홈랩 개발환경 편]({{< relref "homelab/02-dev-workspace/index.md" >}})의 code-server 터미널에서 하루 종일 Claude Code를 돌립니다. 얼마를 쓰는지는 `/cost`로 그때그때 볼 수 있지만, 어느 에이전트가 먹는지, 세션을 새로 열 때마다 얼마가 고정비로 나가는지, 훅이 몇 분을 잡아먹는지는 안 보입니다. 이 글은 그걸 hub 클러스터의 관측 스택(VictoriaMetrics·ClickHouse·Grafana)으로 끌어온 하루치 기록입니다. 공식 문서는 [monitoring-usage](https://code.claude.com/docs/ko/monitoring-usage) 한 장이고, 실제로 발목을 잡은 건 문서 밖에 있었습니다.
 
 ## 어디로 보내나
 
-hub에는 이미 `otel-gateway-collector`가 떠 있습니다. OTLP를 받아 메트릭은 VictoriaMetrics로 remote write, 트레이스는 Tempo로 넘기고 spanmetrics 커넥터가 스팬에서 RED 메트릭을 만듭니다. logs 파이프라인만 없습니다. Claude Code의 이벤트(user_prompt, api_request, tool_result 같은 것)는 OTLP logs로 나가므로 이벤트만 VictoriaLogs의 OTLP 엔드포인트로 직접 보냈습니다.
+hub의 HyperDX(ClickStack)용 OTel 컬렉터 `hdx-otel-collector`에는 인증 없는 내부 입구(`otlp/ingest`, HTTP 4328)가 열려 있고, Claude Code는 메트릭·트레이스·이벤트를 전부 여기로 보냅니다. 컬렉터는 트레이스와 로그를 ClickHouse에 쓰고 메트릭은 OTLP 그대로 VictoriaMetrics에 넣습니다. spanmetrics 커넥터가 스팬에서 RED 메트릭을 만드는 것은 예전과 같고 시리즈 이름도 `traces_spanmetrics_*` 그대로입니다. Claude Code의 이벤트(user_prompt, api_request, tool_result 같은 것)는 OTLP logs로 나가므로 컬렉터의 로그 파이프라인이 받아 `otel_logs`에 적재합니다.
 
 설정은 `~/.claude/settings.json`의 `env` 블록 하나입니다. 환경변수는 프로세스 시작 때만 읽히니 이미 떠 있는 세션엔 적용되지 않습니다.
 
@@ -26,24 +30,30 @@ hub에는 이미 `otel-gateway-collector`가 떠 있습니다. OTLP를 받아 �
     "OTEL_TRACES_EXPORTER": "otlp",
     "CLAUDE_CODE_ENHANCED_TELEMETRY_BETA": "1",
     "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
-    "OTEL_EXPORTER_OTLP_ENDPOINT": "http://otel-gateway-collector.monitoring.svc.cluster.local:4318",
-    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "http://victoria-logs-victoria-logs-single-server.monitoring.svc.cluster.local:9428/insert/opentelemetry/v1/logs",
-    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": "cumulative",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "http://hdx-otel-collector.hdx.svc.cluster.local:4328",
+    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "http://hdx-otel-collector.hdx.svc.cluster.local:4328/v1/logs",
     "OTEL_RESOURCE_ATTRIBUTES": "workspace.user=mont,deployment.environment=hub",
+    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": "cumulative",
     "OTEL_LOG_TOOL_DETAILS": "1"
   }
 }
 ```
 
+`OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`는 로그만 다른 곳으로 보내던 때의 줄이 남은 것이라, 지금은 위의 기본 엔드포인트와 같은 컬렉터를 가리킵니다.
+
 | 신호 | 경로 | 저장소 |
 |---|---|---|
-| 메트릭 | gateway :4318 → prometheusremotewrite | VictoriaMetrics (90d) |
-| 트레이스 (beta) | gateway :4318 → otlp/tempo + spanmetrics | Tempo |
-| 이벤트 로그 | VictoriaLogs :9428 직접 | VictoriaLogs (7d) |
+| 메트릭 | hdx 컬렉터 :4328 → OTLP | VictoriaMetrics 테넌트 0 (90d) |
+| 트레이스 (beta) | hdx 컬렉터 :4328 → ClickHouse + spanmetrics | ClickHouse `otel_traces` (90d), spanmetrics는 VictoriaMetrics |
+| 이벤트 로그 | hdx 컬렉터 :4328 → ClickHouse | ClickHouse `otel_logs` (90d) |
+
+ClickHouse는 최근 7일을 node1의 local-path에 두고 90일까지는 SeaweedFS의 S3(cold)에 보관합니다. 이벤트 보존이 7일에서 90일로 늘었습니다.
 
 프롬프트 본문은 기본값대로 `<REDACTED>`로 나갑니다. `OTEL_LOG_TOOL_DETAILS=1`은 나중에 켰습니다. 이 옵션이 있어야 Bash 명령 문자열과 커스텀 에이전트 이름이 `custom`으로 뭉개지지 않고 나옵니다.
 
 ## 함정 하나: 메트릭만 안 들어온다
+
+이 절은 otel-gateway를 거치던 당시 경로 기준입니다.
 
 haiku로 테스트 세션을 돌리자 VictoriaLogs에 이벤트가 쌓이고 Tempo에 트레이스가 잡혔습니다. 메트릭만 없었습니다. 게이트웨이 로그에도 아무것도 남지 않았습니다.
 
@@ -51,7 +61,11 @@ haiku로 테스트 세션을 돌리자 VictoriaLogs에 이벤트가 쌓이고 Te
 
 며칠 뒤 같은 게이트웨이에 `deltatocumulative` 프로세서가 붙었습니다. Codex CLI는 delta로 고정돼 있어 설정으로 바꿀 수 없기 때문입니다. 이제 delta도 통과하지만 Claude Code 쪽은 cumulative를 그대로 둡니다.
 
+지금은 게이트웨이가 없습니다. 컬렉터가 메트릭을 remote write를 거치지 않고 OTLP로 VictoriaMetrics에 바로 넣기 때문에 delta도 버려지지 않고, 컬렉터 이미지에는 deltatocumulative가 없어서 delta는 delta 그대로 저장됩니다. Claude Code의 cumulative 설정은 그대로입니다.
+
 ## 함정 둘: 첫 샘플을 버리는 increase()
+
+당시 경로 기준으로 썼지만 원인이 수집 경로가 아니라 VictoriaMetrics의 `increase()` 동작이라서, 경로를 바꾼 지금도 같은 함정입니다.
 
 메트릭이 들어온 뒤에도 토큰 합계가 0이었습니다. 비용과 세션 수는 맞는데 토큰만 0이었습니다.
 
@@ -73,13 +87,33 @@ MetricsQL의 `increase_pure()`는 카운터가 항상 0에서 시작한다고 �
 - 구간 합계 시계열은 선 대신 막대로. 세션이 드문드문이라 선은 0을 잇는 톱니가 됩니다
 - `sum(rate(X)) by (k) * 3600` 형태를 `by` 절 때문에 못 잡아 값이 수백 배 부풀던 제 변환 버그 하나
 
-여기에 자체 대시보드 둘을 더했습니다. **Usage**는 25255가 다루지 않는 spanmetrics 지연 p50/p95, Tempo 트레이스 검색, VictoriaLogs 이벤트 스트림을 담습니다. **Optimization**은 아래에서 다룰 사용 패턴 분석용입니다.
+여기에 자체 대시보드 둘을 더했습니다. **Usage**는 25255가 다루지 않는 spanmetrics 지연 p50/p95와 최근 트레이스 표(`otel_traces`), 이벤트 스트림(`otel_logs`)을 담습니다. **Optimization**은 아래에서 다룰 사용 패턴 분석용입니다.
 
-셋 다 `victoria-metrics` 네임스페이스의 ConfigMap(라벨 `vm_grafana_dashboard=1`)으로 Grafana 사이드카가 읽어 갑니다. JSON은 손으로 만지지 않고 생성 스크립트 하나가 25255 원본을 패치하고 자체 대시보드를 조립해 매니페스트 하나로 뽑습니다. 그 파일이 montstrap의 `hub/opentelemetry/manifests/`에 들어가 argocd가 관리합니다.
+셋 다 `victoria-metrics` 네임스페이스의 ConfigMap(라벨 `vm_grafana_dashboard=1`)으로 Grafana 사이드카가 읽어 갑니다. 처음에는 JSON을 손으로 만지지 않고 생성 스크립트 하나가 25255 원본을 패치하고 자체 대시보드를 조립해 매니페스트 하나로 뽑았습니다. 그 파일이 montstrap의 `hub/opentelemetry/manifests/`에 들어가 argocd가 관리합니다. 이 스크립트는 아직 VictoriaLogs를 전제로 하고 있어서 지금은 git의 YAML을 원본으로 봅니다.
 
-VictoriaLogs Grafana 플러그인은 쿼리 형태에 규칙이 있어서 적어 둡니다. 시계열은 `statsRange`, 단일값은 `stats`(숫자만), 테이블은 `raw` 쿼리에 `| stats ...` 파이프를 붙이고 결과 labels를 컬럼으로 펼치는 변환이 필요합니다. `count_if`는 없고 `count() if (조건)`을 씁니다. `min(_time)`은 `raw`에서만 됩니다.
+이벤트 패널은 ClickHouse-HyperDX 데이터소스(uid `clickhouse-hdx`)로 `default.otel_logs`를 SQL로 읽습니다. 쿼리 형태에 규칙이 있어서 적어 둡니다. Claude Code 이벤트는 `ScopeName`과 `ServiceName`으로 고르고, 이벤트 종류는 `LogAttributes['event.name']`, 사용자는 `ResourceAttributes['workspace.user']`로 거릅니다. 이벤트의 숫자 필드도 `LogAttributes` 맵에 문자열로 들어 있어서 `toFloat64OrNull()`로 바꿔야 집계됩니다.
+
+시간 범위는 `$__timeFilter(Timestamp)`, 시계열의 시간 버킷은 `$__timeInterval(Timestamp)` 매크로로 씁니다. 시계열 쿼리는 `time` 열에 값 열을 붙이고, 계열 이름이 필요하면 문자열 `series` 열을 둡니다. 단일값과 표는 쿼리 형식을 Table로 두고, 로그 패널은 `timestamp`, `body`, `level`, `labels` 열을 맞춥니다. 조건부 집계는 `countIf()`, JSON 문자열 필드는 `JSONExtractString()`으로 꺼냅니다.
+
+```sql
+SELECT $__timeInterval(Timestamp) AS time,
+       LogAttributes['agent_type'] AS series,
+       sum(toFloat64OrNull(LogAttributes['total_tokens'])) AS v
+FROM default.otel_logs
+WHERE ScopeName = 'com.anthropic.claude_code.events'
+  AND ServiceName = 'claude-code'
+  AND match(ResourceAttributes['workspace.user'], '${user:regex}')
+  AND LogAttributes['event.name'] = 'subagent_completed'
+  AND $__timeFilter(Timestamp)
+GROUP BY time, series
+ORDER BY time
+```
+
+Optimization 대시보드의 '서브에이전트 토큰 (agent_type 별)' 패널입니다.
 
 ## 첫 인사이트: 세션 시작이 열 배
+
+이 절의 수치와 패널 수는 이벤트를 VictoriaLogs로 받던 당시 값입니다.
 
 테스트 세션 여섯 요청의 api_request 이벤트만으로도 패턴이 보였습니다.
 
@@ -89,6 +123,19 @@ VictoriaLogs Grafana 플러그인은 쿼리 형태에 규칙이 있어서 적어
 | 이후 요청 | 22k~24k | 0~1,300 | $0.003~0.006 |
 
 시스템 프롬프트, 도구 정의, CLAUDE.md, 스킬 목록 14k 토큰을 캐시에 새로 쓰는 비용입니다. haiku라 $0.03이지만 opus면 $0.1 안팎이고 fable이면 그 두 배입니다. `claude -p`를 자주 돌리는 스크립트가 있으면 이 고정비가 쌓입니다.
+
+지금은 같은 이벤트가 ClickHouse `otel_logs`에 들어옵니다. Optimization 대시보드의 '콜드 스타트 요청' 패널은 `cache_creation_tokens`가 8,000을 넘는 `api_request`를 콜드 스타트로 셉니다.
+
+```sql
+SELECT count() AS cold
+FROM default.otel_logs
+WHERE ScopeName = 'com.anthropic.claude_code.events'
+  AND ServiceName = 'claude-code'
+  AND match(ResourceAttributes['workspace.user'], '${user:regex}')
+  AND LogAttributes['event.name'] = 'api_request'
+  AND toFloat64OrNull(LogAttributes['cache_creation_tokens']) > 8000
+  AND $__timeFilter(Timestamp)
+```
 
 훅도 수치가 나옵니다. 세션마다 훅 105개가 등록되고 프롬프트 하나에 UserPromptSubmit 100ms, Read 한 번에 Pre/Post 180ms가 붙습니다. `hook_execution_complete` 이벤트가 `hook_name`별 소요시간을 주니 도구 호출이 수백 번인 세션에서 어느 훅이 느린지 바로 드러납니다.
 
@@ -118,7 +165,7 @@ OTel은 켠 시점부터 쌓이는 스트림입니다. 지난 세션은 `~/.clau
 
 트랜스크립트의 함정은 둘이었습니다. 같은 `requestId`가 content block마다 반복되므로 requestId로 묶지 않으면 두세 배로 셉니다. 그리고 서브에이전트 파일은 `<session>/subagents/agent-*.jsonl` 말고 `subagents/workflows/<wf_id>/` 아래에 훨씬 많습니다. 처음 훑었을 때 539개 파일만 잡혔는데 경로를 다시 보니 Workflow 에이전트 4,525개가 더 있었습니다.
 
-백필 스크립트는 이걸 읽어 OTel과 같은 이름의 누적 카운터로 VictoriaMetrics에, 보존 기간 안쪽 7일은 api_request 이벤트로 VictoriaLogs에 넣습니다. 레이블에 `source="backfill"`과 `query_source=main|subagent|workflow`를 붙이고 OTel로 이미 나간 session_id와 텔레메트리를 켠 뒤 시작한 세션은 건너뜁니다.
+백필 스크립트는 이걸 읽어 OTel과 같은 이름의 누적 카운터로 VictoriaMetrics에 넣습니다. 레이블에 `source="backfill"`과 `query_source=main|subagent|workflow`를 붙이고 OTel로 이미 나간 session_id와 텔레메트리를 켠 뒤 시작한 세션은 건너뜁니다. api_request 이벤트는 VictoriaLogs 보존 기간인 7일 안쪽 것만 jsonline 입력으로 넣게 만들었습니다. VictoriaLogs가 없어져서 지금은 이벤트를 보낼 곳이 없고, 적재 경로를 ClickHouse로 바꾸는 작업은 하지 않았습니다.
 
 | 항목 | 값 |
 |---|---|
@@ -127,7 +174,7 @@ OTel은 켠 시점부터 쌓이는 스트림입니다. 지난 세션은 `~/.clau
 | 토큰 | 53.5억 |
 | 추정 비용 | $5,285 (API 단가 환산) |
 
-모델별로는 opus-5 $2,487, fable-5 $1,402, opus-4-8 $679, sonnet-5 $454. 출처별로는 main $3,727, workflow $1,048, subagent $533입니다. 구독으로 쓰고 있어 청구액과는 다르지만 OTel의 cost 메트릭도 같은 방식이라 서로 비교는 됩니다. 이 스크립트도 매일 07:35에 돌아 텔레메트리보다 먼저 떠서 아직 도는 세션을 따라잡습니다.
+모델별로는 opus-5 $2,487, fable-5 $1,402, opus-4-8 $679, sonnet-5 $454. 출처별로는 main $3,727, workflow $1,048, subagent $533입니다. 구독으로 쓰고 있어 청구액과는 다르지만 OTel의 cost 메트릭도 같은 방식이라 서로 비교는 됩니다. 백필 스크립트는 지금도 매일 07:35에 돕니다. 최근 실행 기록은 `sessions=0`, `events=0`입니다. 새 세션은 모두 OTel로 직접 나가서 백필할 세션이 없습니다.
 
 ## 그래프가 끊기는 이유
 
@@ -139,7 +186,9 @@ vmselect가 `search.maxStalenessInterval=30s`라 30초 이상 샘플이 없으�
 
 ## 남은 것
 
-- 이 글을 쓰는 세션은 설정보다 먼저 떠서 OTel로 나가지 않습니다. 백필이 매일 따라잡고 `claude --resume`으로 다시 열면 그 시점부터 OTel로 나갑니다.
+- 백필 스크립트가 api_request 이벤트를 보내던 VictoriaLogs는 없어졌고, 이벤트를 ClickHouse로 적재하도록 바꾸는 작업은 하지 않았습니다. 지금은 보낼 이벤트도 없습니다.
 - 같은 code-server에 있는 다른 사용자 pod 둘은 각자 홈의 settings.json이라 아직 아무것도 안 들어가 있습니다.
-- Bash 명령별 집계는 아직 없습니다. `tool_input`이 JSON 문자열이라 LogsQL `unpack_json`으로 꺼내야 합니다.
+- Bash 명령별 집계는 [02편]({{< relref "02-codex-otel/index.md" >}})에서 패널로 만들었습니다. 지금은 `tool_parameters` JSON 문자열에서 `bash_command`를 ClickHouse의 `JSONExtractString()`으로 꺼냅니다.
+- 대시보드를 만들던 생성 스크립트는 아직 VictoriaLogs를 전제로 만들어져 있습니다. 이제는 git의 YAML을 원본으로 봅니다.
+- 이관한 이벤트 패널은 SQL이 실행되는 것까지만 확인했습니다. 그룹 시계열 범례 같은 화면 렌더링은 Grafana에서 따로 확인해야 합니다.
 - montstrap을 여러 Claude 세션이 같이 만지다 보니 푸시 직후 다른 세션의 커밋에 제 커밋이 밀려난 적이 있습니다. argocd selfHeal이 클러스터까지 되돌립니다. 푸시 전 rebase, 푸시 후 revision 확인이 필요합니다.
