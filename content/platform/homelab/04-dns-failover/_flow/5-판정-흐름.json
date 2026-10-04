@@ -1,0 +1,23 @@
+{
+  "caption": "워크플로의 판정. 입력은 받지 않고 apex A 레코드의 현재 값을 읽어 방향을 정합니다. 현재 edge이면 edge IP로 apex가 200일 때 변경하지 않고, 실패하면 20초 간격으로 3회 더 확인해 전부 실패이고 hub IP로 apex가 200일 때만 hub로 바꿉니다. 현재 hub이면 edge IP로 apex를 30초 간격 10회 확인해 전부 200이고 nextra·kanna·we·us도 200일 때만 edge로 되돌립니다. edge이면서 hub도 실패하면 바꾸지 않고 실패하고, 현재 hub인데 복귀 조건이 안 맞으면 hub를 유지합니다. edge도 hub도 아닌 값이면 아무것도 바꾸지 않고 실패합니다. PIN_SITE 변수가 있으면 목표 사이트가 200일 때 그쪽으로 바꿉니다.",
+  "nodes": [
+    { "id": "t", "col": 0, "row": 1, "label": "dispatch · 매시 17분", "sub": "입력 없음", "kind": "src" },
+    { "id": "rd", "col": 1, "row": 1, "label": "apex A 현재 값 읽기", "sub": "ListResourceRecordSets", "kind": "proc" },
+    { "id": "ce", "col": 2, "row": 0, "label": "현재 edge", "sub": "edge IP 로 apex 200 이면 변경 없음", "kind": "query" },
+    { "id": "ch", "col": 2, "row": 2, "label": "현재 hub", "sub": "edge IP 로 apex 30초 간격 10회 + 4호스트", "kind": "query" },
+    { "id": "ot", "col": 2, "row": 1, "label": "그 외 값", "kind": "query" },
+    { "id": "uh", "col": 3, "row": 0, "label": "hub 로 UPSERT", "sub": "20초 간격 3회 더 실패 + hub IP 200", "kind": "sink" },
+    { "id": "ue", "col": 3, "row": 2, "label": "edge 로 UPSERT", "sub": "전부 200 일 때만", "kind": "sink" },
+    { "id": "no", "col": 3, "row": 1, "label": "변경 없이 실패", "kind": "sink", "ghost": true }
+  ],
+  "edges": [
+    { "from": "t", "to": "rd" },
+    { "from": "rd", "to": "ce", "label": "edge" },
+    { "from": "rd", "to": "ch", "label": "hub" },
+    { "from": "rd", "to": "ot", "label": "그 외", "dashed": true },
+    { "from": "ce", "to": "uh", "label": "실패" },
+    { "from": "ch", "to": "ue", "label": "통과" },
+    { "from": "ce", "to": "no", "label": "둘 다 실패", "dashed": true },
+    { "from": "ot", "to": "no", "dashed": true }
+  ]
+}

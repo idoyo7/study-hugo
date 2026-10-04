@@ -1,0 +1,20 @@
+{
+  "caption": "최종 구조. 위 줄이 깨우는 길입니다. hub의 Kuma가 GitHub 토큰으로 워크플로를 깨우고, 워크플로는 저장된 키 없이 OIDC로 IAM 역할을 빌려 Route53 레코드 두 개를 바꿉니다. 아래 줄에서 Kuma는 edge 고정 호스트를 60초마다 보고, 러너는 집 밖에서 edge IP와 hub IP로 직접 확인해 방향을 정합니다. Terraform은 레코드의 존재와 TTL만 소유하고 값은 워크플로가 소유합니다. 워크플로가 끝나면 Kuma push 모니터로 결과를 보고하는 길은 그림에서 뺐습니다.",
+  "nodes": [
+    { "id": "kuma", "col": 0, "row": 0, "label": "hub의 Uptime Kuma", "sub": "자격증명: GitHub 토큰(Actions 쓰기, 전용 레포 하나)", "kind": "proc" },
+    { "id": "gha", "col": 1, "row": 0, "label": "GitHub Actions 워크플로", "sub": "집 밖 러너 · permissions: id-token 쓰기", "kind": "proc" },
+    { "id": "role", "col": 2, "row": 0, "label": "IAM 역할", "sub": "저장된 키 없음 · 신뢰: 전용 레포 main", "kind": "store" },
+    { "id": "r53", "col": 3, "row": 0, "label": "Route53 레코드", "sub": "apex A · 와일드카드 A", "kind": "sink" },
+    { "id": "edge", "col": 0, "row": 1, "label": "edge 고정 호스트", "sub": "TLS 정상 · 404 응답", "kind": "src" },
+    { "id": "chk", "col": 1, "row": 1, "label": "직접 확인", "sub": "edge IP · hub IP 로 apex 요청 (curl --resolve)", "kind": "src" },
+    { "id": "tf", "col": 3, "row": 1, "label": "Terraform · Atlantis", "sub": "레코드 존재·TTL 소유, 값은 무시", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "kuma", "to": "gha", "label": "dispatch" },
+    { "from": "gha", "to": "role", "label": "OIDC" },
+    { "from": "role", "to": "r53", "label": "UPSERT" },
+    { "from": "kuma", "to": "edge", "label": "60초마다" },
+    { "from": "gha", "to": "chk", "label": "재확인" },
+    { "from": "tf", "to": "r53", "label": "존재·TTL", "dashed": true }
+  ]
+}

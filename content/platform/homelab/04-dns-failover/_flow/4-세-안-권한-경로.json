@@ -1,0 +1,28 @@
+{
+  "caption": "감시는 셋 다 hub의 Kuma입니다. 갈라지는 곳은 마지막 두 칸입니다. 굵은 선은 마지막에 쓰이는 권한이 넓다는 뜻으로, Atlantis 안은 Terraform 실행용 키가 붙어 있어 레코드 2개보다 훨씬 넓고, AWX 안은 새 IAM 사용자의 장기 키로 A 레코드 2개, Actions 안은 OIDC로 빌린 역할로 A 레코드 2개입니다. 키가 저장되는 곳은 각각 hub의 Atlantis, hub의 AWX DB, 없음입니다.",
+  "nodes": [
+    { "id": "k1", "col": 0, "row": 0, "label": "Kuma 감지", "sub": "Atlantis 안", "kind": "src" },
+    { "id": "a1", "col": 1, "row": 0, "label": "PR 생성 봇 → Atlantis", "sub": "GitHub API · 러너 · PR · 웹훅", "kind": "proc" },
+    { "id": "c1", "col": 2, "row": 0, "label": "Terraform 실행용 키", "sub": "hub의 Atlantis에 저장 · 넓은 권한", "kind": "store", "layer": "access" },
+    { "id": "r1", "col": 3, "row": 0, "label": "레코드 2개보다 훨씬 넓음", "sub": "Route53 포함", "kind": "sink", "layer": "access" },
+    { "id": "k2", "col": 0, "row": 1, "label": "Kuma 감지", "sub": "AWX 안", "kind": "src" },
+    { "id": "a2", "col": 1, "row": 1, "label": "AWX 잡", "sub": "hub 안에서 실행", "kind": "proc" },
+    { "id": "c2", "col": 2, "row": 1, "label": "새 IAM 사용자의 장기 키", "sub": "hub의 AWX DB에 저장", "kind": "store" },
+    { "id": "r2", "col": 3, "row": 1, "label": "A 레코드 2개 UPSERT", "kind": "sink" },
+    { "id": "k3", "col": 0, "row": 2, "label": "Kuma 감지", "sub": "GitHub Actions 안(채택)", "kind": "src" },
+    { "id": "a3", "col": 1, "row": 2, "label": "GitHub Actions 워크플로", "sub": "집 밖 러너", "kind": "proc" },
+    { "id": "c3", "col": 2, "row": 2, "label": "OIDC로 빌린 IAM 역할", "sub": "저장된 키 없음", "kind": "store" },
+    { "id": "r3", "col": 3, "row": 2, "label": "A 레코드 2개 UPSERT", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "k1", "to": "a1", "label": "dispatch" },
+    { "from": "a1", "to": "c1", "label": "apply", "w": 4 },
+    { "from": "c1", "to": "r1", "label": "넓음", "w": 4 },
+    { "from": "k2", "to": "a2", "label": "호출" },
+    { "from": "a2", "to": "c2", "label": "키 사용" },
+    { "from": "c2", "to": "r2", "label": "2개", "w": 1 },
+    { "from": "k3", "to": "a3", "label": "dispatch" },
+    { "from": "a3", "to": "c3", "label": "OIDC" },
+    { "from": "c3", "to": "r3", "label": "2개", "w": 1 }
+  ]
+}
