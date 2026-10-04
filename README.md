@@ -1,7 +1,8 @@
 # study-hugo — Ops Insights
 
-Kubernetes·관측성·데이터스토어를 직접 운영하며 남은 판단 근거를 도메인 단위로
-정리한 지식베이스. 주제 문서 182개를 4개 대분류로 탐색합니다.
+AI가 작성하는 기술 초안·조사 자료 공간입니다. 이곳에서 자료를 검토하고 초안을
+다듬은 뒤, makgol.com에 주제와 전개를 다시 구성한 게시글을 새로 작성합니다.
+주제 문서를 4개 대분류로 탐색합니다.
 
 - 운영 사이트: https://docs.makgol.com
 - 테마: [hextra](https://github.com/imfing/hextra) v0.12.3 (`themes/hextra/` 벤더링)
