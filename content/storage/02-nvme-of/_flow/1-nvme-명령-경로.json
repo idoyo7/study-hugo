@@ -1,0 +1,27 @@
+{
+  "caption": "NVMe-oF에서 4KB 읽기 한 번이 지나는 길입니다(Linux 커널 구성). 호스트에는 SCSI 중간 계층이 없고, 타깃은 namespace에 연결된 블록 장치 위에서 명령을 다시 SSD로 내려보냅니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "파일시스템·블록 계층", "sub": "fio → VFS → blk-mq", "kind": "src" },
+    { "id": "B", "col": 1, "row": 0, "label": "nvme-core", "sub": "I/O 큐 수 = CPU 수", "kind": "proc" },
+    { "id": "C", "col": 2, "row": 0, "label": "nvme-tcp · nvme-rdma", "sub": "큐 쌍 1개 = 연결 1개", "kind": "proc" },
+    { "id": "D", "col": 3, "row": 0, "label": "패브릭", "sub": "capsule · 데이터 PDU", "kind": "query" },
+    { "id": "E", "col": 3, "row": 2, "label": "타깃 전송 계층", "sub": "nvmet-tcp · nvmet-rdma", "kind": "proc" },
+    { "id": "F", "col": 2, "row": 2, "label": "subsystem · namespace", "sub": "NQN · nsid", "kind": "proc" },
+    { "id": "G", "col": 1, "row": 2, "label": "논리 볼륨", "sub": "LVM LV 등 블록 장치", "kind": "store" },
+    { "id": "H", "col": 0, "row": 2, "label": "NVMe SSD", "sub": "nvme-pci", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "A", "to": "B", "label": "요청", "rate": 520 },
+    { "from": "B", "to": "C", "label": "I/O 큐", "rate": 520 },
+    { "from": "C", "to": "D", "label": "capsule", "rate": 520 },
+    { "from": "D", "to": "E", "label": "수신", "rate": 520 },
+    { "from": "E", "to": "F", "label": "명령", "rate": 520 },
+    { "from": "F", "to": "G", "label": "블록 I/O", "rate": 520 },
+    { "from": "G", "to": "H", "label": "NVMe 명령", "rate": 520 }
+  ],
+  "groups": [
+    { "id": "host", "label": "호스트", "members": ["A", "B", "C"] },
+    { "id": "target", "label": "스토리지 서버", "members": ["E", "F", "G", "H"] }
+  ]
+}

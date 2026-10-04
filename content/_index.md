@@ -1,7 +1,7 @@
 ---
 title: "Ops Insights"
 date: 2026-07-12
-lastmod: 2026-09-22
+lastmod: 2026-10-04
 type: docs
 toc: false
 comments: false
@@ -34,3 +34,4 @@ comments: false
 - [AI 도구]({{< relref "ai-tools/_index.md" >}}) — Claude Code 같은 AI 코딩 도구를 운영 관점에서 다룹니다. 첫 편은 code-server 안의 Claude Code 사용량을 OTel로 관측 스택에 내보내고, 콜드 스타트·에이전트별 비용·훅 오버헤드를 대시보드로 보는 기록.
 - [격리 런타임]({{< relref "isolation/_index.md" >}}) — Kata Containers·KubeVirt·gVisor로 컨테이너 아래에 격리를 한 겹 더 깔 때 어디에 비용이 붙는지를 실측으로 봅니다. 경계·Kata·gVisor·KubeVirt·성능 실측·판단 여섯 편으로 나눴고, CPU·메모리는 오차범위 안이고 syscall·IO·기동 지연은 자릿수가 바뀝니다.
 - [서비스 아키텍처 변천사]({{< relref "cellarch/_index.md" >}}) — 모놀리스에서 SOA·마이크로서비스를 거쳐 셀 기반 아키텍처까지, 무엇을 나눴고 무엇을 못 나눴는지를 일곱 편으로 추적합니다. 공유 의존성 하나로 서비스 수백 개가 동시에 멎은 S3·Cloudflare·Slack·Roblox·Datadog 장애 사례를 모으고, Slack·GitLab·Shopify가 실제로 그은 셀 경계와 AWS가 DynamoDB·Route 53·Lambda 안에서 겹겹이 쓰는 격리 설계를 뜯어봅니다. 마지막 편은 2025년 10월 20일 us-east-1 장애를 해부해, 리전 격리는 지켰지만 단일 DNS 자동화가 못 지킨 지점을 짚습니다.
+- [스토리지]({{< relref "storage/_index.md" >}}) — NVMe SSD가 많이 꽂힌 서버의 용량을 다른 호스트와 VM에 나눠 줄 때, 내보내는 방식에 따라 I/O 경로와 오버헤드가 어떻게 달라지는지를 실측으로 봅니다. 01은 iSCSI·Ceph RBD·클라우드 볼륨과 VM에 붙이는 virtio 경로, 02는 NVMe 명령을 그대로 보내는 NVMe-oF와 타깃 구현, 호스트·VM에 내주는 방식을 다룹니다.

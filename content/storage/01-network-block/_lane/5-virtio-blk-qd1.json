@@ -1,0 +1,19 @@
+{
+  "caption": "KVM Forum 2020 발표의 virtio-blk QD1 4K 랜덤 읽기입니다(Intel Optane P4800X, 호스트 커널 5.7.7, 게스트 커널 5.5.0, fio pvsync2 direct). 퍼센트는 베어메탈 IOPS를 기준으로 나눈 값입니다.",
+  "font": 1.1,
+  "axis": { "kind": "linear", "max": 80, "unit": "k IOPS", "ticks": [0, 20, 40, 60, 80] },
+  "lanes": [
+    { "label": "베어메탈", "sub": "iopoll 없음", "segments": [
+      { "start": 0, "end": 78.736, "label": "78,736", "kind": "proc" }
+    ]},
+    { "label": "virtio-blk", "sub": "file · aio=native", "segments": [
+      { "start": 0, "end": 21.831, "label": "21,831", "sub": "베어메탈의 28%", "kind": "src" }
+    ]},
+    { "label": "+ IOThread", "segments": [
+      { "start": 0, "end": 46.424, "label": "46,424", "sub": "베어메탈의 59%", "kind": "src" }
+    ]},
+    { "label": "+ nvme://", "sub": "QEMU 유저스페이스 NVMe 드라이버", "segments": [
+      { "start": 0, "end": 55.216, "label": "55,216", "sub": "베어메탈의 70%", "kind": "src" }
+    ]}
+  ]
+}
