@@ -1,5 +1,5 @@
 {
-  "caption": "AZ c의 agent 한 대가 전체를 수집하던 구성과, 기존 agent를 AZ a로 옮기고 AZ c에 한 대를 추가한 구성을 비교합니다. 주황 화살표가 AZ를 넘는 scrape 전송이며, 클러스터 전체로 하루 약 2.5TB의 응답이 분할 뒤에는 같은 AZ 안에서 끝납니다.",
+  "caption": "AZ c의 agent 한 대가 전체를 수집하던 구성과, 기존 agent를 AZ a로 옮기고 AZ c에 한 대를 추가한 구성을 비교합니다. 주황 화살표가 AZ를 넘는 scrape 전송이며, 이 응답이 분할 뒤에는 같은 AZ 안에서 끝납니다.",
   "font": 1.15,
   "nodes": [
     { "id": "B_TA", "col": 0, "row": 0, "label": "AZ a 타깃", "sub": "전송량 약 절반", "kind": "src" },
