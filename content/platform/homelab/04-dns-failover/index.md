@@ -1,7 +1,7 @@
 ---
 title: "04 DNS 장애 전환 — Kuma가 깨우고 GitHub Actions가 Route53을 바꾼다"
 date: 2026-10-04
-lastmod: 2026-10-04
+lastmod: 2026-10-05
 weight: 4
 url: "/homelab/04-dns-failover/"
 ---
@@ -53,7 +53,9 @@ DOWN 또는 DOWN→UP 때 webhook이 GitHub API의 `workflows/dns-failover.yml/d
 
 변경할 때는 GitHub OIDC로 IAM 역할을 빌려 apex와 와일드카드를 한 ChangeBatch로 UPSERT합니다. TTL은 현재 값을 유지하고 INSYNC까지 기다립니다. 워크플로 권한은 `id-token: write`, `contents: read`만 부여하며, 외부 액션 checkout과 configure-aws-credentials는 모두 커밋 SHA로 고정합니다. concurrency로 직렬화하고 진행 중인 실행은 취소하지 않습니다.
 
-결과는 `status=up|down`, 현재 서빙 위치, 수행한 동작을 담아 Kuma push 모니터로 보냅니다. push 모니터의 heartbeat 간격은 7500초(약 2시간 5분)로, 워크플로가 멈추면 알립니다. Kuma는 알림 전송 실패를 재시도하지 않으므로 워크플로를 매시 17분에도 실행합니다.
+결과는 `status=up|down`, 현재 서빙 위치, 수행한 동작을 담아 Kuma push 모니터로 보냅니다. 실행이 실패하면 `status=down` 보고가 가서 바로 알립니다. 보고가 아예 끊긴 경우는 push 모니터의 heartbeat 간격 86400초(24시간)가 지나야 알립니다. Kuma는 알림 전송 실패를 재시도하지 않으므로 워크플로를 매시 17분 cron으로도 실행합니다.
+
+다만 GitHub의 스케줄 실행은 cron대로 돌지 않습니다. 2026-10-04에는 스케줄 실행이 18:11과 21:21(UTC) 두 번뿐이어서 간격이 3시간을 넘었습니다. heartbeat 간격을 처음에 7500초(약 2시간 5분)로 뒀을 때는 이 지연 때문에 장애가 아닌 알림이 하루에 세 번 왔고, 그래서 24시간으로 넓혔습니다.
 
 예상 소요 시간은 Kuma 감지 약 3분, 러너 기동과 재확인 1~2분, 반영 1분을 합쳐 5분 안팎입니다. 이후에도 TTL 300초만큼 캐시가 남습니다. 이 시간은 설계값이며 실측이 아닙니다.
 
@@ -136,12 +138,12 @@ Kuma 토큰과 역할 신뢰 조건은 레포 단위입니다. 이 워크플로�
 
 ## 비용과 한계
 
-IAM 역할, OIDC, STS, Route53 레코드 변경 API는 무료여서 AWS 추가 비용은 0입니다. 전용 레포는 private이며, 매시 실행으로 Actions를 월 720분 안팎 사용합니다.
+IAM 역할, OIDC, STS, Route53 레코드 변경 API는 무료여서 AWS 추가 비용은 0입니다. 전용 레포는 private이며, 매시 실행이 모두 돈다면 Actions를 월 720분 안팎 사용합니다. 실제 스케줄 실행은 그보다 드뭅니다.
 
 - GitHub Actions 장애 시 전환이 일어나지 않고, 스케줄 실행도 늦어지거나 빠질 수 있습니다.
 - hub가 죽으면 넘길 곳이 없으며, hub에 있는 Kuma의 감시도 멎습니다.
 - 전환 중 argo의 404와 nextra·kanna·wedding의 버전 차이는 남습니다.
-- Kuma는 edge 게이트웨이 응답(404 포함)만 봅니다. 앱만 죽으면 매시 실행의 apex 확인 때 잡히므로, 한 시간 안팎 또는 스케줄 지연만큼 더 길게 감시 공백이 생길 수 있다고 봅니다.
+- Kuma는 edge 게이트웨이 응답(404 포함)만 봅니다. 앱만 죽으면 스케줄 실행의 apex 확인 때 잡힙니다. 스케줄 실행 간격이 3시간을 넘은 날이 있었으므로, 감시 공백은 몇 시간이 될 수 있다고 봅니다.
 - TTL 300초 동안 캐시가 남습니다. 비용 없이 60초로 낮출 수 있지만 아직 하지 않았습니다.
 - 레코드 값은 스크립트에서만 제한하므로 IAM으로 임의 IP 변경을 막지 못합니다.
 
