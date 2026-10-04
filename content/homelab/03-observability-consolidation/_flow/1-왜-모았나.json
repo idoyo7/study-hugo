@@ -1,32 +1,165 @@
 {
-  "caption": "2026-09-27 무렵의 관측 경로. 로그는 vector-agent와 fluent-bit이 같은 파일을 읽어 aggregator로 모으고, 저장소는 VictoriaLogs와 HyperDX의 ClickHouse 둘로 갈립니다. 트레이스와 메트릭은 앱·istio·AI CLI가 otel-gateway로 보내고, gateway가 Tempo·HyperDX·VictoriaMetrics로 다시 나눕니다. 텔레메트리 저장소가 넷이고 로그 수집기가 둘, 중간 홉이 하나였습니다.",
+  "caption": "2026-09-28 새벽, otel-agent를 걷은 직후의 관측 경로. 로그는 vector-agent와 fluent-bit이 같은 파일을 읽어 aggregator로 모으고, 저장소는 VictoriaLogs와 HyperDX의 ClickHouse 둘로 갈립니다. 트레이스와 메트릭은 앱·istio·AI CLI가 otel-gateway로 보내고, gateway가 Tempo·HyperDX·VictoriaMetrics로 다시 나눕니다.",
   "groups": [
-    { "id": "dup", "label": "같은 파일을 둘이 읽음", "members": ["va", "fb"], "pad": 8 },
-    { "id": "stores", "label": "저장소 넷", "members": ["vl", "ch", "vm", "tempo"], "pad": 8 }
+    {
+      "id": "dup",
+      "label": "같은 파일을 둘이 읽음",
+      "members": [
+        "va",
+        "fb"
+      ],
+      "pad": 8
+    },
+    {
+      "id": "stores",
+      "label": "저장소 넷",
+      "members": [
+        "vl",
+        "ch",
+        "vm",
+        "tempo"
+      ],
+      "pad": 8
+    }
   ],
   "nodes": [
-    { "id": "va", "col": 0, "row": 0, "label": "vector-agent", "sub": "DaemonSet · /var/log/containers/*", "kind": "proc" },
-    { "id": "fb", "col": 0, "row": 1, "label": "fluent-bit", "sub": "DaemonSet · /var/log/containers/*", "kind": "proc" },
-    { "id": "app", "col": 0, "row": 2, "label": "앱 · istio", "sub": "auto-instrumentation · Telemetry", "kind": "src" },
-    { "id": "cli", "col": 0, "row": 3, "label": "Claude Code · Codex", "sub": "code-server 안 CLI", "kind": "src" },
-    { "id": "agg", "col": 1, "row": 0, "label": "aggregator", "sub": "vector-study · VRL normalize", "kind": "proc" },
-    { "id": "gw", "col": 1, "row": 3, "label": "otel-gateway", "sub": "monitoring ns · Collector CR", "kind": "proc" },
-    { "id": "hdx", "col": 2, "row": 1, "label": "hdx 컬렉터", "sub": ":4317 · :4318 (ingestion key)", "kind": "proc" },
-    { "id": "vl", "col": 3, "row": 0, "label": "VictoriaLogs", "sub": "7일 · NFS 10Gi", "kind": "store" },
-    { "id": "ch", "col": 3, "row": 1, "label": "ClickHouse", "sub": "HyperDX", "kind": "store" },
-    { "id": "vm", "col": 3, "row": 2, "label": "VictoriaMetrics", "sub": "테넌트 0", "kind": "store" },
-    { "id": "tempo", "col": 3, "row": 3, "label": "Tempo", "sub": "S3 버킷 (SeaweedFS)", "kind": "store" }
+    {
+      "id": "va",
+      "col": 0,
+      "row": 0,
+      "label": "vector-agent",
+      "sub": "DaemonSet · /var/log/containers/*",
+      "kind": "proc"
+    },
+    {
+      "id": "fb",
+      "col": 0,
+      "row": 1,
+      "label": "fluent-bit",
+      "sub": "DaemonSet · /var/log/containers/*",
+      "kind": "proc"
+    },
+    {
+      "id": "app",
+      "col": 0,
+      "row": 2,
+      "label": "앱 · istio",
+      "sub": "auto-instrumentation · Telemetry",
+      "kind": "src"
+    },
+    {
+      "id": "cli",
+      "col": 0,
+      "row": 3,
+      "label": "Claude Code · Codex",
+      "sub": "code-server 안 CLI",
+      "kind": "src"
+    },
+    {
+      "id": "agg",
+      "col": 1,
+      "row": 0,
+      "label": "aggregator",
+      "sub": "vector-study · VRL normalize",
+      "kind": "proc"
+    },
+    {
+      "id": "gw",
+      "col": 1,
+      "row": 3,
+      "label": "otel-gateway",
+      "sub": "monitoring ns · Collector CR",
+      "kind": "proc"
+    },
+    {
+      "id": "hdx",
+      "col": 2,
+      "row": 1,
+      "label": "hdx 컬렉터",
+      "sub": ":4317 · :4318 (ingestion key)",
+      "kind": "proc"
+    },
+    {
+      "id": "vl",
+      "col": 3,
+      "row": 0,
+      "label": "VictoriaLogs",
+      "sub": "7일 · NFS 10Gi",
+      "kind": "store"
+    },
+    {
+      "id": "ch",
+      "col": 3,
+      "row": 1,
+      "label": "ClickHouse",
+      "sub": "HyperDX",
+      "kind": "store"
+    },
+    {
+      "id": "vm",
+      "col": 3,
+      "row": 2,
+      "label": "VictoriaMetrics",
+      "sub": "테넌트 0",
+      "kind": "store"
+    },
+    {
+      "id": "tempo",
+      "col": 3,
+      "row": 3,
+      "label": "Tempo",
+      "sub": "S3 버킷 (SeaweedFS)",
+      "kind": "store"
+    }
   ],
   "edges": [
-    { "from": "va", "to": "agg" },
-    { "from": "fb", "to": "agg" },
-    { "from": "agg", "to": "vl", "label": "로그 적재" },
-    { "from": "agg", "to": "hdx", "label": "OTLP" },
-    { "from": "hdx", "to": "ch", "label": "적재" },
-    { "from": "app", "to": "gw", "label": "OTLP" },
-    { "from": "cli", "to": "gw", "label": "OTLP" },
-    { "from": "gw", "to": "hdx", "label": "traces" },
-    { "from": "gw", "to": "tempo", "label": "traces" },
-    { "from": "gw", "to": "vm", "label": "메트릭" }
+    {
+      "from": "va",
+      "to": "agg"
+    },
+    {
+      "from": "fb",
+      "to": "agg"
+    },
+    {
+      "from": "agg",
+      "to": "vl",
+      "label": "로그 적재"
+    },
+    {
+      "from": "agg",
+      "to": "hdx",
+      "label": "OTLP"
+    },
+    {
+      "from": "hdx",
+      "to": "ch",
+      "label": "적재"
+    },
+    {
+      "from": "app",
+      "to": "gw",
+      "label": "OTLP"
+    },
+    {
+      "from": "cli",
+      "to": "gw",
+      "label": "OTLP"
+    },
+    {
+      "from": "gw",
+      "to": "hdx",
+      "label": "traces"
+    },
+    {
+      "from": "gw",
+      "to": "tempo",
+      "label": "traces"
+    },
+    {
+      "from": "gw",
+      "to": "vm",
+      "label": "메트릭"
+    }
   ]
 }

@@ -16,4 +16,4 @@ cascade:
 |------|-----------|
 | [01 hub/edge 2-클러스터 구조]({{< relref "01-hub-edge-architecture/index.md" >}}) | prod/stage를 버리고 hub/edge로 — 통합 전체 지도, stateless 원칙, 메트릭·GitOps·인증 파이프라인 |
 | [02 개발환경]({{< relref "02-dev-workspace/index.md" >}}) | hub 위의 code-server 하나에 브라우저(Keycloak)와 아이패드(Claude Code 릴레이) 두 길로 붙는다 — 터미널은 tmux, 파일은 NAS |
-| [03 관측 스택 일원화]({{< relref "03-observability-consolidation/index.md" >}}) | 로그·트레이스·APM 입구를 Vector와 HyperDX 컬렉터 둘로, 저장소를 ClickHouse와 VictoriaMetrics 둘로 — 입구 열기, 송신자 이전, otel-gateway·Tempo·fluent-bit 걷기 |
+| [03 관측 스택 일원화]({{< relref "03-observability-consolidation/index.md" >}}) | 로그·트레이스·APM 입구를 Vector와 HyperDX 컬렉터 둘로, 저장소를 ClickHouse와 VictoriaMetrics 둘로 — 수집기·저장소·OTLP 입구·메트릭 경로·대시보드마다 써 본 선택지와 최종 선택, 치른 대가 |
