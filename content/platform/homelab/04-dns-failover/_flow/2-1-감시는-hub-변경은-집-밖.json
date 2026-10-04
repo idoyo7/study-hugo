@@ -1,0 +1,25 @@
+{
+  "caption": "감시하는 Kuma는 hub 안에 있고, 레코드를 바꾸는 워크플로는 집 밖 GitHub에서 돌며, AWS에서는 IAM 역할을 거쳐 A 레코드 두 개에만 닿습니다. 장애 때의 호출은 설계이며 아직 시험하지 않았습니다.",
+  "groups": [
+    { "id": "hub", "label": "hub (현재 집)", "members": ["hgw", "kuma"] },
+    { "id": "edge", "label": "edge (본가)", "members": ["egw"] },
+    { "id": "aws", "label": "AWS", "members": ["role", "rec"] },
+    { "id": "gh", "label": "GitHub", "members": ["wf"] }
+  ],
+  "nodes": [
+    { "id": "hgw", "col": 0, "row": 0, "label": "hub 게이트웨이", "sub": "203.0.113.20", "kind": "sink" },
+    { "id": "kuma", "col": 1, "row": 0, "label": "Kuma", "sub": "감시와 알림", "kind": "src" },
+    { "id": "egw", "col": 2, "row": 0, "label": "edge 게이트웨이", "sub": "198.51.100.10", "kind": "sink" },
+    { "id": "role", "col": 0, "row": 2, "label": "IAM 역할", "sub": "저장된 키 없음", "kind": "proc" },
+    { "id": "rec", "col": 0, "row": 3, "label": "A 레코드 2개", "sub": "apex · 와일드카드", "kind": "store" },
+    { "id": "wf", "col": 1, "row": 2, "label": "Actions 러너", "sub": "집 밖에서 실행", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "kuma", "to": "egw", "label": "감시", "rate": 500 },
+    { "from": "kuma", "to": "wf", "label": "webhook", "dashed": true },
+    { "from": "wf", "to": "egw", "label": "확인", "rate": 1400 },
+    { "from": "wf", "to": "hgw", "label": "확인", "dashed": true },
+    { "from": "wf", "to": "role", "label": "OIDC", "rate": 1400 },
+    { "from": "role", "to": "rec", "label": "UPSERT", "dashed": true }
+  ]
+}

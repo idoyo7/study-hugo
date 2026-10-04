@@ -73,3 +73,5 @@ CI(`.github/workflows/docker-build-push.yml`)가 GHCR 에 이미지를 올리고
 `static/flow/` 의 7종은 직접 만든 애니메이션 다이어그램 엔진이다. 문서에서
 `{{< flow >}}` 같은 숏코드로 부르고, `layouts/partials/custom/head-end.html`
 이 그 문서가 실제로 쓰는 엔진만 골라 싣는다. 자세한 건 `DIAGRAMS.md`.
+
+도식을 넣을지, 몇 장으로 나눠 어떤 엔진으로 그릴지는 [DIAGRAM-GUIDE.md](DIAGRAM-GUIDE.md)를 먼저 본다.

@@ -16,6 +16,7 @@ makgol.com에 주제와 설명의 흐름을 다시 구성한 게시글을 새로
 - 이전 파일 위치는 [경로 대응표](docs/changes/2026-10-04-content-navigation.csv)에서 현재 위치로 찾을 수 있습니다.
 - 내부 링크는 `content/` 기준 절대 원본 경로를 쓰는 `relref`로 연결합니다.
 - 도식 리소스는 해당 문서의 page bundle과 함께 유지합니다. 도식 규약은 [DIAGRAMS.md](DIAGRAMS.md)에 있습니다.
+- 도식을 새로 그리거나 검토할 때는 [DIAGRAM-GUIDE.md](DIAGRAM-GUIDE.md)를 먼저 읽으세요. 도식을 넣을지, 몇 장으로 나눠 어떤 엔진으로 그릴지의 기준이 있습니다.
 - 변경 후 README의 Hugo 빌드와 내비게이션 검증을 실행하세요. 새 URL을 추가할 때는 분류 색인에서도 접근할 수 있어야 합니다.
 
 개편 범위·설계 선택·검증 근거: [2026-10-04 분류 개편](docs/changes/2026-10-04-content-navigation.md).

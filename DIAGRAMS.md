@@ -1,5 +1,7 @@
 # 도식 shortcode 레퍼런스
 
+도식을 넣을지, 몇 장으로 나눠 어떤 엔진으로 그릴지, 그린 뒤 무엇을 확인할지는 [DIAGRAM-GUIDE.md](DIAGRAM-GUIDE.md)에 있다. 이 문서는 그다음 단계인 필드와 상수를 다룬다.
+
 이 레포는 자체 도식 엔진 여덟 개를 쓴다. **mermaid가 아니다.**
 
 | shortcode | 용도 | 엔진 |
