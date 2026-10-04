@@ -1,0 +1,21 @@
+{
+  "caption": "앞단을 Vector 두 층으로 바꾸고 저장소에 ClickHouse를 붙인 구성입니다. 옮기는 동안에는 aggregator가 같은 로그를 OpenSearch에도 넣고, S3에는 다시 적재할 원본을 남깁니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 1, "label": "컨테이너 로그", "sub": "노드의 로그 파일", "kind": "src" },
+    { "id": "B", "col": 1, "row": 1, "label": "Vector agent", "sub": "DaemonSet · 디스크 버퍼", "kind": "proc" },
+    { "id": "C", "col": 2, "row": 1, "label": "Vector aggregator", "sub": "remap · sink별 버퍼", "kind": "proc" },
+    { "id": "D", "col": 3, "row": 0, "label": "ClickHouse", "sub": "async insert · 일 파티션", "kind": "store" },
+    { "id": "E", "col": 3, "row": 1, "label": "OpenSearch", "sub": "옮기는 동안만", "kind": "store" },
+    { "id": "F", "col": 3, "row": 2, "label": "S3", "sub": "원본 아카이브", "kind": "sink" },
+    { "id": "G", "col": 4, "row": 0, "label": "Grafana · HyperDX", "sub": "SQL · 로그 뷰", "kind": "query" }
+  ],
+  "edges": [
+    { "from": "A", "to": "B", "label": "tail", "rate": 520 },
+    { "from": "B", "to": "C", "label": "gRPC", "rate": 520 },
+    { "from": "C", "to": "D", "label": "HTTP 8123", "rate": 520 },
+    { "from": "C", "to": "E", "label": "_bulk", "rate": 260 },
+    { "from": "C", "to": "F", "label": "gzip", "rate": 260 },
+    { "from": "D", "to": "G", "label": "조회", "rate": 260 }
+  ]
+}

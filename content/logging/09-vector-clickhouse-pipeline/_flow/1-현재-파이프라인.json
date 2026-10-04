@@ -1,0 +1,17 @@
+{
+  "caption": "지금 파이프라인의 세 단입니다. Firehose는 버퍼가 차거나 시간이 되면 OpenSearch로 내보내고, 재시도 기간 안에 넣지 못한 문서는 S3에 남깁니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "컨테이너 로그", "sub": "노드의 로그 파일", "kind": "src" },
+    { "id": "B", "col": 1, "row": 0, "label": "Fluent Bit", "sub": "DaemonSet · tail", "kind": "proc" },
+    { "id": "C", "col": 2, "row": 0, "label": "Firehose", "sub": "버퍼 5MB · 300초", "kind": "proc" },
+    { "id": "D", "col": 3, "row": 0, "label": "OpenSearch", "sub": "hot · UltraWarm", "kind": "store" },
+    { "id": "E", "col": 3, "row": 1, "label": "S3", "sub": "넣지 못한 문서", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "A", "to": "B", "label": "tail", "rate": 520 },
+    { "from": "B", "to": "C", "label": "Direct PUT", "rate": 520 },
+    { "from": "C", "to": "D", "label": "_bulk", "rate": 520 },
+    { "from": "C", "to": "E", "label": "재시도 만료", "dashed": true }
+  ]
+}
