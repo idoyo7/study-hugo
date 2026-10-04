@@ -1,0 +1,54 @@
+name: Content navigation checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-navigation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned Hugo extended
+        env:
+          HUGO_VERSION: '0.166.0'
+        run: |
+          mkdir -p "$RUNNER_TEMP/hugo-bin"
+          curl --fail --silent --show-error --location \
+            "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" \
+            --output "$RUNNER_TEMP/hugo.tar.gz"
+          tar -xzf "$RUNNER_TEMP/hugo.tar.gz" -C "$RUNNER_TEMP/hugo-bin" hugo
+          echo "$RUNNER_TEMP/hugo-bin" >> "$GITHUB_PATH"
+
+      - name: Test navigation checker
+        run: python3 -m unittest discover -s tools/tests -p 'test_*.py'
+
+      - name: Build current site
+        run: hugo --gc --minify --enableGitInfo --destination "$RUNNER_TEMP/site-after"
+
+      - name: Build PR base and compare
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/content-baseline" "$PR_BASE_SHA"
+          hugo --source "$RUNNER_TEMP/content-baseline" \
+            --gc --minify --enableGitInfo --destination "$RUNNER_TEMP/site-before"
+          python3 tools/check-content-navigation.py \
+            --site-dir "$RUNNER_TEMP/site-after" \
+            --baseline-dir "$RUNNER_TEMP/site-before" \
+            --mapping docs/changes/2026-10-04-content-navigation.csv --source-dir . --expected-mapping-count 219
+
+      - name: Check manually requested build
+        if: github.event_name != 'pull_request'
+        run: |
+          python3 tools/check-content-navigation.py \
+            --site-dir "$RUNNER_TEMP/site-after" \
+            --mapping docs/changes/2026-10-04-content-navigation.csv --source-dir . --expected-mapping-count 219

@@ -195,7 +195,7 @@ for (const v of VARIANTS) {
 
 /* 10. 리컨실 순서 — ③단계(phase 2)에서 가중치 전환이 cDesired(요구 파드) 상승보다 먼저 온다.
    reconcileTrafficRouting(:57) 이 reconcileCanaryReplicaSets(:75) 보다 앞이므로, 한 바퀴 안에서
-   가중치가 먼저 정해지고 RS 목표가 뒤따라야 한다 — content/rollouts/02-.../index.md:235.
+   가중치가 먼저 정해지고 RS 목표가 뒤따라야 한다 — content/platform/rollouts/02-.../index.md:235.
    10분할 표본(위 seen)은 0.5 와 0.55 사이 경계를 놓칠 수 있으니 phase 2 안을 촘촘히 훑어
    각 값이 "처음 바뀌는 t"를 찾아 비교한다. promote 는 가중치가 5%에 동결돼 안 바뀌므로 대상 밖. */
 function fineFrame(variant, phase, t) {

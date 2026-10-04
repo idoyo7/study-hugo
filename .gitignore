@@ -29,3 +29,7 @@ _workspace/
 # themes/hextra/.gitignore 의 node_modules/ 는 그 서브트리에만 적용된다.
 # 루트나 tools/flow-render/ 는 덮지 못하므로 여기 따로 적는다.
 node_modules/
+
+# Python 검증 도구의 로컬 실행 산출물
+__pycache__/
+*.py[cod]

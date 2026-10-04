@@ -2,9 +2,9 @@
 
 ## Source of truth
 - Status: Draft
-- Last refreshed: 2026-08-21
+- Last refreshed: 2026-10-04
 - Primary product surfaces: Hugo 기술 문서, 본문 내 flow/seq 도식
-- Evidence reviewed: `README.md`, `DIAGRAMS.md`, `static/flow/flow.js`, `static/flow/flow.css`, `content/homelab/`
+- Evidence reviewed: `README.md`, `DIAGRAMS.md`, `static/flow/flow.js`, `static/flow/flow.css`, `content/platform/homelab/`
 
 ## Brand
 - Personality: 기술적으로 정확하고 차분하지만, 구조적 대비가 선명한 운영 기록
@@ -22,9 +22,9 @@
 - Key contexts of use: 데스크톱 본문, 모바일 축소 보기, 전체화면 확대 보기
 
 ## Information architecture
-- Primary navigation: 홈랩 개요 → 토폴로지 → 관측 평면 → 배포·접근 평면
-- Core routes/screens: `content/homelab/`
-- Content hierarchy: 전체 지도는 경계와 의존성을, 후속 문서는 프로토콜과 구현 세부를 담당한다.
+- Primary navigation: 플랫폼·인프라 / 관측성 / 데이터·스토리지 / 설계·개발. 각 대분류 아래 주제와 문서를 최대 5단계로 탐색한다.
+- Core routes/screens: `content/platform/homelab/`
+- Content hierarchy: 같은 제품의 개념·설계·우리 운영·외부 사례를 하나의 부모 아래로 모은다. 본문과 공개 URL은 보존하고, 파일별 대응은 `docs/changes/2026-10-04-content-navigation.csv`에 기록한다. 홈랩 도식은 전체 지도에서 경계와 의존성을, 후속 문서에서 구현 세부를 다룬다.
 
 ## Design principles
 - 경계를 먼저 그린다: hub·공인 인터넷·edge를 가장 큰 시각 단위로 삼는다.

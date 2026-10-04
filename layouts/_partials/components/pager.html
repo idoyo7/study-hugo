@@ -1,0 +1,85 @@
+{{/* Article navigation scoped to the current page's direct siblings. */}}
+
+{{- $reversePagination := .Store.Get "reversePagination" | default false -}}
+{{- $prev := false -}}
+{{- $next := false -}}
+{{- $prevExplicit := false -}}
+{{- $nextExplicit := false -}}
+
+{{- /* PrevInSection/NextInSection flatten every page below a top-level section.
+       With the four-domain information architecture that would connect unrelated
+       groups. Walk only the current parent's visible direct children instead. */ -}}
+{{- with .Parent -}}
+  {{- $siblings := where .Pages.ByWeight "Params.sidebar.exclude" "!=" true -}}
+  {{- $currentIndex := -1 -}}
+  {{- range $index, $sibling := $siblings -}}
+    {{- if eq $sibling.RelPermalink $.RelPermalink -}}
+      {{- $currentIndex = $index -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{- if ge $currentIndex 0 -}}
+    {{- if gt $currentIndex 0 -}}
+      {{- $prev = index $siblings (sub $currentIndex 1) -}}
+    {{- end -}}
+    {{- if lt (add $currentIndex 1) (len $siblings) -}}
+      {{- $next = index $siblings (add $currentIndex 1) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if $reversePagination -}}
+  {{- $orderedPrev := $prev -}}
+  {{- $prev = $next -}}
+  {{- $next = $orderedPrev -}}
+{{- end -}}
+
+{{- /* Preserve Hextra's explicit page-level pager overrides. */ -}}
+{{- if eq .Params.prev false }}
+  {{- if $reversePagination }}{{ $next = false }}{{ else }}{{ $prev = false }}{{ end -}}
+{{ else }}
+  {{- with .Params.prev -}}
+    {{- with $.Site.GetPage . -}}
+      {{- if $reversePagination }}{{ $next = . }}{{ $nextExplicit = true }}{{ else }}{{ $prev = . }}{{ $prevExplicit = true }}{{ end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if eq .Params.next false }}
+  {{- if $reversePagination }}{{ $prev = false }}{{ else }}{{ $next = false }}{{ end -}}
+{{ else }}
+  {{- with .Params.next -}}
+    {{- with $.Site.GetPage . -}}
+      {{- if $reversePagination }}{{ $prev = . }}{{ $prevExplicit = true }}{{ else }}{{ $next = . }}{{ $nextExplicit = true }}{{ end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if or $prev $next -}}
+  <div data-page-pager="true" class="hx:mb-8 hx:flex hx:items-center hx:border-t hx:pt-8 hx:border-gray-200 hx:dark:border-neutral-800 hx:contrast-more:border-neutral-400 hx:dark:contrast-more:border-neutral-400 hx:print:hidden">
+    {{- if $prev -}}
+      {{- $linkTitle := partial "utils/title" $prev -}}
+      <a
+        href="{{ $prev.RelPermalink }}"
+        data-pager-explicit="{{ $prevExplicit }}"
+        title="{{ $linkTitle }}"
+        class="hx:flex hx:max-w-[50%] hx:items-center hx:gap-1 hx:py-4 hx:text-base hx:font-medium hx:text-gray-600 hx:transition-colors [word-break:break-word] hx:hover:text-primary-600 hx:dark:text-gray-300 hx:md:text-lg hx:ltr:pr-4 hx:rtl:pl-4"
+      >
+        {{- partial "utils/icon.html" (dict "name" "chevron-right" "attributes" "class=\"hx:inline hx:h-5 hx:shrink-0 hx:ltr:rotate-180\"") -}}
+        {{- $linkTitle -}}
+      </a>
+    {{- end -}}
+    {{- if $next -}}
+      {{- $linkTitle := partial "utils/title" $next -}}
+      <a
+        href="{{ $next.RelPermalink }}"
+        data-pager-explicit="{{ $nextExplicit }}"
+        title="{{ $linkTitle }}"
+        class="hx:flex hx:max-w-[50%] hx:items-center hx:gap-1 hx:py-4 hx:text-base hx:font-medium hx:text-gray-600 hx:transition-colors [word-break:break-word] hx:hover:text-primary-600 hx:dark:text-gray-300 hx:md:text-lg hx:ltr:ml-auto hx:ltr:pl-4 hx:ltr:text-right hx:rtl:mr-auto hx:rtl:pr-4 hx:rtl:text-left"
+      >
+        {{- $linkTitle -}}
+        {{- partial "utils/icon.html" (dict "name" "chevron-right" "attributes" "class=\"hx:inline hx:h-5 hx:shrink-0 hx:rtl:-rotate-180\"") -}}
+      </a>
+    {{- end -}}
+  </div>
+{{- end -}}

@@ -16,8 +16,8 @@
        프런트매터 `sidebar.open: false` 로는 줄일 수 없었다. 원본 183·226·243 줄의
        재귀 호출이 열림 여부(`$shouldOpen`)를 보지 않고 무조건 하위 트리를 그렸기
        때문이다. 마크업은 항상 다 나가고 CSS(hextra-sidebar-children 의 h-0)로만
-       감춰졌다. 그래서 그 세 자리를 `$shouldOpen` 으로 감쌌다. 깊이는 4에서 잘리고
-       (원본 71줄) 하위 페이지가 없는 노드는 제외해 빈 chevron 이 남지 않게 했다.
+       감춰졌다. 그래서 그 세 자리를 `$shouldOpen` 으로 감쌌다. 깊이는 최대 5단계로
+       제한하고 하위 페이지가 없는 노드는 제외해 빈 chevron 이 남지 않게 했다.
 
        원본 177·219·236 줄의
 
@@ -71,7 +71,7 @@
   {{- end -}}
 {{- end -}}
 
-<aside class="hextra-sidebar-container hx:flex hx:flex-col hx:print:hidden hx:md:top-16 hx:md:shrink-0 hx:md:w-64 hx:md:self-start hx:max-md:[transform:translate3d(0,-100%,0)] {{ $sidebarClass }}">
+<aside data-sidebar-excluded="{{ if $context.Params.sidebar.exclude }}true{{ else }}false{{ end }}" data-page-parent="{{ with $context.Parent }}{{ .RelPermalink }}{{ end }}" class="hextra-sidebar-container hx:flex hx:flex-col hx:print:hidden hx:md:top-16 hx:md:shrink-0 hx:md:w-64 hx:md:self-start hx:max-md:[transform:translate3d(0,-100%,0)] {{ $sidebarClass }}">
   {{- if (site.Params.search.enable | default true) -}}
     <!-- Search bar on small screen -->
     <div class="hx:px-4 hx:pt-4 hx:md:hidden">
@@ -119,7 +119,8 @@
 {{- end -}}
 
 {{- define "sidebar-tree" -}}
-  {{- if ge .level 4 -}}
+  {{- /* 홈 아래 분류 4단 + 문서까지 최대 5단계를 표시한다. */ -}}
+  {{- if ge .level 5 -}}
     {{- return -}}
   {{- end -}}
 
@@ -226,7 +227,7 @@
             {{- else -}}
               {{- $active := eq (strings.TrimSuffix "/" $pageURL) (strings.TrimSuffix "/" $item.RelPermalink) -}}
               {{- $shouldOpen := or ($item.Params.sidebar.open) ($item.IsAncestor $page) $active -}}
-              {{- $renderSubtree := and $shouldOpen (lt $level 3) (ne (len (union $item.RegularPages $item.Sections)) 0) -}}
+              {{- $renderSubtree := and $shouldOpen (lt $level 4) (ne (len (union $item.RegularPages $item.Sections)) 0) -}}
               <li class="{{ if $shouldOpen }}open{{ end }}">
                 {{- template "sidebar-item-link" dict "context" $item "active" $active "open" $shouldOpen "subtree" $renderSubtree "title" (index $entry "title") "link" $item.RelPermalink -}}
                 {{- if and $toc $active (ne $item.Params.toc false) -}}
@@ -271,7 +272,7 @@
           {{- else -}}
             {{- $active := eq $pageURL .RelPermalink -}}
             {{- $shouldOpen := or (.Params.sidebar.open) (.IsAncestor $page) $active -}}
-            {{- $renderSubtree := and $shouldOpen (lt $level 3) (ne (len (union .RegularPages .Sections)) 0) -}}
+            {{- $renderSubtree := and $shouldOpen (lt $level 4) (ne (len (union .RegularPages .Sections)) 0) -}}
             <li class="{{ if $shouldOpen }}open{{ end }}">
               {{- $linkTitle := partial "utils/title" . -}}
               {{- template "sidebar-item-link" dict "context" . "active" $active "open" $shouldOpen "subtree" $renderSubtree "title" $linkTitle "link" .RelPermalink -}}
@@ -291,7 +292,7 @@
           {{- range $items.ByWeight }}
             {{- $active := eq $pageURL .RelPermalink -}}
             {{- $shouldOpen := or (.Params.sidebar.open) (.IsAncestor $page) $active -}}
-            {{- $renderSubtree := and $shouldOpen (lt $level 3) (ne (len (union .RegularPages .Sections)) 0) -}}
+            {{- $renderSubtree := and $shouldOpen (lt $level 4) (ne (len (union .RegularPages .Sections)) 0) -}}
             {{- $linkTitle := partial "utils/title" . -}}
             <li class="hx:flex hx:flex-col {{ if $shouldOpen }}open{{ end }}">
               {{- template "sidebar-item-link" dict "context" . "active" $active "open" $shouldOpen "subtree" $renderSubtree "title" $linkTitle "link" .RelPermalink -}}

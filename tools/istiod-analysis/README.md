@@ -1,6 +1,6 @@
 # istiod 스케일링 분석 스크립트
 
-`content/istio/09-istiod-scaling-connections.md` §7의 수치를 뽑은 스크립트다.
+`content/platform/istio/operations/09-istiod-scaling-connections/index.md` §7의 수치를 뽑은 스크립트다.
 Grafana Explore의 CSV 내보내기를 입력으로 받는다.
 
 **원본 CSV는 커밋하지 않는다** — 로컬 `~/evejuni/temp/`에만 둔다. 스크립트가 그 경로를 하드코딩하고 있으니 다른 환경에서는 `BASE` 상수를 고칠 것.
