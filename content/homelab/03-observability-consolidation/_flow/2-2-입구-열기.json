@@ -1,0 +1,27 @@
+{
+  "caption": "hdx 컬렉터의 두 입구. 위쪽 길은 원래 있던 인증 경로로, 설정을 HyperDX 앱이 OpAMP로 내려주기 때문에 이름을 그대로 두었습니다. 아래쪽 길이 이번에 만든 무인증 내부 입구이고, 구성요소를 전부 `/ingest` 접미 이름으로 따로 정의해 원격 설정과 겹치지 않게 했습니다. traces는 ClickHouse와 span_metrics로, 메트릭은 VictoriaMetrics 테넌트 0으로 갑니다.",
+  "groups": [
+    { "id": "col", "label": "hdx-otel-collector", "members": ["in1", "p1", "in2", "p2"], "pad": 8 }
+  ],
+  "nodes": [
+    { "id": "app", "col": 2, "row": 0, "label": "HyperDX 앱", "sub": "OpAMP remote config", "kind": "proc" },
+    { "id": "vec", "col": 0, "row": 1, "label": "vector-aggregator", "sub": "로그", "kind": "src" },
+    { "id": "in1", "col": 1, "row": 1, "label": "otlp", "sub": ":4317 · :4318 · ingestion key", "kind": "proc" },
+    { "id": "p1", "col": 2, "row": 1, "label": "기존 파이프라인", "sub": "원격 설정이 관리 · 이름 그대로", "kind": "proc" },
+    { "id": "snd", "col": 0, "row": 2, "label": "앱 · istio · CLI", "sub": "traces · logs · metrics", "kind": "src" },
+    { "id": "in2", "col": 1, "row": 2, "label": "otlp/ingest", "sub": ":4327 grpc · :4328 http · 무인증", "kind": "proc" },
+    { "id": "p2", "col": 2, "row": 2, "label": "/ingest 파이프라인", "sub": "traces · logs · metrics + span_metrics", "kind": "proc" },
+    { "id": "ch", "col": 3, "row": 1, "label": "ClickHouse", "sub": "HyperDX", "kind": "store" },
+    { "id": "vm", "col": 3, "row": 2, "label": "VictoriaMetrics", "sub": "테넌트 0", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "vec", "to": "in1", "label": "인증" },
+    { "from": "in1", "to": "p1" },
+    { "from": "app", "to": "p1", "label": "원격 설정", "dashed": true },
+    { "from": "p1", "to": "ch", "label": "적재" },
+    { "from": "snd", "to": "in2", "label": "OTLP" },
+    { "from": "in2", "to": "p2" },
+    { "from": "p2", "to": "ch", "label": "traces·logs" },
+    { "from": "p2", "to": "vm", "label": "메트릭" }
+  ]
+}

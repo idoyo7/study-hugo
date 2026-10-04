@@ -1,7 +1,7 @@
 ---
 title: "01 hub/edge 2-클러스터 구조"
 date: 2026-08-20
-lastmod: 2026-08-24
+lastmod: 2026-10-04
 weight: 1
 ---
 
@@ -87,10 +87,10 @@ stateless 원칙은 인증에도 적용됩니다. Keycloak은 DB가 필요한 st
 
 ## 6. 앱 인벤토리
 
-| | hub (47 apps) | edge (11 apps) |
+| | hub (65 apps) | edge (11 apps) |
 |---|---|---|
 | 플랫폼 | istio ×3, cert-manager, nfs-csi/storage, reloader, lxcfs, VM CRDs | istio ×3, cert-manager, nfs-csi, VM CRDs |
-| 관측 | victoria-metrics(풀스택), victoria-logs, opentelemetry, tempo, kuma+autokuma | victoria-metrics(vmagent만) |
+| 관측 | victoria-metrics(풀스택), hyperdx(ClickHouse), vector, opentelemetry-operator, kuma+autokuma | victoria-metrics(vmagent만) |
 | 인증 | keycloak, oauth2-proxy ×3, workspace-auth | argo-config(OIDC 위임 설정) |
 | 개발 인프라 | code-server, atlantis, portal, kagent, s3manager, seaweedfs, minio-console, turbo-cache, workspace-* | — |
 | 서비스 | hotdeal, jekyll, nextra, kanna, memos, openclaw, study ×3, wedding ×2, palworld ×4, home-assistant | jekyll, nextra, kanna, k8s-dashboard, wedding ×2, home-assistant |
