@@ -46,11 +46,12 @@
 
 Hugo extended 0.166.0으로 개편 전 `c97a829`와 개편 후를 별도 디렉터리에 빌드했습니다.
 
-- 기존 219개 Markdown에 현재 파일이 일대일 대응합니다.
+- 검증기 통합 회귀 테스트 13개가 통과했습니다.
+- 기존 219개 Markdown에 현재 파일이 일대일 대응합니다. 검사기가 CSV 열·행 수·원본/현재 경로의 중복·현재 파일 존재 여부도 검증합니다.
 - 도식 JSON 200개의 이동 전후 SHA-256이 일치합니다.
 - 개편 후 HTML 284개와 생성 경로·리소스 1,402개를 검사했습니다.
 - 기존 HTML 264개와 비교해 URL·별칭·참조 리소스가 유지되는 것을 확인했습니다.
-- 내부 링크의 경로·앵커, canonical, 모바일·데스크톱의 4개 루트와 깊은 문서의 활성 조상 경로를 검사했습니다.
+- 내부 링크의 경로·앵커, canonical, 모바일·데스크톱의 4개 루트와 깊은 문서의 활성 조상 경로를 검사했습니다. 메뉴 검사는 새 URL뿐 아니라 기존 주소를 유지한 문서에도 적용합니다.
 - 깊은 VictoriaMetrics·Karpenter 문서의 breadcrumb와 직계 형제 pager, 숨김 전사 문서의 부모 경로를 별도로 확인했습니다.
 
 재현 명령:
@@ -61,7 +62,7 @@ python3 -m unittest discover -s tools/tests -p 'test_*.py'
 python3 tools/check-content-navigation.py \
   --site-dir /tmp/study-hugo-check \
   --baseline-dir /tmp/study-hugo-before \
-  --mapping docs/changes/2026-10-04-content-navigation.csv
+  --mapping docs/changes/2026-10-04-content-navigation.csv --source-dir . --expected-mapping-count 219
 ```
 
 `--baseline-dir`은 비교할 이전 커밋을 별도 위치에 빌드한 디렉터리입니다. 없으면 생략할 수 있습니다. `Content navigation checks` PR 워크플로는 PR의 base SHA를 별도 worktree에 빌드해 비교합니다. 검증 도구는 Python 표준 라이브러리만 사용합니다.

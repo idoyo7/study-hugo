@@ -44,11 +44,11 @@ jobs:
           python3 tools/check-content-navigation.py \
             --site-dir "$RUNNER_TEMP/site-after" \
             --baseline-dir "$RUNNER_TEMP/site-before" \
-            --mapping docs/changes/2026-10-04-content-navigation.csv
+            --mapping docs/changes/2026-10-04-content-navigation.csv --source-dir . --expected-mapping-count 219
 
       - name: Check manually requested build
         if: github.event_name != 'pull_request'
         run: |
           python3 tools/check-content-navigation.py \
             --site-dir "$RUNNER_TEMP/site-after" \
-            --mapping docs/changes/2026-10-04-content-navigation.csv
+            --mapping docs/changes/2026-10-04-content-navigation.csv --source-dir . --expected-mapping-count 219

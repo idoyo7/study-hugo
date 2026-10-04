@@ -3,6 +3,8 @@
 {{- $reversePagination := .Store.Get "reversePagination" | default false -}}
 {{- $prev := false -}}
 {{- $next := false -}}
+{{- $prevExplicit := false -}}
+{{- $nextExplicit := false -}}
 
 {{- /* PrevInSection/NextInSection flatten every page below a top-level section.
        With the four-domain information architecture that would connect unrelated
@@ -38,7 +40,7 @@
 {{ else }}
   {{- with .Params.prev -}}
     {{- with $.Site.GetPage . -}}
-      {{- if $reversePagination }}{{ $next = . }}{{ else }}{{ $prev = . }}{{ end -}}
+      {{- if $reversePagination }}{{ $next = . }}{{ $nextExplicit = true }}{{ else }}{{ $prev = . }}{{ $prevExplicit = true }}{{ end -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}
@@ -48,17 +50,18 @@
 {{ else }}
   {{- with .Params.next -}}
     {{- with $.Site.GetPage . -}}
-      {{- if $reversePagination }}{{ $prev = . }}{{ else }}{{ $next = . }}{{ end -}}
+      {{- if $reversePagination }}{{ $prev = . }}{{ $prevExplicit = true }}{{ else }}{{ $next = . }}{{ $nextExplicit = true }}{{ end -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}
 
 {{- if or $prev $next -}}
-  <div class="hx:mb-8 hx:flex hx:items-center hx:border-t hx:pt-8 hx:border-gray-200 hx:dark:border-neutral-800 hx:contrast-more:border-neutral-400 hx:dark:contrast-more:border-neutral-400 hx:print:hidden">
+  <div data-page-pager="true" class="hx:mb-8 hx:flex hx:items-center hx:border-t hx:pt-8 hx:border-gray-200 hx:dark:border-neutral-800 hx:contrast-more:border-neutral-400 hx:dark:contrast-more:border-neutral-400 hx:print:hidden">
     {{- if $prev -}}
       {{- $linkTitle := partial "utils/title" $prev -}}
       <a
         href="{{ $prev.RelPermalink }}"
+        data-pager-explicit="{{ $prevExplicit }}"
         title="{{ $linkTitle }}"
         class="hx:flex hx:max-w-[50%] hx:items-center hx:gap-1 hx:py-4 hx:text-base hx:font-medium hx:text-gray-600 hx:transition-colors [word-break:break-word] hx:hover:text-primary-600 hx:dark:text-gray-300 hx:md:text-lg hx:ltr:pr-4 hx:rtl:pl-4"
       >
@@ -70,6 +73,7 @@
       {{- $linkTitle := partial "utils/title" $next -}}
       <a
         href="{{ $next.RelPermalink }}"
+        data-pager-explicit="{{ $nextExplicit }}"
         title="{{ $linkTitle }}"
         class="hx:flex hx:max-w-[50%] hx:items-center hx:gap-1 hx:py-4 hx:text-base hx:font-medium hx:text-gray-600 hx:transition-colors [word-break:break-word] hx:hover:text-primary-600 hx:dark:text-gray-300 hx:md:text-lg hx:ltr:ml-auto hx:ltr:pl-4 hx:ltr:text-right hx:rtl:mr-auto hx:rtl:pr-4 hx:rtl:text-left"
       >

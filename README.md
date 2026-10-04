@@ -50,7 +50,7 @@ Hugo **extended** 0.166.0 이 필요하다. 이미지 처리(WebP)가 extended �
 hugo --gc --minify --enableGitInfo --destination /tmp/study-hugo-check
 python3 -m unittest discover -s tools/tests -p 'test_*.py'
 python3 tools/check-content-navigation.py --site-dir /tmp/study-hugo-check \
-  --mapping docs/changes/2026-10-04-content-navigation.csv
+  --mapping docs/changes/2026-10-04-content-navigation.csv --source-dir . --expected-mapping-count 219
 ```
 
 검사기는 내부 링크·앵커·리소스·canonical과 양쪽 사이드바를 검사한다.

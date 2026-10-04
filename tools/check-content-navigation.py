@@ -14,6 +14,7 @@ import json
 import posixpath
 import sys
 import unicodedata
+from collections import Counter
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
@@ -31,6 +32,7 @@ VOID_ELEMENTS = {
 }
 SOURCE_TAGS = {"audio", "embed", "iframe", "img", "input", "script", "source", "track", "video"}
 URL_FIELDS = ("original_url", "old_url", "url", "permalink", "new_url")
+SOURCE_LEDGER_COLUMNS = ("old_source", "new_source", "original_url", "aliases")
 
 
 def normalize_path(path: str, *, keep_trailing: bool = True) -> str:
@@ -123,8 +125,8 @@ class BrokenReference:
     line: int
 
     @property
-    def comparison_key(self) -> tuple[str, str]:
-        return self.kind, self.target
+    def comparison_key(self) -> tuple[str, str, str]:
+        return self.kind, self.target, self.source_url
 
 
 @dataclass
@@ -320,17 +322,22 @@ def _first_anchor_before_nested_list(li: Node) -> Node | None:
 
 
 def _sidebar_lists(document: Document) -> dict[str, Node]:
-    asides = _find_nodes(document.root, "aside", "hextra-sidebar-container")
-    if len(asides) != 1:
+    aside = _sidebar_aside(document)
+    if aside is None:
         return {}
     result: dict[str, Node] = {}
-    for ul in asides[0].descendants("ul"):
+    for ul in aside.descendants("ul"):
         classes = ul.classes()
         if "hx:md:hidden" in classes:
             result["mobile"] = ul
         if "hx:max-md:hidden" in classes:
             result["desktop"] = ul
     return result
+
+
+def _sidebar_aside(document: Document) -> Node | None:
+    asides = _find_nodes(document.root, "aside", "hextra-sidebar-container")
+    return asides[0] if len(asides) == 1 else None
 
 
 def validate_canonicals(site: SiteIndex) -> list[str]:
@@ -356,6 +363,11 @@ def validate_root_navigation(site: SiteIndex) -> list[str]:
     home = site.document_for("/")
     if home is None:
         return ["home page / is missing"]
+    aside = _sidebar_aside(home)
+    if aside is None:
+        return ["/: sidebar is missing"]
+    if aside.attrs.get("data-sidebar-excluded") != "false":
+        errors.append("/: sidebar expected data-sidebar-excluded=false")
     lists = _sidebar_lists(home)
     for mode in ("mobile", "desktop"):
         root = lists.get(mode)
@@ -399,50 +411,215 @@ def _active_anchor_for(root: Node, page_url: str) -> Node | None:
     return None
 
 
-def validate_deep_navigation(site: SiteIndex) -> list[str]:
+def _linked_paths(node: Node, source_url: str) -> list[str]:
+    paths: list[str] = []
+    for anchor in node.descendants("a"):
+        resolved = resolve_local(anchor.attrs.get("href", ""), source_url)
+        if resolved:
+            paths.append(normalize_path(resolved.path))
+    return paths
+
+
+def _breadcrumb_paths(document: Document, *, required: bool) -> tuple[list[str], list[str]]:
+    containers = [
+        node
+        for node in document.root.descendants()
+        if node.attrs.get("data-page-breadcrumb") == "true"
+    ]
+    if len(containers) > 1:
+        return [], [f"{document.url}: expected at most one breadcrumb, found {len(containers)}"]
+    if not containers:
+        errors = [f"{document.url}: breadcrumb is missing"] if required else []
+        return [], errors
+    paths = _linked_paths(containers[0], document.url)
+    if required and not paths:
+        return [], [f"{document.url}: breadcrumb has no parent links"]
+    return paths, []
+
+
+def _active_ancestor_paths(root: Node, active: Node, source_url: str) -> list[str]:
+    active_li = _nearest_ancestor(active, "li")
+    if active_li is None:
+        return []
+    chain = [active_li] + [node for node in active_li.ancestors() if node.tag == "li" and _is_descendant(node, root)]
+    paths: list[str] = []
+    for li in reversed(chain):
+        anchor = _first_anchor_before_nested_list(li)
+        resolved = resolve_local(anchor.attrs.get("href", ""), source_url) if anchor else None
+        if resolved:
+            paths.append(normalize_path(resolved.path))
+    return paths
+
+
+def _validate_excluded_breadcrumb_path(root: Node, breadcrumb_paths: list[str], url: str, mode: str) -> list[str]:
+    errors: list[str] = []
+    current_list = root
+    for path in breadcrumb_paths:
+        match: Node | None = None
+        for li in (child for child in current_list.children if child.tag == "li"):
+            anchor = _first_anchor_before_nested_list(li)
+            resolved = resolve_local(anchor.attrs.get("href", ""), url) if anchor else None
+            if resolved and normalize_path(resolved.path) == path:
+                match = li
+                break
+        if match is None:
+            errors.append(f"{url}: {mode} breadcrumb parent is absent from sidebar ancestry: {path}")
+            return errors
+        anchor = _first_anchor_before_nested_list(match)
+        errors.extend(_validate_active_ancestry(root, anchor, url, mode))
+        nested_lists = list(match.descendants("ul"))
+        if path != breadcrumb_paths[-1]:
+            if not nested_lists:
+                errors.append(f"{url}: {mode} breadcrumb ancestry stops before: {path}")
+                return errors
+            current_list = nested_lists[0]
+    return errors
+
+
+def validate_pagers(site: SiteIndex) -> list[str]:
     errors: list[str] = []
     for document in site.documents:
         if document.redirect:
             continue
-        url = normalize_path(document.url)
-        root_section = next((root for root in ROOT_SECTIONS if url.startswith(root)), None)
-        if root_section is None or len([part for part in url.split("/") if part]) < 3:
+        aside = _sidebar_aside(document)
+        if aside is None:
             continue
+        current_parent = aside.attrs.get("data-page-parent")
+        if current_parent is None:
+            errors.append(f"{document.url}: sidebar is missing data-page-parent")
+            continue
+        pagers = [node for node in document.root.descendants() if node.attrs.get("data-page-pager") == "true"]
+        if len(pagers) > 1:
+            errors.append(f"{document.url}: expected at most one page pager, found {len(pagers)}")
+            continue
+        if not pagers:
+            continue
+        for anchor in pagers[0].descendants("a"):
+            explicit = anchor.attrs.get("data-pager-explicit")
+            if explicit not in {"true", "false"}:
+                errors.append(f"{document.url}: pager link is missing data-pager-explicit=true|false")
+                continue
+            if explicit == "true":
+                continue
+            resolved = resolve_local(anchor.attrs.get("href", ""), document.url)
+            target = site.final_document(resolved.path) if resolved else None
+            target_aside = _sidebar_aside(target) if target else None
+            target_parent = target_aside.attrs.get("data-page-parent") if target_aside else None
+            if target_parent != current_parent:
+                errors.append(
+                    f"{document.url}: pager target is not a direct sibling: "
+                    f"{resolved.path if resolved else anchor.attrs.get('href', '')}"
+                )
+    return errors
+
+
+def _validate_active_ancestry(root: Node, active: Node, url: str, mode: str) -> list[str]:
+    errors: list[str] = []
+    active_li = _nearest_ancestor(active, "li")
+    if active_li is None:
+        return [f"{url}: {mode} active link is not inside a list item"]
+    li_ancestors = [active_li] + [node for node in active_li.ancestors() if node.tag == "li"]
+    for li in li_ancestors:
+        if not _is_descendant(li, root) and li is not active_li:
+            continue
+        if "open" not in li.classes():
+            errors.append(f"{url}: {mode} active ancestry contains a closed list item (line {li.line})")
+        item_div = next(
+            (child for child in li.children if child.tag == "div" and "hextra-sidebar-item" in child.classes()),
+            None,
+        )
+        if item_div:
+            buttons = [
+                button
+                for button in item_div.descendants("button")
+                if "hextra-sidebar-collapsible-button" in button.classes()
+            ]
+            if buttons and any(button.attrs.get("aria-expanded") != "true" for button in buttons):
+                errors.append(f"{url}: {mode} active ancestor is not aria-expanded (line {li.line})")
+    return errors
+
+
+def validate_sidebar_navigation(site: SiteIndex) -> list[str]:
+    errors: list[str] = []
+    for document in site.documents:
+        if document.redirect or document.url in {"/", "/404.html"}:
+            continue
+        url = normalize_path(document.url)
+        asides = _find_nodes(document.root, "aside", "hextra-sidebar-container")
+        if len(asides) != 1:
+            errors.append(f"{url}: expected exactly one sidebar, found {len(asides)}")
+            continue
+        aside = asides[0]
+        excluded_value = aside.attrs.get("data-sidebar-excluded")
+        if excluded_value not in {"true", "false"}:
+            errors.append(f"{url}: sidebar is missing data-sidebar-excluded=true|false")
+            continue
+        excluded = excluded_value == "true"
+        parent = aside.attrs.get("data-page-parent")
+        if not parent:
+            errors.append(f"{url}: sidebar is missing data-page-parent")
+            continue
+        parent = normalize_path(parent)
+        breadcrumb_paths, breadcrumb_errors = _breadcrumb_paths(document, required=parent != "/")
+        errors.extend(breadcrumb_errors)
+        if breadcrumb_paths and breadcrumb_paths[-1] != parent:
+            errors.append(f"{url}: breadcrumb does not end at direct parent {parent}")
         lists = _sidebar_lists(document)
         for mode in ("mobile", "desktop"):
             root = lists.get(mode)
             if root is None:
                 errors.append(f"{url}: {mode} root sidebar list is missing")
                 continue
+            if excluded:
+                if _active_anchor_for(root, url) is not None:
+                    errors.append(f"{url}: {mode} excluded page unexpectedly appears as an active sidebar leaf")
+                errors.extend(_validate_excluded_breadcrumb_path(root, breadcrumb_paths, url, mode))
+                continue
             active = _active_anchor_for(root, url)
             if active is None:
                 errors.append(f"{url}: {mode} sidebar has no active link for the page")
                 continue
-            active_li = _nearest_ancestor(active, "li")
-            if active_li is None:
-                errors.append(f"{url}: {mode} active link is not inside a list item")
-                continue
-            li_ancestors = [active_li] + [node for node in active_li.ancestors() if node.tag == "li"]
-            for li in li_ancestors:
-                if not _is_descendant(li, root) and li is not active_li:
-                    continue
-                if "open" not in li.classes():
-                    errors.append(f"{url}: {mode} active ancestry contains a closed list item (line {li.line})")
-                item_div = next(
-                    (child for child in li.children if child.tag == "div" and "hextra-sidebar-item" in child.classes()),
-                    None,
+            errors.extend(_validate_active_ancestry(root, active, url, mode))
+            ancestor_paths = _active_ancestor_paths(root, active, url)
+            if ancestor_paths[:-1] != breadcrumb_paths:
+                errors.append(
+                    f"{url}: {mode} breadcrumb/sidebar ancestry mismatch; "
+                    f"breadcrumb={breadcrumb_paths}, sidebar={ancestor_paths[:-1]}"
                 )
-                if item_div:
-                    buttons = [button for button in item_div.descendants("button") if "hextra-sidebar-collapsible-button" in button.classes()]
-                    if buttons and any(button.attrs.get("aria-expanded") != "true" for button in buttons):
-                        errors.append(f"{url}: {mode} active ancestor is not aria-expanded (line {li.line})")
     return errors
 
 
-def load_mapping_urls(path: Path) -> set[str]:
+@dataclass
+class MappingManifest:
+    urls: set[str]
+    baseline_urls: set[str]
+    row_count: int
+    errors: list[str]
+
+
+def _parse_aliases(value: str, row_number: int) -> list[str]:
+    if not value.strip():
+        return []
+    try:
+        aliases = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"mapping row {row_number}: aliases must be a JSON array: {error.msg}") from error
+    if not isinstance(aliases, list) or not all(isinstance(alias, str) for alias in aliases):
+        raise ValueError(f"mapping row {row_number}: aliases must be a JSON array of strings")
+    return aliases
+
+
+def load_mapping(
+    path: Path,
+    source_dir: Path,
+    expected_count: int | None,
+) -> MappingManifest:
     if not path.is_file():
         raise ValueError(f"mapping file does not exist: {path}")
     urls: set[str] = set()
+    baseline_urls: set[str] = set()
+    errors: list[str] = []
+    row_count = 0
 
     def add(value: object) -> None:
         values = value if isinstance(value, list) else [value]
@@ -470,25 +647,71 @@ def load_mapping_urls(path: Path) -> set[str]:
                     visit(child)
 
         visit(payload)
+        if isinstance(payload, list):
+            row_count = len(payload)
     else:
         with path.open(encoding="utf-8-sig", newline="") as handle:
-            for row in csv.DictReader(handle):
+            reader = csv.DictReader(handle)
+            fieldnames = tuple(reader.fieldnames or ())
+            is_source_ledger = any(name in SOURCE_LEDGER_COLUMNS for name in fieldnames)
+            if is_source_ledger and fieldnames != SOURCE_LEDGER_COLUMNS:
+                raise ValueError(
+                    "source ledger columns must be exactly: " + ",".join(SOURCE_LEDGER_COLUMNS)
+                )
+            old_sources: set[str] = set()
+            new_sources: set[str] = set()
+            source_root = source_dir.resolve()
+            for row_number, row in enumerate(reader, start=2):
+                row_count += 1
                 lowered = {key.lower(): value for key, value in row.items() if key}
                 for field_name in URL_FIELDS:
                     add(lowered.get(field_name))
-                aliases = lowered.get("aliases")
-                if aliases:
-                    for alias in aliases.replace(";", ",").split(","):
-                        add(alias.strip())
+                if not is_source_ledger:
+                    aliases = lowered.get("aliases")
+                    if aliases:
+                        for alias in _parse_aliases(aliases, row_number):
+                            add(alias)
+                    continue
+
+                old_source = (row.get("old_source") or "").strip()
+                new_source = (row.get("new_source") or "").strip()
+                original_url = (row.get("original_url") or "").strip()
+                aliases = _parse_aliases(row.get("aliases") or "", row_number)
+                if not old_source or not new_source or not original_url:
+                    errors.append(f"mapping row {row_number}: old_source, new_source, and original_url are required")
+                if old_source in old_sources:
+                    errors.append(f"mapping row {row_number}: duplicate old_source: {old_source}")
+                old_sources.add(old_source)
+                if new_source in new_sources:
+                    errors.append(f"mapping row {row_number}: duplicate new_source: {new_source}")
+                new_sources.add(new_source)
+                candidate = (source_root / new_source).resolve()
+                try:
+                    candidate.relative_to(source_root)
+                except ValueError:
+                    errors.append(f"mapping row {row_number}: new_source escapes source directory: {new_source}")
+                else:
+                    if not candidate.is_file():
+                        errors.append(f"mapping row {row_number}: new_source file is missing: {new_source}")
+                add(original_url)
+                baseline_urls.add(normalize_path(urlsplit(original_url).path))
+                for alias in aliases:
+                    add(alias)
+                    baseline_urls.add(normalize_path(urlsplit(alias).path))
+    if expected_count is not None and row_count != expected_count:
+        errors.append(f"mapping row count mismatch: expected {expected_count}, found {row_count}")
     if not urls:
         raise ValueError(
             "mapping contains no recognized URL values; use original_url, old_url, url, "
             "permalink, new_url, or aliases"
         )
-    return urls
+    return MappingManifest(urls, baseline_urls, row_count, errors)
 
 
-def compare_baseline(site: SiteIndex, baseline: SiteIndex) -> tuple[list[str], set[tuple[str, str]]]:
+def compare_baseline(
+    site: SiteIndex,
+    baseline: SiteIndex,
+) -> tuple[list[str], Counter[tuple[str, str, str]]]:
     errors: list[str] = []
     for url in sorted(baseline.page_urls - {"/404.html"}):
         if not site.contains(url):
@@ -496,7 +719,7 @@ def compare_baseline(site: SiteIndex, baseline: SiteIndex) -> tuple[list[str], s
     for target in sorted(baseline.valid_local_targets()):
         if not site.contains(target):
             errors.append(f"baseline referenced page/asset disappeared: {target}")
-    baseline_broken = {item.comparison_key for item in baseline.broken_references()}
+    baseline_broken = Counter(item.comparison_key for item in baseline.broken_references())
     return errors, baseline_broken
 
 
@@ -512,7 +735,13 @@ def _print_group(title: str, items: Iterable[str], stream: object | None = None)
     return len(values)
 
 
-def run(site_dir: Path, baseline_dir: Path | None, mapping: Path | None) -> int:
+def run(
+    site_dir: Path,
+    baseline_dir: Path | None,
+    mapping: Path | None,
+    source_dir: Path | None = None,
+    expected_mapping_count: int | None = None,
+) -> int:
     try:
         site = SiteIndex(site_dir)
         baseline = SiteIndex(baseline_dir) if baseline_dir else None
@@ -523,29 +752,39 @@ def run(site_dir: Path, baseline_dir: Path | None, mapping: Path | None) -> int:
     failures: list[str] = []
     failures.extend(validate_canonicals(site))
     failures.extend(validate_root_navigation(site))
-    failures.extend(validate_deep_navigation(site))
+    failures.extend(validate_sidebar_navigation(site))
+    failures.extend(validate_pagers(site))
 
-    baseline_broken: set[tuple[str, str]] = set()
+    baseline_broken: Counter[tuple[str, str, str]] = Counter()
     if baseline:
         baseline_failures, baseline_broken = compare_baseline(site, baseline)
         failures.extend(baseline_failures)
 
     if mapping:
         try:
-            mapping_urls = load_mapping_urls(mapping)
+            manifest = load_mapping(mapping, source_dir or Path.cwd(), expected_mapping_count)
         except (OSError, ValueError, json.JSONDecodeError, csv.Error) as error:
             print(f"error: {error}", file=sys.stderr)
             return 2
-        for url in sorted(mapping_urls):
+        failures.extend(manifest.errors)
+        for url in sorted(manifest.urls):
             if not site.contains(url):
                 failures.append(f"mapped URL is missing: {url}")
+        if baseline:
+            for url in sorted(manifest.baseline_urls):
+                if not baseline.contains(url):
+                    failures.append(f"mapped URL was not present in baseline: {url}")
+    elif expected_mapping_count is not None:
+        print("error: --expected-mapping-count requires --mapping", file=sys.stderr)
+        return 2
 
     current_broken = site.broken_references()
     introduced: list[BrokenReference] = []
     existing: list[BrokenReference] = []
     for broken in current_broken:
-        if baseline and broken.comparison_key in baseline_broken:
+        if baseline and baseline_broken[broken.comparison_key] > 0:
             existing.append(broken)
+            baseline_broken[broken.comparison_key] -= 1
         else:
             introduced.append(broken)
     failures.extend(
@@ -575,12 +814,29 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--site-dir", type=Path, required=True, help="generated Hugo output to validate")
     parser.add_argument("--baseline-dir", type=Path, help="generated pre-migration Hugo output")
     parser.add_argument("--mapping", type=Path, help="optional JSON/CSV containing old/new public URLs")
+    parser.add_argument(
+        "--source-dir",
+        type=Path,
+        default=Path.cwd(),
+        help="repository/source root used to resolve mapping new_source paths (default: cwd)",
+    )
+    parser.add_argument(
+        "--expected-mapping-count",
+        type=int,
+        help="optional exact mapping row count, for example 219 for this migration ledger",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    return run(args.site_dir, args.baseline_dir, args.mapping)
+    return run(
+        args.site_dir,
+        args.baseline_dir,
+        args.mapping,
+        args.source_dir,
+        args.expected_mapping_count,
+    )
 
 
 if __name__ == "__main__":
