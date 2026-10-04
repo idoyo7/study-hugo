@@ -4,6 +4,8 @@
 
 ## 2026-10-04 — 문서 분류 개편
 
+관련 PR: [#32](https://github.com/idoyo7/study-hugo/pull/32)
+
 - 최상위 22개 주제를 플랫폼·인프라 / 관측성 / 데이터·스토리지 / 설계·개발의 4개로 통합했습니다.
 - Istio·Karpenter·ClickHouse의 긴 문서 목록을 하위 주제로 나누고, HyperDX·VictoriaMetrics·Valkey의 관련 시리즈를 한 부모 아래로 모았습니다.
 - 기존 문서와 도식, 공개 URL·별칭을 보존하고 내부 참조를 새 파일 위치로 갱신했습니다.
