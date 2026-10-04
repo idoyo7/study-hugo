@@ -1,0 +1,21 @@
+{
+  "caption": "쓰기 한 건이 네트워크를 건너는 자리를 비교한 그림입니다. 위쪽은 스토리지가 복제하고, 아래쪽은 데이터베이스가 복제합니다. 주황 선은 복제 쓰기가 다른 노드로 건너는 구간입니다. Ceph는 클라이언트와 primary 사이에도 왕복이 한 번 있습니다(Ⓥ). 위쪽에서 Ceph RBD는 primary OSD가 사본 저장을 확인한 뒤 응답하고(✓), Mayastor는 모든 사본의 완료 응답을 기다립니다(✓). 아래쪽의 동기 복제도 상대의 응답을 기다리므로 왕복이 사라지지 않고 자리만 옮겨 갑니다(Σ).",
+  "font": 1.15,
+  "nodes": [
+    { "id": "A0", "col": 0, "row": 0, "label": "앱", "sub": "복제를 모릅니다", "kind": "src" },
+    { "id": "A1", "col": 1, "row": 0, "label": "복제 볼륨", "sub": "스토리지가 복제 (Ceph RBD · Mayastor)", "kind": "proc" },
+    { "id": "A2", "col": 2, "row": 0, "label": "다른 노드의 사본", "sub": "응답을 기다림", "kind": "store" },
+
+    { "id": "B0", "col": 0, "row": 1, "label": "DB primary", "sub": "앱이 복제", "kind": "src" },
+    { "id": "B1", "col": 1, "row": 1, "label": "DB standby", "sub": "다른 노드", "kind": "proc" },
+    { "id": "B0d", "col": 0, "row": 2, "label": "로컬 디스크", "kind": "store" },
+    { "id": "B1d", "col": 1, "row": 2, "label": "로컬 디스크", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "A0", "to": "A1", "label": "쓰기", "rate": 620 },
+    { "from": "A1", "to": "A2", "label": "복제 쓰기", "rate": 620, "cross": true },
+    { "from": "B0", "to": "B1", "label": "복제 로그", "rate": 620, "cross": true },
+    { "from": "B0", "to": "B0d", "rate": 620 },
+    { "from": "B1", "to": "B1d", "rate": 620 }
+  ]
+}

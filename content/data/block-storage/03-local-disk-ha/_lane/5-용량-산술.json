@@ -1,0 +1,25 @@
+{
+  "caption": "한 곳을 잃어도 남은 곳이 피크 부하 L을 받도록 잡은 연산 용량입니다. 사이트 수 k에서 사이트당 L÷(k−1), 전체 k×L÷(k−1)입니다(Σ). 2곳이 200%, 3곳이 150%, 4곳이 133%입니다. 데이터 사본 수는 이 식과 따로 셉니다.",
+  "font": 1.1,
+  "axis": { "kind": "linear", "max": 200, "unit": "%", "ticks": [0, 50, 100, 150, 200] },
+  "lanes": [
+    { "label": "2곳", "sub": "전체 200%", "segments": [
+      { "start": 0, "end": 100, "label": "곳당 100%", "kind": "src" },
+      { "start": 100, "end": 200, "label": "곳당 100%", "kind": "src" }
+    ]},
+    { "label": "3곳", "sub": "전체 150%", "segments": [
+      { "start": 0, "end": 50, "label": "50%", "kind": "proc" },
+      { "start": 50, "end": 100, "label": "50%", "kind": "proc" },
+      { "start": 100, "end": 150, "label": "50%", "kind": "proc" }
+    ]},
+    { "label": "4곳", "sub": "전체 133%", "segments": [
+      { "start": 0, "end": 33.33, "label": "33%", "kind": "store" },
+      { "start": 33.33, "end": 66.67, "label": "33%", "kind": "store" },
+      { "start": 66.67, "end": 100, "label": "33%", "kind": "store" },
+      { "start": 100, "end": 133.33, "label": "33%", "kind": "store" }
+    ]}
+  ],
+  "markers": [
+    { "at": 100, "label": "피크 부하 L", "kind": "query" }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "caption": "VM 생성 요청이 지나는 순서입니다. 이 순서에 Kubernetes API는 한 번도 나오지 않습니다. 여러 문서의 컴포넌트 정의를 이은 종합입니다 Σ.",
+  "participants": [
+    { "id": "API", "label": "nova-api" },
+    { "id": "COND", "label": "nova-conductor" },
+    { "id": "SCH", "label": "scheduler · Placement" },
+    { "id": "NC", "label": "nova-compute" },
+    { "id": "LV", "label": "libvirtd · QEMU" }
+  ],
+  "steps": [
+    { "note": ["API", "COND"], "lines": ["REST 요청 수신", "인스턴스를 DB에 기록"] },
+    { "msg": ["API", "COND"], "label": "1. 생성 요청 (큐)" },
+    { "msg": ["COND", "SCH"], "label": "2. 호스트 선택 요청" },
+    { "note": ["SCH", "SCH"], "lines": ["Placement로 후보 조회", "후보 중 호스트 선택"] },
+    { "msg": ["SCH", "COND"], "label": "3. 선택한 호스트", "dashed": true },
+    { "msg": ["COND", "NC"], "label": "4. 빌드 요청 (큐)" },
+    { "msg": ["NC", "LV"], "label": "5. 도메인 정의·시작" },
+    { "note": ["LV", "LV"], "lines": ["QEMU 프로세스 실행", "= VM"] },
+    { "msg": ["NC", "COND"], "label": "6. 상태 갱신 (DB는 conductor 경유)", "dashed": true }
+  ]
+}

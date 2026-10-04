@@ -1,0 +1,27 @@
+{
+  "caption": "OpenStack-Helm형 배치입니다. 위쪽 컨트롤 서비스는 Kubernetes 위의 파드이고, 아래쪽 컴퓨트 노드에서는 nova-compute와 libvirt가 DaemonSet 파드로 돌지만 VM 자체는 QEMU 프로세스입니다. 컴퓨트 노드의 QEMU는 파드 cgroup 밖으로 빼도록 되어 있어 kubelet이 관리하는 대상이 아닙니다 Σ.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "API", "col": 0, "row": 0, "label": "nova-api", "sub": "Deployment", "kind": "src" },
+    { "id": "MQ", "col": 1, "row": 0, "label": "RabbitMQ", "sub": "StatefulSet", "kind": "store" },
+    { "id": "SCH", "col": 2, "row": 0, "label": "scheduler · conductor", "sub": "Deployment", "kind": "proc" },
+    { "id": "DB", "col": 2, "row": 1, "label": "MariaDB", "sub": "StatefulSet", "kind": "store" },
+    { "id": "KL", "col": 0, "row": 2, "label": "kubelet", "sub": "컴퓨트 노드 라벨", "kind": "sink" },
+    { "id": "NC", "col": 1, "row": 2, "label": "nova-compute", "sub": "DaemonSet 파드", "kind": "proc" },
+    { "id": "LV", "col": 2, "row": 2, "label": "libvirtd", "sub": "DaemonSet 파드 · privileged", "kind": "proc" },
+    { "id": "QM", "col": 3, "row": 2, "label": "QEMU 프로세스 = VM", "sub": "/dev/kvm · 파드 cgroup 밖", "kind": "query" }
+  ],
+  "edges": [
+    { "from": "API", "to": "MQ", "label": "RPC" },
+    { "from": "MQ", "to": "SCH", "label": "RPC" },
+    { "from": "SCH", "to": "DB", "label": "기록" },
+    { "from": "MQ", "to": "NC", "label": "RPC" },
+    { "from": "NC", "to": "LV", "label": "libvirt" },
+    { "from": "LV", "to": "QM", "label": "실행" },
+    { "from": "KL", "to": "NC", "label": "파드 기동", "dashed": true }
+  ],
+  "groups": [
+    { "id": "cp", "label": "Kubernetes 위의 컨트롤 서비스 파드", "members": ["API", "MQ", "SCH", "DB"] },
+    { "id": "cn", "label": "베어메탈 컴퓨트 노드", "members": ["KL", "NC", "LV", "QM"] }
+  ]
+}

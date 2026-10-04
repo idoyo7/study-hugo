@@ -1,0 +1,34 @@
+{
+  "caption": "VM의 배치를 누가 정하는지로 세 구도를 나란히 놓았습니다. 위 두 줄은 VM의 배치를 kube-scheduler가 정하느냐 nova-scheduler가 정하느냐가 다르고, 셋째 줄은 방향이 반대입니다. 근거는 KubeVirt 문서와 OpenStack-Helm 소스, Magnum·CAPO 문서입니다 ✓. 칸 사이의 대비는 종합입니다 Σ.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "A1", "col": 0, "row": 0, "label": "VMI 객체", "sub": "Kubernetes CR", "kind": "src" },
+    { "id": "A2", "col": 1, "row": 0, "label": "kube-scheduler", "sub": "파드를 노드에 배치", "kind": "query" },
+    { "id": "A3", "col": 2, "row": 0, "label": "virt-launcher 파드", "sub": "VM마다 하나 · 안에 libvirtd", "kind": "proc" },
+    { "id": "A4", "col": 3, "row": 0, "label": "QEMU", "sub": "파드 cgroup 안", "kind": "store" },
+    { "id": "B1", "col": 0, "row": 1, "label": "Nova API", "sub": "instance는 Nova DB", "kind": "src" },
+    { "id": "B2", "col": 1, "row": 1, "label": "nova-scheduler", "sub": "호스트를 선택", "kind": "query" },
+    { "id": "B3", "col": 2, "row": 1, "label": "nova-compute 파드", "sub": "노드당 하나 · libvirtd도 노드당 하나", "kind": "proc" },
+    { "id": "B4", "col": 3, "row": 1, "label": "QEMU", "sub": "파드 cgroup 밖", "kind": "store" },
+    { "id": "C1", "col": 0, "row": 2, "label": "Magnum · CAPO", "sub": "Kubernetes 클러스터 요청", "kind": "src" },
+    { "id": "C2", "col": 1, "row": 2, "label": "Nova API", "sub": "노드 VM 생성", "kind": "query" },
+    { "id": "C3", "col": 2, "row": 2, "label": "컴퓨트 노드의 VM", "sub": "일반 OpenStack 경로", "kind": "proc" },
+    { "id": "C4", "col": 3, "row": 2, "label": "Kubernetes 노드", "sub": "테넌트의 클러스터", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "A1", "to": "A2", "label": "파드" },
+    { "from": "A2", "to": "A3", "label": "배치" },
+    { "from": "A3", "to": "A4", "label": "실행" },
+    { "from": "B1", "to": "B2", "label": "요청" },
+    { "from": "B2", "to": "B3", "label": "선택" },
+    { "from": "B3", "to": "B4", "label": "실행" },
+    { "from": "C1", "to": "C2", "label": "API" },
+    { "from": "C2", "to": "C3", "label": "생성" },
+    { "from": "C3", "to": "C4", "label": "부팅" }
+  ],
+  "groups": [
+    { "id": "kv", "label": "KubeVirt: Kubernetes가 VM을 돌린다", "members": ["A1", "A2", "A3", "A4"] },
+    { "id": "ook", "label": "OpenStack on Kubernetes: Kubernetes가 OpenStack을 돌린다", "members": ["B1", "B2", "B3", "B4"] },
+    { "id": "kos", "label": "Kubernetes on OpenStack: OpenStack이 Kubernetes를 돌린다", "members": ["C1", "C2", "C3", "C4"] }
+  ]
+}

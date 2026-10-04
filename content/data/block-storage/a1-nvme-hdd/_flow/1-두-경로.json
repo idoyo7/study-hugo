@@ -1,0 +1,132 @@
+{
+  "caption": "HDD를 NVMe로 붙이는 두 경로입니다. 위쪽은 드라이브 안에 NVMe 컨트롤러가 든 네이티브 NVMe HDD로, Seagate 시연 기준의 구조입니다 Ⓥ. 아래쪽은 SATA·SAS HDD를 NVMe-oF 타깃 뒤에 두는 경로이며 SCSI·ATA 계층이 든 칸은 색을 달리했습니다. 이 순서는 NVMe-oF 경로 그림에 libata 문서를 이은 종합입니다 Σ.",
+  "font": 1.1,
+  "nodes": [
+    {
+      "id": "N1",
+      "col": 0,
+      "row": 0,
+      "label": "호스트 NVMe 드라이버",
+      "sub": "nvme-pci",
+      "kind": "src"
+    },
+    {
+      "id": "N2",
+      "col": 1,
+      "row": 0,
+      "label": "PCIe",
+      "sub": "직결 또는 스위치",
+      "kind": "sink"
+    },
+    {
+      "id": "N3",
+      "col": 2,
+      "row": 0,
+      "label": "HDD 내장 컨트롤러",
+      "sub": "NVMe 내장, 브리지 없음",
+      "kind": "proc"
+    },
+    {
+      "id": "N4",
+      "col": 3,
+      "row": 0,
+      "label": "플래터·헤드",
+      "sub": "액추에이터",
+      "kind": "store"
+    },
+    {
+      "id": "H1",
+      "col": 0,
+      "row": 1,
+      "label": "호스트 NVMe 드라이버",
+      "sub": "nvme-tcp · nvme-rdma",
+      "kind": "src"
+    },
+    {
+      "id": "H2",
+      "col": 1,
+      "row": 1,
+      "label": "패브릭",
+      "sub": "TCP · RDMA",
+      "kind": "sink"
+    },
+    {
+      "id": "H3",
+      "col": 2,
+      "row": 1,
+      "label": "nvmet",
+      "sub": "NVMe 컨트롤러를 소프트웨어로 구현",
+      "kind": "proc"
+    },
+    {
+      "id": "H4",
+      "col": 3,
+      "row": 1,
+      "label": "sd → libata 또는 SAS HBA",
+      "sub": "블록 계층을 거친 SCSI 중간 계층, SCSI↔ATA 변환",
+      "kind": "query"
+    },
+    {
+      "id": "H6",
+      "col": 4,
+      "row": 1,
+      "label": "SATA·SAS HDD",
+      "sub": "플래터·헤드",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "N1",
+      "to": "N2",
+      "label": "NVMe"
+    },
+    {
+      "from": "N2",
+      "to": "N3",
+      "label": "NVMe"
+    },
+    {
+      "from": "N3",
+      "to": "N4"
+    },
+    {
+      "from": "H1",
+      "to": "H2",
+      "label": "NVMe"
+    },
+    {
+      "from": "H2",
+      "to": "H3",
+      "label": "NVMe"
+    },
+    {
+      "from": "H3",
+      "to": "H4"
+    },
+    {
+      "from": "H4",
+      "to": "H6",
+      "label": "ATA·SAS"
+    }
+  ],
+  "groups": [
+    {
+      "id": "native",
+      "label": "네이티브 NVMe HDD",
+      "members": [
+        "N2",
+        "N3",
+        "N4"
+      ]
+    },
+    {
+      "id": "target",
+      "label": "타깃 서버 안",
+      "members": [
+        "H3",
+        "H4"
+      ]
+    }
+  ]
+}

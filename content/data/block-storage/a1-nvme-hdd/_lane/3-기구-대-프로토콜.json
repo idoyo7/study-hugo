@@ -1,0 +1,18 @@
+{
+  "caption": "자릿수 감각용 막대입니다. 서로 다른 실험의 값을 같은 ms 축에 놓았으므로 실험 조건이 다르고 합산하거나 순위로 읽을 수 없습니다 Σ ≈. 위쪽 막대는 7200rpm HDD의 QD1 랜덤 읽기 한 건에서 기구 시간(탐색+회전 대기)만 남긴 값(탐색 8.0ms는 WD He12 데이터시트 Ⓑ, 회전 대기 4.16ms는 Exos X18·HC550 데이터시트 ✓)입니다. 아래 두 막대는 SSD·NVMe 장비에서 잰 프로토콜 쪽 시간으로, iSCSI가 로컬 대비 더한 133µs와 미디어를 뺀 커널 NVMe/TCP QD1 왕복 21.39µs입니다 Ⓑ. 이 두 막대는 이 축에서 거의 보이지 않습니다. 자릿수 차이가 크다는 점만 전합니다.",
+  "font": 1.1,
+  "note": "HDD 값은 명령 오버헤드와 전송 시간을 뺀 기구 시간. 프로토콜 값은 각각 2017~2024년에 SSD·NVMe 장비에서 측정",
+  "axis": { "kind": "linear", "max": 14, "unit": "ms", "ticks": [0, 2, 4, 6, 8, 10, 12, 14] },
+  "lanes": [
+    { "label": "HDD 한 건", "sub": "12.16ms", "segments": [
+      { "start": 0, "end": 8.0, "label": "탐색 8.0ms", "kind": "src" },
+      { "start": 8.0, "end": 12.16, "label": "회전 대기 4.16ms", "kind": "proc" }
+    ]},
+    { "label": "iSCSI가 더한 시간", "sub": "211 - 78µs", "segments": [
+      { "start": 0, "end": 0.133, "label": "133µs", "kind": "query" }
+    ]},
+    { "label": "NVMe/TCP 왕복", "sub": "미디어 제외", "segments": [
+      { "start": 0, "end": 0.02139, "label": "21.39µs", "kind": "sink" }
+    ]}
+  ]
+}

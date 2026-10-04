@@ -20,6 +20,7 @@ linkTitle: "기능·리소스 관리"
 - [Node Problem Detector]({{< relref "/platform/kubernetes/resources/04-node-problem-detector.md" >}})
 - [DaemonSet 미기동 노드 격리]({{< relref "/platform/kubernetes/resources/05-daemonset-gap-isolation/index.md" >}})
 - [Python GIL × CPU Limit]({{< relref "/platform/kubernetes/resources/06-python-gil-cfs/index.md" >}})
+- [OpenStack on Kubernetes]({{< relref "/platform/kubernetes/resources/07-openstack-on-kubernetes/index.md" >}})
 
 공식 문서와 릴리스 블로그는 "무엇이 있다"까지만 말해줍니다. "우리 클러스터에서 지금 써도 되는가"는 말해주지 않습니다. 이 챕터는 운영에 영향을 주는 Kubernetes 주제를 골라 구현이 실제로 하는 일·보고된 버그·케이스별 득실까지 내려갑니다. 설명이 목적은 아닙니다. "쓸지 말지, 쓴다면 어디에"를 판단할 수 있는 수준을 노립니다.
 
@@ -48,6 +49,7 @@ GA(stable) 딱지가 보증하는 범위는 "API가 안 바뀐다"까지입니�
 - [04 Node Problem Detector]({{< relref "/platform/kubernetes/resources/04-node-problem-detector.md" >}}) · 모든 k8s · DaemonSet 애드온 — 노드 문제를 탐지해 NodeCondition·Event로 보고합니다. 조치는 remedy system 몫입니다. EKS엔 `eks-node-monitoring-agent` + node auto repair라는 관리형 대안이 있습니다.
 - [05 DaemonSet 미기동 노드 격리]({{< relref "/platform/kubernetes/resources/05-daemonset-gap-isolation/index.md" >}}) · 모든 k8s — DS가 안 뜬 노드에도 워크로드는 내려앉습니다. 노드별 갭 탐지, cordon이 DS를 못 막는 이유, startup taint(선제)와 탐지→taint(반응) 전략.
 - [06 Python GIL × CPU Limit]({{< relref "/platform/kubernetes/resources/06-python-gil-cfs/index.md" >}}) · 모든 k8s · CPython — "1코어 런타임"은 왜 잘리는가. quota는 코어당 지분이 아니라 시간 예산 풀입니다. 그래서 limit ≥ 1코어인 GIL 프로세스는 잘릴 수 없습니다 — 잘린다면 워커 다중화·네이티브 스레드풀·서브코어 limit·free-threading 넷 중 하나입니다.
+- [07 OpenStack on Kubernetes]({{< relref "/platform/kubernetes/resources/07-openstack-on-kubernetes/index.md" >}}) · OpenStack-Helm·RHOSO — 컨트롤 플레인은 파드로 올라가지만 VM은 컴퓨트 노드의 QEMU/KVM 프로세스입니다. 컴퓨트 노드를 Kubernetes에 넣는 구현과 넣지 않는 구현, 얻는 것과 어려운 곳, 스토리지 결정 지점, KubeVirt와의 대비.
 
 이 챕터는 쿠버네티스 코어 기능과 SIG가 관리하는 코어 인접 컴포넌트를 다룹니다. 생태계 컴포넌트 중 성격이 같은 주제는 자매 챕터 [Karpenter]({{< relref "/platform/kubernetes/karpenter/_index.md" >}})가 소유합니다. 공식 문서가 "가장 싼 인스턴스를 고른다"에서 멈춘 다음을 이어받아, 정렬·절단·부등식이 무엇을 하는지 소스로 내려갑니다.
 

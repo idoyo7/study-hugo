@@ -1,0 +1,24 @@
+{
+  "caption": "복제 데이터베이스의 커밋 한 건입니다. 위쪽 동기 복제에서는 standby의 응답이 돌아와야 클라이언트에 완료가 갑니다. PostgreSQL의 synchronous_commit=on, MySQL semisync, Kafka의 acks=all이 이 모양에 가깝습니다(Σ). 최소 대기 시간은 두 노드 사이의 왕복입니다(✓). 아래쪽 비동기 복제에서는 응답이 먼저 가고 로그는 나중에 건너가므로, 그 사이에 primary가 죽으면 커밋된 트랜잭션이 standby에 없을 수 있습니다(✓).",
+  "participants": [
+    { "id": "C", "label": "클라이언트" },
+    { "id": "P", "label": "primary" },
+    { "id": "S", "label": "standby" }
+  ],
+  "steps": [
+    { "alt": "동기 복제", "steps": [
+      { "msg": ["C", "P"], "label": "1. 커밋 요청" },
+      { "note": ["P", "P"], "lines": ["로컬 디스크에 기록"] },
+      { "msg": ["P", "S"], "label": "2. 로그 전송" },
+      { "note": ["S", "S"], "lines": ["상대가 수신·기록"] },
+      { "msg": ["S", "P"], "label": "3. 기록했다는 응답", "dashed": true },
+      { "msg": ["P", "C"], "label": "4. 커밋 완료", "dashed": true }
+    ], "elseLabel": "비동기 복제", "elseSteps": [
+      { "msg": ["C", "P"], "label": "1. 커밋 요청" },
+      { "note": ["P", "P"], "lines": ["로컬 디스크에 기록"] },
+      { "msg": ["P", "C"], "label": "2. 커밋 완료", "dashed": true },
+      { "msg": ["P", "S"], "label": "3. 로그 전송 (나중에)" },
+      { "note": ["P", "S"], "lines": ["2와 3 사이가 유실 구간"] }
+    ] }
+  ]
+}
