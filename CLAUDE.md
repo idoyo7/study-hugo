@@ -1,0 +1,16 @@
+# 저장소 작업 안내
+
+이 저장소는 Hugo + Hextra로 빌드하는 Ops Insights 기술 문서 사이트입니다.
+
+새 세션에서는 [README.md](README.md)와 [CHANGELOG.md](CHANGELOG.md)를 먼저 읽고,
+수정하려는 영역의 최근 변경 기록을 확인하세요. 세션별 메모보다 커밋된 문서와
+현재 파일 구조를 기준으로 작업합니다.
+
+- 2026-10-04에 최상위 22개 주제를 `platform`, `observability`, `data`, `engineering`으로 재분류했습니다.
+- 기존 문서의 공개 URL은 front matter의 `url`로 유지합니다. `url`과 `aliases`를 파일 위치에 맞춰 임의로 지우거나 바꾸지 마세요.
+- 이전 파일 위치는 [경로 대응표](docs/changes/2026-10-04-content-navigation.csv)에서 현재 위치로 찾을 수 있습니다.
+- 내부 링크는 `content/` 기준 절대 원본 경로를 쓰는 `relref`로 연결합니다.
+- 도식 리소스는 해당 문서의 page bundle과 함께 유지합니다. 도식 규약은 [DIAGRAMS.md](DIAGRAMS.md)에 있습니다.
+- 변경 후 README의 Hugo 빌드와 내비게이션 검증을 실행하세요. 새 URL을 추가할 때는 분류 색인에서도 접근할 수 있어야 합니다.
+
+개편 범위·설계 선택·검증 근거: [2026-10-04 분류 개편](docs/changes/2026-10-04-content-navigation.md).

@@ -22,7 +22,7 @@ Mont(mont kim)이 씁니다. EKS 위에서 Istio·Karpenter·VictoriaMetrics·Cl
 
 ## 출처
 
-섹션마다 인용 URL 을 모은 「출처」 문서를 따로 두는 곳이 있습니다 — [ClickHouse 운영]({{< relref "clickhouse/10-sources.md" >}}) · [HyperDX 내재화]({{< relref "hyperdx/10-sources.md" >}}) · [RUM 내재화]({{< relref "rum/06-sources.md" >}}) · [Redis · Valkey · Memcached]({{< relref "elasticache/99-sources.md" >}}). VictoriaMetrics 섹션은 [소스맵]({{< relref "monitoring/victoriametrics/concepts/06-sources.md" >}})과 [원문별 정리]({{< relref "monitoring/victoriametrics/by-source/_index.md" >}})가 같은 일을 합니다.
+섹션마다 인용 URL 을 모은 「출처」 문서를 따로 두는 곳이 있습니다 — [ClickHouse 운영]({{< relref "/data/clickhouse/10-sources.md" >}}) · [HyperDX 내재화]({{< relref "/observability/hyperdx/design/10-sources.md" >}}) · [RUM 내재화]({{< relref "/observability/apm-rum/06-sources.md" >}}) · [Redis · Valkey · Memcached]({{< relref "/data/cache/engines/99-sources.md" >}}). VictoriaMetrics 섹션은 [소스맵]({{< relref "/observability/metrics/victoriametrics/concepts/06-sources.md" >}})과 [원문별 정리]({{< relref "/observability/metrics/victoriametrics/by-source/_index.md" >}})가 같은 일을 합니다.
 
 ## 정정 제보
 

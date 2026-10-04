@@ -1,0 +1,317 @@
+---
+title: "용량 산정 — 월 0.7TB RUM 워크드 모델(3개월·6개월·1년)"
+description: "월 0.7TB를 raw ingest와 on-disk 두 해석으로 나눠 계산합니다. 세션 리플레이가 78%를 차지하지만 30일 뒤 삭제돼 누적되지 않아 1년 실제치는 2.35TB에 그칩니다."
+date: 2026-08-01
+lastmod: 2026-08-24
+weight: 7
+aliases: ["/hyperdx-operating/05-capacity/", "/hyperdx/operating/05-capacity/"]
+url: "/hyperdx/07-capacity-planning/"
+---
+
+# 월 0.7TB RUM의 저장 용량과 비용
+
+월 0.7TB라는 수치만으로는 ClickHouse 볼륨 크기를 정할 수 없습니다. 수집 전 원본 크기인지, 압축 후 단일 replica에 기록된 크기인지에 따라 필요한 저장 공간이 달라집니다. 또 세션 리플레이를 30일 뒤 지우면 전체 데이터를 보관 개월 수만큼 곱하는 계산도 맞지 않습니다.
+
+여기서는 0.7TB를 압축 후 단일 사본의 월 생성량으로 놓고 3·6·12개월 보관을 계산합니다. 원본 수집량이라는 해석도 함께 실었습니다. 압축비와 시그널 구성비는 가정이며, 비용은 2026-07~08에 정리한 단가와 추정치를 사용한 산정 예시입니다. 실제 견적에는 실측 생성량과 적용 리전의 단가를 넣어야 합니다.
+
+저장 단가는 [hot 스토리지·EBS]({{< relref "/observability/hyperdx/design/02-hot-storage-ebs/index.md" >}}), 삭제·이동 정책은 [S3 콜드 티어링]({{< relref "/observability/hyperdx/design/03-s3-cold-tiering/index.md" >}})을 사용합니다. 아래 산식은 [블록 온리 비용 비교]({{< relref "/observability/hyperdx/design/08-block-only-tuning/index.md" >}})에도 쓰입니다. 복제 수 선택은 [배포 플레이북]({{< relref "/data/clickhouse/deployment/04-deployment-playbook.md" >}}), 인건비를 포함한 비교는 [managed vs self-host]({{< relref "/data/clickhouse/deployment/01-managed-vs-selfhosted.md" >}})에서 다룹니다.
+
+## 1. 0.7TB를 어디에서 측정했는가 {#1-입력-해석--월-07tb는-raw인가-on-disk인가}
+
+입력값인 “prod 세션 샘플링 100%, 월 0.7TB”에는 측정 위치가 없습니다. 두 해석을 분리해 계산하면 다음과 같습니다.
+
+| | **해석 A — raw ingest** | **해석 B — on-disk(압축 후, 단일사본)** |
+|---|---|---|
+| 0.7TB의 의미 | OTel SDK 인입 바이트/월(압축 전) | CH가 디스크에 쓰는 압축 후 바이트/월¹ |
+| 흔한 화법 | "우리 텔레메트리 월 0.7TB 나온다" | "월 0.7TB씩 디스크가 는다" |
+| 변환(블렌디드 ~6x, §2) | on-disk = 0.7TB ÷ 6 ≈ **117GB/월** | raw ≈ 0.7TB × 6 ≈ **4.2TB/월** |
+| 배포 규모 | 아주 작음(hot 수백 GB) → 2× 소형 노드, ~$0.5~0.6K/mo | 중소 → 2× r7g.2xlarge, ~$1.1~1.2K/mo |
+| 캐파 적합성 | 실제 raw 수치라면 이 해석으로 산정 | 이 글의 주 계산에 사용 |
+
+¹ `system.parts.bytes_on_disk` 기준(단일 replica). 표의 금액은 둘 다 서울(`ap-northeast-2`) 기준이고 산정 근거는 §4.6·§4.7입니다.
+
+실제 측정값이 나오기 전에는 해석 B를 가정해 예산을 잡습니다. 해석 A가 잘못된 것은 아닙니다. 입력값이 raw라면 압축 후 크기로 변환해 산정해야 합니다.
+
+초기 데이터가 며칠 쌓이면 테이블별 압축 크기와 압축 전 크기를 비교합니다. 샘플의 보관 기간과 TTL 영향을 감안해 월 생성량을 환산해야 합니다.
+
+```sql
+-- 테이블별 on-disk vs 압축 전 크기 & 실측 압축비
+SELECT table,
+       formatReadableSize(sum(bytes_on_disk))               AS on_disk,
+       formatReadableSize(sum(data_uncompressed_bytes))     AS uncompressed,
+       round(sum(data_uncompressed_bytes)/sum(bytes_on_disk),1) AS ratio
+FROM system.parts
+WHERE active AND database = 'default'
+GROUP BY table ORDER BY sum(bytes_on_disk) DESC;
+```
+
+`ratio`로 테이블별 압축비를 추정하고, 같은 기간의 입력량과 `on_disk` 변화를 대조합니다. TTL로 데이터가 삭제되는 정상 상태에서는 디스크 순증가량이 월 생성량과 같지 않다는 점도 반영합니다.
+
+### 1.1 세션 수로 대조하기 {#11-세션-수-역산--두-해석의-현실성-교차검증-}
+
+세션당 바이트 가정을 넣으면 입력값이 어느 정도의 트래픽을 뜻하는지 대조할 수 있습니다. 리플레이가 on-disk의 약 78%라는 §2 가정을 사용합니다.
+
+- 해석 B(on-disk 0.7TB/월): 리플레이 on-disk ≈ 0.55TB/월, 세션당 on-disk ~25KB → ~22M 세션/월. [RUM 내재화 문서]({{< relref "/observability/apm-rum/_index.md" >}})의 "월 30M 세션"과 동일 자릿수입니다(중대형 웹 자산).
+- 해석 A(raw 0.7TB/월): 리플레이 raw ≈ 0.46TB/월, 세션당 wire ~150KB → ~3M 세션/월(중소 웹 자산). 역시 내부 정합입니다.
+
+두 결과는 규모가 다른 서비스를 나타냅니다. [RUM 내재화 문서]({{< relref "/observability/apm-rum/_index.md" >}})의 세션 수와 자릿수가 비슷하다는 것만으로 어느 해석을 확정할 수는 없습니다. Collector 입력량과 ClickHouse 저장량을 실제 세션 수에 대조해야 합니다.
+
+## 2. 압축 후 시그널별 저장량 {#2-압축비--on-disk-구성--산식을-노출한다}
+
+컬럼 저장과 ZSTD의 압축 효과는 시그널에 따라 다릅니다. 반복 필드가 많은 로그·트레이스와 DOM 변화가 많은 세션 리플레이에 같은 압축비를 적용하지 않습니다.
+
+### 2.1 압축비 가정 {#21-시그널별-압축비-가정-}
+
+| 데이터 | 압축비(raw→on-disk) | 근거 등급 |
+|---|---|---|
+| 세션 리플레이(rrweb `Body`) | **~5x**(밴드 4~6x) | `≈` — rrweb-in-CH 공개 실측 부재. verbose JSON·고엔트로피 DOM |
+| 로그·트레이스 | **~10x** | `✓` — 실관측 데이터 ZSTD 10~14x 일상적, Character.AI 15~20x `Ⓥ` |
+| 메트릭 | ~8x | `≈` |
+
+nginx 로그의 52~178배 같은 사례는 일반 애플리케이션 로그를 대표하지 않으므로 이 산정에 넣지 않았습니다.
+
+### 2.2 전체 압축비와 시그널 구성 {#22-블렌디드-압축비--on-disk-구성비--재계산-가능한-산식}
+
+raw 구성비를 리플레이 65%, 로그 20%, 트레이스 13%, 메트릭 2%로 가정합니다. 각 비중을 압축비로 나누면 압축 후 전체 크기가 나옵니다.
+
+```
+on-disk 분율 = 0.65/5 + 0.20/10 + 0.13/10 + 0.02/8
+            = 0.130 + 0.020 + 0.013 + 0.0025 = 0.1655
+블렌디드 압축비 = 1 / 0.1655 ≈ 6.0x   (민감도 밴드 5x 보수 ~ 8x 낙관)
+```
+
+리플레이의 압축비를 다른 시그널보다 낮게 잡았으므로 압축 후에는 비중이 65%에서 78.5%로 높아집니다.
+
+| 시그널 | raw 구성비 | 압축비 | **on-disk 구성비** = (raw/압축)/0.1655 |
+|---|---|---|---|
+| 리플레이 `hyperdx_sessions` | 65% | 5x | 0.130/0.1655 = **78.5%** |
+| 로그 `otel_logs` | 20% | 10x | 0.020/0.1655 = **12.1%** |
+| 트레이스 `otel_traces` | 13% | 10x | 0.013/0.1655 = **7.9%** |
+| 메트릭 `otel_metrics_*` | 2% | 8x | 0.0025/0.1655 = **1.5%** |
+
+즉 on-disk 0.7TB/월(해석 B)의 월간 시그널별 생성량(단일사본)은:
+
+| 시그널 | on-disk 생성/월(단일) |
+|---|---|
+| 리플레이 | **~0.55TB** |
+| 로그 | ~0.085TB |
+| 트레이스 | ~0.055TB |
+| 메트릭 | ~0.010TB |
+
+이 월 생성량을 보관 기간과 곱해 §4의 누적량을 구합니다. 실측값이 나오면 여기의 구성비와 압축비부터 바꾸면 됩니다.
+
+## 3. 리플레이를 30일 뒤 삭제하면 {#3-캐파의-지렛대--리플레이는-안-쌓인다}
+
+보관 정책에서 리플레이를 분리합니다. [S3 콜드 티어링]({{< relref "/observability/hyperdx/design/03-s3-cold-tiering/index.md" >}})에서 정한 정책은 다음과 같습니다.
+
+- `hyperdx_sessions`(리플레이): hot(gp3)만 쓰고 S3로 내리지 않고 30일 후 DELETE 합니다. 오래된 리플레이는 거의 안 보는데 볼륨을 지배하므로 S3 이전조차 낭비입니다.
+- `otel_logs`/`otel_traces`: hot 14일 → `TO VOLUME 'cold'`(S3) → 지평별 DELETE.
+- `otel_metrics_*`: hot 30일 → S3 → 지평별 DELETE.
+
+리플레이는 한 달치인 약 0.55TB에서 정상 상태에 도달합니다. 이후 보관 기간을 늘려 누적되는 데이터는 로그·트레이스·메트릭의 월 약 0.15TB입니다.
+
+따라서 1년 보관량은 0.7TB × 12가 아니라 리플레이 한 달치 0.55TB와 나머지 시그널 12개월치 1.8TB를 더한 약 2.35TB입니다. 리플레이도 1년 보관하는 정책이라면 이 계산을 그대로 쓸 수 없습니다.
+
+## 4. 3·6·12개월 보관량 계산 {#4-보관-지평별-산정--3612개월-워크드-모델-해석-b}
+
+### 4.1 계산에 사용한 조건 {#41-공통-가정}
+
+- hot 창(EBS gp3): 리플레이·메트릭 30일, 로그·트레이스 14일({{< relref "/observability/hyperdx/design/03-s3-cold-tiering/index.md" >}} 기준 문서와 정합). hot 창 밖은 로그/트레이스/메트릭만 S3 cold로 보내고 리플레이는 DELETE 합니다.
+- cold도 replica마다 사본을 둡니다(self-host S3 = shared-nothing, UltraWarm식 단일사본 절감 없음, {{< relref "/data/clickhouse/storage/02-storage-local-nvme.md" >}}) → cold도 ×RF.
+- 머지 헤드룸 = hot gp3에 +40%(30~40% 여유; 디스크가 차면 머지 중단·TOO_MANY_PARTS·인서트 차단).
+- 노드 = EBS-first Graviton r7g(메모리 최적, RUM 쿼리는 page cache 이점). r8g(Graviton4)는 여유 시 각주 옵션.
+
+### 4.2 단일 사본과 복제 저장량 {#42-지평별-누적hotcold-단일사본--rf-배수-}
+
+hot에는 리플레이 한 달치 약 0.55TB와 로그·트레이스 14일치, 메트릭 30일치가 남습니다. 합계는 단일 사본 약 0.63TB입니다. 아래 표에서 보관 기간이 길어질 때 증가하는 값은 hot 기간을 지난 데이터입니다.
+
+| 지평(로그/트레이스 DELETE) | 누적 on-disk(단일) | ×RF2 | ×RF3 | hot(단일, 고정) | cold S3(단일) |
+|---|---|---|---|---|---|
+| **3개월**(90일) | ~1.0 TB | ~2.0 TB | ~3.0 TB | ~0.63 TB | ~0.37 TB |
+| **6개월**(180일) | ~1.45 TB | ~2.9 TB | ~4.35 TB | ~0.63 TB | ~0.82 TB |
+| **12개월**(365일) | ~2.35 TB | ~4.7 TB | ~7.05 TB | ~0.63 TB | ~1.72 TB |
+
+*(cold = Σ 로그·트레이스·메트릭 월생성 − hot 잔량, DELETE 지평까지. 리플레이는 30일 DELETE라 누적 기여 0. 메트릭 DELETE는 180/365일.)*
+
+같은 입력량과 hot 기간을 유지하는 한 EBS 상주량은 거의 일정하고, S3 저장량이 보관 기간에 따라 증가합니다.
+
+### 4.3 RF2의 EBS·S3·백업 용량 {#43-물리-배치--hot-gp3--cold-s3-rf2-기준}
+
+| 지평 | hot gp3 물리(×RF2, +40%) | cold S3 물리(×RF2) | 백업(단일, Glacier IR) |
+|---|---|---|---|
+| 3개월 | 0.63×2×1.4 ≈ 1.76 → **~2.0 TB** | 0.37×2 = **0.74 TB** | ~0.45 TB |
+| 6개월 | **~2.0 TB**(고정) | 0.82×2 = **1.64 TB** | ~0.9 TB |
+| 12개월 | **~2.0 TB**(고정) | 1.72×2 = **3.44 TB** | ~1.8 TB |
+
+- hot gp3는 지평과 무관하게 ~2TB로 고정입니다(노드당 ~1TB). gp3 단일 볼륨 상한 64 TiB에 여유롭게 들어갑니다({{< relref "/observability/hyperdx/design/02-hot-storage-ebs/index.md" >}}).
+- cold S3만 지평에 따라 늘어나므로 1년까지 늘려도 추가 비용은 대부분 서울 $0.025/GB-월의 S3 Standard입니다(단가는 {{< relref "/observability/hyperdx/design/02-hot-storage-ebs/index.md" >}} §1.3). 백업은 리플레이를 빼고(가치 급감) 로그/트레이스/메트릭만 Glacier IR로 둡니다.
+
+### 4.4 부하 시험에 사용할 노드 구성 {#44-노드shardreplica--지평-무관-고정-}
+
+raw 4.2TB/월은 평균 약 1.6 MB/s입니다. 피크를 평균의 5배로 잡으면 약 8 MB/s가 됩니다. ClickStack의 인제스트 추정치인 “10 MB/s당 1 vCPU”를 적용하면 수집 CPU 요구는 작게 나오지만, 이 값으로 검색 동시성과 머지 부하까지 알 수는 없습니다.
+
+따라서 1 shard × RF2와 아래 노드 크기를 초기 부하 시험의 후보로 둡니다. 조회 범위와 동시 사용자 수를 넣어 대시보드·세션 검색을 실행한 뒤 확정합니다. RF3는 정비 중에도 추가 사본이 필요하거나 쓰기 quorum 조건이 요구할 때 검토합니다.
+
+| 컴포넌트 | 권장(prod) | 사양 | 근거 |
+|---|---|---|---|
+| ClickHouse 데이터 노드 | **2× r7g.2xlarge**(RF2), +1대(RF3) | 8 vCPU / 64 GB / gp3 ~1TB | 인제스트·쿼리 여유 `≈` |
+| ClickHouse Keeper | **3× t4g.medium** | 2 vCPU / 4 GB / gp3 20GB(영속) | 정족수 3, 4GB면 충분 `✓` → [05-keeper]({{< relref "/observability/hyperdx/design/05-keeper/index.md" >}}) |
+| MongoDB | **3-member t4g.small**(또는 Atlas) | 2 vCPU / 2 GB / gp3 10GB | 메타 수 GB, `members:1`은 HA 아님 `✓` → [rum/07]({{< relref "/observability/apm-rum/07-hyperdx-mongodb.md" >}}) |
+| OTel Collector | gateway 2 replica(HPA) | 각 1~2 vCPU | 변환 CPU 여유 |
+
+gp3의 최대 성능을 모두 사용할 수 있는지는 인스턴스 EBS 대역에 달려 있습니다. 볼륨 IOPS나 throughput만 올리기 전에 r7g.2xlarge의 실제 EBS 사용률을 확인합니다. 인스턴스 대역이 포화됐다면 노드 크기를 바꾸는 편이 효과적입니다. 인스턴스별 제약은 [로컬 NVMe 문서]({{< relref "/data/clickhouse/storage/02-storage-local-nvme.md" >}})에서 비교합니다.
+
+조회 부하가 가벼우면 r7g.xlarge(4 vCPU/32GB) 두 대도 시험할 수 있습니다. 여기의 비용표는 여유를 둔 r7g.2xlarge 두 대로 계산합니다.
+
+### 4.5 Keeper와 MongoDB 용량 {#45-keepermongodb--데이터량과-무관하게-소형-고정}
+
+- Keeper: 정족수 3(1 장애 허용), 4GB RAM·gp3 20GB면 충분합니다. Keeper 부하는 데이터량보다 INSERT 빈도·파트 생성 수에 비례하므로 지평이 늘어도 커지지 않습니다({{< relref "/observability/hyperdx/design/05-keeper/index.md" >}}).
+- MongoDB: 메타데이터(user/dashboard/alert/source) 전용이고 데이터셋은 수 GB입니다. `members:3`이 값싼 HA 보험이고 인제스트 경로 밖이라 규모와 무관합니다({{< relref "/observability/apm-rum/07-hyperdx-mongodb.md" >}}).
+
+### 4.6 서울 리전 월 비용 예시 {#46-월-비용-산정-해석-b-서울-ap-northeast-2-on-demand-}
+
+서울(`ap-northeast-2`)에 배포하는 가정입니다. 확인한 스토리지 단가는 직접 적용하고, 인스턴스 등 미확인 항목에는 리전 보정치를 사용했습니다. [hot 스토리지·EBS]({{< relref "/observability/hyperdx/design/02-hot-storage-ebs/index.md" >}}) §1.3의 단가에 §4.3의 물리량을 곱한 값입니다.
+
+| 항목 | 단가 | 등급 |
+|---|---|---|
+| gp3 스토리지 | **$0.0912 / GB-월** | `✓` — 서울 실단가 |
+| S3 Standard(첫 50TB) | **$0.025 / GB-월** | `✓` — 서울 실단가 |
+| ⇒ 블록↔오브젝트 배수 | **gp3 = S3의 3.65x** | `✓` |
+| gp3 provisioned IOPS·throughput 초과분 | us-east-1 $0.005/IOPS·$0.04/MBps + 10~15% 어림 | `≈`, 서울 단가 미확인 `?` |
+| Glacier IR | $0.004 / GB-월 (us-east-1 값) | `≈`, 서울 단가 미확인 `?` |
+| S3 요청 | PUT **$4.50/M**(=$0.0045/1k) · GET **$0.35/M** · DELETE 무료 | `✓` — 서울 |
+| 인스턴스 시급 | us-east-1 추정치 × 리전 계수 | `≈` (AWS Calculator로 확정 권장) |
+
+gp3·S3 저장량과 요청은 서울 단가로 계산합니다. 인스턴스·Glacier IR·cross-AZ 전송은 us-east-1 값의 1.1~1.15배로 추정했습니다. 스토리지 가격 차이는 gp3 +14.0%, S3 +8.7%이지만 이 차이가 다른 서비스에도 그대로 적용된다는 보장은 없습니다. 견적 확정 시에는 각 항목의 서울 단가로 교체해야 합니다.
+
+S3 요청 비용은 저장 GB와 따로 계산합니다. 이 산정의 서울 PUT 단가는 GET의 약 13배이며 파트당 파일 수가 요청 건수에 영향을 줍니다. hot에서 머지를 진행한 뒤 cold로 이동하는 설계의 요청 비용은 [S3 콜드 티어링]({{< relref "/observability/hyperdx/design/03-s3-cold-tiering/index.md" >}}) §5.6에서 다룹니다.
+
+고정 컴포넌트(지평 무관):
+
+```
+컴퓨트  2× r7g.2xlarge = 2 × $0.4284/hr × 730 ≈ $626 (us-east-1 추정) ×1.1~1.15 ≈ $690~720
+Keeper  3× t4g.medium = 3 × $0.0336/hr × 730 ≈ $74  ×1.1~1.15 ≈ $81~85
+                      + gp3 60GB × $0.0912 ≈ $5                       ≈ $86~90
+Mongo   3× t4g.small  = 3 × $0.0168/hr × 730 ≈ $37  ×1.1~1.15 ≈ $41~43
+                      + gp3 30GB × $0.0912 ≈ $3                       ≈ $44~46
+hot gp3 2.0TB         = 2,000GB × $0.0912 (baseline IOPS·throughput 무료)  ≈ $182
+──────────────────────────────────────────────────────────────────────────────
+고정 소계 ≈ $1,000 ~ $1,040/mo      (us-east-1 원 산정 $904 대비 +11~15%)
+```
+
+지평별 가변(cold S3 + 요청 + 백업 + cross-AZ 전송, RF2):
+
+| 지평(RF2) | cold S3(서울 $0.025) | PUT | 백업(Glacier IR) | cross-AZ 전송 | **월 총계(서울, on-demand)** | 1yr SP 적용* |
+|---|---|---|---|---|---|---|
+| 3개월 | 740GB×$0.025 = **$19** | ~$7 | 450GB×$0.004 ≈ $2 | ~$44~46 | **~$1,070~1,110/mo** | ~$750~775/mo |
+| 6개월 | 1,640GB×$0.025 = **$41** | ~$9 | 900GB×$0.004 ≈ $4 | ~$50~52 | **~$1,110~1,145/mo** | ~$780~805/mo |
+| 12개월 | 3,440GB×$0.025 = **$86** | ~$11 | 1,800GB×$0.004 ≈ $7 | ~$55~58 | **~$1,160~1,200/mo** | ~$840~860/mo |
+
+*1yr Savings Plan은 컴퓨트에만 ~40% 적용되고 스토리지·S3·전송은 정가입니다. 백업·전송 열은 리전 계수를 적용한 값이고 PUT은 건수를 원 산정과 동일하게 두고 단가만 서울로 바꿔 us-east-1 대비 −10%입니다.
+
+RF3(12개월, 서울): 컴퓨트 3대 $938×1.1~1.15 ≈ $1,032~1,079 + hot gp3 3TB(3,000GB×$0.0912) ≈ $274 + cold S3 ×RF3=5.16TB(5,160GB×$0.025) ≈ $129 + Keeper/Mongo $118×1.1~1.15 ≈ $130~136 + (백업 $7 + 전송 $70)×1.1~1.15 ≈ $85~89 ⇒ ~$1,650~1,710/mo(on-demand), 1yr SP ~$1,185~1,220/mo.
+
+이 모델에서는 hot gp3·컴퓨트·Keeper·MongoDB가 월 약 $1.0K를 차지합니다. 3개월에서 12개월로 늘릴 때 cold 저장료는 RF2 기준 $19에서 $86으로 증가합니다. 리플레이를 30일에 삭제하고 나머지를 S3에 두기 때문에 보관 기간에 비해 비용 증가가 작습니다. Datadog과 비교할 때는 [RUM 문서]({{< relref "/observability/apm-rum/_index.md" >}})의 세션·과금 가정을 일치시켜야 합니다. 이 self-host 계산에는 [운영 인건비]({{< relref "/data/clickhouse/deployment/01-managed-vs-selfhosted.md" >}})가 포함되지 않았습니다.
+
+참고로 같은 물리량에 us-east-1 단가를 적용했던 원 산정은 고정 소계 $904, 총계는 3개월 $971·6개월 $1,001·12개월 $1,052였습니다. RF3 12개월은 약 $1,500입니다. 서울 표는 이 원 산정 중 확인된 단가를 교체하고 나머지에 보정치를 적용한 결과이므로 두 표의 차이를 모두 확정된 리전 가격 차이로 읽어서는 안 됩니다.
+
+### 4.7 raw 0.7TB일 때의 계산 {#47-대조--해석-araw-07tb월--on-disk-117gb월}
+
+{{% details title="해석 A 산정표 — us-east-1 원 산정 + 서울 환산" closed="true" %}}
+| 지평(RF2) | 누적 단일 | hot gp3(×RF2,+40%) | cold S3(×RF2) | 노드 | **월 총계(us-east-1)** |
+|---|---|---|---|---|---|
+| 3개월 | ~0.17TB | ~0.33TB → $26 | ~0.06TB → $3 | 2× r7g.xlarge | **~$430/mo** |
+| 12개월 | ~0.4TB | ~0.33TB → $26 | ~0.3TB → $14 | 2× r7g.xlarge | **~$500/mo** |
+
+위 표는 us-east-1 단가로 쓴 원 산정입니다. §4.6의 리전 환산 규칙을 그대로 적용하면(gp3 330GB×$0.0912 ≈ $30, S3는 서울 단가, 나머지 ×1.1~1.15) 서울 총계는 3개월 ~$470~490 / 12개월 ~$550~570 ≈ ~$0.5~0.6K/mo 입니다.
+
+raw 0.7TB가 실제 입력이라면 hot은 수백 GB로 줄어듭니다. 소형 노드 두 대와 Keeper·MongoDB 구성으로 시험하되, 압축비뿐 아니라 검색 동시성도 확인한 뒤 노드 크기를 정합니다.
+
+{{% /details %}}
+
+## 5. gp3 성능을 확인할 항목 {#5-gp3면-충분--io2-트리거는-도달-안-함}
+
+gp3와 io2의 성능·내구성·요금은 [hot 스토리지·EBS]({{< relref "/observability/hyperdx/design/02-hot-storage-ebs/index.md" >}})에서 비교합니다. 이 계산의 hot은 노드당 약 1TB, 피크 입력은 약 8 MB/s이므로 gp3로 시험을 시작할 수 있습니다. 인제스트만으로 전체 I/O 요구를 확정하지 않고 머지와 조회를 포함해 검증합니다.
+
+계산한 hot 용량은 두 replica 합계 약 2TB입니다. gp3 기본 3,000 IOPS·125 MiB/s로 시험하고, 부족하면 IOPS와 throughput을 조정합니다. 기존 예시의 +3,000 IOPS·+125 MiB/s 추가 요금은 us-east-1 기준 월 약 $15+$5이며 서울의 해당 단가는 미확인입니다. 리전별 적용 범위는 [EBS 비용]({{< relref "/observability/hyperdx/design/02-hot-storage-ebs/index.md" >}})에서 확인합니다.
+
+복제와 백업으로 볼륨 장애에 대비하되, 필요한 내구성과 지연 조건을 따로 정해야 합니다. 단일 볼륨에서 2,000 MiB/s나 80,000 IOPS를 넘는 요구, 또는 볼륨 자체의 99.999% 내구성 요구가 있다면 io2를 비교합니다. 월 입력량만으로 조회·merge 피크나 규제 요건까지 판단할 수는 없습니다.
+
+## 6. 보관 기간별 TTL 예시 {#6-ttl--지평별-delete-변주-기준-문서는-03}
+
+보관 기간을 바꿀 때는 [S3 콜드 티어링]({{< relref "/observability/hyperdx/design/03-s3-cold-tiering/index.md" >}})의 MOVE 정책을 유지하고 DELETE 기간을 조정합니다. 다음은 1년 보관 예시입니다.
+
+```sql
+-- 지평별로 바뀌는 것은 DELETE INTERVAL 하나뿐. MOVE·정책은 03 기준 문서를 따른다.
+-- 로그/트레이스: hot 14일 → cold → DELETE(3개월=90 / 6개월=180 / 1년=365)
+ALTER TABLE default.otel_logs MODIFY TTL
+  toDateTime(Timestamp) + INTERVAL 14  DAY TO VOLUME 'cold',
+  toDateTime(Timestamp) + INTERVAL 365 DAY DELETE      -- ← 지평별 90/180/365
+  SETTINGS materialize_ttl_after_modify = 0;
+
+-- 메트릭: hot 30일 → cold → DELETE(180 또는 365)
+ALTER TABLE default.otel_metrics_gauge MODIFY TTL
+  toDateTime(TimeUnix) + INTERVAL 30  DAY TO VOLUME 'cold',
+  toDateTime(TimeUnix) + INTERVAL 365 DAY DELETE;
+
+-- 리플레이: hot 30일만, S3 안 감, DELETE 30일 (지평이 늘어도 여기는 그대로 짧게)
+ALTER TABLE default.hyperdx_sessions MODIFY TTL
+  TimestampTime + INTERVAL 30 DAY DELETE;
+```
+
+`materialize_ttl_after_modify = 0`으로 기존 파트 즉시 재작성을 피해 운영 중 부하 폭증을 막습니다. 시간 컬럼명(`Timestamp`/`TimestampTime`/`TimeUnix`)은 테이블마다 다를 수 있으니 `SHOW CREATE TABLE`로 확인한 뒤 적용합니다. ClickStack OSS 기본 TTL은 `${TABLES_TTL}` 단일값(문서상 3일)이며 위 값은 우리 권장 오버라이드입니다 — 배포 시 실 스키마로 확정합니다.
+
+## 7. staging과 prod 구성 {#7-staging-vs-prod--규모-차이}
+
+staging에서는 샘플링과 TTL을 줄여 비용을 낮추고, 압축비와 테이블 설정을 확인합니다. 단일 replica 구성으로는 prod의 장애 가용성을 재현할 수 없으므로 RF2 복구 시험은 별도로 해야 합니다.
+
+| 항목 | **staging** | **prod** |
+|---|---|---|
+| 세션 샘플링 | 5~10%(또는 QA 트래픽만) | **100%** |
+| 월 on-disk(해석 B) | ~35~70 GB | 700 GB |
+| RF(replica) | **1**(HA 불필요) | **2**(권장) / 3(임계) |
+| 보관 TTL | 7~14일, **cold 없음**(전부 hot) | 리플레이 30일 / 로그·트레이스 hot 14일+cold+지평 DELETE / 메트릭 30일+cold |
+| ClickHouse 노드 | **1× r7g.large**(2vCPU/16GB) | 2~3× r7g.2xlarge |
+| Keeper | **1**(단일; 또는 CH 임베디드) | **3**(정족수) |
+| MongoDB | **1-member**(무인증 주의) | 3-member 또는 Atlas + SCRAM |
+| gp3 | ~100~200GB 단일 | 노드당 ~1TB + S3 캐시 |
+| 월 비용(서울) `≈` | **~$170~290/mo** | ~$1.1~1.2K/mo |
+
+staging에서 압축비·시그널 구성비·세션당 바이트를 측정해 산식의 입력값을 교체합니다. 샘플링한 트래픽이 prod의 세션 길이와 replay 비중을 대표하는지도 확인합니다. 작은 샘플 한 번으로 모든 용량 불확실성이 사라지는 것은 아닙니다.
+
+## 8. 용량 경보와 증설 {#8-성장-버퍼--경보-기준}
+
+### 8.1 머지 여유 공간 {#81-디스크-헤드룸--여유-공간이-곧-안정성-}
+
+- 머지는 여유 공간을 먹습니다. 병합 대상 파트 합만큼의 여유가 필요하고 디스크가 차면 머지 중단 → 파트 누적 → TOO_MANY_PARTS → 인서트 차단으로 이어집니다.
+- hot gp3 사용률 경보는 70% 경고 / 80% 조치 / 85% 하드실링입니다. hot 볼륨은 항상 30~40% 여유를 둡니다(§4.1 헤드룸).
+
+### 8.2 경보와 대응 {#82-경보-항목--증설-트리거-}
+
+| 신호 | 경보 임계 | 조치 |
+|---|---|---|
+| hot gp3 사용률 | >80% | gp3 온라인 확장(무중단) 또는 TTL 단축·cold 이동 가속 |
+| 파티션당 active parts | >300 | 배치/async insert 튜닝, 파티션 키 카디널리티 점검 |
+| 인제스트 지연/큐 | 지속 증가 | collector 스케일아웃, 배치 크기↑ |
+| 데이터 노드 CPU | 지속 >70% | replica 추가(읽기) 또는 노드 사이즈업 |
+| Keeper 지연/디스크 | znode↑·gp3 80% | Keeper 디스크 확장, 작은 인서트 제거 |
+
+### 8.3 shard·io2·RF3 검토 조건 {#83-언제-shard--io2--rf3로-가나-}
+
+- shard 추가: 이 워크로드는 1년+ 불필요합니다. 트리거는 (a) hot 단일사본/노드가 노드 실용 상한(예 4~8TB)에 접근, (b) 머지/쿼리 CPU 지속 포화, (c) 재수화 위험 창을 줄이려 노드당 데이터를 낮추고 싶을 때입니다. 신규 shard 스키마·리밸런싱은 수동입니다({{< relref "/data/clickhouse/operations/05-altinity-operations.md" >}}).
+- io2 전환: §5 — >2,000 MiB/s·>80,000 IOPS/vol·볼륨 99.999% 요구 시. RUM 0.7TB/월엔 도달 안 합니다.
+- RF2→RF3: 한 대를 복구하는 동안 두 replica를 유지하거나 quorum 2 쓰기를 계속해야 할 때 검토합니다. 임의의 두 replica를 동시에 잃어도 ACK 데이터를 보존하려면 쓰기 확인 수까지 맞춰야 합니다. 같은 크기의 replica를 추가하면 컴퓨트와 cold S3 저장료는 약 1.5배가 됩니다. [배포 플레이북]({{< relref "/data/clickhouse/deployment/04-deployment-playbook.md" >}})에서 장애 조건과 쓰기 확인을 함께 다룹니다.
+
+## 9. 수집량에서 저장량까지 {#9-rum-볼륨-흐름--해석-분기}
+
+{{< flow src="_flow/10-rum-볼륨-흐름-해석.json" />}}
+
+{{< flow src="_flow/10-rum-볼륨-흐름-해석-2.json" />}}
+
+## 배포 후 산식을 갱신하는 순서 {#우리-케이스에서는}
+
+실제 입력량과 압축비가 나오면 §2의 시그널별 월 생성량을 바꿉니다. 다음으로 리플레이·로그·트레이스·메트릭의 보관 기간을 적용해 §4의 hot과 cold를 다시 계산합니다. 마지막으로 복제 수, 머지 여유 공간, 해당 리전 단가를 곱합니다.
+
+초기 후보는 1 shard × RF2, r7g.2xlarge 두 대, 노드당 hot gp3 약 1TB입니다. 이 크기를 확정하는 근거는 평균 수집량만이 아니라 피크 입력과 실제 조회를 함께 실행한 결과여야 합니다. 30일 리플레이 삭제 정책을 바꾸거나 replay 비중이 예상보다 크다면 볼륨과 비용부터 다시 산정합니다.
+
+2026-08 산정 예시의 월 총액은 서울 RF2에서 약 $1.1~1.2K입니다. 압축비와 세션 구성, 인스턴스·전송·Glacier IR 단가에 추정이 남아 있으므로 예산 범위로 사용하고 구매 견적은 별도로 확정합니다.

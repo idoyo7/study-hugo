@@ -1,7 +1,7 @@
 # study-hugo — Ops Insights
 
 Kubernetes·관측성·데이터스토어를 직접 운영하며 남은 판단 근거를 도메인 단위로
-정리한 지식베이스. 199개 문서, 20개 도메인.
+정리한 지식베이스. 주제 문서 182개를 4개 대분류로 탐색합니다.
 
 - 운영 사이트: https://docs.makgol.com
 - 테마: [hextra](https://github.com/imfing/hextra) v0.12.3 (`themes/hextra/` 벤더링)
@@ -9,7 +9,11 @@ Kubernetes·관측성·데이터스토어를 직접 운영하며 남은 판단 �
 ## 구조
 
 ```
-content/            도메인별 문서. 섹션 = 디렉터리, 정렬 = front matter weight
+content/
+  platform/         플랫폼·인프라: Kubernetes, Istio, 배포, 격리 런타임, 홈랩
+  observability/    관측성: 메트릭, 로그, APM·RUM, HyperDX
+  data/             데이터·스토리지: ClickHouse, 캐시, 블록 스토리지, S3
+  engineering/      설계·개발: 아키텍처, 게이트웨이, 앱 런타임, AI 도구
 layouts/
   _markup/          마크다운 렌더 훅 (이미지: WebP 변환 + width/height)
   partials/         테마 오버라이드 (opengraph, twitter_cards, search,
@@ -22,6 +26,13 @@ nginx/default.conf  정적 서빙 설정 (gzip_static, Cache-Control, error_page
 ```
 
 내부 링크는 Hugo `{{< relref >}}` 숏코드를 쓴다.
+대상은 `content/` 기준 절대 원본 경로로 적는다.
+예: `{{< relref "/platform/istio/_index.md" >}}`.
+
+기존 문서는 front matter의 `url`로 공개 주소를 유지한다. 파일 위치와 URL이
+다를 수 있으므로 파일 이동이나 링크 변경 전에
+[변경 이력](CHANGELOG.md)과 [이전·현재 경로 대응표](docs/changes/2026-10-04-content-navigation.csv)를 확인한다.
+최근 개편의 범위와 검증 결과는 [분류 개편 기록](docs/changes/2026-10-04-content-navigation.md)에 있다.
 
 ## 로컬 미리보기
 
@@ -32,6 +43,19 @@ hugo --gc --minify     # 결과: public/  (Dockerfile 과 같은 명령)
 
 Hugo **extended** 0.166.0 이 필요하다. 이미지 처리(WebP)가 extended 빌드에만
 있고, `Dockerfile` 도 같은 버전을 고정한다.
+
+## 검증
+
+```bash
+hugo --gc --minify --enableGitInfo --destination /tmp/study-hugo-check
+python3 -m unittest discover -s tools/tests -p 'test_*.py'
+python3 tools/check-content-navigation.py --site-dir /tmp/study-hugo-check \
+  --mapping docs/changes/2026-10-04-content-navigation.csv
+```
+
+검사기는 내부 링크·앵커·리소스·canonical과 양쪽 사이드바를 검사한다.
+`--baseline-dir <개편 전 빌드 경로>`를 추가하면 기존 URL과 참조 리소스의
+보존 여부도 대조한다. PR에서는 `Content navigation checks`가 이를 실행한다.
 
 ## 배포
 

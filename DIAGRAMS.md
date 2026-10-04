@@ -70,12 +70,12 @@
 `flow`·`seq` 스펙은 본문에 인라인하지 않고 **page bundle 리소스**로 분리한다. nextra 쪽 `_components/` 와 같은 co-location이다.
 
 ```
-content/karpenter/
+content/platform/kubernetes/karpenter/disruption/
 ├── 06-consolidation-traps/
 │   ├── index.md
 │   └── _seq/
 │       └── 3-왜-돌아오지-않나.json
-└── 12-consolidation-models/
+└── 13-consolidation-models/
     ├── index.md
     └── _flow/
         ├── 3-세-분류.json
@@ -370,7 +370,7 @@ HEAD_H: 28,  FOOT_H: 22,  MARGIN: 16,  SEG_R: 5,  BAR_H: 18
 ### 렌더 검증
 
 ```
-node tools/lane_smoke.js content/runtime/01-jvm-graalvm/_lane/*.json
+node tools/lane_smoke.js content/engineering/runtime/01-jvm-graalvm/_lane/*.json
 ```
 
 브라우저 없이 최소 DOM 스텁 위에서 엔진을 돌려 여섯 가지를 본다: ①`NaN`·음수 폭 없음 ②모든 요소가 viewBox 안 ③`<pattern>` id 유일성 ④category 칸 구분선 수와 `cols.length` 일치 ⑤linear `end > max` 세그먼트가 잘리지 않고 경고가 나는지 ⑥**세그먼트 텍스트가 자기 칸(category) 또는 다음 세그먼트 시작점(linear)을 넘지 않는지** — `lane.js`와 같은 텍스트 폭 추정 공식을 스크립트 안에 복제해서 잰다. 합성(synthetic) 케이스로 축 불일치 skip 경고와 linear 초과 경고도 같이 검증한다.
@@ -457,7 +457,7 @@ canary 배포에서 **동시에 움직이는 다섯 가지**를 한 판에 겹�
 
 수치는 파일 상단 상수 블록(`REPLICAS`·`MIN_PODS`·`RPS`·`POD_CEIL`)에 있다. `MIN_PODS` 를 바꾸면 ① 단계의 RS 크기와 이후 단계의 "요구 n대 / n대 부족" 문구가 같이 따라간다 — 서로 유도되므로 한 곳만 고치면 된다. **`weight` 와 `cAvail` 은 절대 직접 쓰지 말고 단계 서술에서 유도할 것** — 둘이 어긋나면 빨간 칸이 거짓말을 한다.
 
-**③단계(`phase === 2`)에서 `cDesired`(RS 목표)가 가중치보다 늦게 오르는 건 의도된 순서다 — 되돌리지 말 것.** `reconcileTrafficRouting`(`:57`)이 `reconcileCanaryReplicaSets`(`:75`)보다 앞이므로 한 바퀴 리컨실 안에서 가중치가 먼저 정해지고 RS 목표가 뒤따른다(산문: `content/rollouts/02-rollback-window-weight/index.md`). 그래서 엔진은 `cDesired` 상승을 가중치 전환(`t>0.5`)보다 늦은 `t>0.55`에 놓는다 — `rrev`의 ③→④(해시가 desired 상승보다 먼저 써지는 것)와 같은 원칙이다. `verdict` 의 "요구 n대"도 `cDesired`가 아니라 가중치에서 유도한다(`ceil(REPLICAS×weight/100)`) — 그래야 가중치가 아직 안 바뀐 t 구간에서 캡션이 화면보다 앞서 나가지 않는다. `tools/flow-render/rstep-assert.js` 가 이 순서(가중치 먼저)와 캡션·화면 일치를 단정으로 잡는다.
+**③단계(`phase === 2`)에서 `cDesired`(RS 목표)가 가중치보다 늦게 오르는 건 의도된 순서다 — 되돌리지 말 것.** `reconcileTrafficRouting`(`:57`)이 `reconcileCanaryReplicaSets`(`:75`)보다 앞이므로 한 바퀴 리컨실 안에서 가중치가 먼저 정해지고 RS 목표가 뒤따른다(산문: `content/platform/rollouts/02-rollback-window-weight/index.md`). 그래서 엔진은 `cDesired` 상승을 가중치 전환(`t>0.5`)보다 늦은 `t>0.55`에 놓는다 — `rrev`의 ③→④(해시가 desired 상승보다 먼저 써지는 것)와 같은 원칙이다. `verdict` 의 "요구 n대"도 `cDesired`가 아니라 가중치에서 유도한다(`ceil(REPLICAS×weight/100)`) — 그래야 가중치가 아직 안 바뀐 t 구간에서 캡션이 화면보다 앞서 나가지 않는다. `tools/flow-render/rstep-assert.js` 가 이 순서(가중치 먼저)와 캡션·화면 일치를 단정으로 잡는다.
 
 ### `{{< rrev >}}` 의 6단계
 

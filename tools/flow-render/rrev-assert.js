@@ -1,7 +1,7 @@
 /* rrev 의미 검사 — 도식이 사실과 어긋나지 않는지 본다.
    rrev-smoke.js 가 "좌표가 깨지지 않았나"를 보는 반면, 이건 "그림이 참말을 하나"를 본다.
 
-   최소 다음을 단정한다(사양 §1 새 6단계표 근거 — content/rollouts/01-canary-step-analysisrun/index.md §1):
+   최소 다음을 단정한다(사양 §1 새 6단계표 근거 — content/platform/rollouts/01-canary-step-analysisrun/index.md §1):
    (a) 6단계 전부에서 canary/stable 의 Available·desired·해시 칩·VS weight·가드 유무가
        SPEC 테이블과 정확히 일치한다 (단계표를 이 파일 안에 리터럴로 박아 두고 대조한다)
    (b) canary 패킷은 canary weight 가 0 인 단계에서 한 개도 canary RS 에 도달하지 않는다

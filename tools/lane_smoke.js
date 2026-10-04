@@ -2,7 +2,7 @@
    ①NaN·음수 폭 ②viewBox 이탈 ③pattern id 유일성 ④category 칸 구분선 수
    ⑤linear 초과 세그먼트 경고 ⑥텍스트가 칸/다음 세그먼트 경계를 넘지 않음
    여섯 항목을 검사한다(DIAGRAMS.md §검증 규약).
-   사용: node tools/lane_smoke.js content/runtime/01-jvm-graalvm/_lane/*.json */
+   사용: node tools/lane_smoke.js content/engineering/runtime/01-jvm-graalvm/_lane/*.json */
 'use strict';
 const fs = require('fs');
 

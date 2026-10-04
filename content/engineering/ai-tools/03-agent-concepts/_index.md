@@ -1,0 +1,36 @@
+---
+title: "03 에이전트 개념 정리 (NAVER D2)"
+description: "NAVER D2 발표 「에이전트, 개념부터 같이 정리해봐요」를 전사해 정리했습니다. 워크플로우와 에이전트의 구분, 하네스와 Context/Memory, MCP와 A2A를 발표 순서대로 따라갑니다."
+date: 2026-10-01
+lastmod: 2026-10-01
+weight: 3
+comments: false
+url: "/ai-tools/03-agent-concepts/"
+---
+
+# 03 · 에이전트 개념 정리 — NAVER D2 발표
+
+## 이 분류에서 찾기 {#section-navigation}
+
+- [01 워크플로우 · 하네스 · Context/Memory · MCP/A2A]({{< relref "/engineering/ai-tools/03-agent-concepts/01-concepts/index.md" >}})
+
+참고 자료: [02 발표 전사]({{< relref "/engineering/ai-tools/03-agent-concepts/02-transcript/index.md" >}}) · [03 STT 원문]({{< relref "/engineering/ai-tools/03-agent-concepts/03-stt-raw/index.md" >}})
+
+{{< callout type="info" >}}
+**참조한 내용정리**
+
+이 챕터는 아래 NAVER D2 발표영상을 받아 직접 전사하고 슬라이드와 대조해 정리했습니다. 원문 자체가 아니므로 정확한 표현과 그림은 원문 영상에서 확인합니다.
+
+- 원문: [에이전트, 개념부터 같이 정리해봐요 - 워크플로우 · 하네스 · Context/Memory · MCP/A2A](https://d2.naver.com/helloworld/8118359) · 2026-09-30
+- 발표: 박슬기 (NAVER 광고 프로덕트) · 네이버 사내 Tech Meetup · 1시간 5분 36초
+{{< /callout >}}
+
+"이거 에이전트인가요?", "하네스를 만들어야죠", "그건 Context인가요 Memory인가요?" 같은 대화가 겉도는 이유는 같은 단어를 서로 다른 뜻으로 쓰기 때문입니다. 발표자는 Anthropic·OpenAI 문서와 MCP·A2A 스펙을 다시 읽고 실물을 확인해 가며 이 단어들의 경계를 다시 그었습니다. 발표는 에이전트, 하네스, 도구 세 장으로 이어집니다.
+
+| 문서 | 한 줄 요약 |
+|------|-----------|
+| [01 개념 정리]({{< relref "/engineering/ai-tools/03-agent-concepts/01-concepts/index.md" >}}) | 워크플로우와 에이전트의 구분 기준, 하네스의 구성 요소, Context와 Memory, MCP와 A2A를 발표 순서대로 정리 |
+| [02 발표 전사]({{< relref "/engineering/ai-tools/03-agent-concepts/02-transcript/index.md" >}}) | 부록 · 슬라이드 전환 단위로 나눈 전체 발화 기록 |
+| [03 STT 원문]({{< relref "/engineering/ai-tools/03-agent-concepts/03-stt-raw/index.md" >}}) | 부록 · 손대지 않은 whisper 자동 전사 출력, 타임스탬프 141구간 |
+
+01을 먼저 읽고, 특정 대목의 원래 표현이 궁금하면 02의 같은 시각을 찾아봅니다. 02는 STT 결과를 슬라이드와 대조해 고치고 문장을 다듬은 판이고, 03은 고치기 전 STT 출력 그대로입니다.
