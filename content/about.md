@@ -1,29 +1,48 @@
 ---
 title: "이 사이트에 대하여"
 date: 2026-08-30
+lastmod: 2026-10-04
 type: docs
 weight: 999
-description: "Ops Insights를 누가 쓰는지, 무엇을 쓰는지, 근거 표기와 출처 정리 방식."
+description: "AI가 작성하는 기술 초안과 조사 자료를 모으는 공간입니다. 초안을 검토하고 다듬은 뒤 makgol.com의 게시글로 새로 작성합니다."
 ---
 
 ## 누가 쓰나
 
-Mont(mont kim)이 씁니다. EKS 위에서 Istio·Karpenter·VictoriaMetrics·ClickHouse·HyperDX 같은 것을 운영하며 남긴 기록이 중심입니다. 같은 사람이 쓰는 블로그는 [makgol.com](https://makgol.com)이고, 프로필은 [makgol.com/about](https://makgol.com/about)에 있습니다.
+**이 사이트의 문서는 AI가 작성합니다.** Ops Insights는 Mont가 운영하는 기술 초안·조사 자료 공간으로, AI를 통해 주제별 자료를 조사하고 설명과 비교, 문서 구조를 만들어 갑니다.
 
-## 무엇을 쓰나
+이곳에서 모은 자료와 초안을 검토하고 다듬은 뒤, [makgol.com](https://makgol.com)에 독자에게 전할 내용과 맥락을 정해 게시글을 새로 작성합니다.
 
-운영하다 부딪힌 것을 도메인 단위로 묶습니다. 일부 문서에는 「우리 케이스에서는」 절이 있습니다 — 일반론과 우리 클러스터에 대한 판단을 그 절에서 갈라놓습니다.
+## 이곳과 makgol.com의 역할 {#무엇을-쓰나}
 
-외부 발표·블로그를 정독해 정리한 문서는 챕터 인덱스와 문서 도입부에 원저자와 원본을 적습니다. 그 문서의 사실은 원저자의 것이고, 우리 스택에 대입한 판단만 이쪽 몫입니다.
+| 공간 | 역할 |
+|---|---|
+| **Ops Insights — 이 사이트** | AI가 작성한 초안, 자료 조사, 기술 비교, 확인할 질문을 주제별로 모으고 계속 보완합니다. |
+| **[makgol.com](https://makgol.com)** | 검토하고 다듬은 자료를 바탕으로, 전달할 주제와 설명의 흐름을 다시 구성해 새 게시글로 발행합니다. |
+
+다루는 범위는 플랫폼·인프라, 관측성, 데이터·스토리지, 설계·개발입니다. 문서에는 조사 중인 가설이나 아직 확인하지 못한 내용도 들어갈 수 있고, 추가 조사에 따라 설명과 결론이 바뀔 수 있습니다.
+
+## 초안에서 게시글까지
+
+1. **AI로 초안을 만듭니다.** 궁금한 문제를 정하고 공식 문서, 코드, 발표 자료, 운영 기록을 모아 설명과 비교를 작성합니다. 미확인 항목과 출처도 함께 남깁니다.
+2. **근거와 적용 조건을 확인합니다.** 원문이 실제로 말하는 내용인지, 버전과 환경이 맞는지 살펴봅니다. 직접 측정한 결과, 외부 사례, 추정한 내용을 구분합니다.
+3. **초안을 다듬습니다.** 중복을 줄이고 설명 순서를 정리합니다. 독자에게 필요한 배경과 예제를 보완하고, 확인이 끝나지 않은 질문은 드러내 둡니다.
+4. **makgol.com의 글을 새로 씁니다.** 게시할 주제를 골라 검토한 자료와 경험을 바탕으로 도입, 설명, 결론을 다시 구성합니다. 사용한 자료의 출처와 적용 조건을 함께 적어 발행합니다.
+
+이 사이트에 문서가 있다는 것만으로 위 검토 과정이 모두 끝났다는 뜻은 아닙니다. 게시글을 준비하는 동안 초안에 다시 돌아와 내용을 보완할 수 있습니다.
 
 ## 근거 표기
+
+아래 기호는 AI가 자료를 정리하며 붙인 근거의 유형입니다. 중요한 수치나 설정을 참고할 때는 연결된 원문과 작성 시점, 적용 환경을 함께 확인해 주세요.
 
 > **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻합니다.
 
 ## 출처
 
-섹션마다 인용 URL 을 모은 「출처」 문서를 따로 두는 곳이 있습니다 — [ClickHouse 운영]({{< relref "/data/clickhouse/10-sources.md" >}}) · [HyperDX 내재화]({{< relref "/observability/hyperdx/design/10-sources.md" >}}) · [RUM 내재화]({{< relref "/observability/apm-rum/06-sources.md" >}}) · [Redis · Valkey · Memcached]({{< relref "/data/cache/engines/99-sources.md" >}}). VictoriaMetrics 섹션은 [소스맵]({{< relref "/observability/metrics/victoriametrics/concepts/06-sources.md" >}})과 [원문별 정리]({{< relref "/observability/metrics/victoriametrics/by-source/_index.md" >}})가 같은 일을 합니다.
+외부 발표·블로그·공식 문서를 바탕으로 작성한 글에는 원저자와 원문 링크를 남깁니다. 외부 사례의 사실과 이쪽 환경에 적용한 해석은 구분해서 읽어 주세요.
+
+주제별 참고 자료는 [ClickHouse]({{< relref "/data/clickhouse/10-sources.md" >}}) · [HyperDX]({{< relref "/observability/hyperdx/design/10-sources.md" >}}) · [APM·RUM]({{< relref "/observability/apm-rum/06-sources.md" >}}) · [Redis·Valkey·Memcached]({{< relref "/data/cache/engines/99-sources.md" >}})에 모았습니다. VictoriaMetrics는 [소스맵]({{< relref "/observability/metrics/victoriametrics/concepts/06-sources.md" >}})과 [외부 발표·사례]({{< relref "/observability/metrics/victoriametrics/by-source/_index.md" >}})에서 원문을 찾을 수 있습니다.
 
 ## 정정 제보
 
-덧글은 GitHub Discussions(giscus)로 받습니다. 사실 관계 정정 제보를 특히 환영합니다.
+틀린 설명이나 오래된 정보, 출처와 맞지 않는 내용을 발견하면 댓글로 알려 주세요. 관련 문장과 원문 링크를 함께 남겨 주시면 초안을 검토하고 수정하는 데 도움이 됩니다. 댓글은 GitHub Discussions(giscus)로 연결됩니다.
