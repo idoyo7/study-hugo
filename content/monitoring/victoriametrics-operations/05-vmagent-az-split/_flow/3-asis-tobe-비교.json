@@ -1,5 +1,5 @@
 {
-  "caption": "AZ c의 agent 한 대가 전체를 수집하던 구성과, AZ a/c에 한 대씩 배치한 구성을 비교합니다. 주황 화살표가 AZ를 넘는 scrape 전송이며, 하루 약 2TB의 응답이 분할 뒤에는 같은 AZ 안에서 끝납니다.",
+  "caption": "AZ c의 agent 한 대가 전체를 수집하던 구성과, 기존 agent를 AZ a로 옮기고 AZ c에 한 대를 추가한 구성을 비교합니다. 주황 화살표가 AZ를 넘는 scrape 전송이며, 하루 약 2TB의 응답이 분할 뒤에는 같은 AZ 안에서 끝납니다.",
   "font": 1.15,
   "nodes": [
     { "id": "B_TA", "col": 0, "row": 0, "label": "AZ a 타깃", "sub": "전송량 약 절반 · 하루 약 2TB", "kind": "src" },
@@ -9,8 +9,8 @@
     { "id": "B_STORE", "col": 3, "row": 1, "label": "VM 저장소", "sub": "vminsert → vmstorage", "kind": "store" },
     { "id": "A_TA", "col": 0, "row": 4, "label": "AZ a 타깃", "sub": "같은 AZ에서 수집", "kind": "src" },
     { "id": "A_TB", "col": 0, "row": 6, "label": "AZ c 타깃", "sub": "같은 AZ에서 수집", "kind": "src" },
-    { "id": "A_AGENTA", "col": 1, "row": 4, "label": "새 vmagent · AZ a", "sub": "AZ a 타깃만 keep", "kind": "proc" },
-    { "id": "A_AGENTB", "col": 1, "row": 6, "label": "기존 vmagent · AZ c", "sub": "AZ c · fallback", "kind": "proc" },
+    { "id": "A_AGENTA", "col": 1, "row": 4, "label": "기존 vmagent · AZ a", "sub": "AZ a · fallback", "kind": "proc" },
+    { "id": "A_AGENTB", "col": 1, "row": 6, "label": "새 vmagent · AZ c", "sub": "AZ c 타깃만 keep", "kind": "proc" },
     { "id": "A_ENTRY", "col": 2, "row": 5, "label": "쓰기 진입점", "sub": "기존 목적지 유지", "kind": "proc" },
     { "id": "A_STORE", "col": 3, "row": 5, "label": "VM 저장소", "sub": "vminsert → vmstorage", "kind": "store" }
   ],
