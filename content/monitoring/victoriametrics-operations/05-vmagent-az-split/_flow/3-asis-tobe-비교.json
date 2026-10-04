@@ -1,9 +1,9 @@
 {
-  "caption": "AZ c의 agent 한 대가 전체를 수집하던 구성과, 기존 agent를 AZ a로 옮기고 AZ c에 한 대를 추가한 구성을 비교합니다. 주황 화살표가 AZ를 넘는 scrape 전송이며, 이 응답이 분할 뒤에는 같은 AZ 안에서 끝납니다.",
+  "caption": "AZ c의 agent 한 대가 전체를 수집하던 구성과, 기존 agent를 AZ a로 옮기고 AZ c에 한 대를 추가한 구성을 비교합니다. 주황 화살표가 AZ를 넘는 scrape 전송입니다. 분할 전에는 전체 scrape 전송량의 약 50%가 이 경로로 AZ를 넘었고, 분할 뒤에는 같은 AZ 안에서 끝납니다.",
   "font": 1.15,
   "nodes": [
-    { "id": "B_TA", "col": 0, "row": 0, "label": "AZ a 타깃", "sub": "전송량 약 절반", "kind": "src" },
-    { "id": "B_TB", "col": 0, "row": 2, "label": "AZ c 타깃", "sub": "전송량 약 절반", "kind": "src" },
+    { "id": "B_TA", "col": 0, "row": 0, "label": "AZ a 타깃", "sub": "전송량의 약 50%", "kind": "src" },
+    { "id": "B_TB", "col": 0, "row": 2, "label": "AZ c 타깃", "sub": "전송량의 약 50%", "kind": "src" },
     { "id": "B_AGENT", "col": 1, "row": 1, "label": "vmagent · AZ c", "sub": "한 대가 전체 수집", "kind": "proc" },
     { "id": "B_ENTRY", "col": 2, "row": 1, "label": "쓰기 진입점", "sub": "LB → ingress", "kind": "proc" },
     { "id": "B_STORE", "col": 3, "row": 1, "label": "VM 저장소", "sub": "vminsert → vmstorage", "kind": "store" },

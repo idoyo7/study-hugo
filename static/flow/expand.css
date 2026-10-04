@@ -122,3 +122,8 @@ html.vm-expand-lock { overflow: hidden; }
     max-height: none !important;
   }
 }
+
+/* 접힌 "도식 텍스트"(details.vm-spec-text)는 화면에서 숨긴다.
+   라벨은 HTML 에 남아 검색 인덱스·텍스트 추출기가 읽는다. 이 파일은 도식 shortcode 를
+   하나라도 쓰는 페이지에 항상 로드되므로 flow·seq·mnode·bscore·rstep·rrev 전부에 적용된다. */
+.vm-spec-text { display: none; }
