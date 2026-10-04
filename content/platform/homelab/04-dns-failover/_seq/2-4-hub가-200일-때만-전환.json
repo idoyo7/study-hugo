@@ -1,9 +1,9 @@
 {
   "caption": "edge가 응답하지 않으면 hub의 Kuma가 러너를 깨우고, 러너는 집 밖에서 edge의 실패와 hub의 200을 직접 확인한 뒤에야 두 레코드를 hub로 바꿉니다. 설계한 순서이며 실제 전환은 아직 시험하지 않았습니다.",
   "participants": [
-    { "id": "edge", "label": "edge" },
+    { "id": "edge", "label": "edge 게이트웨이" },
     { "id": "hub", "label": "hub (Kuma 포함)" },
-    { "id": "gha", "label": "GitHub Actions 러너" },
+    { "id": "gha", "label": "Actions 러너" },
     { "id": "aws", "label": "AWS IAM·Route53" }
   ],
   "steps": [

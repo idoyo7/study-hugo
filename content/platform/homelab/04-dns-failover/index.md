@@ -26,7 +26,7 @@ hub의 Kuma는 edge IP에 고정된 별도 A 레코드 `origin.example.com`을 6
 
 {{< flow src="_flow/2-2-apex를-감시하면-hub를-본다.json" />}}
 
-감시 호스트를 `origin.example.com`으로 분리하면, 전환 뒤에도 Kuma의 요청이 edge에 닿습니다.
+감시 호스트만 `origin.example.com`으로 바꾸면 같은 상황에서 요청이 가는 곳이 달라집니다.
 
 {{< flow src="_flow/2-3-고정-호스트는-edge를-본다.json" />}}
 

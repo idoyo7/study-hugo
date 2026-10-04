@@ -1,9 +1,9 @@
 {
   "caption": "edge가 돌아와 Kuma가 다시 깨워도 러너는 edge IP로 apex 10회와 네 호스트가 모두 200일 때만 두 레코드를 edge로 되돌리고, 하나라도 아니면 hub를 유지합니다. 설계한 순서이며 실제 복귀는 아직 시험하지 않았습니다.",
   "participants": [
-    { "id": "edge", "label": "edge" },
+    { "id": "edge", "label": "edge 게이트웨이" },
     { "id": "hub", "label": "hub (Kuma 포함)" },
-    { "id": "gha", "label": "GitHub Actions 러너" },
+    { "id": "gha", "label": "Actions 러너" },
     { "id": "aws", "label": "AWS IAM·Route53" }
   ],
   "steps": [
