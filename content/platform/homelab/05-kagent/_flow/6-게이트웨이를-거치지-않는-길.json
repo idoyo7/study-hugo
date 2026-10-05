@@ -1,0 +1,27 @@
+{
+  "caption": "게이트웨이의 IP 제한은 UI로 들어오는 길에만 걸려 있어, 클러스터 안의 다른 파드는 controller API와 tool server에 직접 닿을 수 있습니다. NetworkPolicy가 없는 2026-10-05 상태이며 직접 호출해 보지는 않았습니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "out", "label": "클러스터 밖", "members": ["ext"] },
+    { "id": "gwns", "label": "istio-system", "members": ["gw"] },
+    { "id": "oth", "label": "다른 네임스페이스", "members": ["other"] },
+    { "id": "ns", "label": "kagent", "members": ["ui", "ctl", "tools"] }
+  ],
+  "nodes": [
+    { "id": "ext", "col": 0, "row": 0, "label": "외부 요청", "kind": "src" },
+    { "id": "gw", "col": 1, "row": 0, "label": "인그레스 게이트웨이", "sub": "IP 제한", "kind": "query" },
+    { "id": "other", "col": 1, "row": 2, "label": "임의의 파드", "kind": "src" },
+    { "id": "ui", "col": 2, "row": 0, "label": "UI", "kind": "proc" },
+    { "id": "ctl", "col": 2, "row": 1, "label": "controller", "sub": "인증 없는 API", "kind": "proc" },
+    { "id": "tools", "col": 2, "row": 2, "label": "tool server", "sub": "cluster-admin", "kind": "proc" },
+    { "id": "api", "col": 3, "row": 2, "label": "kube-apiserver", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "ext", "to": "gw", "label": "HTTPS" },
+    { "from": "gw", "to": "ui", "label": "허용 IP" },
+    { "from": "ui", "to": "ctl", "label": "/api" },
+    { "from": "other", "to": "ctl", "label": "API", "dashed": true },
+    { "from": "other", "to": "tools", "label": "MCP", "dashed": true },
+    { "from": "tools", "to": "api", "label": "API 호출" }
+  ]
+}
