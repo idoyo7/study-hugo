@@ -13,14 +13,14 @@ sidebar:
 # 03 · STT 원문 — 에이전트, 개념부터 같이 정리해봐요
 
 {{< callout type="info" >}}
-이 문서는 발표 영상(1시간 5분 36초)을 faster-whisper `large-v3-turbo`(CPU, int8, VAD 사용)로 자동 전사한 **원본 출력**입니다. 오인식("채찍 PT", "와일루프", "클로즈닷 MD" 등)과 말버릇을 고치지 않았고, 타임스탬프는 whisper가 나눈 구간의 시작 시각입니다.
-
-49:11 구간은 turbo 전사가 약 30초를 놓친 자리입니다. 원문은 그대로 두고, 같은 구간을 `large-v3`로 다시 전사한 결과를 해당 줄 아래 인용으로 덧붙였습니다.
-
-슬라이드와 대조해 다듬은 전사는 [02 발표 전사]({{< relref "/engineering/ai-tools/03-agent-concepts/02-transcript/index.md" >}}), 정리 글은 [01 개념 정리]({{< relref "/engineering/ai-tools/03-agent-concepts/01-concepts/index.md" >}})에 있습니다.
+발표 영상(1시간 5분 36초)을 faster-whisper `large-v3-turbo`(CPU, int8, VAD 사용)로 자동 전사한 원본 출력입니다. 오인식("채찍 PT", "와일루프", "클로즈닷 MD" 등)과 말버릇은 그대로이며, 각 타임스탬프는 whisper가 나눈 구간의 시작 시각입니다.
 
 원본: [NAVER D2 글](https://d2.naver.com/helloworld/8118359) · [NAVER D2 클립 채널](https://clip.naver.com/@devrel_d2)
 {{< /callout >}}
+
+슬라이드와 대조해 읽으려면 [02 발표 전사]({{< relref "/engineering/ai-tools/03-agent-concepts/02-transcript/index.md" >}}), 개념과 설계 논점은 [01 개념 정리]({{< relref "/engineering/ai-tools/03-agent-concepts/01-concepts/index.md" >}})로 이어집니다.
+
+49:11에는 turbo 전사가 약 30초를 놓친 구간이 있습니다. 그 출력은 그대로 보존하고, 같은 구간을 `large-v3`로 다시 전사한 결과를 해당 줄 아래 인용으로 덧붙였습니다. 본문에서 원본 출력과 보완 전사를 구분해 읽을 수 있습니다.
 
 **[00:00:00]** 일단 오늘 테크 밋업 주제는 제가 에이전트 개념부터 같이 정리해보자 라는 좀 이제 어찌 보면 되게 모호한 주제를 잡았는데요. 일단 에이전트를 이 주제로 왜 테크 밋업을 열었는지 일단 배경을 설명을 드릴게요.
 

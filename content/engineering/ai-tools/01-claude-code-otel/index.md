@@ -11,14 +11,14 @@ url: "/ai-tools/01-claude-code-otel/"
 # Claude Code 관측 — 토큰이 어디로 새는지 숫자로 보기
 
 {{< callout type="info" >}}
-10월 초에 수집 경로가 otel-gateway·VictoriaLogs·Tempo에서 HyperDX 컬렉터로 바뀌었습니다. 2026-10-04에 설정·경로·대시보드 쿼리 설명은 지금 기준으로 고쳤고, 함정과 수치를 적은 절은 당시 경로 기준 기록으로 표시해 두었습니다. 바뀐 과정은 [관측 스택 일원화]({{< relref "/platform/homelab/03-observability-consolidation/index.md" >}})에 있습니다.
+2026-10-04 현재 Claude Code는 HyperDX 컬렉터로 보내며, 로그·트레이스는 ClickHouse에, 메트릭은 VictoriaMetrics에 저장합니다. otel-gateway·VictoriaLogs·Tempo를 쓰던 시기의 장애와 측정값은 당시 조건을 붙여 구분했습니다. 수집 경로를 바꾼 과정은 [관측 스택 일원화]({{< relref "/platform/homelab/03-observability-consolidation/index.md" >}})에 있습니다.
 {{< /callout >}}
 
-[홈랩 개발환경 편]({{< relref "/platform/homelab/02-dev-workspace/index.md" >}})의 code-server 터미널에서 하루 종일 Claude Code를 돌립니다. 얼마를 쓰는지는 `/cost`로 그때그때 볼 수 있지만, 어느 에이전트가 먹는지, 세션을 새로 열 때마다 얼마가 고정비로 나가는지, 훅이 몇 분을 잡아먹는지는 안 보입니다. 이 글은 그걸 hub 클러스터의 관측 스택(VictoriaMetrics·ClickHouse·Grafana)으로 끌어온 하루치 기록입니다. 공식 문서는 [monitoring-usage](https://code.claude.com/docs/ko/monitoring-usage) 한 장이고, 실제로 발목을 잡은 건 문서 밖에 있었습니다.
+[홈랩 개발환경 편]({{< relref "/platform/homelab/02-dev-workspace/index.md" >}})의 code-server 터미널에서 Claude Code를 사용합니다. `/cost`로 그때그때 비용을 볼 수 있지만, 에이전트별 사용량이나 세션을 새로 열 때의 고정비, 훅이 차지하는 시간까지 비교하기는 어렵습니다. 이를 확인하려고 hub의 VictoriaMetrics·ClickHouse·Grafana로 텔레메트리를 모았습니다. 수집을 붙인 첫날의 관측에 이후 경로 변경과 백필 구성을 함께 기록한 글입니다. 공식 설정 문서는 [monitoring-usage](https://code.claude.com/docs/ko/monitoring-usage)를 참고했습니다.
 
 ## 어디로 보내나
 
-hub의 HyperDX(ClickStack)용 OTel 컬렉터 `hdx-otel-collector`에는 인증 없는 내부 입구(`otlp/ingest`, HTTP 4328)가 열려 있고, Claude Code는 메트릭·트레이스·이벤트를 전부 여기로 보냅니다. 컬렉터는 트레이스와 로그를 ClickHouse에 쓰고 메트릭은 OTLP 그대로 VictoriaMetrics에 넣습니다. spanmetrics 커넥터가 스팬에서 RED 메트릭을 만드는 것은 예전과 같고 시리즈 이름도 `traces_spanmetrics_*` 그대로입니다. Claude Code의 이벤트(user_prompt, api_request, tool_result 같은 것)는 OTLP logs로 나가므로 컬렉터의 로그 파이프라인이 받아 `otel_logs`에 적재합니다.
+Claude Code는 메트릭·트레이스·이벤트를 모두 HyperDX(ClickStack)용 OTel 컬렉터 `hdx-otel-collector`로 보냅니다. hub 내부에서 사용하는 인증 없는 입구(`otlp/ingest`, HTTP 4328)입니다. 컬렉터는 로그와 트레이스를 ClickHouse에 쓰고, 메트릭은 OTLP로 VictoriaMetrics에 전달합니다. user_prompt, api_request, tool_result 같은 이벤트는 OTLP logs로 전송돼 `otel_logs`에 적재됩니다. spanmetrics 커넥터도 계속 스팬에서 RED 메트릭을 만들며, 시리즈 이름은 `traces_spanmetrics_*`입니다.
 
 설정은 `~/.claude/settings.json`의 `env` 블록 하나입니다. 환경변수는 프로세스 시작 때만 읽히니 이미 떠 있는 세션엔 적용되지 않습니다.
 
@@ -50,27 +50,13 @@ hub의 HyperDX(ClickStack)용 OTel 컬렉터 `hdx-otel-collector`에는 인증 �
 
 ClickHouse는 최근 7일을 node1의 local-path에 두고 90일까지는 SeaweedFS의 S3(cold)에 보관합니다. 이벤트 보존이 7일에서 90일로 늘었습니다.
 
-프롬프트 본문은 기본값대로 `<REDACTED>`로 나갑니다. `OTEL_LOG_TOOL_DETAILS=1`은 나중에 켰습니다. 이 옵션이 있어야 Bash 명령 문자열과 커스텀 에이전트 이름이 `custom`으로 뭉개지지 않고 나옵니다.
+프롬프트 본문은 기본값대로 `<REDACTED>`로 보냅니다. 나중에 추가한 `OTEL_LOG_TOOL_DETAILS=1`은 Bash 명령 문자열과 커스텀 에이전트 이름을 내보내는 옵션입니다. 이 값이 없으면 커스텀 에이전트 이름 등이 `custom`으로 합쳐집니다.
 
-## 함정 하나: 메트릭만 안 들어온다
+## 세션별 토큰을 합산하는 쿼리 {#함정-둘-첫-샘플을-버리는-increase}
 
-이 절은 otel-gateway를 거치던 당시 경로 기준입니다.
+Claude Code는 cumulative 메트릭을 보내고 세션마다 `session_id` 레이블이 다른 새 시리즈를 만듭니다. 각 시리즈가 0부터 시작하므로 첫 샘플을 합계에 포함하는지가 중요합니다. 다음 문제는 gateway를 쓰던 때 발견했지만, 원인이 VictoriaMetrics의 `increase()` 동작이라 현재 경로에도 적용됩니다.
 
-haiku로 테스트 세션을 돌리자 VictoriaLogs에 이벤트가 쌓이고 Tempo에 트레이스가 잡혔습니다. 메트릭만 없었습니다. 게이트웨이 로그에도 아무것도 남지 않았습니다.
-
-원인은 temporality입니다. Claude Code의 메트릭 기본값이 `delta`이고 prometheusremotewrite exporter는 delta 카운터를 에러 없이 버립니다. 그런데 리소스 속성으로 만든 `target_info` 시리즈는 VictoriaMetrics에 들어와 있었습니다. 배치는 도착했는데 데이터포인트만 사라진 모양이라 이 조합을 보고 temporality를 의심했습니다. `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative` 한 줄로 끝났습니다.
-
-며칠 뒤 같은 게이트웨이에 `deltatocumulative` 프로세서가 붙었습니다. Codex CLI는 delta로 고정돼 있어 설정으로 바꿀 수 없기 때문입니다. 이제 delta도 통과하지만 Claude Code 쪽은 cumulative를 그대로 둡니다.
-
-지금은 게이트웨이가 없습니다. 컬렉터가 메트릭을 remote write를 거치지 않고 OTLP로 VictoriaMetrics에 바로 넣기 때문에 delta도 버려지지 않고, 컬렉터 이미지에는 deltatocumulative가 없어서 delta는 delta 그대로 저장됩니다. Claude Code의 cumulative 설정은 그대로입니다.
-
-## 함정 둘: 첫 샘플을 버리는 increase()
-
-당시 경로 기준으로 썼지만 원인이 수집 경로가 아니라 VictoriaMetrics의 `increase()` 동작이라서, 경로를 바꾼 지금도 같은 함정입니다.
-
-메트릭이 들어온 뒤에도 토큰 합계가 0이었습니다. 비용과 세션 수는 맞는데 토큰만 0이었습니다.
-
-Claude Code는 세션마다 `session_id` 레이블이 다른 새 시리즈를 만들고 0부터 셉니다. VictoriaMetrics의 `increase()`는 새 시리즈의 첫 샘플을 보고 "이미 큰 값이면 원래 있던 카운터"로 판단해 무시합니다. 비용 0.003이나 세션 1처럼 작은 값은 0에서 시작한 것으로 보고 세어 주고 토큰 22,125는 버립니다. 그래서 절반만 맞았습니다.
+VictoriaMetrics의 `increase()`는 새 시리즈의 첫 샘플이 크면 이전부터 있던 카운터로 보고 무시합니다. 비용 0.003이나 세션 1처럼 작은 값은 0부터 시작한 것으로 세지만, 첫 토큰 샘플 22,125는 버렸습니다. 비용과 세션 수는 맞는데 토큰 합계만 0이 나온 이유입니다.
 
 | 쿼리 | 결과 |
 |---|---|
@@ -81,20 +67,22 @@ MetricsQL의 `increase_pure()`는 카운터가 항상 0에서 시작한다고 �
 
 ## 대시보드 셋
 
-공개 대시보드부터 찾았습니다. grafana.com의 [25255 Claude Code Metrics (Prometheus)](https://grafana.com/grafana/dashboards/25255-claude-code-metrics-prometheus/)가 메트릭 이름과 레이블이 지금 들어오는 데이터와 그대로 맞았습니다. 대신 VictoriaMetrics에서 쓰려면 손볼 곳이 있었습니다.
+grafana.com의 [25255 Claude Code Metrics (Prometheus)](https://grafana.com/grafana/dashboards/25255-claude-code-metrics-prometheus/)는 수집한 메트릭 이름과 레이블에 맞았습니다. VictoriaMetrics에서 사용할 때는 쿼리와 패널 동작을 바꿨습니다.
 
-- `increase()`와 `rate()` 27곳을 `increase_pure()`로
-- 단일값 패널 20개를 range 쿼리에서 instant로. 원본은 7d 범위에서 7일짜리 창을 1,000번 계산하고 step 정렬 때문에 방금 들어온 샘플을 놓칩니다
-- 구간 합계 시계열은 선 대신 막대로. 세션이 드문드문이라 선은 0을 잇는 톱니가 됩니다
-- `sum(rate(X)) by (k) * 3600` 형태를 `by` 절 때문에 못 잡아 값이 수백 배 부풀던 제 변환 버그 하나
+- `increase()`와 `rate()` 27곳을 `increase_pure()`로 바꿨습니다.
+- 단일값 패널 20개는 range 쿼리에서 instant로 바꿨습니다. 원본은 7d 범위에서 7일짜리 창을 1,000번 계산하고 step 정렬 때문에 방금 들어온 샘플을 놓칩니다.
+- 구간 합계 시계열은 막대로 표시했습니다. 세션이 드문드문 발생해 선으로 이으면 0과 관측값 사이를 반복해서 오가기 때문입니다.
+- `sum(rate(X)) by (k) * 3600` 형태에서 `by` 절 때문에 변환하지 못하던 버그도 고쳤습니다. 이 오류로 값이 수백 배 부풀었습니다.
 
-여기에 자체 대시보드 둘을 더했습니다. **Usage**는 25255가 다루지 않는 spanmetrics 지연 p50/p95와 최근 트레이스 표(`otel_traces`), 이벤트 스트림(`otel_logs`)을 담습니다. **Optimization**은 아래에서 다룰 사용 패턴 분석용입니다.
+25255에서 다루지 않는 데이터는 자체 대시보드에 담았습니다. Usage는 spanmetrics 지연 p50/p95, 최근 트레이스 표(`otel_traces`), 이벤트 스트림(`otel_logs`)을 보여 줍니다. Optimization은 세션 시작 비용, 캐시, 훅 등 사용 패턴을 분석합니다.
 
-셋 다 `victoria-metrics` 네임스페이스의 ConfigMap(라벨 `vm_grafana_dashboard=1`)으로 Grafana 사이드카가 읽어 갑니다. 처음에는 JSON을 손으로 만지지 않고 생성 스크립트 하나가 25255 원본을 패치하고 자체 대시보드를 조립해 매니페스트 하나로 뽑았습니다. 그 파일이 montstrap의 `hub/opentelemetry/manifests/`에 들어가 argocd가 관리합니다. 이 스크립트는 아직 VictoriaLogs를 전제로 하고 있어서 지금은 git의 YAML을 원본으로 봅니다.
+대시보드 셋은 `victoria-metrics` 네임스페이스의 ConfigMap에 있으며 Grafana 사이드카가 `vm_grafana_dashboard=1` 라벨을 보고 읽습니다. montstrap의 `hub/opentelemetry/manifests/`에 둔 YAML을 argocd로 배포합니다. 처음에는 생성 스크립트가 25255 원본을 패치하고 자체 대시보드를 조립해 매니페스트 하나를 만들었습니다. 이 스크립트는 아직 VictoriaLogs 기준이므로 현재 수정 원본은 git의 YAML입니다.
 
-이벤트 패널은 ClickHouse-HyperDX 데이터소스(uid `clickhouse-hdx`)로 `default.otel_logs`를 SQL로 읽습니다. 쿼리 형태에 규칙이 있어서 적어 둡니다. Claude Code 이벤트는 `ScopeName`과 `ServiceName`으로 고르고, 이벤트 종류는 `LogAttributes['event.name']`, 사용자는 `ResourceAttributes['workspace.user']`로 거릅니다. 이벤트의 숫자 필드도 `LogAttributes` 맵에 문자열로 들어 있어서 `toFloat64OrNull()`로 바꿔야 집계됩니다.
+이벤트 패널은 ClickHouse-HyperDX 데이터소스(uid `clickhouse-hdx`)에서 `default.otel_logs`를 SQL로 읽습니다. Claude Code 이벤트는 `ScopeName`과 `ServiceName`으로 고르고, 이벤트 종류는 `LogAttributes['event.name']`, 사용자는 `ResourceAttributes['workspace.user']`로 거릅니다. 숫자 필드도 `LogAttributes` 맵에는 문자열로 저장되므로 집계하려면 `toFloat64OrNull()`로 변환해야 합니다.
 
 시간 범위는 `$__timeFilter(Timestamp)`, 시계열의 시간 버킷은 `$__timeInterval(Timestamp)` 매크로로 씁니다. 시계열 쿼리는 `time` 열에 값 열을 붙이고, 계열 이름이 필요하면 문자열 `series` 열을 둡니다. 단일값과 표는 쿼리 형식을 Table로 두고, 로그 패널은 `timestamp`, `body`, `level`, `labels` 열을 맞춥니다. 조건부 집계는 `countIf()`, JSON 문자열 필드는 `JSONExtractString()`으로 꺼냅니다.
+
+Optimization 대시보드의 '서브에이전트 토큰 (agent_type 별)' 패널은 이 규칙으로 작성했습니다.
 
 ```sql
 SELECT $__timeInterval(Timestamp) AS time,
@@ -110,11 +98,9 @@ GROUP BY time, series
 ORDER BY time
 ```
 
-Optimization 대시보드의 '서브에이전트 토큰 (agent_type 별)' 패널입니다.
+## 세션 시작 비용과 훅 실행 시간 {#첫-인사이트-세션-시작이-열-배}
 
-## 첫 인사이트: 세션 시작이 열 배
-
-이 절의 수치와 패널 수는 이벤트를 VictoriaLogs로 받던 당시 값입니다.
+이 절의 비용·훅 수치와 패널 수는 이벤트를 VictoriaLogs에 저장하던 시기의 기록입니다.
 
 테스트 세션 여섯 요청의 api_request 이벤트만으로도 패턴이 보였습니다.
 
@@ -123,7 +109,7 @@ Optimization 대시보드의 '서브에이전트 토큰 (agent_type 별)' 패널
 | 세션 첫 요청 | 7,657 | 14,468 | $0.031 |
 | 이후 요청 | 22k~24k | 0~1,300 | $0.003~0.006 |
 
-시스템 프롬프트, 도구 정의, CLAUDE.md, 스킬 목록 14k 토큰을 캐시에 새로 쓰는 비용입니다. haiku라 $0.03이지만 opus면 $0.1 안팎이고 fable이면 그 두 배입니다. `claude -p`를 자주 돌리는 스크립트가 있으면 이 고정비가 쌓입니다.
+첫 요청에는 시스템 프롬프트, 도구 정의, CLAUDE.md, 스킬 목록 14k 토큰을 캐시에 새로 쓰는 비용이 들었습니다. 당시 haiku 기준으로 $0.03이며, opus로 환산하면 $0.1 안팎, fable이면 그 두 배입니다. `claude -p`를 자주 실행하는 스크립트에서는 이 세션 시작 비용이 반복됩니다.
 
 지금은 같은 이벤트가 ClickHouse `otel_logs`에 들어옵니다. Optimization 대시보드의 '콜드 스타트 요청' 패널은 `cache_creation_tokens`가 8,000을 넘는 `api_request`를 콜드 스타트로 셉니다.
 
@@ -138,13 +124,13 @@ WHERE ScopeName = 'com.anthropic.claude_code.events'
   AND $__timeFilter(Timestamp)
 ```
 
-훅도 수치가 나옵니다. 세션마다 훅 105개가 등록되고 프롬프트 하나에 UserPromptSubmit 100ms, Read 한 번에 Pre/Post 180ms가 붙습니다. `hook_execution_complete` 이벤트가 `hook_name`별 소요시간을 주니 도구 호출이 수백 번인 세션에서 어느 훅이 느린지 바로 드러납니다.
+훅 실행 시간은 `hook_execution_complete` 이벤트의 `hook_name`별 소요시간으로 확인했습니다. 당시 세션마다 훅 105개가 등록됐고, 프롬프트 하나에 UserPromptSubmit 100ms, Read 한 번에 Pre/Post 180ms가 추가됐습니다. 도구를 수백 번 호출하는 세션에서는 이 시간이 누적됩니다.
 
-Optimization 대시보드는 이런 축으로 6개 행, 37패널입니다. 세션 시작 고정비와 캐시 미스, query_source × agent × model × effort 비용 교차표, 마라톤 세션의 컨텍스트 성장, 훅 오버헤드, 압축·429·재시도, 도구별 호출·실패·결과 크기. 메트릭에 `agent.name`, `skill.name`, `effort`, `query_source`(main/subagent/auxiliary) 레이블이 붙기 때문에 CLAUDE.md의 티어 규칙(explore는 haiku, executor는 sonnet, architect는 opus)이 실제로 지켜지는지 여기서 확인합니다.
+당시 Optimization 대시보드는 6개 행, 37패널이었습니다. 세션 시작 고정비·캐시 미스, query_source × agent × model × effort 비용 교차표, 마라톤 세션의 컨텍스트 성장, 훅 오버헤드, 압축·429·재시도, 도구별 호출·실패·결과 크기를 다뤘습니다. 메트릭의 `agent.name`, `skill.name`, `effort`, `query_source`(main/subagent/auxiliary) 레이블로 CLAUDE.md의 티어 규칙(explore는 haiku, executor는 sonnet, architect는 opus)이 실제로 지켜지는지도 확인했습니다.
 
 ## 프리픽스는 무엇으로 이루어졌나
 
-콜드 스타트 14k 토큰이 무엇인지는 OTel이 알려주지 않습니다. 대신 `/context`가 알려줍니다. 공식 내장 명령이고 `claude -p '/context'`로 비대화형 실행이 됩니다. 로컬에서 추정만 하므로 Messages API를 부르지 않습니다. 실행 전후 api_request 이벤트 수가 그대로인 것으로 확인했습니다.
+OTel 이벤트에는 콜드 스타트에 쓰인 14k 토큰의 구성 항목이 나오지 않습니다. 이를 확인할 때는 내장 명령 `/context`를 사용했습니다. `claude -p '/context'`로 비대화형 실행할 수 있고, 로컬 추정만 하므로 Messages API를 부르지 않습니다. 실행 전후 api_request 이벤트 수가 그대로인 것도 확인했습니다.
 
 | 구성 요소 | 토큰 | 비고 |
 |---|---|---|
@@ -156,7 +142,7 @@ Optimization 대시보드는 이런 축으로 6개 행, 37패널입니다. 세�
 | MCP tools (deferred) | 8.6k ~ 61.1k | 실행마다 다름 |
 | System tools (deferred) | 15.7k | |
 
-첫 요청에 캐시로 쓰이는 건 deferred를 뺀 16.6k입니다. 앞서 본 cache_creation 14.5k와 맞습니다. MCP 도구는 이름만 실리고 스키마는 ToolSearch로 불러올 때 들어옵니다. MCP는 콜드 스타트 비용이 아니라 세션 중 로드 비용입니다. MCP 수치가 실행마다 61k와 8.6k로 달라진 이유는 Notion MCP 연결 여부였고 Notion 도구 하나(`notion-query-data-sources`)가 19.7k입니다. 연결 자체의 불안정은 `mcp_server_connection` 이벤트로 따로 잡힙니다.
+deferred 항목을 제외한 합계는 16.6k였고, 앞의 api_request 이벤트에서 본 cache_creation은 14.5k였습니다. MCP 도구는 이름만 미리 실리며 스키마는 ToolSearch로 불러올 때 추가됩니다. 따라서 MCP 도구 스키마는 세션 중 로드 비용에 해당합니다. MCP 수치가 실행마다 61k와 8.6k로 달랐던 이유는 Notion MCP 연결 여부였고, Notion 도구 하나(`notion-query-data-sources`)가 19.7k였습니다. 연결 불안정은 별도의 `mcp_server_connection` 이벤트로 확인합니다.
 
 이 표를 매일 07:30에 찍어 VictoriaMetrics 게이지로 넣는 프로브를 만들었습니다. 프로브 세션이 세션 수에 잡히지 않도록 `--settings '{"env":{"CLAUDE_CODE_ENABLE_TELEMETRY":"0"}}'`로 텔레메트리를 끄고 돕니다. 스케줄러는 pod 안에 이미 있던 supercronic 방식을 따라 별도 crontab으로 두고 `~/.workspace-init.sh`에서 pod 기동 시 다시 띄웁니다. 기존 warmup crontab은 `render`가 통째로 다시 쓰기 때문에 섞지 않았습니다.
 
@@ -164,9 +150,11 @@ Optimization 대시보드는 이런 축으로 6개 행, 37패널입니다. 세�
 
 OTel은 켠 시점부터 쌓이는 스트림입니다. 지난 세션은 `~/.claude/projects/**/*.jsonl` 트랜스크립트에 있습니다. assistant 레코드마다 `message.model`과 `message.usage`가 남아 있고 usage에는 cache write가 5분 TTL과 1시간 TTL로 나뉘어 있어 단가 계산이 맞아떨어집니다.
 
-트랜스크립트의 함정은 둘이었습니다. 같은 `requestId`가 content block마다 반복되므로 requestId로 묶지 않으면 두세 배로 셉니다. 그리고 서브에이전트 파일은 `<session>/subagents/agent-*.jsonl` 말고 `subagents/workflows/<wf_id>/` 아래에 훨씬 많습니다. 처음 훑었을 때 539개 파일만 잡혔는데 경로를 다시 보니 Workflow 에이전트 4,525개가 더 있었습니다.
+트랜스크립트에서는 중복 요청과 파일 탐색 범위를 주의해야 했습니다. 같은 `requestId`가 content block마다 반복되므로 requestId로 묶지 않으면 두세 배로 셉니다. 서브에이전트 파일도 `<session>/subagents/agent-*.jsonl` 외에 `subagents/workflows/<wf_id>/` 아래에 더 많았습니다. 처음 찾은 539개 파일에 Workflow 에이전트 파일 4,525개를 추가했습니다.
 
-백필 스크립트는 이걸 읽어 OTel과 같은 이름의 누적 카운터로 VictoriaMetrics에 넣습니다. 레이블에 `source="backfill"`과 `query_source=main|subagent|workflow`를 붙이고 OTel로 이미 나간 session_id와 텔레메트리를 켠 뒤 시작한 세션은 건너뜁니다. api_request 이벤트는 7일 안쪽 것만 보냅니다. 처음에는 VictoriaLogs에 jsonline으로 넣었고, 2026-10-04부터는 hdx 컬렉터(`:4328/v1/logs`)에 OTLP로 보내 ClickHouse `otel_logs`에 들어갑니다. 실제 Claude Code 이벤트와 같은 Scope·Service·Body로 보내고 `backfill=true`를 붙입니다. 자라는 트랜스크립트는 매일 다시 읽히기 때문에, 보낸 `request_id`를 기록해 같은 요청은 한 번만 보냅니다.
+백필 스크립트는 트랜스크립트를 읽어 OTel과 같은 이름의 누적 카운터를 VictoriaMetrics에 넣습니다. 레이블은 `source="backfill"`, `query_source=main|subagent|workflow`를 붙입니다. OTel로 이미 나간 session_id와 텔레메트리를 켠 뒤 시작한 세션은 건너뛰어 중복 집계를 피합니다.
+
+api_request 이벤트는 7일 안쪽 것만 보냅니다. 처음에는 VictoriaLogs에 jsonline으로 넣었지만, 2026-10-04부터는 hdx 컬렉터(`:4328/v1/logs`)로 OTLP를 보내 ClickHouse의 `otel_logs`에 적재합니다. 실제 Claude Code 이벤트와 같은 Scope·Service·Body를 쓰고 `backfill=true`를 붙입니다. 계속 자라는 트랜스크립트를 매일 다시 읽으므로 전송한 `request_id`를 기록해 같은 요청을 한 번만 보냅니다.
 
 | 항목 | 값 |
 |---|---|
@@ -175,20 +163,33 @@ OTel은 켠 시점부터 쌓이는 스트림입니다. 지난 세션은 `~/.clau
 | 토큰 | 53.5억 |
 | 추정 비용 | $5,285 (API 단가 환산) |
 
-모델별로는 opus-5 $2,487, fable-5 $1,402, opus-4-8 $679, sonnet-5 $454. 출처별로는 main $3,727, workflow $1,048, subagent $533입니다. 구독으로 쓰고 있어 청구액과는 다르지만 OTel의 cost 메트릭도 같은 방식이라 서로 비교는 됩니다. 백필 스크립트는 지금도 매일 07:35에 돕니다. 최근 실행 기록은 `sessions=0`, `events=0`입니다. 새 세션은 모두 OTel로 직접 나가서 백필할 세션이 없습니다.
+기록된 총수 5,065개와 항목별 합계 5,064개가 1건 달라 파일 수는 재확인이 필요합니다.
+
+모델별로는 opus-5 $2,487, fable-5 $1,402, opus-4-8 $679, sonnet-5 $454입니다. 출처별로는 main $3,727, workflow $1,048, subagent $533입니다. 구독으로 쓰고 있어 청구액과는 다르지만 OTel의 cost 메트릭도 같은 방식이라 서로 비교는 됩니다. 백필 스크립트는 지금도 매일 07:35에 돕니다. 최근 실행 기록은 `sessions=0`, `events=0`입니다. 새 세션은 모두 OTel로 직접 나가서 백필할 세션이 없습니다.
 
 ## 그래프가 끊기는 이유
 
-백필 뒤 그래프 중간이 비어 보였습니다. 데이터 누락이 아니었습니다.
+백필 데이터를 조회할 때 그래프에 빈 구간이 생겼습니다. 저장량과 조회 결과를 대조하니 수집 누락이 아니라 샘플 간격과 vmselect 설정의 영향이었습니다.
 
 vmselect가 `search.maxStalenessInterval=30s`라 30초 이상 샘플이 없으면 그 시점엔 시리즈가 없는 것으로 칩니다. 요청이 있을 때만 샘플이 생기는 카운터라 요청 없는 구간은 값이 아예 없고 선이 끊깁니다. 12시간을 10분 단위로 조회하면 73칸 중 11칸에만 값이 있었습니다. 구간 합계 패널은 "없음"이 곧 0이므로 쿼리 끝에 MetricsQL `default 0`을 붙였습니다. 지연 p50/p95 같은 비율 패널엔 붙이지 않았습니다. 0ms는 거짓이기 때문입니다.
 
-저장된 샘플 수가 밀어 넣은 수의 31%인 것도 놀랐습니다. `dedup.minScrapeInterval=30s`가 30초 안의 요청 여러 개를 마지막 하나로 합친 결과입니다. 누적 카운터라 합계는 보존됩니다. 모델별 비용 합계가 백필 추정치와 맞는 것으로 확인했습니다.
+저장된 샘플 수는 전송한 수의 31%였습니다. `dedup.minScrapeInterval=30s`가 30초 안의 여러 요청을 마지막 샘플 하나로 합친 결과입니다. 누적 카운터이므로 합계는 보존되며, 모델별 비용 합계가 백필 추정치와 맞는 것으로 확인했습니다.
+
+## 이전 gateway에서 메트릭이 빠졌던 이유 {#함정-하나-메트릭만-안-들어온다}
+
+다음은 otel-gateway가 메트릭을 prometheusremotewrite exporter로 보내던 시기의 장애 기록입니다. 현재의 HyperDX 컬렉터·OTLP 직결 경로에는 이 gateway가 없습니다.
+
+haiku로 테스트 세션을 돌리자 VictoriaLogs에 이벤트가 쌓이고 Tempo에 트레이스가 잡혔습니다. 메트릭만 없었습니다. 게이트웨이 로그에도 아무것도 남지 않았습니다.
+
+원인은 temporality입니다. Claude Code의 메트릭 기본값이 `delta`이고 prometheusremotewrite exporter는 delta 카운터를 에러 없이 버립니다. 그런데 리소스 속성으로 만든 `target_info` 시리즈는 VictoriaMetrics에 들어와 있었습니다. 배치는 도착했는데 데이터포인트만 사라진 모양이라 이 조합을 보고 temporality를 의심했습니다. `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative`로 바꾼 뒤 메트릭이 들어왔습니다.
+
+며칠 뒤 같은 게이트웨이에 `deltatocumulative` 프로세서가 붙었습니다. Codex CLI는 delta로 고정돼 있어 설정으로 바꿀 수 없기 때문입니다. 이 변경 뒤 gateway에서 delta도 처리하게 됐지만 Claude Code의 cumulative 설정은 유지했습니다.
+
+현재 컬렉터는 remote write를 거치지 않고 OTLP로 VictoriaMetrics에 직접 보내므로 delta도 버리지 않습니다. 컬렉터 이미지에는 deltatocumulative가 없어 delta 입력은 그대로 저장됩니다. Claude Code는 cumulative 설정을 유지하고 있어 이 기록의 gateway 설정을 다시 적용할 필요는 없습니다.
 
 ## 남은 것
 
 - 같은 code-server에 있는 다른 사용자 pod 둘은 각자 홈의 settings.json이라 아직 아무것도 안 들어가 있습니다.
 - Bash 명령별 집계는 [02편]({{< relref "/engineering/ai-tools/02-codex-otel/index.md" >}})에서 패널로 만들었습니다. 지금은 `tool_parameters` JSON 문자열에서 `bash_command`를 ClickHouse의 `JSONExtractString()`으로 꺼냅니다.
-- 대시보드를 만들던 생성 스크립트는 아직 VictoriaLogs를 전제로 만들어져 있습니다. 이제는 git의 YAML을 원본으로 봅니다.
 - 이관한 이벤트 패널은 SQL이 실행되는 것까지만 확인했습니다. 그룹 시계열 범례 같은 화면 렌더링은 Grafana에서 따로 확인해야 합니다.
-- montstrap을 여러 Claude 세션이 같이 만지다 보니 푸시 직후 다른 세션의 커밋에 제 커밋이 밀려난 적이 있습니다. argocd selfHeal이 클러스터까지 되돌립니다. 푸시 전 rebase, 푸시 후 revision 확인이 필요합니다.
+- montstrap을 여러 Claude 세션이 함께 수정하다가 푸시한 커밋이 다른 세션의 변경에서 빠졌고, argocd selfHeal이 클러스터도 이전 상태로 되돌린 적이 있습니다. 푸시 전 rebase와 푸시 후 revision 확인이 필요합니다.
