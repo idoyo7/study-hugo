@@ -136,13 +136,15 @@ html.dark {
   .hextra-sidebar-collapse svg { transition: transform 0.2s; }
 
   /* 접힘: 폭 3rem 레일만 남기고 문서 트리는 visibility:hidden 으로 포커스·스크린리더에서 뺀다.
-     display:none 이 아니라서 스크롤 위치와 활성 항목 위치가 펼칠 때 그대로 남는다. */
-  html[data-sb-off] .hextra-sidebar-container { width: 3rem; }
-  html[data-sb-off] .hextra-sidebar-container > .hextra-scrollbar { visibility: hidden; }
-  html[data-sb-off] .hextra-sidebar-container > [data-toggle-animation] {
+     display:none 이 아니라서 스크롤 위치와 활성 항목 위치가 펼칠 때 그대로 남는다.
+     사이드바가 꺼진 페이지의 placeholder aside(hx:md:hidden hx:xl:block)는 버튼이 없어 펼 수 없으므로
+     정상 사이드바 클래스(hx:md:sticky)가 붙은 aside 에만 건다. */
+  html[data-sb-off] .hextra-sidebar-container.hx\:md\:sticky { width: 3rem; }
+  html[data-sb-off] .hextra-sidebar-container.hx\:md\:sticky > .hextra-scrollbar { visibility: hidden; }
+  html[data-sb-off] .hextra-sidebar-container.hx\:md\:sticky > [data-toggle-animation] {
     margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; justify-content: center;
   }
-  html[data-sb-off] .hextra-sidebar-container > [data-toggle-animation] > :not(.hextra-sidebar-collapse) { display: none; }
+  html[data-sb-off] .hextra-sidebar-container.hx\:md\:sticky > [data-toggle-animation] > :not(.hextra-sidebar-collapse) { display: none; }
   html[data-sb-off] .hextra-sidebar-collapse { margin-left: 0; }
   html[data-sb-off] .hextra-sidebar-collapse svg { transform: rotate(180deg); }
 }
