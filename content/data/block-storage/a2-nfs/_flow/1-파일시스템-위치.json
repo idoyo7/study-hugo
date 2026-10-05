@@ -1,0 +1,30 @@
+{
+  "caption": "iSCSI와 NVMe-oF에서는 파일시스템이 호스트에 있고, NFS에서는 서버에 있습니다. NFS 경로는 소스와 문서의 조각을 이은 구성이며 한 문서가 통째로 적은 것은 아닙니다(Σ).",
+  "font": 1.2,
+  "nodes": [
+    { "id": "B0", "col": 0, "row": 0, "label": "애플리케이션", "kind": "src" },
+    { "id": "B1", "col": 1, "row": 0, "label": "호스트 파일시스템", "sub": "블록 계층 포함", "kind": "store" },
+    { "id": "B2", "col": 2, "row": 0, "label": "타깃", "sub": "iSCSI·NVMe-oF", "kind": "proc" },
+    { "id": "B3", "col": 3, "row": 0, "label": "백엔드 블록 장치", "kind": "sink" },
+    { "id": "N0", "col": 0, "row": 2, "label": "애플리케이션", "kind": "src" },
+    { "id": "N1", "col": 1, "row": 2, "label": "NFS 클라이언트", "sub": "SunRPC·XDR", "kind": "proc" },
+    { "id": "N2", "col": 2, "row": 2, "label": "nfsd", "sub": "서버 SunRPC", "kind": "proc" },
+    { "id": "N3", "col": 3, "row": 2, "label": "서버 파일시스템", "sub": "XFS·ext4 등", "kind": "store" },
+    { "id": "N4", "col": 4, "row": 2, "label": "블록 계층·장치", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "B0", "to": "B1", "label": "요청", "rate": 600 },
+    { "from": "B1", "to": "B2", "label": "블록", "rate": 600 },
+    { "from": "B2", "to": "B3", "label": "I/O", "rate": 600 },
+    { "from": "N0", "to": "N1", "label": "요청", "rate": 600 },
+    { "from": "N1", "to": "N2", "label": "RPC", "rate": 600 },
+    { "from": "N2", "to": "N3", "label": "VFS", "rate": 600 },
+    { "from": "N3", "to": "N4", "label": "I/O", "rate": 600 }
+  ],
+  "groups": [
+    { "id": "bh", "label": "블록 · 호스트", "members": ["B0", "B1"] },
+    { "id": "bs", "label": "블록 · 타깃 서버", "members": ["B2", "B3"] },
+    { "id": "nh", "label": "NFS · 클라이언트 호스트", "members": ["N0", "N1"] },
+    { "id": "ns", "label": "NFS · 서버", "members": ["N2", "N3", "N4"] }
+  ]
+}

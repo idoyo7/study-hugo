@@ -18,6 +18,7 @@ linkTitle: "블록 스토리지"
 - [02 VM 디스크 경로]({{< relref "/data/block-storage/02-vm-disk-paths/index.md" >}})
 - [03 로컬 디스크와 복제]({{< relref "/data/block-storage/03-local-disk-ha/index.md" >}})
 - [부록 A NVMe HDD]({{< relref "/data/block-storage/a1-nvme-hdd/index.md" >}})
+- [부록 B NFS]({{< relref "/data/block-storage/a2-nfs/index.md" >}})
 
 NVMe SSD가 많이 꽂힌 스토리지 서버의 용량을 여러 호스트와 VM에 나눠 줄 때, 내보내는 방식에 따라 I/O 경로와 오버헤드가 달라집니다. 같은 SSD라도 SCSI 명령으로 바꿔 싣는지, NVMe 명령을 capsule로 싣는지, 호스트에는 어떤 모양의 장치로 보이는지에 따라 요청 하나가 거치는 계층이 달라지기 때문입니다.
 
@@ -35,6 +36,7 @@ iSCSI와 NVMe-oF의 비교는 01, VM 디스크 전달 방식은 02부터 읽으�
 | [02 VM 디스크 경로]({{< relref "/data/block-storage/02-vm-disk-paths/index.md" >}}) | virtio·vhost·vfio-user·직접 할당·DPU 에뮬레이션의 경로 비교와 실측 |
 | [03 로컬 디스크와 복제]({{< relref "/data/block-storage/03-local-disk-ha/index.md" >}}) | 복제를 스토리지와 애플리케이션 중 어디에 둘지, 로컬 디스크의 수명 계약, 워크로드별 HA 가능 여부, 2곳과 3곳의 용량 산술, Kubernetes의 복제 스토리지와 로컬 PV 비교 |
 | [부록 A NVMe HDD]({{< relref "/data/block-storage/a1-nvme-hdd/index.md" >}}) | HDD를 NVMe로 붙이는 두 경로, 규격·제품 상태, 기구 시간 대비 프로토콜 오버헤드, 큐와 액추에이터 |
+| [부록 B NFS]({{< relref "/data/block-storage/a2-nfs/index.md" >}}) | NFS를 iSCSI·NVMe-oF와 한 표에 놓을 수 있는 전송 구조, 놓을 수 없는 쓰기 의미와 캐시, 2004년 실측과 최근 자료의 한계, VM 디스크·볼륨으로 쓸 때, NFS가 맞는 경우 |
 
 ## 비교할 때 함께 볼 조건
 

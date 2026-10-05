@@ -41,7 +41,7 @@ NVMe-oF는 NVMe 명령을 네트워크로 주고받는 규약입니다. 소프�
 
 TCP를 쓰는 경로에는 작은 PDU를 처리하는 TCP/IP 스택, 스레드 전환, 복사와 CRC가 남습니다. 이 비용은 4절에서 살펴봅니다. 벤더 Blockbridge가 보고한 큰 블록 측정에서는 대역폭이 한계에 이르자 NVMe/TCP와 iSCSI의 차이가 거의 없어졌습니다.
 
-이 글의 해석으로는 장치가 느릴수록 같은 전송 오버헤드가 전체 지연에서 차지하는 비중도 작아집니다. HDD가 그 극단이며 [부록 A]({{< relref "/data/block-storage/a1-nvme-hdd/index.md" >}})에서 다룹니다.
+이 글의 해석으로는 장치가 느릴수록 같은 전송 오버헤드가 전체 지연에서 차지하는 비중도 작아집니다. HDD가 그 극단이며 [부록 A]({{< relref "/data/block-storage/a1-nvme-hdd/index.md" >}})에서 다룹니다. 파일 프로토콜인 NFS를 같이 놓은 비교는 [부록 B]({{< relref "/data/block-storage/a2-nfs/index.md" >}})에 있습니다.
 
 이 글이 본 논문 가운데 iSCSI와 같은 조건으로 잰 NVMe-oF는 RDMA뿐입니다. NVMe/TCP와 iSCSI를 함께 잰 자료는 벤더 자료와 Longhorn 벤치마크, StarWind 블로그에 한정됩니다. 이 자료들도 SCSI 처리 제거의 효과만 분리하지는 않았습니다.
 

@@ -1,0 +1,14 @@
+{
+  "caption": "Radkov 외 FAST'04가 1GbE·Linux 2.4 조건에서 잰 PostMark 100,000 트랜잭션의 완료 시간입니다(Ⓑ). 2004년 조건의 값이므로 오늘의 성능 차이로 읽지 않습니다.",
+  "font": 1.1,
+  "note": "서버 933MHz Pentium-III 2개, ext3, TCP. NFS는 v3",
+  "axis": { "kind": "linear", "max": 600, "unit": "초", "ticks": [0, 100, 200, 300, 400, 500, 600] },
+  "lanes": [
+    { "label": "NFS v3", "sub": "파일 1,000개", "segments": [{ "start": 0, "end": 146, "label": "146초", "kind": "src" }] },
+    { "label": "iSCSI", "sub": "파일 1,000개", "segments": [{ "start": 0, "end": 12, "label": "12초", "kind": "proc" }] },
+    { "label": "NFS v3", "sub": "파일 5,000개", "segments": [{ "start": 0, "end": 201, "label": "201초", "kind": "src" }] },
+    { "label": "iSCSI", "sub": "파일 5,000개", "segments": [{ "start": 0, "end": 35, "label": "35초", "kind": "proc" }] },
+    { "label": "NFS v3", "sub": "파일 25,000개", "segments": [{ "start": 0, "end": 516, "label": "516초", "kind": "src" }] },
+    { "label": "iSCSI", "sub": "파일 25,000개", "segments": [{ "start": 0, "end": 208, "label": "208초", "kind": "proc" }] }
+  ]
+}

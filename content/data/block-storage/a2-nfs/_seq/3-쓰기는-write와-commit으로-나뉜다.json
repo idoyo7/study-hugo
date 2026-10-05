@@ -1,0 +1,19 @@
+{
+  "caption": "서버가 UNSTABLE로 응답한 쓰기는 클라이언트가 이어서 보내는 COMMIT에서 확정됩니다. 서버가 안정 저장소까지 내리는지는 export 설정에 달려 있습니다.",
+  "participants": [
+    { "id": "A", "label": "애플리케이션" },
+    { "id": "C", "label": "NFS 클라이언트" },
+    { "id": "S", "label": "nfsd 서버" }
+  ],
+  "steps": [
+    { "msg": ["A", "C"], "label": "1. write()" },
+    { "note": ["C"], "lines": ["마운트가 async(기본)이면", "바로 보내지 않고 모음"] },
+    { "msg": ["A", "C"], "label": "2. fsync() 또는 close()" },
+    { "msg": ["C", "S"], "label": "3. WRITE" },
+    { "msg": ["S", "C"], "label": "4. 응답 UNSTABLE", "dashed": true },
+    { "msg": ["C", "S"], "label": "5. COMMIT" },
+    { "note": ["S"], "lines": ["export sync(기본): 안정 저장소로", "export async: fsync를 건너뜀"] },
+    { "msg": ["S", "C"], "label": "6. COMMIT 응답(verf)", "dashed": true },
+    { "msg": ["C", "A"], "label": "7. fsync() 또는 close() 반환", "dashed": true }
+  ]
+}
