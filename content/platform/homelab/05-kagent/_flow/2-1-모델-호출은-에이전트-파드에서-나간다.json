@@ -1,0 +1,25 @@
+{
+  "caption": "질문은 UI와 controller를 거쳐 에이전트 파드에 닿고, 모델 호출은 controller가 아니라 에이전트 파드에서 클러스터 밖 LLM 엔드포인트로 직접 나갑니다. 인그레스 게이트웨이는 생략했습니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "out", "label": "클러스터 밖", "members": ["br", "llm"] },
+    { "id": "ns", "label": "kagent 네임스페이스", "members": ["ui", "ctl", "pg", "ag", "mcp"] }
+  ],
+  "nodes": [
+    { "id": "br", "col": 0, "row": 0, "label": "브라우저", "kind": "src" },
+    { "id": "llm", "col": 0, "row": 1, "label": "LLM 엔드포인트", "sub": "공급자 API", "kind": "sink" },
+    { "id": "ui", "col": 1, "row": 0, "label": "UI", "sub": "Next.js", "kind": "proc" },
+    { "id": "ctl", "col": 2, "row": 0, "label": "controller", "sub": "API 8083", "kind": "proc" },
+    { "id": "pg", "col": 3, "row": 0, "label": "Postgres", "sub": "세션 기록", "kind": "store" },
+    { "id": "ag", "col": 2, "row": 1, "label": "에이전트 파드", "sub": "Agent CR마다 하나", "kind": "proc" },
+    { "id": "mcp", "col": 3, "row": 1, "label": "MCP 서버", "sub": "tool 실행", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "br", "to": "ui", "label": "HTTPS" },
+    { "from": "ui", "to": "ctl", "label": "/api" },
+    { "from": "ctl", "to": "pg", "label": "세션" },
+    { "from": "ctl", "to": "ag", "label": "A2A" },
+    { "from": "ag", "to": "mcp", "label": "MCP" },
+    { "from": "ag", "to": "llm", "label": "모델 호출", "cross": true }
+  ]
+}

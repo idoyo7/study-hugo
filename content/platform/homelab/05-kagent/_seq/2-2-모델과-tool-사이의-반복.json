@@ -1,0 +1,17 @@
+{
+  "caption": "질문을 받은 에이전트 파드는 모델이 tool을 더 요청하지 않을 때까지 모델 호출과 MCP tool 호출을 번갈아 반복합니다. v0.10.3 소스와 설정에서 읽은 순서이며 실제 호출을 추적한 것은 아닙니다.",
+  "participants": [
+    { "id": "llm", "label": "LLM 엔드포인트" },
+    { "id": "ag", "label": "에이전트 파드" },
+    { "id": "mcp", "label": "MCP 서버" }
+  ],
+  "steps": [
+    { "msg": ["ag", "llm"], "label": "1. 대화 이력 + tool 정의" },
+    { "msg": ["llm", "ag"], "label": "2. tool_calls", "dashed": true },
+    { "msg": ["ag", "mcp"], "label": "3. tools/call" },
+    { "msg": ["mcp", "ag"], "label": "4. 실행 결과", "dashed": true },
+    { "msg": ["ag", "llm"], "label": "5. 이력 + tool 결과" },
+    { "note": ["llm", "ag"], "lines": ["tool_calls가 다시 오면 3~5를 반복"] },
+    { "msg": ["llm", "ag"], "label": "6. 최종 답", "dashed": true }
+  ]
+}
