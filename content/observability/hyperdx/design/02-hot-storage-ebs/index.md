@@ -29,7 +29,7 @@ gp3는 용량과 IOPS·throughput을 따로 지정합니다. 저장량이 늘 �
 | 지연 | single-digit ms | sub-ms가 필요하면 io2 BE |
 | 버스트 여부 | 없음 — provisioned 성능을 무기한 지속 | gp2와 결정적 차이 |
 
-성능에는 비율 제약이 있습니다. IOPS는 볼륨 GiB당 500 이하, throughput은 provisioned IOPS당 0.25 MiB/s 이하입니다. 따라서 2,000 MiB/s에는 최소 8,000 IOPS가, 80,000 IOPS에는 최소 160GiB가 필요합니다. gp2에 비해 GiB당 가격도 20% 낮습니다. 100 GiB gp2·gp3를 fio로 비교한 외부 실측은 [부록 A]({{< relref "/observability/hyperdx/design/a1-ebs-gp2-gp3-benchmark/index.md" >}})에서 본편 설명과 맞춰 읽습니다.
+성능에는 비율 제약이 있습니다. IOPS는 볼륨 GiB당 500 이하, throughput은 provisioned IOPS당 0.25 MiB/s 이하입니다. 따라서 2,000 MiB/s에는 최소 8,000 IOPS가, 80,000 IOPS에는 최소 160GiB가 필요합니다. gp2에 비해 GiB당 가격도 20% 낮습니다. 100 GiB gp2·gp3를 fio로 비교한 atomai kubernetes-docs의 실측은 [부록 A]({{< relref "/observability/hyperdx/design/a1-ebs-gp2-gp3-benchmark/index.md" >}})에서 본편 설명과 맞춰 읽습니다.
 
 최대 IOPS와 throughput을 동시에 내는 I/O 크기는 `2,000 MiB/s ÷ 80,000 = 25.6 KiB`입니다. ClickHouse의 큰 순차 읽기·쓰기에서는 이보다 큰 블록을 처리하므로 IOPS 최대치보다 throughput 한도에 먼저 닿을 가능성이 큽니다.
 

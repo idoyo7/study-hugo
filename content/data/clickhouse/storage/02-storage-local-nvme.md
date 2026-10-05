@@ -55,7 +55,7 @@ RAID나 마운트 부트스트랩, 재복제, 백업까지 운영하려면 그�
 
 > 반론도 있습니다 `Ⓥ`. Altinity는 ClickHouse가 보통 IOPS가 아닌 throughput-bound라 gp3 1~3개면 충분한 경우가 많다고 봅니다. 자체 벤치마크에서는 EBS 기반 m6i.4xlarge가 로컬 NVMe i3.4xlarge를 캐시드 쿼리 전반에서 앞선 사례를 보고했습니다(원인은 스토리지가 아니라 39% 빠른 CPU 클럭 — 데이터가 페이지 캐시에 오르면 디스크 종류보다 CPU 세대가 성능을 좌우합니다). KubeCon 2023 발표의 권장 아키텍처도 스토리지/컴퓨트 분리형 EBS gp3였고 로컬 NVMe는 오브젝트 스토리지 캐시 계층으로 뒀습니다. 이 반론의 실체는 "구세대 로컬 NVMe(i3) vs 신세대 CPU+EBS(m6i)" 비교이지 i7i/i8g(신세대 CPU+신세대 NVMe)를 반박한 것은 아닙니다 — 워킹셋이 페이지 캐시에 다 올라가는 워크로드에서는 로컬 NVMe 프리미엄이 무의미해진다는 신호로 읽어야 합니다. 이 페이지의 로컬 NVMe-primary 권고를 뒤집지는 않습니다.
 
-범용 노드와 gp3에서 1억 행으로 잰 압축률·쿼리 수치는 [부록 A]({{< relref "/data/clickhouse/storage/a1-eks-gp3-benchmark.md" >}})에 정리했습니다. 디스크와 CPU 조건이 달라 시간 수치는 이 글과 직접 비교하지 않습니다.
+atomai kubernetes-docs가 범용 노드와 gp3에서 1억 행으로 잰 압축률·쿼리 수치는 [부록 A]({{< relref "/data/clickhouse/storage/a1-eks-gp3-benchmark.md" >}})에 정리했습니다. 디스크와 CPU 조건이 달라 시간 수치는 이 글과 직접 비교하지 않습니다.
 
 ## i7i / i8g — 로컬 NVMe 인스턴스 상세
 

@@ -201,3 +201,9 @@ third-party 기술 블로그와 실사례, RUM 리플레이 벤더 문서, EBS �
 다음 항목은 원 조사 기록에 1차 URL이 남아 있지 않습니다: S3 Gateway VPC Endpoint의 무료 정책과 NAT Gateway 데이터 처리요금(서울), S3 Express One Zone 제공 리전 목록, wide part 파일 수 증폭 실측 예시(컬럼 109개 → part당 227 파일, ClickHouse 공식 KB), Packed storage `min_level_for_full_part_storage`와 `system.parts.part_storage_type` 문서. 해당 주장을 사용할 때는 원문을 추가 확인해야 합니다.
 
 시점 기준 2026-08.
+
+## 외부 실측 (부록)
+
+본편이 아니라 부록에서 옮긴 외부 문서의 실측입니다. 수치는 원문이 보고한 값이며 우리가 다시 잰 것이 아닙니다.
+
+- atomai kubernetes-docs — EBS gp2 vs gp3 실측 벤치마크(100 GiB gp2·gp3 fio·gp2 크레딧 절벽·서울 단가·원문 갱신 2026-09-11, 측정일 미기재) — [atomai.click/.../storage/01-ebs-gp2-gp3-benchmark](https://www.atomai.click/kubernetes-docs/ko/storage/01-ebs-gp2-gp3-benchmark). 정리: [부록 A]({{< relref "/observability/hyperdx/design/a1-ebs-gp2-gp3-benchmark/index.md" >}})

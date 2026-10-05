@@ -10,7 +10,7 @@ url: "/clickhouse/a1-eks-gp3-benchmark/"
 
 # 부록 · EKS 범용 노드와 gp3에서 잰 ClickHouse 1억 행 실측
 
-본편 [스토리지 아키텍처 — 로컬 NVMe(i7i/i8g)]({{< relref "/data/clickhouse/storage/02-storage-local-nvme.md" >}})는 로컬 NVMe를 데이터 디스크로 두는 구성을 다룹니다. atomai의 `kubernetes-docs`에는 정반대 조건에서 잰 글이 있습니다. 4 vCPU 범용 노드 한 대와 기본 설정 gp3 100GiB에 Kubernetes 로그 1억 행을 넣고, 적재 속도와 압축률, 쿼리 시간을 잰 글입니다.
+본편 [스토리지 아키텍처 — 로컬 NVMe(i7i/i8g)]({{< relref "/data/clickhouse/storage/02-storage-local-nvme.md" >}})는 로컬 NVMe를 데이터 디스크로 두는 구성을 다룹니다. atomai의 `kubernetes-docs`에는 정반대 조건에서 잰 글 [ClickHouse on EKS 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/database/01-clickhouse-on-eks)가 있습니다. 4 vCPU 범용 노드 한 대와 기본 설정 gp3 100GiB에 Kubernetes 로그 1억 행을 넣고, 적재 속도와 압축률, 쿼리 시간을 잰 글입니다.
 
 디스크 종류가 달라서 이 글의 시간 수치를 본편의 NVMe 수치 옆에 그대로 놓을 수는 없습니다. 압축률과 읽은 행 수처럼 디스크와 무관한 수치는 비교에 쓸 수 있습니다. 본문은 그 구분에 따라 쓰고, 가져온 수치는 모두 atomai 문서가 보고한 값입니다. 우리가 다시 잰 값이 아닙니다.
 
@@ -41,12 +41,14 @@ url: "/clickhouse/a1-eks-gp3-benchmark/"
 | 노드 | m5.xlarge 한 대, Karpenter가 띄운 전용 노드, 벤치마크 파드 단독 배치 | `✓` |
 | 파드 리소스 | requests 2.5 vCPU / 9Gi, limits 3.5 vCPU / 12Gi | `✓` |
 | 볼륨 | EBS gp3 100GiB, 3,000 IOPS / 125MiB/s 기본값, EBS CSI 드라이버 | `✓` |
-| ClickHouse | `clickhouse/clickhouse-server:24.8` (24.8.14.39), 설정 기본값. 원문은 24.x가 지원 종료라고 덧붙임 | `✓` |
+| ClickHouse | `clickhouse/clickhouse-server:24.8` (24.8.14.39), 설정 기본값. 원문은 24.x가 지원 종료라고 덧붙임. 원문이 인용: ClickHouse 보안 정책(SECURITY.md)의 지원 버전 목록 | `✓` |
 | 데이터 | 8컬럼 `MergeTree`, 일 단위 파티션, ORDER BY (namespace, timestamp). 네임스페이스 10종, pod 10종, ERROR 0.8%, 7일치 | `✓` |
 | 문서 갱신일 | 2026-09-11. 실제 측정일은 적혀 있지 않음 | `?` |
 | 재현용 매니페스트 | 26.3.33.24 이미지를 쓰는 새 실행 예제이며 24.8 측정값과는 별개. 새 실행의 결과는 실려 있지 않음 | `✓` |
 | 수치의 성격 | 기존 실행의 보고값. 원시 query_log와 당시 캐시 상태는 문서에 없어 같은 숫자의 재현을 보장하지 않는다고 원문이 밝힘 | `✓` |
 | 반복 횟수 | 적재는 1회. 쿼리는 Direct I/O 요청 1회, warm 3회 중 최솟값. 적재의 반복 여부는 언급 없음 | `✓` `?` |
+
+출처: [ClickHouse on EKS 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/database/01-clickhouse-on-eks) — 「테스트 환경」, 「데이터셋 — 현실적인 Kubernetes 로그 1억 행」, 「TL;DR — 측정 결과 요약」
 
 {{% /details %}}
 
@@ -68,6 +70,8 @@ url: "/clickhouse/a1-eks-gp3-benchmark/"
 | 경로 | 서버 내부 `INSERT … SELECT`. 외부 클라이언트·포맷·네트워크·배치·동시성은 변수로 남음 | `✓` |
 | 75MiB/s | 최종 압축 크기를 경과 시간으로 나눈 값. 실제 EBS 쓰기 처리량이 아님 | `✓` |
 | 디스크 한계 분리 | gp3 125MiB/s와 인스턴스 EBS 대역 중 무엇이 적재를 막았는지 분리해 재지 않음 | `?` |
+
+출처: [ClickHouse on EKS 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/database/01-clickhouse-on-eks) — 「측정 1 — Ingest: 1억 행 / 106.7초」
 
 {{% /details %}}
 
@@ -102,6 +106,8 @@ url: "/clickhouse/a1-eks-gp3-benchmark/"
 | trace_id 비중 | 3.08GiB가 7.82GiB의 39.4%. 원문은 UUID·FixedString(16) 같은 표현은 코덱·인덱스 호환까지 포함해 재야 한다고 함 | `Ⓥ` |
 | 코덱 조합 | LZ4 + 오래된 파티션 TTL ZSTD 재압축은 검토 대상일 뿐, 이 조합을 직접 재지는 않음 | `Ⓥ` |
 | 다른 ClickHouse 버전·실제 로그 | 압축률이 어떻게 달라지는지 원문에 없음 | `?` |
+
+출처: [ClickHouse on EKS 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/database/01-clickhouse-on-eks) — 「측정 2 — 압축: 어떤 컬럼이 돈을 쓰는가」, 「LZ4 vs ZSTD(3) — 저장 47% vs 스캔 1.9×」
 
 {{% /details %}}
 
@@ -139,6 +145,8 @@ bloom filter skip index는 trace_id 점 조회를 1.13초에서 0.036초로 줄�
 | Direct I/O 수치의 해석 | 짧은 구간(Q2, Q4)으로 물리 디스크 처리량을 계산할 수 없음. 캐시·read method를 분리하지 못한 채 원래 실행이 종료됨 | `✓` |
 | 쓰기·merge 비용에 대한 인덱스 영향 | 확인 필요 항목으로 남겨 두었고 측정값은 없음 | `?` |
 
+출처: [ClickHouse on EKS 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/database/01-clickhouse-on-eks) — 「측정 3 — 쿼리: 어떤 쿼리가 왜 빠른가/느린가」, 「측정 4 — bloom filter skip index: 1.13초 → 0.036초」
+
 {{% /details %}}
 
 ## 5. 본편과 비교할 수 있는 것과 없는 것
@@ -151,6 +159,8 @@ bloom filter skip index는 trace_id 점 조회를 1.13초에서 0.036초로 줄�
 | CPU에 묶임 | 적재 속도, warm 쿼리 시간, ZSTD 스캔 지연 | 본편과 비교할 수 없음. 4 vCPU 노드(파드 한도 3.5 vCPU)의 값 |
 | 방향만 일치 | 풀스캔이 볼륨·인스턴스 EBS 대역에 막힌다는 해석 | 본편의 EBS 대역 병목 설명과 같은 방향. 규모가 다름 |
 
+본편: [스토리지 아키텍처 — 로컬 NVMe(i7i/i8g)]({{< relref "/data/clickhouse/storage/02-storage-local-nvme.md" >}})
+
 본편과 어긋나는 결론은 없습니다. 다만 본편의 반론 문단은 신세대 CPU와 EBS 조합이 캐시된 쿼리에서 구세대 로컬 NVMe를 앞섰다는 Altinity의 사례를 소개하는데, 이 부록의 warm 수치도 같은 축입니다. 페이지 캐시에 오른 쿼리는 CPU에 묶이고, 캐시를 우회하면 볼륨 대역이 드러납니다. 한 조건에서 나온 두 값이 이렇게 갈리는 점이 이 측정의 쓸모입니다. 어느 조건이 운영 부하에 해당하는지는 원문도 본편도 답하지 않습니다.
 
 ## 6. 본편에 없던 보충
@@ -160,6 +170,8 @@ bloom filter skip index는 trace_id 점 조회를 1.13초에서 0.036초로 줄�
 - bloom filter skip index의 효과와 크기(1.5%). 본편은 인덱스 설계를 다루지 않습니다.
 - 용량 계산의 함정. 원문은 EBS가 사용량이 아니라 프로비저닝한 용량으로 과금되므로 데이터가 8GiB여도 100GiB 볼륨 요금이 나온다고 짚었습니다.
 - 원문이 스스로 밝힌 한계. 단일 노드, 합성 데이터, 복제·샤딩 없음, 원시 query_log 부재.
+
+출처: [ClickHouse on EKS 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/database/01-clickhouse-on-eks) — 「비용으로 환산하면」, 「해석 시 주의사항」
 
 ## 7. 확인하지 못한 것
 
@@ -174,5 +186,5 @@ bloom filter skip index는 trace_id 점 조회를 1.13초에서 0.036초로 줄�
 
 ## 출처
 
-- 「ClickHouse on EKS 실측 벤치마크」 — atomai `kubernetes-docs` 데이터베이스 편, 2026-09-11 갱신. https://www.atomai.click/kubernetes-docs/ko/database/01-clickhouse-on-eks
+- 「ClickHouse on EKS 실측 벤치마크」 — atomai `kubernetes-docs` 데이터베이스 편, 2026-09-11 갱신(실제 측정일은 원문에 없음). https://www.atomai.click/kubernetes-docs/ko/database/01-clickhouse-on-eks
 - 대응 본편: [스토리지 아키텍처 — 로컬 NVMe(i7i/i8g)]({{< relref "/data/clickhouse/storage/02-storage-local-nvme.md" >}}), [로컬 NVMe 하드 유저들 — 데이터스토어 횡단 벤치마킹]({{< relref "/data/clickhouse/storage/07-local-nvme-datastore-patterns.md" >}})

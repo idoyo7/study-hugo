@@ -10,7 +10,7 @@ url: "/monitoring/victoriametrics-operations/a1-pod-network-rtt/"
 
 # 부록 · AZ를 건너면 Pod 간 지연은 얼마나 늘어나는가
 
-본편 [05 vmagent AZ 분할]({{< relref "/observability/metrics/victoriametrics/operations/05-vmagent-az-split/index.md" >}})은 scrape 응답이 AZ 경계를 넘는 양을 줄이는 글입니다. 지연은 다루지 않습니다. AZ를 건너면 요청 하나가 얼마나 느려지는지, 대역폭은 달라지는지가 빈 칸으로 남아 있어서, atomai 문서가 보고한 EKS 실측으로 채웠습니다.
+본편 [05 vmagent AZ 분할]({{< relref "/observability/metrics/victoriametrics/operations/05-vmagent-az-split/index.md" >}})은 scrape 응답이 AZ 경계를 넘는 양을 줄이는 글입니다. 지연은 다루지 않습니다. AZ를 건너면 요청 하나가 얼마나 느려지는지, 대역폭은 달라지는지가 빈 칸으로 남아 있어서, atomai kubernetes-docs의 [Pod 네트워크 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/networking/06-pod-network-benchmark)가 보고한 EKS 실측으로 채웠습니다.
 
 atomai 문서는 같은 노드, 같은 AZ, 다른 AZ에 서버 Pod를 하나씩 두고 한 클라이언트 Pod에서 잰 결과를 실었습니다. 대표 수치는 ping RTT 평균 0.040ms, 0.339ms, 0.544ms입니다. 두 노드 사이의 단일 TCP 플로우는 같은 AZ든 다른 AZ든 4.96Gbps로 같았습니다. 즉 이 실행에서 AZ를 건너면 늘어난 것은 지연이었고, 대역폭 차이는 보이지 않았습니다.
 
@@ -38,6 +38,8 @@ atomai 문서는 같은 노드, 같은 AZ, 다른 AZ에 서버 Pod를 하나씩 
 | 이 기록의 성격 | 이번 개정에서 벤치마크를 다시 실행하지 않았다고 원문이 명시 | `Ⓥ` |
 | 원문 직접 확인 범위 | 위 값을 원문 본문에서 읽음. 원문 매니페스트와 재현 절차는 우리가 실행하지 않음 | `✓` |
 
+출처: [Pod 네트워크 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/networking/06-pod-network-benchmark) — 「테스트 환경」, 「해석 시 주의사항」
+
 {{% /details %}}
 
 ## 2. 경로별 RTT와 요청 지연
@@ -62,6 +64,8 @@ atomai 문서는 같은 노드, 같은 AZ, 다른 AZ에 서버 Pod를 하나씩 
 | scrape 지연으로의 환산 | 원문은 scrape를 재지 않았음. 응답이 클 때 RTT보다 전송 시간이 좌우한다는 추론은 우리 해석 | `Σ` `?` |
 | 같은 노드의 꼬리 지연 | 같은 노드의 p99.9·최대가 더 컸던 원인으로 CPU 경합을 의심하나 프로파일링으로 확인하지 않음 | `Ⓥ` |
 
+출처: [Pod 네트워크 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/networking/06-pod-network-benchmark) — 「측정 1 — RTT와 HTTP 레이턴시: 같은 노드 → 같은 AZ → 다른 AZ」
+
 {{% /details %}}
 
 ## 3. 단일 플로우 대역폭과 인스턴스 한도
@@ -79,11 +83,13 @@ m5.xlarge의 베이스라인은 1.25Gbps이고 10Gbps는 버스트입니다. 원
 | 두 노드 간 단일 플로우 | iperf3 3.19, TCP, 20초. 같은 AZ 4.96Gbps(재전송 4), 다른 AZ 4.96Gbps(재전송 2) | `Ⓑ` |
 | 8개 플로우 | 같은 AZ 9.94Gbps(재전송 5,874), 다른 AZ 9.94Gbps(재전송 5,979) | `Ⓑ` |
 | 같은 노드 | 단일 29.97Gbps(클라이언트 CPU 99.8%), 8개 48.15Gbps. 물리 NIC 우회. 순수 메모리 복사 속도는 아님 | `Ⓑ` |
-| 인스턴스 사양 | m5.xlarge 베이스라인 1.25Gbps, 피크 10Gbps. `describe-instance-types` 결과를 원문이 인용 | `Ⓥ` |
-| 180초 지속 테스트 | AZ 간, `-P 4`, 10초 간격 18구간. 최소 9.92, 최대 9.94Gbps. 재전송 44,842회 | `Ⓑ` |
-| 한도 해석 | 단일 5Gbps 한도와의 부합은 원문의 해석. 배치 그룹 내부 10Gbps, ENA Express 25Gbps 같은 다른 한도가 있다고 원문이 함께 언급 | `Ⓥ` |
+| 인스턴스 사양 | m5.xlarge 베이스라인 1.25Gbps, 피크 10Gbps. `describe-instance-types` 결과를 원문이 인용. 원문은 공식 [M5 네트워크 사양](https://docs.aws.amazon.com/ec2/latest/instancetypes/gp.html)에도 같은 값이 있다고 적음 | `Ⓥ` |
+| 180초 지속 테스트 | AZ 간, `-P 4`, 10초 간격 18구간. 최소 9.92, 최대 9.94Gbps. 재전송 44,842회. 버스트가 best effort라는 설명은 원문이 [EC2 대역폭 가이드](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-network-bandwidth.html)를 인용 | `Ⓑ` |
+| 한도 해석 | 단일 5Gbps 한도와의 부합은 원문의 해석. 배치 그룹 내부 10Gbps, ENA Express 25Gbps 같은 다른 한도가 있다고 원문이 함께 언급(원문은 "AWS는 문서화합니다"라고만 쓰고 문서를 특정하지 않음) | `Ⓥ` |
 | 부하 중 TCP RTT | 송신측 평균 같은 AZ 5,641µs, 다른 AZ 5,420µs, 최대 snd_cwnd 약 4.3MB. 프로토콜·표본 방식이 달라 유휴 ping과 직접 빼지 않음 | `Ⓑ` |
 | 측정하지 않은 것 | ENA allowance 카운터 미수집. 재전송 수로 셰이핑 위치를 특정할 수 없음. 180초 초과 구간 미시험 | `Ⓥ` `?` |
+
+출처: [Pod 네트워크 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/networking/06-pod-network-benchmark) — 「측정 2 — 처리량: 단일 플로우 5 Gbps 상한과 인스턴스 10 Gbps 상한」, 「3분 지속 테스트와 버스트 크레딧」
 
 {{% /details %}}
 
@@ -108,6 +114,8 @@ Pod의 기본 `resolv.conf`는 search 도메인 4개와 `ndots:5`였습니다. �
 | 캐시 상태 | 첫 호출이라도 CoreDNS·업스트림 캐시가 비었다고 볼 수 없다고 원문이 단서. `cache 30`은 TTL 상한 | `Ⓥ` |
 | AZ 간 DNS 비율 | 원문은 측정하지 않았다고 명시. 엔드포인트 둘을 같은 확률로 고르는 모델은 설명용 | `Ⓥ` `?` |
 
+출처: [Pod 네트워크 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/networking/06-pod-network-benchmark) — 「측정 4 — DNS: ndots:5가 만드는 쿼리 증폭」
+
 {{% /details %}}
 
 ## 5. 본편 05와 맞춰 보면
@@ -122,6 +130,8 @@ Pod의 기본 `resolv.conf`는 search 도메인 4개와 `ndots:5`였습니다. �
 | 트래픽 종류 | scrape 응답(크기 큼, 타깃에 따라 다름) | 작은 echo와 iperf3 포화 부하 | 응답 크기 조건이 달라 환산 불가 |
 | 경로 | 타깃 → vmagent → 쓰기 LB → vminsert | Pod IP 직접 통신, Service·LB 미경유 | LB를 낀 경로에는 이 수치를 적용하지 않음 |
 | 환경 | 우리 클러스터(본편 서술) | ap-northeast-2의 m5.xlarge 3대, 2개 AZ | 인스턴스 타입이 다르면 대역폭 한도가 달라짐 |
+
+본편: [vmagent AZ 분할]({{< relref "/observability/metrics/victoriametrics/operations/05-vmagent-az-split/index.md" >}})
 
 본편이 말하는 AZ 간 전송량은 같은 응답이 AZ 경계를 몇 번 넘느냐의 문제이고, 원문의 지연 수치는 AZ가 바뀔 때 요청 한 건이 얼마나 늘어나느냐의 문제입니다. 한쪽 결과로 다른 쪽을 어느 정도 예측할 수는 있어도 서로를 증명하지는 않습니다. 본편에서 어긋나는 서술은 찾지 못했습니다. 본편이 정리한 전송 구조는 그대로 두고, 이 부록은 지연과 대역폭이라는 별도 축만 더합니다.
 
@@ -144,4 +154,4 @@ Pod의 기본 `resolv.conf`는 search 도메인 4개와 `ndots:5`였습니다. �
 
 ## 참고 자료
 
-- Pod 네트워크 실측 벤치마크 — 같은 노드·같은 AZ·다른 AZ, 그리고 DNS ndots, atomai Kubernetes 가이드북, 2026-09-02 측정(2026-09-12 갱신). [https://www.atomai.click/kubernetes-docs/ko/networking/06-pod-network-benchmark](https://www.atomai.click/kubernetes-docs/ko/networking/06-pod-network-benchmark)
+- Pod 네트워크 실측 벤치마크 — 같은 노드·같은 AZ·다른 AZ, 그리고 DNS ndots, atomai Kubernetes 가이드북(kubernetes-docs), 2026-09-02 측정(2026-09-12 갱신). [https://www.atomai.click/kubernetes-docs/ko/networking/06-pod-network-benchmark](https://www.atomai.click/kubernetes-docs/ko/networking/06-pod-network-benchmark)

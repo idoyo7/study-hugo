@@ -169,6 +169,6 @@ Istio는 파드 annotation으로 메트릭 응답 압축을 켤 수 있습니다
 
 응답을 바꾸기 전에는 해당 메트릭을 사용하는 대시보드와 알림부터 확인해야 합니다. 라벨을 변경한다면 전환 때 겪은 시리즈 변경 문제도 함께 검증해야 합니다.
 
-AZ를 건너면 지연과 대역폭이 어떻게 달라지는지는 [부록 A]({{< relref "/observability/metrics/victoriametrics/operations/a1-pod-network-rtt/index.md" >}})에 외부 실측으로 보충했습니다.
+AZ를 건너면 지연과 대역폭이 어떻게 달라지는지는 [부록 A]({{< relref "/observability/metrics/victoriametrics/operations/a1-pod-network-rtt/index.md" >}})에 atomai kubernetes-docs의 실측으로 보충했습니다.
 
 > 관련 문서: [스택 구성]({{< relref "/observability/metrics/victoriametrics/operations/01-stack-overview/index.md" >}}) · [vmagent 전송 튜닝]({{< relref "/observability/metrics/victoriametrics/operations/02-vmagent-transport-tuning.md" >}}) · [자기감시 메트릭]({{< relref "/observability/metrics/victoriametrics/operations/03-self-monitoring-metrics.md" >}}) · [저장 구조에서 바꿀 것]({{< relref "/observability/metrics/victoriametrics/operations/06-storage-index-roadmap.md" >}})

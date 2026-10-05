@@ -10,7 +10,7 @@ url: "/hyperdx/a1-ebs-gp2-gp3-benchmark/"
 
 # 부록 · EBS gp2·gp3 fio 실측은 gp3 선택을 어디까지 뒷받침하는가
 
-atomai의 kubernetes-docs에는 EKS 노드 하나에 100 GiB gp2 볼륨과 100 GiB gp3 볼륨을 붙이고 fio로 잰 글이 있습니다. gp2는 약 33분 동안 gp3와 같은 3,000 IOPS를 내다가 1초 만에 300 IOPS로 떨어집니다. gp3는 같은 시간 내내 3,000 IOPS 근처에서 평탄합니다.
+atomai kubernetes-docs의 [EBS gp2 vs gp3 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/storage/01-ebs-gp2-gp3-benchmark)에는 EKS 노드 하나에 100 GiB gp2 볼륨과 100 GiB gp3 볼륨을 붙이고 fio로 잰 글이 있습니다. gp2는 약 33분 동안 gp3와 같은 3,000 IOPS를 내다가 1초 만에 300 IOPS로 떨어집니다. gp3는 같은 시간 내내 3,000 IOPS 근처에서 평탄합니다.
 
 본편 [02 hot 스토리지]({{< relref "/observability/hyperdx/design/02-hot-storage-ebs/index.md" >}})는 gp3를 고르면서 기준 3,000 IOPS·125 MiB/s가 버스트가 아니라는 점, 인스턴스 EBS 대역폭이 먼저 한도가 될 수 있다는 점을 설명합니다. 이 실측은 앞의 설명을 일부 뒷받침합니다. 다만 볼륨 크기, 인스턴스 종류, I/O 형태가 본편과 달라 그대로 가져다 쓸 수 없는 부분이 많습니다.
 
@@ -37,6 +37,8 @@ atomai의 kubernetes-docs에는 EKS 노드 하나에 100 GiB gp2 볼륨과 100 G
 | 사전 부하 이력 | 중단된 첫 시도가 같은 gp2 볼륨에 약 8분간 3,000 IOPS 부하를 줬고, 기록된 실행은 그로부터 약 13분 뒤. 원문은 이 이력이 절벽 시점에 미친 영향을 확인하지 못했다고 적음 | `✓` |
 | 로그 처리 | IOPS 표는 두 로그의 첫 1초 샘플(둘 다 5,997)을 제외한 값. 원인은 원문도 미추적 | `✓` |
 | 원문 스스로 둔 한계 | direct I/O라서 실제 DB의 캐시 효과는 반영되지 않음. 결과는 크레딧 모델의 모양이 본론이고 절대값은 아님 | `✓` |
+
+출처: [EBS gp2 vs gp3 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/storage/01-ebs-gp2-gp3-benchmark) — 「테스트 환경」, 「fio 명령」, 「측정 1 — 4k 랜덤 읽기 45분: 크레딧 절벽」, 「해석 시 주의사항」
 
 {{% /details %}}
 
@@ -65,6 +67,8 @@ atomai의 kubernetes-docs에는 EKS 노드 하나에 100 GiB gp2 볼륨과 100 G
 | 큐 깊이 1에서 gp2가 603 IOPS인 이유 | 60초 휴식에 쌓인 18,000 크레딧과 기준 300의 합이라는 원문의 계산 | `Ⓥ` `≈` |
 | 크레딧 충전을 원문이 직접 확인했는지 | 읽기·쓰기 모두 CloudWatch BurstBalance 값은 제시하지 않음 | `?` |
 
+출처: [EBS gp2 vs gp3 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/storage/01-ebs-gp2-gp3-benchmark) — 「측정 1 — 4k 랜덤 읽기 45분: 크레딧 절벽」, 「측정 2 — 크레딧이 바닥난 뒤의 랜덤 쓰기: 3,025 vs 601 IOPS」, 「측정 3 — qd1 레이턴시: 낮은 동시성에서 본 분포」
+
 {{% /details %}}
 
 ## 3. gp3 기준 성능과 추가 프로비저닝 비용
@@ -81,11 +85,13 @@ gp3는 기본 3,000 IOPS·125 MiB/s이고 600초 읽기 동안 변동이 1% 안�
 |---|---|---|
 | gp3 순차 처리량 | 1 MiB 순차, 큐 깊이 8, 60초. 읽기 127.3 MiB/s·쓰기 126.0 MiB/s, 평균 지연 58.0·58.5 ms | `Ⓑ` |
 | gp2 순차 처리량 | 같은 조건에서 읽기 130.3 MiB/s·쓰기 128.9 MiB/s, 평균 지연 56.7·57.3 ms. 원문은 1 MiB I/O를 256 KiB 4개로 세어 약 520 IOPS이므로 36,000 크레딧으로 충분하다고 풀이 | `Ⓑ` `Ⓥ` |
-| 서울 단가 | gp2 $0.114/GB-월, gp3 $0.0912/GB-월, 추가 IOPS $0.0057/IOPS-월, 추가 처리량 $0.0456/MiB/s-월. 원문이 2026-09 Pricing API 조회라고 적음. 우리가 가격표를 다시 조회하지는 않음 | `Ⓥ` |
+| 서울 단가 | gp2 $0.114/GB-월, gp3 $0.0912/GB-월, 추가 IOPS $0.0057/IOPS-월, 추가 처리량 $0.0456/MiB/s-월. 원문이 인용: AWS Pricing API, 서울 리전, 2026-09 조회. 우리가 가격표를 다시 조회하지는 않음 | `Ⓥ` |
 | 월 비용 비교 | gp2 100 GiB $11.40(지속 300 IOPS, 버스트 3,000은 최대 33분), gp3 100 GiB $9.12(3,000 IOPS, 125 MiB/s), +6,000 IOPS $26.22, +250 MiB/s $14.82 | `Ⓥ` `≈` |
 | 1,000 GiB gp2와의 비교 | gp2 1,000 GiB $114.00 ÷ gp3 100 GiB $9.12 = 12.5배. 원문은 gp2 1,000 GiB의 처리량을 250 MiB/s로 표기 | `≈` |
 | 비용 표의 계산 | $9.12 + 3,000 × $0.0057 = $26.22, $9.12 + 125 × $0.0456 = $14.82. 원문의 산술이 서로 맞는 것은 확인함 | `✓` |
 | 서울 단가가 현재도 같은지 | 가격 갱신 이후의 값은 확인하지 않음 | `?` |
+
+출처: [EBS gp2 vs gp3 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/storage/01-ebs-gp2-gp3-benchmark) — 「측정 4 — 순차 1 MiB: 처리량 상한은 둘 다 125–128 MiB/s」, 「테스트 환경」, 「비용으로 환산하면」
 
 {{% /details %}}
 
@@ -125,6 +131,10 @@ gp3는 기본 3,000 IOPS·125 MiB/s이고 600초 읽기 동안 변동이 1% 안�
 | ClickHouse 풀스캔 정체 | 원문이 다른 글을 가리킴. 그 글은 열지 않음 | `?` |
 | 지연 비교의 범위 | 본편은 지연을 single-digit ms로 적고 io2 BE의 sub-ms와 대비. 원문은 읽기 큐 깊이별 값만 있고 쓰기의 큐 깊이 1 값은 없음 | `✓` |
 
+출처: [EBS gp2 vs gp3 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/storage/01-ebs-gp2-gp3-benchmark) — 「테스트 환경」, 「측정 3 — qd1 레이턴시: 낮은 동시성에서 본 분포」, 「측정 4 — 순차 1 MiB: 처리량 상한은 둘 다 125–128 MiB/s」, 「해석 시 주의사항」
+
+본편: [hot 스토리지 — EBS gp3 / io2 실전 (로컬 NVMe는 옵셔널)]({{< relref "/observability/hyperdx/design/02-hot-storage-ebs/index.md" >}})
+
 {{% /details %}}
 
 ## 5. 본편에 없던 내용
@@ -144,6 +154,8 @@ gp3는 기본 3,000 IOPS·125 MiB/s이고 600초 읽기 동안 변동이 1% 안�
 | 원문이 인용한 AWS 문서 | EBS gp2/gp3 performance, EBS modification considerations, EC2 EBS optimized bandwidth. 부록 작성 중 이 문서들을 직접 열지는 않음 | `?` |
 | 본편 §6.1의 조정 서술 | `iops`와 `throughput`을 이후 Elastic Volumes로 조정할 수 있다고 적음. 수정 횟수 제한은 언급하지 않음 | `✓` |
 
+출처: [EBS gp2 vs gp3 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/storage/01-ebs-gp2-gp3-benchmark) — 「측정 1 — 4k 랜덤 읽기 45분: 크레딧 절벽」, 「해석 시 주의사항」, 「Kubernetes에서 gp3로 전환하기」 아래 「기존 PVC: VolumeAttributesClass로 무중단 변경」, 「남은 gp2에는 알람을」
+
 {{% /details %}}
 
 ## 6. 확인하지 못한 것
@@ -161,5 +173,5 @@ gp3는 기본 3,000 IOPS·125 MiB/s이고 600초 읽기 동안 변동이 1% 안�
 
 ## 참고 자료
 
-- [EBS gp2 vs gp3 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/storage/01-ebs-gp2-gp3-benchmark) — atomai kubernetes-docs. 마지막 업데이트 2026-09-11. 이 글의 수치 전부의 출처
+- [EBS gp2 vs gp3 실측 벤치마크](https://www.atomai.click/kubernetes-docs/ko/storage/01-ebs-gp2-gp3-benchmark) — atomai kubernetes-docs. 원문 제목 「EBS gp2 vs gp3 실측 벤치마크」. 마지막 업데이트 2026-09-11, 측정일은 원문에 없음. 이 글의 수치 전부의 출처
 - [EBS gp2/gp3 performance](https://docs.aws.amazon.com/ebs/latest/userguide/general-purpose.html) · [EC2 EBS optimized bandwidth](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-optimized.html) · [EBS modification considerations](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-modify-volume.html) — AWS. 원문이 근거로 든 문서이며 이 글에서는 열지 않음

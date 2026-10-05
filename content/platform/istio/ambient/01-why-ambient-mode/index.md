@@ -84,7 +84,7 @@ istiod가 CPU를 먹는 메커니즘은 [02 컨트롤 플레인 해부: istiod](
 
 Ambient mode에서는 ztunnel이 노드당 1개, waypoint가 namespace·service 단위입니다. 파드가 늘어도 프록시 수가 그만큼 늘지 않습니다.
 
-사이드카와 Ambient의 지연·롤아웃 중 503을 외부 문서가 같은 클러스터에서 비교한 값은 [부록 A]({{< relref "/platform/istio/ambient/a1-sidecar-vs-ambient-measurements/index.md" >}})에 정리했습니다.
+사이드카와 Ambient의 지연·롤아웃 중 503을 atomai kubernetes-docs가 같은 클러스터에서 실측해 비교한 값은 [부록 A]({{< relref "/platform/istio/ambient/a1-sidecar-vs-ambient-measurements/index.md" >}})에 정리했습니다.
 
 ### 3.3 Kubernetes Gateway API 지원
 

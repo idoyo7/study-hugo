@@ -352,3 +352,9 @@ Cloud 부품·요금 원본:
 - Announcing Project Antalya(Altinity 자체 게시본 — 프로덕션 비권장 서술) — [altinity.com/blog/announcing-project-antalya-...](https://altinity.com/blog/announcing-project-antalya-infinitely-scalable-clickhouse-query-on-10x-cheaper-iceberg-storage)
 - Altinity/antalya-examples(GitHub) — [github.com/Altinity/antalya-examples](https://github.com/Altinity/antalya-examples)
 - Altinity — Parquet on Iceberg finally outperforms MergeTree(NYC Taxi 13억 행) — [altinity.com/blog/the-future-has-arrived-parquet-on-iceberg-finally-outperforms-mergetree](https://altinity.com/blog/the-future-has-arrived-parquet-on-iceberg-finally-outperforms-mergetree)
+
+## 외부 실측 (부록)
+
+[부록 A EKS gp3 실측]({{< relref "/data/clickhouse/storage/a1-eks-gp3-benchmark.md" >}})의 근거. 원문은 2026-09-11 갱신이며 실제 측정일은 적혀 있지 않습니다.
+
+- atomai kubernetes-docs — ClickHouse on EKS 실측 벤치마크(m5.xlarge·gp3 100GiB·로그 1억 행) — [atomai.click/kubernetes-docs/ko/database/01-clickhouse-on-eks](https://www.atomai.click/kubernetes-docs/ko/database/01-clickhouse-on-eks)
