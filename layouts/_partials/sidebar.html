@@ -78,7 +78,7 @@
       {{ partial "search.html" (dict "location" "sidebar") }}
     </div>
   {{- end -}}
-  <div class="hextra-scrollbar hx:overflow-y-auto hx:overflow-x-hidden hx:p-4 hx:grow hx:md:h-[calc(100vh-var(--navbar-height)-var(--menu-height))]">
+  <div id="hextra-sidebar-tree" class="hextra-scrollbar hx:overflow-y-auto hx:overflow-x-hidden hx:p-4 hx:grow hx:md:h-[calc(100vh-var(--navbar-height)-var(--menu-height))]">
     <ul class="hx:flex hx:flex-col hx:gap-1 hx:md:hidden">
       <!-- Nav -->
       {{ template "sidebar-main" (dict "context" site.Home "pageURL" $pageURL "page" $context "toc" true) -}}
@@ -110,6 +110,13 @@
           <div class="hx:flex hx:grow hx:flex-col">{{ partial "theme-toggle" }}</div>
         {{- end -}}
       {{- end -}}
+      {{- /* 사이드바 접기 버튼. md 이상에서만 보인다(custom.css). 상태·라벨 동기화는
+             static/js/sidebar-collapse.js, 첫 페인트 전 상태 적용은 custom/head-end.html. */ -}}
+      {{- $sbCollapse := T "sidebarCollapse" | default "Collapse sidebar" -}}
+      {{- $sbExpand := T "sidebarExpand" | default "Expand sidebar" -}}
+      <button type="button" class="hextra-sidebar-collapse" aria-controls="hextra-sidebar-tree" aria-expanded="true" aria-label="{{ $sbCollapse }}" title="{{ $sbCollapse }}" data-expand="{{ $sbExpand }}">
+        {{- partial "utils/icon.html" (dict "name" "chevron-double-left" "attributes" `height=14`) -}}
+      </button>
     </div>
   {{- end -}}
 </aside>

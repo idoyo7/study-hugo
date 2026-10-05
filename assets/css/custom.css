@@ -118,3 +118,37 @@ html.dark {
   background: var(--vm-az-a);
 }
 .vm-bar.split > .b { left: auto; right: 0; background: var(--vm-az-c); }
+
+/* 사이드바 접기 버튼 — layouts/_partials/sidebar.html 의 .hextra-sidebar-collapse.
+   상태는 <html data-sb-off>(static/js/sidebar-collapse.js, 첫 페인트 전 적용은 head-end.html).
+   md(768px) 미만은 햄버거 드로어가 따로 있어서 버튼도 접힘 규칙도 걸지 않는다. */
+.hextra-sidebar-collapse { display: none; }
+@media screen and (min-width: 48rem) {
+  .hextra-sidebar-collapse {
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: none; height: 1.75rem; width: 1.75rem; margin-left: auto;
+    border-radius: 0.375rem; color: #4b5563; background: transparent; border: 0; cursor: pointer;
+  }
+  .hextra-sidebar-collapse:hover { background: #f3f4f6; color: #111827; }
+  .hextra-sidebar-collapse:focus-visible { outline: 2px solid #3b82f6; outline-offset: 1px; }
+  html.dark .hextra-sidebar-collapse { color: #9ca3af; }
+  html.dark .hextra-sidebar-collapse:hover { background: rgba(255, 255, 255, 0.05); color: #f9fafb; }
+  .hextra-sidebar-collapse svg { transition: transform 0.2s; }
+
+  /* 접힘: 폭 3rem 레일만 남기고 문서 트리는 visibility:hidden 으로 포커스·스크린리더에서 뺀다.
+     display:none 이 아니라서 스크롤 위치와 활성 항목 위치가 펼칠 때 그대로 남는다. */
+  html[data-sb-off] .hextra-sidebar-container { width: 3rem; }
+  html[data-sb-off] .hextra-sidebar-container > .hextra-scrollbar { visibility: hidden; }
+  html[data-sb-off] .hextra-sidebar-container > [data-toggle-animation] {
+    margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; justify-content: center;
+  }
+  html[data-sb-off] .hextra-sidebar-container > [data-toggle-animation] > :not(.hextra-sidebar-collapse) { display: none; }
+  html[data-sb-off] .hextra-sidebar-collapse { margin-left: 0; }
+  html[data-sb-off] .hextra-sidebar-collapse svg { transform: rotate(180deg); }
+}
+@media screen and (min-width: 48rem) and (prefers-reduced-motion: no-preference) {
+  .hextra-sidebar-container { transition: width 0.2s; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hextra-sidebar-collapse svg { transition: none; }
+}
