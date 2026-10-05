@@ -8,19 +8,16 @@
   ],
   "steps": [
     { "msg": ["hub", "edge"], "label": "1. origin.example.com 확인" },
-    { "note": ["edge", "hub"], "lines": ["Kuma는 응답 한 번으로 UP 판정"] },
+    { "note": ["edge", "hub"], "lines": ["Kuma는 응답 한 번으로 UP 판정", "공개 DNS가 hub인 동안은 다른 모니터가 약 30분마다 다시 깨움"] },
     { "msg": ["hub", "gha"], "label": "2. webhook (방향·IP 없이)" },
     { "msg": ["gha", "aws"], "label": "3. OIDC로 역할 빌림" },
     { "msg": ["gha", "aws"], "label": "4. apex A 값 읽기: 현재 hub" },
     { "msg": ["gha", "edge"], "label": "5. edge IP로 apex 확인" },
     { "note": ["edge", "gha"], "lines": ["30초 간격으로 10회, 약 5분 동안 연속 확인"] },
     { "msg": ["gha", "edge"], "label": "6. nextra·kanna·we·us 확인" },
-    { "alt": "apex 10회와 네 호스트가 전부 200", "steps": [
+    { "alt": "apex 10회와 네 호스트가 전부 200 (아니면 hub 유지)", "steps": [
         { "msg": ["gha", "aws"], "label": "7. 두 레코드를 edge로 UPSERT" },
-        { "msg": ["gha", "hub"], "label": "8. INSYNC 뒤 Kuma push 보고" }
-      ],
-      "elseLabel": "하나라도 200이 아님", "elseSteps": [
-        { "msg": ["gha", "hub"], "label": "7. hub 유지로 Kuma push 보고" }
+        { "msg": ["aws", "gha"], "label": "8. INSYNC까지 대기", "dashed": true }
       ] }
   ]
 }
