@@ -275,6 +275,67 @@ class NavigationCheckerIntegrationTests(unittest.TestCase):
         self.assertIn("baseline page URL disappeared: /old-route/", stderr)
         self.assertIn("baseline referenced page/asset disappeared: /assets/retired.png", stderr)
 
+    def _fingerprint_case(
+        self,
+        before_path: str,
+        after_path: str | None,
+    ) -> tuple[int, str]:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            baseline = workspace / "before"
+            site = workspace / "after"
+            make_valid_site(baseline)
+            make_valid_site(site)
+            index = baseline / "index.html"
+            index.write_text(
+                index.read_text(encoding="utf-8") + f'<link rel="stylesheet" href="{before_path}">',
+                encoding="utf-8",
+            )
+            (baseline / before_path.lstrip("/")).parent.mkdir(parents=True, exist_ok=True)
+            (baseline / before_path.lstrip("/")).write_bytes(b"old")
+            if after_path is not None:
+                (site / after_path.lstrip("/")).parent.mkdir(parents=True, exist_ok=True)
+                (site / after_path.lstrip("/")).write_bytes(b"new")
+            result, _, stderr = self.run_checker(site, baseline)
+        return result, stderr
+
+    def test_fingerprint_only_change_survives(self) -> None:
+        old = "/css/compiled/main.min." + "a" * 64 + ".css"
+        new = "/css/compiled/main.min." + "b" * 64 + ".css"
+        result, stderr = self._fingerprint_case(old, new)
+        self.assertEqual(0, result, stderr)
+
+    def test_fingerprint_asset_without_counterpart_must_survive(self) -> None:
+        old = "/css/compiled/main.min." + "a" * 64 + ".css"
+        result, stderr = self._fingerprint_case(old, None)
+        self.assertEqual(1, result)
+        self.assertIn(f"baseline referenced page/asset disappeared: {old}", stderr)
+
+    def test_fingerprint_counterpart_must_match_dir_stem_and_ext(self) -> None:
+        old = "/css/compiled/main.min." + "a" * 64 + ".css"
+        for other in (
+            "/css/compiled/main.min." + "b" * 64 + ".js",
+            "/css/other/main.min." + "b" * 64 + ".css",
+            "/css/compiled/app.min." + "b" * 64 + ".css",
+            "/css/compiled/main.min." + "B" * 64 + ".css",
+        ):
+            with self.subTest(other=other):
+                result, stderr = self._fingerprint_case(old, other)
+                self.assertEqual(1, result)
+                self.assertIn("baseline referenced page/asset disappeared", stderr)
+
+    def test_fingerprint_hash_length_boundary(self) -> None:
+        for length in (32, 64, 96, 128):
+            with self.subTest(length=length):
+                old = f"/js/app.{'a' * length}.js"
+                new = f"/js/app.{'b' * length}.js"
+                result, stderr = self._fingerprint_case(old, new)
+                self.assertEqual(0, result, stderr)
+        # Hugo 가 내지 않는 길이는 지문으로 보지 않는다.
+        old = f"/js/app.{'a' * 40}.js"
+        result, stderr = self._fingerprint_case(old, f"/js/app.{'b' * 40}.js")
+        self.assertEqual(1, result)
+
     def test_mapping_requires_recognized_urls_and_checks_alias(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             site = Path(directory) / "site"

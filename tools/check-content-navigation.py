@@ -12,6 +12,7 @@ import argparse
 import csv
 import json
 import posixpath
+import re
 import sys
 import unicodedata
 from collections import Counter
@@ -33,6 +34,19 @@ VOID_ELEMENTS = {
 SOURCE_TAGS = {"audio", "embed", "iframe", "img", "input", "script", "source", "track", "video"}
 URL_FIELDS = ("original_url", "old_url", "url", "permalink", "new_url")
 SOURCE_LEDGER_COLUMNS = ("old_source", "new_source", "original_url", "aliases")
+# Hugo fingerprint 가 내는 해시 길이: md5 32, sha256 64, sha384 96, sha512 128 (hex).
+FINGERPRINTED_NAME = re.compile(
+    r"^(?P<stem>.+)\.(?P<hash>[0-9a-f]{32}|[0-9a-f]{64}|[0-9a-f]{96}|[0-9a-f]{128})\.(?P<ext>[^./]+)$"
+)
+
+
+def fingerprint_key(path: str) -> tuple[str, str, str] | None:
+    """`<dir>/<stem>.<hash>.<ext>` 꼴이면 해시를 뺀 (dir, stem, ext), 아니면 None."""
+    directory, _, name = path.rpartition("/")
+    match = FINGERPRINTED_NAME.match(name)
+    if match is None:
+        return None
+    return directory, match.group("stem"), match.group("ext")
 
 
 def normalize_path(path: str, *, keep_trailing: bool = True) -> str:
@@ -224,6 +238,7 @@ class SiteIndex:
         self.page_urls: set[str] = set()
         self.route_to_document: dict[str, Document] = {}
         self.documents: list[Document] = []
+        self._fingerprint_keys: set[tuple[str, str, str]] = set()
         self._index()
 
     def _index(self) -> None:
@@ -234,6 +249,9 @@ class SiteIndex:
             relative = path.relative_to(self.root)
             exact = normalize_path("/" + relative.as_posix(), keep_trailing=False)
             self.resources.add(exact)
+            key = fingerprint_key(exact)
+            if key is not None:
+                self._fingerprint_keys.add(key)
             if path.suffix.lower() == ".html":
                 html_paths.append(path)
                 public = normalize_path(public_url_for_file(relative))
@@ -252,6 +270,11 @@ class SiteIndex:
     def contains(self, path: str) -> bool:
         normalized = normalize_path(path)
         return normalized in self.resources or normalized.rstrip("/") in self.resources
+
+    def contains_refingerprinted(self, path: str) -> bool:
+        """같은 디렉터리·stem·확장자에 해시만 다른 지문 파일이 있으면 True."""
+        key = fingerprint_key(normalize_path(path, keep_trailing=False))
+        return key is not None and key in self._fingerprint_keys
 
     def document_for(self, path: str) -> Document | None:
         normalized = normalize_path(path)
@@ -717,7 +740,9 @@ def compare_baseline(
         if not site.contains(url):
             errors.append(f"baseline page URL disappeared: {url}")
     for target in sorted(baseline.valid_local_targets()):
-        if not site.contains(target):
+        # 지문 번들은 내용이 바뀌면 파일명 해시가 바뀐다. 새 HTML 이 새 해시를 참조하는지는
+        # broken_references 가 따로 잡으므로, 해시만 다른 대응 파일이 있으면 살아남은 것으로 본다.
+        if not site.contains(target) and not site.contains_refingerprinted(target):
             errors.append(f"baseline referenced page/asset disappeared: {target}")
     baseline_broken = Counter(item.comparison_key for item in baseline.broken_references())
     return errors, baseline_broken
