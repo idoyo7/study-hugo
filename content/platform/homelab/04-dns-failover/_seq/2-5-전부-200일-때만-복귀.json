@@ -8,7 +8,7 @@
   ],
   "steps": [
     { "msg": ["hub", "edge"], "label": "1. origin.example.com 확인" },
-    { "note": ["edge", "hub"], "lines": ["Kuma는 응답 한 번으로 UP 판정", "DNS가 hub인 동안은 약 30분마다 다시 깨움"] },
+    { "note": ["edge", "hub"], "lines": ["Kuma는 응답 한 번으로 UP 판정", "공개 DNS가 hub인 동안은 다른 모니터가 약 30분마다 다시 깨움"] },
     { "msg": ["hub", "gha"], "label": "2. webhook (방향·IP 없이)" },
     { "msg": ["gha", "aws"], "label": "3. OIDC로 역할 빌림" },
     { "msg": ["gha", "aws"], "label": "4. apex A 값 읽기: 현재 hub" },
