@@ -17,6 +17,6 @@
     { "msg": ["gha", "hub"], "label": "6. hub IP로 apex 확인" },
     { "msg": ["hub", "gha"], "label": "7. 200", "dashed": true },
     { "msg": ["gha", "aws"], "label": "8. 두 레코드를 hub로 UPSERT" },
-    { "msg": ["gha", "hub"], "label": "9. INSYNC 뒤 Kuma push 보고" }
+    { "msg": ["aws", "gha"], "label": "9. INSYNC까지 대기", "dashed": true }
   ]
 }
