@@ -23,6 +23,7 @@ linkTitle: "설계·구축"
 - [용량 산정 — 월 0.7TB RUM 워크드 모델(3개월·6개월·1년)]({{< relref "/observability/hyperdx/design/07-capacity-planning/index.md" >}})
 - [블록 스토리지 온리 — S3 없이 EBS 단일 티어 튜닝]({{< relref "/observability/hyperdx/design/08-block-only-tuning/index.md" >}})
 - [버전 호환성·업그레이드 — 스택 전 구성요소 매트릭스와 EBS 롤백]({{< relref "/observability/hyperdx/design/09-version-upgrade-compat/index.md" >}})
+- [부록 A — EBS gp2·gp3 fio 실측은 gp3 선택을 어디까지 뒷받침하는가]({{< relref "/observability/hyperdx/design/a1-ebs-gp2-gp3-benchmark/index.md" >}})
 
 참고 자료: [출처]({{< relref "/observability/hyperdx/design/10-sources.md" >}})
 

@@ -84,6 +84,8 @@ istiod가 CPU를 먹는 메커니즘은 [02 컨트롤 플레인 해부: istiod](
 
 Ambient mode에서는 ztunnel이 노드당 1개, waypoint가 namespace·service 단위입니다. 파드가 늘어도 프록시 수가 그만큼 늘지 않습니다.
 
+사이드카와 Ambient의 지연·롤아웃 중 503을 외부 문서가 같은 클러스터에서 비교한 값은 [부록 A]({{< relref "/platform/istio/ambient/a1-sidecar-vs-ambient-measurements/index.md" >}})에 정리했습니다.
+
 ### 3.3 Kubernetes Gateway API 지원
 
 Kubernetes의 Ingress 리소스는 freeze되었고 Gateway API가 새로운 표준으로 자리잡는 중입니다. Istio 팀도 이 흐름에 맞춰 Gateway API를 기본 옵션으로 채택하는 쪽으로 움직였습니다. 공식 문서도 Gateway API 기준으로 쓰이기 시작했습니다.

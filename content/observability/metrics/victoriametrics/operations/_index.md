@@ -20,6 +20,7 @@ linkTitle: "우리 환경 운영"
 - [스케일링·용량 기준치]({{< relref "/observability/metrics/victoriametrics/operations/04-scaling-thresholds.md" >}})
 - [vmagent AZ 분할로 AZ 간 scrape 전송 줄이기]({{< relref "/observability/metrics/victoriametrics/operations/05-vmagent-az-split/index.md" >}})
 - [Istio 히스토그램 3종이 시리즈의 44%: vmstorage 인덱스 줄이기]({{< relref "/observability/metrics/victoriametrics/operations/06-storage-index-roadmap.md" >}})
+- [부록 · AZ를 건너면 Pod 간 지연은 얼마나 늘어나는가]({{< relref "/observability/metrics/victoriametrics/operations/a1-pod-network-rtt/index.md" >}})
 
 {{< callout type="info" >}}
 - 우리 환경의 실제 구성·튜닝·기준치·노하우를 다룹니다.
@@ -52,6 +53,7 @@ linkTitle: "우리 환경 운영"
 | [04 스케일링·용량 기준치]({{< relref "/observability/metrics/victoriametrics/operations/04-scaling-thresholds.md" >}}) | 용량 | 디스크 큐 산정식, 리소스 기준치, HA 트레이드오프, slow insert 임계 |
 | [05 vmagent AZ 분할]({{< relref "/observability/metrics/victoriametrics/operations/05-vmagent-az-split/index.md" >}}) | 통신·전송량 | AZ a/c 분산 수집으로 전체 네트워크 사용량을 약 13% 줄이는 설계, 한 번에 바꾸는 전환과 검증, AZ를 넘어도 청구되지 않는 구간 |
 | [06 vmstorage 인덱스 줄이기]({{< relref "/observability/metrics/victoriametrics/operations/06-storage-index-roadmap.md" >}}) | 저장·용량 | Istio 히스토그램 3종이 시리즈의 44%, 파드 차원 집계의 효과, 버전 업그레이드와 적용 순서 |
+| [부록 A Pod 네트워크 RTT]({{< relref "/observability/metrics/victoriametrics/operations/a1-pod-network-rtt/index.md" >}}) | 지연·대역폭 | 같은 노드·같은 AZ·다른 AZ의 RTT와 단일 플로우 대역폭을 잰 외부 실측과 05편의 조건 차이 |
 
 ## 읽는 순서
 

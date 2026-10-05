@@ -20,6 +20,7 @@ linkTitle: "Ambient"
 - [3-3편 — Ambient 안전하게 업그레이드하기]({{< relref "/platform/istio/ambient/03-3-ambient-upgrade-in-place/index.md" >}})
 - [507과 istiod disconnected 탐지]({{< relref "/platform/istio/ambient/03-4-507-istiod-disconnected/index.md" >}})
 - [Ambient 이행 심사]({{< relref "/platform/istio/ambient/10-ambient-migration-questions.md" >}})
+- [부록 A 사이드카와 Ambient 실측 비교]({{< relref "/platform/istio/ambient/a1-sidecar-vs-ambient-measurements/index.md" >}})
 
 {{< callout type="info" >}}
 **참조한 내용정리**
