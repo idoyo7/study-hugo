@@ -56,7 +56,7 @@ python3 tools/check-content-navigation.py --site-dir /tmp/study-hugo-check \
 
 검사기는 내부 링크·앵커·리소스·canonical과 양쪽 사이드바를 검사한다.
 `--baseline-dir <개편 전 빌드 경로>`를 추가하면 기존 URL과 참조 리소스의
-보존 여부도 대조한다. PR에서는 `Content navigation checks`가 이를 실행한다.
+보존 여부도 대조한다(파일명 해시만 바뀐 지문 번들은 보존된 것으로 본다). PR에서는 `Content navigation checks`가 이를 실행한다.
 
 ## 배포
 

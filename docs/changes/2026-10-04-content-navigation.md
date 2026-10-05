@@ -65,7 +65,7 @@ python3 tools/check-content-navigation.py \
   --mapping docs/changes/2026-10-04-content-navigation.csv --source-dir . --expected-mapping-count 219
 ```
 
-`--baseline-dir`은 비교할 이전 커밋을 별도 위치에 빌드한 디렉터리입니다. 없으면 생략할 수 있습니다. `Content navigation checks` PR 워크플로는 PR의 base SHA를 별도 worktree에 빌드해 비교합니다. 검증 도구는 Python 표준 라이브러리만 사용합니다.
+`--baseline-dir`은 비교할 이전 커밋을 별도 위치에 빌드한 디렉터리입니다. 없으면 생략할 수 있습니다. 파일명이 `<이름>.<해시>.<확장자>`인 지문 자산은 같은 디렉터리에 해시만 다른 대응 파일이 있으면 보존된 것으로 봅니다. `Content navigation checks` PR 워크플로는 PR의 base SHA를 별도 worktree에 빌드해 비교합니다. 검증 도구는 Python 표준 라이브러리만 사용합니다.
 
 검사 범위는 생성된 HTML과 자산입니다. 외부 사이트의 응답 상태나 브라우저에서 JavaScript 실행 후 생기는 동작까지 확인하는 검사는 아닙니다.
 

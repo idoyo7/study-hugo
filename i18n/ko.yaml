@@ -8,3 +8,5 @@
 # 템플릿이 아니어서 now.Year 를 쓸 수 없다 — 자동화하려면
 # layouts/partials/custom/footer.html 을 만들어 거기서 렌더해야 한다.
 copyright: "© 2026 Mont · [makgol.com](https://makgol.com)"
+sidebarCollapse: "사이드바 접기"
+sidebarExpand: "사이드바 펼치기"
