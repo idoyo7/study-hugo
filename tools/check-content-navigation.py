@@ -41,12 +41,17 @@ FINGERPRINTED_NAME = re.compile(
 
 
 def fingerprint_key(path: str) -> tuple[str, str, str] | None:
-    """`<dir>/<stem>.<hash>.<ext>` 꼴이면 해시를 뺀 (dir, stem, ext), 아니면 None."""
+    """`<dir>/<stem>.<hash>.<ext>` 꼴이면 (dir, stem, ext) 를, 아니면 None 을 낸다.
+
+    stem 자리에 해시 길이도 묶어 알고리즘이 다른 파일끼리는 대응으로 보지 않는다.
+    `<stem>.<32hex>.png` 꼴 일반 이미지도 같은 디렉터리에 해시만 다른 형제가 있으면
+    살아남은 것으로 보인다. 지문 파일과 구별할 수 없는 잔여 위험이다.
+    """
     directory, _, name = path.rpartition("/")
     match = FINGERPRINTED_NAME.match(name)
     if match is None:
         return None
-    return directory, match.group("stem"), match.group("ext")
+    return directory, f"{match.group('stem')}#{len(match.group('hash'))}", match.group("ext")
 
 
 def normalize_path(path: str, *, keep_trailing: bool = True) -> str:

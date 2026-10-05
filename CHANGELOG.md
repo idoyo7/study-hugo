@@ -8,7 +8,7 @@
 - 상태는 `localStorage`의 `sb-off`에 저장하고 `<html data-sb-off>`로 표현합니다. 첫 페인트 전에 적용하는 인라인 한 줄을 `head-end.html`에 두어 접힌 채로 연 페이지가 펼쳐졌다 접히지 않게 했고, 저장소 접근이 막혀도 try/catch로 펼친 상태로 동작합니다.
 - 버튼 동작은 캐시되는 `static/js/sidebar-collapse.js`로 분리했습니다. 페이지당 HTML은 약 600바이트 늘었습니다(대표 3개 페이지 실측은 커밋 설명 참고). 모바일 햄버거 메뉴와 `themes/hextra` 파일은 건드리지 않았습니다.
 - 접힌 레일에는 펼치기 버튼만 남기므로 접은 채로는 테마를 바꿀 수 없습니다(의도한 설계, 펼친 뒤 전환). 접힌 상태로 연 페이지에서 `defer` 스크립트가 실행되기 전(또는 로드 실패 시)에는 버튼의 `aria-expanded`·라벨이 "접기"로 남을 수 있습니다. 접힘 규칙은 정상 사이드바(`hx:md:sticky`)에만 걸려, 사이드바가 꺼진 페이지의 placeholder 폭은 바뀌지 않습니다.
-- `tools/check-content-navigation.py`의 baseline 비교가 지문 해시만 바뀐 번들(`/css/compiled/main.min.<해시>.css`)을 사라진 자산으로 보고 CI를 실패시켰습니다. `custom.css`를 바꾸면 번들 해시가 바뀌는 것이 정상 동작이라(HTML은 `max-age=0`, 해시 파일은 immutable) 같은 디렉터리·stem·확장자에 해시만 다른 파일이 있으면 통과시키고, 대응 파일이 없으면 지금처럼 실패합니다. 새 HTML의 깨진 참조는 기존대로 별도로 잡습니다.
+- `tools/check-content-navigation.py`의 baseline 비교가 지문 해시만 바뀐 번들(`/css/compiled/main.min.<해시>.css`)을 사라진 자산으로 보고 CI를 실패시켰습니다. `custom.css`를 바꾸면 번들 해시가 바뀌는 것이 정상 동작이라(HTML은 `max-age=0`, 해시 파일은 immutable) 같은 디렉터리·stem·확장자에 해시만 다른 파일이 있으면 통과시키고, 대응 파일이 없으면 지금처럼 실패합니다. 해시 길이(알고리즘)가 다르면 대응으로 보지 않습니다. 새 HTML의 깨진 참조는 기존대로 별도로 잡습니다. 잔여 위험으로, `<stem>.<32hex>.png` 꼴 일반 이미지는 같은 디렉터리에 해시만 다른 형제가 있으면 삭제돼도 통과하지만 이 저장소에는 그런 파일명이 없습니다.
 - 문구는 `i18n/ko.yaml`의 `sidebarCollapse`·`sidebarExpand`, 스타일은 `assets/css/custom.css`에 있습니다. `prefers-reduced-motion`이면 전환 애니메이션이 없습니다.
 
 ## 2026-10-05 — 도식 사용 가이드

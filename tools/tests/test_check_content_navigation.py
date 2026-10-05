@@ -331,6 +331,9 @@ class NavigationCheckerIntegrationTests(unittest.TestCase):
                 new = f"/js/app.{'b' * length}.js"
                 result, stderr = self._fingerprint_case(old, new)
                 self.assertEqual(0, result, stderr)
+        # 해시 길이(알고리즘)가 다르면 대응 파일로 보지 않는다.
+        result, stderr = self._fingerprint_case(f"/js/app.{'a' * 64}.js", f"/js/app.{'b' * 32}.js")
+        self.assertEqual(1, result)
         # Hugo 가 내지 않는 길이는 지문으로 보지 않는다.
         old = f"/js/app.{'a' * 40}.js"
         result, stderr = self._fingerprint_case(old, f"/js/app.{'b' * 40}.js")
