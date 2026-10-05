@@ -10,21 +10,26 @@ url: "/istio/ambient/a1-sidecar-vs-ambient-measurements/"
 
 # 부록 · 사이드카와 Ambient의 지연·롤아웃 실측은 무엇을 말하는가
 
-atomai의 kubernetes-docs 중 [Sidecar vs Ambient 모드 선택 가이드 (EKS 1.36 실험 보고)](https://www.atomai.click/kubernetes-docs/ko/service-mesh/istio/comparison/03-sidecar-vs-ambient)에는 사이드카와 Ambient 데이터플레인을 같은 클러스터에서 비교한 실험 보고가 있습니다. 보고된 값은 두 가지입니다. 하나는 정상 상태의 지연 분포이고, 다른 하나는 Deployment를 반복해서 재시작하는 동안 나온 503 비율입니다. 메모리와 CPU 사용량은 실측이 없습니다. 원문의 리소스 절감 계산은 가정 입력으로 만든 예산 모델이고, 이전 판의 성능 표는 출처를 확인하지 못해 삭제됐다고 적혀 있습니다.
+사이드카, ztunnel만 쓰는 Ambient L4, waypoint를 추가한 Ambient L7의 차이는 정상 요청과 롤아웃에서 각각 확인해야 합니다. atomai의 [Sidecar vs Ambient 모드 선택 가이드 (EKS 1.36 실험 보고)](https://www.atomai.click/kubernetes-docs/ko/service-mesh/istio/comparison/03-sidecar-vs-ambient)는 같은 클러스터에서 지연 분포와 Deployment 재시작 중의 오류를 비교했습니다.
 
-본편 01이 전하는 채널코퍼레이션의 도입 이유는 파드 수에 따라 늘어나는 프록시 메모리와 컨트롤 플레인 부하입니다. 이 부록의 지연·롤아웃 수치는 그 이유를 확인하거나 반박하는 값이 아닙니다. 다른 축을 쟀습니다.
+측정된 것은 지연과 HTTP·비HTTP 결과입니다. CPU·메모리 사용량은 측정하지 않았고, 원문의 리소스 절감 수치는 가정 입력으로 계산한 예산 모델입니다. 따라서 이 부록은 본편 01의 프록시 메모리·컨트롤 플레인 부하에 관한 도입 근거와 구분해 읽어야 합니다.
 
 근거 표기 — `✓` 원문 직접 확인 · `Ⓑ` 원문이 보고한 벤치마크 수치 · `Ⓥ` 저자 주장 · `?` 원문에서 확인하지 못함. 각 절 끝의 '근거와 측정 조건'에 조건을 모았습니다. 본편은 [01 왜 Ambient mode인가]({{< relref "/platform/istio/ambient/01-why-ambient-mode/index.md" >}})와 [10 Ambient 이행 심사]({{< relref "/platform/istio/ambient/10-ambient-migration-questions.md" >}})입니다.
 
 ## 1. 정상 상태의 지연
 
-atomai 문서가 보고한 값은 이렇습니다. 메시가 없는 기준선의 P50이 0.82ms일 때 사이드카는 2.11ms, waypoint 없는 Ambient(ztunnel만)는 0.86ms, waypoint를 둔 Ambient는 2.68ms였습니다. 기준선과의 P50 차이로 쓰면 각각 +1.29ms, +0.04ms, +1.86ms입니다.
+Istio 1.30.2·EKS 1.36.2 환경에서 Fortio 1.69.4로 200 QPS, 연결 16개, 60초를 설정했습니다. 노드는 eksctl 입력 기준 Amazon Linux 2023 arm64 m7g.xlarge 3대이며, 케이스마다 성공 요청 12,000건을 기록했습니다. 원문의 보고일은 2026-08-21입니다.
 
-P99는 기준선 1.97ms, 사이드카 3.91ms, ztunnel만 쓴 경우 1.98ms, waypoint를 둔 경우 3.98ms입니다. P99.9에서는 사이드카가 8.00ms, waypoint가 7.67ms로 둘이 비슷하고, ztunnel만 쓴 경우는 2.93ms입니다.
+| 경로 | P50 | P99 | P99.9 | 기준선 대비 P50 |
+|---|---|---|---|---|
+| no-mesh | 0.82ms | 1.97ms | 2.00ms | 기준선 |
+| 사이드카 | 2.11ms | 3.91ms | 8.00ms | +1.29ms |
+| Ambient L4(ztunnel만) | 0.86ms | 1.98ms | 2.93ms | +0.04ms |
+| Ambient L7(waypoint) | 2.68ms | 3.98ms | 7.67ms | +1.86ms |
 
-이 값으로 읽을 수 있는 것은 이 정도입니다. 이 실험에서는 L4만 쓰는 경로의 추가 지연이 사이드카나 waypoint 경로보다 훨씬 작았습니다. 반대로 waypoint 경로는 사이드카보다 P50이 0.57ms 더 컸습니다. L7 기능이 필요한 서비스에서 Ambient가 지연 면에서 앞선다는 값은 아닙니다.
+이 표본에서 L4 경로는 기준선에 가까웠고 waypoint의 P50은 사이드카보다 0.57ms 컸습니다. P99.9에서는 사이드카 8.00ms와 waypoint 7.67ms가 가까웠습니다. L7 기능이 필요한 서비스에서 Ambient가 지연 면에서 앞선다는 결과로 읽을 수는 없습니다.
 
-원문은 이 값을 "작은 차이를 무시해도 된다"거나 SLO에 맞는다는 근거로 쓰지 말라고 스스로 단서를 달았습니다. 반복 실험의 편차, 리소스·배치 조건, 원시 결과 파일이 없기 때문입니다.
+원시 결과 파일과 정확한 실행 스크립트 아카이브는 없고 반복 편차도 제시하지 않았습니다. payload·정책, 지연 실험의 echo replica 수와 프록시 리소스 조건도 충분히 공개되지 않았습니다. 원문은 이 표로 작은 차이를 무시해도 된다거나 SLO를 만족한다고 판단하지 말라고 명시합니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -45,13 +50,13 @@ P99는 기준선 1.97ms, 사이드카 3.91ms, ztunnel만 쓴 경우 1.98ms, wayp
 
 ## 2. 롤아웃 중 503
 
-Deployment를 반복해서 재시작하는 동안 100 QPS를 600초간 보낸 실험입니다. 조정 전에 사이드카는 60,000건 중 503이 324건(0.5%)이었고, waypoint 없는 Ambient는 503이 0건이었으며, waypoint를 둔 Ambient는 59,913건 중 1,528건(2.6%)이었습니다.
+메시 네임스페이스마다 echo 6개 replica와 Fortio client를 두고 대상 Deployment를 반복 재시작했습니다. 요청 설정은 100 QPS, 실행 시간은 600초입니다. 조정 전 사이드카는 60,000건 중 503이 324건(0.5%), waypoint 없는 Ambient는 503이 0건, waypoint를 둔 Ambient는 59,913건 중 503이 1,528건(2.6%)이었습니다.
 
-503이 0건이라고 오류가 없었던 것은 아닙니다. waypoint 없는 Ambient에는 HTTP 응답을 받지 못한 비HTTP 결과(Fortio의 -1)가 195건(0.3%) 있었습니다. 사이드카는 2건, waypoint를 둔 경우는 84건입니다. 원문은 이 -1의 원인(reset, EOF, timeout)을 실제 오류 기록 없이는 구분할 수 없다고 적었습니다.
+HTTP 상태 코드만으로 오류를 세면 일부 결과가 빠집니다. waypoint 없는 Ambient에는 HTTP 응답을 받지 못한 Fortio -1이 195건(0.3%) 있었습니다. 사이드카는 2건, waypoint 경로는 84건입니다. 실제 오류 기록이 없어 reset·EOF·timeout 중 무엇이었는지는 원문도 구분하지 못했습니다.
 
-종료 절차를 조정한 뒤에는 모든 모드에 preStop sleep 10초와 종료 유예 40초를 적용했습니다. 사이드카에는 연결이 0이 되면 종료하는 설정(`EXIT_ON_ZERO_ACTIVE_CONNECTIONS`)과 drain 30초도 더했습니다. 이 표본에서 사이드카와 ztunnel만 쓴 경우는 오류가 0건이었고, waypoint를 둔 경우는 59,352건 중 503이 648건(1.1%)으로 줄었습니다.
+후속 실행에서는 모든 모드에 preStop sleep 10초와 종료 유예 40초를 적용했습니다. 사이드카에는 `EXIT_ON_ZERO_ACTIVE_CONNECTIONS`와 drain 30초 설정도 추가했습니다. 이 표본에서 사이드카와 ztunnel만 쓴 경우는 오류가 0건이었습니다. waypoint 경로는 성공 200이 59,352건, 503이 648건(1.1%)이었고 비HTTP 결과는 0건이었습니다.
 
-원문은 이 결과를 제품 고유의 성질로 해석하지 말라고 합니다. 목적지 IP 재사용 경쟁과 ztunnel의 알림 누락이라는 원인 설명도 가설로 분류했습니다. 사이드카는 조정 요인이 둘이라 preStop 하나의 효과라고 말할 수 없습니다. 롤아웃 횟수도 모드마다 달랐습니다(조정 전 42/64/65회, 조정 후 42/38/45회).
+결과는 개선됐지만 종료 조정 하나의 독립 효과를 분리한 실험은 아닙니다. 사이드카는 조정 요인이 둘이고, 롤아웃 횟수도 모드별로 조정 전 42/64/65회, 조정 후 42/38/45회로 달랐습니다. 목적지 IP 재사용 경쟁이나 ztunnel 알림 누락이라는 원인 설명은 원문에서도 가설입니다. 남은 waypoint 오류가 같은 원인인지, 다른 모드가 언제나 오류 없이 동작하는지는 이 결과로 확인할 수 없습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -72,11 +77,13 @@ Deployment를 반복해서 재시작하는 동안 100 QPS를 600초간 보낸 �
 출처: [Sidecar vs Ambient 모드 선택 가이드 (EKS 1.36 실험 보고)](https://www.atomai.click/kubernetes-docs/ko/service-mesh/istio/comparison/03-sidecar-vs-ambient) — 「4. 무중단 롤아웃 — 503 실험 결과 (핵심 관측)」, 「후속 실험: graceful shutdown 조정 후」
 {{% /details %}}
 
-## 3. 리소스 수치는 어디에 있는가
+## 3. 리소스 예산 모델과 실측의 차이 {#3-리소스-수치는-어디에-있는가}
 
-사이드카와 ztunnel의 메모리·CPU를 실제로 잰 표는 두 문서 어디에도 없습니다. 비교 가이드(03)에는 리소스 측정 절이 없고, Ambient 개요(advanced/01)의 성능 절은 이전 판의 벤치마크 표를 삭제했다고 밝힙니다. 그 표의 이미지 링크가 404였고 Pod별 CPU·메모리·지연 수치의 출처를 확인하지 못했다는 이유입니다.
+원문의 비교 가이드에는 프록시 리소스 실측 절이 없습니다. Ambient 개요(advanced/01)는 이전 성능 표의 이미지 링크가 404였고 Pod별 CPU·메모리·지연 수치의 출처를 확인하지 못해 표를 삭제했다고 밝힙니다.
 
-남아 있는 것은 파드 100개를 가정한 계산입니다. 사이드카를 파드마다 50MB와 0.1 vCPU, Ambient를 ztunnel 10개(각 50MB, 0.1 vCPU)와 waypoint 하나(200MB, 0.5 vCPU)로 놓으면 메모리는 5,000MB에서 700MB로, CPU는 10 vCPU에서 1.5 vCPU로 줄어 약 86%와 85%의 절감이 나옵니다. 원문은 이 입력이 추천 request·limit도, 실측 비용도 아니라고 못 박았습니다. waypoint replica 수가 늘면 결과가 달라지고, 실제 비교에는 ztunnel·waypoint 전체 replica와 컨트롤 플레인 자원을 포함해야 한다고 적었습니다.
+남아 있는 것은 100파드를 가정한 예산 계산입니다. 사이드카를 파드마다 50MB·0.1 vCPU로 놓으면 5,000MB·10 vCPU입니다. Ambient에 ztunnel 10개(각 50MB·0.1 vCPU)와 waypoint 하나(200MB·0.5 vCPU)를 둔다고 가정하면 700MB·1.5 vCPU로 계산됩니다. 이 입력에서는 메모리 약 86%, CPU 약 85%가 줄어듭니다.
+
+원문은 이 값을 추천 request·limit이나 실측 비용으로 제시하지 않았습니다. waypoint replica 수가 바뀌면 계산도 달라집니다. 실제 비교에는 ztunnel·waypoint 전체 replica와 컨트롤 플레인 자원을 포함해야 하고, request나 사용량 감소가 청구 감소를 뜻하지도 않는다고 설명합니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -93,32 +100,31 @@ Deployment를 반복해서 재시작하는 동안 100 QPS를 600초간 보낸 �
 출처: [Ambient Mode](https://www.atomai.click/kubernetes-docs/ko/service-mesh/istio/advanced/01-ambient-mode) — 「성능 비교」, 「벤치마크 결과」, 「리소스 절감 계산」, 「검증한 이력과 현재 제한」. 워크로드 템플릿 행은 [Sidecar vs Ambient 모드 선택 가이드 (EKS 1.36 실험 보고)](https://www.atomai.click/kubernetes-docs/ko/service-mesh/istio/comparison/03-sidecar-vs-ambient) — 「부록: 후속 실험 절차」, 「C. 네임스페이스와 워크로드 매니페스트」
 {{% /details %}}
 
-## 4. 본편과 나란히 놓을 때
+## 4. 도입 사례와 비교할 수 있는 범위 {#4-본편과-나란히-놓을-때}
 
-본편 01의 도입 이유는 두 가지입니다. 4,000개 파드에 사이드카를 붙이면 idle 상태에서만 메모리 약 240Gi가 나가고, 컨트롤 플레인은 사이드카 수에 따라 부하가 비선형으로 커진다는 것입니다. 본편이 인용한 단가(사이드카 60Mi, ztunnel 12Mi)는 Istio 공식 성능 문서와 채널코퍼레이션의 측정에서 나온 값입니다. 이 부록의 원문에서 나온 값이 아닙니다.
+본편 01은 4,000개 파드에 사이드카를 붙일 때 idle 메모리만 약 240Gi가 필요하고 컨트롤 플레인 부하가 사이드카 수에 따라 비선형으로 커진다고 설명합니다. 사이드카 60Mi·ztunnel 12Mi라는 메모리 값은 본편이 인용한 Istio 공식 성능 문서와 채널코퍼레이션 측정에서 나온 것이며 이 외부 실험의 값이 아닙니다.
 
-방향이 같은 부분은 구조에 대한 설명뿐입니다. 원문도 ztunnel을 노드 단위의 L4 프록시로, waypoint를 필요한 곳에만 두는 L7 프록시로 설명하고, 100파드 가정 계산에서는 프록시 수가 줄수록 예산이 줄어듭니다. 다만 그 계산은 가정이라 절감 비율을 채널코퍼레이션의 규모에 옮길 근거가 되지 못합니다.
+| 비교 조건 | 이 외부 실험 | 본편 01 |
+|---|---|---|
+| 규모 | 노드 3대, 롤아웃 실험 echo 6개 replica | 수천 개 파드의 프록시 고정비 |
+| 측정·판단 대상 | 지연과 롤아웃 중 오류 | 메모리와 컨트롤 플레인 전파 |
+| 워크로드 | Fortio echo 서버 | 실제 서비스 |
+| waypoint 지연 | 사이드카보다 P50이 큼 | hop 증가를 설명하지만 대응 측정값은 없음 |
 
-나란히 놓을 수 없는 부분이 더 많습니다.
+두 문서 모두 ztunnel을 노드 단위 L4 프록시로, waypoint를 필요한 곳에 두는 L7 프록시로 설명합니다. 프록시 수에 따라 자원이 달라진다는 관계는 연결해 볼 수 있지만, 원문의 100파드 예산 모델을 채널코퍼레이션 규모에 적용해 절감률을 계산할 근거는 없습니다.
 
-- 규모: 원문의 실험은 노드 3대, echo 6개 replica 수준입니다. 본편은 수천 개 파드의 고정비를 다룹니다.
-- 축: 원문이 잰 것은 지연과 롤아웃 중 오류이고, 본편의 결정 근거는 메모리와 컨트롤 플레인 전파입니다.
-- 워크로드: 원문은 Fortio echo 서버이고, 본편은 실제 서비스입니다.
-- 지연의 방향: waypoint 경로는 원문에서 사이드카보다 P50이 더 컸습니다. 본편이 인정한 hop 증가와 같은 방향의 관측이지만, 본편에는 이에 대응하는 수치가 없습니다.
-
-롤아웃 중 503은 본편 03-1의 주제와 이어 읽을 수 있습니다. [03-1 503과 Half-open Connection]({{< relref "/platform/istio/ambient/03-1-503-half-open-connection/index.md" >}})는 waypoint가 죽은 Pod의 터널을 재사용하는 문제를 다룹니다. 원문의 waypoint 503이 같은 원인인지는 원문이 가설로만 남겼고, 이 부록도 단정하지 않습니다.
+롤아웃 오류는 [03-1 503과 Half-open Connection]({{< relref "/platform/istio/ambient/03-1-503-half-open-connection/index.md" >}})과 함께 읽을 수 있습니다. 본편은 waypoint가 죽은 Pod의 터널을 재사용하는 문제를 다룹니다. 외부 실험의 waypoint 503도 같은 원인인지는 확인되지 않았습니다.
 
 본편: [01 왜 Ambient mode인가]({{< relref "/platform/istio/ambient/01-why-ambient-mode/index.md" >}})
 
-## 5. 본편에 없던 보충
+## 5. NetworkPolicy에서 확인한 허용 포트 {#5-본편에-없던-보충}
 
-- waypoint 없는 Ambient의 지연이 기준선에 가까웠다는 관측(+0.04ms)은 본편에 없습니다. 본편은 비용을 메모리 중심으로 설명합니다.
-- 롤아웃 오류를 따질 때 503과 비HTTP 결과를 나눠 세어야 합니다. 503이 0건이어도 -1이 195건 나왔습니다.
-- 종료 유예(preStop 10초, 유예 40초)를 조정하면 같은 표본에서 오류 비율이 줄었습니다. 모드별 차이를 본다면 조정 전후를 같이 봐야 합니다.
-- L4 정책을 쓰는 클러스터에서는 TCP 15008(HBONE) 허용이 필요했습니다. 원문의 VPC CNI NetworkPolicy 실험에서 8080만 허용했을 때 Ambient 두 모드가 `i/o timeout`으로 막혔고, 15008을 함께 허용하자 200 OK가 됐습니다. 이는 검사한 경로의 관측이며 최소 권한 정책의 완성형이 아니라고 원문이 밝혔습니다.
-- 원문은 mTLS만 필요하면 L4부터 검증하고 L7이 필요한 서비스에만 waypoint를 추가하라는 운영 원칙을 제시합니다. 이는 원문 저자의 권고입니다.
+원문의 VPC CNI NetworkPolicy 실험에서는 TCP 8080만 허용했을 때 Ambient L4와 L7 모두 `i/o timeout`으로 막혔습니다. TCP 15008(HBONE)을 함께 허용하자 200 OK가 됐습니다. 이 결과는 검사한 경로에서 필요한 허용 조건을 보여 주며, 모든 환경의 최소 권한 정책이 완성됐다는 뜻은 아니라고 원문이 밝혔습니다.
+
+원문 저자는 mTLS만 필요하면 L4부터 검증하고 L7이 필요한 서비스에만 waypoint를 추가하라고 권합니다. 이는 저자의 운영 권고입니다. 지연·롤아웃 결과와 함께 검토하되 프록시 자원이나 정책을 같은 조건에서 측정했다는 의미로 확대하지 않습니다.
 
 출처: [Sidecar vs Ambient 모드 선택 가이드 (EKS 1.36 실험 보고)](https://www.atomai.click/kubernetes-docs/ko/service-mesh/istio/comparison/03-sidecar-vs-ambient) — 「2. NetworkPolicy — 실험 결과」, 「5. 권장: 요구사항에 따른 계층별 접근」
+
 ## 확인하지 못한 것
 
 | 항목 | 상태 |
