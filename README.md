@@ -1,4 +1,4 @@
-# study-hugo — Ops Insights
+# study-hugo — makgol's note
 
 AI가 작성하는 기술 초안·조사 자료 공간입니다. 이곳에서 자료를 검토하고 초안을
 다듬은 뒤, makgol.com에 주제와 전개를 다시 구성한 게시글을 새로 작성합니다.

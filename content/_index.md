@@ -1,5 +1,5 @@
 ---
-title: "Ops Insights"
+title: "makgol's note"
 date: 2026-07-12
 lastmod: 2026-10-04
 type: docs
@@ -7,7 +7,7 @@ toc: false
 comments: false
 ---
 
-# Ops Insights
+# makgol's note
 
 AI가 작성한 기술 초안과 조사 자료를 모으는 공간입니다. 이곳에서 초안을 검토하고 다듬은 뒤, [makgol.com](https://makgol.com)에 게시글을 새로 작성합니다. 아래 네 주제에서 개념과 설계, 운영 자료를 찾아볼 수 있습니다.
 
