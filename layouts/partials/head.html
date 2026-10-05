@@ -1,7 +1,7 @@
 {{- /* themes/hextra/layouts/_partials/head.html (Hextra v0.12.3, 42882bc) 의 프로젝트 오버라이드.
        테마 원본과 다른 곳은 <title> 블록 한 군데뿐 — 홈에서 site.Params.seo.homeTitle 을 먼저 본다.
-       테마 원본은 홈에서 site.Title('Ops Insights') 만 내보내 12자짜리 제목이 나갔다.
-       그 값이 사라지면 홈 title 이 소리 없이 12자로 되돌아가므로 폴백에 warnf 를 달았다.
+       테마 원본은 홈에서 site.Title("makgol's note") 만 내보내 13자짜리 제목이 나갔다.
+       그 값이 사라지면 홈 title 이 소리 없이 13자로 되돌아가므로 폴백에 warnf 를 달았다.
        title 태그만 바꾸려고 이 파일을 통째로 복사했다. 프런트매터 title 을 늘리는 쪽은
        docs/list.html:11 이 그 값을 h1 로 한 번 더 찍고 opengraph.html:3 이 og:title 로 쓰기 때문에
        부작용이 딸려온다.
@@ -24,7 +24,7 @@
       {{- with $homeTitle -}}
         {{ . -}}
       {{- else -}}
-        {{- warnf "hugo.toml 의 [params.seo].homeTitle 이 없다 — 홈 <title> 이 site.Title(12자)로 되돌아간다" -}}
+        {{- warnf "hugo.toml 의 [params.seo].homeTitle 이 없다 — 홈 <title> 이 site.Title(13자)로 되돌아간다" -}}
         {{ site.Title -}}
       {{- end -}}
     {{ else -}}
