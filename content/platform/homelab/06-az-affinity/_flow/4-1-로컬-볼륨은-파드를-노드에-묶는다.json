@@ -1,0 +1,17 @@
+{
+  "caption": "로컬 볼륨을 쓰는 DB 파드는 그 볼륨이 있는 ap-northeast-2a의 노드에서만 뜨고, ap-northeast-2c에는 뜰 자리가 없습니다.",
+  "groups": [
+    { "id": "za", "label": "ap-northeast-2a", "members": ["pa", "lv"] },
+    { "id": "nas", "label": "NAS (존 밖)", "members": ["nfs"] },
+    { "id": "zc", "label": "ap-northeast-2c", "members": ["pc"] }
+  ],
+  "nodes": [
+    { "id": "pa", "col": 0, "row": 0, "label": "DB 파드", "sub": "PostgreSQL · MongoDB", "kind": "proc" },
+    { "id": "lv", "col": 0, "row": 1, "label": "로컬 PV", "sub": "노드 디스크", "kind": "store" },
+    { "id": "nfs", "col": 1, "row": 0, "label": "NFS 볼륨", "sub": "이 두 DB는 미사용", "kind": "store" },
+    { "id": "pc", "col": 2, "row": 0, "label": "DB 파드", "sub": "뜰 수 없음", "kind": "proc", "ghost": true }
+  ],
+  "edges": [
+    { "from": "pa", "to": "lv", "label": "마운트" }
+  ]
+}
