@@ -4,6 +4,8 @@
 
 ## 2026-10-07 — 도식 "크게 보기" 닫기 버튼·캡션 간격·lane 확대
 
+관련 PR: [#47](https://github.com/idoyo7/study-hugo/pull/47)
+
 - 폰 폭(390x844)에서 모든 도식 235개를 "크게 보기"로 열어 쟀습니다. 우상단 닫기 버튼이 도식 글자를 덮은 도식이 왼쪽 끝에서 flow 83/145, seq 10/49였고, 오른쪽 끝까지 밀면 flow 18, seq 22, cfstl 5, mnode 2, bscore 1, rrev 1, rstep 4개가 덮였습니다. 도식이 위에서 12px 아래에서 시작했기 때문입니다.
 - 좁은 화면 오버레이의 위쪽 padding을 60px(닫기 버튼 아래 끝 52px)으로 키우고 `align-content:start`를 추가했습니다. 변경 후 글자가 덮이는 도식은 왼쪽 끝·오른쪽 끝 모두 0개이고 도식은 y=60에서 시작합니다. 같은 규칙으로 도식과 caption 사이 간격이 80px을 넘던 도식이 flow 142, seq 33, cfstl 5, mnode 2, bscore 1, rrev 1, rstep 4개(최대 381px)에서 0개로 줄었고, 최대 간격은 8px입니다. cfstl만 도식과 caption 사이에 범례가 있어 64px입니다.
 - lane(28개, 12편)은 `expand.css`에 규칙이, `expand.js`의 `SVG_SEL`에 `.lane-svg`가 없어 데스크톱·폰 모두 확대되지 않고 페이지 스크롤만 잠겼습니다(28개 전부 `position:fixed`가 아님). 7종과 같은 규칙에 lane을 넣어 28개 모두 전체화면으로 열립니다. `.vm-lane`이 이미 불투명 배경을 가져 따로 칠하지 않았습니다.
