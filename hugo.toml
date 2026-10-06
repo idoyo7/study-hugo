@@ -60,7 +60,12 @@ enableRobotsTXT = true
   description = "AI가 작성하는 Kubernetes·관측성·데이터스토어 기술 초안과 조사 자료를 모아 둔 makgol's note. 여기서 초안을 검토하고 보완한 뒤 makgol.com 게시글로 새로 씁니다."
   [params.navbar]
     displayTitle = true
-    displayLogo = false
+    displayLogo = true
+    [params.navbar.logo]
+      path = 'images/logo.svg'
+      dark = 'images/logo-dark.svg'
+      width = 24
+      height = 24
 
   [params.theme]
     # light | dark | system
