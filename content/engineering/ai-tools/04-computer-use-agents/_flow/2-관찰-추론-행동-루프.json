@@ -1,0 +1,20 @@
+{
+  "caption": "화면을 보고, 모델이 행동을 정하고, 실행하고, 다시 본다. 결과가 큰 행동은 실행 전에 분류기와 사람 확인을 거친다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "obs", "col": 0, "row": 0, "label": "관찰", "sub": "스크린샷·접근성 트리", "kind": "src" },
+    { "id": "model", "col": 1, "row": 0, "label": "모델", "sub": "다음 행동을 추론", "kind": "proc" },
+    { "id": "gate", "col": 2, "row": 0, "label": "분류기", "sub": "인젝션·위험 검사", "kind": "query" },
+    { "id": "human", "col": 3, "row": 0, "label": "사람 확인", "sub": "결제·전송·삭제", "kind": "query" },
+    { "id": "env", "col": 0, "row": 1, "label": "화면·앱", "sub": "브라우저·데스크톱", "kind": "store" },
+    { "id": "exec", "col": 2, "row": 1, "label": "실행", "sub": "클릭·입력·배치", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "obs", "to": "model", "label": "입력" },
+    { "from": "model", "to": "gate", "label": "행동" },
+    { "from": "gate", "to": "exec", "label": "통과" },
+    { "from": "gate", "to": "human", "label": "고위험", "dashed": true },
+    { "from": "exec", "to": "env", "label": "입력 전달" },
+    { "from": "env", "to": "obs", "label": "캡처" }
+  ]
+}
