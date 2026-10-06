@@ -8,7 +8,7 @@
   /* 좁은 화면 확대 규칙(expand.css @media)이 쓸 native 폭을 알려준다.
      도식마다 viewBox 폭이 다르다 — flow 스펙만 412~1720 으로 흩어져 있어서 CSS 에
      한 값을 박으면 어느 쪽이든 틀린다. 버튼 아이콘도 svg 라서 클래스로 도식만 고른다. */
-  var SVG_SEL = '.flow-svg, .seq-svg, .cft-svg, .bs-svg, .mn-svg, .rs-svg, .rr-svg';
+  var SVG_SEL = '.flow-svg, .seq-svg, .cft-svg, .bs-svg, .mn-svg, .rs-svg, .rr-svg, .lane-svg';
   function setNativeWidth(b) {
     var svg = b.querySelector(SVG_SEL);
     if (!svg) return;
