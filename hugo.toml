@@ -37,6 +37,11 @@ enableRobotsTXT = true
   section = ['html', 'rss', 'markdown']
 
 [markup]
+  [markup.goldmark.extensions]
+    # 본문은 범위를 `1.5~2명`, `$330~440K` 처럼 물결표 하나로 적는다.
+    # GFM 취소선 확장은 물결표 하나도 짝으로 읽어 그 사이를 <del> 로
+    # 감쌌고, 수치가 지워진 것처럼 보였다. 원고에 `~~` 취소선은 없다.
+    strikethrough = false
   [markup.goldmark.renderer]
     unsafe = true
   [markup.highlight]
