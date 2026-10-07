@@ -1,0 +1,21 @@
+{
+  "caption": "Argo 앱을 멈춘 채 머지하면 머지된 main의 렌더를 라이브와 대조한 다음, 고른 시점에 적용됩니다. 3단계에서 실제로 돈 순서입니다.",
+  "participants": [
+    { "id": "op", "label": "작업 스크립트" },
+    { "id": "git", "label": "Git main" },
+    { "id": "argo", "label": "Argo CD" },
+    { "id": "k8s", "label": "클러스터" }
+  ],
+  "steps": [
+    { "msg": ["op", "argo"], "label": "1. skip-reconcile 표시" },
+    { "msg": ["op", "git"], "label": "2. PR 머지" },
+    { "note": ["argo", "k8s"], "lines": ["적용하지 않음", "60초 관찰"] },
+    { "msg": ["op", "git"], "label": "3. main 렌더" },
+    { "msg": ["op", "k8s"], "label": "4. 라이브 리소스와 대조" },
+    { "msg": ["op", "k8s"], "label": "5. 머지 정지·스냅샷·플래그" },
+    { "msg": ["op", "argo"], "label": "6. 표시 제거·hard refresh" },
+    { "msg": ["argo", "k8s"], "label": "7. ClickHouse 리소스 적용" },
+    { "msg": ["op", "argo"], "label": "8. 다시 표시" },
+    { "note": ["op", "k8s"], "lines": ["변환 검증이 끝난 뒤 표시 제거"] }
+  ]
+}
