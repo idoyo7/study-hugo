@@ -1,5 +1,6 @@
 // static/og-default.png (1200x630) 생성기. 사용: node tools/og-default/render.mjs
 // 의존: next 의 @vercel/og(satori+resvg), Pretendard Regular/SemiBold TTF/OTF.
+// 로고 마크는 static/images/logo-dark.svg 를 실행 때 읽어 제목색(#f1f5f9)으로 칠해 얹는다.
 // 경로는 환경변수 OG_LIB, FONT_REGULAR, FONT_BOLD 로 바꿀 수 있다.
 import { readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -8,6 +9,9 @@ import path from 'node:path'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const out = path.resolve(here, '../../static/og-default.png')
+const markSvg = readFileSync(path.resolve(here, '../../static/images/logo-dark.svg'), 'utf8')
+  .replace('fill="#ffffff"', 'fill="#f1f5f9"')
+const mark = 'data:image/svg+xml;base64,' + Buffer.from(markSvg).toString('base64')
 const lib = process.env.OG_LIB ||
   '/home/mont/evejuni/nextra-blog/docs/node_modules/next/dist/compiled/@vercel/og/index.node.js'
 const regular = readFileSync(process.env.FONT_REGULAR ||
@@ -24,9 +28,13 @@ const T = {
 }
 const el = (style, children) => ({ type: 'div', props: { style: { display: 'flex', ...style }, children } })
 
+const img = (style, src) => ({ type: 'img', props: { src, style: { display: 'flex', ...style } } })
+
 const tree = el({ width: 1200, height: 630, background: '#0d1119', position: 'relative' }, [
   el({ position: 'absolute', left: 56, top: 56, width: 1090, height: 519, borderRadius: 28, background: '#131925' }),
   el({ position: 'absolute', left: 56, top: 56, width: 12, height: 519, borderRadius: 6, background: '#38bdf8' }),
+  // SVG 안쪽 여백(약 6px) 때문에 left 를 114 로 둬야 육각형의 보이는 변이 글자 열(120)과 맞는다.
+  img({ position: 'absolute', left: 114, top: 92, width: 64, height: 64 }, mark),
   el({ position: 'absolute', left: 118, top: 168, fontSize: 88, fontWeight: 600, color: '#f1f5f9', letterSpacing: -1 }, T.title),
   el({ position: 'absolute', left: 120, top: 312, fontSize: 31, fontWeight: 400, color: '#94a3b8' }, T.sub),
   el({ position: 'absolute', left: 120, top: 499, fontSize: 24, fontWeight: 400, color: '#64748b' }, T.tags),
