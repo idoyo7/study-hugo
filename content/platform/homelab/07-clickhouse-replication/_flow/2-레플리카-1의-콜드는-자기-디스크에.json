@@ -1,0 +1,17 @@
+{
+  "caption": "처음 설계에서 레플리카 1은 7일 지난 파트를 같은 볼륨의 로컬 디스크로 옮겨, 콜드가 node1의 SeaweedFS에 의존하지 않습니다.",
+  "groups": [
+    { "id": "n1", "label": "node1", "members": ["r0", "s3"] },
+    { "id": "n2", "label": "node2", "members": ["r1", "cl"] }
+  ],
+  "nodes": [
+    { "id": "r0", "col": 0, "row": 0, "label": "레플리카 0", "sub": "핫 7일 · 로컬 볼륨", "kind": "proc" },
+    { "id": "s3", "col": 0, "row": 1, "label": "SeaweedFS S3", "sub": "prefix data/", "kind": "store" },
+    { "id": "r1", "col": 1, "row": 0, "label": "레플리카 1", "sub": "핫 7일 · 로컬 볼륨", "kind": "proc" },
+    { "id": "cl", "col": 1, "row": 1, "label": "로컬 콜드 디스크", "sub": "같은 볼륨 안", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "r0", "to": "s3", "label": "콜드 이동" },
+    { "from": "r1", "to": "cl", "label": "콜드 이동" }
+  ]
+}
