@@ -1,0 +1,21 @@
+{
+  "caption": "Istio는 L7을 처리하는 Envoy에서 모든 HTTP 요청을 기록하고, Hubble은 eBPF에서 L3/L4 flow를 기본으로 기록하며 L7은 Envoy를 지나는 트래픽만 얻습니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "req", "col": 0, "row": 1, "label": "요청", "kind": "src" },
+    { "id": "envoy", "col": 1, "row": 0, "label": "Istio Envoy", "sub": "사이드카·waypoint", "kind": "proc" },
+    { "id": "ebpf", "col": 1, "row": 1, "label": "Cilium eBPF", "sub": "모든 패킷", "kind": "proc" },
+    { "id": "cenvoy", "col": 1, "row": 2, "label": "노드 Envoy", "sub": "cilium-envoy", "kind": "proc" },
+    { "id": "im", "col": 2, "row": 0, "label": "istio 메트릭·로그", "sub": "span 포함", "kind": "sink" },
+    { "id": "h4", "col": 2, "row": 1, "label": "Hubble L3/L4", "sub": "verdict·drop reason", "kind": "sink" },
+    { "id": "h7", "col": 2, "row": 2, "label": "Hubble L7", "sub": "HTTP·DNS", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "req", "to": "envoy", "label": "HTTP" },
+    { "from": "req", "to": "ebpf", "label": "패킷" },
+    { "from": "ebpf", "to": "cenvoy", "label": "L7 정책 있을 때", "dashed": true },
+    { "from": "envoy", "to": "im", "label": "기록" },
+    { "from": "ebpf", "to": "h4", "label": "기록" },
+    { "from": "cenvoy", "to": "h7", "label": "기록" }
+  ]
+}

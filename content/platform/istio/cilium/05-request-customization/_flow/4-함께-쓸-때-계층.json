@@ -1,0 +1,19 @@
+{
+  "caption": "Cilium CNI 위에 Istio를 올리면 Istio 프록시가 mTLS와 L7을, Cilium이 L3/L4 정책과 로드밸런싱을 맡고 각자 자기 층의 기록을 남깁니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "cli", "col": 0, "row": 0, "label": "클라이언트 파드", "kind": "src" },
+    { "id": "ist", "col": 1, "row": 0, "label": "Istio 프록시", "sub": "mTLS·L7", "kind": "proc" },
+    { "id": "cil", "col": 2, "row": 0, "label": "Cilium eBPF", "sub": "L3/L4 정책·LB", "kind": "proc" },
+    { "id": "srv", "col": 3, "row": 0, "label": "서버 파드", "kind": "sink" },
+    { "id": "it", "col": 1, "row": 1, "label": "istio 메트릭·span", "kind": "sink" },
+    { "id": "hf", "col": 2, "row": 1, "label": "Hubble flow", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "cli", "to": "ist", "label": "평문" },
+    { "from": "ist", "to": "cil", "label": "mTLS" },
+    { "from": "cil", "to": "srv", "label": "전달" },
+    { "from": "ist", "to": "it", "label": "L7 기록" },
+    { "from": "cil", "to": "hf", "label": "flow 기록" }
+  ]
+}

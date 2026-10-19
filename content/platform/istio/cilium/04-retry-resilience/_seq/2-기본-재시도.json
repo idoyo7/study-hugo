@@ -1,0 +1,22 @@
+{
+  "caption": "Istio의 Envoy는 retryOn 조건에 맞는 실패를 만나면 기본 2회까지 25ms 이상 간격을 두고 다시 보내며, 횟수를 다 쓰면 오류를 그대로 돌려줍니다.",
+  "participants": [
+    { "id": "c", "label": "클라이언트" },
+    { "id": "e", "label": "Envoy" },
+    { "id": "b", "label": "백엔드" }
+  ],
+  "steps": [
+    { "msg": ["c", "e"], "label": "1. 요청" },
+    { "msg": ["e", "b"], "label": "2. 전달" },
+    { "msg": ["b", "e"], "label": "3. 연결 실패", "dashed": true },
+    { "note": ["e"], "lines": ["retryOn 조건에 맞음", "25ms 이상 간격 뒤 재시도"] },
+    { "msg": ["e", "b"], "label": "4. 재시도" },
+    { "alt": "재시도에서 성공", "steps": [
+        { "msg": ["b", "e"], "label": "5. 응답", "dashed": true },
+        { "msg": ["e", "c"], "label": "6. 응답", "dashed": true }
+      ],
+      "elseLabel": "기본 2회 소진", "elseSteps": [
+        { "msg": ["e", "c"], "label": "5. 오류 응답", "dashed": true }
+      ] }
+  ]
+}

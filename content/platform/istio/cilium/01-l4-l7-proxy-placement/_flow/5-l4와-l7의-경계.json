@@ -1,0 +1,19 @@
+{
+  "caption": "HTTP를 해석할 필요가 없으면 요청은 ztunnel이나 eBPF에서 끝나고, 필요해지는 순간에만 Envoy로 올라갑니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "r", "col": 0, "row": 1, "label": "요청", "sub": "연결 하나", "kind": "src" },
+    { "id": "q", "col": 1, "row": 1, "label": "HTTP를 봐야 하나", "sub": "L7 규칙 유무", "kind": "query" },
+    { "id": "a", "col": 2, "row": 0, "label": "L4에서 처리", "sub": "ztunnel · eBPF", "kind": "proc" },
+    { "id": "b", "col": 2, "row": 2, "label": "Envoy로 올림", "sub": "waypoint · 노드 Envoy", "kind": "proc" },
+    { "id": "a2", "col": 3, "row": 0, "label": "L4 기능", "sub": "L4 정책 · TCP 메트릭", "kind": "sink" },
+    { "id": "b2", "col": 3, "row": 2, "label": "L7 기능", "sub": "라우팅 · L7 정책", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "r", "to": "q", "rate": 700 },
+    { "from": "q", "to": "a", "label": "아니오", "rate": 700 },
+    { "from": "q", "to": "b", "label": "예", "rate": 700 },
+    { "from": "a", "to": "a2", "rate": 700 },
+    { "from": "b", "to": "b2", "rate": 700 }
+  ]
+}

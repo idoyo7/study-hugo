@@ -18,6 +18,7 @@ linkTitle: "Istio·서비스 메시"
 - [설정·확장]({{< relref "/platform/istio/configuration/_index.md" >}})
 - [운영·장애 대응]({{< relref "/platform/istio/operations/_index.md" >}})
 - [Ambient]({{< relref "/platform/istio/ambient/_index.md" >}})
+- [Istio와 Cilium]({{< relref "/platform/istio/cilium/_index.md" >}})
 - [버전 변경]({{< relref "/platform/istio/releases/_index.md" >}})
 
 EKS 클러스터 위에서 Istio를 굴리며 실제로 부딪힌 일들을 스토리 순서로 묶은 챕터입니다. 척추는 네 개의 사건입니다 — 컨트롤 플레인이 CPU를 먹어 증설했던 일, Ingress Gateway를 전용 노드로 분리한 일, 메시 설정을 Git으로 동기화한 일, 간헐적 응답 이상 장애를 메시 관점에서 추적한 일. 그 밑에 깔린 Istio 메커니즘을 하나씩 파고듭니다.
@@ -59,6 +60,7 @@ EKS 클러스터 위에서 Istio를 굴리며 실제로 부딪힌 일들을 스�
 - istiod를 오토스케일링하려면 02로 부하의 구조를 잡고 09로 넘어갑니다. 09가 답하는 질문은 "몇 대를 띄울까"가 아니라 "커넥션이 어느 파드로 가는가"입니다.
 - 요청이 실제로 어디를 지나는지 궁금하면 11로 갑니다. 01(구조)·02(컨트롤 플레인)·03(게이트웨이)이 나눠 든 조각을 클라이언트→앱 경로 하나로 꿴 배선도입니다.
 - Ambient mode가 궁금하면 01~09로 사이드카 모드의 비용 구조를 먼저 잡고 [10 Ambient 이행 심사]({{< relref "/platform/istio/ambient/10-ambient-migration-questions.md" >}})로 그 비용 구조 중 무엇이 무효가 되는지 본 뒤 하위 섹션 [Ambient mode 도입기]({{< relref "/platform/istio/ambient/_index.md" >}})로 갑니다. 프록시가 파드에서 노드로 옮겨 가면 무엇이 달라지는지를 다룹니다.
+- Cilium과 비교하려면 [Istio와 Cilium]({{< relref "/platform/istio/cilium/_index.md" >}}) 섹션으로 갑니다. 같은 Envoy를 어디에 두는지, Gateway API·관측·재시도·요청 변형에서 무엇이 다른지, 둘을 함께 쓸 때 무엇을 조심하는지를 다룹니다.
 - 버전을 올려야 한다면 [16]({{< relref "/platform/istio/releases/16-changelog-1.20-1.24/index.md" >}})·[17]({{< relref "/platform/istio/releases/17-changelog-1.25-1.30/index.md" >}})이 1.20부터 1.30까지 마이너 11개의 변경을 "무엇을 조치해야 하나"로 정리합니다. 우리 클러스터의 실제 이관 절차·차트·리스크는 [eks-upgrade / istio]({{< relref "/platform/kubernetes/eks-upgrade/components/02-istio.md" >}}) 소관입니다. 16·17은 그 절차가 통과할 변경 목록을 추려 둔 쪽입니다.
 - Envoy가 궁금하면 [12 Envoy가 제공하는 것]({{< relref "/platform/istio/fundamentals/12-envoy-capabilities/index.md" >}})으로 부품 자체를 본 뒤 [13 Istio의 Envoy 조립]({{< relref "/platform/istio/fundamentals/13-istio-envoy-assembly/index.md" >}})으로 넘어갑니다. 메시 채택 여부를 판단해야 한다면 [14 왜 서비스 메시인가]({{< relref "/platform/istio/fundamentals/14-why-service-mesh/index.md" >}})를 봅니다.
 - CRD가 뭐가 있고 서로 어떻게 엮이는지 한자리에서 보려면 15 — 각 리소스의 깊은 내용은 15가 가리키는 문서로.

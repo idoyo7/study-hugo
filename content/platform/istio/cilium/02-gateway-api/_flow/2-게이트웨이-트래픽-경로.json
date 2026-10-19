@@ -1,0 +1,22 @@
+{
+  "caption": "Istio는 Gateway마다 전용 Envoy 파드가 생기고, Cilium은 LoadBalancer Service로 들어온 트래픽을 노드의 공유 Envoy로 돌립니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "c1", "col": 0, "row": 0, "label": "외부 클라이언트", "sub": "Istio", "kind": "src" },
+    { "id": "l1", "col": 1, "row": 0, "label": "LB Service", "sub": "자동 생성", "kind": "proc" },
+    { "id": "g1", "col": 2, "row": 0, "label": "게이트웨이 파드", "sub": "Envoy Deployment", "kind": "proc" },
+    { "id": "b1", "col": 3, "row": 0, "label": "백엔드 파드", "kind": "sink" },
+    { "id": "c2", "col": 0, "row": 1, "label": "외부 클라이언트", "sub": "Cilium", "kind": "src" },
+    { "id": "l2", "col": 1, "row": 1, "label": "LB Service", "sub": "operator 생성", "kind": "proc" },
+    { "id": "g2", "col": 2, "row": 1, "label": "cilium-envoy", "sub": "노드마다 공유", "kind": "proc" },
+    { "id": "b2", "col": 3, "row": 1, "label": "백엔드 파드", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "c1", "to": "l1", "rate": 700 },
+    { "from": "l1", "to": "g1", "rate": 700 },
+    { "from": "g1", "to": "b1", "label": "L7 라우팅", "rate": 700 },
+    { "from": "c2", "to": "l2", "rate": 700 },
+    { "from": "l2", "to": "g2", "label": "TPROXY", "rate": 700 },
+    { "from": "g2", "to": "b2", "label": "L7 라우팅", "rate": 700 }
+  ]
+}
