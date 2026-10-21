@@ -1,41 +1,98 @@
 ---
-title: "GPU 스토리지 — 데이터 경로와 I/O 패턴이 병목을 가른다"
+title: "GPU 스토리지의 병목을 파일 접근과 전송 경로로 읽는 법"
 linkTitle: "02 데이터 경로와 파일시스템"
-description: "GDS의 직접 경로 조건과 SuperPOD의 스토리지 요구치를 살펴보고, 파일시스템의 메타데이터 배치와 접근 방식이 I/O 패턴별 병목에 미치는 차이를 정리한다."
+description: "GPU 스토리지의 메타데이터 배치와 클라이언트 접근 방식이 I/O 병목에 미치는 차이를 살펴보고, GDS 직접 경로의 조건과 SuperPOD 요구치와 NVIDIA 인증 범위를 정리한다."
 weight: 2
 date: 2026-10-21
 lastmod: 2026-10-21
 url: "/gpu-storage/02-data-path-and-filesystems/"
 ---
 
-# 02 · GPU 스토리지 — 데이터 경로와 I/O 패턴이 병목을 가른다
+# 02 · GPU 스토리지의 병목을 파일 접근과 전송 경로로 읽는 법
 
-GPUDirect Storage(GDS)는 CPU 메모리를 거치는 복사를 줄이지만, 서버의 PCIe 토폴로지와 파일 접근 방식이 맞아야 직접 경로를 씁니다. 지원되지 않는 구성에서는 CPU 메모리를 거치는 호환 모드로 자동 전환됩니다.
+GPU 스토리지의 병목은 파일 크기와 접근 방식, 그리고 GDS가 직접 경로를 쓰는지에 따라 달라집니다. 큰 파일 스트리밍은 데이터 서버 수에, 소파일 접근은 메타데이터 처리량에 영향을 받습니다. GPUDirect Storage(GDS)는 CPU 메모리를 거치는 복사를 줄이지만, 파일 접근 조건과 PCIe 토폴로지(장치 연결 배치)가 맞아야 직접 경로를 씁니다.
 
-이 글은 GDS의 직접 경로 조건에서 출발해 DGX SuperPOD의 스토리지 요구치와 NVIDIA 인증 범위를 살펴봅니다. 이어서 Lustre, Storage Scale, WEKA, VAST 같은 파일시스템이 메타데이터와 데이터를 배치하는 방식, 그 배치가 I/O 패턴에 미치는 차이를 설명합니다. 공개 수치는 각 제품의 구성과 측정 조건을 읽는 데 사용하며, 벤더 간 성능 순위로 엮지 않습니다.
+공개 성능 수치는 하드웨어와 측정 조건이 달라 벤더 간 순위로 쓰지 않습니다.
 
 근거 표기 — `✓` 1차 문서 확인 · `Ⓑ` 공개 벤치마크 · `Ⓥ` 벤더·프로젝트 주장 · `≈` 추정·역산 · `?` 미확인. 각 절 끝의 '근거와 측정 조건'에 수치와 조건을 모았습니다. 단계별 I/O 패턴은 [01 워크로드별 I/O]({{< relref "/data/gpu-storage/01-workload-io-patterns/index.md" >}}), 관리형 서비스와 Kubernetes는 [03]({{< relref "/data/gpu-storage/03-managed-object-kubernetes/index.md" >}})에 있습니다. NFS 자체의 동작은 [부록 NFS]({{< relref "/data/block-storage/a2-nfs/index.md" >}})에서 다뤘습니다.
 
-## 1. GDS의 직접 경로가 성립하는 조건
+## 1. 파일 크기와 연결 방식이 병목을 바꾼다
 
-GDS의 이점은 스토리지와 GPU 사이에서 CPU 메모리의 bounce buffer(임시 버퍼)를 거치는 단계를 줄이는 데 있습니다. 스토리지나 NIC 근처의 DMA 엔진이 GPU 메모리와 직접 데이터를 주고받습니다. 애플리케이션은 POSIX의 `pread`·`pwrite`를 닮은 `cuFileRead`와 `cuFileWrite`를 사용합니다.
+Lustre, BeeGFS, Hammerspace, Dell Lightning처럼 메타데이터를 분리한 방식에서는 큰 파일 스트리밍 성능이 데이터 서버 수에 비례해 늘고, 소파일이 많아지면 메타데이터 서버가 병목이 됩니다. WEKA, Storage Scale, VAST는 메타데이터 부하를 클러스터 전체로 분산하는 방식이 소파일에 유리하다고 설명합니다.
 
-직접 연결한다고 언제나 유리한 것은 아닙니다. NVIDIA Overview Guide는 "일부 시스템에서" PCIe 스위치를 지나는 직접 경로의 피크 대역폭이 CPU 경유 경로보다 최소 2배이고, 지연 개선은 작은 전송에서 가장 크다고 설명합니다. GPU와 NIC가 루트 포트를 공유하지 않으면 P2P(장치 간 직접 통신)가 오히려 비효율적일 수 있습니다. 파일을 여는 방식뿐 아니라 서버 안에서 장치가 연결된 위치도 성능 조건입니다.
+FSx for Lustre 문서는 파일 생성·열기·닫기와 디렉터리 생성·이름 변경에 필요한 메타데이터 IOPS를 구분합니다. 스트라이핑(여러 저장 대상에 나누어 배치)도 파일 크기의 영향을 받습니다. 작은 파일에 큰 스트라이프 수를 지정하면 모든 OST로 왕복이 생기므로, 소파일 데이터셋과 여러 랭크가 쓰는 큰 체크포인트 파일은 디렉터리 레이아웃을 따로 잡아야 합니다.
 
-직접 경로에 필요한 조건과 지원 범위는 다음과 같습니다.
+NFS에서는 마운트 하나가 서버 하나와 연결되므로 클라이언트 연결 방식도 처리량을 제한합니다. VAST 문서는 100 Gbps NIC에 RDMA(원격 메모리 직접 접근) nconnect 4, TCP nconnect 8을 권장합니다. 여러 CNode로 연결을 분산하는 멀티패스에는 VAST-NFS 클라이언트 드라이버가 필요합니다. NFS는 전용 클라이언트 없이도 접근할 수 있지만, 이 구성에는 VAST-NFS 드라이버가 필요합니다.
 
-- 파일 접근: `O_DIRECT`로 연다. CUDA 12.2(GDS 1.7) 이후에는 버퍼·크기·오프셋이 페이지 정렬이면 `O_DIRECT`가 아니어도 직접 경로를 사용한다.
-- 로컬 NVMe: CUDA 12.8부터 업스트림 커널의 P2PDMA로 동작하며 `nvidia-fs.ko`가 필요 없다. Linux 6.2 이상과 OpenRM 570 이상이 필요하다.
-- RAID와 multipath: 업스트림 P2PDMA에서는 RAID0과 NVMe multipath가 아직 미지원이다. GDS 1.19는 NVMe RAID1과 RAID10 지원을 추가했다.
-- 비NVMe 마운트: 분산 FS와 NFS에는 여전히 `nvidia-fs.ko`가 필요하다. MLNX_OFED 또는 DOCA를 GDS보다 먼저 설치해야 한다.
-- 커널 모듈: NVIDIA 오픈 커널 모듈만 지원한다.
-- 원격 접근: RDMA(원격 메모리 직접 접근)를 전제한다. VAST 문서는 RDMA 가능한 네트워크와 RDMA 마운트를 요구한다.
+JuiceFS와 Alluxio는 데이터를 오브젝트 저장소에 두고 메타데이터 엔진과 분산 캐시를 별도로 둡니다. JuiceFS는 MLPerf 제출 전에 콜드 데이터를 캐시 클러스터에 적재했습니다. 이 측정에는 캐시 미스 비용이 포함되지 않았다는 것이 이 글의 해석입니다. 오브젝트와 캐시 구성은 [03]({{< relref "/data/gpu-storage/03-managed-object-kubernetes/index.md" >}})에서 이어집니다.
 
-지원 조건에서 벗어나면 GDS는 CPU 메모리를 거치는 대체 경로로 전환합니다. GDS 1.19에 추가된 `vanilla_posix_mode`는 라이브러리가 없을 때 POSIX I/O를 사용합니다. 이 글의 해석으로는 GDS를 켰는데도 실제로는 호환 모드로 돌고 있을 수 있습니다. 문서가 이렇게 표현하지는 않습니다.
+{{% details title="근거와 측정 조건" closed="true" %}}
 
-파일시스템 지원 여부는 1.19.1 release notes의 표에서 확인할 수 있습니다. 로컬 EXT4·XFS, NFS, FSx for Lustre, Storage Scale, WekaFS, BeeGFS, VAST, DDN EXAScaler, PowerScale, Hammerspace, Hitachi HCSF, HPE 제품군, NetApp ONTAP, Pure(Everpure) FlashBlade, VDURA PanFS, NEC ScaTeFS가 올라 있습니다. NVMe-oF는 이 표에 별도로 표시되지 않습니다.
+| 주장 | 수치·조건 | 출처 | 근거 |
+|---|---|---|---|
+| FSx for Lustre 메타데이터 IOPS | 프로비저닝 메타데이터 IOPS 1당 초당 파일 생성·열기·닫기 2회, 삭제 1회, 디렉터리 생성·이름 변경 0.1회 | [S40] | `✓` |
+| FSx for Lustre 기본 PFL | 100 MiB 이하 파일은 OST 1개, 100 GiB 초과는 32개. 작은 파일에 큰 스트라이프 수를 주면 모든 OST로 왕복 | [S40] | `✓` |
+| 분산 메타데이터의 소파일 이점 | 메타데이터 부하가 클러스터 전체로 퍼져 소파일에 유리하다는 벤더 설명 | WEKA·Storage Scale·VAST 자료 | `Ⓥ` |
+| NFS nconnect 한계 | 단일 마운트 TCP nconnect 최대 7 GBps, RDMA 단일 연결 최대 9 GBps. 100 Gbps NIC에는 RDMA nconnect=4, TCP nconnect=8 권장 | [S31] | `✓`(벤더 문서) |
+| 멀티패스 | 연결을 여러 CNode로 퍼뜨림. VAST-NFS 클라이언트 드라이버 필요 | [S31] | `✓` |
+| JuiceFS 측정 방식 | MLPerf 제출에서 콜드 데이터를 캐시 클러스터에 미리 올려 두고 측정. 캐시 미스 비용이 결과에서 빠졌다는 해석 | [S56] | `Ⓥ` |
+| JuiceFS·Alluxio 구조 | 메타데이터 엔진과 분산 캐시를 따로 두고 데이터는 오브젝트에 둠 | [S56] | `Ⓥ` |
 
-오브젝트 저장소에는 cuObject가 있습니다. S3 요청의 제어 경로를 유지하면서 페이로드만 RDMA로 GPU·호스트 메모리와 직접 주고받는 방식입니다. IBM은 Storage Scale 6.0.1에서 cuObject를 지원하며 POSIX 성능의 최대 90%를 낸다고 설명합니다.
+{{% /details %}}
+
+## 2. 파일시스템은 메타데이터와 클라이언트 경로로 비교한다
+
+아래 표는 파일시스템별 메타데이터 처리 방식과 클라이언트 접근 경로를 비교합니다. GDS 열은 3절에서 설명하는 release notes 지원 표의 내용입니다. Hammerspace, Dell Lightning, Everpure EXA는 pNFS(병렬 NFS)로 메타데이터와 데이터 경로를 분리합니다. VAST에서는 상태 없는 CNode가 NVMe-oF로 SSD를 공유하며, CNode 증설로 프로토콜 처리량을 늘립니다.
+
+| 제품 | 메타데이터 | 클라이언트 접근 | RDMA | GDS(1.19.1 표) | 대표 공개 수치 | 등급 |
+|---|---|---|---|---|---|---|
+| Lustre / DDN EXAScaler | MDS/MDT 분리, 데이터는 OSS/OST에 스트라이프 | 커널 네이티브 클라이언트(LNet). DDN은 어플라이언스로 판매 | LNet이 IB·RoCE 지원 | ✓(EXAScaler 5.2+, 6.0+, FSx) | AI400X3M 2U 순차 읽기 190 GB/s·쓰기 110 GB/s(측정 조건 미공개) | 구조 ✓[S40] / 수치 Ⓥ[S33] |
+| IBM Storage Scale(GPFS) | 분산 메타데이터(토큰 기반 공유 디스크 구조) | 네이티브 클라이언트(NSD), NFS, SMB, S3, cuObject | 지원 | ✓(5.1.2+) | cuObject가 POSIX 성능의 최대 90% | 기능 ✓[S27] / 수치 Ⓥ |
+| WEKA(NeuralMesh) | 데이터·메타데이터를 클러스터 전체에 분산 | 전용 POSIX 클라이언트, NFS, SMB, S3. 사용자 공간 프로세스로 커널 우회 | 지원 | ✓(WekaFS) | DGX H100 BasePOD 8U에서 600 GB/s·2,200만 IOPS | 구조 ✓[S29] / 수치 Ⓥ |
+| VAST Data | 상태 없는 CNode와 NVMe-oF JBOF(DBox)를 분리(DASE). 모든 CNode가 모든 SSD에 접근 | NFSv3/v4.1, NFS over RDMA, 멀티패스(VAST-NFS 클라이언트), S3 | NFSoRDMA | ✓(4.1+) | 2021년 DGX A100 1대가 단일 NFS 마운트로 162 GB/s 읽기 | 구조 ✓[S31][S32] / 수치 Ⓥ(구세대) |
+| BeeGFS | 메타데이터 서비스 분리 | 커널 네이티브 클라이언트. BeeOND는 노드 로컬 SSD로 임시 FS 구성 | 7.3에서 클라이언트 멀티레일 RDMA | ✓ | 공개 수치 미확인 | ✓[S34] / 수치 ? |
+| DAOS | 키-값 오브젝트 저장소. POSIX는 dfuse·인터셉트 계층 | libdaos, dfuse, MPI-IO | 필수에 가까움(사용자 공간 NVMe·RDMA) | 표에 없음 | Aurora 서버 128대에서 쓰기 약 1 TB/s, 읽기 600 GB/s(MLPerf v2.0 체크포인트) | Ⓥ(Argonne 발표) |
+| Everpure(Pure) FlashBlade//EXA | 메타데이터는 FlashBlade, 데이터는 별도 Linux NVMe 데이터 노드 | 메타데이터는 pNFS/TCP, 데이터는 NFSv3 over RDMA | 데이터 경로 RDMA | ✓(FlashBlade) | MLPerf v3.0 1.25T 체크포인트 쓰기 877.52 GiB/s(데이터 노드 30대, 가속기 1,024개) | Ⓑ[S21][S22] |
+| NetApp ONTAP AI / AFX | AFX는 ONTAP을 분리형(성능과 용량 분리)으로 재구성 | NFS, NFS over RDMA, S3 | NFSoRDMA | ✓(ONTAP) | AFX 노드 8대 + 셸프 1대로 GDS 워크로드 457 GiB/s 지속 | Ⓥ[S37] |
+| Dell PowerScale | OneFS 스케일아웃 NAS. Lightning은 pNFS 메타데이터 서버 + Flex Files 레이아웃 | NFS, SMB, S3, (프리뷰) pNFS | NFSoRDMA | ✓ | 공개 수치 미확인 | 구조 Ⓥ[S38] |
+| Hammerspace | 메타데이터 서버(Anvil)가 pNFS v4.2 Flex Files 레이아웃을 내준다 | 표준 Linux NFS 클라이언트(전용 클라이언트 불필요), SMB, S3 | NFSoRDMA 가능 | ✓ | MLPerf v2.0에 1U 메타데이터 서버 1대만 추가한 Tier 0 구성으로 제출 | Ⓥ[S39] |
+| DeepSeek 3FS | FoundationDB 기반 상태 없는 메타데이터, CRAQ 복제 | FUSE와 USRBIO(사용자 공간 링 API) | 필수 | 해당 없음 | 서버 180대(노드당 200 Gbps IB 2개, 14 TiB NVMe 16개)에서 6.6 TiB/s 읽기, 클라이언트 500대 이상 | Ⓑ(자체) [S19] |
+
+FlashBlade//EXA의 877.52 GiB/s는 데이터 노드 30대와 가속기 1,024개를 사용한 MLPerf v3.0 1.25T 체크포인트 쓰기 결과입니다. 같은 표의 다른 값에는 벤더 발표, 구세대 장비 측정, 자체 측정이 섞여 있습니다. 이 표의 수치는 서로 비교하지 않습니다.
+
+{{% details title="근거와 측정 조건" closed="true" %}}
+
+| 주장 | 수치·조건 | 출처 | 근거 |
+|---|---|---|---|
+| VAST 구조 | CNode는 상태 없음, CNode 증설로 프로토콜 처리량 증가, SSD는 모든 CNode가 NVMe-oF로 공유 | [S32] | `✓` |
+| pNFS 재부상 | Hammerspace, Dell Lightning, Everpure EXA가 메타데이터와 데이터 경로를 pNFS로 분리 | [S21][S38][S39] | `✓` / `Ⓥ` |
+| Lustre 릴리스 | 최신 기능 릴리스 2.17.0(2025-12-29). 현장은 LTS 2.15.x가 다수, 2.15.8이 2025-12, 2.15.9는 2026 Q2 목표, 2.18.0은 2026 Q4 목표 | [S25][S26] | `✓` |
+| Storage Scale 버전 | 6.0.1(IBM 블로그 2026-06-10), 6.0.0은 2025-10 발표 | [S27][S28] | `✓`(존재) · `Ⓥ`(성능) |
+| WEKA | 제품명 NeuralMesh. Augmented Memory Grid는 SC25(2025-11) 상용 출시. NeuralMesh 6 GA가 2026 하반기라는 말은 서드파티뿐 | [S29][S30] | `✓` / NeuralMesh 6 `?` |
+| VAST | 인증 목록에 C-Node Gen 6 + BF-3 D-Box, EBox 참조 설계(Genoa·Turin). 소프트웨어 최신 버전 번호는 미확인 | [S8] | `✓` / 버전 `?` |
+| DDN | 인증 목록에 AI400X3·AI400X3i. AI400X3M은 2026 Q3 말 GA 예정 발표. GDS 표에 EXAScaler 5.2+와 6.0+. "EXAScaler 7"은 찾지 못함 | [S1][S8][S33] | `✓` / AI400X3M `Ⓥ` |
+| BeeGFS | 8.x 계열, 8.2가 2025-11. Wikipedia는 8.4.1(2026-08-19)을 최신으로 적음 | [S34] | `✓`(8.2) / 8.4.1 `?` |
+| DAOS | 2.8.0(2026-08-12)이 DAOS Foundation 첫 커뮤니티 릴리스로 알려짐. ALCF가 2026-10에 Aurora DAOS를 800대로 확대 발표 | [S35] | `?`(검색 요약) / `Ⓥ` |
+| 표의 대표 수치 | 각 행의 조건은 표에 적은 그대로. AI400X3M, WEKA, VAST, NetApp, Hammerspace, DAOS 값은 벤더·발표 주장 | [S33][S29][S31][S37][S39][S35] | `Ⓥ` |
+| FlashBlade//EXA 결과 | MLPerf v3.0 1.25T 체크포인트 쓰기 877.52 GiB/s, 데이터 노드 30대, 가속기 1,024개 | [S21][S22] | `Ⓑ` |
+| 3FS | 서버 180대(노드당 200 Gbps IB 2개, 14 TiB NVMe 16개)에서 6.6 TiB/s 읽기, 클라이언트 500대 이상 | [S19] | `Ⓑ`(자체 측정) |
+| NetApp AFX | AFX 노드 8대 + 셸프 1대, GDS 워크로드 457 GiB/s 지속 | [S37] | `Ⓥ` |
+| Hammerspace | MLPerf v2.0에 1U 메타데이터 서버 1대 추가 Tier 0 구성으로 제출 | [S39] | `Ⓥ` |
+| PowerScale pNFS | Project Lightning은 2025-11 기준 비공개 프리뷰, 이후 GA는 미확인 | [S38] | `Ⓥ` / GA `?` |
+
+{{% /details %}}
+
+## 3. GDS 지원과 실제 직접 경로는 구분한다
+
+GDS의 직접 경로에서는 스토리지나 NIC 근처의 DMA 엔진이 GPU 메모리와 데이터를 주고받습니다. CPU 메모리의 bounce buffer(임시 버퍼)를 거치는 단계가 그만큼 줄어듭니다. 애플리케이션은 POSIX의 `pread`·`pwrite`를 닮은 `cuFileRead`와 `cuFileWrite`를 사용합니다. NVIDIA Overview Guide는 일부 시스템에서 직접 경로의 피크 대역폭이 CPU 경유의 최소 2배라고 설명하지만, GPU와 NIC가 루트 포트를 공유하지 않으면 P2P(장치 간 직접 통신)가 오히려 비효율적일 수 있다고 덧붙입니다.
+
+파일은 `O_DIRECT`로 엽니다. CUDA 12.2(GDS 1.7) 이후에는 버퍼·크기·오프셋이 페이지 정렬이면 `O_DIRECT`가 아니어도 직접 경로를 사용합니다. 로컬 NVMe는 CUDA 12.8부터 업스트림 P2PDMA로 동작하며 `nvidia-fs.ko`가 필요 없습니다. GDS 1.19는 NVMe RAID1·RAID10 지원을 추가했으며, 업스트림 P2PDMA의 RAID0·NVMe multipath는 아직 미지원입니다.
+
+분산 FS와 NFS에는 `nvidia-fs.ko`가 필요하고, NVIDIA 오픈 커널 모듈만 지원합니다. VAST 문서는 원격 접근에 RDMA 가능한 네트워크와 RDMA 마운트를 요구합니다. 지원 조건을 벗어나면 GDS는 CPU 메모리를 거치는 호환 모드로 자동 전환됩니다. GDS 1.19의 `vanilla_posix_mode`는 라이브러리가 없을 때 POSIX I/O를 씁니다. 이 글의 해석으로는 GDS를 켰다는 사실만으로 직접 경로를 쓴다고 볼 수 없습니다. NVIDIA 문서의 표현은 아닙니다.
+
+GDS 1.19.1 지원 표에는 로컬 EXT4·XFS, NFS, FSx for Lustre, Storage Scale, WekaFS, BeeGFS, VAST, DDN EXAScaler, PowerScale, Hammerspace, Hitachi HCSF, HPE 제품군, NetApp ONTAP, Pure(Everpure) FlashBlade, VDURA PanFS, NEC ScaTeFS가 있습니다. NVMe-oF는 별도로 표시되지 않습니다.
+
+오브젝트 저장소용 cuObject는 S3 요청의 제어 경로를 유지하고 페이로드만 RDMA로 GPU·호스트 메모리와 직접 주고받습니다. IBM은 Storage Scale 6.0.1에서 cuObject를 지원하며 POSIX 성능의 최대 90%를 낸다고 설명합니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -59,7 +116,7 @@ GDS의 이점은 스토리지와 GPU 사이에서 CPU 메모리의 bounce buffer
 
 {{% /details %}}
 
-## 2. SuperPOD의 스토리지 요구치
+## 4. SuperPOD 요구치와 인증의 적용 범위
 
 | 항목 | Standard | Enhanced |
 |---|---|---|
@@ -68,13 +125,15 @@ GDS의 이점은 스토리지와 GPU 사이에서 CPU 메모리의 bounce buffer
 | SU 8개 합산 읽기 | 640 | 2000 |
 | SU 8개 합산 쓰기 | 320 | 992 |
 
-표는 DGX B300 SuperPOD 참조 아키텍처의 HPS(고성능 스토리지) 기준입니다. 단위는 GBps이며 SU는 스케일러블 유닛입니다. 이 수치는 B300에만 해당합니다. DGX B300과 GB300 NVL72는 다른 플랫폼이고, Rubin NVL8 참조 아키텍처에도 같은 표가 있는지는 확인하지 못했습니다.
+이 표는 DGX B300 SuperPOD의 HPS(고성능 스토리지) 기준입니다. 단위는 GBps이며 SU는 스케일러블 유닛입니다. 수치는 B300에만 해당하고, DGX B300과 GB300 NVL72는 다른 플랫폼입니다.
 
-SuperPOD는 학습 데이터를 다루는 HPS와 사용자 스토리지를 나눕니다. HPS에는 인증 파트너의 POSIX 파일시스템을 사용하고 InfiniBand 또는 RoCE로 연결합니다. 멀티스레드 읽기·쓰기와 RDMA를 쓰며, RAM과 로컬 플래시로 투명하게 캐시합니다. 홈 디렉터리, 로그, 관리용 공간은 관리망의 NFS 사용자 스토리지가 맡습니다. 스토리지 패브릭도 컴퓨트 패브릭과 분리하며, 노드당 스토리지 대역폭은 최소 40 Gbps를 요구합니다.
+SuperPOD는 학습용 HPS와 관리망의 NFS 사용자 스토리지를 나눕니다. HPS는 인증 파트너의 POSIX 파일시스템을 InfiniBand 또는 RoCE로 연결하고, 홈 디렉터리·로그·관리용 공간은 사용자 스토리지에 둡니다. 스토리지 패브릭은 컴퓨트 패브릭과 분리하며 노드당 최소 40 Gbps를 요구합니다.
 
-참조 문서는 체크포인트를 쓰는 동안 학습이 멈추는 동기 작업으로 설명하고, LLM 용도에는 읽기 성능의 절반 이상을 쓰기 성능으로 권장합니다. 기준 수치는 [01]({{< relref "/data/gpu-storage/01-workload-io-patterns/index.md" >}})의 GPU당 요구 대역폭과 함께 봐야 합니다.
+참조 문서는 체크포인트를 쓰는 동안 학습이 멈추는 동기 작업으로 설명하며, LLM에는 읽기 성능의 절반 이상을 쓰기 성능으로 권장합니다. 기준 수치는 [01]({{< relref "/data/gpu-storage/01-workload-io-patterns/index.md" >}})의 GPU당 요구 대역폭과 함께 봐야 합니다.
 
-네트워크 장치의 역할도 나뉩니다. 리셀러·데이터시트 요약에 따르면 DGX B300은 스토리지·관리망에 듀얼포트 BlueField-3 2장을, 컴퓨트 패브릭에 ConnectX-8 8장을 사용합니다. BlueField는 스토리지 서버 역할도 맡습니다. CMX에서는 BlueField-4가 NVMe-oF 연결을 종단하며, VAST는 BlueField에서 CNode를 실행한다고 설명합니다.
+리셀러 자료에 따르면 DGX B300의 BlueField-3는 스토리지·관리망을 연결합니다. BlueField는 스토리지 서버 역할도 맡습니다. CMX에서는 BlueField-4가 NVMe-oF 연결을 종단하며, VAST는 BlueField에서 CNode를 실행한다고 설명합니다.
+
+NVIDIA 인증은 Foundation·Enterprise·NCP·DGX SuperPOD 등급으로 나뉩니다. 이 글의 해석으로는 인증 목록은 벤더가 NVIDIA와 검증 절차를 거쳤는지 보여 주며, 기술 적합성의 전부를 말해 주지는 않습니다. 목록에 없는 BeeGFS, DAOS, Hammerspace, 순수 Lustre 커뮤니티판도 그 이유만으로 쓸 수 없는 제품이 되지는 않습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -87,21 +146,6 @@ SuperPOD는 학습 데이터를 다루는 HPS와 사용자 스토리지를 나�
 | 동기 체크포인트 전제 | 체크포인트가 수 TB일 수 있고 동기 작업이라 학습이 멈춤. LLM에는 읽기 성능의 절반 이상을 쓰기 성능으로 권장 | [S5] | `✓` |
 | DGX B300의 DPU | 스토리지·관리망용 듀얼포트 BlueField-3 2장(최대 400 Gb/s), 컴퓨트 패브릭은 ConnectX-8 8장 | [S60] | `Ⓥ` |
 | 스토리지 서버로서의 BlueField | CMX는 BlueField-4가 NVMe-oF를 종단, VAST는 BlueField에서 CNode 실행 | [S9] / VAST | `✓` / `Ⓥ` |
-
-{{% /details %}}
-
-## 3. NVIDIA 인증 목록의 범위
-
-2026-10-19에 갱신된 목록에서 Foundation은 x86 PCIe GPU 256개까지, Enterprise는 GPU 4,000개까지를 다룹니다. NCP는 클라우드 사업자의 GPU 10만 개 규모를 대상으로 하며, DGX SuperPOD 등급은 SuperPOD 구성용입니다.
-
-SuperPOD 등급에는 Dell PowerScale F710, DDN AI400X3, Everpure FlashBlade//S500, IBM Storage Scale 3500·6000, NetApp AFF A90·AFX 1K, VAST C-Node Gen 6 + BF-3 D-Box, WEKA WEKAPod Nitro가 있습니다. Foundation·Enterprise에는 Cisco UCS C225 M8 EBOX, Hitachi Vantara HCSF, HPE ClusterStor E2000(Foundation), Nutanix Unified Storage가 더해집니다. 오브젝트 Foundation 목록은 Cloudian HyperStore Flash 1100, HPE Alletra MP X10000, VAST를 포함합니다.
-
-이 글의 해석으로는 인증 목록은 벤더가 NVIDIA와 검증 절차를 거쳤는지 보여 주는 자료입니다. 기술 적합성의 전부를 말해 주지는 않습니다. BeeGFS, DAOS, Hammerspace, 순수 Lustre 커뮤니티판은 목록에 없습니다. 목록에 없다고 해서 쓸 수 없는 제품으로 보면 안 됩니다.
-
-{{% details title="근거와 측정 조건" closed="true" %}}
-
-| 주장 | 수치·조건 | 출처 | 근거 |
-|---|---|---|---|
 | 인증 등급 | Foundation(x86 PCIe GPU 256개까지), Enterprise(4,000개까지), NCP(클라우드 사업자, 10만 개 규모), DGX SuperPOD. 목록 갱신 2026-10-19 | [S8] | `✓` |
 | SuperPOD 등급 제품 | PowerScale F710, DDN AI400X3, FlashBlade//S500, Storage Scale 3500·6000, AFF A90·AFX 1K, VAST C-Node Gen 6 + BF-3 D-Box, WEKAPod Nitro | [S8] | `✓` |
 | Foundation·Enterprise 추가 제품 | Cisco UCS C225 M8 EBOX, Hitachi Vantara HCSF, HPE ClusterStor E2000(Foundation), Nutanix Unified Storage | [S8] | `✓` |
@@ -109,78 +153,6 @@ SuperPOD 등급에는 Dell PowerScale F710, DDN AI400X3, Everpure FlashBlade//S5
 | 목록에 없는 것 | BeeGFS, DAOS, Hammerspace, 순수 Lustre 커뮤니티판 | [S8] | `✓` |
 | 인증의 의미 | 벤더가 NVIDIA와 검증 절차를 거쳤는가이지 기술 적합성의 전부는 아님 | — | `≈` |
 | Pure의 사명 | Everpure로 변경(Blocks & Files·StorageReview 표기). NVIDIA 목록에도 Everpure | [S8][S21] | `✓` |
-
-{{% /details %}}
-
-## 4. 파일시스템별 메타데이터와 데이터 경로
-
-| 제품 | 메타데이터 | 클라이언트 접근 | RDMA | GDS(1.19.1 표) | 대표 공개 수치 | 등급 |
-|---|---|---|---|---|---|---|
-| Lustre / DDN EXAScaler | MDS/MDT 분리, 데이터는 OSS/OST에 스트라이프 | 커널 네이티브 클라이언트(LNet). DDN은 어플라이언스로 판매 | LNet이 IB·RoCE 지원 | ✓(EXAScaler 5.2+, 6.0+, FSx) | AI400X3M 2U 순차 읽기 190 GB/s·쓰기 110 GB/s(측정 조건 미공개) | 구조 ✓[S40] / 수치 Ⓥ[S33] |
-| IBM Storage Scale(GPFS) | 분산 메타데이터(토큰 기반 공유 디스크 구조) | 네이티브 클라이언트(NSD), NFS, SMB, S3, cuObject | 지원 | ✓(5.1.2+) | cuObject가 POSIX 성능의 최대 90% | 기능 ✓[S27] / 수치 Ⓥ |
-| WEKA(NeuralMesh) | 데이터·메타데이터를 클러스터 전체에 분산 | 전용 POSIX 클라이언트, NFS, SMB, S3. 사용자 공간 프로세스로 커널 우회 | 지원 | ✓(WekaFS) | DGX H100 BasePOD 8U에서 600 GB/s·2,200만 IOPS | 구조 ✓[S29] / 수치 Ⓥ |
-| VAST Data | 상태 없는 CNode와 NVMe-oF JBOF(DBox)를 분리(DASE). 모든 CNode가 모든 SSD에 접근 | NFSv3/v4.1, NFS over RDMA, 멀티패스(VAST-NFS 클라이언트), S3 | NFSoRDMA | ✓(4.1+) | 2021년 DGX A100 1대가 단일 NFS 마운트로 162 GB/s 읽기 | 구조 ✓[S31][S32] / 수치 Ⓥ(구세대) |
-| BeeGFS | 메타데이터 서비스 분리 | 커널 네이티브 클라이언트. BeeOND는 노드 로컬 SSD로 임시 FS 구성 | 7.3에서 클라이언트 멀티레일 RDMA | ✓ | 공개 수치 미확인 | ✓[S34] / 수치 ? |
-| DAOS | 키-값 오브젝트 저장소. POSIX는 dfuse·인터셉트 계층 | libdaos, dfuse, MPI-IO | 필수에 가까움(사용자 공간 NVMe·RDMA) | 표에 없음 | Aurora 서버 128대에서 쓰기 약 1 TB/s, 읽기 600 GB/s(MLPerf v2.0 체크포인트) | Ⓥ(Argonne 발표) |
-| Everpure(Pure) FlashBlade//EXA | 메타데이터는 FlashBlade, 데이터는 별도 Linux NVMe 데이터 노드 | 메타데이터는 pNFS/TCP, 데이터는 NFSv3 over RDMA | 데이터 경로 RDMA | ✓(FlashBlade) | MLPerf v3.0 1.25T 체크포인트 쓰기 877.52 GiB/s(데이터 노드 30대, 가속기 1,024개) | Ⓑ[S21][S22] |
-| NetApp ONTAP AI / AFX | AFX는 ONTAP을 분리형(성능과 용량 분리)으로 재구성 | NFS, NFS over RDMA, S3 | NFSoRDMA | ✓(ONTAP) | AFX 노드 8대 + 셸프 1대로 GDS 워크로드 457 GiB/s 지속 | Ⓥ[S37] |
-| Dell PowerScale | OneFS 스케일아웃 NAS. Lightning은 pNFS 메타데이터 서버 + Flex Files 레이아웃 | NFS, SMB, S3, (프리뷰) pNFS | NFSoRDMA | ✓ | 공개 수치 미확인 | 구조 Ⓥ[S38] |
-| Hammerspace | 메타데이터 서버(Anvil)가 pNFS v4.2 Flex Files 레이아웃을 내준다 | 표준 Linux NFS 클라이언트(전용 클라이언트 불필요), SMB, S3 | NFSoRDMA 가능 | ✓ | MLPerf v2.0에 1U 메타데이터 서버 1대만 추가한 Tier 0 구성으로 제출 | Ⓥ[S39] |
-| DeepSeek 3FS | FoundationDB 기반 상태 없는 메타데이터, CRAQ 복제 | FUSE와 USRBIO(사용자 공간 링 API) | 필수 | 해당 없음 | 서버 180대(노드당 200 Gbps IB 2개, 14 TiB NVMe 16개)에서 6.6 TiB/s 읽기, 클라이언트 500대 이상 | Ⓑ(자체) [S19] |
-
-파일시스템의 차이를 보려면 메타데이터를 누가 처리하고 클라이언트가 데이터에 어떻게 접근하는지부터 읽으면 됩니다. Lustre는 메타데이터를 MDS/MDT로 분리하고 데이터를 OSS/OST에 스트라이핑(여러 저장 대상에 나누어 배치)합니다. BeeGFS도 메타데이터 서비스를 분리합니다. WEKA는 데이터와 메타데이터를 클러스터 전체에 분산하고, Storage Scale은 토큰 기반 공유 디스크 구조에서 분산 메타데이터를 사용합니다.
-
-클라이언트가 접속하는 방식도 같지 않습니다. Lustre와 BeeGFS는 커널 네이티브 클라이언트를 쓰고, WEKA는 사용자 공간 프로세스로 커널을 우회하는 전용 POSIX 클라이언트를 제공합니다. VAST는 NFS로 접근하고, 상태 없는 CNode와 NVMe-oF JBOF인 DBox가 분리돼 있습니다. Hammerspace는 표준 Linux NFS 클라이언트에 pNFS(병렬 NFS) 레이아웃을 내주는 방식입니다. DAOS는 키-값 오브젝트 저장소 위에서 dfuse·인터셉트 계층으로 POSIX 접근을 제공합니다.
-
-표의 공개 수치는 이런 구성에서 나온 결과로 읽어야 합니다. FlashBlade//EXA의 MLPerf v3.0 제출 결과는 1.25T 체크포인트 쓰기 877.52 GiB/s이며, 데이터 노드 30대와 가속기 1,024개를 사용했습니다. 다른 행에는 벤더 발표, 구세대 장비 측정, 자체 측정이 함께 들어 있습니다. 하드웨어와 측정 조건이 달라 행 사이의 수치로 파일시스템 성능 순위를 매길 수 없습니다. 버전과 출시 상태의 확인 범위는 아래 근거 표에 구분했습니다. NeuralMesh 6 GA 시점은 서드파티 출처뿐이며, BeeGFS 8.4.1이 최신이라는 말은 Wikipedia에만 있습니다.
-
-{{% details title="근거와 측정 조건" closed="true" %}}
-
-| 주장 | 수치·조건 | 출처 | 근거 |
-|---|---|---|---|
-| Lustre 릴리스 | 최신 기능 릴리스 2.17.0(2025-12-29). 현장은 LTS 2.15.x가 다수, 2.15.8이 2025-12, 2.15.9는 2026 Q2 목표, 2.18.0은 2026 Q4 목표 | [S25][S26] | `✓` |
-| Storage Scale 버전 | 6.0.1(IBM 블로그 2026-06-10), 6.0.0은 2025-10 발표 | [S27][S28] | `✓`(존재) · `Ⓥ`(성능) |
-| WEKA | 제품명 NeuralMesh. Augmented Memory Grid는 SC25(2025-11) 상용 출시. NeuralMesh 6 GA가 2026 하반기라는 말은 서드파티뿐 | [S29][S30] | `✓` / NeuralMesh 6 `?` |
-| VAST | 인증 목록에 C-Node Gen 6 + BF-3 D-Box, EBox 참조 설계(Genoa·Turin). 소프트웨어 최신 버전 번호는 미확인 | [S8] | `✓` / 버전 `?` |
-| DDN | 인증 목록에 AI400X3·AI400X3i. AI400X3M은 2026 Q3 말 GA 예정 발표. GDS 표에 EXAScaler 5.2+와 6.0+. "EXAScaler 7"은 찾지 못함 | [S1][S8][S33] | `✓` / AI400X3M `Ⓥ` |
-| BeeGFS | 8.x 계열, 8.2가 2025-11. Wikipedia는 8.4.1(2026-08-19)을 최신으로 적음 | [S34] | `✓`(8.2) / 8.4.1 `?` |
-| DAOS | 2.8.0(2026-08-12)이 DAOS Foundation 첫 커뮤니티 릴리스로 알려짐. ALCF가 2026-10에 Aurora DAOS를 800대로 확대 발표 | [S35] | `?`(검색 요약) / `Ⓥ` |
-| 표의 대표 수치 | 각 행의 조건은 표에 적은 그대로. AI400X3M, WEKA, VAST, NetApp, Hammerspace, DAOS 값은 벤더·발표 주장 | [S33][S29][S31][S37][S39][S35] | `Ⓥ` |
-| FlashBlade//EXA 결과 | MLPerf v3.0 1.25T 체크포인트 쓰기 877.52 GiB/s, 데이터 노드 30대, 가속기 1,024개 | [S21][S22] | `Ⓑ` |
-| 3FS | 서버 180대(노드당 200 Gbps IB 2개, 14 TiB NVMe 16개)에서 6.6 TiB/s 읽기, 클라이언트 500대 이상 | [S19] | `Ⓑ`(자체 측정) |
-| NetApp AFX | AFX 노드 8대 + 셸프 1대, GDS 워크로드 457 GiB/s 지속 | [S37] | `Ⓥ` |
-| Hammerspace | MLPerf v2.0에 1U 메타데이터 서버 1대 추가 Tier 0 구성으로 제출 | [S39] | `Ⓥ` |
-| PowerScale pNFS | Project Lightning은 2025-11 기준 비공개 프리뷰, 이후 GA는 미확인 | [S38] | `Ⓥ` / GA `?` |
-
-{{% /details %}}
-
-## 5. I/O 패턴에 따라 달라지는 병목
-
-큰 파일을 길게 읽는 작업과 작은 파일을 자주 열고 닫는 작업은 파일시스템에 서로 다른 부담을 줍니다. Lustre, BeeGFS, Hammerspace, Dell Lightning처럼 메타데이터를 분리하는 방식에서는 큰 파일 스트리밍 성능이 데이터 서버 수에 비례해 늘어납니다. 소파일이 많아지면 메타데이터 서버가 병목이 됩니다.
-
-FSx for Lustre 문서의 메타데이터 IOPS 표는 작업별 비용 차이를 보여 줍니다. 프로비저닝한 메타데이터 IOPS 하나로 초당 파일 생성·열기·닫기는 2회, 디렉터리 생성·이름 변경은 0.1회 처리합니다. 스트라이핑도 파일 크기에 맞아야 합니다. 기본 PFL은 100 MiB 이하 파일을 OST 1개에, 100 GiB 초과 파일을 32개에 나눠 씁니다. 작은 파일에 큰 스트라이프 수를 지정하면 모든 OST로 왕복이 생기므로, 여러 랭크가 큰 체크포인트 파일을 쓰는 디렉터리와 소파일 데이터셋 디렉터리는 레이아웃을 따로 잡아야 합니다.
-
-WEKA, Storage Scale, VAST는 메타데이터 부하를 클러스터 전체에 퍼뜨리는 방식이 소파일에 유리하다고 설명합니다. VAST에서는 상태 없는 CNode를 늘려 프로토콜 처리량을 확장하며, 모든 CNode가 NVMe-oF로 SSD를 공유합니다.
-
-NFS에서는 클라이언트 연결 방식도 처리량을 제한합니다. 마운트 하나가 서버 하나와 연결되기 때문입니다. VAST 문서는 100 Gbps NIC를 채우기 위해 RDMA에서 nconnect 4, TCP에서 nconnect 8을 권장합니다. 연결을 여러 CNode로 분산하는 멀티패스를 쓰려면 VAST-NFS 클라이언트 드라이버가 필요합니다. 전용 클라이언트 없이 NFS에 접근할 수 있어도, 이 고성능 구성에는 클라이언트 드라이버가 들어갑니다.
-
-Hammerspace, Dell Lightning, Everpure EXA는 pNFS로 메타데이터와 데이터 경로를 분리합니다.
-
-JuiceFS와 Alluxio는 데이터를 오브젝트 저장소에 두고 메타데이터 엔진과 분산 캐시를 별도로 둡니다. JuiceFS는 MLPerf 제출 때 콜드 데이터를 캐시 클러스터에 미리 적재했습니다. 이 측정 방식에서는 캐시 미스 비용이 결과에 포함되지 않았다는 것이 이 글의 해석입니다. 오브젝트와 캐시 구성은 [03]({{< relref "/data/gpu-storage/03-managed-object-kubernetes/index.md" >}})에서 이어집니다.
-
-{{% details title="근거와 측정 조건" closed="true" %}}
-
-| 주장 | 수치·조건 | 출처 | 근거 |
-|---|---|---|---|
-| FSx for Lustre 메타데이터 IOPS | 프로비저닝 메타데이터 IOPS 1당 초당 파일 생성·열기·닫기 2회, 삭제 1회, 디렉터리 생성·이름 변경 0.1회 | [S40] | `✓` |
-| FSx for Lustre 기본 PFL | 100 MiB 이하 파일은 OST 1개, 100 GiB 초과는 32개. 작은 파일에 큰 스트라이프 수를 주면 모든 OST로 왕복 | [S40] | `✓` |
-| 분산 메타데이터의 소파일 이점 | 메타데이터 부하가 클러스터 전체로 퍼져 소파일에 유리하다는 벤더 설명 | WEKA·Storage Scale·VAST 자료 | `Ⓥ` |
-| VAST 구조 | CNode는 상태 없음, CNode 증설로 프로토콜 처리량 증가, SSD는 모든 CNode가 NVMe-oF로 공유 | [S32] | `✓` |
-| NFS nconnect 한계 | 단일 마운트 TCP nconnect 최대 7 GBps, RDMA 단일 연결 최대 9 GBps. 100 Gbps NIC에는 RDMA nconnect=4, TCP nconnect=8 권장 | [S31] | `✓`(벤더 문서) |
-| 멀티패스 | 연결을 여러 CNode로 퍼뜨림. VAST-NFS 클라이언트 드라이버 필요 | [S31] | `✓` |
-| pNFS 재부상 | Hammerspace, Dell Lightning, Everpure EXA가 메타데이터와 데이터 경로를 pNFS로 분리 | [S21][S38][S39] | `✓` / `Ⓥ` |
-| JuiceFS 측정 방식 | MLPerf 제출에서 콜드 데이터를 캐시 클러스터에 미리 올려 두고 측정. 캐시 미스 비용이 결과에서 빠졌다는 해석 | [S56] | `Ⓥ` |
-| JuiceFS·Alluxio 구조 | 메타데이터 엔진과 분산 캐시를 따로 두고 데이터는 오브젝트에 둠 | [S56] | `Ⓥ` |
 
 {{% /details %}}
 
