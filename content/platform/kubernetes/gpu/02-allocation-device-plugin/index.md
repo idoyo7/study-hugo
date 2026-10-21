@@ -9,41 +9,25 @@ url: "/kubernetes/gpu/02-allocation-device-plugin/"
 
 # 02 · 요청한 GPU는 누가 골라 주는가
 
-## 1. 개수를 요청한 뒤에도 장치 선택은 남는다
+## 노드 선택과 GPU 선택은 다른 단계입니다 {#1-개수를-요청한-뒤에도-장치-선택은-남는다}
 
-파드가 `nvidia.com/gpu: 4`를 요청했다고 해서 NVLink(GPU 간 연결)로 이어진 4장을 지정한 것은 아닙니다. 2026-10 현재 업스트림 Kubernetes의 기본 경로는 device plugin(장치 정보를 kubelet에 등록하는 플러그인)이 노출하는 `nvidia.com/gpu` extended resource(확장 리소스)입니다. 이 요청이 표현하는 것은 GPU 개수입니다.
+`nvidia.com/gpu: 4`는 GPU 네 장을 요청하는 문법입니다. NVLink로 이어진 네 장을 지정하는 문법은 아닙니다. [01편]({{< relref "/platform/kubernetes/gpu/01-node-topology/index.md" >}})의 PCIe 서버처럼 GPU 쌍마다 연결 경로가 다르다면, 개수를 충족한 뒤에도 어느 조합을 줄지 결정해야 합니다.
 
-근거 표기 — `✓` 1차 출처 확인 · `Ⓥ` 벤더 주장 · `≈` 추정 · `?` 미확인 · `Σ` 종합 판단. 각 절 끝의 '근거와 측정 조건'에 조건과 출처를 모았습니다. 조사 기준일은 2026-10-21이며 Kubernetes v1.37.1 문서, NVIDIA k8s-device-plugin v0.20.1 소스, 각 프로젝트 저장소를 봤습니다.
+2026-10 기준 업스트림 Kubernetes의 기본 할당 경로는 device plugin이 `nvidia.com/gpu` extended resource(확장 리소스)를 노출하는 방식입니다. Kubernetes 문서는 Device Plugin을 v1.26부터 stable로 분류하며, extended resource에는 정수만 사용할 수 있고 오버커밋과 컨테이너 간 장치 공유는 허용하지 않는다고 명시합니다.
 
-Kubernetes 문서에서 Device Plugin은 v1.26부터 stable입니다. 문서는 extended resource를 정수 리소스로만 지원하며, 오버커밋과 컨테이너 간 장치 공유를 허용하지 않는다고 명시합니다.
+이 API 구조에서는 스케줄러가 노드의 GPU 개수를 비교해 파드를 배치합니다. 실제 GPU는 배치 후 kubelet의 디바이스 매니저가 선택합니다. 따라서 같은 네 장 요청이라도 어떤 노드에서는 NVLink로 연결된 조합을, 다른 노드에서는 소켓을 건너는 조합을 받을 수 있습니다. 스케줄러의 개수 계산만으로는 이 차이가 드러나지 않습니다.
 
-API 구조로 보면 스케줄러는 노드가 가진 GPU 개수를 비교하고, 어느 GPU를 줄지는 파드가 노드에 배치된 뒤 kubelet의 디바이스 매니저가 결정합니다. NVLink로 연결된 4장을 받을지, 소켓에 걸친 4장을 받을지는 스케줄링 단계에서 정해지지 않습니다. 같은 요청도 노드에 따라 연결 품질이 다른 GPU 조합으로 이어질 수 있습니다.
-
-플러그인이 이 선택에 의견을 내는 호출이 `GetPreferredAllocation`입니다. 가용 장치 목록에서 할당하기 좋은 집합을 반환하는 선택적 호출이며, 지원 여부는 `GetDevicePluginOptions`의 플래그로 알립니다. NVIDIA 플러그인은 이 호출을 켜고 등록합니다. kubelet이 최종적으로 같은 집합을 할당한다는 보장은 없습니다.
+플러그인은 `GetPreferredAllocation`으로 가용 장치 중 선호하는 집합을 kubelet에 제안할 수 있습니다. 선택적 호출이므로 `GetDevicePluginOptions`에서 지원 여부를 알려야 하며, NVIDIA 플러그인은 `internal/plugin/server.go`에서 `GetPreferredAllocationAvailable: true`로 등록합니다. 제안한 집합을 kubelet이 그대로 할당한다는 보장은 없습니다.
 
 {{< seq src="_flow/2-디바이스-플러그인-할당-순서.json" />}}
 
-노드 안 GPU 연결 구조는 [01편]({{< relref "/platform/kubernetes/gpu/01-node-topology/index.md" >}})에서 다뤘고, DRA(동적 리소스 할당)는 [03편]({{< relref "/platform/kubernetes/gpu/03-allocation-dra/index.md" >}})에서 이어집니다. 노드를 넘어 묶는 스케줄링은 [04편]({{< relref "/platform/kubernetes/gpu/04-scheduling-labels-kueue/index.md" >}})에서 봅니다.
+다음 절의 점수 계산은 이 선호 집합을 만드는 과정입니다. 장치 선택을 스케줄러로 옮기는 DRA(동적 리소스 할당)는 [03편]({{< relref "/platform/kubernetes/gpu/03-allocation-dra/index.md" >}}), 여러 노드에 걸친 잡 배치는 [04편]({{< relref "/platform/kubernetes/gpu/04-scheduling-labels-kueue/index.md" >}})에서 다룹니다.
 
-이 자료를 종합하면 알리바바식 커스텀 리소스 방식은 표준이 아니고 ACK와 일부 스케줄러 스택에 남아 있습니다.
+## 선호 조합은 GPU 사이의 연결 점수로 계산합니다 {#2-플러그인은-연결-점수로-선호-조합을-만든다}
 
-{{% details title="근거와 측정 조건" closed="true" %}}
+NVIDIA 플러그인은 후보가 모두 공유 복제본(replica)이 없는 풀 GPU일 때 `alignedAlloc` 경로에서 `go-gpuallocator`의 best-effort 정책을 사용합니다. 가용 GPU를 요청 크기인 `size` 단위로 나누어 보고, 각 집합의 점수 합이 가장 큰 분할에서 최고 점수 집합을 반환합니다. 현재 요청에 가장 좋은 조합 하나만 고르는 대신, 할당 후 남을 GPU의 조합까지 고려하는 계산입니다.
 
-| 주장 | 수치·조건 | 출처 | 근거 |
-|---|---|---|---|
-| 조사 버전 | Kubernetes v1.37.1(2026-09-23), NVIDIA k8s-device-plugin v0.20.1(2026-09-22), GPU Operator v26.7.2(2026-10-14) | 각 GitHub 릴리스 | `✓` |
-| extended resource의 한계 | 정수 리소스만, 오버커밋 불가, 컨테이너 간 장치 공유 불가. Device Plugin은 v1.26부터 stable | Kubernetes 문서 device-plugins | `✓` |
-| 스케줄러는 개수만 본다 | 어느 GPU를 줄지는 노드 배치 후 kubelet이 결정 | API 구조에서 도출 | `≈` |
-| `GetPreferredAllocation` | 가용 장치 중 선호 집합을 반환. 최종 할당과 같다는 보장 없음. 선택 사항이며 `GetDevicePluginOptions`로 알림 | 같은 문서 | `✓` |
-| NVIDIA 플러그인의 등록 | `GetPreferredAllocationAvailable: true` | k8s-device-plugin `internal/plugin/server.go` | `✓` |
-
-{{% /details %}}
-
-## 2. 플러그인은 연결 점수로 선호 조합을 만든다
-
-NVIDIA 플러그인은 GPU 사이의 연결 품질을 점수로 매겨 선호 집합을 만듭니다. 이 계산은 후보가 모두 공유 복제본(replica) 없는 풀 GPU일 때 적용됩니다. 이때 사용하는 정책이 `go-gpuallocator`의 best-effort입니다.
-
-best-effort는 요청 크기 `size`에 맞는 조합 하나만 탐욕적으로 고르지 않습니다. 가용 GPU 전체를 `size` 단위로 나눴을 때 점수 합이 최대인 분할을 찾고, 그 안에서 최고 점수 집합을 반환합니다. 이번 요청을 처리한 뒤 남은 GPU가 잘게 흩어지는 일을 줄이려는 설계입니다. GPU 쌍에 부여하는 점수는 소스에 다음과 같이 정의돼 있습니다.
+쌍별 점수는 `besteffort_policy.go`의 `calculateGPUPairScore`에 정의돼 있습니다.
 
 | 두 GPU의 관계 | 점수 |
 |---|---|
@@ -55,30 +39,17 @@ best-effort는 요청 크기 `size`에 맞는 조합 하나만 탐욕적으로 �
 | 같은 보드 | 60 |
 | NVLink | 링크 수 × 100 (1링크 100, 18링크 1800) |
 
-2장을 요청할 때 NVLink 2링크로 이어진 쌍은 200점, 같은 PCIe 스위치의 쌍은 50점, 소켓을 건넌 쌍은 10점입니다. PCIe 서버나 NVLink 브리지로 GPU를 짝지은 구성에서는 후보 사이에 점수 차가 납니다. NVSwitch가 달린 HGX에서는 모든 쌍이 NV18로 같은 점수를 받으므로, 이 정책이 조합 선택에 차이를 만들지 못합니다. 이 비교는 점수표로 계산한 값이며 측정한 결과는 아닙니다.
+GPU 두 장을 요청한다면 NVLink 2링크로 이어진 쌍은 200점, 같은 PCIe 스위치 아래의 쌍은 50점, 소켓을 건너는 쌍은 10점입니다. 이 수치는 소스의 점수표로 계산한 값이며 대역폭 측정값은 아닙니다.
 
-time-slicing 복제본이나 MIG(GPU 하드웨어 분할) 장치가 섞이면 이 점수 계산을 쓰지 않습니다. 설정한 정책에 따라 탐욕적으로 할당하며, distributed가 기본이고 packed와 spread도 사용합니다. v0.20.0에서는 replicated 리소스와 MIG 리소스에 packed/distributed 할당 정책이 추가됐습니다.
+PCIe 서버나 NVLink 브리지 페어에서는 후보에 따라 점수가 달라져 조합 선택에 영향을 줄 수 있습니다. NVSwitch 기반 HGX에서 모든 쌍이 NV18이라면 쌍마다 1800점으로 같으므로 이 점수만으로 조합의 우열을 나눌 수 없습니다. 이는 점수표와 노드 구성에서 도출한 해석입니다.
 
-{{% details title="근거와 측정 조건" closed="true" %}}
+time-slicing 복제본이나 MIG(GPU 하드웨어 분할) 장치가 섞인 경우에는 이 계산을 사용하지 않습니다. `internal/rm/nvml_manager.go`와 `allocate.go`에 따르면 이 경우는 설정한 정책에 따라 탐욕적으로 할당하며, 기본 정책은 distributed이고 packed와 spread도 지원합니다. 릴리스 노트는 v0.20.0에서 replicated·MIG 리소스를 위한 packed/distributed 정책이 추가됐다고 설명합니다.
 
-| 주장 | 수치·조건 | 출처 | 근거 |
-|---|---|---|---|
-| 풀 GPU는 `alignedAlloc`, 공유·MIG는 정책 할당 | 풀 GPU면 `go-gpuallocator` best-effort, 그 외 distributed(기본)·packed·spread | k8s-device-plugin `internal/rm/nvml_manager.go`, `allocate.go` | `✓` |
-| best-effort의 분할 최적화 | `size` 단위 분할 중 점수 합이 최대인 것을 찾아 최고 점수 세트를 반환 | go-gpuallocator `besteffort_policy.go` | `✓` |
-| 쌍 점수 | CrossCPU 10, 같은 CPU 20, 호스트 브리지 30, 다중 스위치 40, 단일 스위치 50, 같은 보드 60, NVLink는 링크 수 × 100 | 같은 파일 `calculateGPUPairScore` | `✓` |
-| 2장 요청의 점수 비교 | NVLink 2링크 200, 단일 스위치 50, CrossCPU 10 | 위 점수표로 계산 | `≈` |
-| NVSwitch HGX에서 차이가 없다는 해석 | 모든 쌍이 NV18로 같은 점수 | 점수표와 구성에서 추정 | `≈` |
-| v0.20.0 변경 | replicated·MIG 리소스용 packed/distributed 정책 추가 | k8s-device-plugin 릴리스 | `✓` |
+## GPU 조합을 골라도 NUMA 정렬은 남습니다 {#3-cpu와-메모리까지-맞추려면-numa를-봐야-한다}
 
-{{% /details %}}
+GPU끼리 가까운 조합을 골랐다고 CPU와 메모리까지 가까이 배치되는 것은 아닙니다. NVIDIA 플러그인의 `internal/rm/devices.go`는 장치마다 `TopologyInfo{Nodes: [{ID: numa}]}`를 채웁니다. kubelet의 Topology Manager는 이 NUMA(비균일 메모리 접근) 힌트를 CPU Manager·Memory Manager의 힌트와 합쳐 정렬을 시도합니다.
 
-## 3. CPU와 메모리까지 맞추려면 NUMA를 봐야 한다
-
-GPU끼리 좋은 연결을 고른 뒤에는 CPU와 메모리를 어디에 둘지가 남습니다. NVIDIA 플러그인이 장치마다 채우는 `TopologyInfo`에는 NUMA(비균일 메모리 접근) 노드 ID도 들어갑니다. kubelet의 Topology Manager는 이 정보와 CPU Manager, Memory Manager의 힌트를 합쳐 한 NUMA에 정렬합니다. Kubernetes 문서 기준으로 v1.27부터 stable입니다.
-
-GPU·CPU·메모리를 한 NUMA에 모으려면 device plugin의 NUMA 힌트, `static` CPU Manager, Memory Manager가 함께 있어야 합니다. Guaranteed QoS가 아닌 파드의 CPU는 정렬되지 않는다고 추정합니다.
-
-Topology Manager의 정책은 `none`, `best-effort`, `restricted`, `single-numa-node`이며, scope는 `container`가 기본이고 `pod`도 지원합니다. 다음은 kubelet에서 `single-numa-node` 정책과 `pod` scope를 고르는 설정입니다.
+Topology Manager는 Kubernetes v1.27부터 stable입니다. 정책으로 `none`, `best-effort`, `restricted`, `single-numa-node`를 지원하며, 적용 범위인 scope는 `container`가 기본이고 `pod`도 선택할 수 있습니다. 다음 설정은 CPU Manager를 `static`으로 두고 파드 단위의 `single-numa-node` 정책을 고릅니다.
 
 ```yaml
 apiVersion: kubelet.config.k8s.io/v1beta1
@@ -88,72 +59,37 @@ topologyManagerPolicy: single-numa-node
 topologyManagerScope: pod
 ```
 
-정책 옵션 `prefer-closest-numa-nodes`와 `max-allowable-numa-nodes`는 v1.37.1 소스의 stable 목록에 있습니다. 기본 최대 NUMA 노드 수는 8이며, 이를 넘는 머신에서는 `none` 외의 정책이 거부됩니다.
+GPU·CPU·메모리를 한 NUMA에 정렬하려면 device plugin의 NUMA 힌트와 CPU Manager의 static 정책, Memory Manager를 함께 고려해야 합니다. 문서의 조건을 종합하면 Guaranteed QoS가 아닌 파드의 CPU는 정렬되지 않을 것으로 추정됩니다.
 
-8-GPU 노드에서 GPU 8장을 요청하면 보통 두 소켓에 걸치므로, `single-numa-node`가 파드를 TopologyAffinityError로 거부할 것으로 보입니다. 대형 학습 노드에서는 `restricted`나 `best-effort`, 또는 pod scope가 현실적인 선택입니다. 이 판단은 운영 관점의 추정이며, 1차 근거는 찾지 못했습니다.
+v1.37.1의 `pkg/kubelet/cm/topologymanager` 소스는 `prefer-closest-numa-nodes`와 `max-allowable-numa-nodes`를 stable 옵션으로 분류합니다. 기본 최대 NUMA 노드 수는 8이며, 이를 넘는 머신에서는 `none` 이외의 정책을 거부합니다.
 
-Topology Manager의 더 큰 한계는 범위입니다. 노드 안 할당만 다룹니다. 스케줄러는 NUMA를 모르므로 파드가 노드에 배치된 뒤에야 거부될 수 있습니다. NUMA를 인지하는 스케줄링은 Koordinator, ACK, NFD topology-updater 같은 별도 프로젝트가 다룹니다. 노드를 넘는 쪽은 [04편]({{< relref "/platform/kubernetes/gpu/04-scheduling-labels-kueue/index.md" >}})에서 라벨과 큐로 푸는 방법을 봅니다.
+`single-numa-node`는 큰 GPU 요청에도 그대로 적용할 수 있는지 확인해야 합니다. 8-GPU 노드에서 8장을 요청하면 보통 두 소켓에 걸쳐 `TopologyAffinityError`로 거부될 가능성이 있습니다. 이는 공식 사례로 확인한 결과가 아닌 운영상의 예상입니다. 대형 학습 노드에서는 `restricted`나 `best-effort`, 또는 pod scope를 검토할 수 있지만, scope만 바꿨을 때의 결과 역시 실제 구성에서 확인해야 합니다.
 
-{{% details title="근거와 측정 조건" closed="true" %}}
+Topology Manager의 판단은 파드가 노드에 배치된 뒤 이뤄집니다. 스케줄러가 NUMA 제약을 모르는 기본 구조에서는 자원 개수가 충분해도 이후 단계에서 거부될 수 있다는 뜻입니다. Koordinator, ACK, NFD topology-updater 같은 별도 프로젝트는 NUMA 정보를 스케줄링에 반영하는 문제를 다룹니다. 노드 사이의 거리는 [04편]({{< relref "/platform/kubernetes/gpu/04-scheduling-labels-kueue/index.md" >}})의 라벨과 큐로 표현합니다.
 
-| 주장 | 수치·조건 | 출처 | 근거 |
-|---|---|---|---|
-| NUMA 힌트 | 장치마다 `TopologyInfo{Nodes: [{ID: numa}]}` 채움 | k8s-device-plugin `internal/rm/devices.go` | `✓` |
-| Topology Manager | v1.27부터 stable. 정책 4종, scope `container`(기본)·`pod` | Kubernetes 문서 topology-manager | `✓` |
-| 정책 옵션과 NUMA 상한 | `prefer-closest-numa-nodes`·`max-allowable-numa-nodes`가 v1.37.1 stable 목록. 기본 최대 NUMA 8, 초과 머신은 `none` 외 거부 | Kubernetes v1.37.1 `pkg/kubelet/cm/topologymanager` | `✓` |
-| 정렬에 필요한 조합 | device plugin NUMA 힌트 + CPU Manager(static) + Memory Manager. Guaranteed QoS가 아니면 CPU 미정렬 | 문서에서 추정 | `≈` |
-| 8-GPU 노드의 `single-numa-node` 거부 | 8장 요청은 두 소켓에 걸쳐 TopologyAffinityError가 날 것. 1차 근거 없음 | 운영 판단 | `?` |
-| 스케줄러는 NUMA를 모름 | 배치 후 거부 가능. NUMA 인지 스케줄링은 별도 프로젝트 | 구조에서 추정 | `≈` |
+## Koordinator는 허용 GPU 조합을 스케줄러에 전달합니다 {#4-koordinator는-허용-조합을-스케줄링-조건으로-올린다}
 
-{{% /details %}}
-
-## 4. Koordinator는 허용 조합을 스케줄링 조건으로 올린다
-
-노드에 배치한 뒤 플러그인이 조합을 고르게 하는 대신, 스케줄러가 조합을 직접 계산하게 할 수도 있습니다. 1장부터 8장까지 조합 단위로 별도 리소스 이름을 노출하는 알리바바식 기법이 지금도 표준인지 이 절에서 확인합니다.
-
-GPU를 1장부터 8장까지 별도 리소스 이름으로 노출했다는 기법 자체는 1차 자료를 찾지 못했습니다. 현재 확인되는 형태는 리소스 이름을 그대로 두고 허용 조합 표를 어노테이션과 CR(커스텀 리소스)에 올리는 Koordinator 방식입니다.
+스케줄러가 GPU 조합까지 계산하려면 개수 이상의 정보를 받아야 합니다. 과거 알리바바식 기법으로 알려진 “1~8 GPU를 gpu-2, gpu-4 같은 별도 리소스 이름으로 노출한다”는 방식은 이번 조사에서 1차 자료를 찾지 못했습니다. 현재 확인할 수 있는 Koordinator의 GPU Partition API는 리소스 이름을 조합마다 늘리는 대신 허용 조합 표를 어노테이션과 Device CR(커스텀 리소스)에 담습니다.
 
 {{< flow src="_flow/5-세대-비교.json" />}}
 
-Koordinator의 GPU Partition API 제안서(2024-10-08)는 NVIDIA Fabric Manager의 Shared NVSwitch 모드에서 허용되는 GPU 조합이 정해져 있다는 문제에서 출발합니다. 제안서 상태는 provisional이며, 타입은 main 코드에 존재합니다.
+2024-10-08에 작성한 GPU Partition API 제안서는 NVIDIA Fabric Manager의 Shared NVSwitch 모드에서 허용 GPU 조합이 정해져 있다는 제약을 다룹니다. 제안서 상태는 provisional이며 관련 타입은 main 코드에 존재합니다.
 
-노드의 Device CR에는 `scheduling.koordinator.sh/gpu-partitions` 어노테이션으로 GPU 수(1, 2, 4, 8)별 허용 조합을 올립니다. 각 조합에는 `minors`, `gpuLinkType: NVLink`, `ringBusBandwidth`, `allocationScore`가 붙습니다. 파드는 `scheduling.koordinator.sh/gpu-partition-spec`으로 `allocatePolicy`(`Restricted` 또는 `BestEffort`)와 `ringBusBandwidth`를 요구합니다. 노드 라벨 `node.koordinator.sh/gpu-partition-policy`의 `Honor`나 `Prefer` 값은 이 요구를 얼마나 강제할지 정합니다.
+Device CR의 `scheduling.koordinator.sh/gpu-partitions` 어노테이션에는 GPU 수 1, 2, 4, 8에 해당하는 허용 조합을 적습니다. 각 조합은 `minors`, `gpuLinkType: NVLink`, `ringBusBandwidth`, `allocationScore`를 가집니다. 파드는 `scheduling.koordinator.sh/gpu-partition-spec`에서 `allocatePolicy`를 `Restricted` 또는 `BestEffort`로 고르고 `ringBusBandwidth`를 요구합니다. 노드의 `node.koordinator.sh/gpu-partition-policy` 라벨은 `Honor`나 `Prefer`로 이 요구를 얼마나 강제할지 정합니다.
 
-이 방식에서 사용하는 리소스 이름은 `koordinator.sh/gpu`, `koordinator.sh/gpu-core`, `koordinator.sh/gpu-memory` 등이며, Koordinator는 `nvidia.com/gpu`도 인식합니다. GPU와 RDMA(원격 직접 메모리 접근)를 `SamePCIe` 범위에서 함께 할당하는 `device-joint-allocate`도 제공합니다. Alibaba Cloud 블로그는 Koordinator v1.6이 HAMi와 협업해 GPU·RDMA 공동 할당과 GPU 격리를 내놨다고 설명합니다. 이는 벤더 설명입니다.
+사용하는 리소스 이름은 `koordinator.sh/gpu`, `koordinator.sh/gpu-core`, `koordinator.sh/gpu-memory` 등 `koordinator.sh/gpu*` 계열이며 `nvidia.com/gpu`도 인식합니다. `apis/extension/device_share.go`의 `device-joint-allocate`는 GPU와 RDMA(원격 직접 메모리 접근)를 `SamePCIe` 범위에서 함께 할당하는 기능입니다. Alibaba Cloud 블로그도 Koordinator v1.6과 HAMi의 협업으로 GPU·RDMA 공동 할당과 GPU 격리를 제공했다고 소개합니다. 이 도입 설명은 벤더의 주장으로 구분해야 합니다.
 
-{{% details title="근거와 측정 조건" closed="true" %}}
+## ACK의 토폴로지 모드는 노드 전체에 영향을 줍니다 {#5-ack는-토폴로지-모드를-켜면-다른-gpu-워크로드가-막힌다}
 
-| 주장 | 수치·조건 | 출처 | 근거 |
-|---|---|---|---|
-| "1~8 GPU 별도 리소스 이름" 방식의 1차 자료 | 찾지 못함. Koordinator Partition API가 현행 형태 | Koordinator 제안서 | `?` |
-| Koordinator Partition API | 어노테이션 `gpu-partitions`, `gpu-partition-spec`, 노드 라벨 `gpu-partition-policy`(`Honor`·`Prefer`). 제안서 provisional, 타입은 main에 존재 | Koordinator 제안서 20241008-gpu-partition-api | `✓` |
-| 리소스 이름과 공동 할당 | `koordinator.sh/gpu*`, `device-joint-allocate`(`SamePCIe`) | Koordinator `apis/extension/device_share.go` | `✓` |
-| Koordinator v1.6과 HAMi 협업 | GPU+RDMA 공동 할당, GPU 격리 | Alibaba Cloud 블로그 | `Ⓥ` |
+ACK 매니지드 제품에는 커스텀 GPU 리소스를 사용하는 기능이 현재도 있습니다. 2026-08-06 갱신한 GPU 스케줄링 문서는 `ack.node.gpu.schedule` 라벨로 `default`, `cgpu`, `core_mem`, `share`, `mps`, `topology` 중 하나를 고르도록 안내합니다. 배치 방식은 `ack.node.gpu.placement`의 `binpack`(기본) 또는 `spread`로 선택합니다. 공유 모드의 리소스는 `aliyun.com/gpu-mem`, `core_mem` 모드는 `aliyun.com/gpu-core.percentage` 등을 사용합니다.
 
-{{% /details %}}
+공유와 토폴로지 인지 스케줄링에는 ACK Pro와 `ack-ai-installer`가 필요합니다. 노드의 `aliyun.com/gpu`가 0이 아니면 토폴로지 모드가 켜지며, 노드마다 모드를 하나만 사용할 수 있습니다. 이 모드에서는 토폴로지를 쓰지 않는 GPU 워크로드가 막히므로 기존 잡과 같은 노드에서 운영할 수 있는지 먼저 확인해야 합니다.
 
-## 5. ACK는 토폴로지 모드를 켜면 다른 GPU 워크로드가 막힌다
+NUMA 토폴로지 인지 스케줄링은 별도 기능입니다. 2026-03-26 갱신한 문서는 `nvidia.com/gpu` 대신 `aliyun.com/gpu`로 정수 카드만 요청하도록 명시합니다. ACK Pro 1.24 이상, ack-koordinator, `gputopo-device-plugin`이 필요하며 sccgn7ex와 Lingjun 노드만 대상입니다. 과거 gputopo에 대응하는 `gpu-topology-scheduler` 같은 별도 공개 저장소는 찾지 못했습니다.
 
-ACK 매니지드 제품에서 커스텀 리소스 방식은 현행 기능입니다. Alibaba Cloud 문서(2026-08-06 갱신)는 노드 라벨 `ack.node.gpu.schedule`로 `default`, `cgpu`, `core_mem`, `share`, `mps`, `topology` 모드를 고르도록 안내합니다. 공유 모드에서는 `aliyun.com/gpu-mem`, `core_mem` 모드에서는 `aliyun.com/gpu-core.percentage` 같은 리소스 이름을 사용합니다.
+## 제품의 현행 기능과 옛 공개 구현을 구분합니다 {#6-옛-gpushare와-지금의-공개-스택은-구분해야-한다}
 
-토폴로지 모드는 노드의 `aliyun.com/gpu`가 0이 아니면 켜집니다. 공유와 토폴로지 인지 스케줄링은 ACK Pro 전용이며 `ack-ai-installer` 컴포넌트가 필요합니다. 노드당 모드는 하나만 쓸 수 있습니다. 토폴로지 모드를 켜면 토폴로지를 쓰지 않는 GPU 워크로드가 막힙니다.
-
-NUMA 토폴로지 인지 스케줄링은 별도 기능입니다. 해당 문서는 GPU 요청에 `nvidia.com/gpu` 대신 `aliyun.com/gpu`를 쓰고 정수 카드만 요청하도록 명시합니다. ACK Pro 1.24 이상, ack-koordinator, `gputopo-device-plugin`이 필요하며, 대상은 sccgn7ex와 Lingjun 노드로 한정됩니다.
-
-{{% details title="근거와 측정 조건" closed="true" %}}
-
-| 주장 | 수치·조건 | 출처 | 근거 |
-|---|---|---|---|
-| ACK 스케줄링 모드 | 라벨 `ack.node.gpu.schedule` 6종, `ack.node.gpu.placement`는 `binpack`(기본)·`spread`. ACK Pro 전용, `ack-ai-installer` 필요 | Alibaba Cloud ACK 문서 enable-scheduling (2026-08-06 갱신) | `✓` |
-| ACK 리소스 이름과 제약 | `aliyun.com/gpu-mem`, `aliyun.com/gpu-core.percentage`. 노드당 한 모드, 토폴로지 모드는 비토폴로지 워크로드를 막음 | 같은 문서 | `✓` |
-| ACK NUMA 인지 스케줄링 | `aliyun.com/gpu` 정수 카드만, ACK Pro 1.24+, ack-koordinator, `gputopo-device-plugin`, sccgn7ex·Lingjun 한정 (2026-03-26 갱신) | ACK 문서 enable-numa-topology-aware-scheduling | `✓` |
-| gputopo 공개 저장소 | `gpu-topology-scheduler` 같은 별도 공개 저장소를 찾지 못함 | — | `?` |
-
-{{% /details %}}
-
-## 6. 옛 gpushare와 지금의 공개 스택은 구분해야 한다
-
-ACK의 현행 제품 기능과 과거 gpushare 공개 저장소는 활동 시점이 다릅니다. gpushare 저장소는 정체돼 있고, Koordinator·Volcano·HAMi에는 최근 릴리스와 커밋이 있습니다. 2026-10-21 GitHub API로 조회한 결과는 다음과 같습니다.
+ACK의 기능이 유지된다는 사실만으로 과거 gpushare 공개 저장소도 활발히 개발된다고 볼 수는 없습니다. 아래 표는 2026-10-21에 GitHub API로 조회한 마지막 릴리스와 커밋입니다.
 
 | 저장소 | 마지막 릴리스 | 마지막 커밋 |
 |---|---|---|
@@ -163,30 +99,22 @@ ACK의 현행 제품 기능과 과거 gpushare 공개 저장소는 활동 시점
 | Volcano | v1.16.0 (2026-10-14) | 2026-10-21 |
 | HAMi | v2.10.0 (2026-08-21) | 2026-10-21 |
 
-공개 스택에서는 GPU 공유를 구현하는 방식도 바뀌었습니다. Volcano 코드에는 옛 GPU 공유 리소스인 `volcano.sh/gpu-memory` 상수가 남아 있습니다. 문서는 "GPU sharing is deprecated in volcano v1.9"라고 명시하고 HAMi 기반 vGPU를 권합니다. 현행 방식은 `volcano.sh/vgpu-number` 같은 리소스를 쓰는 HAMi-core(소프트웨어 vGPU) 또는 Dynamic MIG 모드입니다.
+Volcano의 GPU 공유 방식도 바뀌었습니다. 코드에는 `volcano.sh/gpu-memory` 상수가 남아 있지만 문서는 "GPU sharing is deprecated in volcano v1.9"라고 명시하고 HAMi 기반 vGPU를 권합니다. 2026-07-22의 vGPU 문서가 설명하는 현행 경로는 `volcano.sh/vgpu-number` 등의 리소스와 HAMi-core(소프트웨어 vGPU) 또는 Dynamic MIG입니다.
 
-Volcano 스케줄러에는 DRA 지원 가이드도 있습니다. 이 가이드는 `resource.k8s.io/v1beta1` 런타임 설정을 안내하는 등 1.32 기준 서술이 남아 있습니다. Volcano와 다른 배치 스케줄러의 선택은 [05편]({{< relref "/platform/kubernetes/gpu/05-scheduling-volcano-kai-slurm/index.md" >}})에서 이어집니다.
+Volcano의 DRA 가이드(2026-07-24)에는 `resource.k8s.io/v1beta1` 런타임 설정 등 Kubernetes 1.32 기준 설명이 남아 있습니다. 별도 스케줄러를 선택할 때는 공개 기능 목록뿐 아니라 적용할 버전의 API도 확인해야 합니다. Volcano와 다른 배치 스케줄러의 차이는 [05편]({{< relref "/platform/kubernetes/gpu/05-scheduling-volcano-kai-slurm/index.md" >}})에서 다룹니다.
 
-이 자료를 종합하면 알리바바식 커스텀 리소스가 업스트림 Kubernetes의 표준은 아닙니다. 이 방식은 ACK 매니지드, GPU 공유·분할·조합을 직접 계산하는 Koordinator나 Volcano+HAMi 스택, 허용 조합이 하드웨어로 고정되는 Shared NVSwitch 환경에 남아 있습니다. 업스트림 Kubernetes는 같은 문제를 DRA의 속성, 용량, 파티션으로 흡수하는 중이어서 커스텀 리소스가 기본 경로가 될 가능성은 낮다고 봅니다. DRA는 [03편]({{< relref "/platform/kubernetes/gpu/03-allocation-dra/index.md" >}})에서 봅니다.
+확인한 자료에서 커스텀 GPU 리소스는 ACK 매니지드 제품, 공유·분할·조합을 직접 계산하는 Koordinator와 Volcano+HAMi 스택, 허용 조합이 고정된 Shared NVSwitch 환경에 남아 있습니다. 업스트림 Kubernetes의 표준 할당 방식으로 자리 잡은 것은 아닙니다. 업스트림이 같은 문제를 DRA의 속성·용량·파티션으로 다루고 있다는 점에서, 별도 커스텀 리소스가 기본 경로가 될 가능성은 낮다고 판단합니다. 이 전망과 DRA의 실제 전환 조건은 구분해야 하며, 후자는 [03편]({{< relref "/platform/kubernetes/gpu/03-allocation-dra/index.md" >}})에서 살펴봅니다.
 
-{{% details title="근거와 측정 조건" closed="true" %}}
+## 조사 버전과 확인이 남은 항목 {#7-확인하지-못한-것}
 
-| 주장 | 수치·조건 | 출처 | 근거 |
-|---|---|---|---|
-| 오픈소스 활성도 | 표의 날짜 (GitHub API 2026-10-21 조회) | 각 GitHub 저장소 | `✓` |
-| Volcano GPU 공유 deprecated | "GPU sharing is deprecated in volcano v1.9", HAMi 기반 vGPU 권고 | Volcano 문서 how_to_use_gpu_sharing | `✓` |
-| Volcano 현행 | `volcano.sh/vgpu-number`, HAMi-core 또는 Dynamic MIG. DRA 가이드는 1.32 기준 서술 잔존 | Volcano 문서 how_to_use_volcano_vgpu(2026-07-22), how_to_enable_dra(2026-07-24) | `✓` |
-| 커스텀 리소스는 표준이 아님 | ACK 매니지드와 Koordinator·Volcano+HAMi 스택에 남고, 업스트림은 DRA로 흡수 중 | ACK 문서, 각 저장소, Kubernetes 문서를 종합 | `≈` |
-| 커스텀 리소스가 남는 세 곳 | ACK 매니지드, Koordinator·Volcano+HAMi, Shared NVSwitch | 위 자료를 종합 | `≈` |
+2026-10-21 기준 Kubernetes v1.37.1(2026-09-23), NVIDIA k8s-device-plugin v0.20.1(2026-09-22), GPU Operator v26.7.2(2026-10-14)의 릴리스와 관련 소스·문서를 참고했습니다. 소스로 확인한 동작, 벤더의 도입 설명, 구조에서 도출한 예상은 본문에서 구분했습니다.
 
-{{% /details %}}
+다음 항목은 이번 조사에서 확인하지 못했습니다.
 
-## 7. 확인하지 못한 것
-
-- "1~8 GPU를 gpu-2, gpu-4 같은 별도 리소스 이름으로 노출한다"는 기법 자체의 1차 자료. 현행 형태는 Koordinator Partition API로 확인
-- ACK의 과거 GPU 토폴로지 스케줄러(gputopo)의 공개 저장소
-- 8-GPU 노드에서 `single-numa-node` 정책이 실제로 파드를 거부하는지에 대한 공식 서술
-- 같은 소켓과 원격 소켓에 놓인 GPU의 정량 성능 차를 보여 주는 NVIDIA 1차 수치
+- “1~8 GPU를 별도 리소스 이름으로 노출한다”는 옛 기법의 1차 자료. 현행 구현으로는 Koordinator Partition API를 확인했습니다.
+- ACK의 과거 GPU 토폴로지 스케줄러(gputopo)의 공개 저장소.
+- 8-GPU 노드에서 `single-numa-node`가 파드를 거부하는 실제 사례에 대한 공식 서술.
+- 같은 소켓과 원격 소켓에 배치한 GPU의 정량 성능 차이를 보여 주는 NVIDIA 1차 수치.
 
 ## 참고 자료
 
