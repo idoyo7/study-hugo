@@ -1,14 +1,14 @@
 ---
-title: "2026년 엔터프라이즈 어레이는 어떤 전송을 내놓는가 — NVMe/TCP, RoCE, FC-NVMe, iSCSI의 자리"
+title: "엔터프라이즈 어레이 — NVMe/TCP를 기본으로 미는 이유"
 linkTitle: "04 엔터프라이즈 전송 현황"
-description: "Dell·NetApp·Pure·HPE·IBM·Hitachi 어레이가 호스트에 내놓는 전송을 표로 모으고, RoCE가 어레이 안쪽으로 들어간 이유와 RDMA·TCP 지연 격차의 조건, 멀티패스·TLS 지원 상태를 근거 등급과 함께 정리한다."
+description: "2026년 엔터프라이즈 어레이의 전송 지원을 비교하고 신규 이더넷 구축에서 NVMe/TCP를 권하는 운영상 이유와 RoCE의 쓰임을 성능 측정 조건와 보안 지원 범위와 함께 정리한다."
 weight: 4
 date: 2026-10-21
 lastmod: 2026-10-21
 url: "/storage/04-enterprise-transports/"
 ---
 
-# 04 · 2026년 엔터프라이즈 어레이는 어떤 전송을 내놓는가 — NVMe/TCP, RoCE, FC-NVMe, iSCSI의 자리
+# 04 · 엔터프라이즈 어레이 — NVMe/TCP를 기본으로 미는 이유
 
 2026년에도 엔터프라이즈 스토리지 벤더는 NVMe/TCP와 RDMA 전송을 제공합니다. 벤더가 신규 이더넷 구축의 기본으로 미는 쪽은 NVMe/TCP입니다. RoCE는 일부 제품의 호스트 연결과 어레이 내부 패브릭(연결망)에 쓰이고, FC-NVMe는 기존 FC SAN을 이어 갑니다. iSCSI도 모든 어레이에 남아 있습니다.
 

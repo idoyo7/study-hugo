@@ -1,14 +1,14 @@
 ---
-title: "05 호스트와 클라우드 쪽 — vSphere·Linux·Windows·Kubernetes는 어디까지 왔고, 클라우드는 무엇 위에서 도는가"
+title: "호스트와 클라우드의 NVMe — 어디까지 지원하고 공개했나"
 linkTitle: "05 호스트·클라우드·오프로드"
-description: "이니시에이터 쪽(vSphere·Linux·Windows·Kubernetes)의 NVMe-oF 지원 상태, 클라우드 블록 볼륨의 공개된 전송, 오프로드 하드웨어와 Ultra Ethernet의 현실성을 근거 등급과 함께 정리한다."
+description: "호스트별 NVMe-oF 지원 단계와 클라우드의 공개 전송을 살펴보고, NVMe 장치 표기만으로 백엔드 전송을 판단할 수 없는 이유와 하드웨어 오프로드의 적용 범위를 정리한다."
 weight: 5
 date: 2026-10-21
 lastmod: 2026-10-21
 url: "/storage/05-host-side-and-cloud/"
 ---
 
-# 05 · 호스트와 클라우드 쪽 — vSphere·Linux·Windows·Kubernetes는 어디까지 왔고, 클라우드는 무엇 위에서 도는가
+# 05 · 호스트와 클라우드의 NVMe — 어디까지 지원하고 공개했나
 
 어레이가 NVMe/TCP를 지원해도 호스트의 이니시에이터(스토리지에 I/O를 요청하는 쪽)가 연결할 수 있어야 합니다. 2026-10-21 기준으로 vSphere 9.0은 NVMe/TCP 부팅과 인증을, Linux는 멀티패스와 TLS 암호화를 갖췄습니다. Windows의 원격 NVMe-oF 이니시에이터는 아직 프리뷰이고, 이 글에서 살펴본 Kubernetes 드라이버 중 GA를 확인한 것은 NetApp Trident입니다.
 

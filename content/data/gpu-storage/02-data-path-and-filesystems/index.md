@@ -1,14 +1,14 @@
 ---
-title: "GPU까지 가는 데이터 경로와 그 뒤의 파일시스템 — GDS 조건, SuperPOD 요구치, 병렬 FS 비교"
+title: "GPU 스토리지 — 데이터 경로와 I/O 패턴이 병목을 가른다"
 linkTitle: "02 데이터 경로와 파일시스템"
-description: "GPUDirect Storage가 이득이 되는 조건과 호환 모드로 떨어지는 경우, DGX SuperPOD 스토리지 요구치와 NVIDIA 인증 목록을 읽는 법, 병렬·분산 파일시스템의 구조 차이를 근거 등급과 함께 정리한다."
+description: "GDS의 직접 경로 조건과 SuperPOD의 스토리지 요구치를 살펴보고, 파일시스템의 메타데이터 배치와 접근 방식이 I/O 패턴별 병목에 미치는 차이를 정리한다."
 weight: 2
 date: 2026-10-21
 lastmod: 2026-10-21
 url: "/gpu-storage/02-data-path-and-filesystems/"
 ---
 
-# 02 · GPU까지 가는 데이터 경로와 그 뒤의 파일시스템 — GDS 조건, SuperPOD 요구치, 병렬 FS 비교
+# 02 · GPU 스토리지 — 데이터 경로와 I/O 패턴이 병목을 가른다
 
 GPUDirect Storage(GDS)는 CPU 메모리를 거치는 복사를 줄이지만, 서버의 PCIe 토폴로지와 파일 접근 방식이 맞아야 직접 경로를 씁니다. 지원되지 않는 구성에서는 CPU 메모리를 거치는 호환 모드로 자동 전환됩니다.
 
