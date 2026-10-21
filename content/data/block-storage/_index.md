@@ -1,7 +1,7 @@
 ---
 title: "스토리지"
 date: 2026-10-04
-lastmod: 2026-10-04
+lastmod: 2026-10-21
 weight: 30
 comments: false
 cascade:
@@ -17,12 +17,16 @@ linkTitle: "블록 스토리지"
 - [01 iSCSI와 NVMe-oF]({{< relref "/data/block-storage/01-iscsi-nvme-of/index.md" >}})
 - [02 VM 디스크 경로]({{< relref "/data/block-storage/02-vm-disk-paths/index.md" >}})
 - [03 로컬 디스크와 복제]({{< relref "/data/block-storage/03-local-disk-ha/index.md" >}})
+- [04 엔터프라이즈 전송 현황]({{< relref "/data/block-storage/04-enterprise-transports/index.md" >}})
+- [05 호스트·클라우드·오프로드]({{< relref "/data/block-storage/05-host-side-and-cloud/index.md" >}})
 - [부록 A NVMe HDD]({{< relref "/data/block-storage/a1-nvme-hdd/index.md" >}})
 - [부록 B NFS]({{< relref "/data/block-storage/a2-nfs/index.md" >}})
 
 NVMe SSD가 많이 꽂힌 스토리지 서버의 용량을 여러 호스트와 VM에 나눠 줄 때, 내보내는 방식에 따라 I/O 경로와 오버헤드가 달라집니다. 같은 SSD라도 SCSI 명령으로 바꿔 싣는지, NVMe 명령을 capsule로 싣는지, 호스트에는 어떤 모양의 장치로 보이는지에 따라 요청 하나가 거치는 계층이 달라지기 때문입니다.
 
 01은 iSCSI와 NVMe-oF를 전송과 타깃·백엔드 쪽에서 비교합니다. 호스트 I/O 경로와 큐 구조, 쓰기 데이터 흐름, 타깃이 내보내는 가상 NVMe controller와 namespace, 커널·SPDK 타깃 구현과 Ceph RBD·Kubernetes 스토리지까지 다룹니다. 02는 NVMe 용량을 VM에 나누는 방식(virtio·vhost·vfio-user·직접 할당·DPU 에뮬레이션)을 게스트 인터페이스와 요청 처리 주체로 비교합니다.
+
+04는 2026년 기준으로 엔터프라이즈 어레이 벤더가 호스트에 내놓는 전송과 NVMe/TCP·RDMA의 격차를, 05는 vSphere·Linux·Windows·Kubernetes의 지원 수준과 클라우드 블록 볼륨의 기반 기술, 오프로드 하드웨어의 현실성을 다룹니다.
 
 비교 근거는 장치·커널·블록 크기·큐 깊이가 서로 다른 논문과 벤치마크에 흩어져 있습니다. 수치마다 측정 조건을 같이 적었고, 조건이 다른 값은 같은 차트나 표 행에 올리지 않았습니다. 확인하지 못한 항목은 `?`로 남겼습니다.
 
@@ -35,6 +39,8 @@ iSCSI와 NVMe-oF의 비교는 01, VM 디스크 전달 방식은 02부터 읽으�
 | [01 iSCSI와 NVMe-oF]({{< relref "/data/block-storage/01-iscsi-nvme-of/index.md" >}}) | 이점·조건 표와 RocksDB 실측, 타깃이 내보내는 NVMe 장치, 호스트 스택과 큐 구조, 쓰기 데이터 흐름, 타깃 구현과 백엔드, RBD·Kubernetes 구현 |
 | [02 VM 디스크 경로]({{< relref "/data/block-storage/02-vm-disk-paths/index.md" >}}) | virtio·vhost·vfio-user·직접 할당·DPU 에뮬레이션의 경로 비교와 실측 |
 | [03 로컬 디스크와 복제]({{< relref "/data/block-storage/03-local-disk-ha/index.md" >}}) | 복제를 스토리지와 애플리케이션 중 어디에 둘지, 로컬 디스크의 수명 계약, 워크로드별 HA 가능 여부, 2곳과 3곳의 용량 산술, Kubernetes의 복제 스토리지와 로컬 PV 비교 |
+| [04 엔터프라이즈 전송 현황]({{< relref "/data/block-storage/04-enterprise-transports/index.md" >}}) | 어레이 벤더별 호스트 전송, RoCE가 어레이 안쪽 패브릭으로 간 이유, FC-NVMe와 iSCSI의 자리, 전송 간 격차 수치, 멀티패스·ANA·TLS·인증 |
+| [05 호스트·클라우드·오프로드]({{< relref "/data/block-storage/05-host-side-and-cloud/index.md" >}}) | vSphere·Linux·Windows의 NVMe-oF 지원, Kubernetes CSI 성숙도, 클라우드 블록 볼륨의 기반 전송, 오프로드 하드웨어와 Ultra Ethernet |
 | [부록 A NVMe HDD]({{< relref "/data/block-storage/a1-nvme-hdd/index.md" >}}) | HDD를 NVMe로 붙이는 두 경로, 규격·제품 상태, 기구 시간 대비 프로토콜 오버헤드, 큐와 액추에이터 |
 | [부록 B NFS]({{< relref "/data/block-storage/a2-nfs/index.md" >}}) | NFS를 iSCSI·NVMe-oF와 한 표에 놓을 수 있는 전송 구조, 놓을 수 없는 쓰기 의미와 캐시, 2004년 실측과 최근 자료의 한계, VM 디스크·볼륨으로 쓸 때, NFS가 맞는 경우 |
 

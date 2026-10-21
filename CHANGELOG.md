@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-10-21 — 데이터·스토리지에 GPU 클러스터 스토리지 추가, 블록 스토리지 04·05
+
+- `content/data/gpu-storage/`를 새로 만들었습니다(공개 URL `/gpu-storage/`). 학습 로딩·체크포인트·모델 로딩·KV cache의 I/O 패턴(01), GPUDirect Storage 조건과 SuperPOD 요구치·병렬 파일시스템 비교(02), 클라우드 관리형·오브젝트 캐시·Kubernetes·MLPerf Storage v3.0 읽는 법(03) 세 편입니다. 데이터·스토리지 색인에 링크를 더했습니다.
+- 블록 스토리지 시리즈에 04(2026년 엔터프라이즈 어레이의 호스트 전송 현황)와 05(vSphere·Linux·Windows·Kubernetes 지원, 클라우드 블록 볼륨의 기반 전송, 오프로드 하드웨어)를 추가했습니다. 기존 01~03·부록 URL은 그대로입니다.
+- 다섯 편 모두 2026-10-21 조사 보고서를 바탕으로 Claude가 초안을 쓰고 Astra(gpt-6-astra, reasoning effort high)가 전면 재작성한 뒤, 원본과 대조해 지적된 곳만 한 번 더 보정했습니다. 실행 기록은 `_workspace/structure-2026-10-21-001/`에 있습니다.
+
 ## 2026-10-21 — 다섯 번째 대분류 "타사 테크블로그"
 
 - 다른 회사 기술 블로그와 발표를 회사별로 모아 요약하는 `content/external/`을 만들었습니다. 사이드바 루트가 넷에서 다섯이 되어 `tools/check-content-navigation.py`의 `ROOT_SECTIONS`와 테스트의 루트 목록에 `/external/`을 더했습니다.
