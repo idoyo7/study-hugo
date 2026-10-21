@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-10-22 — 블록 스토리지 06·07·08, 다섯 편 글 구조 재작성
+
+- 블록 스토리지에 06(Linux 호스트에서 NVMe/TCP를 FC SAN처럼 운영하기: 식별·자동 연결·CDC·멀티패스·타임아웃·인증·TLS·홈랩 타깃), 07(NVMe over FC·TCP·RDMA를 전송 자체만 놓고 비교, FC가 가장 안정적인가와 접근성 질문에 답함), 08(Kubernetes에서 NVMe-oF를 쓰는 길을 Mayastor를 중심으로, 공개 IOPS 측정 조건과 프로덕션 사례·상용 지원·대안 비교)을 더했습니다. 색인의 찾기 목록과 문서 지도에 세 편을 넣었습니다.
+- 어제 올린 다섯 편(블록 04·05, GPU 01·02·03)은 저자 요청으로 Astra(gpt-6-astra, reasoning effort xhigh)에 `##` 절 구성까지 맡겨 다시 썼습니다. 05는 Windows Server 내용을 빼고 Kubernetes CSI를 앞세웠습니다. 추가 조사로 Longhorn V2 data engine GA(1.12.0, 2026-06-02)와 커널 기능 도입 버전(경로별 queue-depth sysfs 6.15, 업스트림 기준 6.18 LTS 필요)을 바로잡았습니다.
+- 실행 기록은 `_workspace/structure-2026-10-21-002/`에 있습니다. codex exec는 `--sandbox read-only`로 띄워야 합니다. 샌드박스 없이 돌린 xhigh 호출 하나가 저장소 파일을 직접 고친 일이 있었습니다.
+
 ## 2026-10-21 — 데이터·스토리지에 GPU 클러스터 스토리지 추가, 블록 스토리지 04·05
 
 - `content/data/gpu-storage/`를 새로 만들었습니다(공개 URL `/gpu-storage/`). 학습 로딩·체크포인트·모델 로딩·KV cache의 I/O 패턴(01), GPUDirect Storage 조건과 SuperPOD 요구치·병렬 파일시스템 비교(02), 클라우드 관리형·오브젝트 캐시·Kubernetes·MLPerf Storage v3.0 읽는 법(03) 세 편입니다. 데이터·스토리지 색인에 링크를 더했습니다.
