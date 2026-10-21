@@ -1,0 +1,19 @@
+{
+  "caption": "Kueue는 quota를 잡고 노드가 준비된 뒤에 도메인을 계산하며, 결과를 파드에 심어 두면 실제 바인딩은 kube-scheduler가 합니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "w", "col": 0, "row": 0, "label": "워크로드", "sub": "podset 어노테이션", "kind": "src" },
+    { "id": "q", "col": 1, "row": 0, "label": "quota 예약", "sub": "ClusterQueue", "kind": "proc" },
+    { "id": "p", "col": 2, "row": 0, "label": "노드 확보", "sub": "Provisioning 검사", "kind": "proc" },
+    { "id": "t", "col": 3, "row": 0, "label": "도메인 계산", "sub": "required · preferred", "kind": "query" },
+    { "id": "i", "col": 3, "row": 1, "label": "배치 주입", "sub": "nodeSelector 등", "kind": "proc" },
+    { "id": "k", "col": 2, "row": 1, "label": "kube-scheduler", "sub": "실제 바인딩", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "w", "to": "q", "rate": 700 },
+    { "from": "q", "to": "p", "rate": 700 },
+    { "from": "p", "to": "t", "rate": 700 },
+    { "from": "t", "to": "i", "rate": 700 },
+    { "from": "i", "to": "k", "rate": 700 }
+  ]
+}

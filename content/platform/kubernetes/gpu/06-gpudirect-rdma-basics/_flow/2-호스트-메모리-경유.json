@@ -1,0 +1,14 @@
+{
+  "caption": "일반 경로에서는 GPU 메모리의 데이터가 호스트의 고정 메모리로 한 번 복사된 뒤에야 NIC이 가져가며, 이 복사를 CPU가 지시합니다.",
+  "nodes": [
+    { "id": "gpu", "col": 0, "row": 0, "label": "GPU 메모리", "sub": "송신 데이터", "kind": "src" },
+    { "id": "nic", "col": 1, "row": 0, "label": "NIC", "sub": "RDMA 지원", "kind": "proc" },
+    { "id": "net", "col": 2, "row": 0, "label": "네트워크", "kind": "sink" },
+    { "id": "host", "col": 0, "row": 1, "label": "호스트 메모리", "sub": "고정 버퍼", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "gpu", "to": "host", "label": "복사", "rate": 700 },
+    { "from": "host", "to": "nic", "label": "DMA", "rate": 700 },
+    { "from": "nic", "to": "net", "label": "전송", "rate": 700 }
+  ]
+}

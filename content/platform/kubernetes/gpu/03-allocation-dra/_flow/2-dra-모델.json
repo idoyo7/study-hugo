@@ -1,0 +1,19 @@
+{
+  "caption": "드라이버가 노드의 장치를 ResourceSlice로 공개하면, 스케줄러가 ResourceClaim과 DeviceClass 조건에 맞는 장치를 골라 그 장치에 닿는 노드에 파드를 놓습니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "d", "col": 0, "row": 0, "label": "DRA 드라이버", "sub": "노드마다", "kind": "src" },
+    { "id": "rs", "col": 1, "row": 0, "label": "ResourceSlice", "sub": "장치·속성·용량", "kind": "store" },
+    { "id": "w", "col": 0, "row": 2, "label": "워크로드", "sub": "ResourceClaim", "kind": "src" },
+    { "id": "dc", "col": 1, "row": 1, "label": "DeviceClass", "sub": "장치 종류 틀", "kind": "store" },
+    { "id": "sch", "col": 2, "row": 1, "label": "스케줄러", "sub": "CEL 셀렉터로 선택", "kind": "query" },
+    { "id": "pod", "col": 3, "row": 1, "label": "파드 배치", "sub": "장치가 닿는 노드", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "d", "to": "rs", "label": "공개", "rate": 700 },
+    { "from": "rs", "to": "sch", "label": "후보", "rate": 700 },
+    { "from": "w", "to": "dc", "label": "참조", "rate": 700 },
+    { "from": "dc", "to": "sch", "rate": 700 },
+    { "from": "sch", "to": "pod", "rate": 700 }
+  ]
+}

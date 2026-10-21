@@ -1,0 +1,14 @@
+{
+  "caption": "HGX에서는 GPU 8장이 NVSwitch로 서로 같은 거리에 묶이고, CPU와 NIC은 PCIe로 따로 붙습니다.",
+  "nodes": [
+    { "id": "g", "col": 0, "row": 0, "label": "GPU 8장", "sub": "HGX 베이스보드", "kind": "src" },
+    { "id": "sw", "col": 1, "row": 0, "label": "NVSwitch", "sub": "H100은 4개", "kind": "proc" },
+    { "id": "res", "col": 2, "row": 0, "label": "쌍 대역폭 균일", "sub": "모든 쌍 NV18", "kind": "sink" },
+    { "id": "c", "col": 1, "row": 1, "label": "CPU · NIC", "sub": "NUMA 정렬 필요", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "g", "to": "sw", "label": "NVLink", "rate": 700 },
+    { "from": "sw", "to": "res", "label": "균일", "rate": 700 },
+    { "from": "g", "to": "c", "label": "PCIe", "rate": 1200 }
+  ]
+}

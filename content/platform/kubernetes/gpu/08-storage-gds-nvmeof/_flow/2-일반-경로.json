@@ -1,0 +1,14 @@
+{
+  "caption": "일반 경로에서는 스토리지 데이터가 CPU 시스템 메모리의 바운스 버퍼를 거친 뒤 GPU 메모리로 복사됩니다.",
+  "nodes": [
+    { "id": "nvme", "col": 0, "row": 0, "label": "NVMe 장치", "sub": "또는 NIC", "kind": "src" },
+    { "id": "gpu", "col": 2, "row": 0, "label": "GPU 메모리", "kind": "sink" },
+    { "id": "mem", "col": 1, "row": 1, "label": "시스템 메모리", "sub": "바운스 버퍼", "kind": "store" },
+    { "id": "cpu", "col": 1, "row": 2, "label": "CPU", "sub": "파일시스템·드라이버", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "nvme", "to": "mem", "label": "DMA", "rate": 700 },
+    { "from": "mem", "to": "gpu", "label": "복사", "rate": 700 },
+    { "from": "cpu", "to": "nvme", "label": "요청", "dashed": true }
+  ]
+}

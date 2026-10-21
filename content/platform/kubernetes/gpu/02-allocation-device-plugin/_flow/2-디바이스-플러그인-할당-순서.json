@@ -1,0 +1,16 @@
+{
+  "caption": "스케줄러는 노드의 GPU 개수만 보고 파드를 놓고, 어느 GPU를 줄지는 노드에 배치된 뒤 kubelet이 플러그인의 힌트를 받아 정합니다.",
+  "participants": [
+    { "id": "s", "label": "kube-scheduler" },
+    { "id": "k", "label": "kubelet" },
+    { "id": "p", "label": "device plugin" }
+  ],
+  "steps": [
+    { "note": ["k", "p"], "lines": ["장치마다 NUMA 힌트 등록", "(TopologyInfo)"] },
+    { "msg": ["s", "k"], "label": "1. 개수가 맞는 노드에 배치" },
+    { "msg": ["k", "p"], "label": "2. 선호 장치 조회" },
+    { "msg": ["p", "k"], "label": "3. 선호 집합 회신", "dashed": true },
+    { "note": ["k", "p"], "lines": ["선호 집합은 보장되지 않음", "최종 할당은 kubelet이 결정"] },
+    { "msg": ["k", "p"], "label": "4. 할당 요청" }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "caption": "NCCL은 /sys에서 읽은 GPU 거리가 P2P 한계 안이면 P2P로 보내고, 밖이거나 막혀 있으면 다른 transport로 돌립니다.",
+  "nodes": [
+    { "id": "r", "col": 0, "row": 1, "label": "GPU 쌍", "sub": "/sys에서 거리 탐지", "kind": "src" },
+    { "id": "q", "col": 1, "row": 1, "label": "P2P 한계 이내인가", "sub": "NCCL_P2P_LEVEL", "kind": "query" },
+    { "id": "a", "col": 2, "row": 0, "label": "P2P transport", "sub": "NVLink · PCIe", "kind": "proc" },
+    { "id": "b", "col": 2, "row": 2, "label": "SHM 또는 네트워크", "sub": "P2P를 못 쓸 때", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "r", "to": "q", "rate": 700 },
+    { "from": "q", "to": "a", "label": "이내", "rate": 700 },
+    { "from": "q", "to": "b", "label": "밖·불가", "rate": 1200 }
+  ]
+}

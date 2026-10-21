@@ -1,0 +1,23 @@
+{
+  "caption": "NCCL은 GPU와 NIC의 거리가 PXB 이내이고 peermem이나 dma-buf 경로가 있을 때 GDRDMA를 켜며, 거리 제한은 환경변수로 풀 수 있습니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "q", "col": 0, "row": 1, "label": "GPU–NIC 거리", "sub": "topo -m", "kind": "query" },
+    { "id": "a", "col": 1, "row": 0, "label": "PIX·PXB", "sub": "기본 허용", "kind": "proc" },
+    { "id": "b", "col": 1, "row": 2, "label": "PHB 이상", "sub": "기본 차단", "kind": "proc" },
+    { "id": "m", "col": 2, "row": 0, "label": "GDR 경로", "sub": "peermem·dma-buf", "kind": "query" },
+    { "id": "e", "col": 2, "row": 2, "label": "LEVEL 지정", "sub": "환경변수", "kind": "query" },
+    { "id": "g", "col": 3, "row": 0, "label": "GDRDMA", "sub": "로그에 /GDRDMA", "kind": "sink" },
+    { "id": "h", "col": 3, "row": 1, "label": "호스트 경유", "sub": "/GDRDMA 없음", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "q", "to": "a", "label": "가까움" },
+    { "from": "q", "to": "b", "label": "멀다" },
+    { "from": "a", "to": "m" },
+    { "from": "b", "to": "e" },
+    { "from": "e", "to": "m", "label": "SYS" },
+    { "from": "e", "to": "h", "label": "미지정" },
+    { "from": "m", "to": "g", "label": "있음" },
+    { "from": "m", "to": "h", "label": "없음" }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "caption": "Helm 값 하나가 노드의 nvidia-fs 모듈과 파드 안의 디바이스, 마운트로 갈라져 이어집니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "helm", "col": 0, "row": 0, "label": "Helm 값", "sub": "gds.enabled=true", "kind": "src" },
+    { "id": "op", "col": 1, "row": 0, "label": "GPU Operator", "kind": "proc" },
+    { "id": "drv", "col": 2, "row": 0, "label": "드라이버 파드", "sub": "nvidia-fs-ctr", "kind": "proc" },
+    { "id": "ko", "col": 3, "row": 0, "label": "호스트 커널", "sub": "nvidia_fs 모듈", "kind": "store" },
+    { "id": "dp", "col": 1, "row": 1, "label": "device plugin", "sub": "GDS_ENABLED", "kind": "proc" },
+    { "id": "tk", "col": 2, "row": 1, "label": "컨테이너 툴킷", "sub": "NVIDIA_GDS=enabled", "kind": "proc" },
+    { "id": "pod", "col": 3, "row": 1, "label": "GPU 파드", "sub": "/dev/nvidia-fs*", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "helm", "to": "op", "label": "설정", "rate": 700 },
+    { "from": "op", "to": "drv", "label": "배포", "rate": 700 },
+    { "from": "drv", "to": "ko", "label": "로드", "rate": 700 },
+    { "from": "op", "to": "dp", "label": "환경변수", "rate": 700 },
+    { "from": "dp", "to": "tk", "label": "env", "rate": 700 },
+    { "from": "tk", "to": "pod", "label": "주입", "rate": 700 }
+  ]
+}

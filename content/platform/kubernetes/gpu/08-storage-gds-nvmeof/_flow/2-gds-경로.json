@@ -1,0 +1,13 @@
+{
+  "caption": "GDS에서는 DMA 엔진이 데이터를 GPU 메모리로 곧바로 옮기고, CPU는 경로를 셋업하는 제어 쪽에만 남습니다.",
+  "nodes": [
+    { "id": "nvme", "col": 0, "row": 0, "label": "NVMe 장치", "sub": "또는 NIC", "kind": "src" },
+    { "id": "gpu", "col": 2, "row": 0, "label": "GPU 메모리", "kind": "sink" },
+    { "id": "mem", "col": 1, "row": 1, "label": "시스템 메모리", "sub": "데이터 경로에서 빠짐", "kind": "store", "ghost": true },
+    { "id": "cpu", "col": 1, "row": 2, "label": "CPU", "sub": "cuFile·nvidia-fs", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "nvme", "to": "gpu", "label": "DMA", "rate": 700 },
+    { "from": "cpu", "to": "nvme", "label": "셋업", "dashed": true }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "caption": "ComputeDomain은 IMEX 데몬과 채널 claim을 만들어 주지만, 파드를 같은 NVLink 도메인에 모으는 일은 clique 라벨 어피니티가 맡습니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "cd", "col": 0, "row": 1, "label": "ComputeDomain", "sub": "잡마다 하나", "kind": "src" },
+    { "id": "ds", "col": 1, "row": 0, "label": "nvidia-imex", "sub": "도메인 노드마다", "kind": "proc" },
+    { "id": "rct", "col": 1, "row": 2, "label": "claim 템플릿", "sub": "채널마다", "kind": "store" },
+    { "id": "kp", "col": 2, "row": 2, "label": "kubelet plugin", "sub": "채널 장치 주입", "kind": "proc" },
+    { "id": "cl", "col": 3, "row": 0, "label": "clique 라벨", "sub": "GFD가 노드에 부여", "kind": "store" },
+    { "id": "pod", "col": 3, "row": 1, "label": "파드", "sub": "channelN 장치", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "cd", "to": "ds", "label": "생성", "rate": 700 },
+    { "from": "cd", "to": "rct", "label": "생성", "rate": 700 },
+    { "from": "rct", "to": "kp", "label": "claim", "rate": 700 },
+    { "from": "kp", "to": "pod", "label": "주입", "rate": 700 },
+    { "from": "ds", "to": "pod", "label": "준비 후", "rate": 700 },
+    { "from": "cl", "to": "pod", "label": "어피니티", "rate": 700 }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "caption": "Volcano는 노드를 tier 1 HyperNode로 묶고 그것을 다시 tier 2로 묶으며, 잡의 highestTierAllowed가 어느 tier까지 올라가 배치할지의 상한이 됩니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "n0", "col": 0, "row": 0, "label": "gpu-rack0-*", "sub": "Node · regexMatch", "kind": "src" },
+    { "id": "n1", "col": 0, "row": 1, "label": "gpu-rack1-*", "sub": "Node · regexMatch", "kind": "src" },
+    { "id": "s0", "col": 1, "row": 0, "label": "s0", "sub": "tier 1 · tor", "kind": "store" },
+    { "id": "s1", "col": 1, "row": 1, "label": "s1", "sub": "tier 1 · tor", "kind": "store" },
+    { "id": "s4", "col": 2, "row": 0, "label": "s4", "sub": "tier 2", "kind": "store" },
+    { "id": "j", "col": 3, "row": 0, "label": "Job", "sub": "hard · 상한 tier 2", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "n0", "to": "s0", "label": "멤버", "rate": 700 },
+    { "from": "n1", "to": "s1", "label": "멤버", "rate": 700 },
+    { "from": "s0", "to": "s4", "label": "멤버", "rate": 700 },
+    { "from": "s1", "to": "s4", "label": "멤버", "rate": 700 },
+    { "from": "j", "to": "s4", "label": "상한", "rate": 700 }
+  ]
+}

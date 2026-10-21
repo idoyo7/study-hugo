@@ -1,0 +1,20 @@
+{
+  "caption": "NCCL이 지정한 트래픽 클래스가 NIC과 스위치 큐까지 같은 우선순위로 이어져야 하고, 혼잡하면 ECN 표시와 CNP가 되돌아와 송신 속도를 줄입니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "n", "col": 0, "row": 0, "label": "NCCL", "sub": "NCCL_IB_TC", "kind": "src" },
+    { "id": "nic", "col": 1, "row": 0, "label": "송신 NIC", "sub": "trust dscp", "kind": "proc" },
+    { "id": "sw", "col": 2, "row": 0, "label": "스위치 포트", "sub": "DSCP 26 → SP3", "kind": "proc" },
+    { "id": "q", "col": 3, "row": 0, "label": "TC3 큐", "sub": "PFC · ECN 임계값", "kind": "store" },
+    { "id": "rx", "col": 3, "row": 1, "label": "수신 NIC", "sub": "ECN 표시를 읽음", "kind": "sink" },
+    { "id": "cnp", "col": 2, "row": 1, "label": "CNP", "sub": "DSCP 48 · SP6", "kind": "query" }
+  ],
+  "edges": [
+    { "from": "n", "to": "nic", "label": "TC 표시", "rate": 700 },
+    { "from": "nic", "to": "sw", "label": "DSCP", "rate": 700 },
+    { "from": "sw", "to": "q", "label": "큐 배정", "rate": 700 },
+    { "from": "q", "to": "rx", "label": "ECN", "rate": 700 },
+    { "from": "rx", "to": "cnp", "label": "통보", "rate": 700 },
+    { "from": "cnp", "to": "nic", "label": "감속", "rate": 700 }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "caption": "스케줄러는 패브릭의 굵은 계층부터 가는 계층까지를 노드 라벨로 읽고, Kueue는 그 라벨을 levels에 위에서 아래 순서로 적어 도메인 트리를 만듭니다.",
+  "nodes": [
+    { "id": "b", "col": 0, "row": 0, "label": "블록", "sub": "spine 묶음 · 가장 굵음", "kind": "src" },
+    { "id": "s", "col": 0, "row": 1, "label": "서브블록", "sub": "leaf · 랙", "kind": "src" },
+    { "id": "h", "col": 0, "row": 2, "label": "호스트", "sub": "노드 하나", "kind": "src" },
+    { "id": "lb", "col": 1, "row": 0, "label": "gce-topology-block", "sub": "cloud.google.com", "kind": "store" },
+    { "id": "ls", "col": 1, "row": 1, "label": "gce-topology-subblock", "sub": "cloud.google.com", "kind": "store" },
+    { "id": "lh", "col": 1, "row": 2, "label": "gce-topology-host", "sub": "cloud.google.com", "kind": "store" },
+    { "id": "l0", "col": 2, "row": 0, "label": "levels 첫째", "sub": "nodeLabel", "kind": "proc" },
+    { "id": "l1", "col": 2, "row": 1, "label": "levels 둘째", "sub": "nodeLabel", "kind": "proc" },
+    { "id": "l2", "col": 2, "row": 2, "label": "levels 마지막", "sub": "hostname이면 맨 아래", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "b", "to": "lb", "label": "라벨", "rate": 700 },
+    { "from": "s", "to": "ls", "label": "라벨", "rate": 700 },
+    { "from": "h", "to": "lh", "label": "라벨", "rate": 700 },
+    { "from": "lb", "to": "l0", "label": "지정", "rate": 700 },
+    { "from": "ls", "to": "l1", "label": "지정", "rate": 700 },
+    { "from": "lh", "to": "l2", "label": "지정", "rate": 700 }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "caption": "NIC이 호스트 네임스페이스에 남는지 파드로 넘어오는지가 네 경로의 격리 수준을 가르고, hostNetwork는 경계를 두지 않습니다.",
+  "groups": [
+    { "id": "h", "label": "호스트 쪽", "members": ["h0", "h1", "h2", "h3"] },
+    { "id": "p", "label": "파드 쪽", "members": ["p0", "p1", "p2", "p3"] }
+  ],
+  "nodes": [
+    { "id": "h0", "col": 0, "row": 0, "label": "노드 netns", "sub": "NIC 전부 보임", "kind": "store" },
+    { "id": "p0", "col": 1, "row": 0, "label": "hostNetwork 파드", "sub": "경계 없음", "kind": "sink" },
+    { "id": "h1", "col": 0, "row": 1, "label": "PF 한 개", "sub": "여러 파드가 공유", "kind": "store" },
+    { "id": "p1", "col": 1, "row": 1, "label": "공유 플러그인 파드", "sub": "char 장치 + 보조 netdev", "kind": "sink" },
+    { "id": "h2", "col": 0, "row": 2, "label": "VF 여러 개", "sub": "PF를 분할", "kind": "store" },
+    { "id": "p2", "col": 1, "row": 2, "label": "SR-IOV 파드", "sub": "VF 하나", "kind": "sink" },
+    { "id": "h3", "col": 0, "row": 3, "label": "PF 또는 VF", "sub": "하나를 독점", "kind": "store" },
+    { "id": "p3", "col": 1, "row": 3, "label": "hostdev 파드", "sub": "NIC 전체", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "h0", "to": "p0", "label": "공유", "rate": 700 },
+    { "from": "h1", "to": "p1", "label": "장치 파일", "rate": 700 },
+    { "from": "h2", "to": "p2", "label": "VF 이동", "rate": 700 },
+    { "from": "h3", "to": "p3", "label": "통째 이동", "rate": 700 }
+  ]
+}

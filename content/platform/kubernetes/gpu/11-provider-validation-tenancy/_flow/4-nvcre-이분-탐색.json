@@ -1,0 +1,22 @@
+{
+  "caption": "NVCRE는 기준에 못 미친 그룹을 반으로 나눠 다시 돌리며 원인 노드를 좁히고, 격리는 직접 하지 않고 NVSentinel에 넘깁니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "c", "col": 0, "row": 1, "label": "Certification", "sub": "testScale: diagnose", "kind": "src" },
+    { "id": "run", "col": 1, "row": 1, "label": "그룹 실행", "sub": "NCCL 테스트", "kind": "proc" },
+    { "id": "q", "col": 2, "row": 1, "label": "목표 달성", "sub": "busbw 임계값", "kind": "query" },
+    { "id": "ok", "col": 3, "row": 0, "label": "통과", "sub": "PASSED", "kind": "sink" },
+    { "id": "sp", "col": 1, "row": 2, "label": "그룹 이분", "sub": "minGroupSize까지", "kind": "proc" },
+    { "id": "f", "col": 3, "row": 2, "label": "검증 실패", "sub": "ValidationFailed", "kind": "sink" },
+    { "id": "nv", "col": 3, "row": 1, "label": "NVSentinel", "sub": "격리·drain은 여기서", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "c", "to": "run", "label": "시작", "rate": 700 },
+    { "from": "run", "to": "q", "label": "측정", "rate": 700 },
+    { "from": "q", "to": "ok", "label": "달성", "rate": 700 },
+    { "from": "q", "to": "sp", "label": "미달", "rate": 700 },
+    { "from": "sp", "to": "run", "label": "재실행", "rate": 700 },
+    { "from": "sp", "to": "f", "label": "최소 크기", "rate": 700 },
+    { "from": "f", "to": "nv", "label": "이벤트", "dashed": true }
+  ]
+}

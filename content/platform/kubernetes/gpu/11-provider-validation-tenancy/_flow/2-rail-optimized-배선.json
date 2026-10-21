@@ -1,0 +1,24 @@
+{
+  "caption": "한 SU 안에서는 같은 번호의 NIC이 모두 같은 리프에 꽂혀 같은 레일끼리 한 홉이고, 다른 레일이나 다른 SU로 가는 트래픽만 스파인을 지납니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "su", "label": "SU 하나", "members": ["r0", "r1", "r7", "l0", "l1", "l7"] }
+  ],
+  "nodes": [
+    { "id": "r0", "col": 0, "row": 0, "label": "레일 0 NIC", "sub": "SU의 모든 노드", "kind": "src" },
+    { "id": "r1", "col": 0, "row": 1, "label": "레일 1 NIC", "sub": "SU의 모든 노드", "kind": "src" },
+    { "id": "r7", "col": 0, "row": 2, "label": "레일 7 NIC", "sub": "2~6은 생략", "kind": "src" },
+    { "id": "l0", "col": 1, "row": 0, "label": "리프 0", "sub": "레일 0 전용", "kind": "proc" },
+    { "id": "l1", "col": 1, "row": 1, "label": "리프 1", "sub": "레일 1 전용", "kind": "proc" },
+    { "id": "l7", "col": 1, "row": 2, "label": "리프 7", "sub": "레일 7 전용", "kind": "proc" },
+    { "id": "sp", "col": 2, "row": 1, "label": "스파인", "sub": "레일·SU 사이", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "r0", "to": "l0", "label": "배선", "rate": 700 },
+    { "from": "r1", "to": "l1", "label": "배선", "rate": 700 },
+    { "from": "r7", "to": "l7", "label": "배선", "rate": 700 },
+    { "from": "l0", "to": "sp", "label": "교차", "rate": 1400 },
+    { "from": "l1", "to": "sp", "label": "교차", "rate": 1400 },
+    { "from": "l7", "to": "sp", "label": "교차", "rate": 1400 }
+  ]
+}

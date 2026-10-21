@@ -1,0 +1,17 @@
+{
+  "caption": "NVIDIA 레퍼런스 아키텍처와 GCP는 집합통신과 스토리지 트래픽을 NIC부터 다른 패브릭에 태웁니다.",
+  "nodes": [
+    { "id": "gnic", "col": 0, "row": 0, "label": "GPU 전용 NIC", "sub": "컴퓨트 패브릭용", "kind": "src" },
+    { "id": "cf", "col": 1, "row": 0, "label": "컴퓨트 패브릭", "sub": "IB 또는 RoCE", "kind": "proc" },
+    { "id": "peer", "col": 2, "row": 0, "label": "다른 GPU 노드", "kind": "sink" },
+    { "id": "snic", "col": 0, "row": 1, "label": "스토리지 NIC", "sub": "GPU 전용 NIC과 별도", "kind": "src" },
+    { "id": "sf", "col": 1, "row": 1, "label": "스토리지 패브릭", "sub": "IB 또는 RoCE", "kind": "proc" },
+    { "id": "st", "col": 2, "row": 1, "label": "스토리지", "sub": "병렬 파일시스템 등", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "gnic", "to": "cf", "label": "NCCL", "rate": 700 },
+    { "from": "cf", "to": "peer", "label": "NCCL", "rate": 700 },
+    { "from": "snic", "to": "sf", "label": "RDMA", "rate": 700 },
+    { "from": "sf", "to": "st", "label": "RDMA", "rate": 700 }
+  ]
+}

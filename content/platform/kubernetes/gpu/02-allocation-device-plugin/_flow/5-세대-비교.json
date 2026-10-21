@@ -1,0 +1,23 @@
+{
+  "caption": "GPU 조합을 누가 고르느냐가 세대를 가릅니다. extended resource는 kubelet, 커스텀 리소스는 스케줄러 확장, DRA는 스케줄러 본체입니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "a1", "col": 0, "row": 0, "label": "extended resource", "sub": "nvidia.com/gpu", "kind": "src" },
+    { "id": "a2", "col": 1, "row": 0, "label": "스케줄러", "sub": "개수만 비교", "kind": "query" },
+    { "id": "a3", "col": 2, "row": 0, "label": "kubelet·플러그인", "sub": "노드에서 조합 선택", "kind": "sink" },
+    { "id": "b1", "col": 0, "row": 1, "label": "커스텀 리소스", "sub": "aliyun.com/gpu 등", "kind": "src" },
+    { "id": "b2", "col": 1, "row": 1, "label": "스케줄러 확장", "sub": "조합을 직접 계산", "kind": "query" },
+    { "id": "b3", "col": 2, "row": 1, "label": "조합 표", "sub": "어노테이션·CR", "kind": "store" },
+    { "id": "c1", "col": 0, "row": 2, "label": "DRA", "sub": "ResourceClaim", "kind": "src" },
+    { "id": "c2", "col": 1, "row": 2, "label": "스케줄러 본체", "sub": "장치 단위로 결정", "kind": "query" },
+    { "id": "c3", "col": 2, "row": 2, "label": "ResourceSlice", "sub": "속성·용량", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "a1", "to": "a2", "rate": 700 },
+    { "from": "a2", "to": "a3", "label": "배치", "rate": 700 },
+    { "from": "b1", "to": "b2", "rate": 700 },
+    { "from": "b3", "to": "b2", "label": "참조", "rate": 700 },
+    { "from": "c1", "to": "c2", "rate": 700 },
+    { "from": "c3", "to": "c2", "label": "참조", "rate": 700 }
+  ]
+}

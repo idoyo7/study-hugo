@@ -1,0 +1,15 @@
+{
+  "caption": "NVSwitch가 없는 PCIe 서버에서는 GPU 쌍마다 지나는 PCIe 구간이 달라서 어느 GPU를 받느냐가 성능을 가릅니다.",
+  "nodes": [
+    { "id": "g", "col": 0, "row": 0, "label": "GPU", "sub": "PCIe 카드", "kind": "src" },
+    { "id": "sw", "col": 1, "row": 0, "label": "PCIe 스위치", "sub": "PIX · PXB", "kind": "proc" },
+    { "id": "res", "col": 2, "row": 0, "label": "쌍마다 경로가 다름", "sub": "PIX에서 SYS까지", "kind": "sink" },
+    { "id": "c", "col": 1, "row": 1, "label": "CPU 루트", "sub": "PHB · NODE · SYS", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "g", "to": "sw", "label": "PCIe", "rate": 700 },
+    { "from": "sw", "to": "res", "label": "쌍별", "rate": 700 },
+    { "from": "g", "to": "c", "label": "PCIe", "rate": 1200 },
+    { "from": "c", "to": "res", "label": "NODE·SYS", "rate": 1200 }
+  ]
+}

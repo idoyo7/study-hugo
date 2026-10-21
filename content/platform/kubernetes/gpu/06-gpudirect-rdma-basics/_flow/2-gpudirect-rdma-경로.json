@@ -1,0 +1,14 @@
+{
+  "caption": "GPUDirect RDMA에서는 NIC이 GPU의 BAR 주소를 직접 읽어 호스트 메모리 복사 단계가 사라집니다.",
+  "nodes": [
+    { "id": "gpu", "col": 0, "row": 0, "label": "GPU 메모리", "sub": "송신 데이터", "kind": "src" },
+    { "id": "nic", "col": 1, "row": 0, "label": "NIC", "sub": "RDMA 지원", "kind": "proc" },
+    { "id": "net", "col": 2, "row": 0, "label": "네트워크", "kind": "sink" },
+    { "id": "host", "col": 0, "row": 1, "label": "호스트 메모리", "sub": "거치지 않음", "kind": "store", "ghost": true }
+  ],
+  "edges": [
+    { "from": "gpu", "to": "nic", "label": "BAR 직접", "rate": 700 },
+    { "from": "nic", "to": "net", "label": "전송", "rate": 700 },
+    { "from": "gpu", "to": "host", "dashed": true }
+  ]
+}

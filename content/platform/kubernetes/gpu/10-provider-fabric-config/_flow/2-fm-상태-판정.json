@@ -1,0 +1,19 @@
+{
+  "caption": "GPU 파드가 초기화에 실패하면 Fabric 상태부터 읽고, 완료가 아니면 FM 서비스와 로그, 제외된 GPU 순으로 좁혀 갑니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "s", "col": 0, "row": 1, "label": "초기화 실패", "sub": "system not yet initialized", "kind": "src" },
+    { "id": "q", "col": 1, "row": 1, "label": "Fabric State", "sub": "nvidia-smi -q", "kind": "query" },
+    { "id": "ok", "col": 2, "row": 0, "label": "FM 정상", "sub": "Completed · Success", "kind": "sink" },
+    { "id": "ip", "col": 2, "row": 1, "label": "FM 서비스 확인", "sub": "systemctl status", "kind": "proc" },
+    { "id": "ex", "col": 2, "row": 2, "label": "제외된 GPU", "sub": "nvidia-smi -B", "kind": "proc" },
+    { "id": "lg", "col": 3, "row": 1, "label": "FM 로그", "sub": "fabricmanager.log", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "s", "to": "q", "label": "조회", "rate": 700 },
+    { "from": "q", "to": "ok", "label": "완료", "rate": 700 },
+    { "from": "q", "to": "ip", "label": "진행 중", "rate": 700 },
+    { "from": "q", "to": "ex", "label": "GPU 빠짐", "rate": 700 },
+    { "from": "ip", "to": "lg", "label": "실패", "rate": 700 }
+  ]
+}
