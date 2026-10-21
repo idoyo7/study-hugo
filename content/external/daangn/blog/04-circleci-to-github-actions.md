@@ -2,7 +2,7 @@
 title: "CircleCI에서 GitHub Actions로 이전하며 배포 속도 개선하기"
 description: "당근 운영개발팀 인턴이 어드민 툴 karrot-cs의 CI/CD를 CircleCI에서 GitHub Actions로 옮기며 Docker layer caching과 Dockerfile 순서 조정으로 배포 시간을 줄인 과정의 요약입니다. 15분이 넘던 배포가 약 2분까지 내려갔습니다."
 date: 2026-10-21
-weight: 4
+weight: 9
 ---
 
 # CircleCI에서 GitHub Actions로 이전하며 배포 속도 개선하기 (2022-09)

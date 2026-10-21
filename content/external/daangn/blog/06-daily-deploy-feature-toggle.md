@@ -2,7 +2,7 @@
 title: "매일 배포하는 팀이 되는 여정(2) — Feature Toggle 활용하기"
 description: "당근페이 머니서비스팀이 매일 배포를 받치려고 어노테이션 기반 Feature Toggle을 직접 만든 과정의 요약입니다. 설계 원칙 다섯 가지와 권한 토글, 카나리 토글 운영 방식을 다룹니다."
 date: 2026-10-21
-weight: 6
+weight: 7
 ---
 
 # 매일 배포하는 팀이 되는 여정(2) — Feature Toggle 활용하기 (2023-04)

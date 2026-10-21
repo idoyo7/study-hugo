@@ -2,7 +2,7 @@
 title: "쿠버네티스 파드에 Host Network 도입기"
 description: "당근 SRE팀 클러스터 파트가 DaemonSet의 IP 점유와 Job Pod의 IP 할당 지연을 hostNetwork로 줄인 과정의 요약입니다. 2000개 이상의 IP를 아꼈고 IP 할당 실패 이벤트를 시간당 약 13,000건에서 약 50건으로 낮췄습니다."
 date: 2026-10-21
-weight: 2
+weight: 3
 ---
 
 # 쿠버네티스 파드에 Host Network 도입기 (2025-09)

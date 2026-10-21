@@ -2,7 +2,7 @@
 title: "kubectl create pod 뒤에 일어나는 일: kube-apiserver 감사 로그로 보기"
 description: "당근 SRE팀 클러스터 파트의 Karin이 쓴 입문 해설 요약입니다. Pod 하나를 만들 때 컨트롤 플레인 컴포넌트가 어떤 순서로 API를 호출하는지 EKS 감사 로그로 따라갑니다."
 date: 2026-10-21
-weight: 1
+weight: 5
 ---
 
 # kubectl create pod 뒤에 일어나는 일 (2024-05)

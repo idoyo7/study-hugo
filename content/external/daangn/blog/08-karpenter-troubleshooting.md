@@ -2,7 +2,7 @@
 title: "Karpenter 트러블슈팅 — 비용과 안정성 두 마리 토끼 잡기"
 description: "당근페이 인프라팀이 ASG 기반 클러스터를 Karpenter로 옮기며 겪은 다섯 가지 문제와 해결 과정의 요약입니다. 스케줄링 시뮬레이션의 한계, 커스텀 AMI, 작은 노드 편중, 리소스 계산 오차, Node Churn을 다룹니다."
 date: 2026-10-21
-weight: 8
+weight: 4
 ---
 
 # Karpenter 트러블슈팅 — 비용과 안정성 두 마리 토끼 잡기 (2025-03)

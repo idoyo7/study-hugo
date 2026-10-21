@@ -2,7 +2,7 @@
 title: "Job 워크로드를 위한 EKS Node Group 오토스케일링 도입기"
 description: "당근 SRE팀 클러스터 파트가 고정 크기이던 Job용 노드 그룹에 오토스케일링을 붙인 과정의 요약입니다. Pod를 소수 노드에 몰아넣는 bin-packing과 그 부작용을 maxPods 등으로 푼 이야기입니다."
 date: 2026-10-21
-weight: 3
+weight: 1
 ---
 
 # Job 워크로드를 위한 EKS Node Group 오토스케일링 도입기 (2026-04)
