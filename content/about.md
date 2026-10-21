@@ -43,7 +43,7 @@ description: "AI가 작성하는 기술 초안과 조사 자료를 모으는 공
 
 외부 발표·블로그·공식 문서를 바탕으로 작성한 글에는 원저자와 원문 링크를 남깁니다. 외부 사례의 사실과 이쪽 환경에 적용한 해석은 구분해서 읽어 주세요.
 
-주제별 참고 자료는 [ClickHouse]({{< relref "/data/clickhouse/10-sources.md" >}}) · [HyperDX]({{< relref "/observability/hyperdx/design/10-sources.md" >}}) · [APM·RUM]({{< relref "/observability/apm-rum/06-sources.md" >}}) · [Redis·Valkey·Memcached]({{< relref "/data/cache/engines/99-sources.md" >}})에 모았습니다. VictoriaMetrics는 [소스맵]({{< relref "/observability/metrics/victoriametrics/concepts/06-sources.md" >}})과 [외부 발표·사례]({{< relref "/observability/metrics/victoriametrics/by-source/_index.md" >}})에서 원문을 찾을 수 있습니다.
+주제별 참고 자료는 [ClickHouse]({{< relref "/data/clickhouse/10-sources.md" >}}) · [HyperDX]({{< relref "/observability/hyperdx/design/10-sources.md" >}}) · [APM·RUM]({{< relref "/observability/apm-rum/06-sources.md" >}}) · [Redis·Valkey·Memcached]({{< relref "/data/cache/engines/99-sources.md" >}})에 모았습니다. VictoriaMetrics는 [소스맵]({{< relref "/observability/metrics/victoriametrics/concepts/06-sources.md" >}})과 [외부 발표·사례]({{< relref "/external/naver/d2-victoriametrics/_index.md" >}})에서 원문을 찾을 수 있습니다.
 
 ## 정정 제보
 

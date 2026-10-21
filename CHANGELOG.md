@@ -2,6 +2,14 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-10-21 — 다섯 번째 대분류 "타사 테크블로그"
+
+- 다른 회사 기술 블로그와 발표를 회사별로 모아 요약하는 `content/external/`을 만들었습니다. 사이드바 루트가 넷에서 다섯이 되어 `tools/check-content-navigation.py`의 `ROOT_SECTIONS`와 테스트의 루트 목록에 `/external/`을 더했습니다.
+- 네이버: 관측성 아래 있던 VictoriaMetrics "원문별 정리" 4편을 `external/naver/d2-victoriametrics/`로 옮겼습니다. 공개 URL(`/monitoring/victoriametrics/by-source/…`)은 front matter `url`로 그대로이고, 경로 대응표 CSV의 `new_source` 5행만 새 위치로 바꿨습니다. VictoriaMetrics 색인의 "외부 발표·사례" 링크는 새 위치를 가리킵니다.
+- 당근: SRE팀 클러스터 파트 자료를 중심으로 블로그 9편과 발표 24편을 한 편당 짧은 요약 한 장으로 정리했습니다. 클러스터 파트 판단은 채용 공고가 링크한 자료와 블로그 저자 소개, SRE 밋업 발표자료 페이지의 소속 표기를 따랐고, 다른 팀·파트의 Kubernetes·배포 관련 글과 발표도 함께 실었습니다. 발표는 행사별 폴더(`talks/sre-meetup-1`~`4`, `talks/builder-meetup-2026`)에 있습니다.
+- 수집 범위는 2026-10-21에 확인한 당근 Medium 전체 글 목록(2015-06~2026-10, 223편)과 SRE 밋업 1~4회 발표 목록입니다. 발표 요약은 YouTube 자동 자막과 Notion에 공개된 슬라이드를 함께 읽었고, 둘이 어긋나면 슬라이드 값을 썼습니다. 자막에서만 들린 금액은 싣지 않았습니다. SRE 밋업 1회 PrivateLink 발표는 공개 영상과 슬라이드를 찾지 못해 빠졌습니다.
+- 당근 요약은 Claude가 초안을 쓰고 Astra(gpt-6-astra, reasoning effort xhigh)가 전면 퇴고한 뒤, 원문 초안·자막·슬라이드와 대조해 필요한 곳만 한 번 더 보정했습니다.
+
 ## 2026-10-07 — 도식 "크게 보기" 닫기 버튼·캡션 간격·lane 확대
 
 관련 PR: [#47](https://github.com/idoyo7/study-hugo/pull/47)

@@ -25,7 +25,7 @@ from urllib.parse import unquote, urljoin, urlsplit
 
 CANONICAL_HOST = "docs.makgol.com"
 ORIGIN = f"https://{CANONICAL_HOST}"
-ROOT_SECTIONS = ("/platform/", "/observability/", "/data/", "/engineering/")
+ROOT_SECTIONS = ("/platform/", "/observability/", "/data/", "/engineering/", "/external/")
 UTILITY_NAVIGATION_PATHS = {"/", "/about/"}
 VOID_ELEMENTS = {
     "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
@@ -413,7 +413,7 @@ def validate_root_navigation(site: SiteIndex) -> list[str]:
         section_paths = [path for path in resolved_paths if path not in UTILITY_NAVIGATION_PATHS]
         if sorted(section_paths) != sorted(ROOT_SECTIONS):
             errors.append(
-                f"/: {mode} sidebar expected exactly four root sections "
+                f"/: {mode} sidebar expected exactly five root sections "
                 f"{', '.join(ROOT_SECTIONS)}; found {', '.join(section_paths) or 'none'}"
             )
     return errors

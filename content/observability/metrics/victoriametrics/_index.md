@@ -15,13 +15,13 @@ url: "/monitoring/victoriametrics/"
 - [기본 개념]({{< relref "/observability/metrics/victoriametrics/concepts/_index.md" >}})
 - [설계·활용]({{< relref "/observability/metrics/victoriametrics/practice/_index.md" >}})
 - [우리 환경 운영]({{< relref "/observability/metrics/victoriametrics/operations/_index.md" >}})
-- [외부 발표·사례]({{< relref "/observability/metrics/victoriametrics/by-source/_index.md" >}})
+- [외부 발표·사례]({{< relref "/external/naver/d2-victoriametrics/_index.md" >}}) — 타사 테크블로그 > 네이버로 옮겼습니다
 
-VictoriaMetrics(이하 VM)의 내부 동작과 설계·운영 패턴을 정리한 지식베이스입니다. 기본 개념에서 수집·저장·쿼리 원리를 읽고, 잘 쓰는 방법에서 설계 원칙과 초대규모 운영 패턴을 살펴봅니다. 참조한 네이버 D2 발표·기사는 원문별 정리에서도 볼 수 있습니다.
+VictoriaMetrics(이하 VM)의 내부 동작과 설계·운영 패턴을 정리한 지식베이스입니다. 기본 개념에서 수집·저장·쿼리 원리를 읽고, 잘 쓰는 방법에서 설계 원칙과 초대규모 운영 패턴을 살펴봅니다. 참조한 네이버 D2 발표·기사 정리는 타사 테크블로그 > 네이버로 옮겼습니다.
 
 > 우리 환경의 구성·튜닝·실측 기록은 [VictoriaMetrics 사용기]({{< relref "/observability/metrics/victoriametrics/operations/_index.md" >}})에서 바로 볼 수 있습니다.
 > 원본 출처와 전사 방법은 [소스맵]({{< relref "/observability/metrics/victoriametrics/concepts/06-sources.md" >}}) 참고.
-> 원문(발표·기사)별로 보고 싶으면 [원문별 정리]({{< relref "/observability/metrics/victoriametrics/by-source/_index.md" >}}) — 네이버 D2 자료 4건을 게시 순서대로 각각 한 문서에 충실히 재구성했습니다.
+> 원문(발표·기사)별로 보고 싶으면 [원문별 정리]({{< relref "/external/naver/d2-victoriametrics/_index.md" >}}) — 네이버 D2 자료 4건을 게시 순서대로 각각 한 문서에 충실히 재구성했습니다.
 > 자매 챕터: [메트릭 장기보관 아키텍처 비교]({{< relref "/observability/metrics/longterm-retention/_index.md" >}}) — 이 VM 내부 동작을 실제 장기보관 스택 결정에 적용한 사례.
 
 ## ① 기본 개념
@@ -53,10 +53,10 @@ VictoriaMetrics(이하 VM)의 내부 동작과 설계·운영 패턴을 정리�
 
 | 문서 | 게시일 | 한 줄 요약 |
 |------|--------|-----------|
-| [01 SRE 시계열 DB 운영기]({{< relref "/observability/metrics/victoriametrics/by-source/01-2024-02-sre-tsdb/index.md" >}}) | 2024-02 | SingleNode→Cluster→멀티클러스터, 지표 선계산, 라우팅 게이트웨이 |
-| [02 대규모 메트릭 저장소 1편]({{< relref "/observability/metrics/victoriametrics/by-source/02-2026-04-large-scale-metric-store/index.md" >}}) | 2026-04 | 12.5억 시계열·555조 DP·180노드, Hot/Warm 2계층, 무중단 장비 전환 |
-| [03 Inside VictoriaMetrics]({{< relref "/observability/metrics/victoriametrics/by-source/03-2026-06-inside-victoriametrics/index.md" >}}) | 2026-06 | 컴포넌트별(vmagent·vminsert·vmstorage·vmselect) 내부 동작 6섹션 정독 |
-| [04 운영기 2편 — 3단계 최적화]({{< relref "/observability/metrics/victoriametrics/by-source/04-2026-07-three-stage-optimization/index.md" >}}) | 2026-07 | 조회(vmselect OOM)·저장(IndexDB·RetentionPeriod)·수집(필터링) |
+| [01 SRE 시계열 DB 운영기]({{< relref "/external/naver/d2-victoriametrics/01-2024-02-sre-tsdb/index.md" >}}) | 2024-02 | SingleNode→Cluster→멀티클러스터, 지표 선계산, 라우팅 게이트웨이 |
+| [02 대규모 메트릭 저장소 1편]({{< relref "/external/naver/d2-victoriametrics/02-2026-04-large-scale-metric-store/index.md" >}}) | 2026-04 | 12.5억 시계열·555조 DP·180노드, Hot/Warm 2계층, 무중단 장비 전환 |
+| [03 Inside VictoriaMetrics]({{< relref "/external/naver/d2-victoriametrics/03-2026-06-inside-victoriametrics/index.md" >}}) | 2026-06 | 컴포넌트별(vmagent·vminsert·vmstorage·vmselect) 내부 동작 6섹션 정독 |
+| [04 운영기 2편 — 3단계 최적화]({{< relref "/external/naver/d2-victoriametrics/04-2026-07-three-stage-optimization/index.md" >}}) | 2026-07 | 조회(vmselect OOM)·저장(IndexDB·RetentionPeriod)·수집(필터링) |
 
 ## 읽는 순서
 

@@ -11,9 +11,9 @@ sidebar:
 
 # 06 · 소스맵 — 발표 영상·기사·전사본 가이드
 
-이 지식베이스의 바탕은 네이버 D2/DEVIEW가 공개한 VictoriaMetrics 자료 5건입니다 — 발표 영상 2편과 텍스트 기사 3편. 이 자료를 주제별로 다시 묶어 개념/실전/우리 운영 문서로 엮었습니다. 자료 하나하나를 원문 단위로 정리한 판은 [원문별 정리]({{< relref "/observability/metrics/victoriametrics/by-source/_index.md" >}})에 따로 있습니다. 여기서는 각 문서가 어떤 원본에서 나왔는지, 원본을 직접 확인하려면 어디를 봐야 하는지 적었습니다.
+이 지식베이스의 바탕은 네이버 D2/DEVIEW가 공개한 VictoriaMetrics 자료 5건입니다 — 발표 영상 2편과 텍스트 기사 3편. 이 자료를 주제별로 다시 묶어 개념/실전/우리 운영 문서로 엮었습니다. 자료 하나하나를 원문 단위로 정리한 판은 [원문별 정리]({{< relref "/external/naver/d2-victoriametrics/_index.md" >}})에 따로 있습니다. 여기서는 각 문서가 어떤 원본에서 나왔는지, 원본을 직접 확인하려면 어디를 봐야 하는지 적었습니다.
 
-관련 문서: [개념 인덱스]({{< relref "/observability/metrics/victoriametrics/concepts/_index.md" >}}) · [원문별 정리]({{< relref "/observability/metrics/victoriametrics/by-source/_index.md" >}})
+관련 문서: [개념 인덱스]({{< relref "/observability/metrics/victoriametrics/concepts/_index.md" >}}) · [원문별 정리]({{< relref "/external/naver/d2-victoriametrics/_index.md" >}})
 
 ## 원본 소스
 
@@ -41,7 +41,7 @@ sidebar:
 - 출처: https://d2.naver.com/helloworld/6475419
 - 원본 파일 (작업 저장소, GitBook 미포함): `03_기사_6475419_대규모메트릭저장소.md`
 - 다루는 범위: 12.5억 활성 시계열·555조 데이터포인트·180노드·0.92바이트/DP 실측, 글로벌 사례 비교, Hot/Warm 2계층, 메모리 한계(128→512GB), 무중단 장비 전환(Hot=랑데부 역순 추가, Warm=vmbackup/vmrestore).
-- 주로 반영된 문서: [실전 02]({{< relref "/observability/metrics/victoriametrics/practice/02-operations-at-scale/index.md" >}}), 그리고 [04]({{< relref "/observability/metrics/victoriametrics/concepts/04-storage-and-compression/index.md" >}}) 일부(0.92B 압축 실증). 원문 단위 정리는 [원문별 02]({{< relref "/observability/metrics/victoriametrics/by-source/02-2026-04-large-scale-metric-store/index.md" >}}).
+- 주로 반영된 문서: [실전 02]({{< relref "/observability/metrics/victoriametrics/practice/02-operations-at-scale/index.md" >}}), 그리고 [04]({{< relref "/observability/metrics/victoriametrics/concepts/04-storage-and-compression/index.md" >}}) 일부(0.92B 압축 실증). 원문 단위 정리는 [원문별 02]({{< relref "/external/naver/d2-victoriametrics/02-2026-04-large-scale-metric-store/index.md" >}}).
 
 ### ④ 네이버 검색 SRE의 시계열 데이터베이스 운영기 (텍스트, 2024-02)
 
@@ -55,7 +55,7 @@ sidebar:
 - 저자: 강지훈·이윤석·정솔 (NAVER Metric&Monitoring) — ③ 1편의 후속편.
 - 원본 파일 (작업 저장소, GitBook 미포함): `05_기사_5788040_운영기2편_3단계최적화.md`
 - 다루는 범위: 장비 증설 없이 리소스 위기를 해결한 소프트웨어 최적화 3단계 — ① 조회(vmselect OOM을 레이블 접두사 기준 쿼리 분할로 해결) ② 저장(IndexDB 3슬롯 로테이션 분석 후 Hot Tier RetentionPeriod 6개월 축소) ③ 수집(비서비스 컨테이너 제외로 메트릭 유입 통제).
-- 주로 반영된 문서: [원문별 04]({{< relref "/observability/metrics/victoriametrics/by-source/04-2026-07-three-stage-optimization/index.md" >}}). 관련 원리는 [03 수집]({{< relref "/observability/metrics/victoriametrics/concepts/03-ingestion/index.md" >}})·[04 저장·압축]({{< relref "/observability/metrics/victoriametrics/concepts/04-storage-and-compression/index.md" >}})·[05 쿼리·운영]({{< relref "/observability/metrics/victoriametrics/concepts/05-query-and-ops-components/index.md" >}}).
+- 주로 반영된 문서: [원문별 04]({{< relref "/external/naver/d2-victoriametrics/04-2026-07-three-stage-optimization/index.md" >}}). 관련 원리는 [03 수집]({{< relref "/observability/metrics/victoriametrics/concepts/03-ingestion/index.md" >}})·[04 저장·압축]({{< relref "/observability/metrics/victoriametrics/concepts/04-storage-and-compression/index.md" >}})·[05 쿼리·운영]({{< relref "/observability/metrics/victoriametrics/concepts/05-query-and-ops-components/index.md" >}}).
 
 ## 전사(transcription) 방법
 

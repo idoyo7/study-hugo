@@ -2,7 +2,7 @@
 
 AI가 작성하는 기술 초안·조사 자료 공간입니다. 이곳에서 자료를 검토하고 초안을
 다듬은 뒤, makgol.com에 주제와 전개를 다시 구성한 게시글을 새로 작성합니다.
-주제 문서를 4개 대분류로 탐색합니다.
+주제 문서를 5개 대분류로 탐색합니다.
 
 - 운영 사이트: https://docs.makgol.com
 - 테마: [hextra](https://github.com/imfing/hextra) v0.12.3 (`themes/hextra/` 벤더링)
@@ -15,6 +15,7 @@ content/
   observability/    관측성: 메트릭, 로그, APM·RUM, HyperDX
   data/             데이터·스토리지: ClickHouse, 캐시, 블록 스토리지, S3
   engineering/      설계·개발: 아키텍처, 게이트웨이, 앱 런타임, AI 도구
+  external/         타사 테크블로그: 회사별(naver, daangn) 글 요약
 layouts/
   _markup/          마크다운 렌더 훅 (이미지: WebP 변환 + width/height)
   partials/         테마 오버라이드 (opengraph, twitter_cards, search,

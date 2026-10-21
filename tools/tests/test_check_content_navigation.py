@@ -17,7 +17,7 @@ sys.modules[SPEC.name] = checker
 SPEC.loader.exec_module(checker)
 
 
-ROOTS = ("/platform/", "/observability/", "/data/", "/engineering/")
+ROOTS = ("/platform/", "/observability/", "/data/", "/engineering/", "/external/")
 
 
 def write_url(root: Path, url: str, content: str) -> None:

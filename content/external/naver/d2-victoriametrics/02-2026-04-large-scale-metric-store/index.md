@@ -23,7 +23,7 @@ url: "/monitoring/victoriametrics/by-source/02-2026-04-large-scale-metric-store/
 - 결과는 **서비스 중단 0분 · 메트릭 유실 0건**입니다.
 {{< /callout >}}
 
-네이버 검색 인프라는 수만 대의 물리 서버와 수백만 개의 컨테이너에서 나오는 메트릭을 실시간으로 수집·저장·조회해야 합니다. 그 요구를 받아 낼 오픈소스 TSDB로 VictoriaMetrics를 골랐습니다. 배경과 컴포넌트 구조는 {{< relref "/observability/metrics/victoriametrics/concepts/01-tsdb-and-victoriametrics.md" >}}에서 다룹니다. 여기서는 D2 원문 1편을 정리합니다. 5년간 이 클러스터를 운영하며 마주친 인프라 성장, 메모리 한계, 180대 규모의 무중단 장비 전환을 담은 글입니다. 같은 팀이 이어서 공유한 **2편**(2026-07, 3단계 최적화)은 {{< relref "/observability/metrics/victoriametrics/by-source/04-2026-07-three-stage-optimization/index.md" >}}에서 다룹니다.
+네이버 검색 인프라는 수만 대의 물리 서버와 수백만 개의 컨테이너에서 나오는 메트릭을 실시간으로 수집·저장·조회해야 합니다. 그 요구를 받아 낼 오픈소스 TSDB로 VictoriaMetrics를 골랐습니다. 배경과 컴포넌트 구조는 {{< relref "/observability/metrics/victoriametrics/concepts/01-tsdb-and-victoriametrics.md" >}}에서 다룹니다. 여기서는 D2 원문 1편을 정리합니다. 5년간 이 클러스터를 운영하며 마주친 인프라 성장, 메모리 한계, 180대 규모의 무중단 장비 전환을 담은 글입니다. 같은 팀이 이어서 공유한 **2편**(2026-07, 3단계 최적화)은 {{< relref "/external/naver/d2-victoriametrics/04-2026-07-three-stage-optimization/index.md" >}}에서 다룹니다.
 
 ## 인프라 규모와 아키텍처
 
@@ -202,7 +202,7 @@ Hot Tier는 역순 추가 전략을 모두 마친 뒤 `vminsert`에서 기존 �
 
 두 계층 모두 **서비스 중단 시간 0분, 메트릭 수집 누락 0건**으로 교체를 완료했습니다. 교체 기간 동안 알림 공백은 없었고 대시보드 조회 실패도 발생하지 않았습니다. 현재 클러스터는 Hot Tier 120대(SSD, 512GB), Warm Tier 60대(HDD, 512GB)로 안정적으로 돌아갑니다. RSS anonymous 메모리 사용률도 권장 기준보다 충분히 낮아 앞으로 수년간 이어질 카디널리티 증가에도 대응할 수 있는 상태입니다. 성능도 안정적입니다. Hot Tier의 `vmselect` 기준으로 초당 500건 이상의 레인지 쿼리(range query)를 처리하면서도 p99 응답 시간은 약 300ms 이내를 유지합니다.
 
-이 규모에서는 공식 문서나 커뮤니티에서 바로 참고할 사례를 찾기 어려웠습니다. 소스 코드를 직접 읽고 운영 메트릭으로 가설을 세우고 실제 환경에서 검증하는 과정을 반복해야 했습니다. 랑데부 해싱과 복제 계수의 내부 동작을 이해한 뒤에야 단순한 장비 증설이 아니라 장애를 만들지 않는 전환 전략을 설계할 수 있었습니다. 이 클러스터가 이후 어떤 방향으로 더 최적화됐는지는 후속편인 {{< relref "/observability/metrics/victoriametrics/by-source/04-2026-07-three-stage-optimization/index.md" >}}에서 이어집니다.
+이 규모에서는 공식 문서나 커뮤니티에서 바로 참고할 사례를 찾기 어려웠습니다. 소스 코드를 직접 읽고 운영 메트릭으로 가설을 세우고 실제 환경에서 검증하는 과정을 반복해야 했습니다. 랑데부 해싱과 복제 계수의 내부 동작을 이해한 뒤에야 단순한 장비 증설이 아니라 장애를 만들지 않는 전환 전략을 설계할 수 있었습니다. 이 클러스터가 이후 어떤 방향으로 더 최적화됐는지는 후속편인 {{< relref "/external/naver/d2-victoriametrics/04-2026-07-three-stage-optimization/index.md" >}}에서 이어집니다.
 
 ## 출처
 

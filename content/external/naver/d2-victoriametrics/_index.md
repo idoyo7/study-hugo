@@ -1,22 +1,22 @@
 ---
-title: "원문별 정리"
+title: "D2 VictoriaMetrics 발표·기사"
 description: "네이버 D2 발표·기사 4건을 원문 단위로 보존한 색인입니다. SingleNode에서 멀티클러스터로 간 2024년 기사부터 조회·저장·수집 3단계 최적화를 다룬 2026년 최신 운영기까지 원문 흐름대로 이어놓았습니다."
 date: 2026-07-21
-lastmod: 2026-09-27
-weight: 40
+lastmod: 2026-10-21
+weight: 10
 comments: false
 url: "/monitoring/victoriametrics/by-source/"
-linkTitle: "외부 발표·사례"
+linkTitle: "D2 VictoriaMetrics"
 ---
 
 # 원문별 정리 — 네이버 D2 발표·기사 4건
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [네이버 검색 SRE 시계열 DB 운영기]({{< relref "/observability/metrics/victoriametrics/by-source/01-2024-02-sre-tsdb/index.md" >}})
-- [대규모 메트릭 저장소 운영기 (1편)]({{< relref "/observability/metrics/victoriametrics/by-source/02-2026-04-large-scale-metric-store/index.md" >}})
-- [Inside VictoriaMetrics]({{< relref "/observability/metrics/victoriametrics/by-source/03-2026-06-inside-victoriametrics/index.md" >}})
-- [운영기 2편 — 3단계 최적화]({{< relref "/observability/metrics/victoriametrics/by-source/04-2026-07-three-stage-optimization/index.md" >}})
+- [네이버 검색 SRE 시계열 DB 운영기]({{< relref "/external/naver/d2-victoriametrics/01-2024-02-sre-tsdb/index.md" >}})
+- [대규모 메트릭 저장소 운영기 (1편)]({{< relref "/external/naver/d2-victoriametrics/02-2026-04-large-scale-metric-store/index.md" >}})
+- [Inside VictoriaMetrics]({{< relref "/external/naver/d2-victoriametrics/03-2026-06-inside-victoriametrics/index.md" >}})
+- [운영기 2편 — 3단계 최적화]({{< relref "/external/naver/d2-victoriametrics/04-2026-07-three-stage-optimization/index.md" >}})
 
 {{< callout type="info" >}}
 **참조한 내용정리**
@@ -43,10 +43,10 @@ linkTitle: "외부 발표·사례"
 
 | 문서 | 게시일 | 성격 | 한 줄 요약 |
 |------|--------|------|-----------|
-| 01 [네이버 검색 SRE 시계열 DB 운영기]({{< relref "/observability/metrics/victoriametrics/by-source/01-2024-02-sre-tsdb/index.md" >}}) | 2024-02 | 기사 | SingleNode→Cluster→멀티클러스터·지표 선계산·라우팅 게이트웨이 |
-| 02 [대규모 메트릭 저장소 운영기 1편]({{< relref "/observability/metrics/victoriametrics/by-source/02-2026-04-large-scale-metric-store/index.md" >}}) | 2026-04 | 기사 | 12.5억 시계열·555조 DP·180노드, Hot/Warm 2계층, 무중단 전환 |
-| 03 [Inside VictoriaMetrics]({{< relref "/observability/metrics/victoriametrics/by-source/03-2026-06-inside-victoriametrics/index.md" >}}) | 2026-06 | 발표영상 | vmagent·vminsert·vmstorage·vmselect 내부 동작 6섹션 정독 |
-| 04 [운영기 2편 — 3단계 최적화]({{< relref "/observability/metrics/victoriametrics/by-source/04-2026-07-three-stage-optimization/index.md" >}}) | 2026-07 | 기사 | 조회(vmselect OOM)·저장(IndexDB·RetentionPeriod)·수집(필터링) 3단계 |
+| 01 [네이버 검색 SRE 시계열 DB 운영기]({{< relref "/external/naver/d2-victoriametrics/01-2024-02-sre-tsdb/index.md" >}}) | 2024-02 | 기사 | SingleNode→Cluster→멀티클러스터·지표 선계산·라우팅 게이트웨이 |
+| 02 [대규모 메트릭 저장소 운영기 1편]({{< relref "/external/naver/d2-victoriametrics/02-2026-04-large-scale-metric-store/index.md" >}}) | 2026-04 | 기사 | 12.5억 시계열·555조 DP·180노드, Hot/Warm 2계층, 무중단 전환 |
+| 03 [Inside VictoriaMetrics]({{< relref "/external/naver/d2-victoriametrics/03-2026-06-inside-victoriametrics/index.md" >}}) | 2026-06 | 발표영상 | vmagent·vminsert·vmstorage·vmselect 내부 동작 6섹션 정독 |
+| 04 [운영기 2편 — 3단계 최적화]({{< relref "/external/naver/d2-victoriametrics/04-2026-07-three-stage-optimization/index.md" >}}) | 2026-07 | 기사 | 조회(vmselect OOM)·저장(IndexDB·RetentionPeriod)·수집(필터링) 3단계 |
 
 01은 DEVIEW 2023 발표를 정리한 기사입니다.
 
