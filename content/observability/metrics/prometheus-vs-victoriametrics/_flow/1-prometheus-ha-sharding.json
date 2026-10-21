@@ -1,0 +1,120 @@
+{
+  "caption": "두 샤드는 hashmod로 타깃을 나누고 각 샤드의 두 Prometheus가 같은 대상을 중복 수집합니다. Thanos Query는 각 서버의 Sidecar를 통해 네 로컬 TSDB를 한 화면으로 조회합니다.",
+  "nodes": [
+    {
+      "id": "targets-0",
+      "col": 0,
+      "row": 0,
+      "label": "타깃 0번",
+      "sub": "hashmod 분할",
+      "kind": "src"
+    },
+    {
+      "id": "targets-1",
+      "col": 0,
+      "row": 2,
+      "label": "타깃 1번",
+      "sub": "hashmod 분할",
+      "kind": "src"
+    },
+    {
+      "id": "prom-s0-r1",
+      "col": 1,
+      "row": 0,
+      "label": "Prom S0-R1",
+      "sub": "TSDB·규칙·Sidecar",
+      "kind": "store"
+    },
+    {
+      "id": "prom-s0-r2",
+      "col": 1,
+      "row": 1,
+      "label": "Prom S0-R2",
+      "sub": "TSDB·규칙·Sidecar",
+      "kind": "store"
+    },
+    {
+      "id": "prom-s1-r1",
+      "col": 1,
+      "row": 2,
+      "label": "Prom S1-R1",
+      "sub": "TSDB·규칙·Sidecar",
+      "kind": "store"
+    },
+    {
+      "id": "prom-s1-r2",
+      "col": 1,
+      "row": 3,
+      "label": "Prom S1-R2",
+      "sub": "TSDB·규칙·Sidecar",
+      "kind": "store"
+    },
+    {
+      "id": "thanos-query",
+      "col": 2,
+      "row": 1,
+      "label": "Thanos Query",
+      "sub": "통합 조회·중복 제거",
+      "kind": "query"
+    }
+  ],
+  "groups": [
+    {
+      "id": "shard-0",
+      "label": "Shard 0 · replicas 2",
+      "members": ["prom-s0-r1", "prom-s0-r2"],
+      "pad": 0
+    },
+    {
+      "id": "shard-1",
+      "label": "Shard 1 · replicas 2",
+      "members": ["prom-s1-r1", "prom-s1-r2"],
+      "pad": 0
+    }
+  ],
+  "edges": [
+    {
+      "from": "targets-0",
+      "to": "prom-s0-r1",
+      "label": "scrape",
+      "rate": 760
+    },
+    {
+      "from": "targets-0",
+      "to": "prom-s0-r2",
+      "rate": 760
+    },
+    {
+      "from": "targets-1",
+      "to": "prom-s1-r1",
+      "label": "scrape",
+      "rate": 760
+    },
+    {
+      "from": "targets-1",
+      "to": "prom-s1-r2",
+      "rate": 760
+    },
+    {
+      "from": "prom-s0-r1",
+      "to": "thanos-query",
+      "label": "조회 결과",
+      "rate": 900
+    },
+    {
+      "from": "prom-s0-r2",
+      "to": "thanos-query",
+      "rate": 900
+    },
+    {
+      "from": "prom-s1-r1",
+      "to": "thanos-query",
+      "rate": 900
+    },
+    {
+      "from": "prom-s1-r2",
+      "to": "thanos-query",
+      "rate": 900
+    }
+  ]
+}

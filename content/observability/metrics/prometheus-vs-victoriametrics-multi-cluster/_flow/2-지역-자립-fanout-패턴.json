@@ -1,0 +1,91 @@
+{
+  "caption": "vmagent가 지역과 중앙 저장소로 각각 전송합니다. 중앙 연결이 끊겨도 지역 저장소와 vmalert는 계속 동작하고, 중앙 전송은 큐 용량 안에서 보류됩니다.",
+  "font": 1.2,
+  "nodes": [
+    {
+      "id": "TARGETS",
+      "col": 0,
+      "row": 0,
+      "label": "K8s 타깃",
+      "sub": "한 지역의 Pod · Node",
+      "kind": "src"
+    },
+    {
+      "id": "AGENT",
+      "col": 1,
+      "row": 0,
+      "label": "vmagent HA",
+      "sub": "목적지별 영속 큐",
+      "kind": "proc"
+    },
+    {
+      "id": "LOCAL",
+      "col": 2,
+      "row": 0,
+      "label": "지역 저장소",
+      "sub": "VMSingle 또는 VMCluster",
+      "kind": "store"
+    },
+    {
+      "id": "ALERT",
+      "col": 3,
+      "row": 0,
+      "label": "지역 vmalert",
+      "sub": "지역 데이터로 평가",
+      "kind": "query"
+    },
+    {
+      "id": "GLOBAL",
+      "col": 2,
+      "row": 2,
+      "label": "중앙 VMCluster",
+      "sub": "전역 보관 · 조회",
+      "kind": "store"
+    }
+  ],
+  "edges": [
+    {
+      "from": "TARGETS",
+      "to": "AGENT",
+      "label": "scrape",
+      "rate": 500
+    },
+    {
+      "from": "AGENT",
+      "to": "LOCAL",
+      "label": "local",
+      "rate": 700
+    },
+    {
+      "from": "LOCAL",
+      "to": "ALERT",
+      "label": "조회 결과",
+      "rate": 700
+    },
+    {
+      "from": "AGENT",
+      "to": "GLOBAL",
+      "label": "global",
+      "rate": 450
+    }
+  ],
+  "groups": [
+    {
+      "id": "region",
+      "label": "지역 A · 로컬 운영",
+      "members": [
+        "TARGETS",
+        "AGENT",
+        "LOCAL",
+        "ALERT"
+      ]
+    },
+    {
+      "id": "global",
+      "label": "중앙 · 지역 B",
+      "members": [
+        "GLOBAL"
+      ]
+    }
+  ]
+}

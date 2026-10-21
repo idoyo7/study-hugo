@@ -1,0 +1,105 @@
+{
+  "caption": "권장안: 각 클러스터의 HA vmagent가 디스크 큐를 거쳐 중앙 VMCluster로 전송합니다. WAN 단절 중에는 큐에 보류되며, 로컬 조회·규칙 평가는 하지 않습니다.",
+  "nodes": [
+    {
+      "id": "TARGETS",
+      "col": 0,
+      "row": 0,
+      "label": "K8s 타깃",
+      "sub": "Cluster A · B · …",
+      "kind": "src"
+    },
+    {
+      "id": "AGENT",
+      "col": 0,
+      "row": 1,
+      "label": "vmagent HA",
+      "sub": "scrape · 영속 큐",
+      "kind": "proc"
+    },
+    {
+      "id": "AUTH",
+      "col": 1,
+      "row": 1,
+      "label": "vmauth",
+      "sub": "인증 · tenant 경로",
+      "kind": "proc"
+    },
+    {
+      "id": "INSERT",
+      "col": 1,
+      "row": 2,
+      "label": "vminsert",
+      "sub": "수신 · 분배",
+      "kind": "proc"
+    },
+    {
+      "id": "STORAGE",
+      "col": 2,
+      "row": 2,
+      "label": "vmstorage",
+      "sub": "복제 사본 저장",
+      "kind": "store"
+    },
+    {
+      "id": "SELECT",
+      "col": 2,
+      "row": 1,
+      "label": "vmselect",
+      "sub": "조회·규칙의 데이터",
+      "kind": "query"
+    }
+  ],
+  "edges": [
+    {
+      "from": "TARGETS",
+      "to": "AGENT",
+      "label": "scrape",
+      "rate": 500
+    },
+    {
+      "from": "AGENT",
+      "to": "AUTH",
+      "label": "전송",
+      "rate": 700
+    },
+    {
+      "from": "AUTH",
+      "to": "INSERT",
+      "label": "인가",
+      "rate": 700
+    },
+    {
+      "from": "INSERT",
+      "to": "STORAGE",
+      "label": "저장",
+      "rate": 700
+    },
+    {
+      "from": "STORAGE",
+      "to": "SELECT",
+      "label": "조회 결과",
+      "rate": 700
+    }
+  ],
+  "groups": [
+    {
+      "id": "edge",
+      "label": "워크로드 클러스터",
+      "members": [
+        "TARGETS",
+        "AGENT"
+      ]
+    },
+    {
+      "id": "central",
+      "label": "중앙 리전",
+      "members": [
+        "AUTH",
+        "INSERT",
+        "STORAGE",
+        "SELECT"
+      ]
+    }
+  ]
+}
