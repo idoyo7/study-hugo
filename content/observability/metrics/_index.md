@@ -1,7 +1,7 @@
 ---
 title: "모니터링"
 date: 2026-07-12
-lastmod: 2026-09-27
+lastmod: 2026-10-21
 weight: 10
 cascade:
   type: docs
@@ -14,12 +14,14 @@ linkTitle: "메트릭"
 
 ## 이 분류에서 찾기 {#section-navigation}
 
+- [Prometheus vs VictoriaMetrics]({{< relref "/observability/metrics/prometheus-vs-victoriametrics/index.md" >}})
 - [VictoriaMetrics]({{< relref "/observability/metrics/victoriametrics/_index.md" >}})
 - [장기 보관]({{< relref "/observability/metrics/longterm-retention/_index.md" >}})
 - [Prometheus·Thanos 연동]({{< relref "/observability/metrics/prometheus-thanos/_index.md" >}})
 
 운영하면서 정리한 모니터링 도메인 인사이트.
 
+- **[대규모 운영에서 Prometheus와 VictoriaMetrics 고르기]({{< relref "/observability/metrics/prometheus-vs-victoriametrics/index.md" >}})** — 수집·저장·쿼리의 확장 단위, HA·샤딩 비용과 경보 평가 방식으로 선택 기준을 정리합니다.
 - **[VictoriaMetrics]({{< relref "/observability/metrics/victoriametrics/_index.md" >}})** — 기본 개념, 설계 원칙·초대규모 운영 패턴, 네이버 D2 원문별 정리.
 - **[VictoriaMetrics 사용기]({{< relref "/observability/metrics/victoriametrics/operations/_index.md" >}})** — 우리 스택 구성·전송 튜닝·관측·용량 기준과 클러스터 간 전송·AZ 분할 기록.
 - **[메트릭 장기보관 아키텍처 비교]({{< relref "/observability/metrics/longterm-retention/_index.md" >}})** — 400일 보관: A/B/C/D 옵션 비교와 권장안.
