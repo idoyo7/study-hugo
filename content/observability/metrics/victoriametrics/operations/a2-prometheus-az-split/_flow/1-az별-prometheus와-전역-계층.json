@@ -1,0 +1,21 @@
+{
+  "caption": "AZ마다 Prometheus를 두면 scrape 응답은 AZ 안에서 끝나지만, 저장소가 AZ별로 갈라져 전역 조회 계층이 한쪽 AZ의 데이터를 읽을 때 경계를 넘습니다. 주황 화살표가 분할 뒤에도 남는 AZ 간 전송입니다.",
+  "nodes": [
+    { "id": "T_A", "col": 0, "row": 0, "label": "AZ a 타깃", "sub": "같은 AZ에서 수집", "kind": "src" },
+    { "id": "T_C", "col": 0, "row": 2, "label": "AZ c 타깃", "sub": "같은 AZ에서 수집", "kind": "src" },
+    { "id": "P_A", "col": 1, "row": 0, "label": "Prometheus · AZ a", "sub": "로컬 TSDB · 사이드카", "kind": "proc" },
+    { "id": "P_C", "col": 1, "row": 2, "label": "Prometheus · AZ c", "sub": "로컬 TSDB · 사이드카", "kind": "proc" },
+    { "id": "Q", "col": 2, "row": 1, "label": "전역 조회 계층", "sub": "Thanos Query · Ruler", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "T_A", "to": "P_A", "label": "AZ 내부", "rate": 500 },
+    { "from": "T_C", "to": "P_C", "label": "AZ 내부", "rate": 500 },
+    { "from": "P_A", "to": "Q", "label": "조회", "rate": 200 },
+    { "from": "P_C", "to": "Q", "label": "AZ 횡단", "cross": true, "w": 3, "rate": 200 }
+  ],
+  "groups": [
+    { "id": "az-a", "label": "AZ a", "members": ["T_A", "P_A"] },
+    { "id": "az-c", "label": "AZ c", "members": ["T_C", "P_C"] },
+    { "id": "global", "label": "전역 계층 · AZ a에 배치", "members": ["Q"] }
+  ]
+}

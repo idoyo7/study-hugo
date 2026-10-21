@@ -2,7 +2,7 @@
 title: "vmagent AZ 분할로 AZ 간 scrape 전송 줄이기"
 description: "전체 네트워크 사용량을 약 13% 줄일 것으로 예상하는 vmagent AZ 분할 설계와, 먼저 적용한 클러스터의 경험입니다. AZ a/c 수집 설계, 라벨 변경에 따른 자동 확장 문제, 중복·누락과 전송량 검증 방법을 정리합니다."
 date: 2026-09-27
-lastmod: 2026-10-04
+lastmod: 2026-10-22
 aliases: ["/monitoring/victoriametrics/ours/05-vmagent-az-split/"]
 weight: 5
 url: "/monitoring/victoriametrics-operations/05-vmagent-az-split/"
@@ -166,5 +166,7 @@ Istio는 파드 annotation으로 메트릭 응답 압축을 켤 수 있습니다
 응답을 바꾸기 전에는 해당 메트릭을 사용하는 대시보드와 알림부터 확인해야 합니다. 라벨을 변경한다면 전환 때 겪은 시리즈 변경 문제도 함께 검증해야 합니다.
 
 AZ를 건너면 지연과 대역폭이 어떻게 달라지는지는 [부록 A]({{< relref "/observability/metrics/victoriametrics/operations/a1-pod-network-rtt/index.md" >}})에 atomai kubernetes-docs의 실측으로 보충했습니다.
+
+같은 분할을 vmagent 대신 Prometheus Operator로 해야 할 때 무엇이 달라지는지는 [부록 B]({{< relref "/observability/metrics/victoriametrics/operations/a2-prometheus-az-split/index.md" >}})에서 Topology 샤딩·scrapeClass·DaemonSet agent 세 경로로 대조했습니다.
 
 > 관련 문서: [스택 구성]({{< relref "/observability/metrics/victoriametrics/operations/01-stack-overview/index.md" >}}) · [vmagent 전송 튜닝]({{< relref "/observability/metrics/victoriametrics/operations/02-vmagent-transport-tuning.md" >}}) · [자기감시 메트릭]({{< relref "/observability/metrics/victoriametrics/operations/03-self-monitoring-metrics.md" >}}) · [저장 구조에서 바꿀 것]({{< relref "/observability/metrics/victoriametrics/operations/06-storage-index-roadmap.md" >}})
