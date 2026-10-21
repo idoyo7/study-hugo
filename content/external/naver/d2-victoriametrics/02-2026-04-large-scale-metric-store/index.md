@@ -2,7 +2,7 @@
 title: "대규모 메트릭 저장소 운영기 (1편)"
 date: 2026-08-01
 lastmod: 2026-08-24
-weight: 2
+weight: 3
 url: "/monitoring/victoriametrics/by-source/02-2026-04-large-scale-metric-store/"
 ---
 
