@@ -1,0 +1,21 @@
+{
+  "caption": "Loki 경로입니다. Alloy가 읽은 로그를 distributor가 받아 ingester에 모으고, 압축된 청크와 인덱스는 오브젝트 스토리지에 쌓입니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "앱 파드", "sub": "JSON 로그", "kind": "src" },
+    { "id": "B", "col": 0, "row": 1, "label": "Istio 사이드카", "sub": "액세스 로그", "kind": "src" },
+    { "id": "C", "col": 1, "row": 0, "label": "Alloy", "sub": "DaemonSet", "kind": "proc" },
+    { "id": "D", "col": 2, "row": 0, "label": "Alloy 게이트웨이", "sub": "선택 단", "kind": "proc" },
+    { "id": "E", "col": 3, "row": 0, "label": "Loki", "sub": "ingester · querier", "kind": "store" },
+    { "id": "G", "col": 3, "row": 1, "label": "오브젝트 스토리지", "sub": "청크 · 인덱스", "kind": "store" },
+    { "id": "F", "col": 4, "row": 0, "label": "Grafana", "sub": "Drilldown · 경보", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "A", "to": "C", "label": "tail", "rate": 520 },
+    { "from": "B", "to": "C", "label": "tail", "rate": 520 },
+    { "from": "C", "to": "D", "label": "전달", "rate": 520 },
+    { "from": "D", "to": "E", "label": "push", "rate": 520 },
+    { "from": "E", "to": "G", "label": "청크", "rate": 520 },
+    { "from": "E", "to": "F", "label": "조회", "rate": 520 }
+  ]
+}

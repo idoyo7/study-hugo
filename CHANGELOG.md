@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-10-22 — 로그 스택 통합 비교
+
+- `content/observability/logs/10-log-stack-comparison/`을 새로 만들었습니다(공개 URL `/logging/10-log-stack-comparison/`). Fluent Bit·집계기·OpenSearch, Alloy·Loki, 수집기·VictoriaLogs, OTel Collector·ClickHouse·HyperDX 네 경로를 앱 로그와 Istio 액세스 로그 기준으로 데이터 모델·수집·검색·비용·운영 축에 놓고 조건별 선택 기준을 정리했습니다. 같은 배치의 flow 도식 4장이 들어 있고, 로그 색인의 찾기 목록과 문서 지도에 링크를 더했습니다.
+- 2026-10-22 조사 보고서 5편(저장소 4곳과 수집기·Istio 교차 조사)을 바탕으로 Claude가 초안을 쓰고 Astra가 전면 재작성한 뒤 원본과 대조해 보정하는 흐름입니다. 벤치마크 수치에는 측정자와 조건을 붙였고, 비용 예시는 서울 리전 공개 단가와 벤더 압축비를 조합한 계산입니다.
+- 실행 기록은 `_workspace/structure-2026-10-22-logstack/`에 있습니다.
+
 ## 2026-10-22 — 블록 스토리지 06·07·08, 다섯 편 글 구조 재작성
 
 - 블록 스토리지에 06(Linux 호스트에서 NVMe/TCP를 FC SAN처럼 운영하기: 식별·자동 연결·CDC·멀티패스·타임아웃·인증·TLS·홈랩 타깃), 07(NVMe over FC·TCP·RDMA를 전송 자체만 놓고 비교, FC가 가장 안정적인가와 접근성 질문에 답함), 08(Kubernetes에서 NVMe-oF를 쓰는 길을 Mayastor를 중심으로, 공개 IOPS 측정 조건과 프로덕션 사례·상용 지원·대안 비교)을 더했습니다. 색인의 찾기 목록과 문서 지도에 세 편을 넣었습니다.

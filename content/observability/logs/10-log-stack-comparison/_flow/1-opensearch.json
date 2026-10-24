@@ -1,0 +1,21 @@
+{
+  "caption": "OpenSearch 경로입니다. 노드 수집기가 읽은 두 종류의 로그는 집계기를 거쳐 _bulk로 적재되고, 오래된 인덱스는 ISM 정책으로 warm 계층에 내려갑니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "앱 파드", "sub": "JSON 로그", "kind": "src" },
+    { "id": "B", "col": 0, "row": 1, "label": "Istio 사이드카", "sub": "액세스 로그", "kind": "src" },
+    { "id": "C", "col": 1, "row": 0, "label": "Fluent Bit", "sub": "DaemonSet", "kind": "proc" },
+    { "id": "D", "col": 2, "row": 0, "label": "집계기", "sub": "Fluentd · Vector", "kind": "proc" },
+    { "id": "E", "col": 3, "row": 0, "label": "OpenSearch", "sub": "샤드 · 역색인", "kind": "store" },
+    { "id": "G", "col": 3, "row": 1, "label": "warm · cold", "sub": "ISM으로 이동", "kind": "store" },
+    { "id": "F", "col": 4, "row": 0, "label": "Dashboards", "sub": "검색 · 경보", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "A", "to": "C", "label": "tail", "rate": 520 },
+    { "from": "B", "to": "C", "label": "tail", "rate": 520 },
+    { "from": "C", "to": "D", "label": "전달", "rate": 520 },
+    { "from": "D", "to": "E", "label": "_bulk", "rate": 520 },
+    { "from": "E", "to": "G", "label": "ISM", "rate": 520 },
+    { "from": "E", "to": "F", "label": "조회", "rate": 520 }
+  ]
+}

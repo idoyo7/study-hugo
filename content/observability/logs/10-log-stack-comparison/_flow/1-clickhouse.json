@@ -1,0 +1,23 @@
+{
+  "caption": "ClickHouse 경로입니다. Collector 두 단이 로그를 insert하고, 복제는 Keeper가 조정하며, HyperDX가 조회하고 앱 상태는 MongoDB에 둡니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "앱 파드", "sub": "JSON 로그", "kind": "src" },
+    { "id": "B", "col": 0, "row": 1, "label": "Istio 사이드카", "sub": "액세스 로그", "kind": "src" },
+    { "id": "C", "col": 1, "row": 0, "label": "OTel Collector", "sub": "agent", "kind": "proc" },
+    { "id": "D", "col": 2, "row": 0, "label": "OTel Collector", "sub": "gateway · 배치", "kind": "proc" },
+    { "id": "E", "col": 3, "row": 0, "label": "ClickHouse", "sub": "MergeTree · 인덱스", "kind": "store" },
+    { "id": "K", "col": 3, "row": 1, "label": "Keeper", "sub": "복제할 때만", "kind": "store" },
+    { "id": "F", "col": 4, "row": 0, "label": "HyperDX", "sub": "검색 · 경보", "kind": "sink" },
+    { "id": "M", "col": 4, "row": 1, "label": "MongoDB", "sub": "앱 상태", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "A", "to": "C", "label": "tail", "rate": 520 },
+    { "from": "B", "to": "C", "label": "tail", "rate": 520 },
+    { "from": "C", "to": "D", "label": "OTLP", "rate": 520 },
+    { "from": "D", "to": "E", "label": "insert", "rate": 520 },
+    { "from": "E", "to": "K", "label": "조정", "rate": 520 },
+    { "from": "E", "to": "F", "label": "조회", "rate": 520 },
+    { "from": "F", "to": "M", "label": "상태", "dashed": true }
+  ]
+}

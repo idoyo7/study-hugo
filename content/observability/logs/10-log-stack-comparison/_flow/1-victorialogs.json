@@ -1,0 +1,21 @@
+{
+  "caption": "VictoriaLogs 경로입니다. 클러스터 안에는 복제가 없어서, 가용성을 높이려면 게이트웨이가 독립된 두 번째 사본으로 이중 전송합니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "앱 파드", "sub": "JSON 로그", "kind": "src" },
+    { "id": "B", "col": 0, "row": 1, "label": "Istio 사이드카", "sub": "액세스 로그", "kind": "src" },
+    { "id": "C", "col": 1, "row": 0, "label": "vlagent", "sub": "DaemonSet", "kind": "proc" },
+    { "id": "D", "col": 2, "row": 0, "label": "게이트웨이", "sub": "vlagent · Vector", "kind": "proc" },
+    { "id": "E", "col": 3, "row": 0, "label": "VictoriaLogs", "sub": "일 단위 파티션", "kind": "store" },
+    { "id": "G", "col": 3, "row": 1, "label": "두 번째 사본", "sub": "독립된 클러스터", "kind": "store" },
+    { "id": "F", "col": 4, "row": 0, "label": "vmui · Grafana", "sub": "vmalert 경보", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "A", "to": "C", "label": "tail", "rate": 520 },
+    { "from": "B", "to": "C", "label": "tail", "rate": 520 },
+    { "from": "C", "to": "D", "label": "전달", "rate": 520 },
+    { "from": "D", "to": "E", "label": "적재", "rate": 520 },
+    { "from": "D", "to": "G", "label": "이중 전송", "rate": 520 },
+    { "from": "E", "to": "F", "label": "조회", "rate": 520 }
+  ]
+}
