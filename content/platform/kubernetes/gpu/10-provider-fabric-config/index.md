@@ -9,15 +9,15 @@ url: "/kubernetes/gpu/10-provider-fabric-config/"
 
 # 10 · GPU 클러스터 제공자를 위한 NVLink·네트워크 패브릭 설정
 
-## 1. GPU 세대에 맞춰 Fabric Manager를 구성한다 {#2-fm은-gpu-세대와-장애-정책에-맞춰-구성한다}
-
 GPU 파드가 NVLink를 사용하려면 제공자가 먼저 노드의 패브릭을 구성해야 합니다. NVSwitch 노드에서는 Fabric Manager(FM)가, NVL72에서는 랙의 NMX와 컴퓨트 트레이의 IMEX가 각각 맡는 일이 있습니다. 그 상태를 확인한 뒤 노드 간 InfiniBand·RoCE 연결과 혼잡 제어를 맞추는 순서로 살펴봅니다.
 
 아래 내용은 2026-10-21 조사 기준입니다. Fabric Manager 사용자 가이드 v2.6, 2025-07-02 갱신 IMEX 가이드, GPU Operator 26.7.2, NCCL 2.32.3, Cumulus Linux 5.18 문서를 사용했습니다. 데이터센터 드라이버 색인에는 R615, R610, R595, R590, R580이 있지만 production 여부는 표시돼 있지 않았습니다. 문서의 지원 조건과 작성자의 추정은 본문에서 구분합니다.
 
+## 1. GPU 세대에 맞춰 Fabric Manager를 구성한다 {#2-fm은-gpu-세대와-장애-정책에-맞춰-구성한다}
+
 ### FM과 NVLSM의 역할
 
-FM은 NVSwitch 커널 드라이버와 짝을 이루는 특권 프로세스로, 메모리 패브릭을 구성하고 NVLink를 감시합니다. 링크 트레이닝(물리 링크 초기화)과 패브릭 구성은 구분해야 합니다. Hopper의 3세대 NVSwitch는 ALI 기반으로 링크를 트레이닝하므로 그 과정에는 FM이 필요하지 않지만, 패브릭은 여전히 FM이 구성합니다.
+FM은 NVSwitch 커널 드라이버와 짝을 이루는 특권 프로세스로, 메모리 패브릭을 구성하고 NVLink를 감시합니다. 링크 트레이닝(물리 링크 초기화)과 패브릭 구성은 구분해야 합니다. Hopper의 3세대 NVSwitch는 ALI(Autonomous Link Initialization) 기반으로 링크를 트레이닝하므로 그 과정에는 FM이 필요하지 않지만, 패브릭은 여전히 FM이 구성합니다.
 
 Blackwell HGX의 4세대 NVSwitch에서는 FM 서비스가 NVLSM(NVLink Subnet Manager)도 함께 실행합니다. NVSwitch는 CX7 브리지 디바이스로 연결되고 FM과 NVLSM은 소켓으로 통신합니다. 따라서 `FM_SM_IPC_INTERFACE` 경로와 NVLSM의 `plugin_options grpc_mgr --grpc_server_address` 값이 같아야 합니다. B200·B300에는 `TOPOLOGY_FILE_PATH`가 적용되지 않으며 `nvswitch-audit`도 지원하지 않습니다.
 
@@ -35,12 +35,12 @@ FM 가이드의 최소 드라이버는 HGX A100 450, H100 525, B200·B300·B100 
 | `FM_STAY_RESIDENT_ON_FAILURES` | 0 | 1이면 장애 뒤에도 FM이 남지만 CUDA 실행은 `cudaErrorSystemNotReady`로 실패 |
 | `ACCESS_LINK_FAILURE_MODE` | 0 | GPU와 NVSwitch 사이 링크 장애 시 0이면 해당 GPU를 라우팅에서 제외(베어메탈) |
 | `TRUNK_LINK_FAILURE_MODE` | 0 | 베이스보드 2장 시스템 전용. 0이면 베어메탈에서 FM이 중단되고 시스템이 초기화되지 않음 |
-| `NVSWITCH_FAILURE_MODE` | 0 | 0이면 베어메탈에서 FM 중단. 1이면 해당 NVSwitch와 짝을 끄고 6개 대역 중 5개로 운영 |
+| `NVSWITCH_FAILURE_MODE` | 0 | 0이면 베어메탈에서 FM 중단. 1이면 해당 NVSwitch와 짝을 끄고 6개 대역 중 5개로 운영. DGX·HGX A100(NVSwitch 6개) 시스템에서만 유효 |
 | `ABORT_CUDA_JOBS_ON_FM_EXIT` | 1 | FM 종료 시 실행 중 CUDA 잡을 중단. H100 이후에는 효과 없음 |
 | `PARTITION_RAIL_POLICY` | greedy | NVLink Encryption을 쓰면 `symmetric` |
 | `FM_CMD_BIND_INTERFACE` / `FM_CMD_PORT_NUMBER` | 127.0.0.1 / 6666 | shared·vGPU 모드의 API 인터페이스 |
 
-기본 설정에서는 스위치 장애로 베어메탈 노드 전체가 초기화되지 않을 수 있습니다. 일부 대역을 잃어도 운영을 계속하려면 `NVSWITCH_FAILURE_MODE=1`을 선택합니다. 제공자는 어느 동작이 SLA에 맞는지 정해야 합니다.
+기본 설정에서는 스위치 장애로 베어메탈 노드 전체가 초기화되지 않을 수 있습니다. 일부 대역을 잃어도 운영을 계속하려면 `NVSWITCH_FAILURE_MODE=1`을 선택합니다. 이 모드는 DGX·HGX A100 시스템에만 적용됩니다. 제공자는 어느 동작이 SLA에 맞는지 정해야 합니다.
 
 서비스는 `systemctl`, 로그는 `journalctl -u nvidia-fabricmanager`로 관리합니다. FM 가이드는 서비스를 중지하면 패브릭 상태가 사라져 모든 GPU를 리셋해야 복구할 수 있다고 경고합니다. 이 조건에서 보면 실행 중인 노드의 FM 재시작은 드레인을 전제로 계획하는 편이 타당하지만, 드레인 자체는 문서의 직접 지시가 아닌 운영상 판단입니다.
 
@@ -72,7 +72,7 @@ Kubernetes에서는 GPU Operator 1.8부터 드라이버 컨테이너가 NVSwitch
 
 FM 파티션 활성화 성공만으로 모든 GPU의 NVLink가 사용 가능하다고 판단할 수는 없습니다. MIG와 가상화 모드에 따라 링크 트레이닝과 P2P 통신의 조건을 따로 확인해야 하기 때문입니다.
 
-FM 가이드는 최대 64개 파티션, 16 GPU를 지원하는 다음 모델을 설명합니다.
+FM 가이드의 API 헤더는 FM이 지원하는 최대 파티션 수를 64개, 최대 GPU 수를 16개로 정의합니다. 이 한도는 특정 모델이 아니라 FM 전체에 적용되는 것으로 보이며, 아래는 가이드가 설명하는 모델입니다.
 
 | 모델 | GPU 제공 방식과 제약 |
 |---|---|
@@ -85,11 +85,11 @@ FM 가이드는 최대 64개 파티션, 16 GPU를 지원하는 다음 모델을 
 
 FM 가이드의 일반적인 MIG 상호운용성 절은 A100에서 MIG를 켜면 NVLink가 꺼지고 H100 이후에는 활성 상태를 유지한다고 설명합니다. MIG에서 P2P 통신을 잃는다는 설명도 있으므로, 링크가 활성 상태라는 것과 인스턴스 사이 P2P를 사용할 수 있다는 것은 구분해야 합니다.
 
-같은 가이드의 Shared NVSwitch 가상화 모델 절에는 H100 이후 MIG GPU의 NVLink가 트레이닝되지 않아도 멀티 GPU 파티션 활성화는 성공한다는 설명이 있습니다. 이 절은 H100 이후에 해당 옵션들이 적용되지 않는다는 단서도 둡니다. 일반 절의 활성 상태 설명과 이 가상화 절의 트레이닝 설명을 합쳐 모든 H100 MIG 구성에 하나의 규칙으로 적용할 수는 없습니다.
+같은 가이드의 Shared NVSwitch 가상화 모델 절에는 H100 이후 MIG GPU의 NVLink가 트레이닝되지 않아도 멀티 GPU 파티션 활성화는 성공한다는 설명이 있습니다. 이 절은 Service VM 초기화(`--restart` 없이는 MIG가 켜진 GPU가 있으면 FM 초기화 중단)와 MIG를 먼저 켠 GPU의 파티션 활성화라는 두 옵션을 두고, H100 이후에는 NVLink가 트레이닝되지 않아 이 옵션들이 적용되지 않는다는 단서를 답니다. 일반 절의 활성 상태 설명과 이 가상화 절의 트레이닝 설명을 합쳐 모든 H100 MIG 구성에 하나의 규칙으로 적용할 수는 없습니다.
 
-Shared NVSwitch 가상화 절에서 설명하는 Service VM의 초기화는 MIG GPU가 있으면 `--restart` 없이 FM을 시작하는 것을 허용하지 않습니다. 이 설명의 세대별 적용 범위는 앞의 H100 이후 예외 문구와 함께 확인해야 합니다. A100 vGPU 모드에서는 FM 시작 전에 MIG를 켜면 해당 GPU가 들어간 파티션이 제거됩니다. 사용하는 모드와 GPU 세대를 붙여 문서를 대조해야 하며, 절마다 다른 설명의 세부 적용 범위는 이번 조사에서 확정하지 못했습니다.
+A100 vGPU 모드에서는 FM 시작 전에 MIG를 켜면 해당 GPU가 들어간 파티션이 제거됩니다. 사용하는 모드와 GPU 세대를 붙여 문서를 대조해야 하며, 절마다 다른 설명의 세부 적용 범위는 이번 조사에서 확정하지 못했습니다.
 
-Grace 기반 시스템에는 별도의 제약도 있습니다. GPU Operator 25.3.2 노트에 따르면 드라이버 580.65.06이 기본으로 활성화하는 CDMM은 MIG 및 GPUDirect Storage와 호환되지 않습니다.
+Grace 기반 시스템에는 별도의 제약도 있습니다. GPU Operator 25.3.2 노트에 따르면 드라이버 580.65.06이 기본으로 활성화하는 CDMM(Coherent Driver Memory Management)은 MIG 및 GPUDirect Storage와 호환되지 않습니다.
 
 이 조건들을 종합하면 MIG용 노드를 별도 풀로 구분하는 편이 운영상 안전해 보입니다. 파티션 활성화, 링크 상태, 인스턴스 간 통신 지원 여부가 서로 다를 수 있기 때문입니다. 이는 문서에 명시된 권고가 아닌 이 글의 판단입니다.
 
@@ -127,7 +127,7 @@ IMEX는 시작할 때 로드된 커널 드라이버 스택의 버전을 검사�
 
 Kubernetes에서는 DRA 드라이버의 ComputeDomain이 IMEX 데몬·도메인·채널을 조율합니다. k8s-dra-driver-gpu README는 같은 ComputeDomain의 파드끼리만 MNNVL로 통신하도록 격리한다고 설명합니다. 이 파드 단위 구성은 [03편]({{< relref "/platform/kubernetes/gpu/03-allocation-dra/index.md" >}})에서 다뤘습니다.
 
-GPU Operator 26.7.0의 `GPUCluster` 리소스는 DRA 드라이버, ComputeDomain, DCGM, exporter, 검증 워크로드를 함께 배포합니다. `ClusterPolicy`와 공존할 수 없으며 Kubernetes 1.34.2 이상, 드라이버 580 이상, CDI 런타임이 필요합니다.
+GPU Operator 26.7.0의 `GPUCluster` 리소스는 `ClusterPolicy`와 공존할 수 없고 Kubernetes 1.34.2 이상, 드라이버 580 이상, CDI 런타임이 필요하며 03편에서 자세히 다뤘습니다.
 
 워크로드가 MNNVL을 쓰려면 `NCCL_MNNVL_ENABLE`(0/1/2), `NCCL_CUMEM_ENABLE` 설정이 맞고 NVLink 도메인의 모든 노드에서 IMEX 도메인이 동작해야 합니다. GB200에는 NCCL 2.25.2 이상이 필요합니다. 패브릭 정보를 스케줄러에 전달하는 라벨은 [04편]({{< relref "/platform/kubernetes/gpu/04-scheduling-labels-kueue/index.md" >}})에서 설명합니다.
 
@@ -139,23 +139,23 @@ NVIDIA SuperPOD B300에는 Quantum-X800 InfiniBand(XDR)판(2026-09-02 갱신)과
 
 Google Cloud 문서에서 A3 Ultra·A4는 ConnectX-7 8개로 RoCE GPUDirect RDMA를 사용하며 A3 Mega는 GPUDirect-TCPXO를 사용합니다. Meta의 2024년 엔지니어링 블로그와 SIGCOMM'24 논문은 AI 용량 대부분을 RoCEv2 백엔드로 운영한다고 설명합니다. 학습 백엔드는 적재·체크포인트·로깅용 프론트엔드와 분리되고, 2단 Clos AI Zone 위에 집계 계층을 둡니다.
 
-xAI Colossus의 Spectrum-X 구성은 NVIDIA 보도자료에 나온 SN5600과 BlueField-3 SuperNIC 조합입니다. 같은 자료의 약 95% 처리량과 플로 충돌 손실 없음은 NVIDIA의 주장입니다. 제품 페이지의 "기존 이더넷 대비 AI 네트워킹 성능 1.6배"도 비교 기준인 "traditional/off-the-shelf Ethernet"이 정의되지 않아 이를 직접적인 선택 근거로 쓰기 어렵습니다.
+xAI Colossus의 Spectrum-X 구성은 NVIDIA 보도자료에 나온 SN5600과 BlueField-3 SuperNIC 조합입니다. 같은 자료의 표준 이더넷 약 60% 대비 약 95% 처리량과 플로 충돌 손실 없음은 NVIDIA의 주장입니다. 제품 페이지의 "기존 이더넷 대비 AI 네트워킹 성능 1.6배"도 비교 기준인 "traditional/off-the-shelf Ethernet"이 정의되지 않아 이를 직접적인 선택 근거로 쓰기 어렵습니다.
 
-시장 수치도 성능 비교와는 구분해야 합니다. Dell'Oro의 2026-06-02 분석은 2026년 1분기 AI 백엔드 이더넷 스위치 매출이 두 배 넘게 늘어 AI 클러스터 스위치 매출의 약 3분의 2가 됐다고 봅니다. InfiniBand 매출도 세 배 넘게 증가했으며, 분석은 Blackwell Ultra와 함께 공급한 800G 스위치 및 기존 설치 기반의 업그레이드를 배경으로 듭니다. 별도의 2026 전망은 이더넷이 2025년에 IB를 넘어섰고, 2년 전에는 IB가 AI 백엔드 스위치 매출의 80% 가까이를 차지했다고 설명합니다.
+시장 수치도 성능 비교와는 구분해야 합니다. Dell'Oro의 2026-06-02 분석은 2026년 1분기 AI 백엔드 이더넷 스위치 매출이 두 배 넘게 늘어(자료는 비교 기준 기간을 밝히지 않습니다) AI 클러스터 스위치 매출의 약 3분의 2가 됐다고 봅니다. InfiniBand 매출도 세 배 넘게 증가했으며, 분석은 Blackwell Ultra와 함께 공급한 800G 스위치 및 기존 설치 기반의 업그레이드를 배경으로 듭니다. 별도의 2026 전망은 이더넷이 2025년에 InfiniBand를 넘어섰고, 2년 전에는 InfiniBand가 AI 백엔드 스위치 매출의 80% 가까이를 차지했다고 설명합니다.
 
 이 자료들을 종합하면 신규 대규모 구축은 이더넷 쪽으로 기울면서 NVIDIA XDR 레퍼런스와 일부 하이퍼스케일러는 InfiniBand를 유지하는 것으로 보입니다. 이는 구축·매출 자료에서 이끌어 낸 판단입니다.
 
-운영 부담은 설정을 관리하는 위치에서 차이가 납니다. InfiniBand는 Subnet Manager(UFM 또는 OpenSM)가 경로·파티션·적응형 라우팅을 중앙에서 관리합니다. RoCE는 스위치마다 PFC(우선순위별 흐름 제어), ECN(명시적 혼잡 알림), 버퍼, DSCP 매핑을 맞추고 NIC 트러스트 모드까지 일치시켜야 합니다. UFM·Cumulus 문서 구성을 비교하면 RoCE에서 이 정합을 관리하는 부담이 더 드러납니다. Meta도 IB와의 직접 벤치마크는 제시하지 않았고, RoCE 흐름 제어가 더 거칠어 버퍼 튜닝이 어렵다고 설명했습니다.
+운영 부담은 설정을 관리하는 위치에서 차이가 납니다. InfiniBand는 Subnet Manager(UFM 또는 OpenSM)가 경로·파티션·적응형 라우팅을 중앙에서 관리합니다. RoCE는 스위치마다 PFC(우선순위별 흐름 제어), ECN(명시적 혼잡 알림), 버퍼, DSCP 매핑을 맞추고 NIC 트러스트 모드까지 일치시켜야 합니다. UFM·Cumulus 문서 구성을 비교하면 RoCE에서 이 정합을 관리하는 부담이 더 드러납니다. Meta도 InfiniBand와의 직접 벤치마크는 제시하지 않았고, RoCE 흐름 제어가 더 거칠어 버퍼 튜닝이 어렵다고 설명했습니다.
 
 ## 6. RoCE 트래픽 분류를 NCCL·NIC·스위치에서 일치시킨다 {#6-roce-우선순위를-통신자부터-스위치까지-맞춘다}
 
-RoCE에서는 애플리케이션이 표시한 traffic class를 NIC와 스위치가 같은 우선순위로 해석해야 합니다. 매핑이 맞지 않으면 의도한 큐에 PFC가 적용되지 않거나 혼잡 신호가 돌아오지 않을 수 있습니다. 아래 도식은 설정의 연결 관계이며 스위치 큐의 PFC pause는 생략했습니다.
+RoCE에서는 애플리케이션이 표시한 traffic class(TC)를 NIC과 스위치가 같은 우선순위로 해석해야 합니다. 매핑이 맞지 않으면 의도한 큐에 PFC가 적용되지 않거나 혼잡 신호가 돌아오지 않을 수 있습니다. 아래 도식은 설정의 연결 관계이며 스위치 큐의 PFC pause는 생략했습니다.
 
 {{< flow src="_flow/6-roce-설정-경로.json" />}}
 
 ### NCCL과 NIC이 표시하는 우선순위
 
-NCCL 2.32u1부터 `NCCL_IB_TC`·`NCCL_IB_SL`의 기본값은 AUTO입니다. 통신자에 traffic class가 없으면 0을 사용합니다. 따라서 스위치가 아래 Cumulus 예시처럼 DSCP 26을 무손실 트래픽으로 분류한다면, NCCL 트래픽도 그 분류에 맞게 표시해야 한다는 운영상 판단이 나옵니다. 이것은 NCCL 문서가 직접 제시한 설정 조합은 아닙니다. `NCCL_IB_ADAPTIVE_ROUTING`은 InfiniBand에서 기본 켜짐, RoCE에서 기본 꺼짐입니다.
+NCCL 2.32u1부터 `NCCL_IB_TC`·`NCCL_IB_SL`의 기본값은 AUTO입니다. 통신자에 TC가 없으면 0을 사용하는데, 아래 Cumulus 예시에서 DSCP 26은 무손실 큐(SP3)로 분류되므로 기본값 0은 그 큐에 들어가지 않습니다. 그래서 NCCL 트래픽도 그 분류에 맞게 표시해야 한다는 것이 운영상 판단입니다. 이것은 NCCL 문서가 직접 제시한 설정 조합은 아닙니다. `NCCL_IB_ADAPTIVE_ROUTING`은 InfiniBand에서 기본 켜짐, RoCE에서 기본 꺼짐입니다.
 
 ConnectX에서는 `mlnx_qos -i <if> --trust dscp`로 DSCP 트러스트를 켜고 `--dscp2prio`로 매핑하며, 같은 명령으로 현재 상태를 읽습니다. RDMA-CM의 ToS를 `cma_roce_tos -d <dev> -t 106`으로 지정하는 예시는 대학 HPC 팀의 템플릿 등 2차 자료에 있습니다. 106은 DSCP 26에 ECN ECT 비트를 더한 값입니다.
 
@@ -170,7 +170,7 @@ Cumulus Linux 5.18에서는 `nv set qos roce`와 `nv config apply`로 기본 los
 | PFC | switch-priority 3에서 rx/tx 활성, `cable-length 100` |
 | RoCE 분류 | PCP 3 / DSCP 26 → switch-priority 3. 기본 표는 DSCP 24~31을 SP3로 매핑 |
 | CNP 분류 | PCP 6 / DSCP 48 → switch-priority 6 |
-| 트래픽 클래스 | SP3 → TC3(RoCE, DWRR 50%), SP6 → TC6(CNP, strict priority), 나머지 TC0(DWRR 50%) |
+| traffic class | SP3 → TC3(RoCE, DWRR 50%), SP6 → TC6(CNP, strict priority), 나머지 TC0(DWRR 50%) |
 | ECN | `min-threshold 146.48 KB`, `max-threshold 1.43 MB`, `probability 100` |
 | LLDP app TLV | UDP 4791, priority 3 |
 
@@ -199,7 +199,7 @@ Meta의 DCQCN 선택은 그 배포 조건과 함께 읽어야 합니다. 400G �
 ## 8. 확인하지 못한 것
 
 - 같은 조건에서 InfiniBand와 RoCE의 지연과 테일 지연을 잰 1차 측정
-- Spectrum-X의 "1.6배", "실효 대역 60%에서 95%"가 어떤 조건에서 나온 수치인지
+- Spectrum-X의 "1.6배", "처리량 60%에서 95%"가 어떤 조건에서 나온 수치인지
 - 패킷 단위 적응형 라우팅과 NIC 측 재정렬의 동작 세부. 2차 자료에만 있음
 - `nvidia-smi nvlink` 옵션의 NVIDIA 공식 매뉴얼 원문
 - 드라이버 620의 출시 상태와 데이터센터 드라이버 브랜치별 production 구분

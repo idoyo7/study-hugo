@@ -13,7 +13,7 @@ url: "/kubernetes/gpu/11-provider-validation-tenancy/"
 
 이 글은 2026-10-21에 확인한 문서를 기준으로 합니다. 조사 버전은 NCCL 2.32.3, nccl-tests v2.21.1, DCGM 4.6.1, dcgm-exporter 4.8.4, GPU Operator 26.7.2, NVIDIA Cluster Readiness Engine(NVCRE) v0.8.1, NVSentinel v1.28.0, topograph v1.0.0, perftest 26.07.8입니다. 문서의 요구 사항과 이를 종합한 운영상 판단을 구분합니다.
 
-## 1. 배선한 토폴로지를 Kubernetes와 NCCL에 전달한다 {#2-배선-규칙과-kubernetes로-내려오는-토폴로지-정보}
+## 1. 배선한 토폴로지를 Kubernetes에 전달한다 {#2-배선-규칙과-kubernetes로-내려오는-토폴로지-정보}
 
 NCCL 2.12 블로그에서 rail-optimized(레일 최적화)는 각 DGX의 NIC-0을 같은 리프에, NIC-1을 다른 리프에 연결하는 배선입니다. NCCL의 PXN은 노드 안 NVSwitch를 통해 데이터를 목적지와 같은 레일의 GPU로 옮긴 뒤 내보냅니다. SHARP(인네트워크 리덕션)도 같은 레일의 HCA가 같은 리프에 연결돼야 합니다. NCCL이 HCA 레일마다 집계 플로를 만들기 때문입니다.
 
@@ -34,7 +34,7 @@ Spectrum-4판은 스위치·트랜시버·케이블 하나의 장애에도 잡�
 
 topograph v1.0.0은 스위치 계층을 `fabric.topograph.run/tier-N`으로 나타냅니다. 0은 노드에 가장 가까운 스위치이고 깊이 제한은 없습니다. NVLink 도메인은 `accelerator.topograph.run/domain`, 하위 구분은 `accelerator.topograph.run/sub-domain`입니다. 문서 예시는 `tier-0: s1`, `tier-1: s2`, `tier-2: s3`, `domain: nvl1`, `sub-domain: nvl1.rack01`입니다.
 
-입력 소스는 AWS·GCP·OCI·Nebius·Nscale·Crusoe·Lambda API, NetQ, InfiniBand `ibnetdiscover`, DRA이며 출력 엔진은 slurm, k8s(라벨), nfd, slinky입니다. 옛 `network.topology.nvidia.com/*` 키는 현행 문서에 없고 개명 시점도 확인하지 못했습니다. 예전 예시의 키를 그대로 가져오기보다 사용 버전의 키를 확인해야 합니다.
+입력 소스는 AWS·GCP·OCI·Nebius·Nscale·Crusoe·Lambda API, NetQ, InfiniBand `ibnetdiscover`, DRA이며 출력 엔진은 slurm, k8s(라벨), nfd, slinky입니다. 옛 `network.topology.nvidia.com/*` 키는 Topograph v0.1.0 시절 키이며, 저장소도 dsx-ai-factory/topograph로 옮겨졌습니다. 예전 예시의 키를 그대로 가져오기보다 사용 버전의 키를 확인해야 합니다.
 
 NVLink 파티션 ID `ClusterUUID.CliqueId`는 GPU Operator의 `nvidia.com/gpu.clique` 라벨과 같습니다. MNNVL에서 FM이 작업을 마치지 않으면 라벨도 생성되지 않습니다. 10편의 `system not yet initialized` 오류와 Fabric State `In Progress`가 이 단계에서는 라벨 부재로 드러날 수 있습니다. FM의 드라이버 620 이후 분리 배포 조건 역시 10편에서 다뤘습니다.
 
@@ -50,9 +50,9 @@ NVLink 파티션 ID `ClusterUUID.CliqueId`는 GPU Operator의 `nvidia.com/gpu.cl
 
 RDMA CNI는 SR-IOV 인터페이스의 RDMA 디바이스를 컨테이너 netns(네트워크 네임스페이스)로 옮깁니다. RDMA 서브시스템은 exclusive 모드여야 하며 `ib_core`의 `netns_mode=0` 또는 `rdma system set netns exclusive`로 설정합니다. 모드를 바꾸려면 초기 호스트 네트워크 네임스페이스(`init_net`) 외에 다른 netns가 없어야 합니다. Linux v6.18의 RDMA 코어는 다른 netns가 있으면 모드 변경을 `-EBUSY`로 거부합니다. 요구 버전은 커널 5.3 이상 또는 MOFED 4.7 이상입니다.
 
-`k8s-rdma-shared-dev-plugin`은 HCA 하나를 `rdmaHcaMax`개 리소스로 광고해 여러 파드가 공유하게 합니다. README는 이 방식의 격리를 보장하지 않습니다. 이 차이를 근거로 보면 멀티테넌트 풀에는 SR-IOV VF와 exclusive 모드 RDMA CNI를, 공유 플러그인은 단일 테넌트 풀에 두는 편이 적합해 보입니다. 이는 플러그인 동작에서 도출한 운영상 판단입니다.
+`k8s-rdma-shared-dev-plugin`은 HCA 하나를 `rdmaHcaMax`개 리소스로 광고해 여러 파드가 공유하게 합니다. README는 이 방식이 격리를 보장한다고 설명하지 않습니다. 이 차이를 근거로 보면 멀티테넌트 풀에는 SR-IOV VF와 exclusive 모드 RDMA CNI를, 공유 플러그인은 단일 테넌트 풀에 두는 편이 적합해 보입니다. 이는 플러그인 동작에서 도출한 운영상 판단입니다.
 
-Spectrum-X는 SR-IOV Device Plugin이 VF를 `nvidia.com/...` 리소스로 광고하고, OVS-CNI가 VF를 레일 OVS 브리지에 연결합니다. NV-IPAM이 주소를 배정한 뒤 RDMA-CNI가 RDMA 디바이스를 파드 netns로 옮기며 여기에도 exclusive 모드가 필요합니다. ResourceQuota로 네임스페이스별 VF 개수를 제한하는 것은 Kubernetes의 일반 기능이지만, 패브릭 문서에서 이 구성을 직접 권한 근거는 찾지 못했습니다.
+Spectrum-X는 SR-IOV Device Plugin이 VF를 `nvidia.com/...` 리소스로 광고하고, OVS-CNI가 VF를 레일 OVS 브리지에 연결합니다. NV-IPAM이 주소를 배정한 뒤 RDMA-CNI가 RDMA 디바이스를 파드 netns로 옮기며 여기에도 exclusive 모드가 필요합니다. ResourceQuota로 네임스페이스별 VF 개수를 제한하는 것은 Kubernetes의 일반 기능이지만, 패브릭 문서에서 이 구성을 직접 권장한 근거는 찾지 못했습니다.
 
 ### InfiniBand와 NVLink의 파티션 {#infiniband와-nvlink의-파티션}
 
@@ -86,7 +86,7 @@ GB200 튜닝 가이드는 피크 성능을 위해 NCCL(GPU 집합 통신 라이�
 
 2.32u1부터 `NCCL_IB_GID_INDEX`·`NCCL_IB_TC`·`NCCL_IB_SL`은 기본 AUTO입니다. RoCE의 스위치 분류와 일치시키는 방법은 10편의 RoCE 절에서 다뤘습니다.
 
-네트워크 플러그인은 `NCCL_NET_PLUGIN` 값, `libnccl-net-<suffix>.so`, `libnccl-net.so`, 내장 구현 순서로 찾습니다. 튜너 플러그인도 같은 탐색 규칙을 사용합니다. AWS EFA는 `aws-ofi-nccl` v1.21.1, Google Cloud A3 Mega는 GPUDirect-TCPXO, A3 Ultra 이후는 RoCE 기반 GPUDirect RDMA를 사용합니다. GB200 가이드 목차는 UCX를 "Communication Libraries (UCX)"라는 별도 절로 다룹니다. 이를 보면 UCX는 NCCL 집합 통신 경로와 별개인 MPI·NVSHMEM 쪽 라이브러리로 보이지만, 해당 절 본문은 확인하지 못했습니다.
+네트워크 플러그인은 `NCCL_NET_PLUGIN` 값, `libnccl-net-<suffix>.so`, `libnccl-net.so`, 내장 구현 순서로 찾습니다. 튜너 플러그인도 같은 탐색 규칙을 사용합니다. AWS EFA는 `aws-ofi-nccl` v1.21.1, Google Cloud A3 Mega는 GPUDirect-TCPXO, A3 Ultra 이후는 RoCE 기반 GPUDirect RDMA를 사용합니다. GB200 가이드 목차는 UCX를 "Communication Libraries (UCX)"라는 별도 절로 다룹니다.
 
 장애 진단용 RAS는 `NCCL_RAS_ENABLE`이 기본 1이며 `NCCL_RAS_ADDR`는 localhost:28028입니다. 문서는 외부 인터페이스에 바인딩할 경우 보안 영향을 경고합니다. 2.31부터는 `NCCL_RUN_RAS_DIAGNOSTICS=1`·`NCCL_RUN_DIAGNOSTICS=1`도 제공합니다.
 
@@ -100,7 +100,7 @@ NCCL 알고리즘 이름은 CollnetChain과 CollnetDirect(2.14 이상)입니다.
 
 NVLS(NVLink SHARP)의 `NCCL_NVLS_ENABLE`은 0이면 꺼지고, 1이면 켜지며 자원 할당 실패 때 초기화도 실패합니다. 기본값 2도 1과 같이 동작합니다. 2.27·2.28에서는 할당 실패 시 다른 전송으로 폴백했으나 일부 랭크만 실패하면 hang이 생길 수 있어 2.29에서 되돌렸습니다.
 
-NVLS의 지원 조건으로 제시할 수 있는 근사치는 Hopper 이후 GPU, 3세대 이상 NVSwitch, CUDA 12.1 이상, 드라이버 530.30.02 이상입니다. 이는 NCCL의 명시적 요구 목록을 확인한 값이 아니라 NVSHMEM 설치 가이드에서 가져온 조건입니다.
+NVLS의 대략의 지원 조건은 Hopper 이후 GPU, 3세대 이상 NVSwitch, CUDA 12.1 이상, 드라이버 530.30.02 이상입니다. 이는 NCCL의 명시적 요구 목록을 확인한 값이 아니라 NVSHMEM 설치 가이드에서 가져온 조건입니다.
 
 NCCL 2.18.1은 NVLS·NVLSTree를 노드 간으로 확장했고, 2.31은 AllGather에 NVLink 멀티캐스트와 계층형 PAT 커널을 추가했습니다. 2.32는 여러 통신자의 NVLS 슬롯 소진을 완화하고 H100의 PAT+NVLS 성능 저하를 고쳤습니다. GB200 튜닝 가이드는 지원 시스템에서 NVLS가 기본으로 켜지고 all-reduce 비중이 큰 워크로드에 유리하다고 설명합니다. 메모리 사용이 걱정되면 끌 수 있으며, 켠 상태와 끈 상태를 모두 벤치마크하도록 권합니다. 효과를 수치로 비교한 공식 벤치마크는 찾지 못했습니다.
 
@@ -114,7 +114,7 @@ DCGM의 `dcgmi diag -r 1`부터 `-r 4`까지는 네 단계 진단입니다. 2026
 
 통신 성능은 nccl-tests의 busbw로 읽습니다. AllReduce의 식은 busbw = algbw × 2(n−1)/n이며, 문서는 이 값이 NVLink·PCI·QPI·네트워크 등 하드웨어 병목의 속도를 반영해야 한다고 설명합니다. perftest의 기대치는 라인 레이트에 가까운지 살피는 정도로 잡을 수 있지만 공식 합격선으로 확인한 것은 아닙니다.
 
-2차 가이드는 `ibstat`의 Active 상태를 확인한 뒤 단일 노드에서 시작해 노드 수를 늘리도록 안내합니다. 특정 규모에서 busbw가 떨어지면 그 범위의 링크·스위치를 의심할 수 있습니다. GB200 튜닝 가이드의 Slurm 예시는 `MPI=1`로 빌드하고 GPU 하나에 프로세스 하나를 배정한 뒤, 노드 수를 절반씩 줄여 반복합니다.
+인수할 때는 범위를 넓혀 가는 순서를 씁니다. 2차 가이드는 `ibstat`의 Active 상태를 확인한 뒤 단일 노드에서 시작해 노드 수를 늘리도록 안내하며, 특정 규모에서 busbw가 떨어지면 그 범위의 링크·스위치를 의심할 수 있습니다. 실패한 뒤 범위를 좁힐 때는 GB200 튜닝 가이드의 Slurm 예시처럼 `MPI=1`로 빌드하고 GPU 하나에 프로세스 하나를 배정한 뒤 노드 수를 절반씩 줄여 반복합니다. NVCRE의 이분 탐색도 같은 방식이며 아래에서 다룹니다.
 
 ```bash
 export NCCL_DEBUG=WARN
@@ -172,10 +172,10 @@ NVSentinel v1.28.0은 기본 설치에서 모니터링만 수행합니다. 자�
 |---|---|---|
 | 네트워크 분리 | compute, storage, in-band, OOB 네 개 | SuperPOD 레퍼런스, Meta, Google Cloud |
 | compute 패브릭 | rail-optimized, non-blocking을 SU 단위로 설계 | SuperPOD 레퍼런스, Google Cloud의 rail-aligned 표기 |
-| 노드 안 소프트웨어 | FM(Blackwell은 NVLSM), NVL72는 IMEX와 NMX의 버전 정합 | 10편 1·3·4절 |
+| 노드 안 소프트웨어 | FM(Blackwell은 NVLSM), NVL72는 IMEX와 NMX의 버전 정합 | 10편 1·4절 |
 | 토폴로지 노출 | `nvidia.com/gpu.clique`, topograph의 `fabric.topograph.run/tier-N`과 `accelerator.topograph.run/domain` | GPU Operator, topograph |
 | 테넌트 분리 | SR-IOV + exclusive 모드 RDMA CNI, IB는 PKey, NVL72는 NVLink 파티션이나 ComputeDomain | 2절 |
-| RoCE 정합 | PFC, ECN, DSCP 매핑을 스위치, NIC, NCCL까지 일치. DCQCN을 끄는 선택지도 있음 | 10편 6절, Meta |
+| RoCE 정합 | PFC, ECN, DSCP 매핑을 스위치, NIC, NCCL까지 일치. DCQCN은 자기 패브릭에서 검증(Meta는 끈 사례) | 10편 7절, Meta |
 | 인수 검증 | DCGM diag r3~r4, 노드 안에서 노드 간으로 넓히는 nccl-tests, NVCRE의 이분 탐색 | 4절 |
 | 관측과 격리 | NVLink 카운터를 세대에 맞춰 켜기, XID·PCIe replay·row remap 수집, NVSentinel은 단계별 opt-in | 5절 |
 | NCCL | 기본값 우선. 구성에 맞춰 지정할 값은 토폴로지 파일, HCA 필터, TC·PKey 정도 | 3절 |
@@ -183,20 +183,20 @@ NVSentinel v1.28.0은 기본 설치에서 모니터링만 수행합니다. 자�
 
 SuperPOD는 노드를 아직 덜 채웠더라도 SU 전체를 기준으로 패브릭을 구축하도록 설명하며 Google Cloud도 rail-aligned 구성을 표기합니다. 처음 측정한 합격선을 이후 증설 구성에 적용하려면 이 설계 범위까지 함께 봐야 합니다. NCCL에서 토폴로지 파일·HCA 필터·TC·PKey를 우선 지정한다는 내용도 환경 변수 문서를 종합한 판단입니다.
 
-버전 조합은 발표 시점을 붙여 확인해야 합니다. Cloud Native Stack(CNS) 19.0, Batch 26.6.0(2026-07-01 GA)은 Kubernetes 1.36.2, GPU Operator 26.3.2, 드라이버 580.126.20, KAI Scheduler 0.14.2를 검증했습니다. [CNS README](https://github.com/NVIDIA/cloud-native-stack)의 당시 구성에는 Network Operator가 빠져 있습니다. Network Operator 26.4.0의 Kubernetes 지원 범위가 1.31~1.35였기 때문입니다.
+버전 조합은 발표 시점을 붙여 확인해야 합니다. Cloud Native Stack(CNS) 19.0의 Batch 26.6.0 릴리스(2026-07-01 GA)는 Kubernetes 1.36.2, GPU Operator 26.3.2, 드라이버 580.126.20, KAI Scheduler 0.14.2를 검증했습니다. [CNS README](https://github.com/NVIDIA/cloud-native-stack)의 당시 구성에는 Network Operator가 빠져 있습니다. Network Operator 26.4.0의 Kubernetes 지원 범위가 1.31~1.35였기 때문입니다.
 
-이를 현재 Network Operator가 Kubernetes 1.36을 지원하지 않는다는 뜻으로 읽으면 안 됩니다. [26.7 플랫폼 지원표](https://docs.nvidia.com/networking/display/kubernetes2670/platform-support.html)는 1.32~1.36을 지원합니다. RDMA 패브릭을 제공할 때는 선택한 Network Operator 버전에 Kubernetes를 맞춰야 한다는 결론이며, 현행 조합은 07편의 지원 범위와 함께 대조하면 됩니다.
+이를 현재 Network Operator가 Kubernetes 1.36을 지원하지 않는다는 뜻으로 읽으면 안 됩니다. [26.7 플랫폼 지원표](https://docs.nvidia.com/networking/display/kubernetes2670/platform-support.html)는 1.32~1.36을 지원합니다. 조사 기준인 1.37.1은 26.7 지원표에 없으므로 Network Operator로 RDMA 패브릭을 구성하려면 지원표 안의 버전(1.36 이하)으로 맞추거나 지원표 갱신을 확인해야 합니다. RDMA 패브릭을 제공할 때는 선택한 Network Operator 버전에 Kubernetes를 맞춰야 한다는 결론이며, 현행 조합은 07편의 지원 범위와 함께 대조하면 됩니다.
 
 ## 7. 확인하지 못한 것
 
-- NVIDIA가 공식으로 낸 nccl-tests 기대 busbw(H100, B200, B300의 노드 안과 노드 간). NVCRE도 기본 임계값을 싣지 않습니다
+- NVIDIA가 공식으로 낸 nccl-tests 기대 busbw(H100, B200, B300의 노드 안과 노드 간). NVCRE도 기본 임계값을 싣지 않음
 - perftest(`ib_write_bw`)의 기대값 1차 출처
-- SHARP의 활성 요건 원문과 효과의 조건부 수치. SHARP 3.x 문서 페이지는 열리지 않았습니다
+- SHARP의 활성 요건 원문과 효과의 조건부 수치. SHARP 3.x 문서 페이지는 열리지 않음
 - NVLS 효과를 보여 주는 공식 수치
-- node-problem-detector와 DCGM·XID를 묶은 공개 운영 사례. NVSentinel이 노드 조건을 직접 보고하므로 별도 연동이 필요한지도 확인하지 못했습니다
+- node-problem-detector와 DCGM·XID를 묶은 공개 운영 사례. NVSentinel이 노드 조건을 직접 보고하므로 별도 연동이 필요한지도 확인하지 못함
 - 이더넷 compute 패브릭을 테넌트별 VRF로 나누는 NVIDIA 레퍼런스
-- topograph의 옛 라벨 키가 언제 바뀌었는지
-- UCX 절의 본문. 목차만 확인했습니다
+- topograph의 v0.1.0 시절 라벨 키가 바뀐 정확한 시점
+- UCX 절의 본문. 목차만 확인함
 - Spectrum-X 노이즈 격리의 효과를 잰 자료
 
 ## 참고 자료
@@ -237,5 +237,4 @@ SuperPOD는 노드를 아직 덜 채웠더라도 SU 전체를 기준으로 패�
 - [Meta RoCE 블로그](https://engineering.fb.com/2024/08/05/data-center-engineering/roce-network-distributed-ai-training-at-scale/)
 - [Google Cloud GPU 네트워크 대역](https://docs.cloud.google.com/compute/docs/gpus/gpu-network-bandwidth)
 - [nccl-tests 기대값(2차)](https://saturncloud.io/blog/crusoe-nccl-cluster-validation/)
-
 - [Linux v6.18 — RDMA 네트워크 네임스페이스 모드 변경](https://github.com/torvalds/linux/blob/v6.18/drivers/infiniband/core/device.c#L1120-L1149)

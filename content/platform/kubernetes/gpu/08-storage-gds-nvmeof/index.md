@@ -19,9 +19,9 @@ GPUDirect Storage(GDS)는 NVMe나 NIC 근처의 DMA(직접 메모리 접근) 엔
 
 {{< flow src="_flow/2-gds-경로.json" />}}
 
-요청을 제출하고 완료를 처리하는 일은 CPU에 남습니다. 애플리케이션은 CPU에서 cuFile API를 호출합니다. `nvidia-fs.ko`를 쓰는 구성에서는 `libcufile.so`가 모드를 선택하고 모듈에 IOCTL을 보내며, 커널 파일시스템 드라이버도 CPU에서 직접 전송을 설정합니다. NVIDIA 개요 가이드와 IIT NIXL 벤치마크 논문을 함께 보면, 데이터 평면에서 CPU 메모리를 우회하더라도 제어 평면에는 요청마다 CPU 고정 비용이 듭니다.
+요청을 제출하고 완료를 처리하는 일은 CPU에 남습니다. 애플리케이션은 CPU에서 cuFile API를 호출합니다. `nvidia-fs.ko`를 쓰는 구성에서는 `libcufile.so`가 모드를 선택하고 모듈에 IOCTL을 보내며, 커널 파일시스템 드라이버도 CPU에서 직접 전송을 설정합니다. NVIDIA 개요 가이드와 IIT NIXL 벤치마크 논문(5절)을 함께 보면, 데이터 평면에서 CPU 메모리를 우회하더라도 제어 평면에는 요청마다 CPU 고정 비용이 듭니다.
 
-이 차이는 원격 스토리지에서도 이어집니다. NIC와 GPU 사이의 GPUDirect RDMA(원격 메모리 직접 접근)는 [06편]({{< relref "/platform/kubernetes/gpu/06-gpudirect-rdma-basics/index.md" >}})과 [07편]({{< relref "/platform/kubernetes/gpu/07-gpudirect-rdma-operations/index.md" >}})에서 설명했습니다. 스토리지에서는 여기에 파일시스템과 NVMe 전송 드라이버의 지원 조건이 더해집니다.
+이 차이는 원격 스토리지에서도 이어집니다. NIC과 GPU 사이의 GPUDirect RDMA(NIC이 GPU 메모리에 직접 접근하는 방식)는 [06편]({{< relref "/platform/kubernetes/gpu/06-gpudirect-rdma-basics/index.md" >}})과 [07편]({{< relref "/platform/kubernetes/gpu/07-gpudirect-rdma-operations/index.md" >}})에서 설명했습니다. 스토리지에서는 여기에 파일시스템과 NVMe 전송 드라이버의 지원 조건이 더해집니다.
 
 아래 버전과 지원 범위는 2026-10-21 조사 기준입니다. 표의 `✓`는 1차 출처에서 확인한 내용을 뜻합니다. 벤더의 성능 주장과 이 글의 추정은 본문에서 따로 밝힙니다.
 
@@ -94,11 +94,11 @@ JBOF와 EBOF에서는 DPU가 스토리지 서버의 CPU를 대신하기도 합�
 
 ### CPU 효율은 코어 수와 폴링 방식을 함께 읽는다
 
-SPDK 24.05 보고서에서 4KiB 랜덤 읽기는 RDMA가 약 8코어에서 포화했고 TCP는 비슷한 IOPS를 내는 데 24~32코어가 필요했습니다. RDMA의 큐 깊이는 128, TCP는 384로 다릅니다. RDMA 보고서의 링크 구성 서술도 섞여 있어 엄밀한 동일 조건 비교보다는 경향을 보여주는 자료로 읽어야 합니다.
+SPDK 24.05 보고서에서 4KiB 랜덤 읽기는 RDMA가 약 8코어에서 포화했고 TCP는 비슷한 IOPS를 내는 데 16~32코어 구간이 필요했습니다. RDMA의 큐 깊이는 128, TCP는 384로 다릅니다. RDMA 보고서의 링크 구성 서술도 섞여 있어 엄밀한 동일 조건 비교보다는 경향을 보여주는 자료로 읽어야 합니다.
 
 SPDK Target과 커널 Target의 비교에서는 RDMA 4KiB 랜덤 쓰기의 코어당 IOPS 차이가 최대 8.17배였습니다. 이 값은 Target 측 비교이므로, 커널 이니시에이터를 쓰는 Kubernetes 클라이언트 노드의 CPU 비용이 얼마나 달라질지는 이 수치로 판단할 수 없습니다.
 
-코어 효율이 높아도 CPU 사용률이 낮게 표시되는 것은 아닙니다. SPDK나 Mayastor의 폴링 구현은 완료 여부를 계속 확인하므로 I/O 부하와 무관하게 할당된 코어를 100% 사용합니다. Mayastor 2.12.0 릴리스 노트에도 이 동작이 명시돼 있습니다. Bench 2020의 SPDK 측정에서도 폴링 기반 RoCE와 InfiniBand의 클라이언트 CPU 사용률은 약 92%였습니다. 네이티브 IB가 대부분 우세했지만 큰 I/O에서는 IPoIB가 CPU 사용률과 꼬리 지연에서 나은 경우가 있었습니다. ConnectX-3·5 세대의 결과를 현재 장비에 그대로 적용하기는 어렵습니다.
+코어 효율이 높아도 CPU 사용률이 낮게 표시되는 것은 아닙니다. SPDK나 Mayastor의 폴링 구현은 완료 여부를 계속 확인하므로 I/O 부하와 무관하게 할당된 코어를 100% 사용합니다. Mayastor 2.12.0 릴리스 노트에도 이 동작이 명시돼 있습니다. Impact of Commodity Networks on Storage Disaggregation with NVMe-oF 논문(Bench 2020)의 SPDK 측정에서도 폴링 기반 RoCE와 InfiniBand의 클라이언트 CPU 사용률은 약 92%였습니다. 네이티브 IB가 대부분 우세했지만 큰 I/O에서는 IPoIB가 CPU 사용률과 꼬리 지연에서 나은 경우가 있었습니다. ConnectX-3·5 세대의 결과를 현재 장비에 그대로 적용하기는 어렵습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -127,13 +127,13 @@ driver:
     useHostMofed: true   # 호스트에 DOCA-OFED를 직접 설치한 경우
 ```
 
-디바이스 플러그인의 `--gds-enabled` 또는 환경변수 `GDS_ENABLED`가 켜져 있으면 GPU를 요청한 컨테이너에 `NVIDIA_GDS=enabled`가 주입됩니다. nvidia-container-toolkit은 이 값을 받아 캐릭터 디바이스 `/dev/nvidia-fs*`와 마운트 `/run/udev`, `/etc/cufile.json`을 넣습니다. 이 과정은 두 프로젝트의 소스에서 확인할 수 있습니다.
+device plugin의 `--gds-enabled` 또는 환경변수 `GDS_ENABLED`가 켜져 있으면 GPU를 요청한 컨테이너에 `NVIDIA_GDS=enabled`가 주입됩니다. nvidia-container-toolkit은 이 값을 받아 캐릭터 디바이스 `/dev/nvidia-fs*`와 마운트 `/run/udev`, `/etc/cufile.json`을 넣습니다. 이 과정은 두 프로젝트의 소스에서 확인할 수 있습니다.
 
 {{< flow src="_flow/5-파드-주입-경로.json" />}}
 
-이 주입 경로를 사용하면 파드에 `/dev/nvidia-fs*` hostPath를 별도로 적을 필요가 없습니다. 디바이스 플러그인 설정, 드라이버 파드의 `mofed-validation` init 컨테이너와 `nvidia-fs-ctr`, `lsmod | grep nvidia` 출력의 `nvidia_fs`를 확인합니다. GPU Operator 26.3.3 문서 업데이트에는 `MOFED_ENABLED`와 `GDS_ENABLED`가 기본으로 켜지던 회귀가 언급돼 있으므로, 활성화 상태가 의도한 설정인지도 확인해야 합니다.
+이 주입 경로를 사용하면 파드에 `/dev/nvidia-fs*` hostPath를 별도로 적을 필요가 없습니다. device plugin 설정, 드라이버 파드의 `mofed-validation` init 컨테이너와 `nvidia-fs-ctr`, `lsmod | grep nvidia` 출력의 `nvidia_fs`를 확인합니다. GPU Operator 26.3.3 문서 업데이트에는 `MOFED_ENABLED`와 `GDS_ENABLED`가 기본으로 켜지던 회귀가 언급돼 있으므로, 활성화 상태가 의도한 설정인지도 확인해야 합니다.
 
-데이터 볼륨으로는 로컬 NVMe의 hostPath·Local PV나 원격 NFS·Lustre CSI(컨테이너 스토리지 인터페이스) 볼륨을 검토할 수 있습니다. OverlayFS는 호환 모드만 지원합니다. 따라서 컨테이너 rootfs인 overlayfs의 쓰기 레이어에 학습 데이터를 두면 GDS 직접 경로를 사용할 수 없다는 해석입니다. 파일시스템·오브젝트 스토리지·병렬 파일시스템의 선택 기준은 [GPU 클러스터 스토리지]({{< relref "/data/gpu-storage/_index.md" >}}) 시리즈에 있습니다.
+데이터 볼륨으로는 로컬 NVMe의 hostPath·Local PV나 원격 NFS·Lustre CSI(컨테이너 스토리지 인터페이스) 볼륨을 검토할 수 있습니다. OverlayFS는 호환 모드만 지원합니다. 따라서 컨테이너 rootfs인 overlayfs의 쓰기 레이어에 학습 데이터를 두면 GDS 직접 경로를 사용할 수 없습니다. 파일시스템·오브젝트 스토리지·병렬 파일시스템의 선택 기준은 [GPU 클러스터 스토리지]({{< relref "/data/gpu-storage/02-data-path-and-filesystems/index.md" >}}) 시리즈에 있습니다.
 
 ### 블록 CSI와 벤더 파일시스템 클라이언트
 
@@ -157,7 +157,7 @@ AWS FSx for Lustre는 EFA와 GDS를 함께 쓰는 공식 구성을 제공합니�
 
 DGX B300의 로컬 디스크는 캐시용 E1.S 3.84TB NVMe 8개와 부팅용 M.2 2개입니다. 레퍼런스 아키텍처를 보면 주 스토리지는 병렬 파일시스템이나 NFS이고 로컬 NVMe는 캐시·스크래치로 쓰는 것으로 짐작할 수 있습니다.
 
-GPU 노드가 외부 NVMe-oF 블록 볼륨을 CSI로 붙여 학습 데이터를 읽는 공개 사례는 찾지 못했습니다. RWO로 제공하는 블록 볼륨은 한 노드에서 읽기·쓰기로 마운트하므로 여러 노드가 같은 데이터셋을 읽는 용도로는 제약이 있습니다. [Kubernetes 접근 모드 문서](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes)에 따르면 RWO는 같은 노드의 여러 파드가 사용할 수 있으며, 단일 파드 제한은 RWOP입니다. 이를 NVMe-oF 자체의 단일 파드 제약으로 해석해서는 안 됩니다. 실제 학습·추론 경로에서의 활용은 [09편]({{< relref "/platform/kubernetes/gpu/09-storage-reality/index.md" >}})에서 이어집니다.
+GPU 노드가 외부 NVMe-oF 블록 볼륨을 CSI로 붙여 학습 데이터를 읽는 공개 사례는 찾지 못했습니다. RWO로 제공하는 블록 볼륨은 한 노드에서 읽기·쓰기로 마운트하므로 여러 노드가 같은 데이터셋을 읽는 용도로는 제약이 있습니다. [Kubernetes 접근 모드 문서](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes)에 따르면 RWO는 같은 노드의 여러 파드가 사용할 수 있으며, 단일 파드 제한은 RWOP입니다. 따라서 RWO 볼륨의 제약을 NVMe-oF 자체의 단일 파드 제약으로 해석해서는 안 됩니다. 실제 학습·추론 경로에서의 활용은 [09편]({{< relref "/platform/kubernetes/gpu/09-storage-reality/index.md" >}})에서 이어집니다.
 
 ## 5. 직접 전송 여부를 확인한 뒤 I/O 성능을 잰다 {#5-읽기에-성공했어도-경로와-성능은-따로-확인한다}
 
@@ -183,31 +183,31 @@ NVIDIA 개발자 포럼에는 `gdscheck -p`가 NVMe Unsupported를 표시해도 
 
 직접 전송이 동작해도 속도 향상은 별도로 측정해야 합니다. NVIDIA 개요 가이드가 이득을 기대하는 조건은 스토리지에서 GPU로 가는 I/O가 병목이고, 파이프라인이 GPU에서 실행되는 경우입니다. GPU 메모리에 들어가는 데이터를 명시적으로 큰 단위로 스트리밍하면 호출당 오버헤드를 분산할 수 있다는 설명입니다.
 
-세밀한 랜덤 접근이나 mmap·managed memory의 페이지 폴트 기반 접근은 이 패턴과 다릅니다. 정렬되지 않은 오프셋·주소·크기도 처리할 수는 있지만 직접 전송은 아닙니다. 파일시스템이 해당 크기의 RDMA를 지원하지 않는 아주 작은 I/O, GPU BAR1 aperture보다 큰 전송 역시 이득이 작거나 직접 경로가 성립하지 않는 범위입니다. 개요 가이드의 '최소 두 배' 최대 대역폭은 PCIe 스위치 경로를 CPU 경유 경로와 비교한 벤더 주장으로, 플랫폼 토폴로지가 조건입니다.
+세밀한 랜덤 접근이나 mmap·managed memory의 페이지 폴트 기반 접근은 이 패턴과 다릅니다. 정렬되지 않은 오프셋·주소·크기도 처리할 수는 있지만 직접 전송은 아닙니다. 파일시스템이 해당 크기의 RDMA를 지원하지 않는 아주 작은 I/O, GPU BAR1 aperture보다 큰 전송 역시 이득이 작거나 직접 경로가 성립하지 않는 범위입니다. 개요 가이드가 말하는 최대 대역폭 '최소 두 배'는 PCIe 스위치 경로를 CPU 경유 경로와 비교한 벤더 주장이며, 플랫폼 토폴로지가 조건입니다.
 
 벤더 밖의 IIT NIXL 논문은 읽기와 쓰기에서 다른 결과를 보고했습니다. Chameleon 노드의 AMD EPYC 7763, A100-PCIe-40GB 한 장, ext4 로컬 NVMe 하나에 CUDA 12.9, nvidia-fs 2.25, gdsio v0.4.1을 사용한 측정입니다.
 
 | 측정 항목 | 논문에 서술된 결과와 해석 |
 |---|---|
-| 쓰기 | 128KiB 미만은 두 경로가 거의 같고, 큰 I/O에서는 CPU 경유가 훨씬 우세했습니다. 저자들은 GPU 페이지 크기 64KB 때문에 P2P DMA 요청이 쪼개져 작은 I/O가 늘어난다고 설명합니다. |
-| 읽기 | GDS 직접 경로가 가장 우세했습니다. |
-| 배치 | 성능에 영향이 없었습니다. 배치 안의 요청도 하나씩 제출하기 때문이라는 해석입니다. |
-| 비동기 | 성능이 가장 낮았습니다. 작은 I/O가 많을 때 요청마다 인터럽트가 발생하기 때문이라고 설명합니다. |
+| 쓰기 | 128KiB 미만은 두 경로가 거의 같고, 큰 I/O에서는 CPU 경유가 훨씬 우세함. 저자들은 GPU 페이지 크기 64KB 때문에 P2P DMA 요청이 쪼개져 작은 I/O가 늘어난다고 설명 |
+| 읽기 | GDS 직접 경로가 가장 우세함 |
+| 배치 | 성능에 영향이 없음. 배치 안의 요청도 하나씩 제출하기 때문이라는 해석 |
+| 비동기 | 성능이 가장 낮음. 작은 I/O가 많을 때 요청마다 인터럽트가 발생하기 때문이라고 설명 |
 
 논문은 GDS가 항상 전통적인 CPU-GPU 경로보다 빠르지는 않다고 결론 내립니다. 결과는 그래프 서술이며 절대 수치는 없습니다. 단일 GPU와 로컬 NVMe 하나를 다룬 확장 초록 규모의 결과를 대규모 병렬 파일시스템에 그대로 적용할 수는 없습니다.
 
-ACM Phoenix 논문도 GDS 소프트웨어 스택이 critical path에 큰 오버헤드를 더한다고 주장합니다. 초록에 나온 소프트웨어 오버헤드 평균 70.3% 감소와 작은 I/O 약 2.29배는 본문을 확인하지 못한 수치입니다. 초록만 확인한 결과이며, 별도로 검증하지는 못했습니다.
+ACM Phoenix 논문도 GDS 소프트웨어 스택이 critical path에 큰 오버헤드를 더한다고 주장합니다. 초록에 나온 소프트웨어 오버헤드 평균 70.3% 감소와 작은 I/O 약 2.29배는 본문을 확인하지 못했고 별도로 검증하지도 못했습니다.
 
 ## 6. 확인하지 못한 것
 
-- GDS 1.19.1과 CUDA 13.4.1의 정확한 릴리스 날짜. 문서에 갱신일만 있습니다.
-- GPU Operator 26.7.x에서 GDS 테스트 파드의 공식 YAML 예시. 문서에는 RDMA 테스트 파드만 있습니다.
-- Crusoe의 GDS 활성화 문서. 접근이 막혀 내용을 확인하지 못했습니다.
+- GDS 1.19.1과 CUDA 13.4.1의 정확한 릴리스 날짜. 문서에 갱신일만 있다.
+- GPU Operator 26.7.x에서 GDS 테스트 파드의 공식 YAML 예시. 문서에는 RDMA 테스트 파드만 있다.
+- Crusoe의 GDS 활성화 문서. 접근이 막혀 내용을 확인하지 못했다.
 - Portworx에서 NVMe-oF RDMA를 고르는 정확한 StorageCluster 필드나 환경변수 이름, 최신 Portworx 버전.
 - VAST CSI, DDN EXAScaler CSI, Dell CSI, Lightbits CSI의 최신 버전과 RDMA·GDS 옵션.
 - WEKA와 VAST가 Kubernetes 환경에서 GDS를 쓰는 공식 절차.
 - SNAP으로 에뮬레이션한 NVMe에서 GDS를 쓸 수 있는지, BlueField-4의 SNAP 지원 상태.
-- Phoenix 논문 본문. 초록 검색 결과만 봤습니다.
+- Phoenix 논문 본문. 초록 검색 결과만 봤다.
 
 ## 참고 자료
 
