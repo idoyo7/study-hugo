@@ -1,0 +1,22 @@
+{
+  "caption": "ecs_observer는 컨테이너×포트 타깃 넷을 파일에 쓰고, 같은 수집기의 receiver가 긁으며 container_name은 relabel로 남깁니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "task", "label": "태스크 하나 · ENI IP 하나", "members": ["a", "n", "j", "e"] }
+  ],
+  "nodes": [
+    { "id": "a", "col": 0, "row": 0, "label": "앱", "sub": "포트 9090", "kind": "src" },
+    { "id": "n", "col": 0, "row": 1, "label": "nginx exporter", "sub": "포트 9113", "kind": "src" },
+    { "id": "j", "col": 0, "row": 2, "label": "JMX exporter", "sub": "포트 9404", "kind": "src" },
+    { "id": "e", "col": 0, "row": 3, "label": "envoy 사이드카", "sub": "포트 9901", "kind": "src" },
+    { "id": "o", "col": 2, "row": 1, "label": "수집기", "sub": "ecs_observer가 타깃 4개 기록, receiver가 scrape", "kind": "proc" },
+    { "id": "s", "col": 3, "row": 1, "label": "시계열", "sub": "relabel로 container_name 유지", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "a", "to": "o", "label": "scrape", "rate": 520 },
+    { "from": "n", "to": "o", "label": "scrape", "rate": 520 },
+    { "from": "j", "to": "o", "label": "scrape", "rate": 520 },
+    { "from": "e", "to": "o", "label": "scrape", "rate": 520 },
+    { "from": "o", "to": "s", "label": "저장", "rate": 520 }
+  ]
+}

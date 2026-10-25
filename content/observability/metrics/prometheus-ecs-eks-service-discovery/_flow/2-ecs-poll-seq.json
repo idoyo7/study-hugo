@@ -1,0 +1,19 @@
+{
+  "caption": "네이티브 ECS SD는 매 주기마다 ECS API를 처음부터 다시 호출하므로, 폴링 사이에 바뀐 태스크는 다음 주기까지 목록에 반영되지 않습니다.",
+  "participants": [
+    { "id": "P", "label": "Prometheus SD" },
+    { "id": "E", "label": "ECS API" },
+    { "id": "C", "label": "EC2 API" }
+  ],
+  "steps": [
+    { "msg": ["P", "E"], "label": "1. ListClusters (clusters 생략 시)" },
+    { "msg": ["P", "E"], "label": "2. ListTasks" },
+    { "msg": ["P", "E"], "label": "3. DescribeTasks" },
+    { "msg": ["P", "C"], "label": "4. EC2 launch type이면 인스턴스 조회" },
+    { "note": ["P", "C"], "lines": ["refresh_interval 60초마다 처음부터 반복", "변화분이 없어 매번 전체 목록"] },
+    { "alt": "폴링 사이에 A3가 A5로 교체되면", "steps": [
+      { "msg": ["P", "E"], "label": "5. 다음 폴링" },
+      { "msg": ["E", "P"], "label": "A3 빠지고 A5 추가", "dashed": true }
+    ] }
+  ]
+}

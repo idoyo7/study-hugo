@@ -1,0 +1,22 @@
+{
+  "caption": "수집기 태스크의 ecs_observer가 ECS API 결과를 file_sd 파일로 쓰면, 같은 수집기가 컨테이너×포트 타깃을 긁어 AMP로 보냅니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "col", "label": "수집기 태스크", "members": ["r", "o"] }
+  ],
+  "nodes": [
+    { "id": "t", "col": 0, "row": 0, "label": "ECS 태스크", "sub": "앱 · 사이드카", "kind": "src" },
+    { "id": "api", "col": 1, "row": 1, "label": "ECS API", "sub": "태스크 목록", "kind": "store" },
+    { "id": "r", "col": 2, "row": 0, "label": "prometheus receiver", "sub": "file_sd 읽기", "kind": "proc" },
+    { "id": "o", "col": 2, "row": 1, "label": "ecs_observer", "sub": "파일 작성", "kind": "proc" },
+    { "id": "s", "col": 3, "row": 0, "label": "AMP", "sub": "remote_write 수신", "kind": "store" },
+    { "id": "g", "col": 4, "row": 0, "label": "Grafana", "sub": "대시보드", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "api", "to": "o", "label": "폴링", "rate": 700 },
+    { "from": "o", "to": "r", "label": "file_sd", "rate": 700 },
+    { "from": "t", "to": "r", "label": "scrape", "rate": 520 },
+    { "from": "r", "to": "s", "label": "원격 쓰기", "rate": 700 },
+    { "from": "s", "to": "g", "label": "조회", "rate": 700 }
+  ]
+}

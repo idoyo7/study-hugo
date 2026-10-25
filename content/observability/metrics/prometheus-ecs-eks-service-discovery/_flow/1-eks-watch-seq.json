@@ -1,0 +1,21 @@
+{
+  "caption": "새 pod는 watch 이벤트가 오고, 묶음 대기와 reload 주기를 거친 뒤 첫 scrape에 닿으며, pod가 사라지면 이전 시계열이 바로 stale이 됩니다.",
+  "participants": [
+    { "id": "A", "label": "API server" },
+    { "id": "S", "label": "k8s SD" },
+    { "id": "M", "label": "scrape manager" },
+    { "id": "P", "label": "pod" }
+  ],
+  "steps": [
+    { "msg": ["S", "A"], "label": "1. LIST 후 WATCH" },
+    { "msg": ["A", "S"], "label": "2. pod 추가 이벤트", "dashed": true },
+    { "msg": ["S", "M"], "label": "3. 타깃 그룹 전달" },
+    { "note": ["S", "M"], "lines": ["묶음 대기 최대 5초", "reload ticker 5초"] },
+    { "msg": ["M", "P"], "label": "4. 첫 scrape" },
+    { "note": ["A", "P"], "lines": ["상한은 watch 전파 + 5초 + 5초 + interval 하나", "코드 경로를 합산한 추정, 실측 아님"] },
+    { "alt": "pod가 사라지면", "steps": [
+      { "msg": ["A", "S"], "label": "5. 삭제 이벤트", "dashed": true },
+      { "msg": ["S", "M"], "label": "6. 타깃 제거 → loop 중지, stale 표시" }
+    ] }
+  ]
+}

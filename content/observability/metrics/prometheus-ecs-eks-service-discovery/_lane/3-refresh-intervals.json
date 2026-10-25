@@ -1,0 +1,87 @@
+{
+  "caption": "목록 갱신까지 최대로 기다리는 시간은 kubernetes_sd가 약 10초이고, ECS 쪽은 refresh 주기 30~60초에 같은 경로의 최대 10초가 더해집니다.",
+  "font": 1.1,
+  "note": "빗금은 모든 SD가 거치는 discovery 묶음 대기 5초와 scrape reload 5초입니다. watch 전파와 scrape 간격은 뺀 최악값입니다.",
+  "axis": {
+    "kind": "linear",
+    "max": 70,
+    "unit": "초",
+    "ticks": [
+      0,
+      10,
+      30,
+      40,
+      60,
+      70
+    ]
+  },
+  "lanes": [
+    {
+      "label": "kubernetes_sd",
+      "segments": [
+        {
+          "start": 0,
+          "end": 10,
+          "label": "최대 약 10초",
+          "kind": "proc",
+          "style": "hatch"
+        }
+      ]
+    },
+    {
+      "label": "ecs_observer",
+      "sub": "소스 기준",
+      "segments": [
+        {
+          "start": 0,
+          "end": 30,
+          "label": "refresh 30초",
+          "kind": "proc"
+        },
+        {
+          "start": 30,
+          "end": 40,
+          "label": "+10초",
+          "kind": "proc",
+          "style": "hatch"
+        }
+      ]
+    },
+    {
+      "label": "Cloud Map dns_sd",
+      "segments": [
+        {
+          "start": 0,
+          "end": 30,
+          "label": "refresh 30초",
+          "kind": "proc"
+        },
+        {
+          "start": 30,
+          "end": 40,
+          "label": "+10초",
+          "kind": "proc",
+          "style": "hatch"
+        }
+      ]
+    },
+    {
+      "label": "네이티브 ECS SD",
+      "segments": [
+        {
+          "start": 0,
+          "end": 60,
+          "label": "refresh 60초",
+          "kind": "proc"
+        },
+        {
+          "start": 60,
+          "end": 70,
+          "label": "+10초",
+          "kind": "proc",
+          "style": "hatch"
+        }
+      ]
+    }
+  ]
+}

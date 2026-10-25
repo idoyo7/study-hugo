@@ -1,0 +1,17 @@
+{
+  "caption": "EKS에 있는 Prometheus가 ECS API로 태스크 목록을 받아 VPC 너머의 태스크 IP를 scrape하고, 이미 있는 저장소에 씁니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "t", "col": 0, "row": 0, "label": "ECS 태스크", "sub": "A1~A4 · B1~B2", "kind": "src" },
+    { "id": "api", "col": 1, "row": 1, "label": "ECS API", "sub": "태스크 목록", "kind": "store" },
+    { "id": "p", "col": 2, "row": 0, "label": "Prometheus", "sub": "EKS · additionalScrapeConfigs", "kind": "proc" },
+    { "id": "s", "col": 3, "row": 0, "label": "기존 저장소", "sub": "EKS 볼륨 또는 AMP", "kind": "store" },
+    { "id": "g", "col": 4, "row": 0, "label": "Grafana", "sub": "대시보드", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "api", "to": "p", "label": "폴링", "rate": 700 },
+    { "from": "t", "to": "p", "label": "scrape", "rate": 520, "cross": true },
+    { "from": "p", "to": "s", "label": "저장", "rate": 520 },
+    { "from": "s", "to": "g", "label": "조회", "rate": 700 }
+  ]
+}
