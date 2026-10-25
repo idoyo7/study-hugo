@@ -4,7 +4,7 @@ linkTitle: "Vector · ClickHouse 파이프라인"
 description: "Fluent Bit → Firehose → OpenSearch 파이프라인에서 앞의 두 단을 Vector로 바꾸는 네 가지 방법과, 저장소를 ClickHouse로 옮길 때 적재 경로에서 달라지는 점을 검토합니다."
 weight: 9
 date: 2026-10-04
-lastmod: 2026-10-04
+lastmod: 2026-10-25
 url: "/logging/09-vector-clickhouse-pipeline/"
 ---
 
@@ -12,7 +12,7 @@ url: "/logging/09-vector-clickhouse-pipeline/"
 
 `fluent-bit → Firehose → OpenSearch`에서 Firehose를 빼면 수집 요금과 버퍼 지연을 줄일 수 있지만, 버퍼·재시도·실패 로그 보관을 직접 운영해야 합니다. Fluent Bit까지 교체할지는 별도로 정할 수 있습니다. 저장소를 ClickHouse로 옮긴다면 배치 크기와 테이블 스키마도 함께 바뀝니다.
 
-기존 [OpenSearch 비용 분석]({{< relref "/observability/logs/comparison/01-opensearch.md" >}})과 [ClickHouse 평가]({{< relref "/observability/logs/comparison/04-clickhouse.md" >}})에 이어, AWS 관리형 수집 경로의 어느 부분부터 바꿀 수 있는지 검토했습니다. 문서 조사에 사용한 버전은 2026-10-04 기준 Vector 0.58.0, Fluent Bit 5.1.3, ClickHouse 26.9입니다. 공개 벤치마크의 수치와 홈랩에서 확인한 결과는 구분해 적었습니다.
+기존 [OpenSearch 비용 분석]({{< relref "/observability/logs/comparison/01-opensearch.md" >}})과 [ClickHouse 평가]({{< relref "/observability/logs/comparison/04-clickhouse.md" >}})에 이어, AWS 관리형 수집 경로의 어느 부분부터 바꿀 수 있는지 검토했습니다. 문서 조사에 사용한 버전은 2026-10-22 기준 Vector 0.60.0, Fluent Bit 5.1.5, ClickHouse 26.9입니다. 공개 벤치마크의 수치와 홈랩에서 확인한 결과는 구분해 적었습니다.
 
 홈랩은 Vector와 HyperDX 컬렉터를 연결해 운영 중입니다. 수집기 셋을 비교해 Vector를 남긴 경위는 [관측 스택 일원화]({{< relref "/platform/homelab/03-observability-consolidation/index.md" >}})에서 설명합니다. 아래의 Vector 직접 적재 구성은 이 운영 경로와 다르며, 홈랩에서 확인한 범위도 설정 검증·로그 변환·표본 적재까지입니다.
 
@@ -90,13 +90,13 @@ ClickHouse로 옮기면 저장량과 검색 기능이 달라지고, 수집기도
 
 ### 압축·보관과 텍스트 검색 {#얻는-것}
 
-공개 로그 벤치마크에서는 저장량 차이가 컸습니다. ClickHouse가 2026-04에 낸 OTel 로그 벤치마크에서 500억 행이 ClickHouse 26.3에서는 2.43TiB, Elasticsearch 9.3.2에서는 12.01TiB였습니다 `Ⓑ`. 4.95배 차이인데, 비교 대상이 OpenSearch가 아니라 Elasticsearch이고 벤더가 잰 값입니다. 사용자 쪽 수치는 편차가 큽니다. Uber는 압축률을 3배(일부 로그는 30배)로 적었고, ClickHouse 사내 플랫폼은 19PiB를 1.13PiB로 줄여 17배라고 밝혔습니다 `Ⓥ`. 정렬키와 로그의 반복성, 컬럼으로 뽑아낸 정도에 따라 이만큼 벌어지므로, 용량 계산에는 우리 로그로 잰 값을 넣어야 합니다.
+공개 로그 벤치마크에서는 저장량 차이가 컸습니다. ClickHouse가 2026-04에 낸 OTel 로그 벤치마크에서 500억 행이 ClickHouse 26.3에서는 2.43TiB, Elasticsearch 9.3.2에서는 12.01TiB였습니다 `Ⓑ`. 4.95배 차이인데, 비교 대상이 OpenSearch가 아니라 Elasticsearch이고 벤더가 잰 값입니다. 조건은 m6i.8xlarge 단일 노드씩이고, Elasticsearch는 `best_compression`과 `index.sort`(ServiceName, Timestamp), force-merge를 적용하고 레플리카를 0으로 두었습니다. LogsDB 사용 여부는 글에 적혀 있지 않습니다. 사용자 쪽 수치는 편차가 큽니다. Uber는 압축률을 3배(일부 로그는 30배)로 적었고, ClickHouse 사내 플랫폼은 19PiB를 1.13PiB로 줄여 17배라고 밝혔습니다 `Ⓥ`. 2025-06 후속 글에서는 비압축 100PB, 약 500조 행으로 커졌다고 하는데 압축 후 크기는 공개하지 않았습니다. 정렬키와 로그의 반복성, 컬럼으로 뽑아낸 정도에 따라 이만큼 벌어지므로, 용량 계산에는 우리 로그로 잰 값을 넣어야 합니다.
 
 OpenSearch 쪽 기준선도 같이 놓고 봐야 차이가 보입니다. AWS 문서는 로그 워크로드의 인덱스 크기를 원본의 약 1.1배로 잡고, 프라이머리 20GiB에 레플리카 하나를 두면 여유 공간까지 약 58GiB가 필요하다고 계산합니다 `✓`. [OpenSearch 글]({{< relref "/observability/logs/comparison/01-opensearch.md" >}})에서 본 대로 그 디스크를 서빙하는 인스턴스 시간이 비용의 대부분입니다.
 
 보존 관리도 테이블 정의 안으로 들어옵니다. 날짜로 파티션을 나누고 TTL을 걸면 만료된 파트를 통째로 지우며(`ttl_only_drop_parts = 1`), 같은 TTL 문법으로 며칠 지난 파트를 S3 볼륨으로 옮길 수 있습니다. ISM 정책과 UltraWarm 이전에 해당하는 일을 DDL 한 곳에서 합니다.
 
-전문검색의 공백은 예전보다 줄었습니다. 텍스트 인덱스가 26.2에서 GA가 됐고 `hasToken`, `hasAllTokens`, `LIKE` 같은 조건을 가속합니다 `✓`. 예전의 `tokenbf_v1`·`ngrambf_v1`은 문서에서 deprecated로 표기합니다. 텍스트 인덱스는 적재 처리량과 압축률에도 영향을 줍니다. GA 공지에 실린 50TB 로그 실험에서 텍스트 인덱스를 붙이자 insert 처리량이 절반쯤 줄고 전체 압축률이 9배에서 6배 수준으로 내려갔습니다 `Ⓥ`.
+전문검색의 공백은 예전보다 줄었습니다. 텍스트 인덱스가 26.2에서 GA가 됐고 `hasToken`, `hasAllTokens`, `LIKE` 같은 조건을 가속합니다 `✓`. 예전의 `tokenbf_v1`·`ngrambf_v1`은 문서에서 deprecated로 표기합니다. 텍스트 인덱스는 적재 처리량과 압축률에도 영향을 줍니다. GA 공지에 실린 50TB 로그 실험(ClickHouse Cloud 59 vCPU·256GB)에서 텍스트 인덱스를 붙이자 insert 처리량이 절반쯤 줄었습니다 `Ⓥ`. 압축률이 9배에서 6배 수준으로 내려간 것은 같은 글의 별도 GitHub Events 테이블(100억 행 이상) 수치입니다 `Ⓥ`.
 
 ### 검색·알림·접근제어의 차이 {#내주는-것}
 

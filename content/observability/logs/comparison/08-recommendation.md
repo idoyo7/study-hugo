@@ -1,7 +1,7 @@
 ---
 title: "우리 케이스 · 권장안"
 date: 2026-07-12
-lastmod: 2026-08-24
+lastmod: 2026-10-25
 weight: 8
 url: "/logging/08-recommendation/"
 ---
@@ -78,7 +78,7 @@ url: "/logging/08-recommendation/"
 1. OpenSearch "전체 클러스터 40% RI 절감" 기대 — UltraWarm 예약 불가로 블렌디드 상한 ~25%.
 2. 메트릭을 ClickHouse/StarRocks에 억지로 넣기 — 메트릭은 VM에.
 3. StarRocks를 "완전 ephemeral"로 오해 — FE 쿼럼은 stateful(PV 필수).
-4. VM/VictoriaLogs에 쿼리 가능한 S3 primary 티어 기대 — 미출시(로드맵 베팅 금지).
+4. VM/VictoriaLogs에 쿼리 가능한 S3 primary 티어 기대 — S3는 primary가 아니라 일 단위 파티션 offload(`-offloadPeriod` 최소 1일, 최근 1일 이상은 항상 로컬 디스크) 설계로 PR #1155에서 구현 중이고 메인테이너의 master 머지 ETA는 2026-11이지만, 머지 후 안정화 기간을 고려해 로드맵 베팅은 금지.
 5. 신호 하나만 내재화하고 ROI 기대 — 인건비가 상쇄, 여러 신호를 한 팀에 수렴시켜야 성립.
 6. HyperDX를 모바일 RUM 중계처로 — 모바일 세션 리플레이 SDK 없음(2026).
 7. 새로 짓는 Loki를 Simple Scalable(SSD) 모드로 — Loki 4.0 전 제거 예정(single-binary/monolithic은 유지).

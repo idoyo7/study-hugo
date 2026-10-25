@@ -2,11 +2,17 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
-## 2026-10-25 — 로그 저장소 비교 01~05 사실 갱신
+## 2026-10-25 — ECS·EKS에서 Prometheus 타깃 자동 발견
+
+- `content/observability/metrics/prometheus-ecs-eks-service-discovery/`를 새로 만들었습니다(공개 URL `/monitoring/prometheus-ecs-eks-service-discovery/`). EKS의 kubernetes_sd(API server watch)와 ECS의 발견 방법(네이티브 `aws_sd_configs` role ecs, Cloud Map DNS, ecs_observer, 사이드카), 수집기 배치 다섯 패턴, 다중 컨테이너 태스크의 라벨 설계, 조건별 선택 기준을 정리했습니다. 수치 타일, flow 도식 7장, seq 2장, lane 1장이 들어 있고, 메트릭 색인의 찾기 목록과 설명 목록에 링크를 더했습니다.
+- 2026-10-25 조사 보고서 3편(EKS Kubernetes SD, ECS 발견 방법, ECS 아키텍처·운영)을 바탕으로 Claude가 초안을 쓰고 Astra가 전면 재작성한 뒤 원본과 대조해 보정하는 흐름입니다. 보고서끼리 어긋난 값(ecs_observer refresh_interval, 네이티브 ECS SD의 릴리스 날짜)은 소스 쪽을 따르거나 버전만 적었고, 비용 예시는 서울 리전 공개 단가로 계산한 추정입니다.
+- 실행 기록은 `_workspace/structure-2026-10-25-ecs-sd/`에 있습니다.
+
+## 2026-10-25 — 로그 저장소 비교 01~05·08과 Vector·ClickHouse 파이프라인 사실 갱신
 
 - `content/observability/logs/comparison/01~05`(OpenSearch, Loki·Alloy, VictoriaLogs, ClickHouse, HyperDX·ClickStack)의 낡은 서술을 2026-10-22 조사 보고서의 "기존 평가 대비 변경점" 표대로 바로잡았습니다. 기존 문장은 살리고 틀린 문장만 바꿨습니다. 보고서가 1차 출처를 찾지 못한 수치(Loki 10–15배 저장 효율, ~100GB→30GB 압축, Cloudflare 96조 이벤트, VictoriaLogs 40~80배 압축)는 빼거나 벤더 문서 문구로 교체했고, 벤더 측정 수치에는 측정자와 조건을 붙였습니다.
 - 바뀐 사실: AWS Optimized 엔진 GA(2026-07-01), OpenSearch 3.x 질의 성능, Loki v3.7.9와 4.0의 Kafka 의존·Helm 차트 이관·Logs Drilldown, VictoriaLogs 오브젝트 스토리지 PR의 2026-11 머지 예정과 Enterprise 기능 범위 정정, ClickHouse text index GA 버전(26.2)과 Uber 사례 원문 확인, Managed ClickStack의 MongoDB 불필요.
-- 변경 로그는 `_workspace/structure-2026-10-22-logstack/notes/update-0*.md`에 있습니다. 08-recommendation과 09-vector-clickhouse-pipeline에도 보고서가 지적한 항목이 남아 있습니다.
+- 08-recommendation은 VictoriaLogs 오브젝트 스토리지 항목의 근거만 갱신했습니다(일 단위 파티션 offload 설계, PR #1155, 2026-11 머지 예정, 베팅 금지 결론 유지). 09-vector-clickhouse-pipeline은 Vector 0.60.0·Fluent Bit 5.1.5로 올리고, ClickHouse 벤치마크의 측정 조건과 text index 50TB 실험의 두 수치 출처를 분리했습니다. 변경 로그는 `_workspace/structure-2026-10-22-logstack/notes/update-0*.md`에 있습니다.
 
 ## 2026-10-22 — 로그 스택 통합 비교
 
