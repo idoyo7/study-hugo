@@ -10,8 +10,8 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [EKS 노드를 재단하는 목수: 당근의 Karpenter 도입 여정]({{< relref "/external/daangn/talks/builder-meetup-2026/01-karpenter-adoption.md" >}})
-- [AI 시대의 옵저버빌리티 재설계: Grafana를 걷어내고, 얼럿은 에이전트에게]({{< relref "/external/daangn/talks/builder-meetup-2026/02-observability-agents.md" >}})
+- [필요한 AZ에 노드를 만들기 위한 당근의 Karpenter 전환]({{< relref "/external/daangn/talks/builder-meetup-2026/01-karpenter-adoption.md" >}})
+- [장애 원인 분석 시간을 줄이려는 당근의 관측 플랫폼과 Doctor Agent]({{< relref "/external/daangn/talks/builder-meetup-2026/02-observability-agents.md" >}})
 
 2026 당근 빌더 밋업의 SRE 세션 중 클러스터 파트 발표 두 편을 정리했습니다. 두 영상은 슬라이드가 공개되지 않아 자동 자막만으로 재구성했습니다.
 

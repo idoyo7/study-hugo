@@ -10,9 +10,9 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [아마존 EKS 무중단 업그레이드]({{< relref "/external/daangn/talks/sre-meetup-1/01-eks-zero-downtime-upgrade.md" >}})
-- [실전! gRPC 서비스 운영 노하우]({{< relref "/external/daangn/talks/sre-meetup-1/02-grpc-operations.md" >}})
-- [AWS Config로 시작하는 컴플라이언스 기반 리소스 관리]({{< relref "/external/daangn/talks/sre-meetup-1/03-aws-config-compliance.md" >}})
+- [새 EKS 클러스터로 트래픽을 옮겨 버전 업그레이드하기]({{< relref "/external/daangn/talks/sre-meetup-1/01-eks-zero-downtime-upgrade.md" >}})
+- [당근의 gRPC 운영: 연결 관리와 요청 분산, 장애 지표]({{< relref "/external/daangn/talks/sre-meetup-1/02-grpc-operations.md" >}})
+- [사내 운영 규칙을 AWS Config로 검사하고 보고하기]({{< relref "/external/daangn/talks/sre-meetup-1/03-aws-config-compliance.md" >}})
 
 당근마켓과 당근페이 SRE 팀이 안정적인 인프라 구축과 운영 노하우를 나눈 첫 번째 밋업입니다. 영상은 2021-08-31에 YouTube 당근 채널에 올라왔고(설명란 기준 녹화일 2021-08-26), [1회 다시보기 재생목록](https://www.youtube.com/playlist?list=PLaHcMRg2hoBqWWla-pCBSRqU-jSriiZHj)에서 볼 수 있습니다. AWS Config 발표는 영상을 확인하지 못해 슬라이드만으로 정리했습니다.
 

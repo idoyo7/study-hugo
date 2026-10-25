@@ -1,11 +1,11 @@
 ---
-title: "CircleCI에서 GitHub Actions로 이전하며 배포 속도 개선하기"
-description: "당근 운영개발팀 인턴이 어드민 툴 karrot-cs의 CI/CD를 CircleCI에서 GitHub Actions로 옮기며 Docker layer caching과 Dockerfile 순서 조정으로 배포 시간을 줄인 과정의 요약입니다. 15분이 넘던 배포가 약 2분까지 내려갔습니다."
+title: "GitHub Actions 이전과 Docker 캐시로 배포 시간을 줄인 과정"
+description: "당근 karrot-cs의 CI/CD 이전 사례입니다. 캐시 저장소를 추가하고 Dockerfile의 커밋 ID·소스 복사 순서를 바꿔, 캐시를 재사용하는 배포를 약 2분으로 줄였습니다."
 date: 2026-10-21
 weight: 9
 ---
 
-# CircleCI에서 GitHub Actions로 이전하며 배포 속도 개선하기 (2022-09)
+# GitHub Actions 이전과 Docker 캐시로 배포 시간을 줄인 과정 (2022-09)
 
 {{< callout type="info" >}}
 **원문 정보**
@@ -13,32 +13,32 @@ weight: 9
 - 매체 · 게시일: Medium 당근 블로그 · 2022-09-20
 - 저자: Seungwook Seo (Wade, 당근마켓 운영개발팀 인턴 서버 개발자). SRE팀 클러스터 파트 글이 아닙니다.
 - 근거: 블로그 본문 (본문에 삽입된 코드 조각과 이미지는 확인하지 않았습니다)
-- 이 문서는 원문을 읽고 재구성한 요약이며 원문 자체가 아닙니다.
+- 원문 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 
-## 캐시 없이 반복하던 빌드
+## 매번 처음부터 빌드하던 karrot-cs {#캐시-없이-반복하던-빌드}
 
-스팸 처리와 신고, 문의를 다루는 어드민 툴 karrot-cs는 배포에 15분이 넘게 걸리기도 했습니다. workflow마다 새 머신에서 `docker build`를 실행하면서 layer cache 없이 이미지를 처음부터 빌드했기 때문입니다.
+스팸·신고·문의를 처리하는 어드민 툴 karrot-cs는 배포에 15분 넘게 걸리기도 했습니다. workflow마다 새 머신에서 `docker build`를 실행해, 이전 빌드의 layer cache를 재사용하지 못했습니다.
 
-배포 도구도 나뉘어 있었습니다. 캐나다·일본의 alpha(테스트 서버) 배포는 GitHub Actions를, 한국 alpha와 각국 운영 배포는 CircleCI를 썼습니다. 코드를 관리하는 GitHub에서 CI까지 확인하기 편하고 사내 다른 프로젝트도 GitHub Actions를 선택하는 추세여서, 이전하면서 캐시도 적용하기로 했습니다.
+CI 도구도 배포 대상에 따라 달랐습니다. 캐나다·일본의 alpha 테스트 서버는 GitHub Actions를, 한국 alpha와 각국 운영 배포는 CircleCI를 사용했습니다. 팀은 코드와 CI를 GitHub에서 함께 확인하기 편하다는 점과 사내 다른 프로젝트의 도입 흐름을 고려해 GitHub Actions로 통합하면서 캐시도 적용했습니다.
 
-## 캐시 저장소와 Dockerfile 실행 순서 변경
+## 캐시를 저장해도 precompile이 반복된 이유 {#캐시-저장소와-dockerfile-실행-순서-변경}
 
-layer cache 저장소로는 별도 설정이 필요 없고 API로 관리하기 쉬운 GitHub Actions Cache를 골랐습니다. Docker의 `build-push-action`에 `cache-from`, `cache-to`를 붙이고, 캐시가 쌓이지 않도록 `github-script`로 최근 100개만 남기고 나머지를 비우게 했습니다.
+팀은 별도 설정 없이 사용할 수 있고 API로 관리하기 쉬운 GitHub Actions Cache를 저장소로 골랐습니다. Docker의 `build-push-action`에 `cache-from`, `cache-to`를 지정하고, `github-script`로 최근 100개만 남기도록 캐시를 정리했습니다.
 
-캐시를 적용해도 빌드는 6분 넘게 걸렸습니다. Dockerfile을 보니 `ARG git_commit_id`에서 캐시 미스가 나 이후 단계를 모두 다시 실행하고 있었습니다. 그중 `rails assets:precompile`이 약 5분을 차지했습니다.
+캐시를 적용한 뒤에도 빌드는 6분 넘게 걸렸습니다. Dockerfile의 `ARG git_commit_id`에서 캐시가 무효화돼 이후 단계를 다시 실행했고, 그중 `rails assets:precompile`에 약 5분이 들었습니다.
 
-커밋 ID를 받는 줄을 precompile 뒤로 옮겼습니다. precompile에 필요한 소스만 먼저 `ADD`하고, 전체 소스는 precompile 뒤에 추가했습니다. 이렇게 하면 precompile과 무관한 코드만 바뀐 배포에서는 이 단계까지 캐시를 쓸 수 있습니다.
+커밋 ID를 받는 줄을 precompile 뒤로 옮기고, precompile에 필요한 소스만 앞에서 `ADD`했습니다. 전체 소스는 그 뒤에 추가했습니다. 이 순서라면 precompile과 무관한 코드만 바뀌었을 때 해당 단계의 캐시를 재사용할 수 있습니다.
 
-## 배포 시간과 적용 범위
+## 캐시와 실행 순서 변경 후의 배포 시간 {#배포-시간과-적용-범위}
 
-Docker layer caching만 적용했을 때 빌드 시간이 약 8분 줄었고, Dockerfile 순서까지 바꾼 뒤 precompile 단계까지 캐시가 적용된 배포는 약 2분 수준으로 줄었습니다. 같은 yml을 한국을 포함한 나머지 리전의 모든 배포에 적용해 정상 동작을 확인했습니다.
+Docker layer caching을 적용하면서 빌드 시간을 약 8분 줄였습니다. Dockerfile 순서까지 조정한 뒤에는 precompile까지 캐시를 재사용하는 배포가 약 2분에 끝났습니다. 동일한 yml을 한국을 포함한 나머지 리전의 모든 배포에 적용하고 정상 동작을 확인했습니다. 단계별 시간은 아래 표에 남겼습니다.
 
-## 캐시 효과의 조건과 남은 개선점
+## 약 2분 배포가 가능한 변경 범위 {#캐시-효과의-조건과-남은-개선점}
 
-캐시 이득은 precompile에 쓰이지 않는 코드만 바뀐 배포에서만 납니다. 저자는 인턴 마지막 과제로 이 작업을 진행했고, 캐시 비우기 코드 등에는 개선 여지가 남아 있다고 적었습니다.
+precompile까지의 캐시를 재사용하려면 그 단계에 필요한 소스가 바뀌지 않아야 합니다. 모든 배포가 같은 시간에 끝난다는 의미는 아닙니다. 저자는 인턴 마지막 과제로 작업을 진행했으며, 캐시 정리 코드 등에 개선 여지가 남았다고 설명했습니다.
 
-배포 속도를 팀 단위 흐름으로 다룬 글은 [매일 배포하는 팀이 되는 여정(1)]({{< relref "/external/daangn/blog/05-daily-deploy-branch-strategy.md" >}})에 있습니다.
+빌드 시간을 포함해 팀의 배포 절차를 바꾼 사례는 [매일 배포하는 팀이 되는 여정(1)]({{< relref "/external/daangn/blog/05-daily-deploy-branch-strategy.md" >}})에서 이어서 읽을 수 있습니다.
 
 {{% details title="근거와 세부 수치" closed="true" %}}
 

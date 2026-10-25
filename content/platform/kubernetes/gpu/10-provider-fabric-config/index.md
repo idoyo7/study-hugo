@@ -1,13 +1,13 @@
 ---
-title: "10 제공자가 GPU 파드보다 먼저 맞추는 NVLink·패브릭 설정"
-description: "2026-10-21 기준으로 GPU 클러스터 제공자가 NVLink와 노드 간 패브릭을 준비할 때 확인할 조건을 설명한다. FM·IMEX의 관리 범위를 나누고, InfiniBand·RoCE의 공개 사례와 설정 부담을 선택 근거로 삼는다."
+title: "10 GPU 클러스터 제공자를 위한 NVLink·네트워크 패브릭 설정"
+description: "GPU 파드를 배치하기 전에 제공자가 준비할 NVLink와 노드 간 패브릭 설정을 설명한다. Fabric Manager와 IMEX의 관리 범위를 구분하고 InfiniBand·RoCE의 운영 조건을 2026-10-21 기준으로 비교한다."
 date: 2026-10-21
 lastmod: 2026-10-21
 weight: 10
 url: "/kubernetes/gpu/10-provider-fabric-config/"
 ---
 
-# 10 · 제공자가 GPU 파드보다 먼저 맞추는 NVLink·패브릭 설정
+# 10 · GPU 클러스터 제공자를 위한 NVLink·네트워크 패브릭 설정
 
 ## 1. GPU 세대에 맞춰 Fabric Manager를 구성한다 {#2-fm은-gpu-세대와-장애-정책에-맞춰-구성한다}
 

@@ -1,11 +1,11 @@
 ---
-title: "나가는 길을 다시 그리다: 당근페이 VPC 재설계"
-description: "당근 SRE 밋업 4회에서 클라우드 파트 최용환이 발표한 당근페이 VPC 재설계 요약입니다. 흩어진 NAT Gateway와 Transit Gateway를 Network VPC로 모으고 NACL을 AWS Network Firewall로 바꾼 과정과 아쉬운 점을 다룹니다."
+title: "당근페이가 NAT와 방화벽을 Network VPC로 모은 과정"
+description: "당근페이는 VPC마다 흩어진 NAT Gateway와 접근 제어를 Network VPC에 통합했습니다. Transit Gateway와 공인 IP를 유지하며 이전한 순서, AWS Network Firewall 도입 결과와 남은 비용·권한 문제를 정리합니다."
 date: 2026-10-21
 weight: 6
 ---
 
-# 나가는 길을 다시 그리다: 당근페이 VPC 재설계 (SRE 밋업 4회)
+# 당근페이가 NAT와 방화벽을 Network VPC로 모은 과정 (SRE 밋업 4회)
 
 {{< callout type="info" >}}
 **원문 정보**
@@ -13,35 +13,26 @@ weight: 6
 - 매체 · 게시일: YouTube 당근 채널 · 2025-10-10
 - 발표자: 최용환 (Yany, SRE 팀 클라우드 파트). 영상 설명란과 슬라이드 자기소개로 확인했습니다.
 - 근거: YouTube 자동 자막 전체 + 발표 슬라이드
-- 이 문서는 영상을 읽고 재구성한 요약이며 원문 자체가 아닙니다.
+- 발표 영상의 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 
-## 주요 구간
+## VPC마다 흩어진 접근 제어가 한계에 닿다 {#흩어진-접근-제어와-늘어나는-예외-경로}
 
-- [01:00](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=60s) 이전 네트워크 구조
-- [03:00](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=180s) 이전 구성의 문제점
-- [06:30](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=390s) Network VPC와 Network Firewall 도입안
-- [12:00](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=720s) Transit Gateway 마이그레이션
-- [19:00](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=1140s) NAT 마이그레이션과 공인 IP 보존
-- [24:30](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=1470s) 결과와 아쉬운 점
+당근페이는 환경마다 VPC를 하나씩, 모두 세 개 운영했습니다. 각 VPC는 AZ 세 개와 NAT Gateway를 사용했고, Transit Gateway(TGW)는 VPC 간 East/West 통신용과 파트너 연결용으로 분리했습니다. 파트너 TGW에는 서비스가 배포된 VPC만 연결되어 있었습니다.
 
-## 흩어진 접근 제어와 늘어나는 예외 경로
+NAT Gateway가 VPC마다 있어 모든 퍼블릭 서브넷의 NACL을 따로 관리해야 했습니다. 아웃바운드 정책도 NACL·보안 그룹·DNS 방화벽에 나뉘었습니다. 파트너가 늘수록 규칙은 복잡해졌지만 NACL은 한 방향의 규칙이 40개를 넘으면 성능 문제가 생겼고, Quota 때문에 IP 규칙을 더 세분화하기도 어려웠습니다.
 
-당근페이는 환경별로 VPC 세 개를 두고, 각 VPC에서 AZ 세 개와 NAT Gateway를 썼습니다. Transit Gateway(TGW)는 VPC 사이 통신(East/West)용과 파트너사 연결용으로 나뉘어 있었습니다. 파트너 TGW에 연결된 곳은 서비스가 배포되는 VPC뿐입니다.
-
-VPC마다 NAT Gateway가 있어 모든 퍼블릭 서브넷의 NACL을 세밀하게 관리해야 했습니다. 아웃바운드 제어도 NACL, 보안 그룹, DNS 방화벽에 흩어져 있었습니다. 파트너가 늘수록 정책은 복잡해졌지만, NACL은 방향당 규칙이 40개를 넘으면 성능 문제가 생겼습니다. Quota 때문에 IP 기준 규칙을 더 잘게 나누기도 어려운 상태였습니다.
-
-서비스 VPC 밖에서 파트너에 접근하는 예외도 늘었습니다. 이를 처리하려면 프록시를 거치는 우회 경로에 TGW 하나와 Attachment 하나가 더 필요했습니다. 관리 지점이 많아지고 리소스도 겹치는 구성이었습니다.
+서비스 VPC 밖에서 파트너로 나가야 하는 예외도 증가했습니다. 프록시 우회 경로마다 TGW와 Attachment가 하나씩 더 필요해 관리 지점과 중복 리소스가 함께 늘었습니다.
 
 ## Network VPC로 통합하고 연결을 순서대로 이전
 
-당근페이는 Network VPC를 만들어 NAT Gateway를 모으고, TGW는 하나로 합쳤습니다. 예외 경로는 TGW의 Route Table을 나눠 처리했습니다. NAT Gateway는 VPC당 3개에서 총 3개로 줄고, NACL 규칙도 한 곳에서 관리합니다. 이 구성에서는 NACL Quota가 더 빠듯해지므로 대체 방화벽도 함께 고려했습니다. CIDR, 포트, 프로토콜, 호스트 기준으로 규칙을 쓸 수 있는 매니지드 서비스 AWS Network Firewall(NFW)을 선택했습니다.
+새 Network VPC에 NAT Gateway를 모으고 TGW도 하나로 합쳤습니다. 예외 경로는 TGW Route Table을 분리해 처리했습니다. NAT Gateway는 VPC마다 3개이던 구성을 전체 3개로 줄였고 NACL도 한곳에서 관리하게 됐습니다. 중앙화하면 NACL Quota가 더 빠르게 소진되므로 CIDR·포트·프로토콜·호스트로 규칙을 작성할 수 있는 AWS Network Firewall(NFW)을 함께 선택했습니다.
 
-NFW는 AWS Firewall Manager로 배포했습니다. VPC마다 엔드포인트를 두는 Distributed와 한 VPC에만 두는 Centralized 중 Centralized를 골랐습니다. Centralized는 엔드포인트 비용이 적은 대신 VPC 사이 트래픽 전송 비용이 커질 수 있습니다. 당근페이는 규칙과 트래픽을 중앙에서 관리하려 했고, 자사 트래픽 규모에서는 아웃바운드의 TGW 전송 비용이 엔드포인트 비용보다 적다고 판단했습니다.
+NFW 배포에는 AWS Firewall Manager를 사용했습니다. VPC마다 엔드포인트를 만드는 Distributed 대신 한 VPC에 모으는 Centralized를 택했습니다. Centralized는 엔드포인트 비용을 줄이는 대신 VPC 간 전송 비용이 늘 수 있습니다. 규칙과 트래픽을 중앙에서 관리하려는 목적, 그리고 당시 트래픽에서 아웃바운드 TGW 비용이 엔드포인트 비용보다 작다는 계산이 선택 근거였습니다.
 
-마이그레이션은 TGW, 방화벽, NAT 순서로 진행했습니다. 새 계정에 TGW를 만드는 안은 Direct Connect와 VPN을 모두 다시 연결해야 해 파트너 연결이 끊기는 다운타임이 생깁니다. VPC 간 TGW를 유지하는 안도 Direct Connect와 VPN을 다시 맺어야 합니다. 당근페이는 쉽게 옮길 수 있는 VPC 연결과 오피스 VPN만 교체하면 되는 파트너 TGW 유지안이 가장 수월하다고 보고 이 안을 택했습니다.
+이전 순서는 TGW, 방화벽, NAT였습니다. 새 계정에 TGW를 만들거나 VPC 간 TGW만 유지하면 Direct Connect와 VPN을 다시 연결해야 하므로 파트너 연결에 다운타임이 생깁니다. 당근페이는 VPC 연결과 오피스 VPN만 옮기면 되는 파트너 TGW 유지안을 가장 수월한 선택으로 판단했습니다.
 
-NAT 이전의 조건은 파트너사 방화벽에 등록된 공인 IP 보존과 다운타임 최소화였습니다. 워크로드 경로를 NAT 하나로 모은 뒤 비운 NAT를 삭제했습니다. 여기서 풀린 EIP를 Network 계정으로 이전하고, 새 VPC에 같은 IP로 NAT를 만든 다음 경로를 TGW 쪽으로 돌렸습니다.
+NAT를 옮길 때는 파트너 방화벽에 등록된 공인 IP를 유지하고 다운타임을 줄여야 했습니다. 먼저 워크로드를 NAT 하나로 모아 나머지를 비운 뒤 삭제했습니다. 해제된 EIP를 Network 계정으로 이전하고 새 VPC에서 같은 IP의 NAT를 만든 다음 라우팅을 TGW로 전환했습니다.
 
 ## 접근 제어 통합 결과
 
@@ -52,9 +43,18 @@ NAT 이전의 조건은 파트너사 방화벽에 등록된 공인 IP 보존과 
 
 ## 계정 간 권한과 남은 전송 비용
 
-발표자는 방화벽, 네트워크, VPC를 각각 다른 계정에 둔 구성을 아쉬워했습니다. RAM 공유에 의존했지만 리소스 세부를 볼 수 없어 방화벽 대시보드 확인과 경로 파악에 필요한 권한이 부족했습니다. Centralized라면 Firewall Manager 없이 한 계정에서 만들어도 되었을 것이라는 평가입니다. Site-to-Site VPN을 TGW와 같은 계정에서 만들어야 한다는 의존성도 처음에는 몰랐다고 합니다.
+방화벽·네트워크·VPC를 서로 다른 계정에 둔 설계는 운영 권한 문제를 남겼습니다. RAM으로 공유한 리소스의 세부를 볼 수 없어 방화벽 대시보드와 경로를 확인하기 어려웠습니다. 발표자는 Centralized 구성이라면 Firewall Manager 없이 한 계정에서 만들 수도 있었다고 평가했습니다. Site-to-Site VPN을 TGW와 같은 계정에 만들어야 한다는 의존성도 진행 중에 알게 됐습니다.
 
-TGW 전송 비용은 남은 과제입니다. 아웃바운드는 TGW Attachment가 필요해 전송 비용을 피할 수 없다고 설명했습니다. VPC 사이 통신은 전송 비용이 들지 않는 VPC Peering으로 옮길 계획이라고 합니다.
+TGW 전송 비용은 아직 남아 있습니다. 아웃바운드는 TGW Attachment를 거쳐야 하므로 이 비용을 피할 수 없습니다. VPC 간 통신은 전송 비용이 없는 VPC Peering으로 옮길 계획입니다.
+
+## 주요 구간
+
+- [01:00](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=60s) 이전 네트워크 구조
+- [03:00](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=180s) 이전 구성의 문제점
+- [06:30](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=390s) Network VPC와 Network Firewall 도입안
+- [12:00](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=720s) Transit Gateway 마이그레이션
+- [19:00](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=1140s) NAT 마이그레이션과 공인 IP 보존
+- [24:30](https://www.youtube.com/watch?v=nvSKvrP3Z7Y&t=1470s) 결과와 아쉬운 점
 
 {{% details title="근거와 세부 수치" closed="true" %}}
 

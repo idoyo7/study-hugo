@@ -1,13 +1,13 @@
 ---
-title: "03 GPU 할당에 DRA가 필요한 때 — 개수는 device plugin, 노드 간 NVLink는 ComputeDomain"
-description: "2026-10-21 기준 GPU 개수 할당은 device plugin과 GPU Operator가 기본이며, 노드 간 NVLink에는 DRA 기반 ComputeDomain이 사실상 필수다. DRA로 GPU 할당을 옮길 시점은 장치 선택 요구와 설치·운영 제약에 따라 판단한다."
+title: "03 GPU 할당을 DRA로 옮길 시점"
+description: "2026-10-21 기준 단순 GPU 개수 할당은 device plugin이 여전히 기본이고, 노드 간 NVLink에는 DRA 기반 ComputeDomain이 필요하다. 장치 속성 선택, 설치 방식, 선점과 오토스케일 제약을 기준으로 전환 시점을 판단한다."
 date: 2026-10-21
 lastmod: 2026-10-21
 weight: 3
 url: "/kubernetes/gpu/03-allocation-dra/"
 ---
 
-# 03 · GPU 할당에 DRA가 필요한 때
+# 03 · GPU 할당을 DRA로 옮길 시점
 
 GPU를 개수로 요청해 쓰고 있다면 DRA(Dynamic Resource Allocation)가 GA(정식 제공)가 됐다는 이유만으로 할당 방식을 옮길 필요는 없습니다. 2026-10-21에 확인한 설치 문서와 운영 예시에서는 device plugin과 GPU Operator가 여전히 기본 경로입니다. 장치의 메모리·모델·위치까지 선택해야 하거나, GB200처럼 NVLink가 노드를 넘어 연결되는 환경에서는 DRA가 맡는 일이 달라집니다.
 

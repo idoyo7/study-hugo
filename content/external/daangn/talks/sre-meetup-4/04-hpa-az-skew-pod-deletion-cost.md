@@ -1,11 +1,11 @@
 ---
-title: "HPA Scale-in이 만든 AZ 불균형, Pod Deletion Cost로 바로잡기"
-description: "당근 SRE 밋업 4회에서 딜리버리 파트가 발표한 AZ 파드 수 불균형 해결 요약입니다. Locality LB 때문에 생긴 Zone Skew를 Pod Deletion Cost 컨트롤러로 잡았고 도입 뒤 Zone Skew가 원인인 장애는 0건이 되었습니다."
+title: "Pod Deletion Cost로 HPA의 AZ 불균형을 줄인 방법"
+description: "당근 딜리버리 파트는 Locality LB 환경에서 HPA Scale-in이 만든 Zone Skew를 전용 Pod Deletion Cost 컨트롤러로 줄였습니다. 설계 선택과 동기화 방식, 도입 뒤 Zone Skew가 원인인 장애가 0건이 된 결과를 정리합니다."
 date: 2026-10-21
 weight: 4
 ---
 
-# HPA Scale-in이 만든 AZ 불균형, Pod Deletion Cost로 바로잡기 (SRE 밋업 4회)
+# Pod Deletion Cost로 HPA의 AZ 불균형을 줄인 방법 (SRE 밋업 4회)
 
 {{< callout type="info" >}}
 **원문 정보**
@@ -13,35 +13,26 @@ weight: 4
 - 매체 · 게시일: YouTube 당근 채널 · 2025-10-10
 - 발표자: 김규환 (SRE 팀 딜리버리 파트, 영상 설명란과 슬라이드 표지로 확인)
 - 근거: YouTube 자동 자막 전체 + 발표 슬라이드
-- 이 문서는 영상을 읽고 재구성한 요약이며 원문 자체가 아닙니다.
+- 발표 영상의 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 
-## 주요 구간
+## Locality LB가 드러낸 Zone Skew {#locality-lb-이후-드러난-az-불균형}
 
-- [01:00](https://www.youtube.com/watch?v=_8suLM4lrRo&t=60s) 문제 정의: Locality LB와 Zone Skew
-- [04:00](https://www.youtube.com/watch?v=_8suLM4lrRo&t=240s) TopologySpreadConstraints, 수동 재시작, Descheduler
-- [07:30](https://www.youtube.com/watch?v=_8suLM4lrRo&t=450s) Pod Deletion Cost 소개
-- [10:00](https://www.youtube.com/watch?v=_8suLM4lrRo&t=600s) 컨트롤러 목표와 cost 부여 전략 비교
-- [16:00](https://www.youtube.com/watch?v=_8suLM4lrRo&t=960s) 컨트롤러 구조와 동기화 루프
-- [20:00](https://www.youtube.com/watch?v=_8suLM4lrRo&t=1200s) 대칭 코스트와 도입 결과
+발표자는 당근이 약 2년 동안 AZ별 파드 수가 어긋나면서 크고 작은 장애를 겪었다고 설명했습니다. 일부 서비스는 새벽 1시 무렵부터 AZ별 CPU 사용량 차이가 벌어졌습니다.
 
-## Locality LB 이후 드러난 AZ 불균형
-
-당근은 AZ별 파드 수 불균형으로 2년 동안 크고 작은 장애를 겪었다고 합니다. 새벽 1시쯤부터 AZ별 CPU 사용량이 벌어지는 서비스도 있었습니다.
-
-배경에는 발표 시점에서 약 2년 전 비용 절감을 위해 도입한 Locality 로드 밸런싱이 있습니다. 같은 AZ의 서버로 요청을 먼저 보내 Cross-AZ 트래픽은 크게 줄었지만, 파드가 여섯 대인 AZ와 두 대인 AZ에 같은 양의 요청이 들어오면 두 대에 부하가 몰립니다. 발표에서 Zone Skew라고 부른 문제입니다. HPA는 두 AZ의 전체 평균 부하를 보므로 한쪽만 과부하여도 스케일 아웃하지 않았습니다.
+비용을 줄이려고 약 2년 전에 도입한 Locality 로드 밸런싱이 이 현상의 배경이었습니다. 요청을 같은 AZ 서버에 우선 보내 Cross-AZ 트래픽은 크게 줄였지만, 파드가 여섯 대인 AZ와 두 대인 AZ에 같은 요청량이 들어오면 두 대뿐인 쪽이 과부하됩니다. 발표자는 이를 Zone Skew라고 불렀습니다. HPA는 두 AZ를 합친 평균 부하를 보기 때문에 한쪽만 과부하인 상황에서는 스케일 아웃하지 않았습니다.
 
 ## 스케일 인의 삭제 순서 제어
 
-당근이 적용한 TopologySpreadConstraints(topologyKey는 zone, maxSkew는 1)는 배포·재시작·스케일 아웃 때 새 파드를 고르게 배치하는 데 효과가 있었습니다. 스케일 인에서 지울 파드는 스케줄러가 정하지 않아, 트래픽이 줄어드는 새벽에는 작은 불균형이 쌓였습니다. 온콜이 알림을 보고 디플로이먼트를 재시작해도 다음 스케일 인에서 다시 균형이 깨졌고, 새벽 대응도 어려웠습니다. 수동 재시작은 근본 해결이 아니었습니다. 주기적으로 파드를 제거하는 Descheduler는 새벽에 임의로 파드를 지우는 위험이 부담스러워 제외했습니다.
+`topologyKey: zone`, `maxSkew: 1`인 TopologySpreadConstraints는 배포·재시작·스케일 아웃 때 새 파드를 고르게 놓았습니다. 하지만 스케일 인에서 삭제할 파드는 스케줄러가 선택하지 않습니다. 트래픽이 줄어드는 새벽마다 작은 불균형이 누적됐고, 온콜이 디플로이먼트를 재시작해도 다음 스케일 인에서 다시 어긋났습니다. 새벽에 임의로 파드를 제거할 수 있는 Descheduler도 운영 위험 때문에 제외했습니다.
 
-선택한 수단은 Kubernetes의 Pod Deletion Cost 어노테이션입니다. 같은 ReplicaSet에서 값이 낮은 파드부터 삭제하며, 값이 없으면 0으로 취급합니다. v1.22부터 beta로 제공되는 기능입니다. 당근은 AZ 간 파드 수 균형과 운영 예측 가능성을 확보하고 Kubernetes API 부하를 최소화하려고 cost를 관리하는 컨트롤러를 만들었습니다.
+해결 수단으로 Kubernetes v1.22부터 beta인 Pod Deletion Cost 어노테이션을 골랐습니다. 같은 ReplicaSet에서는 값이 낮은 파드를 먼저 지우고, 어노테이션이 없으면 0으로 처리합니다. 당근은 AZ별 파드 수를 맞추면서 삭제 순서를 예측하고 Kubernetes API 부하를 줄이기 위해 cost 전용 컨트롤러를 만들었습니다.
 
-모든 파드에 순번 cost를 주면 삭제 순서를 정확히 예측할 수 있지만, 노드가 갑자기 사라지면 cost가 무효화돼 불균형이 커지고 API 호출도 폭증합니다. 발표자는 새벽에 HPA가 파드를 한꺼번에 줄이지 않고 불균형도 조금씩 쌓인다는 점에 주목해 부분 cost 방식을 택했습니다. 파드가 많은 AZ에서 다음에 삭제할 소수의 파드에만 cost를 주는 방식입니다. 삭제 예측 가능성은 약간 떨어져도 알고리즘이 단순하고 API 부하가 적습니다.
+모든 파드에 순번 cost를 붙이면 삭제 순서를 정확히 알 수 있습니다. 그러나 노드가 갑자기 사라지면 기존 cost가 무효가 되어 불균형과 API 호출이 함께 커집니다. HPA가 새벽에 파드를 한꺼번에 줄이지 않고 불균형도 서서히 쌓인다는 관찰을 바탕으로, 파드가 많은 AZ의 삭제 후보 몇 개에만 값을 주는 부분 cost를 선택했습니다. 예측성은 조금 낮아지지만 알고리즘과 API 사용량이 줄어듭니다.
 
-Go로 작성한 컨트롤러는 스케일 인이나 새 파드 스케줄로 파드 수가 변할 때만 동작합니다. 이벤트를 큐에 넣고 파드와 노드의 AZ 정보를 모아, AZ별로 cost를 부여할 파드 수를 계산합니다. 실제 상태와 비교해 cost를 받은 파드가 부족하면 추가로 부여하고, 많으면 cost를 제거합니다.
+Go 컨트롤러는 스케일 인이나 새 파드 스케줄로 파드 수가 달라질 때만 실행됩니다. 이벤트를 큐에 넣고 파드·노드의 AZ 정보를 수집한 다음, 각 AZ에서 cost가 필요한 파드 수를 계산합니다. 실제 상태보다 부족하면 cost를 추가하고 많으면 제거합니다.
 
-운영 중에는 균형 상태의 삭제 순서도 보완해야 했습니다. 균형이 맞으면 cost가 없어 다음 스케일 인에서 어느 AZ의 파드가 삭제될지 알 수 없었고, 파드가 적은 새벽에는 이 불확실성이 치명적이었습니다. 그래서 당근은 균형일 때도 양쪽 AZ의 일부 파드에 같은 작은 cost를 주는 대칭 코스트를 넣었습니다. 스케일 인 때 양쪽에서 번갈아 하나씩 삭제하도록 유도합니다.
+AZ가 균형을 이룬 순간에도 문제가 남았습니다. cost가 하나도 없으면 다음 스케일 인이 어느 AZ를 줄일지 알 수 없고, 파드가 적은 새벽에는 한 번의 선택도 큰 차이를 만들었습니다. 당근은 균형 상태에서도 양쪽 AZ의 일부 파드에 같은 작은 값을 주는 대칭 코스트를 추가해, 스케일 인이 양쪽에서 번갈아 한 개씩 삭제되도록 유도했습니다.
 
 ## 도입 결과
 
@@ -51,9 +42,18 @@ Go로 작성한 컨트롤러는 스케일 인이나 새 파드 스케줄로 파�
 
 ## 적용 범위와 주의점
 
-부분 cost는 모든 파드에 cost를 주는 방식보다 삭제 순서를 덜 예측할 수 있습니다. 발표자는 실제 운영에서는 충분히 받아들일 만한 수준으로 판단했습니다. Kubernetes 문서는 Pod Deletion Cost를 너무 자주 바꾸지 말라고 안내하므로, 컨트롤러가 필요할 때만 최소한으로 개입하는 것이 이 방식의 전제입니다.
+부분 cost는 전체 파드에 순번을 매기는 방식보다 삭제 순서의 예측성이 낮습니다. 발표자는 운영에서 수용할 수 있는 수준이라고 판단했습니다. Kubernetes 문서도 Pod Deletion Cost를 자주 바꾸지 말라고 안내하므로, 상태가 변할 때만 최소한의 파드를 패치해야 합니다.
 
-발표에서 다룬 범위는 Locality 로드 밸런싱을 쓰는 AZ 두 개 구성입니다. 그 밖의 구성은 발표에서 다루지 않았습니다.
+이 발표에서 다룬 범위는 Locality 로드 밸런싱을 사용하는 2개 AZ 구성입니다. 다른 구성은 다루지 않았습니다.
+
+## 주요 구간
+
+- [01:00](https://www.youtube.com/watch?v=_8suLM4lrRo&t=60s) 문제 정의: Locality LB와 Zone Skew
+- [04:00](https://www.youtube.com/watch?v=_8suLM4lrRo&t=240s) TopologySpreadConstraints, 수동 재시작, Descheduler
+- [07:30](https://www.youtube.com/watch?v=_8suLM4lrRo&t=450s) Pod Deletion Cost 소개
+- [10:00](https://www.youtube.com/watch?v=_8suLM4lrRo&t=600s) 컨트롤러 목표와 cost 부여 전략 비교
+- [16:00](https://www.youtube.com/watch?v=_8suLM4lrRo&t=960s) 컨트롤러 구조와 동기화 루프
+- [20:00](https://www.youtube.com/watch?v=_8suLM4lrRo&t=1200s) 대칭 코스트와 도입 결과
 
 {{% details title="근거와 세부 수치" closed="true" %}}
 

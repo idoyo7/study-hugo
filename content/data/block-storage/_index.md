@@ -43,7 +43,7 @@ iSCSI와 NVMe-oF의 비교는 01, VM 디스크 전달 방식은 02부터 읽으�
 | [02 VM 디스크 경로]({{< relref "/data/block-storage/02-vm-disk-paths/index.md" >}}) | virtio·vhost·vfio-user·직접 할당·DPU 에뮬레이션의 경로 비교와 실측 |
 | [03 로컬 디스크와 복제]({{< relref "/data/block-storage/03-local-disk-ha/index.md" >}}) | 복제를 스토리지와 애플리케이션 중 어디에 둘지, 로컬 디스크의 수명 계약, 워크로드별 HA 가능 여부, 2곳과 3곳의 용량 산술, Kubernetes의 복제 스토리지와 로컬 PV 비교 |
 | [04 엔터프라이즈 전송 현황]({{< relref "/data/block-storage/04-enterprise-transports/index.md" >}}) | 어레이 벤더별 호스트 전송, RoCE가 어레이 안쪽 패브릭으로 간 이유, FC-NVMe와 iSCSI의 자리, 전송 간 격차 수치, 멀티패스·ANA·TLS·인증 |
-| [05 호스트·클라우드·오프로드]({{< relref "/data/block-storage/05-host-side-and-cloud/index.md" >}}) | vSphere·Linux·Windows의 NVMe-oF 지원, Kubernetes CSI 성숙도, 클라우드 블록 볼륨의 기반 전송, 오프로드 하드웨어와 Ultra Ethernet |
+| [05 호스트·클라우드·오프로드]({{< relref "/data/block-storage/05-host-side-and-cloud/index.md" >}}) | Kubernetes CSI와 Linux 노드의 NVMe-oF 지원, vSphere를 사용할 때의 연결 조건, 클라우드 블록 볼륨의 기반 전송, 오프로드 하드웨어와 Ultra Ethernet |
 | [06 Linux NVMe/TCP 운영]({{< relref "/data/block-storage/06-linux-nvme-tcp-operations/index.md" >}}) | hostnqn·자동 연결, CDC·nvme-stas 디스커버리, 네이티브 멀티패스·ANA·iopolicy, 타임아웃과 장애 동작, DH-HMAC-CHAP·TLS, 홈랩 nvmet 타깃, FC 운영 개념 대응표 |
 | [07 FC·TCP·RDMA 전송 비교]({{< relref "/data/block-storage/07-fc-tcp-rdma-transports/index.md" >}}) | 세 전송의 동작 원리와 네트워크 특성, FC가 안정적이라는 말의 범위, 접근성, 자료별 공개 측정(IOPS·지연·CPU), 보안·디스커버리·부팅, 어디에 무엇이 맞는가 |
 | [08 Kubernetes NVMe-oF와 Mayastor]({{< relref "/data/block-storage/08-kubernetes-nvmeof-mayastor/index.md" >}}) | Mayastor 데이터 경로와 요구 자원, 기능 상태, 공개 IOPS 측정의 조건, 프로덕션 사례와 상용 지원, Longhorn V2·LINSTOR·Ceph 등 대안 비교, 선택 기준과 홈랩 구성 |

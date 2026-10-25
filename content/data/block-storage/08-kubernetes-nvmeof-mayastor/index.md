@@ -1,28 +1,28 @@
 ---
-title: "Kubernetes NVMe-oF 선택지와 Mayastor의 도입 조건"
+title: "Kubernetes NVMe-oF: Mayastor를 도입할 조건"
 linkTitle: "08 Kubernetes NVMe-oF와 Mayastor"
-description: "Kubernetes·클라우드·홈랩에서 쓸 수 있는 NVMe-oF 경로를 비교하고 Mayastor의 자원 비용과 기능 제한, 공개 성능 측정과 도입 사례를 바탕으로 선택 조건을 정리한다."
+description: "Kubernetes에서 Mayastor를 도입하기 전에 복제 위치, 고정 자원, 기능 제한, 공개 성능과 운영 근거를 확인한다. Longhorn V2·LINSTOR·Ceph·로컬 PV와의 차이도 비교한다."
 weight: 8
 date: 2026-10-21
 lastmod: 2026-10-21
 url: "/storage/08-kubernetes-nvmeof-mayastor/"
 ---
 
-# 08 · Kubernetes NVMe-oF 선택지와 Mayastor의 도입 조건
+# 08 · Kubernetes에서 Mayastor를 도입하기 전에 확인할 것
 
-Mayastor(OpenEBS의 Replicated PV 엔진)는 Kubernetes에서 RWO(단일 노드 읽기·쓰기) 볼륨을 동기 복제하는 선택지이며, 노드마다 전용 자원을 요구합니다. 이 글의 해석으로는 엔터프라이즈 기능과 DataCore Puls8 상용 지원은 갖췄지만, 공개 사례와 커뮤니티 폭은 Ceph나 Longhorn보다 좁습니다.
+Mayastor는 OpenEBS의 Replicated PV 엔진으로, Kubernetes 노드 사이에서 RWO(단일 노드 읽기·쓰기) 볼륨을 동기 복제합니다. 대신 모든 스토리지 노드에 전용 CPU와 메모리, 휴지페이지를 예약해야 합니다. 엔터프라이즈 기능과 DataCore Puls8의 상용 지원은 갖췄지만 공개 도입 사례와 커뮤니티의 폭은 Ceph나 Longhorn보다 좁다고 해석합니다.
 
-2026-10-21 조사 기준으로 Mayastor와 가까운 대안은 Longhorn V2입니다. 외부 ONTAP 어레이를 연결하는 경로에는 NetApp Trident가 있습니다. LINSTOR는 복제를 DRBD가 맡으며 Ceph의 NVMe-oF는 실험 단계입니다. 앱이 스스로 복제한다면 로컬 PV도 비교 대상입니다.
+2026-10-21 기준으로 Mayastor와 구조가 가장 가까운 대안은 Longhorn V2입니다. 외부 ONTAP 어레이를 연결한다면 NetApp Trident를 사용할 수 있습니다. LINSTOR의 복제 계층은 DRBD이고 Ceph NVMe-oF는 아직 실험 단계입니다. 애플리케이션이 자체 복제를 제공하는 경우에는 로컬 PV도 함께 비교해야 합니다.
 
-근거 표기 — `✓` 1차 문서 확인 · `Ⓑ` 공개 벤치마크 · `Ⓥ` 벤더·프로젝트 주장 · `≈` 추정·역산 · `?` 미확인. 각 절 끝의 '근거와 측정 조건'에 수치와 조건을 모았습니다.
+근거는 `✓` 1차 문서, `Ⓑ` 공개 벤치마크, `Ⓥ` 벤더·프로젝트 주장, `≈` 추정·역산, `?` 미확인으로 나눕니다. 수치와 적용 조건은 각 절의 접은 표에 정리했습니다.
 
-앱이 스스로 복제할 수 있는 경우의 로컬 디스크 구성은 [03 로컬 디스크와 HA]({{< relref "/data/block-storage/03-local-disk-ha/index.md" >}})에, 엔터프라이즈 어레이의 전송 현황은 [04 엔터프라이즈 전송 현황]({{< relref "/data/block-storage/04-enterprise-transports/index.md" >}})에, Kubernetes 노드 쪽 호스트 설정은 [05 호스트·클라우드·오프로드]({{< relref "/data/block-storage/05-host-side-and-cloud/index.md" >}})에 있습니다. 노드의 NVMe/TCP 운영은 [06 Linux NVMe/TCP 운영]({{< relref "/data/block-storage/06-linux-nvme-tcp-operations/index.md" >}}), 전송 자체의 비교는 [07 FC·TCP·RDMA 전송 비교]({{< relref "/data/block-storage/07-fc-tcp-rdma-transports/index.md" >}})에서 다룹니다.
+애플리케이션 복제와 로컬 디스크 구성은 [03 로컬 디스크와 HA]({{< relref "/data/block-storage/03-local-disk-ha/index.md" >}}), 외부 어레이의 전송 지원은 [04 엔터프라이즈 전송 현황]({{< relref "/data/block-storage/04-enterprise-transports/index.md" >}})에 정리했습니다. Kubernetes 노드의 호스트 설정은 [05 호스트·클라우드·오프로드]({{< relref "/data/block-storage/05-host-side-and-cloud/index.md" >}}), NVMe/TCP 운영은 [06 Linux NVMe/TCP 운영]({{< relref "/data/block-storage/06-linux-nvme-tcp-operations/index.md" >}}), FC·TCP·RDMA 비교는 [07 FC·TCP·RDMA 전송 비교]({{< relref "/data/block-storage/07-fc-tcp-rdma-transports/index.md" >}})에서 다룹니다.
 
-## 1. 복제를 어디에 둘지에 따라 선택지가 달라진다
+## 1. 복제를 담당할 계층부터 정한다 {#1-복제를-어디에-둘지에-따라-선택지가-달라진다}
 
-Mayastor와 Longhorn V2는 Kubernetes 노드의 디스크를 스토리지 엔진이 복제합니다. 외부 ONTAP 어레이를 쓰는 Trident는 어레이가 복제를 맡고, 로컬 PV는 앱의 복제에 의존합니다. OpenEBS 블로그도 앱 수준의 복원력이 있는 워크로드와 스토리지 복제가 필요한 워크로드를 구분합니다.
+Mayastor와 Longhorn V2는 Kubernetes 노드에 붙은 디스크를 스토리지 엔진에서 복제합니다. Trident로 외부 ONTAP을 연결하면 어레이가 복제를 맡습니다. 로컬 PV는 스토리지 계층을 복제하지 않으므로 애플리케이션 자체 복제에 의존합니다. OpenEBS도 애플리케이션 수준의 복원력이 있는 워크로드와 스토리지 복제가 필요한 워크로드를 구분합니다.
 
-표의 용어는 2절에서 풀이합니다.
+표에 나온 Mayastor의 자원과 기능 제약은 2절에서 자세히 설명합니다.
 
 | 선택지 | 데이터 경로 | 복제 방식 | 전송 | 접근 모드 | GA 상태 | 요구 자원 | 상용 지원 | 공개 사용 사례 |
 |---|---|---|---|---|---|---|---|---|
@@ -33,11 +33,11 @@ Mayastor와 Longhorn V2는 Kubernetes 노드의 디스크를 스토리지 엔진
 | NetApp Trident `ontap-san` NVMe | 외부 ONTAP 어레이 | 어레이 내부 + SnapMirror(25.06~) | NVMe/TCP | RWO, RWX 블록 `≈` | GA | 어레이 | NetApp | 벤더 사례 다수 `Ⓥ` |
 | 로컬 PV + 앱 복제 | 커널 로컬 NVMe(LVM·ZFS·HostPath) | 앱이 복제(Patroni, Kafka, Cassandra 등) | 없음(네트워크는 앱 복제 트래픽만) | RWO | GA | 추가 고정 자원 없음 | OpenEBS Local PV는 DataCore | ADOPTERS 대부분 `✓` |
 
-Mayastor와 가장 닮은 Longhorn V2는 SPDK 사용자 공간 엔진과 NVMe-oF/TCP를 쓰며, 휴지페이지(hugepage)와 폴링 코어를 요구합니다. Longhorn V2는 RWX(여러 노드 읽기·쓰기)를 NFS로 제공하고 백업과 DR 볼륨도 지원해 기능 범위가 더 넓습니다. strict-local 데이터 지역성은 없으며, ARM64 NVMe 경로의 I/O 멈춤 이슈와 볼륨이 많을 때의 attach 지연이 제약으로 남아 있습니다.
+Longhorn V2는 Mayastor처럼 SPDK 사용자 공간 엔진과 NVMe-oF/TCP를 사용하며 휴지페이지와 폴링 코어를 요구합니다. NFS 기반 RWX(여러 노드 읽기·쓰기), 백업, DR 볼륨까지 제공해 기능 범위는 더 넓습니다. 반면 strict-local 데이터 지역성은 지원하지 않고 ARM64 NVMe 경로의 I/O 멈춤과 대량 볼륨 attach 지연이 알려진 제약으로 남아 있습니다.
 
-LINSTOR의 NVMe 레이어는 원격 디스크를 연결하는 기능이고 복제는 DRBD가 맡습니다. Ceph의 NVMe-oF는 주로 클러스터 밖 클라이언트에 RBD를 내보내는 용도입니다. 클러스터 안 Pod의 사용도 지원하지만 실험 단계입니다.
+LINSTOR에서 NVMe 레이어는 원격 디스크를 연결하고 실제 복제는 DRBD가 담당합니다. Ceph NVMe-oF의 주된 용도는 클러스터 외부 클라이언트에 RBD를 내보내는 것입니다. 클러스터 내부 Pod에서도 쓸 수 있지만 아직 실험 기능입니다.
 
-Patroni를 쓰는 Postgres, Kafka, Cassandra, etcd처럼 앱이 복제한다면 03편에서 다룬 로컬 PV가 가장 싸고 빠릅니다. 공유 파일시스템이 필요한 경우에는 Longhorn의 NFS RWX나 CephFS가 비교 대상입니다.
+Patroni 기반 Postgres, Kafka, Cassandra, etcd처럼 애플리케이션이 데이터를 복제한다면 03편의 로컬 PV가 비용과 성능 면에서 유리합니다. 여러 노드가 동시에 쓰는 파일시스템이 필요하면 Longhorn의 NFS RWX나 CephFS를 비교해야 합니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -54,19 +54,19 @@ Patroni를 쓰는 Postgres, Kafka, Cassandra, etcd처럼 앱이 복제한다면 
 
 {{% /details %}}
 
-## 2. Mayastor의 자원 요구와 기능 제한
+## 2. 고정 자원과 기능 제한을 먼저 계산한다 {#2-mayastor의-자원-요구와-기능-제한}
 
-공식 요구 사항을 계산하면 3노드에서 코어 6개를 상시 사용합니다. io-engine은 부하가 없어도 전용 코어를 폴링에 쓰며, RAM과 휴지페이지도 독점합니다. 2.11부터 실험 기능인 interrupt mode를 켤 수 있지만 지연이 늘어납니다.
+공식 요구 사항대로라면 3노드 클러스터가 io-engine용 CPU 코어 6개를 항상 사용합니다. io-engine은 I/O 부하가 없어도 전용 코어를 폴링하며 RAM과 휴지페이지도 예약합니다. 2.11부터 실험적인 interrupt mode를 선택할 수 있지만 지연이 증가합니다.
 
-데이터 플레인인 io-engine DaemonSet은 디스크 하나로 만든 DiskPool에 복제본을 둡니다. 볼륨마다 nexus(복제본을 연결하는 입구)가 NVMe-oF 타깃을 열고, 앱 노드는 커널 nvme-tcp 이니시에이터로 접속합니다. 같은 노드의 nexus에 붙어도 이 구간의 프로토콜은 NVMe-oF입니다. 쓰기는 건강한 복제본 모두가 완료해야 응답하고, 읽기는 건강한 복제본 사이를 라운드로빈합니다. 같은 io-engine 인스턴스에는 복제본을 두 개 두지 않습니다.
+데이터 플레인인 io-engine DaemonSet은 디스크 하나로 구성한 DiskPool에 복제본을 저장합니다. 각 볼륨의 nexus가 복제본을 묶어 NVMe-oF 타깃으로 내보내고, 애플리케이션 노드는 커널 nvme-tcp 이니시에이터로 접속합니다. nexus가 같은 노드에 있어도 이 구간은 NVMe-oF를 사용합니다. 쓰기는 정상 복제본이 모두 완료한 뒤 응답하고 읽기는 정상 복제본 사이를 라운드로빈합니다. 같은 io-engine 인스턴스에는 복제본을 두 개 배치하지 않습니다.
 
-이 동기 복제 방식에서는 느린 복제본이 쓰기 응답을 늦춥니다. `nodeSpreadTopologyKey`로 zone 라벨에 복제본을 분산할 수 있지만, 존 간 RTT가 크면 쓰기 지연도 늘어날 것으로 보입니다. 장애가 나면 HA node agent가 경로 장애를 감지하고 cluster agent가 살아 있는 노드에 새 nexus를 만듭니다. HA에는 복제본 2개 이상과 `nvme_core.multipath=Y`가 필요하며, 복제본이 10분 안에 돌아오지 않으면 전체 리빌드를 수행합니다. 노드 장애로 잃은 스냅샷은 복구되지 않습니다.
+동기 복제에서는 가장 느린 복제본이 쓰기 응답 시간을 결정합니다. `nodeSpreadTopologyKey`로 zone 라벨에 따라 복제본을 흩을 수 있지만 존 간 RTT가 커질수록 쓰기 지연도 늘어날 것으로 보입니다. 경로 장애는 HA node agent가 감지하고 cluster agent가 정상 노드에 새 nexus를 만듭니다. 이 HA 경로에는 복제본 2개 이상과 `nvme_core.multipath=Y`가 필요합니다. 장애 복제본이 10분 안에 돌아오지 않으면 전체 리빌드가 시작되며, 노드 장애로 유실된 스냅샷은 복구되지 않습니다.
 
-볼륨 기능은 RWO 중심입니다. RWX 블록은 KubeVirt 라이브 마이그레이션용 실험 기능으로 제한됩니다. 스냅샷·복원, 온라인 확장, thin provisioning, 토폴로지, DiskPool 단위 at-rest 암호화는 2023년 이후 차례로 추가됐습니다. unmap/discard, 다중 장치 DiskPool, VolumeGroupSnapshot, 암호화 키(DEK) 교체는 미지원입니다. 2.12에서 강화한 TLS는 컨트롤 플레인 대상이며, 데이터 경로의 전송 중 암호화와 체크섬·스크럽은 문서에서 확인하지 못했습니다.
+볼륨 기능은 RWO를 중심으로 설계됐습니다. RWX 블록은 KubeVirt 라이브 마이그레이션을 위한 실험 기능에 한정됩니다. 2023년 이후 스냅샷·복원, 온라인 확장, thin provisioning, 토폴로지, DiskPool 단위 저장 암호화가 차례로 추가됐습니다. 아직 unmap/discard, 여러 장치를 묶는 DiskPool, VolumeGroupSnapshot, 암호화 키(DEK) 교체는 지원하지 않습니다. 2.12의 TLS 강화 대상은 컨트롤 플레인입니다. 데이터 경로의 전송 암호화와 체크섬·스크럽은 문서에서 확인하지 못했습니다.
 
-thin provisioning은 문서가 서로 어긋납니다. I/O Path 문서에는 미지원 문장이 남아 있지만 StorageClass 문서와 2.1.0 릴리스 노트는 지원한다고 명시합니다. 이 글은 릴리스 노트를 기준으로 삼았습니다.
+thin provisioning에 관한 문서는 서로 맞지 않습니다. I/O Path 문서에는 미지원이라는 설명이 남아 있지만 StorageClass 문서와 2.1.0 릴리스 노트는 지원 기능으로 명시합니다. 여기서는 릴리스 노트를 현재 상태로 판단했습니다.
 
-기본 설치에는 etcd 3개, NATS, Loki와 MinIO가 포함됩니다. 업그레이드는 전용 플러그인으로 수행하며 다운그레이드는 지원하지 않습니다. 복제본이 1개인 볼륨은 업그레이드 중 잠시 사용할 수 없습니다. DiskPool에는 파티션 없는 전용 디스크를 `/dev/disk/by-id/` 경로로 지정합니다. 홈랩의 작은 클러스터라면 4.6.x 차트에서 Loki와 Alloy를 끄는 편이 낫습니다.
+기본 설치는 etcd 3개와 NATS, Loki, MinIO까지 배포합니다. 업그레이드는 전용 플러그인으로 진행하며 다운그레이드는 지원하지 않습니다. 복제본이 1개인 볼륨은 업그레이드 중 잠시 중단됩니다. DiskPool에는 파티션이 없는 전용 디스크를 `/dev/disk/by-id/` 경로로 지정해야 합니다. 작은 홈랩에서는 4.6.x 차트의 Loki와 Alloy를 끄는 편이 자원 부담을 줄입니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -99,15 +99,15 @@ thin provisioning은 문서가 서로 어긋납니다. I/O Path 문서에는 미
 
 {{% /details %}}
 
-## 3. 공개 IOPS로 현재의 지연 비용까지 판단할 수는 없다
+## 3. 공개 성능 수치의 빈 조건을 확인한다 {#3-공개-iops로-현재의-지연-비용까지-판단할-수는-없다}
 
-가장 쓸 만한 공개 자료는 MayaData CTO의 2020년 측정입니다. Optane NVMe가 한 대씩 달린 노드 3대에서 fio를 실행했고, 복제본 1개일 때 로컬 대비 IOPS 손실은 1~6%였습니다. 읽기 IOPS는 로컬 585K 대비 579K였습니다. Mayastor 1.0 이전 버전이며 큐 깊이가 64인 처리량 측정입니다. 지연과 CPU 수치가 없어 한 건당 지연 오버헤드를 보여 주지는 않습니다.
+공개 자료 가운데 조건이 가장 잘 남은 것은 MayaData CTO가 2020년에 수행한 측정입니다. Optane NVMe 한 대씩을 장착한 노드 3대에서 fio를 실행했고, 복제본 1개일 때 로컬 대비 IOPS 손실은 1~6%였습니다. 읽기는 로컬 585K, Mayastor 579K IOPS였습니다. 다만 Mayastor 1.0 이전 버전에서 큐 깊이 64로 처리량을 측정한 결과이며 지연과 CPU 사용량은 공개하지 않았습니다. 따라서 I/O 한 건의 지연 오버헤드는 알 수 없습니다.
 
-MayaData 블로그 표의 퍼센트에는 분모 오류도 있습니다. 쓰기 -9.09%는 로컬을 기준으로 다시 계산하면 약 8% 감소이며, 나머지 계산값은 아래 근거에 남겼습니다. 복제본 2개의 읽기 IOPS가 로컬보다 높은 이유는 두 복제본에서 라운드로빈으로 읽기 때문이라고 원문이 설명합니다.
+MayaData 표의 백분율에는 분모 오류도 있습니다. 쓰기 -9.09%는 로컬을 분모로 다시 계산하면 약 8% 감소입니다. 나머지 재계산 값은 아래 근거 표에 남겼습니다. 복제본 2개의 읽기 IOPS가 로컬보다 높게 나온 이유는 두 복제본에서 라운드로빈으로 읽었기 때문이라고 원문이 설명합니다.
 
-다른 자료도 조건이 제한적입니다. Vadosware의 단일 노드 측정에서는 Mayastor NVMe-oF의 평균 읽기 지연이 HostPath보다 컸습니다. 관리형 Kubernetes 업체인 Kubedo의 블로그는 Mayastor 버전과 복제 수 같은 조건이 빠져 있고, cwiggs의 가상화 홈랩 결과는 1회 측정입니다. VM 홈랩은 가상 디스크와 가상 NIC를 사용하므로 실제 하드웨어와 수치가 크게 다릅니다.
+다른 자료도 비교 조건이 충분하지 않습니다. Vadosware의 단일 노드 결과에서는 Mayastor NVMe-oF의 평균 읽기 지연이 HostPath보다 높았습니다. 관리형 Kubernetes 업체 Kubedo의 글은 Mayastor 버전과 복제 수를 밝히지 않았고, cwiggs의 가상화 홈랩 결과는 1회 측정에 그칩니다. 가상 디스크와 가상 NIC를 사용하는 VM 홈랩 수치는 물리 서버 결과와 크게 다를 수 있습니다.
 
-복제본 3개의 지연을 로컬과 비교한 측정이나 p99, 리빌드 중 성능, 코어당 IOPS를 조건과 함께 공개한 자료는 확인하지 못했습니다.
+복제본 3개의 지연을 로컬과 비교한 결과, p99 지연, 리빌드 중 성능, 코어당 IOPS를 조건과 함께 공개한 자료는 찾지 못했습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -128,15 +128,15 @@ MayaData 블로그 표의 퍼센트에는 분모 오류도 있습니다. 쓰기 
 
 {{% /details %}}
 
-## 4. 상용 지원은 있지만 공개 도입 근거는 좁다
+## 4. 상용 지원과 공개 운영 근거를 따로 본다 {#4-상용-지원은-있지만-공개-도입-근거는-좁다}
 
-OpenEBS ADOPTERS에서 회사가 직접 Mayastor 실사용을 밝힌 곳은 Civo뿐입니다. 목록의 나머지는 Local PV, cStor, Jiva 사용자입니다. Civo는 몇 년째 프로덕션에서 VM의 영속 데이터를 제공한다고 적었지만 규모와 워크로드 세부는 공개하지 않았습니다. 스페인 관리형 클라우드 TodoEnCloud의 사례는 DataCore 보도자료에 실린 고객 인용이므로 벤더 주장으로 분류합니다.
+OpenEBS ADOPTERS 목록에서 회사가 Mayastor 실사용을 직접 밝힌 사례는 Civo 하나입니다. 나머지 조직은 Local PV, cStor, Jiva를 사용합니다. Civo는 수년간 프로덕션 VM의 영속 데이터를 저장했다고 적었지만 규모와 워크로드는 공개하지 않았습니다. 스페인 관리형 클라우드 TodoEnCloud 사례는 DataCore 보도자료에 실린 고객 인용이므로 벤더 주장으로 분류했습니다.
 
-상용 지원은 DataCore가 맡습니다. DataCore는 2021년 11월 MayaData를 인수했고 현재 Puls8을 판매합니다. Puls8 문서가 Replicated PV Mayastor io-engine을 명시하므로 데이터 엔진이 Mayastor라는 직접 근거가 됩니다. 가격과 지원 SLA, 오픈소스판과의 기능 차이는 확인하지 못했습니다. 상용 계약 밖의 지원 경로는 GitHub 이슈와 Slack입니다.
+상용 지원 주체는 DataCore입니다. DataCore는 2021년 11월 MayaData를 인수한 뒤 현재 Puls8을 판매합니다. Puls8 문서가 Replicated PV Mayastor io-engine을 명시하므로 Mayastor가 데이터 엔진이라는 점은 직접 확인됩니다. 가격, 지원 SLA, 오픈소스판과의 기능 차이는 공개 자료에서 찾지 못했습니다. 상용 계약을 제외한 지원 창구는 GitHub 이슈와 Slack입니다.
 
-개발과 시험 자원도 DataCore에 집중돼 있습니다. 최상위 메인테이너 다수가 DataCore 소속이고, 최근 1년 mayastor 저장소 커밋의 약 60%가 DataCore 소속 한 사람에게서 나왔습니다. E2E 시험 자원 역시 DataCore가 제공합니다. OpenEBS는 CNCF Sandbox 프로젝트입니다. 2024년 1월 Archive로 내려갔다가 10월에 Sandbox로 돌아왔으며, DataCore는 그 사이 엔진을 정리했다고 설명합니다.
+개발과 시험 자원도 DataCore에 많이 의존합니다. 최상위 메인테이너의 다수가 DataCore 소속이며 최근 1년 mayastor 커밋의 약 60%를 DataCore 소속 한 명이 만들었습니다. E2E 시험 자원도 DataCore가 제공합니다. OpenEBS는 CNCF Sandbox 프로젝트로, 2024년 1월 Archive 상태가 됐다가 같은 해 10월 Sandbox로 재수용됐습니다. DataCore는 그 기간에 엔진을 정리했다고 설명합니다.
 
-이 글의 해석으로는 엔터프라이즈 기능과 상용 지원은 갖췄지만, 공개 사례와 커뮤니티 폭은 Ceph나 Longhorn보다 좁습니다.
+이 근거를 종합하면 Mayastor는 엔터프라이즈 기능과 상용 지원 경로를 갖췄지만 공개 운영 사례와 커뮤니티의 폭은 Ceph나 Longhorn보다 좁다고 볼 수 있습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -156,16 +156,16 @@ OpenEBS ADOPTERS에서 회사가 직접 Mayastor 실사용을 밝힌 곳은 Civo
 
 {{% /details %}}
 
-## 확인하지 못한 것
+## 아직 확인할 항목 {#확인하지-못한-것}
 
-- repl=3 볼륨의 지연(평균·p99)을 로컬과 비교하고 조건을 명시한 측정. 03편과 마찬가지로 미확인이다.
-- 리빌드 속도, 리빌드 중 앱 지연, throttle 설정값.
-- io-engine 코어 2개당 처리 한계와 interrupt mode의 지연 비용 수치.
-- Mayastor와 Longhorn V2를 같은 하드웨어에서 비교한 최신(2025~2026) 측정. 2025 논문 v1에는 Mayastor 수치가 없다.
-- Civo 외 회사의 프로덕션 규모(노드 수, 볼륨 수, 장애 경험).
-- DataCore Puls8의 가격, 지원 SLA, 오픈소스판과의 기능 차이.
-- 데이터 무결성 기능(체크섬, 스크럽) 유무.
-- simplyblock과 Lightbits의 Kubernetes 접근 모드와 독립 측정. 벤더 자료뿐이다.
+- repl=3 볼륨의 평균·p99 지연을 로컬과 비교하면서 조건까지 밝힌 측정은 03편과 마찬가지로 찾지 못했다.
+- 리빌드 속도와 리빌드 중 애플리케이션 지연, throttle 설정값은 공개 자료에서 확인하지 못했다.
+- io-engine 코어 2개당 처리 한계와 interrupt mode가 더하는 지연의 수치는 알 수 없다.
+- Mayastor와 Longhorn V2를 같은 하드웨어에서 비교한 최신(2025~2026) 측정은 찾지 못했다. 2025 논문 v1에도 Mayastor 수치가 없다.
+- Civo를 제외한 회사의 프로덕션 노드 수, 볼륨 수, 장애 경험은 공개되지 않았다.
+- DataCore Puls8의 가격과 지원 SLA, 오픈소스판과의 기능 차이는 확인하지 못했다.
+- 체크섬과 스크럽을 포함한 데이터 무결성 기능의 제공 여부는 확인하지 못했다.
+- simplyblock과 Lightbits는 Kubernetes 접근 모드와 독립 측정을 찾지 못했고 벤더 자료만 확인했다.
 
 ## 참고 자료
 

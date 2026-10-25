@@ -16,7 +16,7 @@ comments: false
 {{< callout type="info" >}}
 **출처**
 
-이 분류의 문서는 아래 블로그 9편과 발표 24편을 읽고 재구성한 요약입니다. 원문 자체가 아니므로 내용은 각 링크에서 직접 확인합니다. 항목은 원문 제목, 매체나 행사, 게시일, 저자나 발표자(소속) 순입니다.
+당근 기술 블로그 9편과 발표 24편을 바탕으로 작성한 요약입니다. 아래에는 원문 제목, 매체나 행사, 게시일, 저자나 발표자(소속)를 적었습니다. 각 링크에서 원문을 확인할 수 있습니다.
 
 **SRE팀 클러스터 파트**
 
@@ -76,39 +76,39 @@ comments: false
 
 | 주제 | 글·영상 | 한 줄 요약 |
 |------|--------|-----------|
-| 쿠버네티스 운영·오토스케일링 | [아마존 EKS 무중단 업그레이드]({{< relref "/external/daangn/talks/sre-meetup-1/01-eks-zero-downtime-upgrade.md" >}}) | 마스터·노드 그룹을 단계별로 올리는 방식과 새 클러스터로 트래픽을 옮기는 방식을 비교하고 1.15에서 1.18까지 한 번에 업그레이드 |
-| 쿠버네티스 운영·오토스케일링 | [멀티 클러스터 Addons 관리]({{< relref "/external/daangn/talks/sre-meetup-2/01-multicluster-addons-argocd.md" >}}) | 새 EKS 클러스터마다 필요한 Addons를 Argo CD ApplicationSet으로 한꺼번에 배포 |
-| 쿠버네티스 운영·오토스케일링 | [검색 엔진을 쿠버네티스로 운영하기]({{< relref "/external/daangn/blog/07-search-engine-on-kubernetes.md" >}}) | EC2 위 Elasticsearch 수동 배포를 ECK 기반으로 바꿔 평균 5시간 걸리던 배포를 자동화 |
-| 쿠버네티스 운영·오토스케일링 | [Karpenter 트러블슈팅]({{< relref "/external/daangn/blog/08-karpenter-troubleshooting.md" >}}) | ASG 기반 클러스터를 Karpenter로 옮기며 겪은 다섯 가지 문제와 해결 |
-| 쿠버네티스 운영·오토스케일링 | [검색 엔진 데이터 노드 웜업]({{< relref "/external/daangn/blog/09-search-engine-warmup.md" >}}) | Elasticsearch 롤링 리스타트 때 생기던 지연 급증을 프록시와 데이터 노드 웜업으로 해결 |
-| 쿠버네티스 운영·오토스케일링 | [HPA Scale-in과 AZ 불균형]({{< relref "/external/daangn/talks/sre-meetup-4/04-hpa-az-skew-pod-deletion-cost.md" >}}) | Locality LB 때문에 생긴 Zone Skew를 Pod Deletion Cost 컨트롤러로 해결 |
-| 쿠버네티스 운영·오토스케일링 | [Job 노드 그룹 오토스케일링]({{< relref "/external/daangn/blog/03-job-nodegroup-autoscaling.md" >}}) | 고정 크기이던 Job용 노드 그룹에 오토스케일링을 붙이며 bin-packing 부작용을 maxPods 등으로 해결 |
-| 쿠버네티스 운영·오토스케일링 | [Karpenter 도입 여정]({{< relref "/external/daangn/talks/builder-meetup-2026/01-karpenter-adoption.md" >}}) | Cluster Autoscaler에서 Karpenter로 전환해 네임스페이스별 평균 Pending이 최대 4분에서 약 30초로 감소 |
-| 배포·개발자 플랫폼 | [당근페이 6개월 인프라 구축]({{< relref "/external/daangn/talks/sre-meetup-2/02-daangnpay-six-months-infra.md" >}}) | 로그인, 서버 접근, 애플리케이션, 배포, 관측, 성능 테스트 여섯 가지를 어떻게 정했는지 회고 |
-| 배포·개발자 플랫폼 | [왜 배포 시스템을 만드는가]({{< relref "/external/daangn/talks/sre-meetup-2/03-why-build-deploy-system.md" >}}) | Argo CD와 GitOps 모노레포 방식의 한계를 짚고 사내 배포 시스템 Kontrol을 만든 이유 |
-| 배포·개발자 플랫폼 | [cdk8s 배포 템플릿]({{< relref "/external/daangn/talks/sre-meetup-2/04-cdk8s-deploy-template.md" >}}) | 배포 매니페스트를 Kubernetes 매니페스트로 바꾸는 도구로 Helm 대신 cdk8s와 TypeScript를 고른 이유 |
-| 배포·개발자 플랫폼 | [CircleCI에서 GitHub Actions로]({{< relref "/external/daangn/blog/04-circleci-to-github-actions.md" >}}) | Docker layer caching과 Dockerfile 순서 조정으로 15분이 넘던 배포를 약 2분까지 단축 |
-| 배포·개발자 플랫폼 | [매일 배포(1) 브랜치 전략]({{< relref "/external/daangn/blog/05-daily-deploy-branch-strategy.md" >}}) | Git Flow 주 1회 배포에서 GitHub Flow로 옮겨 배포에 쓰던 1시간을 20분 미만으로 단축 |
-| 배포·개발자 플랫폼 | [매일 배포(2) Feature Toggle]({{< relref "/external/daangn/blog/06-daily-deploy-feature-toggle.md" >}}) | 어노테이션 기반 Feature Toggle을 직접 만든 과정과 설계 원칙 다섯 가지, 권한·카나리 토글 운영 |
-| 배포·개발자 플랫폼 | [개발자 플랫폼 Kontrol 2년]({{< relref "/external/daangn/talks/sre-meetup-3/01-developer-platform-two-years.md" >}}) | 인프라 요청 티켓의 한계에서 출발해 배포, 오너십, 비용, 리소스 생성을 하나의 UI로 묶어 온 과정 |
-| 배포·개발자 플랫폼 | [배포 시스템 교훈]({{< relref "/external/daangn/talks/sre-meetup-3/02-deployment-system-lessons.md" >}}) | Kontrol을 2년간 만들며 얻은 교훈. 이해관계 충돌, 포장도로와 비포장도로 구조, 운영 컨텍스트 제공 |
-| 배포·개발자 플랫폼 | [Kontrol 멀티 클러스터 지원]({{< relref "/external/daangn/talks/sre-meetup-3/03-multi-cluster-global-deploy.md" >}}) | 4개 리전 글로벌 배포를 붙인 과정과 배포 엔진을 Argo Workflows로 바꾼 결정 |
-| 배포·개발자 플랫폼 | [프로젝트 오너십 katalog]({{< relref "/external/daangn/talks/sre-meetup-3/04-project-ownership-katalog.md" >}}) | Kontrol 프로젝트를 오너십 단위로 삼아 AWS와 GCP 리소스를 하나의 ID로 묶은 과정 |
-| 배포·개발자 플랫폼 | [개발자가 관리하는 리소스 KRP]({{< relref "/external/daangn/talks/sre-meetup-3/05-developer-managed-cloud-resources.md" >}}) | Terraform state 약 1000개를 운영하는 부담에서 출발해 Redis 생성과 수정을 개발자가 UI에서 직접 하게 만든 과정 |
-| 배포·개발자 플랫폼 | [개발자 플랫폼의 현재]({{< relref "/external/daangn/talks/sre-meetup-4/07-developer-platform-evolution.md" >}}) | 배포 도구로 시작해 워크로드, 설정, 클라우드 리소스, 비용까지 넓어진 Kontrol을 화면 중심으로 소개 |
-| 네트워크·서비스 메시·엣지 | [gRPC 서비스 운영]({{< relref "/external/daangn/talks/sre-meetup-1/02-grpc-operations.md" >}}) | 채널과 HTTP/2 연결의 관계, keepalive, 상태 코드, L7 로드밸런싱, 모니터링 지표를 당근의 구성과 함께 설명 |
-| 네트워크·서비스 메시·엣지 | [Host Network 도입기]({{< relref "/external/daangn/blog/02-host-network.md" >}}) | DaemonSet의 IP 점유와 Job Pod의 IP 할당 지연을 hostNetwork로 줄여 IP 할당 실패 이벤트를 시간당 약 13,000건에서 약 50건으로 감소 |
-| 네트워크·서비스 메시·엣지 | [Istio ServiceEntry 자동생성]({{< relref "/external/daangn/talks/sre-meetup-4/02-istio-serviceentry.md" >}}) | CoreDNS 로그에서 호출 도메인을 뽑아 ServiceEntry를 자동으로 만들어 Mesh 외부 트래픽을 L4로 가시화 |
-| 네트워크·서비스 메시·엣지 | [API 앞단 CloudFront]({{< relref "/external/daangn/talks/sre-meetup-4/03-cloudfront-in-front-of-api.md" >}}) | 캐나다 initial connection 시간 중앙값 45% 감소, 트래픽 비용 약 20% 절감, WAF와 Shield로 보안 보강 |
-| 네트워크·서비스 메시·엣지 | [당근페이 VPC 재설계]({{< relref "/external/daangn/talks/sre-meetup-4/06-daangnpay-vpc-redesign.md" >}}) | 흩어진 NAT Gateway와 Transit Gateway를 Network VPC로 모으고 NACL을 AWS Network Firewall로 교체 |
-| 옵저버빌리티·알림 | [서비스 모니터링 방법]({{< relref "/external/daangn/talks/sre-meetup-3/06-monitoring-karrot-services.md" >}}) | 공통 모니터링 영역을 정하고 USE·RED 방법론을 Prometheus와 Grafana 대시보드로 구현해 Alert Delivery와 연결 |
-| 옵저버빌리티·알림 | [AlertDelivery]({{< relref "/external/daangn/talks/sre-meetup-3/08-alertdelivery-grafana.md" >}}) | Grafana 레거시 알림이 여러 네임스페이스를 한 메시지로 보내는 한계를 katalog 담당자 정보와 알림별 정책으로 해결 |
-| 옵저버빌리티·알림 | [Loki 1년간 운영기]({{< relref "/external/daangn/talks/sre-meetup-4/01-loki-one-year.md" >}}) | 로그 유실의 원인을 수집기 병목과 CPU 스로틀링에서 찾았고 느린 쿼리 기준 조회 속도가 약 50% 개선 |
-| 옵저버빌리티·알림 | [Prometheus 레코딩 룰 SLI]({{< relref "/external/daangn/talks/sre-meetup-4/05-prometheus-recording-rule-sli.md" >}}) | Redis 자원의 SLI를 팀 설문과 논의로 정하고 조회 API 방식에서 레코딩 룰 방식으로 이전 |
-| 옵저버빌리티·알림 | [옵저버빌리티 재설계]({{< relref "/external/daangn/talks/builder-meetup-2026/02-observability-agents.md" >}}) | 올해 3월 약 50분 장애에서 원인 파악이 오래 걸린 경험에서 출발해 자체 웹 플랫폼과 Doctor Agent를 개발 중 |
-| 보안·감사·거버넌스 | [AWS Config 컴플라이언스]({{< relref "/external/daangn/talks/sre-meetup-1/03-aws-config-compliance.md" >}}) | Rule과 Conformance Pack, RDK, 사내 Rulebook 연동과 써 보며 느낀 한계를 슬라이드 기준으로 정리 |
-| 보안·감사·거버넌스 | [kube-apiserver 감사 로그]({{< relref "/external/daangn/blog/01-kube-apiserver-audit-log.md" >}}) | Pod 하나를 만들 때 컨트롤 플레인 컴포넌트가 호출하는 API를 EKS 감사 로그로 따라가는 입문 해설 |
-| 비용 | [EKS 데이터 전송 비용 절감]({{< relref "/external/daangn/talks/sre-meetup-3/07-eks-data-transfer-cost.md" >}}) | Istio Locality Load Balancing과 Topology Aware Hints로 호출이 같은 가용 영역 안에서 끝나게 해 크로스존 비용 절감 |
+| 쿠버네티스 운영·오토스케일링 | [새 EKS 클러스터로 트래픽을 옮겨 버전 업그레이드하기]({{< relref "/external/daangn/talks/sre-meetup-1/01-eks-zero-downtime-upgrade.md" >}}) | 마스터·노드 그룹을 단계별로 올리는 방식과 새 클러스터로 트래픽을 옮기는 방식을 비교하고 1.15에서 1.18까지 한 번에 업그레이드 |
+| 쿠버네티스 운영·오토스케일링 | [ApplicationSet으로 여러 EKS 클러스터에 애드온 배포하기]({{< relref "/external/daangn/talks/sre-meetup-2/01-multicluster-addons-argocd.md" >}}) | 새 EKS 클러스터마다 필요한 Addons를 Argo CD ApplicationSet으로 한꺼번에 배포 |
+| 쿠버네티스 운영·오토스케일링 | [수동으로 배포하던 Elasticsearch를 ECK로 옮기기]({{< relref "/external/daangn/blog/07-search-engine-on-kubernetes.md" >}}) | EC2 위 Elasticsearch 수동 배포를 ECK 기반으로 바꿔 평균 5시간 걸리던 배포를 자동화 |
+| 쿠버네티스 운영·오토스케일링 | [당근페이가 Karpenter 도입 후 해결한 스케줄링과 노드 교체 문제]({{< relref "/external/daangn/blog/08-karpenter-troubleshooting.md" >}}) | ASG 기반 클러스터를 Karpenter로 옮기며 겪은 다섯 가지 문제와 해결 |
+| 쿠버네티스 운영·오토스케일링 | [Elasticsearch 노드를 웜업한 뒤 검색 요청에 복귀시키기]({{< relref "/external/daangn/blog/09-search-engine-warmup.md" >}}) | Elasticsearch 롤링 리스타트 때 생기던 지연 급증을 프록시와 데이터 노드 웜업으로 해결 |
+| 쿠버네티스 운영·오토스케일링 | [Pod Deletion Cost로 HPA의 AZ 불균형을 줄인 방법]({{< relref "/external/daangn/talks/sre-meetup-4/04-hpa-az-skew-pod-deletion-cost.md" >}}) | Locality LB 때문에 생긴 Zone Skew를 Pod Deletion Cost 컨트롤러로 해결 |
+| 쿠버네티스 운영·오토스케일링 | [Job을 중단하지 않고 EKS 노드 그룹 자동 확장·축소하기]({{< relref "/external/daangn/blog/03-job-nodegroup-autoscaling.md" >}}) | 고정 크기이던 Job용 노드 그룹에 오토스케일링을 붙이며 bin-packing 부작용을 maxPods 등으로 해결 |
+| 쿠버네티스 운영·오토스케일링 | [필요한 AZ에 노드를 만들기 위한 당근의 Karpenter 전환]({{< relref "/external/daangn/talks/builder-meetup-2026/01-karpenter-adoption.md" >}}) | Cluster Autoscaler에서 Karpenter로 전환해 네임스페이스별 평균 Pending이 최대 4분에서 약 30초로 감소 |
+| 배포·개발자 플랫폼 | [당근페이 초기 인프라의 접근 제어·배포·관측 구성]({{< relref "/external/daangn/talks/sre-meetup-2/02-daangnpay-six-months-infra.md" >}}) | 로그인, 서버 접근, 애플리케이션, 배포, 관측, 성능 테스트 여섯 가지를 어떻게 정했는지 회고 |
+| 배포·개발자 플랫폼 | [당근이 Argo CD 기반 배포에서 Kontrol을 만든 이유]({{< relref "/external/daangn/talks/sre-meetup-2/03-why-build-deploy-system.md" >}}) | Argo CD와 GitOps 모노레포 방식의 한계를 짚고 사내 배포 시스템 Kontrol을 만든 이유 |
+| 배포·개발자 플랫폼 | [cdk8s로 사내 배포 설정을 Kubernetes 매니페스트로 변환하기]({{< relref "/external/daangn/talks/sre-meetup-2/04-cdk8s-deploy-template.md" >}}) | 배포 매니페스트를 Kubernetes 매니페스트로 바꾸는 도구로 Helm 대신 cdk8s와 TypeScript를 고른 이유 |
+| 배포·개발자 플랫폼 | [GitHub Actions 이전과 Docker 캐시로 배포 시간을 줄인 과정]({{< relref "/external/daangn/blog/04-circleci-to-github-actions.md" >}}) | Docker layer caching과 Dockerfile 순서 조정으로 15분이 넘던 배포를 약 2분까지 단축 |
+| 배포·개발자 플랫폼 | [GitHub Flow로 바꾸고 매일 배포하기까지]({{< relref "/external/daangn/blog/05-daily-deploy-branch-strategy.md" >}}) | Git Flow 주 1회 배포에서 GitHub Flow로 옮겨 배포에 쓰던 1시간을 20분 미만으로 단축 |
+| 배포·개발자 플랫폼 | [코드 배포와 기능 공개를 분리한 당근페이 Feature Toggle]({{< relref "/external/daangn/blog/06-daily-deploy-feature-toggle.md" >}}) | 어노테이션 기반 Feature Toggle을 직접 만든 과정과 설계 원칙 다섯 가지, 권한·카나리 토글 운영 |
+| 배포·개발자 플랫폼 | [개발자가 직접 배포하고 운영하는 플랫폼, Kontrol의 2년]({{< relref "/external/daangn/talks/sre-meetup-3/01-developer-platform-two-years.md" >}}) | 인프라 요청 티켓의 한계에서 출발해 배포, 오너십, 비용, 리소스 생성을 하나의 UI로 묶어 온 과정 |
+| 배포·개발자 플랫폼 | [전사 배포 플랫폼이 팀의 작업 방식을 받아들이는 법]({{< relref "/external/daangn/talks/sre-meetup-3/02-deployment-system-lessons.md" >}}) | Kontrol을 2년간 만들며 얻은 교훈. 이해관계 충돌, 포장도로와 비포장도로 구조, 운영 컨텍스트 제공 |
+| 배포·개발자 플랫폼 | [Kontrol로 4개 리전을 배포하기까지의 설계 선택]({{< relref "/external/daangn/talks/sre-meetup-3/03-multi-cluster-global-deploy.md" >}}) | 4개 리전 글로벌 배포를 붙인 과정과 배포 엔진을 Argo Workflows로 바꾼 결정 |
+| 배포·개발자 플랫폼 | [클라우드 리소스의 담당 팀을 한곳에서 찾는 katalog]({{< relref "/external/daangn/talks/sre-meetup-3/04-project-ownership-katalog.md" >}}) | Kontrol 프로젝트를 오너십 단위로 삼아 AWS와 GCP 리소스를 하나의 ID로 묶은 과정 |
+| 배포·개발자 플랫폼 | [Terraform 요청을 개발자 셀프 서비스로 바꾼 KRP]({{< relref "/external/daangn/talks/sre-meetup-3/05-developer-managed-cloud-resources.md" >}}) | Terraform state 약 1000개를 운영하는 부담에서 출발해 Redis 생성과 수정을 개발자가 UI에서 직접 하게 만든 과정 |
+| 배포·개발자 플랫폼 | [배포 도구에서 사내 개발자 플랫폼으로 확장한 Kontrol]({{< relref "/external/daangn/talks/sre-meetup-4/07-developer-platform-evolution.md" >}}) | 배포 도구로 시작해 워크로드, 설정, 클라우드 리소스, 비용까지 넓어진 Kontrol을 화면 중심으로 소개 |
+| 네트워크·서비스 메시·엣지 | [당근의 gRPC 운영: 연결 관리와 요청 분산, 장애 지표]({{< relref "/external/daangn/talks/sre-meetup-1/02-grpc-operations.md" >}}) | 채널과 HTTP/2 연결의 관계, keepalive, 상태 코드, L7 로드밸런싱, 모니터링 지표를 당근의 구성과 함께 설명 |
+| 네트워크·서비스 메시·엣지 | [DaemonSet과 Job에 hostNetwork를 적용해 IP 사용과 대기 줄이기]({{< relref "/external/daangn/blog/02-host-network.md" >}}) | DaemonSet의 IP 점유와 Job Pod의 IP 할당 지연을 hostNetwork로 줄여 IP 할당 실패 이벤트를 시간당 약 13,000건에서 약 50건으로 감소 |
+| 네트워크·서비스 메시·엣지 | [CoreDNS 로그로 ServiceEntry를 생성해 외부 HTTPS 호출 관측하기]({{< relref "/external/daangn/talks/sre-meetup-4/02-istio-serviceentry.md" >}}) | CoreDNS 로그에서 호출 도메인을 뽑아 ServiceEntry를 자동으로 만들어 Mesh 외부 트래픽을 L4로 가시화 |
+| 네트워크·서비스 메시·엣지 | [API 앞에 CloudFront를 두고 연결 지연과 전송 비용 줄이기]({{< relref "/external/daangn/talks/sre-meetup-4/03-cloudfront-in-front-of-api.md" >}}) | 캐나다 initial connection 시간 중앙값 45% 감소, 트래픽 비용 약 20% 절감, WAF와 Shield로 보안 보강 |
+| 네트워크·서비스 메시·엣지 | [당근페이가 NAT와 방화벽을 Network VPC로 모은 과정]({{< relref "/external/daangn/talks/sre-meetup-4/06-daangnpay-vpc-redesign.md" >}}) | 흩어진 NAT Gateway와 Transit Gateway를 Network VPC로 모으고 NACL을 AWS Network Firewall로 교체 |
+| 옵저버빌리티·알림 | [서비스 400개에 공통 모니터링을 제공한 방법]({{< relref "/external/daangn/talks/sre-meetup-3/06-monitoring-karrot-services.md" >}}) | 공통 모니터링 영역을 정하고 USE·RED 방법론을 Prometheus와 Grafana 대시보드로 구현해 Alert Delivery와 연결 |
+| 옵저버빌리티·알림 | [Grafana 알림을 담당 팀별 메시지로 바꾼 AlertDelivery]({{< relref "/external/daangn/talks/sre-meetup-3/08-alertdelivery-grafana.md" >}}) | Grafana 레거시 알림이 여러 네임스페이스를 한 메시지로 보내는 한계를 katalog 담당자 정보와 알림별 정책으로 해결 |
+| 옵저버빌리티·알림 | [Loki 로그 유실과 느린 조회를 줄인 당근의 운영 과정]({{< relref "/external/daangn/talks/sre-meetup-4/01-loki-one-year.md" >}}) | 로그 유실의 원인을 수집기 병목과 CPU 스로틀링에서 찾았고 느린 쿼리 기준 조회 속도가 약 50% 개선 |
+| 옵저버빌리티·알림 | [팀이 합의한 Redis SLI를 Prometheus 레코딩 룰로 제공하기]({{< relref "/external/daangn/talks/sre-meetup-4/05-prometheus-recording-rule-sli.md" >}}) | Redis 자원의 SLI를 팀 설문과 논의로 정하고 조회 API 방식에서 레코딩 룰 방식으로 이전 |
+| 옵저버빌리티·알림 | [장애 원인 분석 시간을 줄이려는 당근의 관측 플랫폼과 Doctor Agent]({{< relref "/external/daangn/talks/builder-meetup-2026/02-observability-agents.md" >}}) | 올해 3월 약 50분 장애에서 원인 파악이 오래 걸린 경험에서 출발해 자체 웹 플랫폼과 Doctor Agent를 개발 중 |
+| 보안·감사·거버넌스 | [사내 운영 규칙을 AWS Config로 검사하고 보고하기]({{< relref "/external/daangn/talks/sre-meetup-1/03-aws-config-compliance.md" >}}) | Rule과 Conformance Pack, RDK, 사내 Rulebook 연동과 써 보며 느낀 한계를 슬라이드 기준으로 정리 |
+| 보안·감사·거버넌스 | [EKS 감사 로그로 따라가는 Pod 생성 과정]({{< relref "/external/daangn/blog/01-kube-apiserver-audit-log.md" >}}) | Pod 하나를 만들 때 컨트롤 플레인 컴포넌트가 호출하는 API를 EKS 감사 로그로 따라가는 입문 해설 |
+| 비용 | [EKS 크로스 AZ 호출을 줄여 전송 비용을 절반 이하로 낮추기]({{< relref "/external/daangn/talks/sre-meetup-3/07-eks-data-transfer-cost.md" >}}) | Istio Locality Load Balancing과 Topology Aware Hints로 호출이 같은 가용 영역 안에서 끝나게 해 크로스존 비용 절감 |
 
 2021년 발표는 배포 시스템과 개발자 플랫폼에서 시작합니다. EKS 업그레이드와 멀티 클러스터 Addons 관리, Argo CD와 cdk8s 기반 배포가 이 시기의 주제입니다. 2023년에는 Kontrol이 멀티 클러스터 글로벌 배포와 오너십 관리, 개발자가 직접 쓰는 리소스 플랫폼으로 넓어졌고, 같은 행사에서 모니터링과 Alert Delivery, EKS 데이터 전송 비용 절감도 함께 다뤘습니다. 2025년 발표는 Loki 운영과 외부 트래픽 가시화, CloudFront, AZ 불균형, VPC 재설계처럼 운영 중에 드러난 비용과 네트워크 문제로 옮겨 갑니다. 2026년 빌더 밋업에서는 Karpenter 전환과 함께, 장애 분석과 알림을 에이전트에게 맡기려는 옵저버빌리티 재설계가 나옵니다.
 

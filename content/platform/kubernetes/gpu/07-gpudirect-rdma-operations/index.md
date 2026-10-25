@@ -1,13 +1,13 @@
 ---
-title: "07 GPUDirect RDMA가 실제로 쓰이는지 확인하고 클라우드별 차이를 읽기"
-description: "GPUDirect RDMA의 실제 사용 여부는 NCCL 채널 로그로 확인하고, busbw는 측정 조건과 함께 읽어야 한다. 클라우드별 제공 경로, DRA로 옮겨가는 NIC 할당, 운영 함정을 2026-10-21 기준으로 정리한다."
+title: "07 GPUDirect RDMA 경로를 검증하고 성능 저하를 추적하는 법"
+description: "NCCL 로그로 GPUDirect RDMA 사용 여부를 판별하고 busbw를 측정 조건에 맞춰 해석한다. 클라우드별 전송 경로와 NIC 할당 방식, 호스트·파드에서 생기는 성능 저하 요인을 2026-10-21 기준으로 설명한다."
 date: 2026-10-21
 lastmod: 2026-10-21
 weight: 7
 url: "/kubernetes/gpu/07-gpudirect-rdma-operations/"
 ---
 
-# 07 · GPUDirect RDMA가 실제로 쓰이는지 확인하고 클라우드별 차이를 읽기
+# 07 · GPUDirect RDMA 경로를 검증하고 성능 저하를 추적하는 법
 
 ## 1. NCCL 채널 로그에서 직접 전송을 확인한다
 

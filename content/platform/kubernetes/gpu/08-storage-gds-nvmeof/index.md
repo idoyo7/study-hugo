@@ -1,13 +1,13 @@
 ---
-title: "08 스토리지 — GDS와 NVMe-oF의 CPU 우회 범위"
-description: "2026-10-21 기준으로 GDS와 NVMe-oF RDMA가 CPU를 우회하는 범위와 Kubernetes에서 직접 전송을 쓰는 조건을 설명한다. 지원 파일시스템과 드라이버를 맞춘 뒤, 호환 모드 여부와 I/O 패턴별 성능을 확인해야 한다."
+title: "08 GDS와 NVMe-oF는 CPU 작업을 어디까지 줄이는가"
+description: "GDS와 NVMe-oF RDMA가 줄이는 데이터 복사와 CPU에 남는 제어 작업을 구분한다. Kubernetes에서 직접 전송을 구성하는 조건과 호환 모드 확인법, I/O 패턴별 성능 차이를 2026-10-21 기준으로 설명한다."
 date: 2026-10-21
 lastmod: 2026-10-21
 weight: 8
 url: "/kubernetes/gpu/08-storage-gds-nvmeof/"
 ---
 
-# 08 · 스토리지 — GDS와 NVMe-oF의 CPU 우회 범위
+# 08 · GDS와 NVMe-oF는 CPU 작업을 어디까지 줄이는가
 
 ## 1. GDS가 줄이는 복사와 CPU에 남는 일 {#1-복사를-줄여도-요청-처리는-cpu에-남는다}
 

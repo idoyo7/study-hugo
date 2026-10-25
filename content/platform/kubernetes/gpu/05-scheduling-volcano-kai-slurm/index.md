@@ -1,13 +1,13 @@
 ---
-title: "05 노드 간 스케줄링 2부 — Volcano·KAI·Slurm 비교"
-description: "GPU 잡의 배치 요구와 기존 운영 방식에 따라 어떤 스케줄러 조합을 고를지 설명한다. 2026-10-21 기준 공개 도입 자료와 워크로드 API를 바탕으로 Kubernetes 애드온과 Slurm 공존 경로를 비교한다."
+title: "05 노드 간 스케줄링 2부: Volcano·KAI·Slurm 선택"
+description: "GPU 잡의 배치 요구, 토폴로지 표현 방식, 기존 운영 경험을 기준으로 Volcano·KAI·Slurm을 비교한다. 2026-10-21 기준 공개 도입 자료와 워크로드 API에서 각 조합이 맞는 조건을 정리한다."
 date: 2026-10-21
 lastmod: 2026-10-21
 weight: 5
 url: "/kubernetes/gpu/05-scheduling-volcano-kai-slurm/"
 ---
 
-# 05 · 노드 간 스케줄링 2부 — Volcano·KAI·Slurm 비교
+# 05 · 노드 간 스케줄링 2부: Volcano·KAI·Slurm 선택
 
 ## 1. 배치 요구와 토폴로지 정보의 공급자를 정한다 {#1-스케줄러보다-먼저-정할-것}
 

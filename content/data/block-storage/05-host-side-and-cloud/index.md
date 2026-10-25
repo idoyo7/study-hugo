@@ -1,20 +1,20 @@
 ---
-title: "Kubernetes에서 NVMe-oF를 어디까지 쓸 수 있나"
+title: "Kubernetes NVMe-oF 지원 범위와 노드·클라우드 조건"
 linkTitle: "05 호스트·클라우드·오프로드"
-description: "Kubernetes에서 NVMe-oF를 쓰기 위한 CSI 드라이버의 지원 단계와 Linux 노드 조건을 중심으로, vSphere의 제약과 클라우드 전송 공개 범위, 하드웨어 오프로드의 적용 범위를 정리한다."
+description: "Kubernetes NVMe-oF CSI 드라이버의 성숙도와 Linux 노드 조건을 확인하고, vSphere 제약과 클라우드 내부 전송, 하드웨어 오프로드의 공개 범위를 구분한다."
 weight: 5
 date: 2026-10-21
 lastmod: 2026-10-21
 url: "/storage/05-host-side-and-cloud/"
 ---
 
-# 05 · Kubernetes에서 NVMe-oF를 어디까지 쓸 수 있나
+# 05 · Kubernetes NVMe-oF 지원 범위와 노드·클라우드 조건
 
-Kubernetes에서 NVMe-oF(네트워크를 통한 NVMe 연결)를 쓰려면 CSI(컨테이너 스토리지 인터페이스) 드라이버와 노드의 이니시에이터(스토리지에 I/O를 요청하는 쪽)가 연결을 지원해야 합니다. 2026-10-21 기준으로 이 글에서 살펴본 드라이버 중 GA(정식 출시)를 확인한 것은 NetApp Trident의 NVMe/TCP 지원과 Longhorn V2입니다. ceph-csi와 Rook는 실험적입니다. Linux 노드의 연결 조건을 이어서 살펴보고, vSphere·클라우드·오프로드의 적용 범위도 짚습니다.
+Kubernetes에서 NVMe-oF(네트워크를 통한 NVMe 연결)를 사용하려면 CSI(컨테이너 스토리지 인터페이스) 드라이버와 노드 이니시에이터(스토리지에 I/O를 요청하는 쪽)가 모두 준비돼야 합니다. 2026-10-21 현재 이 글에서 GA(정식 출시)를 확인한 드라이버는 NetApp Trident의 NVMe/TCP 지원과 Longhorn V2입니다. ceph-csi와 Rook 경로는 실험 단계입니다. 드라이버 상태만으로 도입을 결정하지 않고 Linux 커널 기능과 vSphere 제약, 클라우드에서 공개한 전송 범위까지 차례로 확인합니다.
 
 근거 표기 — `✓` 1차 문서 확인 · `Ⓑ` 공개 벤치마크 · `Ⓥ` 벤더·프로젝트 주장 · `≈` 추정·역산 · `?` 미확인. 각 절 끝의 '근거와 측정 조건'에 수치와 조건을 모았습니다. 어레이 벤더가 내놓는 전송은 [04 엔터프라이즈 전송 현황]({{< relref "/data/block-storage/04-enterprise-transports/index.md" >}})에, 호스트 I/O 경로와 NVMe-oF 구조는 [01 iSCSI와 NVMe-oF]({{< relref "/data/block-storage/01-iscsi-nvme-of/index.md" >}})에 있습니다.
 
-## 1. CSI 드라이버의 지원 단계와 Linux 노드 조건
+## 1. CSI 드라이버와 Linux 노드가 함께 준비돼야 한다 {#1-csi-드라이버의-지원-단계와-linux-노드-조건}
 
 | 드라이버 | 전송 | 상태 | 근거 |
 |---|---|---|---|
@@ -27,17 +27,17 @@ Kubernetes에서 NVMe-oF(네트워크를 통한 NVMe 연결)를 쓰려면 CSI(�
 | Longhorn V2 data engine | SPDK NVMe-oF/TCP | 1.12.0(2026-06-02) GA, 최신 1.13.0 | `✓` |
 | Dell CSM, Pure Portworx | NVMe/TCP·NVMe/FC | 1차 문서 미확인 | `?` |
 
-NetApp 문서는 Trident의 NVMe/TCP 연결뿐 아니라 스냅샷·클론·리사이즈·임포트와 네이티브 멀티패스(여러 I/O 경로를 쓰는 기능)를 명시합니다. v25.06에는 SnapMirror 복제도 추가됐습니다.
+NetApp Trident는 NVMe/TCP 연결과 함께 스냅샷, 클론, 리사이즈, 임포트, 네이티브 멀티패스(여러 I/O 경로를 쓰는 기능)를 지원합니다. v25.06에는 SnapMirror 복제가 추가됐습니다.
 
-ceph-csi는 실험 기능으로 출발해 인증·클론·VolumeGroupSnapshot을 추가했습니다. v3.17부터는 StorageClass의 publish secret이 필수라는 업그레이드 조건도 생겼습니다. Rook의 실험적 상태와 프로덕션 비권장 표기는 v1.19를 다룬 3자 자료에 근거합니다.
+ceph-csi의 NVMe-oF 드라이버는 실험 기능으로 시작해 인증, 클론, VolumeGroupSnapshot을 추가했습니다. v3.17부터 StorageClass에 publish secret이 필수이므로 업그레이드할 때 설정 변경이 필요합니다. Rook가 실험 단계이며 프로덕션에 권장되지 않는다는 평가는 v1.19를 다룬 3자 자료에 근거합니다.
 
 ### Linux 노드의 연결 조건
 
-Linux는 네이티브 멀티패스와 TLS(전송 암호화)를 제공합니다. 멀티패스의 iopolicy(경로 선택 정책)는 numa·round-robin·queue-depth이며 모두 ANA를 따릅니다. TLS는 사용자 공간의 tlshd가 핸드셰이크를 맡고 커널 TLS가 암호화하는 방식으로, nvme-cli의 `gen-tls-key`와 `connect --tls`로 키 생성과 TLS 연결을 구성합니다.
+Linux 노드는 네이티브 멀티패스와 TLS(전송 암호화)를 구성할 수 있어야 합니다. `numa`, `round-robin`, `queue-depth` iopolicy(경로 선택 정책)는 모두 ANA 상태를 따릅니다. TLS 핸드셰이크는 사용자 공간의 `tlshd`가, 암호화는 커널 TLS가 처리합니다. `nvme-cli`의 `gen-tls-key`와 `connect --tls`로 키를 만들고 연결합니다.
 
-TLS는 커널 6.7에, 경로별 queue-depth sysfs는 6.15에 도입됐습니다. 이 글은 업스트림 기준으로는 6.18 LTS가 필요하다고 보며, 배포판 6.12 커널의 백포트 범위는 확인하지 못했습니다. NetApp 호스트 문서는 RHEL 10에서 네이티브 NVMe 멀티패스가 기본으로 활성화된다고 설명합니다.
+TLS는 커널 6.7에, 경로별 queue-depth sysfs는 6.15에 들어왔습니다. 필요한 기능을 업스트림 기준으로 모두 사용하려면 6.18 LTS가 필요하다고 해석했습니다. 배포판의 6.12 커널에 어떤 기능이 백포트됐는지는 확인하지 못했습니다. NetApp 호스트 문서는 RHEL 10에서 네이티브 NVMe 멀티패스가 기본 활성화된다고 설명합니다.
 
-Proxmox VE 포럼 스레드에는 전용 NVMe/TCP 스토리지 타입이 없는 것으로 나옵니다. 사용자들은 nvme-cli나 nvme-stas로 연결한 뒤 공유 LVM을 구성하며, 경로 복구 문제를 피하려고 `ctrl-loss-tmo=-1`을 권합니다. 같은 스레드에서 LVM 스냅샷은 기술 프리뷰로 언급됩니다.
+Proxmox VE 포럼 스레드에서는 전용 NVMe/TCP 스토리지 타입을 확인하지 못했습니다. 사용자들은 `nvme-cli`나 `nvme-stas`로 연결한 뒤 공유 LVM을 만들고, 경로 복구를 위해 `ctrl-loss-tmo=-1`을 권합니다. LVM 스냅샷은 같은 스레드에서 기술 프리뷰로 언급됩니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -62,13 +62,13 @@ Proxmox VE 포럼 스레드에는 전용 NVMe/TCP 스토리지 타입이 없는 
 
 {{% /details %}}
 
-## 2. vSphere의 전송 지원과 vVols 제약
+## 2. vSphere에서는 전송 지원과 vVols 수명을 따로 본다 {#2-vsphere의-전송-지원과-vvols-제약}
 
-하이퍼바이저 쪽 지원과 제약을 보면, vSphere 9.0은 RDMA(RoCE v2)·FC·TCP로 공유 NVMe-oF를 지원합니다. 9.0에서는 NVMe/TCP 부팅과 DH-HMAC-CHAP 인밴드 인증도 추가됐습니다. TCP 연결에는 소프트웨어 NVMe/TCP 어댑터와 VMkernel 바인딩이 필요합니다. Dell ESXi 9.x 릴리스 노트에는 NVMe over Fabrics의 TCP·FC 부팅 디스크 지원이 명시돼 있습니다.
+vSphere 9.0은 RDMA(RoCE v2), FC, TCP로 공유 NVMe-oF를 지원합니다. NVMe/TCP 부팅과 DH-HMAC-CHAP 인밴드 인증도 9.0에 추가됐습니다. TCP를 연결하려면 소프트웨어 NVMe/TCP 어댑터를 만들고 VMkernel을 바인딩해야 합니다. Dell ESXi 9.x 릴리스 노트는 TCP와 FC의 NVMe over Fabrics 부팅 디스크 지원을 명시합니다.
 
-9.1의 메모리 티어링은 로컬 NVMe를 메모리 계층으로 쓰는 기능으로, 원격 NVMe-oF 전송과는 관계가 없습니다.
+9.1에서 발표한 메모리 티어링은 로컬 NVMe를 메모리 계층으로 사용하는 기능이며 원격 NVMe-oF 전송과는 무관합니다.
 
-vVols 조합에는 전송 지원과 별도로 폐기 일정이 걸려 있습니다. Dell KB가 인용한 Broadcom 발표는 9.0에서 vVols를 폐기하고 9.1에서 제거한다는 내용입니다. 9.1 GA에서 실제로 제거됐는지는 Broadcom 원문으로 확인하지 못했습니다. 이 글은 발표대로 제거됐다면 PowerStore 등이 내세운 NVMe/TCP vVols 조합은 출구가 막힌다고 해석합니다.
+vVols는 전송 지원과 별개로 제품 수명을 확인해야 합니다. Dell KB가 인용한 Broadcom 발표에는 9.0에서 vVols를 폐기하고 9.1에서 제거한다는 일정이 있습니다. 9.1 GA에서 실제로 제거됐는지는 Broadcom 원문으로 확인하지 못했습니다. 발표대로라면 PowerStore 등이 제시한 NVMe/TCP vVols 조합은 더 이상 이어지기 어렵다고 해석했습니다.
 
 Broadcom KB에는 최대 연결 수를 넘었을 때의 연결 실패와 큐 공유로 인한 데이터스토어 간 QoS 영향이 나옵니다. 커뮤니티에는 vSphere 8.0U3에서 NVMe/TCP 볼륨으로 storage vMotion을 수행할 때 iSCSI보다 훨씬 느렸다는 보고가 있습니다. Broadcom 직원은 VAAI XCOPY 동작 여부를 확인하라고 답했지만, 원인은 확정되지 않았습니다.
 
@@ -91,11 +91,11 @@ Broadcom KB에는 최대 연결 수를 넘었을 때의 연결 실패와 큐 공
 
 {{% /details %}}
 
-## 3. 클라우드의 NVMe 표기로는 전송을 알 수 없다
+## 3. 클라우드의 NVMe 장치는 내부 전송을 드러내지 않는다 {#3-클라우드의-nvme-표기로는-전송을-알-수-없다}
 
-AWS EBS 문서는 io2 Block Express 서버와 Nitro 인스턴스가 SRD로 통신한다고 밝힙니다. Azure의 2023년 논문은 컴퓨트–스토리지 구간과 스토리지 내부에 지역 내 RDMA를 배치했다고 설명합니다. 이 전송들은 사업자가 NIC와 스위치를 모두 통제하는 환경에서 쓰이며, 세부는 대부분 비공개입니다.
+AWS EBS는 io2 Block Express 서버와 Nitro 인스턴스 사이에 SRD를 사용합니다. Azure의 2023년 논문은 컴퓨트–스토리지 구간과 스토리지 내부에 지역 내 RDMA를 배치했다고 설명합니다. 모두 사업자가 NIC와 스위치를 통제하는 환경이며 세부 구현은 대부분 공개되지 않았습니다.
 
-Google Hyperdisk는 Titanium 오프로드 위에서 동작하지만 디스크 트래픽의 전송 프로토콜은 공개되지 않았습니다. OCI의 볼륨 연결 방식은 iSCSI와 반가상화입니다. 공개된 자료만으로는 "하이퍼스케일러가 NVMe/TCP를 쓴다"는 문장을 뒷받침하기 어렵습니다.
+Google Hyperdisk는 Titanium 오프로드에서 동작하지만 디스크 트래픽의 전송 프로토콜을 공개하지 않았습니다. OCI는 볼륨 연결 방식으로 iSCSI와 반가상화를 제공합니다. 이 자료만으로 하이퍼스케일러가 NVMe/TCP를 사용한다고 일반화할 수 없습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -110,13 +110,13 @@ Google Hyperdisk는 Titanium 오프로드 위에서 동작하지만 디스크 �
 
 {{% /details %}}
 
-## 4. 하드웨어 오프로드의 적용 범위
+## 4. 오프로드는 DPU와 사업자 내부 경로에 집중된다 {#4-하드웨어-오프로드의-적용-범위}
 
-공개 자료상 엔터프라이즈 NVMe/TCP의 기본은 여전히 소프트웨어 구현으로 보입니다. 오프로드(처리를 별도 하드웨어로 넘기는 방식)는 NVIDIA BlueField-3 SNAP처럼 원격 스토리지를 호스트에 로컬 NVMe 장치로 보여 주는 DPU에서 쓰입니다. AWS Nitro도 게스트에 NVMe 장치를 제공하면서 EBS 전송을 처리합니다. Dell 백서는 2023년 시점에 소프트웨어 NVMe/TCP만 지원하며 하드웨어 오프로드는 검토 중이라고 적었습니다.
+조사한 공개 자료를 보면 엔터프라이즈 NVMe/TCP는 여전히 소프트웨어 구현이 기본인 것으로 보입니다. 오프로드(처리를 별도 하드웨어로 넘기는 방식)는 NVIDIA BlueField-3 SNAP처럼 원격 스토리지를 로컬 NVMe 장치로 에뮬레이션하는 DPU에 쓰입니다. AWS Nitro도 게스트에 NVMe 장치를 제공하면서 EBS 전송을 처리합니다. Dell은 2023년 백서에서 소프트웨어 NVMe/TCP만 지원하고 하드웨어 오프로드는 검토 중이라고 밝혔습니다.
 
-Linux의 범용 NVMe/TCP 수신 오프로드 패치는 2025년 4월 v28로 검토 중이었고, 메인라인 병합 여부는 확인하지 못했습니다.
+Linux의 범용 NVMe/TCP 수신 오프로드 패치는 2025년 4월 v28 검토 단계였으며 메인라인 병합 여부는 확인하지 못했습니다.
 
-Ultra Ethernet과 스토리지를 잇는 자료는 확인하지 못했습니다. UEC Spec 1.0 보도자료에는 RoCE와 스토리지 언급이 없습니다. 스토리지 프로파일이나 NVMe-oF 바인딩 계획도 확인하지 못했습니다.
+Ultra Ethernet을 스토리지에 적용한 자료는 찾지 못했습니다. UEC Spec 1.0 보도자료에는 RoCE와 스토리지가 언급되지 않으며 스토리지 프로파일과 NVMe-oF 바인딩 계획도 확인되지 않았습니다.
 
 학술·벤더 자료는 RoCEv2의 경로 고정과 PFC 의존을 UEC의 설계 배경으로 설명하며, NVIDIA는 ConnectX-6 Lx/Dx의 Zero Touch RoCE가 PFC·ECN 설정 없이 동작한다고 주장합니다.
 

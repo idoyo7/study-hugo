@@ -1,22 +1,22 @@
 ---
-title: "2026년 어레이 벤더가 NVMe/TCP를 기본으로 미는 이유"
+title: "엔터프라이즈 어레이의 전송 선택: NVMe/TCP가 기본이 된 배경"
 linkTitle: "04 엔터프라이즈 전송 현황"
-description: "2026년 엔터프라이즈 어레이의 전송 지원을 비교하고 신규 이더넷에서 NVMe/TCP를 기본으로 미는 이유와 RoCE의 쓰임을 성능 측정 조건과 보안 지원 범위까지 함께 정리한다."
+description: "2026년 엔터프라이즈 어레이가 지원하는 NVMe/TCP·RoCE·FC-NVMe·iSCSI를 비교하고, 구축 부담과 성능 조건, 경로 관리와 보안 지원 범위로 전송 선택 기준을 짚는다."
 weight: 4
 date: 2026-10-21
 lastmod: 2026-10-21
 url: "/storage/04-enterprise-transports/"
 ---
 
-# 04 · 2026년 어레이 벤더가 NVMe/TCP를 기본으로 미는 이유
+# 04 · 엔터프라이즈 어레이의 전송 선택: NVMe/TCP가 기본이 된 배경
 
-2026-10-21 기준, 엔터프라이즈 스토리지 벤더는 NVMe/TCP와 RDMA(원격 메모리 직접 접근) 전송을 계속 제공합니다. 신규 이더넷 구축에서 기본으로 미는 쪽은 NVMe/TCP입니다. RoCE(이더넷 기반 RDMA)는 일부 제품의 호스트 연결과 어레이 내부 패브릭(연결망)에 쓰이고, FC-NVMe는 기존 FC SAN을 이어 갑니다. iSCSI도 모든 어레이에 남아 있습니다.
+2026-10-21 현재 주요 엔터프라이즈 어레이는 NVMe/TCP, FC-NVMe, iSCSI를 함께 제공합니다. RoCE(이더넷 기반 RDMA)도 일부 제품에서 지원하지만, 신규 이더넷 호스트 연결의 기본 선택은 NVMe/TCP로 기울었습니다. FC-NVMe는 기존 FC SAN을 확장하고, iSCSI도 호환성이 필요한 환경에 남아 있습니다.
 
-자료를 종합하면 TCP를 미는 이유는 호스트 네트워크의 구성 부담으로 보입니다. Dell은 범용 연결에서 NVMe/RoCE를 택하지 않은 이유로 구성 복잡성과 멀티벤더 튜닝을 듭니다. RoCE가 더 낮은 지연을 보이는 벤더 측정도 있지만, 격차는 읽기·쓰기와 부하 조건에 따라 달라집니다.
+선택을 가르는 것은 최고 성능보다 운영 범위입니다. RoCE는 낮은 지연을 낼 수 있지만 lossless 이더넷과 멀티벤더 튜닝이 필요합니다. 벤더가 네트워크를 통제하는 어레이 내부에는 RoCE가 쓰이는 반면, 고객의 스위치·NIC·운영 조직이 얽힌 호스트 구간에는 TCP가 널리 제시됩니다. 성능 차이는 읽기와 쓰기, 큐 깊이와 잡 수에 따라 달라지므로 전송 이름만으로 결론을 내릴 수 없습니다.
 
 근거 표기 — `✓` 1차 문서 확인 · `Ⓑ` 공개 벤치마크 · `Ⓥ` 벤더·프로젝트 주장 · `≈` 추정·역산 · `?` 미확인. 각 절 끝의 '근거와 측정 조건'에 수치와 조건을 모았습니다. 프로토콜 구조는 [01 iSCSI와 NVMe-oF]({{< relref "/data/block-storage/01-iscsi-nvme-of/index.md" >}})에, 호스트·클라우드·오프로드 쪽은 [05 호스트·클라우드·오프로드]({{< relref "/data/block-storage/05-host-side-and-cloud/index.md" >}})에 있습니다.
 
-## 1. 호스트 연결에서 TCP를 미는 이유
+## 1. 운영 범위가 TCP와 RoCE를 가른다 {#1-호스트-연결에서-tcp를-미는-이유}
 
 | 전송 | 2026년 위치 | 근거 |
 |---|---|---|
@@ -25,7 +25,7 @@ url: "/storage/04-enterprise-transports/"
 | FC-NVMe | 기존 FC SAN의 연장. 신규 투자 동력은 약함 | `✓` `≈` |
 | iSCSI | 레거시지만 모든 어레이에 있음 | `✓` |
 
-벤더 문서가 TCP를 미는 이유로 드는 것은 RoCE 네트워크의 구성·튜닝 부담입니다. Broadcom vSphere 9 문서는 NVMe over RDMA에 lossless(무손실) 이더넷 구성을 요구합니다. Dell은 멀티벤더 환경의 튜닝과 혼잡 확산을 지적합니다. NetApp은 PFC·ECN 의존 때문에 확장이 어렵다고, Marvell은 DCB·PFC·ECN 같은 기능이 필요해 배포가 복잡하다고 설명합니다.
+벤더 문서는 RoCE 네트워크의 구성과 튜닝 부담을 TCP 채택의 이유로 듭니다. Broadcom vSphere 9 문서는 NVMe over RDMA에 lossless(무손실) 이더넷을 요구합니다. Dell은 멀티벤더 튜닝과 혼잡 확산을, NetApp은 PFC·ECN 의존에 따른 확장 제약을, Marvell은 DCB·PFC·ECN 구성 때문에 생기는 배포 복잡성을 지적합니다.
 
 | 출처 | 문구 요지 | 근거 |
 |---|---|---|
@@ -36,11 +36,11 @@ url: "/storage/04-enterprise-transports/"
 | WD 백서 2025 | ECN 같은 L3 혼잡 제어 없이는 확장성이 제한된다. 기존 인프라 업그레이드·재구성, RNIC 비용, 기술 인력 투자가 필요해 plug-and-play가 아니다 | `Ⓥ` |
 | WD 백서 2025 (TCP의 약점) | NVMe/TCP도 HOL blocking과 incast가 있고, DCTCP+ECN 같은 완화책은 관리 부담이다 | `Ⓥ` |
 
-RoCE를 쓰는 구간을 보면 이 선택이 더 분명해집니다. NetApp AFX는 셸프의 SSD 연결에 RoCE를 씁니다. StorageReview와 Blocks & Files 보도에 따르면 HPE Alletra MP는 컨트롤러 노드와 JBOF 사이에 RoCE를 씁니다. Blocks & Files는 Pure FlashBlade//EXA의 데이터 경로도 RDMA를 사용한다고 보도합니다. 모두 벤더가 네트워크를 통제하는 구간입니다. 고객의 스위치와 NIC, 운영 팀이 관여하는 호스트 구간에서는 TCP를 기본으로 두는 것으로 읽힙니다.
+실제 배치 위치도 이 차이를 보여 줍니다. NetApp AFX는 셸프의 SSD 연결에 RoCE를 사용합니다. StorageReview와 Blocks & Files는 HPE Alletra MP가 컨트롤러 노드와 JBOF 사이에 RoCE를 쓰고, Pure FlashBlade//EXA의 데이터 경로가 RDMA를 사용한다고 보도했습니다. 모두 벤더가 네트워크 전체를 통제하는 구간입니다. 고객의 스위치와 NIC, 운영 조직이 함께 관리하는 호스트 구간에서는 TCP를 기본으로 제시하는 것으로 해석했습니다.
 
-벤더 문서는 TCP가 RoCE의 구성 부담을 피할 수 있지만 지연과 CPU 비용이 늘어난다고 설명합니다. TCP에도 혼잡 관리 부담은 남습니다. WD 백서는 HOL blocking과 incast를 지적하고, DCTCP+ECN 같은 완화책에도 관리가 필요하다고 설명합니다.
+TCP는 RoCE의 lossless 구성 부담을 덜지만 지연과 CPU 사용량이 늘 수 있습니다. 혼잡 관리가 없어지는 것도 아닙니다. WD 백서는 HOL blocking과 incast를 TCP의 문제로 들고 DCTCP+ECN 같은 완화책에도 별도 관리가 필요하다고 설명합니다.
 
-WWT는 IP 스위치의 Gbps당 비용이 FC보다 낮다는 점을 들어 TCP가 신규 구축을 주도할 것으로 봅니다. 이런 지원·권장 방향을 시장 점유율로 확인할 중립 자료는 찾지 못했으므로, "NVMe/TCP가 iSCSI를 추월했다"는 판단까지 뒷받침하지는 못합니다.
+WWT는 IP 스위치의 Gbps당 비용이 FC보다 낮아 TCP가 신규 구축을 주도할 것으로 전망합니다. 그러나 전송별 시장 점유율을 확인할 중립 자료는 찾지 못했습니다. 벤더의 지원 방향만으로 NVMe/TCP가 iSCSI를 추월했다고 판단할 수는 없습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -58,15 +58,15 @@ WWT는 IP 스위치의 Gbps당 비용이 FC보다 낮다는 점을 들어 TCP가
 
 {{% /details %}}
 
-## 2. TCP의 지연 차이는 어느 부하에서 커지는가
+## 2. 지연 차이는 부하 조건과 I/O 방향에 따라 달라진다 {#2-tcp의-지연-차이는-어느-부하에서-커지는가}
 
-벤더 측정에서 지연 격차는 조건에 따라 몇 %에서 70%까지 벌어집니다. WD의 2025년 백서에서 4K 랜덤, 큐 깊이(대기 중인 I/O 수) 1 조건의 p99.99 쓰기 지연은 RoCE 41µs, TCP 122µs였습니다. 같은 조건의 읽기는 163µs와 177µs로 차이가 8%에 그쳤습니다. WD는 잡 수와 큐 깊이가 낮은 조건에서 RoCE가 크게 유리하다고 밝히는데, 쓰기 격차는 단일 잡 QD1과 잡 32개 혼합 부하 모두에서 컸습니다.
+벤더 측정의 RoCE와 TCP 지연 격차는 부하에 따라 몇 %에서 70%까지 달라집니다. WD의 2025년 백서에서 4K 랜덤·큐 깊이(대기 중인 I/O 수) 1의 p99.99 쓰기 지연은 RoCE 41µs, TCP 122µs였습니다. 같은 조건의 읽기는 163µs와 177µs로 8% 차이였습니다. WD는 잡 수와 큐 깊이가 낮을수록 RoCE가 유리하다고 설명하지만 쓰기 차이는 단일 잡 QD1과 잡 32개 혼합 부하에서 모두 컸습니다.
 
-Dell 백서(H18892)는 RoCE를 빼고 TCP·FC·iSCSI를 비교했습니다. PowerStore 측정에서 NVMe/TCP@25G의 쓰기 IOPS·지연은 NVMe/FC·FCP@32G와 비슷했고, 읽기는 20% 이내로 뒤졌습니다. 어레이가 제공하는 TCP와 FC 사이의 선택을 다루는 자료입니다.
+Dell H18892 백서는 RoCE를 제외하고 TCP·FC·iSCSI를 비교합니다. PowerStore에서 NVMe/TCP@25G의 쓰기 IOPS와 지연은 NVMe/FC·FCP@32G와 비슷했고 읽기 성능은 20% 이내로 낮았습니다. 이 결과는 해당 어레이에서 TCP와 FC 중 하나를 선택할 때 참고할 수 있습니다.
 
-같은 이더넷에서 iSCSI와 NVMe/TCP를 비교한 Blockbridge 측정에서는 소블록·중간 큐 깊이의 IOPS와 지연이 개선됐습니다. 4K QD4에서 IOPS는 50% 이상 늘고 지연은 33% 줄었으며, 대블록 대역폭은 사실상 같았습니다.
+Blockbridge는 같은 이더넷에서 iSCSI와 NVMe/TCP를 비교했습니다. 소블록·중간 큐 깊이에서 NVMe/TCP의 IOPS와 지연이 개선됐고, 4K QD4에서는 IOPS가 50% 이상 증가하고 지연이 33% 줄었습니다. 대블록 대역폭은 사실상 같았습니다.
 
-이 수치는 모두 벤더가 수행한 측정입니다. 중립 기관이 같은 하드웨어에서 TCP·RoCE·FC를 모두 비교한 자료는 찾지 못했습니다.
+세 결과는 서로 다른 질문에 답합니다. WD 자료는 같은 장비의 RoCE와 TCP를, Dell 자료는 어레이가 제공하는 TCP와 FC를, Blockbridge 자료는 같은 이더넷의 NVMe/TCP와 iSCSI를 비교합니다. 모두 벤더 측정이며, 중립 기관이 같은 하드웨어에서 TCP·RoCE·FC를 함께 비교한 자료는 찾지 못했습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -83,7 +83,7 @@ Dell 백서(H18892)는 RoCE를 빼고 TCP·FC·iSCSI를 비교했습니다. Powe
 
 {{% /details %}}
 
-## 3. 제품별 지원 전송, 그리고 FC·iSCSI의 자리
+## 3. 제품 지원표에서는 FC와 iSCSI도 사라지지 않았다 {#3-제품별-지원-전송-그리고-fciscsi의-자리}
 
 | 벤더·제품 | NVMe/TCP | NVMe/FC | NVMe/RoCE | iSCSI·FC | 벤더가 미는 방향 | 근거 |
 |---|---|---|---|---|---|---|
@@ -100,13 +100,13 @@ Dell 백서(H18892)는 RoCE를 빼고 TCP·FC·iSCSI를 비교했습니다. Powe
 | simplyblock | GA (Kubernetes 지향 SDS) | — | ? | — | NVMe/TCP, OpenShift 인증 | `Ⓥ` |
 | Ceph NVMe-oF gateway | GA (Tentacle, TCP) | — | — | RBD | RBD를 NVMe/TCP로 노출 | `✓` |
 
-NVMe/TCP는 주요 어레이와 SDS에서 제공됩니다. 규격 개정도 이어져 NVMe/TCP 사양은 2025년 1.2에서 2026년 1.3으로 올라갔습니다. Ceph NVMe-oF gateway도 RBD 이미지를 NVMe/TCP 타깃으로 내보냅니다.
+주요 어레이와 SDS는 NVMe/TCP를 지원합니다. 전송 사양도 2025년 1.2에서 2026년 1.3으로 개정됐습니다. Ceph NVMe-oF gateway는 RBD 이미지를 NVMe/TCP 타깃으로 제공합니다.
 
-NetApp KB는 ONTAP에서 NVMe/RoCE를 지원하지 않으며 NVMe/FC와 NVMe/TCP만 지원한다고 명시합니다. 표에서 호스트용 RoCE의 GA 지원을 확인한 주요 어레이는 Pure FlashArray와 IBM FlashSystem뿐입니다. Pure는 RoCE·FC·TCP를 차례로 도입하고 세 패브릭을 모두 지원한 첫 벤더라고 주장합니다. Pure의 2026년 RoCE 유지 여부는 Purity 6.10 릴리스 노트에 접근하지 못해 확인하지 못했고, IBM의 RoCE 조건은 8.5 기준 자료에 근거합니다.
+NetApp KB는 ONTAP이 NVMe/FC와 NVMe/TCP만 제공하고 NVMe/RoCE는 지원하지 않는다고 명시합니다. 조사한 주요 어레이 중 호스트용 RoCE의 GA를 확인한 제품은 Pure FlashArray와 IBM FlashSystem입니다. Pure는 RoCE·FC·TCP를 차례로 도입해 세 패브릭을 모두 지원한 첫 벤더라고 주장합니다. Purity 6.10 릴리스 노트에 접근하지 못해 Pure의 2026년 RoCE 유지 여부는 확인하지 못했고 IBM 조건은 8.5 자료를 기준으로 했습니다.
 
-기존 FC SAN도 계속 지원됩니다. FC-NVMe는 거의 모든 엔터프라이즈 어레이에서 GA이며, IBM은 자동 존 생성을, ONTAP은 스위치 없는 FC·FC-NVMe 직결을 추가했습니다. WWT는 16G/32G 포트를 64G로 서둘러 교체하는 고객이 드물다고 보고, WD 백서는 FC-NVMe를 중기 해법일 뿐 NVMe-oF 채택을 이끄는 쪽은 아니라고 봅니다. Ampcom은 Tier-1 DB·ERP는 FC로, 나머지는 NVMe/TCP나 iSCSI로 연결하는 하이브리드 SAN이 지배적인 패턴이라고 분석합니다.
+기존 FC SAN도 계속 지원됩니다. FC-NVMe는 거의 모든 엔터프라이즈 어레이에서 GA이며 IBM은 자동 존 생성을, ONTAP은 스위치 없는 FC·FC-NVMe 직결을 추가했습니다. WWT는 16G/32G 포트를 64G로 서둘러 교체하는 고객이 드물다고 보고, WD는 FC-NVMe를 중기 해법으로 평가합니다. Ampcom은 Tier-1 DB·ERP를 FC에 두고 나머지를 NVMe/TCP나 iSCSI로 연결하는 하이브리드 SAN을 주된 패턴으로 분석합니다.
 
-iSCSI도 유지되어 PowerStore의 모든 이더넷 I/O 모듈은 파일·iSCSI·NVMe/TCP를 지원하고, HPE와 Hitachi도 iSCSI를 제공합니다. vSphere 9.0에서는 iSCSI 세션당 다중 연결이 추가됐습니다. iSER는 확인한 2026년 벤더 자료에서 거의 언급되지 않았으며, vSphere 9의 지원 유지 여부도 확인하지 못했습니다.
+iSCSI도 제거되지 않았습니다. PowerStore의 모든 이더넷 I/O 모듈은 파일·iSCSI·NVMe/TCP를 함께 지원하고 HPE와 Hitachi도 iSCSI를 제공합니다. vSphere 9.0에는 iSCSI 세션당 다중 연결 기능이 추가됐습니다. iSER는 2026년 벤더 자료에서 거의 언급되지 않았고 vSphere 9의 지원 여부도 확인하지 못했습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -138,11 +138,11 @@ iSCSI도 유지되어 PowerStore의 모든 이더넷 I/O 모듈은 파일·iSCSI
 
 {{% /details %}}
 
-## 4. 경로 관리와 보안에는 별도의 지원 조건이 있다
+## 4. 도입 전에는 멀티패스와 보안 조합을 확인해야 한다 {#4-경로-관리와-보안에는-별도의-지원-조건이-있다}
 
-Linux는 ANA를 따르는 네이티브 멀티패스(여러 I/O 경로 사용)를 제공합니다. I/O 정책은 numa가 기본이며 round-robin과 queue-depth도 선택할 수 있습니다. NetApp 호스트 문서는 RHEL 10에서 네이티브 NVMe 멀티패스가 기본으로 활성화된다고 안내합니다.
+Linux의 네이티브 NVMe 멀티패스는 ANA 상태에 따라 여러 I/O 경로를 선택합니다. 기본 정책은 `numa`이며 `round-robin`과 `queue-depth`도 사용할 수 있습니다. NetApp 호스트 문서는 RHEL 10에서 이 기능이 기본 활성화된다고 안내합니다.
 
-Linux의 NVMe/TCP TLS는 커널 6.7에 들어왔고, 사용자 공간의 tlshd가 핸드셰이크를 맡습니다. ONTAP은 9.16.1부터 TLS를, 9.12.1부터 인밴드 인증을 지원합니다. vSphere도 9.0부터 DH-HMAC-CHAP 인증을 지원하지만, NVMe/TCP TLS 지원 여부를 확인할 자료는 찾지 못했습니다.
+NVMe/TCP TLS는 Linux 커널 6.7에 들어왔으며 사용자 공간의 `tlshd`가 핸드셰이크를 담당합니다. ONTAP은 9.16.1부터 TLS를, 9.12.1부터 인밴드 인증을 지원합니다. vSphere는 9.0부터 DH-HMAC-CHAP 인증을 제공하지만 NVMe/TCP TLS 지원 여부는 확인하지 못했습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 

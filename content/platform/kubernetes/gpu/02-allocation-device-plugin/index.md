@@ -1,13 +1,13 @@
 ---
-title: "02 요청한 GPU는 누가 골라 주는가"
-description: "2026-10-21 기준, 기본 GPU 할당 경로에서는 스케줄러가 개수를 확인하고 kubelet이 실제 장치를 고른다. NVIDIA device plugin은 선호 조합을 제안하며, 스케줄러가 조합을 직접 계산하는 커스텀 리소스 방식은 ACK와 별도 스케줄러 스택에 남아 있다."
+title: "02 Kubernetes는 요청한 GPU를 어떻게 고르는가"
+description: "Kubernetes 스케줄러는 GPU 개수를 보고 노드를 정하고, kubelet과 device plugin이 노드 안의 장치를 고른다. 2026-10-21 기준 NVIDIA 플러그인의 연결 점수, NUMA 정렬, Koordinator와 ACK의 허용 조합 방식을 비교한다."
 date: 2026-10-21
 lastmod: 2026-10-21
 weight: 2
 url: "/kubernetes/gpu/02-allocation-device-plugin/"
 ---
 
-# 02 · 요청한 GPU는 누가 골라 주는가
+# 02 · Kubernetes는 요청한 GPU를 어떻게 고르는가
 
 ## 노드 선택과 GPU 선택은 다른 단계입니다 {#1-개수를-요청한-뒤에도-장치-선택은-남는다}
 

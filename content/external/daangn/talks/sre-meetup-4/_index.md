@@ -10,13 +10,13 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [당근에서 Loki 1년간 운영기]({{< relref "/external/daangn/talks/sre-meetup-4/01-loki-one-year.md" >}})
-- [Istio ServiceEntry 자동생성으로 외부 트래픽 가시화하기]({{< relref "/external/daangn/talks/sre-meetup-4/02-istio-serviceentry.md" >}})
-- [API 앞단에 CloudFront를 세우다]({{< relref "/external/daangn/talks/sre-meetup-4/03-cloudfront-in-front-of-api.md" >}})
-- [HPA Scale-in이 만든 AZ 불균형, Pod Deletion Cost로 바로잡기]({{< relref "/external/daangn/talks/sre-meetup-4/04-hpa-az-skew-pod-deletion-cost.md" >}})
-- [멋진 운영 경험을 위하여: Prometheus 레코딩 룰로 SLI 정하기]({{< relref "/external/daangn/talks/sre-meetup-4/05-prometheus-recording-rule-sli.md" >}})
-- [나가는 길을 다시 그리다: 당근페이 VPC 재설계]({{< relref "/external/daangn/talks/sre-meetup-4/06-daangnpay-vpc-redesign.md" >}})
-- [당근 개발자 플랫폼은 어떻게 발전하고 있을까]({{< relref "/external/daangn/talks/sre-meetup-4/07-developer-platform-evolution.md" >}})
+- [Loki 로그 유실과 느린 조회를 줄인 당근의 운영 과정]({{< relref "/external/daangn/talks/sre-meetup-4/01-loki-one-year.md" >}})
+- [CoreDNS 로그로 ServiceEntry를 생성해 외부 HTTPS 호출 관측하기]({{< relref "/external/daangn/talks/sre-meetup-4/02-istio-serviceentry.md" >}})
+- [API 앞에 CloudFront를 두고 연결 지연과 전송 비용 줄이기]({{< relref "/external/daangn/talks/sre-meetup-4/03-cloudfront-in-front-of-api.md" >}})
+- [Pod Deletion Cost로 HPA의 AZ 불균형을 줄인 방법]({{< relref "/external/daangn/talks/sre-meetup-4/04-hpa-az-skew-pod-deletion-cost.md" >}})
+- [팀이 합의한 Redis SLI를 Prometheus 레코딩 룰로 제공하기]({{< relref "/external/daangn/talks/sre-meetup-4/05-prometheus-recording-rule-sli.md" >}})
+- [당근페이가 NAT와 방화벽을 Network VPC로 모은 과정]({{< relref "/external/daangn/talks/sre-meetup-4/06-daangnpay-vpc-redesign.md" >}})
+- [배포 도구에서 사내 개발자 플랫폼으로 확장한 Kontrol]({{< relref "/external/daangn/talks/sre-meetup-4/07-developer-platform-evolution.md" >}})
 
 당근 SRE 팀이 사내 개발자 플랫폼, 관측 가능성, 네트워크 개선 경험을 공유한 밋업입니다. 영상은 2025-10-10에 YouTube 당근 채널에 올라왔습니다.
 

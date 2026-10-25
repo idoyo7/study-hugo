@@ -1,13 +1,13 @@
 ---
-title: "06 GPUDirect RDMA 1부 — 파드의 NIC이 GPU 메모리에 닿는 조건과 준비"
-description: "2026-10-21 기준, 파드에서 GPUDirect RDMA를 쓰려면 GPU와 NIC의 PCIe 조건을 맞추고 호스트 드라이버와 RDMA 장치 할당을 준비해야 한다. 권장 경로인 DMA-BUF의 조건과 NIC 공유·독점 요구에 따른 파드 구성을 설명한다."
+title: "06 GPUDirect RDMA 1부: 파드에서 쓰기 위한 조건"
+description: "파드에서 GPUDirect RDMA를 쓰려면 GPU와 NIC의 PCIe 거리를 맞추고 호스트 드라이버와 RDMA 장치 할당을 준비해야 한다. 2026-10-21 기준 DMA-BUF 조건과 NIC 공유·독점 방식, 설치와 검증 순서를 설명한다."
 date: 2026-10-21
 lastmod: 2026-10-21
 weight: 6
 url: "/kubernetes/gpu/06-gpudirect-rdma-basics/"
 ---
 
-# 06 · GPUDirect RDMA 1부 — 파드의 NIC이 GPU 메모리에 닿는 조건과 준비
+# 06 · GPUDirect RDMA 1부: 파드에서 쓰기 위한 조건
 
 ## 1. GPU에서 NIC까지의 경로를 확인한다 {#1-gpu-할당-뒤에-남는-통신-경로}
 
