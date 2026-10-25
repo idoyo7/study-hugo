@@ -1,7 +1,7 @@
 ---
 title: "EKS와 ECS에서 Prometheus 타깃을 자동으로 찾는 구성"
 linkTitle: "ECS·EKS 타깃 자동 발견"
-description: "2026-10-25 기준 EKS는 API server watch로, ECS는 ECS API 폴링이나 Cloud Map DNS로 바뀌는 타깃을 찾는다. 컨테이너와 포트 구성, 저장 위치에 따라 발견 방법과 수집기 배치를 고르며 사이드카로 발견 없이 수집할 수도 있다."
+description: "2026-10-25 기준 EKS는 API server watch로, ECS는 ECS API 폴링으로 바뀌는 타깃을 찾는다. 컨테이너와 포트 구성, 저장 위치에 따라 발견 방법과 수집기 배치를 고르며 사이드카로 발견 없이 수집할 수도 있다."
 date: 2026-10-25
 lastmod: 2026-10-25
 weight: 7
@@ -12,8 +12,8 @@ url: "/monitoring/prometheus-ecs-eks-service-discovery/"
 
 {{< kpis >}}
 {{< kpi label="네이티브 ECS SD 기본 갱신" value="60s" sub="watch가 아니라 폴링" >}}
+{{< kpi label="ecs_observer 소스 기본 갱신" value="30s" sub="README 표는 10s" >}}
 {{< kpi label="ECS 읽기 API 지속 한도" value="20 req/s" sub="계정·리전 공유, 버스트 50~100" tone="warn" >}}
-{{< kpi label="Cloud Map MULTIVALUE 응답" value="최대 8개" sub="태스크 9개 이상 서비스는 누락 가능" tone="warn" >}}
 {{< kpi label="managed collector 최소 간격" value="30s" sub="서브넷 2개 이상 필요" >}}
 {{< /kpis >}}
 
@@ -23,7 +23,7 @@ url: "/monitoring/prometheus-ecs-eks-service-discovery/"
 
 ECS에 서비스 A·B·C·D가 있고, 서비스 A의 태스크 A1~A4와 서비스 B의 B1·B2가 실행 중이라고 해 보겠습니다. 부하가 줄면 A3와 A4가 사라지고, 배포하면 A1~A4가 새 태스크로 바뀝니다. Prometheus 설정에 이 IP를 일일이 적는 대신 실행 중인 대상의 목록을 받아야 합니다. 이 역할이 service discovery(SD, 수집 대상 자동 발견)입니다.
 
-EKS에서는 Prometheus가 Kubernetes API server의 변경 이벤트를 구독합니다. ECS에서는 ECS API를 주기적으로 조회하거나 Cloud Map DNS에서 주소를 찾습니다. 태스크마다 수집기 사이드카를 붙여 같은 태스크의 엔드포인트만 읽는다면 발견 과정 없이 수집할 수도 있습니다.
+EKS에서는 Prometheus가 Kubernetes API server의 변경 이벤트를 구독합니다. ECS에서는 ECS API를 주기적으로 조회합니다. 태스크마다 수집기 사이드카를 붙여 같은 태스크의 엔드포인트만 읽는다면 발견 과정 없이 수집할 수도 있습니다.
 
 {{< flow src="_flow/0-overview.json" />}}
 
@@ -38,7 +38,6 @@ EKS에서는 Prometheus가 Kubernetes API server의 변경 이벤트를 구독�
 | Container | Container | 같은 태스크 안은 IP와 localhost 공유 |
 | rolling deployment | rolling update | 최대 비율 200%면 타깃 일시 두 배 |
 | docker label | annotation 관례 | 네이티브 SD는 읽지 않음 |
-| Cloud Map 서비스 | Service + EndpointSlice | DNS라 메타데이터 거의 없음 |
 
 ECS 서비스는 원하는 태스크 수를 유지하는 스케줄러입니다. Kubernetes Service처럼 고정 주소나 Endpoints 객체를 만들지는 않으므로, 안정적인 이름이 필요하면 Cloud Map 서비스 디스커버리나 Service Connect를 따로 켭니다. awsvpc 태스크에는 ENI(네트워크 인터페이스)와 사설 IPv4가 하나씩 붙고, 태스크가 멈추면 ENI도 사라집니다.
 
@@ -164,7 +163,7 @@ remote_write:
 
 ## 3. ECS에서는 태스크와 컨테이너 중 무엇을 찾을지 먼저 정한다
 
-ECS의 발견 방법은 필요한 IP와 포트를 얻을 수 있는지부터 고릅니다. 태스크마다 정해진 포트 하나를 수집한다면 Prometheus의 네이티브 ECS SD를 쓸 수 있습니다. 컨테이너 이름이나 docker label로 대상을 골라야 한다면 ecs_observer나 CloudWatch agent를 봅니다. bridge의 동적 포트는 이 둘과 Cloud Map의 SRV 레코드로 풀 수 있습니다.
+ECS의 발견 방법은 필요한 IP와 포트를 얻을 수 있는지부터 고릅니다. 태스크마다 정해진 포트 하나를 수집한다면 Prometheus의 네이티브 ECS SD를 쓸 수 있습니다. 컨테이너 이름이나 docker label로 대상을 골라야 한다면 ecs_observer나 CloudWatch agent를 봅니다. bridge의 동적 포트는 이 둘로 풀 수 있습니다.
 
 주소가 붙는 위치는 네트워크 모드에 따라 다릅니다.
 
@@ -296,7 +295,7 @@ A1~A4가 한 태스크 안의 컨테이너 넷이라면, 네이티브 SD는 태�
 
 {{% /details %}}
 
-## 4. 폴링 주기와 DNS 응답 한도가 발견 범위를 제한한다
+## 4. 폴링 주기가 발견 범위를 제한한다
 
 ECS API로 발견할 때는 태스크 수명과 갱신 주기를 함께 봐야 합니다. ECS에는 Kubernetes API server 같은 watch 채널이 없고 변화분만 받는 delta도 없습니다. Prometheus의 네이티브 ECS SD는 `refresh_interval`마다 전체 목록을 다시 받으며 기본값은 60초입니다. 새 태스크가 처음 긁히기까지는 최대 "발견 주기 + scrape 간격"이 걸리므로, 수십 초에서 1분 남짓 실행되는 태스크는 한 번도 긁히지 않을 수 있습니다.
 
@@ -317,29 +316,16 @@ ECS API로 발견할 때는 태스크 수명과 갱신 주기를 함께 봐야 �
 
 배포 도구와 콘솔도 이 한도를 사용합니다. HA 복제본이나 샤드가 각자 폴링하면 호출량도 늘어나므로, AWS는 간격 확대·EventBridge 이벤트 활용·캐시를 안내합니다. ecs_observer README도 폴링 간격이 짧거나 수집기가 여럿이면 rate limit에 걸릴 수 있고, `hashmod`로 샤딩해도 샤드마다 전체 태스크를 가져온다고 경고합니다. 소스의 ECS 전용 키 `ecs_sd_configs`에는 동시성 기본값 20을 이 지속 한도에 맞췄다는 주석이 있습니다. 문서에 있는 `aws_sd_configs`로는 이 값을 정할 수 없습니다.
 
-### Cloud Map DNS는 간단하지만 전체 목록을 보장하지 않는다
-
-Cloud Map과 `dns_sd_configs`를 쓰면 IAM 없이 DNS로 주소를 받습니다. ECS 서비스 디스커버리는 awsvpc 태스크를 A 또는 SRV 레코드로 등록하며, bridge와 host는 SRV만 지원합니다. SRV에는 호스트 IP와 동적 호스트 포트가 함께 들어가므로 bridge의 동적 포트도 처리할 수 있습니다.
-
-문제는 응답 개수입니다. Route 53 multivalue 응답은 건강한 레코드를 최대 여덟 개만 돌려줍니다. 태스크가 아홉 개 이상인 서비스에서는 조회마다 일부가 빠질 수 있으며, 서비스당 태스크 상한은 1,000개입니다. DNS 응답에 있는 라벨도 이름과 주소뿐입니다. `ECS_CLUSTER_NAME`, `ECS_SERVICE_NAME` 같은 Cloud Map 인스턴스 속성은 `DiscoverInstances` API로 받아야 합니다.
-
 `ec2_sd_configs`는 EC2 인스턴스만 찾고 ECS 태스크와 포트는 모릅니다. 호스트마다 고정 포트로 실행하는 node_exporter에는 쓸 수 있지만 Fargate에는 해당하지 않습니다. Consul을 이미 쓴다면 `consul_sd_configs`도 선택지지만, ECS가 Consul에 자동 등록해 주지는 않습니다.
 
 외부 생성기로는 teralytics/prometheus-ecs-discovery(Go, v1.4.1, 2021-09-06)와 signal-ai/prometheus-ecs-sd(Python, v1.6.0, 2021-05-17)가 있습니다. 각 프로젝트 자료에 따르면 둘 다 컨테이너의 환경변수나 docker label을 읽지만 4~5년째 릴리스가 없습니다. 네이티브 SD가 생긴 지금은 docker label로 컨테이너와 포트를 고르는 기능이 꼭 필요할 때만 의미가 있습니다. vmagent의 ECS SD 요청 이슈 #10610도 열려 있습니다.
 
-### managed collector는 목적지까지 확인한다
-
-ECS의 관리형 수집은 AWS 문서끼리 지원 범위가 맞지 않습니다. AMP 사용자 가이드는 EKS가 유일한 지원 소스이며 SD도 `kubernetes_sd_config`만 지원한다고 적습니다. AMP API 레퍼런스의 `vpcConfiguration` 설명은 MSK용입니다. 그런데 2026-04-08 AWS 운영 블로그는 `vpcConfiguration` 소스의 scraper가 Cloud Map DNS로 ECS 태스크를 수집해 AMP 워크스페이스로 보내는 예시를 제시합니다.
-
-2026-07-31 발표된 CloudWatch managed Prometheus collector는 EKS·EC2·ECS·MSK·OpenSearch를 대상으로 합니다. 공식 문서상 ECS 발견은 Cloud Map DNS의 `dns_sd_configs`만 지원하며 `file_sd`와 Consul은 지원하지 않습니다. 최소 scrape 간격은 30초이고 목적지는 CloudWatch입니다. 따라서 ECS에서 CloudWatch로 보내는 경로는 공식 문서로 확인되지만, AMP 워크스페이스로 보내는 경로의 근거는 위 블로그입니다. ECS 지원은 2026년에 등장했으며, 문서 사이의 차이는 남아 있습니다.
-
-managed collector 문서는 응답 개수를 언급하지 않지만, 같은 Cloud Map DNS를 쓰므로 여덟 개 제한도 그대로 받는다고 보는 편이 맞습니다. 방법별 기능을 비교하면 다음과 같습니다.
+방법별 기능을 비교하면 다음과 같습니다.
 
 | 방법 | 발견 주체 | Fargate | 컨테이너 단위 | bridge 동적 포트 | 주의 |
 |---|---|---|---|---|---|
 | 네이티브 `aws_sd` ecs | Prometheus 본체 | {{< badge "지원" good >}} | {{< badge "없음" bad >}} | {{< badge "없음" bad >}} | 태스크당 타깃 하나 |
 | `ec2_sd` | Prometheus 본체 | {{< badge "없음" bad >}} | {{< badge "없음" bad >}} | {{< badge "없음" bad >}} | 호스트 단위만 |
-| Cloud Map `dns_sd` | Route 53 DNS | {{< badge "지원" good >}} | {{< badge "없음" bad >}} | {{< badge "SRV만" warn >}} | 응답 8개 제한 |
 | ecs_observer | 수집기 확장 | {{< badge "지원" good >}} | {{< badge "지원" good >}} | {{< badge "지원" good >}} | beta, 클러스터 하나 |
 | CloudWatch agent | CW agent | {{< badge "지원" good >}} | {{< badge "지원" good >}} | {{< badge "지원" good >}} | 기본 목적지 CloudWatch |
 | 외부 생성기 | 별도 프로세스 | {{< badge "지원" good >}} | {{< badge "지원" good >}} | {{< badge "지원" good >}} | 2021년 이후 릴리스 없음 |
@@ -359,19 +345,10 @@ prometheus-operator v0.94.2의 ScrapeConfig CRD에는 ECS role이 없습니다. 
 | 갱신 대기 최대치 | discovery 묶음 대기 최대 5초와 scrape reload 5초 ticker의 합 약 10초. ECS SD도 같은 경로를 거치므로 refresh 주기에 더해짐. watch 전파와 scrape 간격은 제외 | Prometheus 소스(discovery manager, scrape) | `≈` |
 | 알려진 한계 | rate limit 우려, 샤드마다 전체 태스크를 가져옴 | ecsobserver README | `✓` |
 | 폴링 호출 | `ListClusters`(`clusters`를 비웠을 때만), `ListTasks`, `DescribeTasks`(태그 포함), EC2 launch type이면 `DescribeContainerInstances`·`DescribeInstances`, awsvpc 공인 IP가 필요하면 `DescribeNetworkInterfaces`. 호출 간 순서는 확정하지 못함 | Prometheus 설정 문서, Prometheus 소스(ecs.go) | `✓` |
-| Cloud Map 레코드 규칙 | awsvpc는 A·SRV, bridge·host는 SRV만. 서비스당 태스크 1,000개 | ECS 개발자 가이드(서비스 디스커버리) | `✓` |
-| 응답 8개 제한 | MULTIVALUE는 건강한 레코드 최대 8개, WEIGHTED는 1개 | Route 53 문서, Cloud Map API 문서 | `✓` |
-| 8개 제한의 영향 | 9개 이상 서비스에서 일부 누락 가능하다는 해석. 실측 안 함 | 위 문서의 조합 | `?` |
-| 인스턴스 속성 | `ECS_CLUSTER_NAME` 등은 `DiscoverInstances` API로만 얻음 | ECS 개발자 가이드(서비스 디스커버리) | `✓` |
 | 외부 생성기 | teralytics v1.4.1(2021-09-06), signal-ai v1.6.0(2021-05-17). 둘 다 이후 릴리스 없음 | teralytics README, signal-ai README | `Ⓥ` |
 | http_sd 구현 | 유지보수가 확인된 공개 구현은 찾지 못함 | 검색 결과 | `?` |
 | ScrapeConfig CRD | v0.94.2 API에 ECS role 없음 | operator 소스(ScrapeConfig 타입) | `✓` |
 | vmagent | ECS SD 없음. 요청 이슈 #10610 열려 있음 | VictoriaMetrics 이슈 | `✓` |
-| AMP 문서 서술 | 사용자 가이드는 EKS 전용, API 레퍼런스의 Source 설명은 MSK용 | AMP 사용자 가이드, AMP API 레퍼런스 | `✓` |
-| CloudWatch managed collector의 ECS 발견·제약 | ECS는 `dns_sd_configs`만, `file_sd`·Consul 미지원, 최소 30s, 목적지 CloudWatch | CloudWatch 관리형 수집기 문서 | `✓` |
-| AMP 워크스페이스로 보내는 ECS 수집 | 2026-04-08 블로그의 Cloud Map DNS scraper 예시. AMP 문서는 EKS 전용 | AWS 운영 블로그(2026-04) | `Ⓥ` |
-| CloudWatch managed collector 발표일 | 2026-07-31 | AWS What's New(2026-07) | `Ⓥ` |
-| managed 수집기의 8개 제한 | 문서는 언급하지 않으며 같은 DNS를 쓴다는 점에서 받는다는 해석 | 위 문서의 조합 | `Σ` |
 
 {{% /details %}}
 
@@ -574,6 +551,40 @@ EKS에 Prometheus가 있다면 네트워크 연결과 수집 여력을 확인해
 | managed collector 추가분 | $0.04 × 730시간 약 $29.2, 수집 $0.03 × 864 = 약 $25.9. 샘플 단가가 위 수집 단가에 더해지는 것으로 계산함. AMP 목적지 기준 | AMP 요금(Price List)로 계산 | `≈` |
 | 간격 경고 | "halving your scrape interval doubles your ingestion cost" | AWS 운영 블로그(2026-04) | `Ⓥ` |
 | 배포 시 비용 | 샘플 수는 같은 시각에 떠 있는 태스크 수에 비례한다는 해석 | 구조에서 유추 | `Σ` |
+
+{{% /details %}}
+
+### Cloud Map DNS로도 찾을 수 있다
+
+Cloud Map과 `dns_sd_configs`를 쓰면 IAM 없이 DNS로 주소를 받습니다. ECS 서비스 디스커버리는 awsvpc 태스크를 A 또는 SRV 레코드로 등록하며, bridge와 host는 SRV만 지원합니다. SRV에는 호스트 IP와 동적 호스트 포트가 함께 들어가므로 bridge의 동적 포트도 처리할 수 있습니다.
+
+문제는 응답 개수입니다. Route 53 multivalue 응답은 건강한 레코드를 최대 여덟 개만 돌려줍니다. 태스크가 아홉 개 이상인 서비스에서는 조회마다 일부가 빠질 수 있으며, 서비스당 태스크 상한은 1,000개입니다. DNS 응답에 있는 라벨도 이름과 주소뿐입니다. `ECS_CLUSTER_NAME`, `ECS_SERVICE_NAME` 같은 Cloud Map 인스턴스 속성은 `DiscoverInstances` API로 받아야 합니다.
+
+ECS의 관리형 수집은 AWS 문서끼리 지원 범위가 맞지 않습니다. AMP 사용자 가이드는 EKS가 유일한 지원 소스이며 SD도 `kubernetes_sd_config`만 지원한다고 적습니다. AMP API 레퍼런스의 `vpcConfiguration` 설명은 MSK용입니다. 그런데 2026-04-08 AWS 운영 블로그는 `vpcConfiguration` 소스의 scraper가 Cloud Map DNS로 ECS 태스크를 수집해 AMP 워크스페이스로 보내는 예시를 제시합니다.
+
+2026-07-31 발표된 CloudWatch managed Prometheus collector는 EKS·EC2·ECS·MSK·OpenSearch를 대상으로 합니다. 공식 문서상 ECS 발견은 Cloud Map DNS의 `dns_sd_configs`만 지원하며 `file_sd`와 Consul은 지원하지 않습니다. 최소 scrape 간격은 30초이고 목적지는 CloudWatch입니다. 따라서 ECS에서 CloudWatch로 보내는 경로는 공식 문서로 확인되지만, AMP 워크스페이스로 보내는 경로의 근거는 위 블로그입니다. ECS 지원은 2026년에 등장했으며, 문서 사이의 차이는 남아 있습니다.
+
+managed collector 문서는 응답 개수를 언급하지 않지만, 같은 Cloud Map DNS를 쓰므로 여덟 개 제한도 그대로 받는다고 해석합니다.
+
+| 방법 | 발견 주체 | Fargate | 컨테이너 단위 | bridge 동적 포트 | 주의 |
+|---|---|---|---|---|---|
+| Cloud Map `dns_sd` | Route 53 DNS | {{< badge "지원" good >}} | {{< badge "없음" bad >}} | {{< badge "SRV만" warn >}} | 응답 8개 제한 |
+
+관리형 수집기를 쓰는 경우가 아니라면 이 글의 기본 구성처럼 Cloud Map 없이 ECS API로 찾는 편이 단순합니다.
+
+{{% details title="근거와 측정 조건" closed="true" %}}
+
+| 항목 | 값·조건 | 출처 | 근거 |
+|---|---|---|---|
+| Cloud Map 레코드 규칙 | awsvpc는 A·SRV, bridge·host는 SRV만. 서비스당 태스크 1,000개 | ECS 개발자 가이드(서비스 디스커버리) | `✓` |
+| 응답 8개 제한 | MULTIVALUE는 건강한 레코드 최대 8개, WEIGHTED는 1개 | Route 53 문서, Cloud Map API 문서 | `✓` |
+| 8개 제한의 영향 | 9개 이상 서비스에서 일부 누락 가능하다는 해석. 실측 안 함 | 위 문서의 조합 | `?` |
+| 인스턴스 속성 | `ECS_CLUSTER_NAME` 등은 `DiscoverInstances` API로만 얻음 | ECS 개발자 가이드(서비스 디스커버리) | `✓` |
+| AMP 문서 서술 | 사용자 가이드는 EKS 전용, API 레퍼런스의 Source 설명은 MSK용 | AMP 사용자 가이드, AMP API 레퍼런스 | `✓` |
+| CloudWatch managed collector의 ECS 발견·제약 | ECS는 `dns_sd_configs`만, `file_sd`·Consul 미지원, 최소 30s, 목적지 CloudWatch | CloudWatch 관리형 수집기 문서 | `✓` |
+| AMP 워크스페이스로 보내는 ECS 수집 | 2026-04-08 블로그의 Cloud Map DNS scraper 예시. AMP 문서는 EKS 전용 | AWS 운영 블로그(2026-04) | `Ⓥ` |
+| CloudWatch managed collector 발표일 | 2026-07-31 | AWS What's New(2026-07) | `Ⓥ` |
+| managed 수집기의 8개 제한 | 문서는 언급하지 않으며 같은 DNS를 쓴다는 점에서 받는다는 해석 | 위 문서의 조합 | `Σ` |
 
 {{% /details %}}
 

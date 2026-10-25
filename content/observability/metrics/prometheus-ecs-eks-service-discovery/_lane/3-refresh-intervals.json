@@ -48,24 +48,6 @@
       ]
     },
     {
-      "label": "Cloud Map dns_sd",
-      "segments": [
-        {
-          "start": 0,
-          "end": 30,
-          "label": "refresh 30초",
-          "kind": "proc"
-        },
-        {
-          "start": 30,
-          "end": 40,
-          "label": "+10초",
-          "kind": "proc",
-          "style": "hatch"
-        }
-      ]
-    },
-    {
       "label": "네이티브 ECS SD",
       "segments": [
         {
