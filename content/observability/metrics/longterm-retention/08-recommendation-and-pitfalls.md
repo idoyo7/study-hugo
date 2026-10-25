@@ -19,7 +19,7 @@ url: "/monitoring/longterm-retention/08-recommendation-and-pitfalls/"
 
 > 관련 문서: [02 VM 아카이브 상세]({{< relref "/observability/metrics/longterm-retention/02-vm-archive.md" >}}), [07 핵심논점·비용종합·판단트리]({{< relref "/observability/metrics/longterm-retention/07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "/observability/metrics/longterm-retention/06-storage-pricing.md" >}}), [01 문제·2축]({{< relref "/observability/metrics/longterm-retention/01-problem-and-axes.md" >}})
 
-## 1. 권장: VM OSS 아카이브안 — 라우터 RW#4 + streamAggr 5m → vmsingle-archive 400d
+## 1. 5분 집계로 400일 보관하는 VM OSS 아카이브안을 권장한다 {#1-권장-vm-oss-아카이브안--라우터-rw4--streamaggr-5m--vmsingle-archive-400d}
 
 핵심 논점(사전집계 vs 사후집계)과 비용 종합표는 [07번]({{< relref "/observability/metrics/longterm-retention/07-streamaggr-vs-downsampling.md" >}})이 주인입니다. 여기서는 VM 아카이브안을 고른 근거만 종합합니다.
 

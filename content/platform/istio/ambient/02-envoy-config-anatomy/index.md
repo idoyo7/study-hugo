@@ -52,7 +52,7 @@ url: "/istio/ambient/02-envoy-config-anatomy/"
 
 기준선은 채널팀의 실제 구성입니다. Public Internet에서 받는 HTTP 요청은 **AWS ALB → Istio Gateway → Istio Waypoint 순서로 destination Pod에 도달**합니다. 원문이 예시로 쓰는 도메인은 `api.channel.io`, 목적지 서비스는 `ch-dropwizard-public.channel.svc.cluster.local`입니다.
 
-### Active Listener: `0.0.0.0:443`과 `http.443`
+### `0.0.0.0:443` 리스너가 `http.443`을 받는 방식 {#active-listener-0000443과-http443}
 
 Gateway Envoy에는 `0.0.0.0:443`에서 수신하는 리스너가 있습니다. 이 리스너의 Filter Chain에는 `HttpConnectionManager`가 설정되어 있고 **RDS(Route Discovery Service)로 `http.443` 이름의 route config를 동적으로 받아옵니다**. 리스너 자체에는 라우팅 규칙이 박혀 있지 않고 규칙은 별도의 xDS 자원으로 흘러 들어옵니다.
 
@@ -78,17 +78,17 @@ outbound|8080||ch-dropwizard-public.channel.svc.cluster.local
 | In-mesh 목적지 | `envoy_internal_address` | `InternalUpstreamTransport` | 내부 리스너를 거쳐 HBONE 터널링 |
 | Waypoint 목적지 | Service ClusterIP (`172.20.134.88:8080`) | `InternalUpstreamTransport` | Gateway → Waypoint → Pod |
 
-### 케이스 1 — out-of-mesh: 아무 일도 일어나지 않는다
+### 케이스 1 — out-of-mesh는 Pod에 평문으로 직결한다 {#케이스-1--out-of-mesh-아무-일도-일어나지-않는다}
 
 목적지 Pod가 메시에 등록되어 있지 않으면 endpoint에는 그냥 Pod IP `10.90.165.200:8080`이 실립니다. endpoint 메타데이터에 `envoy.transport_socket_match`의 `tunnel` 키가 없으므로 매칭 규칙에 따라 default인 **`tlsMode-disabled`(RawBuffer)** 가 선택됩니다. 평문으로 Pod에 바로 붙습니다. Ambient mode 클러스터 안에 있어도 enroll되지 않은 워크로드는 이 경로를 탑니다.
 
-### 케이스 2 — in-mesh: endpoint가 IP가 아니다
+### 케이스 2 — in-mesh의 endpoint는 IP 대신 내부 주소다 {#케이스-2--in-mesh-endpoint가-ip가-아니다}
 
 목적지가 메시에 들어와 있으면 endpoint의 주소가 실제 네트워크 주소 대신 **`envoy_internal_address`** 로 바뀝니다. Envoy 프로세스 내부의 user space 통신을 가리키는 주소이고 `server_listener_name`으로 **`connect_originate`라는 이름의 internal listener**를 지정합니다. 최종 목적지 정보는 메타데이터(`endpoint_id`, `original_dst` 등)에 실려 함께 넘어갑니다.
 
 endpoint 메타데이터에도 **`tunnel: http`** 가 함께 붙습니다. 클러스터의 `transport_socket_matches`가 이 키를 보고 `tlsMode-disabled` 대신 `InternalUpstreamTransport`를 고릅니다. **평문 직결이냐 HBONE이냐는 라우팅 규칙이 아니라 endpoint 메타데이터 한 줄이 정합니다.**
 
-### 케이스 3 — waypoint: endpoint가 Service ClusterIP가 된다
+### 케이스 3 — waypoint의 endpoint는 Service ClusterIP다 {#케이스-3--waypoint-endpoint가-service-clusterip가-된다}
 
 목적지에 waypoint가 붙어 있으면 endpoint 주소가 **최종 Pod IP 대신 Service ClusterIP(`172.20.134.88:8080`)** 가 됩니다. 최종 Pod 선택을 waypoint가 담당하기 때문입니다. Gateway는 "이 서비스로 보내라"까지만 결정하고 어느 Pod로 갈지는 waypoint의 Envoy가 자기 라우팅 테이블로 정합니다. `workload` 메타데이터도 `istio-waypoint`를 가리킵니다.
 
@@ -149,7 +149,7 @@ Ambient mode는 이렇게 "사이드카 없음"을 달성했습니다. 파드에
 원문은 세 포트가 Pod 네임스페이스에 열린다는 사실까지만 밝히고 `15001`·`15006`·`15008` 각각의 역할을 항목별로 정의하지는 않습니다. 본문에서 명시적으로 확인되는 건 **egress가 `15001`로 REDIRECT되고 HBONE 터널이 `15008`로 수신된다**는 것입니다. `15006`의 용도는 원문 범위 밖입니다.
 {{< /callout >}}
 
-### iptables: 두 개의 체인
+### iptables는 수신과 송신을 두 체인으로 나눈다 {#iptables-두-개의-체인}
 
 istio-cni node agent가 Pod 네임스페이스에 심는 규칙은 방향별로 체인이 나뉩니다.
 
@@ -160,7 +160,7 @@ istio-cni node agent가 Pod 네임스페이스에 심는 규칙은 방향별로 
 
 ztunnel은 `15001`로 받은 트래픽에 HBONE 캡슐화를 적용한 뒤 목적지로 보냅니다. 원문은 이 두 체인의 존재와 리다이렉트 목적지까지만 설명하고 규칙 한 줄 한 줄의 매칭 조건은 나열하지 않습니다. **모든 REDIRECT 규칙에 `! --mark 0x539` 조건이 붙어 있다**고는 명시합니다.
 
-### 패킷 마킹: `0x539`와 `0x111`
+### `0x539`와 `0x111` 마크로 리다이렉션 루프를 막는다 {#패킷-마킹-0x539와-0x111}
 
 리다이렉션을 무조건 걸면 ztunnel이 내보낸 패킷이 다시 ztunnel로 돌아오는 무한루프가 생깁니다. 마크 두 개가 이걸 막습니다.
 

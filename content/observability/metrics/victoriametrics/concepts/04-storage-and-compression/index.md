@@ -24,7 +24,7 @@ vminsert가 흩뿌린 데이터를 실제로 디스크에 눕히는 컴포넌트
 
 vmstorage는 vminsert로부터 지표를 받아 **월별 파티션 단위로 저장**하고 vmselect의 쿼리에 블록 단위로 응답하는 상태 저장(stateful) 컴포넌트입니다.
 
-### 지표 하나의 내부 표현: Time Series + Sample
+### 지표 하나는 Time Series와 Sample로 나뉜다 {#지표-하나의-내부-표현-time-series--sample}
 
 지표는 두 부분으로 나뉩니다.
 
@@ -35,7 +35,7 @@ vmstorage는 vminsert로부터 지표를 받아 **월별 파티션 단위로 저
 
 이 분리가 저장 효율을 좌우합니다. 변하지 않는 부분과 계속 쌓이는 부분을 따로 관리하면 **압축 효율이 크게 좋아집니다.** VM이 이름·레이블을 **IndexDB**에, 타임스탬프·값을 **DataDB**에 나눠 담는 근거입니다(일종의 DB 정규화). IndexDB/DataDB 분리 자체는 [02 아키텍처]({{< relref "/observability/metrics/victoriametrics/concepts/02-architecture/index.md" >}})가 주로 설명합니다.
 
-### 저장 경로: 로우 파싱 → TSID 변환 → 압축 → 파티션
+### 로우를 파싱하고 TSID로 변환·압축해 파티션에 저장한다 {#저장-경로-로우-파싱--tsid-변환--압축--파티션}
 
 데이터가 들어와 눕기까지 네 단계를 거칩니다.
 

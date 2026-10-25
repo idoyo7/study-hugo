@@ -20,7 +20,7 @@ url: "/monitoring/longterm-retention/05-vmcluster-expansion/"
 
 관련 문서: [02 VictoriaMetrics]({{< relref "/observability/metrics/longterm-retention/02-vm-archive.md" >}}), [07 핵심논점]({{< relref "/observability/metrics/longterm-retention/07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "/observability/metrics/longterm-retention/06-storage-pricing.md" >}}), [08 권장·하지말것]({{< relref "/observability/metrics/longterm-retention/08-recommendation-and-pitfalls.md" >}})
 
-## 단순 확장안: `-retentionPeriod=400d` + PVC 증설
+## `-retentionPeriod=400d`와 PVC 증설로 단순 확장 {#단순-확장안--retentionperiod400d--pvc-증설}
 
 구조도 쿼리도 운영도 **전혀** 바뀌지 않는 길입니다. 그 대가로 90d 이후 데이터에까지 `raw 30s × SSD(gp3) × RF2`가 그대로 걸려 4안 중 가장 비쌉니다. 이 안을 채택 후보로 세우는 대신 다른 안이 얼마나 절감하는지를 재는 자[尺]로 씁니다.
 
@@ -68,7 +68,7 @@ url: "/monitoring/longterm-retention/05-vmcluster-expansion/"
 
 ---
 
-## 확장+Ent (참고): VM Enterprise `-downsampling.period`
+## 확장+Ent는 `-downsampling.period`로 다운샘플링 (참고) {#확장ent-참고-vm-enterprise--downsamplingperiod}
 
 아키텍처로 보면 **최단 경로**입니다. 기존 클러스터에 설정 한 줄만 추가하면 vmstorage가 자동으로 다운샘플합니다. 걸림돌은 라이선스 쪽입니다 — Enterprise 라이선스(정가 비공개)가 필요해 OSS-우선 제약상 기본 배제합니다.
 

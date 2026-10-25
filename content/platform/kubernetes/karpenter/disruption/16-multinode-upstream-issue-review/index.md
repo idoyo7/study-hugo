@@ -313,7 +313,7 @@ simulation 수와 validation failure가 늘어날 수 있다는 단점도 함께
 
 ## 7. 새 Issue를 만들 것인가
 
-### 권장: 새 Issue를 만들지 않는다
+### 새 Issue를 만들기보다 기존 Issue에 근거를 보탠다 {#권장-새-issue를-만들지-않는다}
 
 현재는 다음 순서가 적절합니다.
 

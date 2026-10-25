@@ -37,7 +37,7 @@ istiod는 트래픽이 지나가는 곳이 아닙니다. 하는 일은 하나입
 
 Istio는 이들을 ADS(Aggregated Discovery Service) — 프록시당 하나의 gRPC 스트림 — 로 묶어 보냅니다.
 
-## CPU를 먹는 지점: push
+## istiod의 CPU 부하는 대부분 push 과정에서 나온다 {#cpu를-먹는-지점-push}
 
 istiod의 부하는 대부분 push 과정에서 나옵니다. 클러스터에 변화가 생기면 istiod는 영향받는 프록시들에 새 설정을 밀어내야 합니다. 무엇이 "변화"이고 그 한 건이 몇 개의 프록시를 건드리는지가 부하를 좌우합니다.
 

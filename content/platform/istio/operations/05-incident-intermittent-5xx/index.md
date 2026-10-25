@@ -19,7 +19,7 @@ url: "/istio/05-incident-intermittent-5xx/"
 
 관련 문서: [01 메시 기초]({{< relref "/platform/istio/fundamentals/01-mesh-basics/index.md" >}}) · [02 컨트롤 플레인]({{< relref "/platform/istio/operations/02-istiod-control-plane/index.md" >}}) · [03 게이트웨이]({{< relref "/platform/istio/operations/03-gateway-node-isolation/index.md" >}})
 
-## 먼저: 5xx는 누가 낸 것인가
+## 먼저 response flag로 5xx가 발생한 홉을 구분한다 {#먼저-5xx는-누가-낸-것인가}
 
 메시를 지나는 요청 하나는 프록시를 여러 번 거칩니다. 똑같은 "503"이라도 **어느 홉에서 났느냐**에 따라 원인이 완전히 다릅니다.
 

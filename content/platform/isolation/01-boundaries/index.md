@@ -122,7 +122,7 @@ gVisor 보안 페이지는 목표를 "Sentry와 기존 리눅스 하드닝(secco
 
 호스트 커널의 기능을 그대로 노출하지 않아 공격을 피한 경우도 있습니다. CVE-2020-14386(리눅스 패킷 링 버퍼 오버플로)은 gVisor가 `PACKET_RX_RING`을 구현하지 않고 raw socket을 기본 차단해 영향받지 않았습니다. gVisor는 amd64 기준 351개 syscall 중 277개를 완전 또는 부분 구현합니다 `✓`. 이 구현 범위가 만드는 호환성과 성능의 제약은 [03 gVisor]({{< relref "/platform/isolation/03-gvisor/index.md" >}})에서 이어집니다.
 
-## 6. 호스트도 신뢰하지 않는다면: Confidential Containers
+## 6. 호스트를 신뢰하지 않을 때 쓰는 Confidential Containers {#6-호스트도-신뢰하지-않는다면-confidential-containers}
 
 Kata가 워크로드로부터 호스트를 지킨다면, Confidential Containers(CoCo)는 호스트로부터 워크로드를 지킵니다. 지원 TEE는 Intel TDX, AMD SEV/SEV-ES, IBM Secure Execution, Arm CCA입니다 `Ⓥ`.
 

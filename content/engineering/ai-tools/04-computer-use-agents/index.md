@@ -458,19 +458,19 @@ CAPTCHA도 우회 대상이 아닙니다. Claude in Chrome과 Gemini는 우회�
 
 플랫폼 엔지니어가 먼저 가치를 확인하기에는 Playwright MCP와 코딩 에이전트 조합이 적합해 보입니다. 접근성 트리로 처리할 수 있는 일을 먼저 시험할 수 있기 때문입니다. 픽셀 기반 조작 자체를 보고 싶다면 Anthropic 데모가 직접적이고, 설치를 간단히 끝내려면 Claude in Chrome이 편합니다. 로컬 모델로 비용을 줄이는 실험에는 Browser Use와 Ollama를 쓸 수 있습니다.
 
-### 8.1 Anthropic computer-use-demo: 화면 조작 루프를 본다
+### 8.1 Anthropic computer-use-demo로 화면 조작 루프를 본다 {#81-anthropic-computer-use-demo-화면-조작-루프를-본다}
 
 Docker와 `ANTHROPIC_API_KEY` 또는 Bedrock·Vertex 설정이 있으면 Linux 데스크톱 컨테이너를 띄울 수 있습니다. 브라우저에서 에이전트가 화면을 조작하는 과정을 확인합니다. 이미지 이름은 `ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest`이며, 해상도는 `WIDTH`와 `HEIGHT`로 정합니다. README는 XGA(1024×768)를 권장합니다.
 
 API 종량제가 적용되고 비용의 대부분은 스크린샷 토큰입니다. README의 기본 모델 표기는 Claude Opus 4.8이지만 갱신이 늦었을 수 있어 실제 설정을 확인해야 합니다. 컨테이너라 격리하기 쉽더라도 인증 없는 포트를 공개하지 않는 편이 안전해 보입니다. 장기간 업무를 맡기는 완성품보다는 동작을 살펴보는 참조 구현에 가깝습니다.
 
-### 8.2 Claude in Chrome: 설치 후 간단한 작업부터 시작한다
+### 8.2 Claude in Chrome을 설치해 간단한 작업부터 시작한다 {#82-claude-in-chrome-설치-후-간단한-작업부터-시작한다}
 
 Claude in Chrome은 Chrome 전용 확장입니다. 유료 플랜(Pro·Max·Team·Enterprise)에 포함되며, 다른 Chromium 계열 브라우저와 모바일은 지원하지 않습니다. 예약 작업, 워크플로 녹화, Claude Code 연동을 사용할 수 있습니다.
 
 설치가 쉬운 만큼 현재 로그인 세션을 그대로 쓴다는 점을 기억해야 합니다. 안전 지원 문서는 연구나 폼 작성처럼 단순한 작업부터 시작하고 금융·법률·의료·민감한 업무 계정은 피하라고 권합니다. 별도 브라우저 프로필을 사용하는 편이 안전합니다.
 
-### 8.3 Playwright MCP: 접근성 트리로 해결되는지 확인한다
+### 8.3 Playwright MCP로 접근성 트리만으로 해결되는지 확인한다 {#83-playwright-mcp-접근성-트리로-해결되는지-확인한다}
 
 Node.js가 있다면 `claude mcp add playwright npx @playwright/mcp@latest`로 코딩 에이전트에 연결할 수 있습니다. 기본 관찰 수단은 접근성 스냅샷입니다. 좌표 클릭이 필요할 때 `--caps vision`으로 활성화합니다. 배포 뒤 UI 스모크 확인이나 대시보드 점검을 코딩 에이전트 안에서 시험하는 경로입니다.
 
@@ -478,7 +478,7 @@ Node.js가 있다면 `claude mcp add playwright npx @playwright/mcp@latest`로 �
 
 README는 코딩 에이전트라면 Playwright CLI와 스킬 조합이 MCP보다 토큰 효율이 나을 수 있다고 안내합니다. 큰 도구 스키마와 긴 접근성 트리를 컨텍스트에 넣지 않기 때문입니다. 이 경로 역시 화면이 필요한 일을 코드로 처리할 수 있는지 살펴보는 선택지입니다.
 
-### 8.4 Browser Use와 로컬 모델: 작은 작업으로 한계를 확인한다
+### 8.4 Browser Use와 로컬 모델의 한계를 작은 작업으로 확인한다 {#84-browser-use와-로컬-모델-작은-작업으로-한계를-확인한다}
 
 비용을 0에 가깝게 줄여보려면 Browser Use와 Ollama 조합이 있습니다. Python 3.12와 uv를 사용하는 설치 순서는 `uv pip install browser-use`, `uvx browser-use install`입니다. 모델은 `ChatOllama(model="qwen3-vl:8b")`처럼 연결합니다. 공식 문서의 예시는 `llama3.1:8b`입니다. 비전이 없는 모델에는 `use_vision=False`를 설정합니다. 메모리와 컨텍스트, 타임아웃 조건은 아래에 모았습니다.
 

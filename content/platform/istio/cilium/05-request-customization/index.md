@@ -78,7 +78,7 @@ spec:
 
 L7(애플리케이션 계층) 인가를 비교할 때는 어떤 요청을 허용할지 살펴야 합니다. 이때 요구를 호출자의 신원 확인과 요청의 허용 여부를 판정하는 방식으로 나눠 봅니다. 위 표는 Cilium 공식 문서의 항목을 바탕으로 양쪽을 대비한 이 글의 정리입니다. 인증서로 호출자 신원을 검증하고 JWT 클레임으로 판정하거나 L7 deny 규칙을 쓰는 것은 Istio에서만 됩니다. DNS 도메인 단위로 나가는 트래픽을 제한하는 것은 Cilium에서만 됩니다.
 
-### Istio: 토큰 검증과 접근 허용을 함께 설정하기
+### Istio에서 토큰 검증과 접근 허용을 함께 설정하기 {#istio-토큰-검증과-접근-허용을-함께-설정하기}
 
 Istio AuthorizationPolicy 레퍼런스는 `ALLOW`, `DENY`, `AUDIT`, `CUSTOM` 네 가지 액션을 정의합니다. `to.operation`의 `methods`, `paths`, `hosts`로 요청을 매칭하고, `when`에는 `request.headers`, `request.auth.claims` 같은 조건을 넣습니다. 평가 순서는 CUSTOM, DENY, ALLOW입니다.
 
@@ -88,7 +88,7 @@ JWT를 사용할 때는 RequestAuthentication과 AuthorizationPolicy의 역할�
 
 Ambient에서는 정책을 집행할 위치도 맞춰야 합니다. HTTP를 파싱하지 않는 ztunnel에 L7 속성이 든 정책을 적용하면, Istio 문서에 명시된 안전 실패 동작에 따라 `DENY` 정책이 됩니다. 따라서 L7 정책은 waypoint와 함께 설계해야 합니다.
 
-### Cilium: 허용 목록과 규칙이 겹칠 때의 동작
+### Cilium의 허용 목록과 중첩 규칙이 동작하는 방식 {#cilium-허용-목록과-규칙이-겹칠-때의-동작}
 
 Cilium은 CiliumNetworkPolicy(CNP)에 L7 규칙을 넣습니다. HTTP의 method, path, host는 확장 POSIX 정규식으로 매칭하며, headers로 헤더의 존재 여부를, `headerMatches`로 값을 확인합니다. DNS 정책에는 `toFQDNs`와 DNS 프록시를 사용합니다.
 
