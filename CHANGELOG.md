@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-10-26 — ECS·EKS 타깃 발견 글을 요약본과 전체본으로 나눔
+
+- `content/observability/metrics/prometheus-ecs-eks-service-discovery/`를 branch bundle로 바꿨습니다. 공개 URL `/monitoring/prometheus-ecs-eks-service-discovery/`에는 228줄 요약본(`_index.md`)을 두고, 기존 전체본은 `detail/index.md`(공개 URL `/monitoring/prometheus-ecs-eks-service-discovery/detail/`, 제목 "ECS·EKS Prometheus 타깃 발견의 근거와 설정 예시")로 옮겼습니다.
+- 두 문서 모두 Cloud Map 없이 ECS API로 찾는 구성을 기본으로 쓰고, Cloud Map DNS는 맨 끝 부록에만 둡니다.
+- 요약본은 Astra(gpt-6-astra, xhigh)가 전체본을 줄여 썼고, 근거 행·URL·코드·shortcode·숫자가 전체본에서 왔는지 결정적으로 대조한 뒤 의미 리뷰 13건을 반영했습니다. 실행 기록은 `_workspace/structure-2026-10-26-ecs-sd-diet/`에 있습니다.
+
 ## 2026-10-25 — ECS·EKS에서 Prometheus 타깃 자동 발견
 
 - `content/observability/metrics/prometheus-ecs-eks-service-discovery/`를 새로 만들었습니다(공개 URL `/monitoring/prometheus-ecs-eks-service-discovery/`). EKS의 kubernetes_sd(API server watch)와 ECS의 발견 방법(네이티브 `aws_sd_configs` role ecs, Cloud Map DNS, ecs_observer, 사이드카), 수집기 배치 다섯 패턴, 다중 컨테이너 태스크의 라벨 설계, 조건별 선택 기준을 정리했습니다. 수치 타일, flow 도식 7장, seq 2장, lane 1장이 들어 있고, 메트릭 색인의 찾기 목록과 설명 목록에 링크를 더했습니다.

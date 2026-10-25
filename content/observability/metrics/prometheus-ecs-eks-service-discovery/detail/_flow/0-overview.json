@@ -1,0 +1,21 @@
+{
+  "caption": "EKS는 API server가 목록을 갖고 watch로 밀어 주지만, ECS는 ECS API를 폴링해 목록을 받아 옵니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "eks", "label": "EKS", "members": ["api", "ksd"] },
+    { "id": "ecs", "label": "ECS", "members": ["eapi", "asd"] }
+  ],
+  "nodes": [
+    { "id": "api", "col": 0, "row": 0, "label": "API server", "sub": "Pod 목록", "kind": "store" },
+    { "id": "ksd", "col": 1, "row": 0, "label": "kubernetes_sd", "sub": "LIST + WATCH", "kind": "proc" },
+    { "id": "eapi", "col": 0, "row": 1, "label": "ECS API", "sub": "태스크 목록", "kind": "store" },
+    { "id": "asd", "col": 1, "row": 1, "label": "aws_sd_configs", "sub": "폴링 60초", "kind": "proc" },
+    { "id": "p", "col": 3, "row": 1, "label": "Prometheus", "sub": "타깃 집합", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "api", "to": "ksd", "label": "watch", "rate": 520 },
+    { "from": "eapi", "to": "asd", "label": "폴링", "rate": 900 },
+    { "from": "ksd", "to": "p", "label": "타깃", "rate": 520 },
+    { "from": "asd", "to": "p", "label": "타깃", "rate": 900 }
+  ]
+}

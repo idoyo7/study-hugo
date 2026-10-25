@@ -1,0 +1,23 @@
+{
+  "caption": "태스크마다 붙은 ADOT 사이드카가 같은 태스크의 앱을 localhost로 긁어 AMP로 보내므로 발견 단계가 없습니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "ta1", "label": "태스크 A1", "members": ["a1", "c1"], "pad": 6 },
+    { "id": "ta2", "label": "태스크 A2", "members": ["a2", "c2"], "pad": 6 }
+  ],
+  "nodes": [
+    { "id": "a1", "col": 0, "row": 0, "label": "앱 컨테이너", "sub": "/metrics", "kind": "src" },
+    { "id": "a2", "col": 0, "row": 1, "label": "앱 컨테이너", "sub": "/metrics", "kind": "src" },
+    { "id": "c1", "col": 2, "row": 0, "label": "ADOT 사이드카", "sub": "태스크마다 하나", "kind": "proc" },
+    { "id": "c2", "col": 2, "row": 1, "label": "ADOT 사이드카", "sub": "태스크마다 하나", "kind": "proc" },
+    { "id": "s", "col": 3, "row": 0, "label": "AMP", "sub": "remote_write 수신", "kind": "store" },
+    { "id": "g", "col": 4, "row": 0, "label": "Grafana", "sub": "대시보드", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "a1", "to": "c1", "label": "localhost", "rate": 520 },
+    { "from": "a2", "to": "c2", "label": "localhost", "rate": 520 },
+    { "from": "c1", "to": "s", "label": "원격 쓰기", "rate": 700 },
+    { "from": "c2", "to": "s", "label": "원격 쓰기", "rate": 700 },
+    { "from": "s", "to": "g", "label": "조회", "rate": 700 }
+  ]
+}

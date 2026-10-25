@@ -1,0 +1,23 @@
+{
+  "caption": "네이티브 SD는 태스크 하나의 컨테이너 넷을 포트별 job 네 개로 나눠 긁고, 컨테이너 이름은 라벨로 오지 않아 job 이름이 그 역할을 합니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "task", "label": "태스크 하나 · ENI IP 하나", "members": ["a", "n", "j", "e"] }
+  ],
+  "nodes": [
+    { "id": "a", "col": 0, "row": 0, "label": "앱", "sub": "포트 9090", "kind": "src" },
+    { "id": "n", "col": 0, "row": 1, "label": "nginx exporter", "sub": "포트 9113", "kind": "src" },
+    { "id": "j", "col": 0, "row": 2, "label": "JMX exporter", "sub": "포트 9404", "kind": "src" },
+    { "id": "e", "col": 0, "row": 3, "label": "envoy 사이드카", "sub": "포트 9901", "kind": "src" },
+    { "id": "ja", "col": 2, "row": 0, "label": "job ecs-app", "sub": "port 9090", "kind": "proc" },
+    { "id": "jn", "col": 2, "row": 1, "label": "job ecs-nginx", "sub": "port 9113", "kind": "proc" },
+    { "id": "jj", "col": 2, "row": 2, "label": "job ecs-jmx", "sub": "port 9404", "kind": "proc" },
+    { "id": "je", "col": 2, "row": 3, "label": "job ecs-envoy", "sub": "port 9901", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "a", "to": "ja", "label": "scrape", "rate": 520 },
+    { "from": "n", "to": "jn", "label": "scrape", "rate": 520 },
+    { "from": "j", "to": "jj", "label": "scrape", "rate": 520 },
+    { "from": "e", "to": "je", "label": "scrape", "rate": 520 }
+  ]
+}

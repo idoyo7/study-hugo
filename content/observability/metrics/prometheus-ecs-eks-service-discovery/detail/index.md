@@ -1,14 +1,16 @@
 ---
-title: "EKS와 ECS에서 Prometheus 타깃을 자동으로 찾는 구성"
-linkTitle: "ECS·EKS 타깃 자동 발견"
+title: "ECS·EKS Prometheus 타깃 발견의 근거와 설정 예시"
+linkTitle: "근거와 설정 예시"
 description: "2026-10-25 기준 EKS는 API server watch로, ECS는 ECS API 폴링으로 바뀌는 타깃을 찾는다. 컨테이너와 포트 구성, 저장 위치에 따라 발견 방법과 수집기 배치를 고르며 사이드카로 발견 없이 수집할 수도 있다."
 date: 2026-10-25
-lastmod: 2026-10-25
-weight: 7
-url: "/monitoring/prometheus-ecs-eks-service-discovery/"
+lastmod: 2026-10-26
+weight: 1
+url: "/monitoring/prometheus-ecs-eks-service-discovery/detail/"
 ---
 
-# EKS와 ECS에서 Prometheus 타깃을 자동으로 찾는 구성
+# ECS·EKS Prometheus 타깃 발견의 근거와 설정 예시
+
+짧은 설명과 권장 구성은 [EKS와 ECS에서 Prometheus 타깃을 자동으로 찾는 구성]({{< relref "/observability/metrics/prometheus-ecs-eks-service-discovery/_index.md" >}})에 있습니다. 이 문서는 그 판단에 쓴 근거 표, 설정 예시, 도식을 모두 담은 전체본입니다.
 
 {{< kpis >}}
 {{< kpi label="네이티브 ECS SD 기본 갱신" value="60s" sub="watch가 아니라 폴링" >}}
@@ -554,7 +556,21 @@ EKS에 Prometheus가 있다면 네트워크 연결과 수집 여력을 확인해
 
 {{% /details %}}
 
-### Cloud Map DNS로도 찾을 수 있다
+## 9. 확인하지 못한 것
+
+- Kubernetes watch 전파 시간과 대규모 클러스터에서 watch 수 대비 API server 부하를 잰 공식 수치
+- AMP managed collector의 자동 access entry 정책(`endpointslices` 없음)에서 `endpointslice` role이 실제로 실패하는지
+- managed collector가 ECS에서 서비스당 태스크 아홉 개 이상일 때 실제로 누락하는지, AMP 사용자 가이드와 2026년 블로그 사이의 ECS 지원 서술 차이를 AWS가 어떻게 바로잡는지
+- 서비스 태그를 태스크로 전파하는 ECS 설정 이름과, 네이티브 SD에서 태그 기반 포트 재작성의 공식 예시
+- OTel Collector를 발견 전용으로 띄워 Prometheus 서버의 file_sd로 읽는 구성, CloudWatch agent가 AMP로 remote_write하는 경로의 공식 예시
+- 사이드카 수집기가 태스크 종료 시 남은 데이터를 비우는지
+- AMP가 remote write로 들어온 stale 마커를 처리하는 방식, Remote Write 2.0 지원 여부, OTLP 직접 수신 문서
+- 다른 계정 워크스페이스로 쓰는 사이드카의 cross-account remote write 절차
+- cAdvisor의 Docker 소켓·호스트 cgroup 요구사항 원문
+- bridge 동적 포트에서 보안 그룹 범위에 대한 AWS의 명시적 권고
+- 한국 회사의 ECS 운영 사례, ECS Fargate에서 Prometheus 재시작 시 데이터 손실을 다룬 Fasal Engineering 글(403으로 본문 못 엶)
+
+## 부록 — Cloud Map DNS로도 찾을 수 있다
 
 Cloud Map과 `dns_sd_configs`를 쓰면 IAM 없이 DNS로 주소를 받습니다. ECS 서비스 디스커버리는 awsvpc 태스크를 A 또는 SRV 레코드로 등록하며, bridge와 host는 SRV만 지원합니다. SRV에는 호스트 IP와 동적 호스트 포트가 함께 들어가므로 bridge의 동적 포트도 처리할 수 있습니다.
 
@@ -587,20 +603,6 @@ managed collector 문서는 응답 개수를 언급하지 않지만, 같은 Clou
 | managed 수집기의 8개 제한 | 문서는 언급하지 않으며 같은 DNS를 쓴다는 점에서 받는다는 해석 | 위 문서의 조합 | `Σ` |
 
 {{% /details %}}
-
-## 9. 확인하지 못한 것
-
-- Kubernetes watch 전파 시간과 대규모 클러스터에서 watch 수 대비 API server 부하를 잰 공식 수치
-- AMP managed collector의 자동 access entry 정책(`endpointslices` 없음)에서 `endpointslice` role이 실제로 실패하는지
-- managed collector가 ECS에서 서비스당 태스크 아홉 개 이상일 때 실제로 누락하는지, AMP 사용자 가이드와 2026년 블로그 사이의 ECS 지원 서술 차이를 AWS가 어떻게 바로잡는지
-- 서비스 태그를 태스크로 전파하는 ECS 설정 이름과, 네이티브 SD에서 태그 기반 포트 재작성의 공식 예시
-- OTel Collector를 발견 전용으로 띄워 Prometheus 서버의 file_sd로 읽는 구성, CloudWatch agent가 AMP로 remote_write하는 경로의 공식 예시
-- 사이드카 수집기가 태스크 종료 시 남은 데이터를 비우는지
-- AMP가 remote write로 들어온 stale 마커를 처리하는 방식, Remote Write 2.0 지원 여부, OTLP 직접 수신 문서
-- 다른 계정 워크스페이스로 쓰는 사이드카의 cross-account remote write 절차
-- cAdvisor의 Docker 소켓·호스트 cgroup 요구사항 원문
-- bridge 동적 포트에서 보안 그룹 범위에 대한 AWS의 명시적 권고
-- 한국 회사의 ECS 운영 사례, ECS Fargate에서 Prometheus 재시작 시 데이터 손실을 다룬 Fasal Engineering 글(403으로 본문 못 엶)
 
 ## 참고 자료
 
