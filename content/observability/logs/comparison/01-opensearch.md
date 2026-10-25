@@ -1,7 +1,7 @@
 ---
 title: "OpenSearch (EFK)"
 date: 2026-07-12
-lastmod: 2026-08-24
+lastmod: 2026-10-25
 weight: 1
 url: "/logging/01-opensearch/"
 ---
@@ -21,20 +21,20 @@ Apache Lucene 기반 분산 검색·분석 엔진입니다. 2021년 Elastic이 S
 ## 강점
 
 - 임의 필드 풀텍스트와 고카디널리티에 강합니다. Lucene 역색인이라 스키마·라벨을 미리 설계하지 않아도 아무 필드나 ad-hoc 풀텍스트·정규식·관련도(relevance) 검색이 즉시 됩니다. client IP·trace ID·URI처럼 카디널리티 높은 필드가 Loki에서는 라벨 독이 되지만 OpenSearch에서는 그냥 검색됩니다. "무엇을 찾을지 미리 모르는" 인시던트 조사에서 이 강점이 두드러집니다.
-- aggregation 프레임워크가 풍부하고 OpenSearch Dashboards(Kibana 계보)가 함께 옵니다. SIEM·이상탐지·알럿·보안 분석 플러그인도 턴키로 붙습니다. 로그를 단순 저장이 아니라 검색·분석·보안 이벤트로 다루는 조직에는 성숙한 완제품입니다.
+- aggregation 프레임워크가 풍부하고 OpenSearch Dashboards(Kibana 계보)가 함께 옵니다. OpenSearch 3.3은 1.3 대비 Big5 질의 지연이 약 11배 줄었다고 프로젝트가 밝혔습니다(c5.2xlarge 단일 노드, 레플리카 0, 프로젝트 자체 측정) `Ⓥ`. SIEM·이상탐지·알럿·보안 분석 플러그인도 턴키로 붙습니다. 로그를 단순 저장이 아니라 검색·분석·보안 이벤트로 다루는 조직에는 성숙한 완제품입니다.
 - 관리형이라 인건비가 낮습니다. Service가 컨트롤 플레인과 자동 스냅샷, UltraWarm 티어링을 맡고 노드 베이비시팅을 없앱니다. 관리형 `i7i.4xlarge.search`가 raw EC2의 ~1.60× `≈`인데, 이 프리미엄은 셀프호스트 스택이 방치돼 rot되는 실패 모드를 피하는 보험료입니다 — 작은 플랫폼 팀에는 실질 가치가 있습니다.
 - 보존 티어링이 내장입니다. hot / UltraWarm(S3-backed) / cold 티어가 도메인에 들어 있습니다. warm 8노드로 ~160 TB급을 addressing하며 보존을 관리형으로 늘릴 수 있습니다.
-- 차세대 노드 타입(OR1/OR2/OM2)은 durable copy를 S3-backed 관리형 스토리지($0.024/GB-mo)에 두고 로컬/EBS는 성능 캐시로만 씁니다. AWS 자체 수치로 ~30% price-performance 개선, 색인 처리량 +26%(OR2 vs OR1) `Ⓥ`, OR2 + Parquet 엔진은 스토리지 ~70%↓(단 새 도메인 필요) `Ⓥ`. OR1/OR2는 RI/NURI 적격이라 UltraWarm과 달리 예약 할인도 받습니다.
+- 차세대 노드 타입(OR1/OR2/OM2)은 durable copy를 S3-backed 관리형 스토리지($0.024/GB-mo, us-east-1 기준)에 두고 로컬/EBS는 성능 캐시로만 씁니다. AWS 자체 수치로 ~30% price-performance 개선, 색인 처리량 +26%(OR2 vs OR1) `Ⓥ`, 별도로 2026-07-01 GA된 Optimized 엔진(OpenSearch 3.5 이상 새 도메인, 12개 리전, 추가 요금 없음)은 스토리지 최대 70%↓를 내세우지만 AWS 내부 벤치 수치이고 서울 리전에는 없습니다 `Ⓥ`. OR2 전용이라는 근거는 없고 지원 인스턴스 타입은 문서에서 확인하지 못했습니다. OR1/OR2는 RI/NURI 적격이라 UltraWarm과 달리 예약 할인도 받습니다.
 - 생태계와 규정준수도 갖췄습니다. 커뮤니티·드라이버·통합이 넓고(fluent-bit 네이티브 output 포함), 세분화된 접근제어와 전송/저장 암호화 같은 보안·컴플라이언스 기능이 붙어 있습니다.
 
 ## 약점 · 한계
 
-- 로그 저장이 목적이라면 컴퓨트가 무겁습니다. 역색인은 노드가 상시 가동돼야 서빙되므로 비용의 ~90%가 인스턴스 시간, 스토리지는 ~10% `≈`뿐입니다. 스토리지가 지배하고 컴퓨트가 작은 컬럼나 로그 스토어와 정반대입니다. 같은 로그의 on-disk footprint도 ClickHouse/VictoriaLogs/Loki 대비 ~10× 큽니다 `≈`.
+- 로그 저장이 목적이라면 컴퓨트가 무겁습니다. 역색인은 노드가 상시 가동돼야 서빙되므로 비용의 ~90%가 인스턴스 시간, 스토리지는 ~10% `≈`뿐입니다. i7i·OI2는 로컬 NVMe가 인스턴스 요금에 포함돼 저장량이 늘면 인스턴스 수가 늘어납니다 `≈`. 스토리지가 지배하고 컴퓨트가 작은 컬럼나 로그 스토어와 정반대입니다. 같은 로그의 on-disk footprint도 ClickHouse보다 큽니다. 단일 복제본 기준 공개 벤치 수치는 3.6~5배입니다(ClickHouse 측정 4.95배는 대상이 Elasticsearch, VeloDB 측정 3.6배는 OpenSearch 3.6.0 대상, 둘 다 경쟁 벤더 측정 `Ⓑ`). 레플리카 1개를 더하면 약 2배가 더 붙습니다 `≈`.
 
 {{< callout type="important" >}}
 UltraWarm은 RI로 예약할 수 없습니다. 흔한 오해와 달리 hot 데이터 노드와 dedicated master는 RI 적격입니다. UltraWarm과 Cold storage만 예약이 막혀 있습니다. 그래서 hot을 예약해도 warm compute가 온디맨드에 영구 고정돼 블렌디드 절감이 상한에 걸립니다.
 
-청구서 구조 예시 (현행 도메인 10 hot + 8 warm, 리스트가·us-east-1 파생 추정 `≈`):
+청구서 구조 예시 (현행 도메인 10 hot + 8 warm, 리스트가·us-east-1 파생 추정 `≈`, RI는 No Upfront 기준):
 
 | 항목 | 온디맨드 | 1yr RI | 3yr RI |
 |---|---|---|---|
@@ -47,7 +47,7 @@ hot을 3yr로 예약해 hot tier만 −48%를 받아도 UltraWarm이 잔여 comp
 {{< /callout >}}
 
 - Cold tier에도 함정이 있습니다. OpenSearch cold storage는 rehydrate할 때 (할인 불가) UltraWarm 노드가 필요합니다. tail을 값싸게 빼는 경로로는 오히려 S3 Direct Query(zero-ETL)나 컬럼나+S3가 낫습니다.
-- 셀프호스트로 돌리면 운영 리스크가 커집니다. 1.5–2 TB/day 검색 클러스터를 self-manage하면 JVM heap·샤드·클러스터 사이징 튜닝 부담이 큽니다. 관리형 전용인 UltraWarm 티어링도 없습니다(유사 기능은 searchable snapshots → S3). 관리형 프리미엄은 이 부담을 사는 값입니다.
+- 셀프호스트로 돌리면 운영 리스크가 커집니다. 1.5–2 TB/day 검색 클러스터를 self-manage하면 JVM heap·샤드·클러스터 사이징 튜닝 부담이 큽니다. 관리형 전용인 UltraWarm 티어링도 없습니다(유사 기능은 searchable snapshots → S3이고, ISM `convert_index_to_remote`로 스냅숏에서 searchable snapshot으로의 전환을 정책화할 수 있으며 `search_only` 동작도 생겼습니다). 관리형 프리미엄은 이 부담을 사는 값입니다.
 
 ## 적합 / 부적합
 

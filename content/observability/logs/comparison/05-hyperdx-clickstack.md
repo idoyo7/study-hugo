@@ -1,14 +1,14 @@
 ---
 title: "HyperDX / ClickStack"
 date: 2026-07-12
-lastmod: 2026-08-24
+lastmod: 2026-10-25
 weight: 5
 url: "/logging/05-hyperdx-clickstack/"
 ---
 
 # HyperDX / ClickStack으로 로그와 RUM을 함께 보기
 
-HyperDX는 로그를 찾다가 같은 요청의 트레이스와 브라우저 세션 리플레이까지 이어 보는 데 유용합니다. ClickHouse를 저장소로 쓰고, HyperDX UI·API, 전용 OTel Collector, 앱 설정용 MongoDB를 함께 운영합니다. ClickHouse Inc.가 2025-03에 HyperDX를 인수한 뒤 2025-05에 이 조합을 ClickStack으로 출시했습니다.
+HyperDX는 로그를 찾다가 같은 요청의 트레이스와 브라우저 세션 리플레이까지 이어 보는 데 유용합니다. ClickHouse를 저장소로 쓰고, HyperDX UI·API, 전용 OTel Collector, 앱 설정용 MongoDB를 함께 운영합니다. 다만 Managed ClickStack은 앱 상태를 ClickHouse Cloud에 저장하므로 MongoDB가 필요 없습니다. ClickHouse Inc.가 2025-03에 HyperDX를 인수한 뒤 2025-05에 이 조합을 ClickStack으로 출시했습니다.
 
 로그 저장소만 고르는 경우와 웹 RUM까지 옮기는 경우에는 도입 비용을 다르게 봐야 합니다. 이 글은 로깅 관점의 평가이며, 플랫폼 구성과 접근통제는 [HyperDX 심층 분석]({{< relref "/observability/apm-rum/01-hyperdx-deep-dive.md" >}})에서 자세히 다룹니다.
 
@@ -16,7 +16,7 @@ HyperDX는 로그를 찾다가 같은 요청의 트레이스와 브라우저 세
 
 `@hyperdx/browser`는 rrweb 기반 리플레이, 에러, Web Vitals, 네트워크 요청을 수집합니다. 세션의 요청이나 에러에서 백엔드 트레이스로 이동하고 관련 로그를 찾을 수 있습니다. 웹 화면에서 발생한 문제와 서버 요청을 따로 검색하던 작업을 연결할 수 있다는 점이 도입 이유가 됩니다.
 
-검색은 Lucene 스타일 문법과 ClickHouse SQL을 함께 지원합니다. 기존 ClickHouse에 HyperDX Only로 연결할 수도 있어, 이미 운영 중인 저장소와 수집 파이프라인을 활용할 수 있습니다. 저장 효율과 쿼리 성능은 [ClickHouse 자체의 평가]({{< relref "/observability/logs/comparison/04-clickhouse.md" >}})를 참고하되, 벤더의 압축·검색 배수를 모든 schema에 적용하지는 않습니다.
+검색은 Lucene 스타일 문법과 ClickHouse SQL을 함께 지원합니다. 기존 ClickHouse에 HyperDX Only로 연결할 수도 있어, 이미 운영 중인 저장소와 수집 파이프라인을 활용할 수 있습니다. 저장 효율과 쿼리 성능은 [ClickHouse 자체의 평가]({{< relref "/observability/logs/comparison/04-clickhouse.md" >}})를 참고하되, 벤더의 압축·검색 배수를 모든 schema에 적용하지는 않습니다. ClickStack의 `otel_logs` 스키마는 ClickHouse 26.2 이상이면 text index를 쓰고, 미만이면 bloom_filter와 `tokenbf_v1`을 쓰는 `_compat` 스키마를 씁니다.
 
 트레이스 워터폴, Service Maps, Event Deltas도 조사한 기능에 포함됩니다. 다만 ClickHouse의 대규모 운영 사례를 곧바로 ClickStack 전체의 운영 사례로 셀 수는 없습니다. UI·수집기·MongoDB까지 묶은 구성의 부하와 장애 대응은 별도로 검증해야 합니다.
 
