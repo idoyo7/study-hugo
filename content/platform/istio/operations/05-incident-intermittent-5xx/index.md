@@ -1,12 +1,12 @@
 ---
-title: "장애 이야기: 간헐적 응답 이상"
+title: "장애 이야기 — 메시 경로의 간헐적 응답 이상을 어떻게 추적할까"
 date: 2026-08-01
 lastmod: 2026-08-24
 weight: 5
 url: "/istio/05-incident-intermittent-5xx/"
 ---
 
-# 05 · 장애 이야기 — 메시가 낀 경로에서 간헐적 응답 이상 추적하기
+# 05 · 장애 이야기 — 메시 경로의 간헐적 응답 이상을 어떻게 추적할까
 
 {{< callout type="info" >}}
 - 메시의 5xx는 **어느 홉에서 났느냐**가 전부입니다. 나침반은 Envoy **response flag**(UH/UF/UC/UO/NR…)입니다.

@@ -1,5 +1,5 @@
 ---
-title: "엔터프라이즈 어레이의 전송 선택: NVMe/TCP가 기본이 된 배경"
+title: "엔터프라이즈 어레이는 왜 NVMe/TCP를 기본으로 택했나"
 linkTitle: "04 엔터프라이즈 전송 현황"
 description: "2026년 엔터프라이즈 어레이가 지원하는 NVMe/TCP·RoCE·FC-NVMe·iSCSI를 비교하고, 구축 부담과 성능 조건, 경로 관리와 보안 지원 범위로 전송 선택 기준을 짚는다."
 weight: 4
@@ -8,7 +8,7 @@ lastmod: 2026-10-21
 url: "/storage/04-enterprise-transports/"
 ---
 
-# 04 · 엔터프라이즈 어레이의 전송 선택: NVMe/TCP가 기본이 된 배경
+# 04 · 엔터프라이즈 어레이는 왜 NVMe/TCP를 기본으로 택했나
 
 2026-10-21 현재 주요 엔터프라이즈 어레이는 NVMe/TCP, FC-NVMe, iSCSI를 함께 제공합니다. RoCE(이더넷 기반 RDMA)도 일부 제품에서 지원하지만, 신규 이더넷 호스트 연결의 기본 선택은 NVMe/TCP로 기울었습니다. FC-NVMe는 기존 FC SAN을 확장하고, iSCSI도 호환성이 필요한 환경에 남아 있습니다.
 

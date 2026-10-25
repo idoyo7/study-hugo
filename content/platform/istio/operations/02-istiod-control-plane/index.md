@@ -1,12 +1,12 @@
 ---
-title: "컨트롤 플레인 해부: istiod"
+title: "컨트롤 플레인 istiod의 CPU 부하는 왜 커지고 어떻게 줄이나"
 date: 2026-08-01
 lastmod: 2026-08-24
 weight: 2
 url: "/istio/02-istiod-control-plane/"
 ---
 
-# 02 · 컨트롤 플레인 해부 — istiod는 왜 CPU를 먹는가
+# 02 · 컨트롤 플레인 istiod의 CPU 부하는 왜 커지고 어떻게 줄이나
 
 {{< callout type="info" >}}
 - istiod 부하는 프록시 수 × 변경 빈도 × 설정 범위의 곱입니다. 세 항이 함께 커지면 CPU가 벽을 칩니다.

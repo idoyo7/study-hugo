@@ -1,5 +1,5 @@
 ---
-title: "NVMe-oF 전송 선택: FC·TCP·RDMA의 조건과 근거"
+title: "NVMe-oF에서 FC·TCP·RDMA를 고르는 기준은 무엇인가"
 linkTitle: "07 FC·TCP·RDMA 전송 비교"
 description: "NVMe over FC·TCP·RDMA를 장비 접근성, 디스커버리와 보안, CPU·지연 측정, 장애 격리 방식으로 비교한다. Kubernetes·클라우드·홈랩에서 실제 선택 가능한 범위도 함께 정리한다."
 weight: 7
@@ -8,7 +8,7 @@ lastmod: 2026-10-21
 url: "/storage/07-fc-tcp-rdma-transports/"
 ---
 
-# 07 · NVMe-oF 전송을 고를 때 FC·TCP·RDMA에서 볼 것
+# 07 · NVMe-oF에서 FC·TCP·RDMA를 고르는 기준은 무엇인가
 
 Kubernetes와 퍼블릭 클라우드에서 현실적으로 선택할 수 있는 NVMe-oF 전송은 대부분 TCP입니다. 범용 NIC와 L3 라우팅 망을 그대로 쓸 수 있고 Linux 5.0부터 호스트와 타깃 구현이 기본 커널에 포함됐기 때문입니다. 같은 이유로 홈랩에서도 TCP가 가장 접근하기 쉽다고 판단합니다.
 

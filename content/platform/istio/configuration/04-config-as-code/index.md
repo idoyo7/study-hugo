@@ -1,12 +1,12 @@
 ---
-title: "설정을 코드로: GitOps"
+title: "Istio 설정을 코드로 관리하고 GitOps로 동기화한다"
 date: 2026-08-01
 lastmod: 2026-08-24
 weight: 4
 url: "/istio/04-config-as-code/"
 ---
 
-# 04 · 설정을 코드로 — Istio Manifest를 Git으로 동기화하기
+# 04 · Istio 설정을 코드로 관리하고 GitOps로 동기화한다
 
 {{< callout type="info" >}}
 - Istio 설정은 두 층입니다 — 설치 층(Helm 권장, IstioOperator는 지양)과 트래픽 층(전부 CRD).

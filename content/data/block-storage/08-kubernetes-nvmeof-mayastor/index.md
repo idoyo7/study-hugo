@@ -1,5 +1,5 @@
 ---
-title: "Kubernetes NVMe-oF: Mayastor를 도입할 조건"
+title: "Kubernetes NVMe-oF — Mayastor는 언제 도입할까"
 linkTitle: "08 Kubernetes NVMe-oF와 Mayastor"
 description: "Kubernetes에서 Mayastor를 도입하기 전에 복제 위치, 고정 자원, 기능 제한, 공개 성능과 운영 근거를 확인한다. Longhorn V2·LINSTOR·Ceph·로컬 PV와의 차이도 비교한다."
 weight: 8
@@ -8,7 +8,7 @@ lastmod: 2026-10-21
 url: "/storage/08-kubernetes-nvmeof-mayastor/"
 ---
 
-# 08 · Kubernetes에서 Mayastor를 도입하기 전에 확인할 것
+# 08 · Kubernetes NVMe-oF — Mayastor는 언제 도입할까
 
 Mayastor는 OpenEBS의 Replicated PV 엔진으로, Kubernetes 노드 사이에서 RWO(단일 노드 읽기·쓰기) 볼륨을 동기 복제합니다. 대신 모든 스토리지 노드에 전용 CPU와 메모리, 휴지페이지를 예약해야 합니다. 엔터프라이즈 기능과 DataCore Puls8의 상용 지원은 갖췄지만 공개 도입 사례와 커뮤니티의 폭은 Ceph나 Longhorn보다 좁다고 해석합니다.
 

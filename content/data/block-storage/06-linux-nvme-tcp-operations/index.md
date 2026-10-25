@@ -1,5 +1,5 @@
 ---
-title: "Linux NVMe/TCP 운영: 연결 자동화와 장애 정책"
+title: "Linux NVMe/TCP 연결을 자동화하고 장애 정책을 정한다"
 linkTitle: "06 Linux NVMe/TCP 운영"
 description: "Linux와 Kubernetes 워커에서 NVMe/TCP 연결을 유지하는 설정을 정리한다. 배포판별 지원 범위부터 호스트 식별, 자동 연결, 멀티패스 장애 정책, 인증과 TLS 키 관리까지 이어서 설명한다."
 weight: 6
@@ -8,7 +8,7 @@ lastmod: 2026-10-21
 url: "/storage/06-linux-nvme-tcp-operations/"
 ---
 
-# 06 · Linux NVMe/TCP 연결을 자동화하고 장애에 대비하는 법
+# 06 · Linux NVMe/TCP 연결을 자동화하고 장애 정책을 정한다
 
 Linux 호스트가 NVMe/TCP 연결을 안정적으로 유지하려면 네 가지를 함께 맞춰야 합니다. 호스트 식별자를 고정하고, 부팅 뒤 연결을 복원하며, 디스커버리 변경을 감지하고, 모든 경로가 끊겼을 때 I/O를 얼마나 기다릴지 정해야 합니다. FC SAN의 HBA·패브릭·`multipath.conf`에 모여 있던 역할이 Linux에서는 파일과 서비스, 커널 옵션으로 흩어집니다. Kubernetes 워커도 이 설정 위에서 스토리지에 연결됩니다.
 

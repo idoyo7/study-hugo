@@ -1,5 +1,5 @@
 ---
-title: "Istio 히스토그램 3종이 시리즈의 44%: vmstorage 인덱스 줄이기"
+title: "Istio 히스토그램 집계로 vmstorage 인덱스를 줄인다"
 description: "vmstorage 디스크의 3분의 2를 차지하는 인덱스를 줄이는 계획입니다. Istio 히스토그램 3종이 왜 시리즈의 44%를 차지하는지, 누가 쓰는지, 시리즈에 붙는 라벨 구조와 파드 차원을 접었을 때의 감소량, 그리고 버전 업그레이드·적용 순서를 다룹니다."
 date: 2026-10-04
 lastmod: 2026-10-04
@@ -7,7 +7,7 @@ weight: 6
 url: "/monitoring/victoriametrics-operations/06-storage-index-roadmap/"
 ---
 
-# 06 · Istio 히스토그램 3종이 시리즈의 44%: vmstorage 인덱스 줄이기
+# 06 · Istio 히스토그램 집계로 vmstorage 인덱스를 줄인다
 
 {{< basis "약 1년 보관 · 복제 2벌" "시리즈 비중은 실측 · 용량 효과는 적용 전 계산" >}}
 
