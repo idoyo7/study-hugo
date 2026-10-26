@@ -2,6 +2,11 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-10-26 — promkr 뉴스레터 2026년 소식 요약
+
+- `content/external/promkr/`를 새로 만들었습니다. 섹션 색인(`_index.md`)과 `2026.md` 한 편으로, promkr Substack 뉴스레터 2026년 1~10월호 10편을 월별로 정리하고 열 달 동안 반복된 주제(AI·에이전트, Prometheus 호환 저장소, OpenTelemetry, 비용, 프로파일링·eBPF)를 묶었습니다. 항목 73개의 원문 링크는 모두 뉴스레터 본문에 있는 URL과 대조했습니다.
+- 타사 테크블로그 색인의 찾기 목록에 링크를 더하고, 설명 문장이 외부 뉴스레터도 포함하도록 고쳤습니다.
+
 ## 2026-10-26 — ECS·EKS 타깃 발견 글을 요약본과 전체본으로 나눔
 
 - `content/observability/metrics/prometheus-ecs-eks-service-discovery/`를 branch bundle로 바꿨습니다. 공개 URL `/monitoring/prometheus-ecs-eks-service-discovery/`에는 228줄 요약본(`_index.md`)을 두고, 기존 전체본은 `detail/index.md`(공개 URL `/monitoring/prometheus-ecs-eks-service-discovery/detail/`, 제목 "ECS·EKS Prometheus 타깃 발견의 근거와 설정 예시")로 옮겼습니다.
