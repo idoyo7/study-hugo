@@ -4,7 +4,7 @@
 
 ## 2026-10-26 — 네트워크 L4·L7 스터디 자료를 요약본과 전체본으로 나누고 도식 8장 추가
 
-- 저자가 "너무 길고 그림이 부족하다"고 해서 `content/platform/kubernetes/network-l4-l7/`을 branch bundle로 바꿨습니다. 공개 URL `/kubernetes/network-l4-l7/`에는 도식 중심 요약본(`_index.md`)을 두고, 기존 전체본은 `detail/index.md`(공개 URL `/kubernetes/network-l4-l7/detail/`, 제목 "네트워크 L4·L7 스터디의 근거와 세부 설명")로 옮겼습니다. 산문 분량은 전체본의 약 40%입니다.
+- 저자가 "너무 길고 그림이 부족하다"고 해서 `content/platform/kubernetes/network-l4-l7/`을 branch bundle로 바꿨습니다. 공개 URL `/kubernetes/network-l4-l7/`에는 도식 중심 요약본(`_index.md`)을 두고, 기존 전체본은 `detail/index.md`(공개 URL `/kubernetes/network-l4-l7/detail/`, 제목 "네트워크 L4·L7 스터디의 근거와 세부 설명")로 옮겼습니다. 문단 산문은 전체본의 약 1/4, 표·근거 블록을 포함한 파일 전체는 약 38%입니다.
 - 요약본 도식 8장: 새로 그린 전체 경로·백엔드 선택 시점 flow, kube-proxy 모드 일정·메시 P50 지연 lane, gRPC 쏠림 seq와, Cilium 비교 01편·3-1편에서 복사한 세 가지 배치·L4/L7 경계 flow, 503 세 조건 seq입니다. spec-lint·lane_smoke 오류 0.
 - 요약본은 Astra(gpt-6-astra xhigh)가 전체본과 도식 목록을 받아 썼고, 근거 행·URL·relref·코드·shortcode가 전체본이나 도식 목록에서 왔는지 결정적으로 대조했습니다. 실행 기록은 `_workspace/structure-2026-10-26-k8s-net-diet/`에 있습니다.
 
