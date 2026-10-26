@@ -10,7 +10,7 @@ url: "/monitoring/victoriametrics/by-source/03-2026-06-inside-victoriametrics/"
 # 03 · Inside VictoriaMetrics — 내부 동작 정독 (2026-06)
 
 {{< callout type="info" >}}
-**참조한 내용정리** · 이 문서는 아래 네이버 D2 원문을 읽고 우리 지식베이스 형식으로 재구성한 요약입니다. 원문 자체가 아니며 정확한 워딩·전체 맥락·그림은 원문에서 확인합니다.
+**원문 요약** · 이 문서는 아래 네이버 D2 원문을 읽고 우리 지식베이스 형식으로 재구성한 요약입니다. 원문 자체가 아니며 정확한 워딩·전체 맥락·그림은 원문에서 확인합니다.
 - 원문: [Inside VictoriaMetrics](https://d2.naver.com/helloworld/9290861)
 - 매체 · 게시일: D2 발표영상 (40분 37초) · 2026-06-02
 - 저자: 강민구 (NAVER Container Platform)
@@ -23,7 +23,7 @@ url: "/monitoring/victoriametrics/by-source/03-2026-06-inside-victoriametrics/"
 - 운영에서 반복해서 등장하는 이름들: 랑데부 해싱, `replicationFactor`, `TSID`, Merge Multiplier, IndexDB 3단계 로테이션, Rollup Result Cache, `search.latencyOffset`, 카디널리티.
 {{< /callout >}}
 
-이 문서는 40분짜리 발표영상을 컴포넌트별로 훑는 지도입니다. 발표 자체가 데이터 흐름을 따라 6개 박스를 하나씩 까 보는 구성입니다. 순서는 그대로 두고 박스마다 어떤 일을 하는 컴포넌트인지 짚습니다. 내부 동작의 깊은 세부는 그 주제를 전담하는 concepts 문서로 넘깁니다.
+이 문서는 40분짜리 발표영상의 데이터 흐름을 따라 각 컴포넌트의 역할을 설명합니다. 발표에 나온 6개 박스의 순서를 유지하며 각 박스에 해당하는 컴포넌트가 어떤 일을 하는지 짚습니다. 내부 동작의 세부 사항은 주제별 concepts 문서에서 다룹니다.
 
 관련 문서: [개념 01 시계열과 VM]({{< relref "/observability/metrics/victoriametrics/concepts/01-tsdb-and-victoriametrics.md" >}}) · [개념 02 아키텍처]({{< relref "/observability/metrics/victoriametrics/concepts/02-architecture/index.md" >}}) · [개념 03 수집]({{< relref "/observability/metrics/victoriametrics/concepts/03-ingestion/index.md" >}}) · [개념 04 저장·압축]({{< relref "/observability/metrics/victoriametrics/concepts/04-storage-and-compression/index.md" >}}) · [개념 05 쿼리·운영 컴포넌트]({{< relref "/observability/metrics/victoriametrics/concepts/05-query-and-ops-components/index.md" >}}) · [실전 01 카디널리티]({{< relref "/observability/metrics/victoriametrics/practice/01-cardinality/index.md" >}})
 
@@ -31,7 +31,7 @@ url: "/monitoring/victoriametrics/by-source/03-2026-06-inside-victoriametrics/"
 
 발표는 "TSDB란 무엇인가"부터 짚습니다. TSDB(시계열 데이터베이스)에 담기는 데이터는 한 줄로 줄이면 시간 순서대로 기록된 숫자의 연속입니다. 9시에 36.5도, 10시에 36.7도처럼 시간축을 따라 숫자가 하나씩 찍힙니다. CPU 사용률·요청 수·응답 시간 같은 모니터링 지표도 전부 "어떤 시점에 어떤 숫자가 찍혔는가"로 환원됩니다. 그 숫자가 찍히는 방식에 따라 지표의 타입이 나뉩니다. **Counter / Histogram / Gauge / Summary** 4타입이고 Prometheus 진영의 표준 분류입니다. 이 가운데 Counter는 단조 증가하는 값이라 압축이 극단적으로 잘 되며 이 성질이 뒤의 압축 설명으로 이어집니다. → [개념 01 시계열과 VM]({{< relref "/observability/metrics/victoriametrics/concepts/01-tsdb-and-victoriametrics.md" >}})
 
-문제는 데이터 양입니다. 1초에 한 번만 찍어도 하루 8만 6천 개입니다. 지표가 수만 개면 하루치만 해도 어마어마합니다. 그래서 TSDB의 관건은 제한된 자원으로 얼마나 잘 압축하느냐입니다. 그걸 잘하는 솔루션 중 하나가 VictoriaMetrics입니다. VM은 **Apache 2.0 라이선스의 오픈소스 TSDB**이고 Prometheus와 호환됩니다 — `PromQL`을 그대로 쓸 수 있고 `remote_write` 프로토콜도 그대로 수용합니다. 자체 벤치마크 기준으로는 **메모리 5배·스토리지 7배** 더 효율적이라고 주장합니다.
+문제는 데이터 양입니다. 1초에 한 번만 찍어도 하루 8만 6천 개입니다. 지표가 수만 개면 하루치만 해도 어마어마합니다. 그래서 TSDB에서는 제한된 자원으로 데이터를 얼마나 효율적으로 압축하는지가 중요합니다. 그걸 잘하는 솔루션 중 하나가 VictoriaMetrics입니다. VM은 **Apache 2.0 라이선스의 오픈소스 TSDB**이고 Prometheus와 호환됩니다 — `PromQL`을 그대로 쓸 수 있고 `remote_write` 프로토콜도 그대로 수용합니다. 자체 벤치마크 기준으로는 **메모리 5배·스토리지 7배** 더 효율적이라고 주장합니다.
 
 발표자는 대규모·고가용성(HA) 환경이라 **클러스터 버전**을 쓴다고 밝히며 전체 그림을 제시합니다. 그림에서 데이터는 왼쪽 타깃에서 오른쪽으로 흐르며 4개 컴포넌트를 거칩니다.
 
@@ -46,9 +46,9 @@ url: "/monitoring/victoriametrics/by-source/03-2026-06-inside-victoriametrics/"
 
 ## ② vmagent — 수집과 1차 가공
 
-`vmagent`가 맡는 일은 지표 수집과 1차 가공입니다. 내부에 deduplicator, relabeling, streaming aggregation, scraper, queue 같은 모듈이 들어 있습니다. 받는 쪽이 대단히 넓습니다. OpenTelemetry, InfluxDB, Datadog, Graphite, Prometheus(agent), NewRelic, JSON, CSV 등 모니터링 진영의 거의 모든 프로토콜을 받고 `node_exporter`나 `/metrics` 엔드포인트에서 직접 스크랩도 합니다. 내보내는 쪽은 `remote_write` 하나입니다. VM 본체나 다른 Prometheus 호환 스토리지로 보냅니다. 한마디로 **무엇이든 받아 정제하고 `remote_write`로 내보내는 만능 어댑터**입니다.
+`vmagent`가 맡는 일은 지표 수집과 1차 가공입니다. 내부에 deduplicator, relabeling, streaming aggregation, scraper, queue 같은 모듈이 들어 있습니다. 지원하는 입력 프로토콜이 다양합니다. OpenTelemetry, InfluxDB, Datadog, Graphite, Prometheus(agent), NewRelic, JSON, CSV 등 모니터링 진영의 거의 모든 프로토콜을 받고 `node_exporter`나 `/metrics` 엔드포인트에서 직접 스크랩도 합니다. 내보내는 쪽은 `remote_write` 하나입니다. VM 본체나 다른 Prometheus 호환 스토리지로 보냅니다. 한마디로 **무엇이든 받아 정제하고 `remote_write`로 내보내는 만능 어댑터**입니다.
 
-수집 방식은 **Pull(스크랩/폴링)** 과 **Push** 를 모두 지원합니다. Pull은 Prometheus와 동일하게 `scrape.config`에 대상을 적고 주기적으로 익스포터를 찔러 가져옵니다. 보통 이쪽이 메인입니다. Push는 외부에서 `vmagent`로 직접 밀어 넣는 쪽입니다(예: InfluxDB 라인 프로토콜을 `/write`에 POST). 폐쇄망·푸시만 가능한 환경·배치 잡 같은 단발성 지표가 여기에 해당합니다.
+수집 방식은 **Pull(스크랩/폴링)** 과 **Push** 를 모두 지원합니다. Pull은 Prometheus와 동일하게 `scrape.config`에 대상을 적고 주기적으로 익스포터에 요청해 지표를 가져옵니다. 보통 이쪽이 메인입니다. Push는 외부에서 `vmagent`로 직접 밀어 넣는 쪽입니다(예: InfluxDB 라인 프로토콜을 `/write`에 POST). 폐쇄망·푸시만 가능한 환경·배치 잡 같은 단발성 지표가 여기에 해당합니다.
 
 내부에서 데이터가 거치는 경로는 **7단계 파이프라인**입니다.
 
@@ -82,14 +82,14 @@ url: "/monitoring/victoriametrics/by-source/03-2026-06-inside-victoriametrics/"
 
 `vmstorage`는 `vminsert`에서 지표를 받아 **월별 파티션 단위로 저장**하고 `vmselect`의 쿼리에 블록 단위로 응답합니다. 저장 이야기는 지표 하나의 내부 표현에서 출발합니다. 지표는 **Time Series**(지표 이름 + 레이블, 예: `request_total{path="/", code="200"}`)와 **Sample**(Unix timestamp + value, 예: `value=120`)로 나뉩니다. Time Series는 거의 변하지 않고 Sample만 계속 쌓입니다. 그러니 이 둘을 따로 관리하면 압축 효율이 크게 좋아집니다. 뒤의 **IndexDB / DataDB 분리**가 여기서 나옵니다.
 
-데이터가 들어와 눕기까지의 경로는 이렇습니다. 블록 단위로 받은 로우 바이트를 **최대 1만 행** 단위의 구조화된 로우로 파싱합니다(metric name / value / timestamp). 각 로우를 **`TSID`**(64bit 정수, 시계열의 내부 ID)로 변환한 뒤 샤드로 나눠 큐에 쌓았다가 플러시하며 인메모리 파트로 저장합니다. 이때 Delta / Delta-of-Delta 차분 인코딩을 적용합니다.
+수신한 데이터가 저장되는 경로는 이렇습니다. 블록 단위로 받은 로우 바이트를 **최대 1만 행** 단위의 구조화된 로우로 파싱합니다(metric name / value / timestamp). 각 로우를 **`TSID`**(64bit 정수, 시계열의 내부 ID)로 변환한 뒤 샤드로 나눠 큐에 쌓았다가 플러시하며 인메모리 파트로 저장합니다. 이때 Delta / Delta-of-Delta 차분 인코딩을 적용합니다.
 
 `TSID` 변환 자체는 두 단계입니다. 먼저 로우를 **Canonical Name으로 정규화**합니다(레이블 순서가 달라도 같은 시계열이면 같은 형태로 정렬). 그 이름을 64bit `TSID`로 바꿉니다. 매번 정규화하면 비싸므로 **`TSID` 캐시**(인메모리 매핑)를 두고 동일 이름이 다시 오면 캐시에서 바로 꺼내는 **빠른 경로**를 탑니다. 캐시 미스면 디스크 인덱스인 IndexDB(prefix별 엔트리)를 조회하고 거기에도 없으면 **처음 보는 시계열로 판단해 New `TSID`를 발급**합니다. New `TSID`가 마구 발급되는 상황이 곧 **시계열 카디널리티 폭발**입니다(6섹션·[실전 01 카디널리티]({{< relref "/observability/metrics/victoriametrics/practice/01-cardinality/index.md" >}})에서 재등장).
 
 저장 효율은 압축 인코딩에서 나옵니다. **Gauge → Delta 인코딩**은 위아래로 변동하는 값의 첫 값만 남기고 차분만 저장합니다(원본 `110, 105, 98, 110, 103` → `110, -5, -7, +12, -7`). **Counter → Delta-of-Delta 인코딩**은 단조 증가값의 1차 차분이 거의 일정하고 그 차분의 차분이 0에 수렴한다는 성질을 이용합니다. 그래서 뒤에 100개·1000개를 이어 붙여도 크기가 거의 늘지 않고 Counter가 압축에 특히 유리합니다. 어떤 블록이 Counter인지 Gauge인지는 값의 패턴으로 판별합니다. 단조 증가면 Counter, 오르내리면 Gauge입니다. 단 Counter도 리셋이 너무 잦으면 Gauge로 분류돼 Delta-of-Delta의 이점을 잃습니다.
 
 {{% details title="ZigZag + Varint — 음수·바이트 절약" closed="true" %}}
-차분 압축은 `-5, -7, -13` 같은 음수를 낳습니다. 음수는 이진 표현상 상위 비트가 켜져 공간을 많이 먹으므로 두 단계로 다듬습니다.
+차분 압축은 `-5, -7, -13` 같은 음수를 낳습니다. 음수는 이진 표현상 상위 비트가 켜져 공간을 많이 차지하므로 두 단계로 다듬습니다.
 
 - ZigZag 인코딩: 부호를 없애고 절댓값이 작은 순서대로 양수에 매핑합니다(`0, -1, 1, -2, ...` → `0, 1, 2, 3, ...`). `-5`라면 왼쪽 시프트(-10) XOR 산술 우시프트(-1) = 9가 됩니다.
 - Varint 인코딩: 그렇게 얻은 양수를 **7비트씩** 쪼개 저장합니다. 각 바이트의 하위 7비트는 값, 최상위 1비트는 "다음 바이트가 이어진다"는 연속 플래그입니다. `9`는 한 바이트로 끝나고 `300`처럼 큰 값은 여러 바이트로 이어집니다.
@@ -120,7 +120,7 @@ Retention 기간에 도달하면 **Next → Current, Current → Previous, Previ
 
 ## ⑤ vmselect — Fanout 쿼리 엔진
 
-`vmselect`는 쿼리를 받아 **모든 `vmstorage`에 Fanout으로 던지고 결과를 모으는** 컴포넌트입니다. Grafana가 PromQL 등의 쿼리를 던지면 레이블 필터로 쿼리를 형성하고 모든 `vmstorage` 노드에 요청을 보내 블록 단위로 수신합니다. 받은 것을 메모리 버퍼에 모아 Merge·Sort해 JSON 응답으로 만들어 돌려줍니다(엔드포인트 예: `/select/0/prometheus/api/v1/query_range`).
+`vmselect`는 쿼리를 받아 **모든 `vmstorage`에 Fanout으로 던지고 결과를 모으는** 컴포넌트입니다. Grafana가 PromQL 등의 쿼리를 보내면 레이블 필터로 쿼리를 형성하고 모든 `vmstorage` 노드에 요청을 보내 블록 단위로 수신합니다. 받은 것을 메모리 버퍼에 모아 Merge·Sort해 JSON 응답으로 만들어 돌려줍니다(엔드포인트 예: `/select/0/prometheus/api/v1/query_range`).
 
 내부에서 PromQL 한 줄은 **3-Prefix 검색**으로 풀립니다. 먼저 쿼리 문자열을 구조화된 데이터로 파싱합니다(함수·필터·시간 윈도, 이 파싱 결과도 캐싱). 그다음 3단계로 되짚습니다.
 

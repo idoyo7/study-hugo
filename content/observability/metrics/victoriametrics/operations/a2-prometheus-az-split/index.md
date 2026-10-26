@@ -154,7 +154,7 @@ vmagent는 수집만 하고 저장은 중앙 vmstorage에 남겼습니다. 분�
 
 05편은 새 agent가 죽어도 기존 agent가 AZ c를 대신 긁는 장애 전환은 없다고 적었습니다. Prometheus도 같습니다. HA를 원하면 샤드마다 `replicas: 2`를 두되 두 replica가 같은 AZ에 있어야 합니다. Topology 모드는 샤드 단위로 zone nodeSelector를 넣으므로 같은 샤드의 replica는 자동으로 같은 zone에 뜹니다. 경로 B는 CR의 `nodeSelector`가 그 역할을 합니다.
 
-replica를 AZ 간에 펼치면 한쪽 replica는 항상 AZ를 넘어 수집합니다. 분할로 줄인 양을 HA가 다시 채우는 셈이라, 05편의 agent 가용성 항목(해당 AZ에서 다시 뜰 노드 여유, 담당 범위의 수집 중단 알림)을 그대로 가져가는 편이 맞습니다.
+replica를 AZ 간에 펼치면 한쪽 replica는 항상 AZ를 넘어 수집합니다. 분할로 줄인 양을 HA가 다시 늘리므로, 05편의 agent 가용성 항목(해당 AZ에서 다시 뜰 노드 여유, 담당 범위의 수집 중단 알림)을 그대로 가져가는 편이 맞습니다.
 
 ## 경로 C · DaemonSet agent
 

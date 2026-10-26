@@ -8,7 +8,7 @@ url: "/karpenter/14-multinode-budget-search/"
 ---
 
 {{< callout type="info" >}}
-**먼저 결론**
+MultiNode의 예산 경계와 후보 탐색 경계는 서로 다릅니다.
 
 - MultiNode의 disruption budget은 NodePool별로 계산하고 소비합니다.
 - 하지만 후보 탐색에는 NodePool·AZ 경계가 없습니다. 모든 후보를 전역 정렬한 뒤 각 Pool의 budget만큼 남깁니다. 그렇게 섞인 목록의 prefix를 시뮬레이션합니다.

@@ -118,7 +118,7 @@ spec:
       interval: 30s
 ```
 
-이 PodMonitor는 소스 기준으로 `job_name: podMonitor/team-a/service-a/0`, `role: pod`, `namespaces.names: [team-a]`, `app=service-a` keep, `container_port_name=metrics` keep으로 바뀝니다. 기본으로 켜진 `filterRunning`은 `Failed`·`Succeeded` pod를 drop합니다. pod 안에서 `metrics` 포트를 선언한 컨테이너가 하나라면 수집 타깃도 하나입니다. kube-prometheus-stack은 셀렉터가 비었을 때 `release: <Helm 릴리스 이름>`을 기본 조건으로 넣으므로, `release` 라벨이 없는 ServiceMonitor와 PodMonitor는 오류 없이 조용히 무시됩니다.
+이 PodMonitor는 소스 기준으로 `job_name: podMonitor/team-a/service-a/0`, `role: pod`, `namespaces.names: [team-a]`, `app=service-a` keep, `container_port_name=metrics` keep으로 바뀝니다. 기본으로 켜진 `filterRunning`은 `Failed`·`Succeeded` pod를 drop합니다. pod 안에서 `metrics` 포트를 선언한 컨테이너가 하나라면 수집 타깃도 하나입니다. kube-prometheus-stack은 셀렉터가 비었을 때 `release: <Helm 릴리스 이름>`을 기본 조건으로 넣으므로, `release` 라벨이 없는 ServiceMonitor와 PodMonitor는 오류 없이 무시됩니다.
 
 ### 관리형 수집과 Fargate의 별도 제약
 
@@ -388,7 +388,7 @@ AWS 문서는 ECS 콘솔의 "Use metric collection" 옵션으로 이 방식을 �
 
 수집기 수가 태스크 수에 따라 늘지 않고, 태스크 정의에는 docker label을 붙이며, 수집 설정은 한곳에서 바꿉니다. 수집기는 모든 태스크 ENI에 접근할 수 있어야 합니다. 하나면 단일 장애점이고 둘이면 중복 수집이 생기므로, AMP에서는 dedup(중복 제거) 설정까지 필요합니다. 이를 생략하면 중복 샘플도 과금됩니다.
 
-2022년 AWS 블로그가 소개한 ADOT 수집기 한 대와 Cloud Map 조합에는 현재 "no longer recommended"라는 문구가 붙어 있으며 ecs_observer를 대안으로 가리킵니다. ecs_observer 자체는 beta입니다.
+2022년 AWS 블로그가 소개한 ADOT 수집기 한 대와 Cloud Map 조합에는 현재 "no longer recommended"라는 문구가 붙어 있으며 ecs_observer를 대안으로 제시합니다. ecs_observer 자체는 beta입니다.
 
 managed collector도 이 배치에 해당하지만 수집기 태스크를 직접 운영하지 않습니다. AMP 워크스페이스로 보내는 ECS 경로는 앞서 본 블로그가 근거입니다. 서울 리전의 AMP 목적지 단가는 collector 시간당 $0.04와 1천만 샘플당 $0.03이며, CloudWatch 목적지에서는 수집 요금이 CloudWatch OTel 메트릭 단가로 바뀝니다.
 

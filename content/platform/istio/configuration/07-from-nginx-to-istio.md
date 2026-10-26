@@ -10,7 +10,7 @@ url: "/istio/07-from-nginx-to-istio/"
 # 07 · nginx에서 Istio로 — rewrite·헤더·인가는 어디로 갔나
 
 {{< callout type="info" >}}
-**한눈에**
+nginx의 설정은 Istio의 여러 CRD로 다음처럼 나뉩니다.
 - nginx가 한 파일에 절차적으로 하던 걸, Istio는 관심사별 CRD에 선언적으로 나눕니다.
 - rewrite·헤더·CORS·타임아웃은 **VirtualService**로, TLS·수신 포트는 **Gateway**로 모입니다.
 - 인가는 성격별로 갈립니다: IP/워크로드는 **AuthorizationPolicy**, JWT는 **RequestAuthentication**+AuthorizationPolicy, `auth_request`류 외부 인가는 **ext_authz(CUSTOM)**.

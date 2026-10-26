@@ -20,7 +20,7 @@ url: "/elasticache/04-redis-7-to-8/"
 
 > **왜 이 문서인가.** "7·8·9 에 무엇이 추가되나" 라는 질문은 Redis 쪽에서는 전제가 하나 틀려 있습니다. 9 가 없다는 사실을 모르면 릴리스 표를 아무리 읽어도 "곧 나올 9 를 기다린다" 는 잘못된 결론에 이릅니다. 그래서 이 문서는 순서를 뒤집습니다 — 먼저 9 의 부재를 확증하고 그 다음에 7.0 부터 8.10 까지 실제로 무엇이 들어왔는지, 그중 운영자가 업그레이드 전에 손을 대야 하는 것이 무엇인지 봅니다.
 
-> 근거 기준: 릴리스일은 GitHub `published_at`(= 태그의 creatordate)입니다. 소스 인용은 로컬 blobless 클론 `~/evejuni/redis` 에서 `git show <tag>:<path>` 로 실측한 값이고 릴리스노트는 각 태그의 `00-RELEASENOTES` 원문입니다. 확인 시점 2026-08-05(최신 GA = 8.10.0, 2026-07-29). 6.2 이하는 [01]({{< relref "/data/cache/engines/01-origins-and-design/index.md" >}}), 라이선스 정치는 [03]({{< relref "/data/cache/engines/03-license-and-fork.md" >}}), cluster 내부는 [06]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}}) 이 소유합니다.
+> 근거 기준: 릴리스일은 GitHub `published_at`(= 태그의 creatordate)입니다. 소스 인용은 로컬 blobless 클론 `~/evejuni/redis` 에서 `git show <tag>:<path>` 로 실측한 값이고 릴리스노트는 각 태그의 `00-RELEASENOTES` 원문입니다. 확인 시점 2026-08-05(최신 GA = 8.10.0, 2026-07-29). 6.2 이하는 [01]({{< relref "/data/cache/engines/01-origins-and-design/index.md" >}}), 라이선스 정치는 [03]({{< relref "/data/cache/engines/03-license-and-fork.md" >}}), cluster 내부는 [06]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}}) 에서 다룹니다.
 
 ## 1. 한눈에 — 7.0 부터 8.10 까지
 
@@ -80,7 +80,7 @@ listpack 전환이 여기서 끝납니다. 7.0 은 Hash/List/Zset 까지였고 S
 
 RESP3 는 7.2 에서도, 8.10 에서도 기본이 아닙니다. 프로토콜 스펙이 "By default, the connection starts in RESP2 mode" 라고 명시하고 RESP3 로 가려면 클라이언트가 `HELLO 3` 로 승격해야 합니다 `✓`. 스펙은 "Future versions of Redis may change the default protocol version" 이라고 미래형으로만 언급합니다. 7 이후 RESP2/RESP3 양쪽에서 모든 core 커맨드를 부를 수 있지만 응답 타입이 프로토콜에 따라 달라집니다 — 클라이언트 라이브러리를 올릴 때 여기서 사고가 납니다. 7.2 에는 동작 변경이 하나 더 있습니다. RESP3 클라이언트가 자기가 구독한 채널에 `PUBLISH` 하면 응답과 메시지 순서가 바뀝니다(#12326) `✓`.
 
-라이선스는 이 문서의 소유가 아니지만 버전 라인에 걸린 사실 하나는 여기서 적어 둡니다. 7.2 는 BSD-3 로 출발한 마지막 마이너 라인입니다 — 7.2.0 / 7.2.4 / 7.2.15(2026-07-23) 모두 루트에 `COPYING`(BSD-3)만 있고 `LICENSE.txt` 가 없습니다. 7.4.0 부터 `COPYING` 이 사라지고 `LICENSE.txt` 가 생깁니다 `✓`. 라이선스 판정은 릴리스 날짜가 아니라 버전 라인 단위로 해야 합니다. 그 판정표와 전환의 경위·조항은 [03]({{< relref "/data/cache/engines/03-license-and-fork.md" >}}) 이 소유합니다.
+라이선스는 이 문서의 범위가 아니지만 버전 라인에 걸린 사실 하나는 여기서 적어 둡니다. 7.2 는 BSD-3 로 출발한 마지막 마이너 라인입니다 — 7.2.0 / 7.2.4 / 7.2.15(2026-07-23) 모두 루트에 `COPYING`(BSD-3)만 있고 `LICENSE.txt` 가 없습니다. 7.4.0 부터 `COPYING` 이 사라지고 `LICENSE.txt` 가 생깁니다 `✓`. 라이선스 판정은 릴리스 날짜가 아니라 버전 라인 단위로 해야 합니다. 그 판정표와 전환의 경위·조항은 [03]({{< relref "/data/cache/engines/03-license-and-fork.md" >}}) 에서 다룹니다.
 
 ## 4. 7.4 (2024-07-29) — hash field TTL, 그리고 앱이 하던 일을 엔진이 받는다
 
@@ -262,7 +262,7 @@ Redis 는 "LTS" 라는 용어를 쓰지 않습니다. 릴리스 타입이 둘입
 | `io-threads` 가변성 | **8.10.0 까지 `IMMUTABLE_CONFIG`**, 상한 128 | 8.0/8.1 IMMUTABLE → **9.0.0 부터 MODIFIABLE**, 상한 256 |
 | RDB 호환 | 7.4+ 는 12 이상 | 8.x 는 11(`REDIS0011`) → **9.x 는 80 / `VALKEY080`** |
 
-마지막 행이 실무적으로 가장 뾰족합니다. Redis 7.4 이상(RDB 12)에서 만든 RDB 는 Valkey 8.x 가 거부합니다 — Valkey 8.1 이 12~79 를 foreign 으로 예약했고 `DUMP`/`RESTORE`·`MIGRATE` 도 같은 판정을 받습니다 `✓`. "Redis 8.x 를 쓰다가 Valkey 로 옮기겠다" 는 RDB 로는 불가능합니다. 마이그레이션 경로와 Valkey 쪽 신기능은 [05]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}}), 두 진영의 atomic slot migration 비교는 [06]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}}) 이 소유합니다.
+마지막 행이 실무적으로 가장 뾰족합니다. Redis 7.4 이상(RDB 12)에서 만든 RDB 는 Valkey 8.x 가 거부합니다 — Valkey 8.1 이 12~79 를 foreign 으로 예약했고 `DUMP`/`RESTORE`·`MIGRATE` 도 같은 판정을 받습니다 `✓`. "Redis 8.x 를 쓰다가 Valkey 로 옮기겠다" 는 RDB 로는 불가능합니다. 마이그레이션 경로와 Valkey 쪽 신기능은 [05]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}}), 두 진영의 atomic slot migration 비교는 [06]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}}) 에서 다룹니다.
 
 AWS 를 쓰는 경우 한 줄이 더 붙습니다 — ElastiCache 의 Redis OSS 는 7.1 에서 멈췄고 그 위는 전부 Valkey 입니다. ElastiCache 에 Redis 8 은 없습니다 `✓`. 이 문서의 8.x 서술은 self-host 또는 다른 배포 경로를 전제합니다. 상세는 [07]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}}).
 
@@ -286,6 +286,6 @@ AWS 를 쓰는 경우 한 줄이 더 붙습니다 — ElastiCache 의 Redis OSS 
 - 성능 주장의 조건 — `redis.io/blog/redis-8-ga/`(149 테스트·90 커맨드·5.4~87.4%·중앙값 16.7%, io-threads=8 조건, 복제·RQE 벤치 조건) · `redis.io/blog/redis-88-performance-improvements-faster-mget-mset-streams-and-more/`(기준선 8.6, m7i.metal-24xl / m8g, `redis/redis-benchmarks-specification`)
 - 지원 정책·EOL — `redis.io/docs/latest/operate/oss_and_stack/install/version-mgmt/` · `github.com/redis/redis/discussions/13464`(메인테이너 발언) · `gh api repos/redis/redis/releases`(2026-07-23 일괄 패치 웨이브)
 - Redis Software 와의 번호 축 구분 — `redis.io/docs/latest/operate/rs/installing-upgrading/product-lifecycle/`
-- Valkey 대조값 — Valkey 릴리스일·`config.c` 실측·모듈 커버리지는 [05]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}}) 가 소유하며 이 문서는 대조표에 필요한 최소값만 인용했습니다
+- Valkey 대조값 — Valkey 릴리스일·`config.c` 실측·모듈 커버리지는 [05]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}}) 에서 다루며 이 문서는 대조표에 필요한 최소값만 인용했습니다
 
 미확인으로 남긴 것: Vector Set 의 GA 시점(릴리스노트에 선언이 없습니다) · `-int` 태그와 `255.255.255` 센티넬의 공식 정의 · 8.10 의 릴리스 타입과 EOL(version-mgmt 문서 미등재) · "7.6 을 건너뛰었다" 는 인과(공식 문장 없음, 2차 출처의 해석) · Compact hashes 의 실측 메모리 절감률(릴리스노트가 수치를 제시하지 않습니다) · replication stream 압축의 CPU 비용과 기본 활성 여부.

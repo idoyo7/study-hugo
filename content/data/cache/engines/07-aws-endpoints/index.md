@@ -22,7 +22,7 @@ url: "/elasticache/07-aws-endpoints/"
 
 > **왜 이 문서인가.** ElastiCache 로 넘어갈 때 가장 흔한 실패는 "주소만 바꾸면 되는 줄 알았다"입니다. 그런데 ElastiCache 의 엔드포인트는 클러스터 토폴로지를 DNS 로 노출한 결과물입니다. 편의를 위해 붙인 별칭이 아닙니다. 모드를 바꾸면 주소 구조가 바뀝니다. 주소 구조가 바뀌면 클라이언트 라이브러리의 종류가 바뀌고 클라이언트가 바뀌면 애플리케이션의 다중 키 연산까지 바뀝니다. 이 연쇄를 끊어서 보면 어느 단계에서든 사고가 납니다. 연쇄를 알면 엔드포인트 문자열만 보고도 그 앱이 무엇을 해야 하는지 판정할 수 있습니다.
 
-> 근거 기준: AWS 관련 사실은 전량 `docs.aws.amazon.com` · `aws.amazon.com/about-aws/whats-new` 본문을 직접 읽어 인용했습니다. 확인 시점은 2026-08-06 입니다. DNS 패턴은 AWS 문서에 실린 예시만 옮겼습니다 — 실계정 `aws elasticache describe-*` 로 교차검증하지 않았으므로 문서에 없는 형태는 `?` 로 남겼습니다 `✓` 자체 운영 대조군(§10)은 로컬 클론 `valkey 9.1.1:valkey.conf` 와 valkey.io 공식 문서를 근거로 합니다. cluster 자체의 내부 원리(슬롯·MOVED/ASK·gossip)는 [cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})가, 엔진 버전별 기능은 [Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})·[Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})이 소유합니다.
+> 근거 기준: AWS 관련 사실은 전량 `docs.aws.amazon.com` · `aws.amazon.com/about-aws/whats-new` 본문을 직접 읽어 인용했습니다. 확인 시점은 2026-08-06 입니다. DNS 패턴은 AWS 문서에 실린 예시만 옮겼습니다 — 실계정 `aws elasticache describe-*` 로 교차검증하지 않았으므로 문서에 없는 형태는 `?` 로 남겼습니다 `✓` 자체 운영 대조군(§10)은 로컬 클론 `valkey 9.1.1:valkey.conf` 와 valkey.io 공식 문서를 근거로 합니다. cluster 자체의 내부 원리(슬롯·MOVED/ASK·gossip)는 [cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})가, 엔진 버전별 기능은 [Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})·[Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})에서 다룹니다.
 
 ## 1. 엔드포인트 종류 — 배포 형태가 주소 구조를 결정한다
 
@@ -102,7 +102,7 @@ configuration endpoint 는 단일 A 레코드가 아닙니다 — *"The DNS look
 
 타임아웃 순서까지 문서가 규정합니다 — *"Use a lower connect timeout value than your command timeout"* 이며 그렇지 않으면 토폴로지 갱신 직후 *"a period of persistent failure"* 가 생깁니다 `✓`
 
-슬롯·`MOVED`/`ASK`·gossip 의 동작 원리 자체는 이 문서의 소유가 아닙니다 — [cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})가 소유합니다. 필요한 사실은 하나입니다. CME 로 가는 순간 라우팅이 AWS 의 DNS 에서 우리 클라이언트 라이브러리로 넘어옵니다 `Σ`
+슬롯·`MOVED`/`ASK`·gossip 의 동작 원리 자체는 이 문서의 범위가 아닙니다 — [cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})에서 다룹니다. 필요한 사실은 하나입니다. CME 로 가는 순간 라우팅이 AWS 의 DNS 에서 우리 클라이언트 라이브러리로 넘어옵니다 `Σ`
 
 ## 5. 모드를 바꿀 때 실제로 무엇이 바뀌나
 
@@ -174,7 +174,7 @@ resharding 중에는 기능 제약도 붙습니다. *"FLUSHALL and FLUSHDB comma
 | 사전 조건 | 커스텀 파라미터 그룹을 쓰면 *"must have the same Redis OSS static parameter values"* 인 Valkey 용 그룹을 같이 넘긴다. 단일 노드 CMD 는 먼저 replication group 에 편입해야 한다. AWS CLI v1 ≥ 1.35.2 / v2 ≥ 2.18.2 | `✓` |
 | MemoryDB | cross-engine 업그레이드는 되지만 **다운그레이드 불가** — *"you must delete the existing cluster and create it anew"* | `✓` |
 
-지원 버전이 선택을 사실상 결정합니다. ElastiCache 의 Valkey 는 9.1 / 9.0 / 8.2 / 8.1 / 8.0 / 7.2.6 이고 Redis OSS 는 *"all Redis OSS versions 7.1 and before"* 입니다 — ElastiCache 에 Redis 8.x 는 없습니다. 7.1 위로 가려면 Valkey 로만 갑니다 `✓` AWS 의 버전 번호도 업스트림과 1:1 이 아닙니다 — *"ElastiCache v8.2 is compatible with Valkey v8.1"*, *"ElastiCache v7.1 is compatible with Redis OSS v7.0"* `✓` 업스트림 릴리스 이력과 기능 대응은 [Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})이 소유합니다.
+지원 버전이 선택을 사실상 결정합니다. ElastiCache 의 Valkey 는 9.1 / 9.0 / 8.2 / 8.1 / 8.0 / 7.2.6 이고 Redis OSS 는 *"all Redis OSS versions 7.1 and before"* 입니다 — ElastiCache 에 Redis 8.x 는 없습니다. 7.1 위로 가려면 Valkey 로만 갑니다 `✓` AWS 의 버전 번호도 업스트림과 1:1 이 아닙니다 — *"ElastiCache v8.2 is compatible with Valkey v8.1"*, *"ElastiCache v7.1 is compatible with Redis OSS v7.0"* `✓` 업스트림 릴리스 이력과 기능 대응은 [Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})에서 다룹니다.
 
 전환 시점의 릴리스 이력도 함께 봅니다 — ElastiCache Valkey 8.0(2024-11-21) · 8.1(2025-07-24) · 8.2 벡터 검색(2025-10-13) · 9.0(2026-05-05, node-based + serverless) · durability GA(2026-06-02) · 9.1(2026-06-23, node-based only) 입니다 `✓` 9.1 은 발표문 기준 serverless 미포함이며 2026-08-06 시점에 serverless 에 추가됐는지는 확인하지 못했습니다 `?`
 
@@ -224,7 +224,7 @@ CLUSTER 관리 커맨드는 ElastiCache 도 3.2.4 시점부터 전량 막았습�
 2. 모듈이 필요합니다 — MemoryDB 는 `module` 자체를 막고 ElastiCache 는 AWS 가 고른 것(JSON·벡터 검색)만 줍니다.
 3. 슬롯을 직접 통제해야 합니다 — `cluster setslot`/`addslots` 차단으로 커스텀 슬롯 배치가 불가능합니다. ElastiCache 에서 샤드별 키스페이스를 지정할 수 있는 경로는 offline resharding 뿐입니다.
 
-추가로 `DEBUG`·`SAVE`·`BGSAVE` 차단은 디버깅 방식과 백업 자동화를 바꿉니다 — 스냅샷은 AWS API 로만 만듭니다 `✓` managed 와 self-host 의 최종 판단표는 [무엇을 고를 것인가]({{< relref "/data/cache/engines/08-choosing.md" >}})가 소유합니다.
+추가로 `DEBUG`·`SAVE`·`BGSAVE` 차단은 디버깅 방식과 백업 자동화를 바꿉니다 — 스냅샷은 AWS API 로만 만듭니다 `✓` managed 와 self-host 의 최종 판단표는 [무엇을 고를 것인가]({{< relref "/data/cache/engines/08-choosing.md" >}})에서 다룹니다.
 
 ## 10. 대조군 — k8s 에서 직접 굴리면
 
@@ -247,7 +247,7 @@ cluster bus 포트를 빼먹으면 클러스터가 형성되지 않습니다. �
 | 슬롯 관리 | AWS API (`modify-replication-group-shard-configuration`) — CLUSTER 커맨드 차단 | `cluster addslots`/`setslot` 직접 사용 |
 | failover | Multi-AZ 자동 + DNS 전파 | 엔진 자체 failover + 감시·자동화를 직접 만든다 |
 
-그래서 ElastiCache 를 VPC 밖에서 못 쓰는 것은 제약처럼 보이지만 조건입니다. "cluster mode 가 주소 리맵을 못 견딘다"는 것이 엔진의 근본 제약입니다. 관리형의 엔드포인트 구조는 이 제약을 VPC 내부 평면 네트워크 + 관리형 DNS 로 우회한 결과물입니다. k8s 에서 같은 것을 만들려면 hostNetwork 또는 `cluster-announce-*` 를 제대로 세팅해야 합니다. "서비스를 L4 LB 로 노출한다"는 일반적인 패턴은 통하지 않습니다 `Σ`. 클라이언트가 그 광고 주소를 어떻게 쓰는지(`CLUSTER SLOTS`·`MOVED`)는 [cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})가 소유합니다.
+그래서 ElastiCache 를 VPC 밖에서 못 쓰는 것은 제약처럼 보이지만 조건입니다. "cluster mode 가 주소 리맵을 못 견딘다"는 것이 엔진의 근본 제약입니다. 관리형의 엔드포인트 구조는 이 제약을 VPC 내부 평면 네트워크 + 관리형 DNS 로 우회한 결과물입니다. k8s 에서 같은 것을 만들려면 hostNetwork 또는 `cluster-announce-*` 를 제대로 세팅해야 합니다. "서비스를 L4 LB 로 노출한다"는 일반적인 패턴은 통하지 않습니다 `Σ`. 클라이언트가 그 광고 주소를 어떻게 쓰는지(`CLUSTER SLOTS`·`MOVED`)는 [cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})에서 다룹니다.
 
 ## 11. 근거
 

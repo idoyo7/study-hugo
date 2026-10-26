@@ -46,7 +46,7 @@ url: "/runtime/01-jvm-graalvm/"
 
 해석은 엇갈렸습니다. Micronaut 저장소에 같은 질문이 올라왔고 GraalVM 쪽 답이 달렸습니다 — "Java SE 구독자가 Native Image 지원을 구독에 포함해 받지 못하게 된다는 뜻이지, 기술이 deprecated되거나 중단되는 게 아니다." Quarkus·Micronaut·Spring의 네이티브 경로는 그대로 돌아갑니다. 그래도 방향은 분명합니다. **Oracle이 "시동과 풋프린트"를 내걸고 미는 물건이 Native Image에서 Leyden으로 넘어갔습니다.**
 
-그래서 지도는 이렇게 다시 그려집니다. 중간 지대였던 Graal JIT이 빠진 자리에 JDK 24/25에 들어온 AOT 캐시가 새 중간 지대로 들어왔습니다.
+따라서 선택지의 구도가 이렇게 바뀝니다. 중간 지대였던 Graal JIT이 빠진 자리에 JDK 24/25에 들어온 AOT 캐시가 새 중간 지대로 들어왔습니다.
 
 {{< lane src="_lane/1-일이-옮겨간다.json" />}}
 
@@ -69,7 +69,7 @@ PGO가 그 격차를 메우는 장치입니다. 계측된 바이너리를 대표
 
 5% 우위입니다. 그런데 이 표는 숫자보다 구성을 봐야 합니다. GraalVM 공식 문서에 이렇게 적혀 있습니다 — **"Note: PGO is not available in GraalVM Community Edition."** G1도 문서 기준으로는 Oracle GraalVM 전용입니다. 저 표의 왼쪽 줄은 CE 사용자가 재현할 수 없습니다.
 
-한편 Quarkus 공식 페이지의 유명한 표는 반대 방향을 가리킵니다.
+한편 Quarkus 공식 페이지의 유명한 표는 반대 결과를 보여 줍니다.
 
 | 항목 | Quarkus Native | Quarkus JVM |
 |---|---|---|

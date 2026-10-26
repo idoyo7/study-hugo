@@ -38,7 +38,7 @@ url: "/elasticache/05-valkey-8-to-9/"
 
 ## 2. 포크 직후의 선택 — 7.2.4 에서 무엇을 먼저 손댔나
 
-Valkey 리포의 `7.2.4` 태그는 Redis 7.2.4 히스토리를 그대로 승계합니다. 라이선스 변경 커밋·거버넌스·Linux Foundation 발표의 시간선은 [03 · 왜 찢어졌나]({{< relref "/data/cache/engines/03-license-and-fork.md" >}}) 가 소유합니다. 여기서 볼 것은 **그 다음 5개월 동안 무엇을 먼저 건드렸는가**입니다.
+Valkey 리포의 `7.2.4` 태그는 Redis 7.2.4 히스토리를 그대로 승계합니다. 라이선스 변경 커밋·거버넌스·Linux Foundation 발표의 시간선은 [03 · 왜 찢어졌나]({{< relref "/data/cache/engines/03-license-and-fork.md" >}}) 에서 다룹니다. 여기서 볼 것은 **그 다음 5개월 동안 무엇을 먼저 건드렸는가**입니다.
 
 | 머지 | 대상 | 무엇 |
 |---|---|---|
@@ -58,7 +58,7 @@ Valkey 리포의 `7.2.4` 태그는 Redis 7.2.4 히스토리를 그대로 승계�
 
 ### 3.1 비동기 I/O 스레딩 — 6.0 방식의 개선이 아니라 교체
 
-Redis 6.0 threaded I/O 가 어디까지만 했고 왜 "안 켜는 게 낫다" 가 상식이 됐는지는 [01 · 2009 첫 커밋부터 6.2 까지]({{< relref "/data/cache/engines/01-origins-and-design/index.md" >}}) 가 소유합니다. 8.0 이 바꾼 것만 봅니다.
+Redis 6.0 threaded I/O 가 어디까지만 했고 왜 "안 켜는 게 낫다" 가 상식이 됐는지는 [01 · 2009 첫 커밋부터 6.2 까지]({{< relref "/data/cache/engines/01-origins-and-design/index.md" >}}) 에서 다룹니다. 8.0 이 바꾼 것만 봅니다.
 
 | 축 | Valkey 8.0 이 바꾼 것 | 그래서 |
 |---|---|---|
@@ -138,7 +138,7 @@ Redis PR #13732 "Rdb channel replication" 은 본문 첫 줄에 `valkey-io/valke
 
 첫 행에 함정이 있습니다. `src/kvstore.c` 는 커밋 `8cd62f82`(2024-02-05, Redis #12822 "Refactor the per-slot dict-array db.c into a new kvstore data structure")에서 생겼고 이건 **포크 이전 Redis unstable 커밋**입니다 — `git merge-base --is-ancestor` 로 valkey 8.0.0 과 redis 7.4.0 **양쪽의 조상**임이 확인됩니다 `✓`. Valkey 8.0 릴리스노트도 이 항목을 `Redis#12822` 로 표기합니다. "Valkey 가 per-slot dict 로 클러스터 메모리를 줄였다" 는 서술은 절반만 맞습니다.
 
-**엔진 측에서 per-slot 으로 쪼갠 이유**는 셋입니다 — 슬롯 소속 추적 연결리스트를 자료구조 자체로 대체해 엔트리당 16바이트를 없애고 슬롯 단위 순회를 O(슬롯 크기)로 만들고 해시 태그가 단일 슬롯을 함의하는 `KEYS`/`SCAN` 을 그 슬롯만 훑게 합니다. 대가는 노드당 약 1MB 의 Binary Indexed Tree(슬롯별 키 개수 누적합)입니다 `✓`. 이 16바이트 절감은 **cluster mode 에서만** 발생합니다 — standalone 에서 8.0 으로 올리면서 -20% 를 기대하면 틀립니다 `Σ`. **cluster 운영에서 무엇이 달라지는지는** [06 · cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}}) 가 소유합니다.
+**엔진 측에서 per-slot 으로 쪼갠 이유**는 셋입니다 — 슬롯 소속 추적 연결리스트를 자료구조 자체로 대체해 엔트리당 16바이트를 없애고 슬롯 단위 순회를 O(슬롯 크기)로 만들고 해시 태그가 단일 슬롯을 함의하는 `KEYS`/`SCAN` 을 그 슬롯만 훑게 합니다. 대가는 노드당 약 1MB 의 Binary Indexed Tree(슬롯별 키 개수 누적합)입니다 `✓`. 이 16바이트 절감은 **cluster mode 에서만** 발생합니다 — standalone 에서 8.0 으로 올리면서 -20% 를 기대하면 틀립니다 `Σ`. **cluster 운영에서 무엇이 달라지는지는** [06 · cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}}) 에서 다룹니다.
 
 Redis 도 같은 목표로 수렴했습니다. PR #13806 은 본문에 "This PR adopts Valkey's packing layout and logic for key, value, and TTL" 를 명시하고 `kvobj` 를 도입했습니다(8.2, 1M keys 77.34M→59.87M · 10M keys 883.98M→624.07M, 약 -29% `Ⓥ` 로컬 랩톱). **hashtable 은 갈아끼우지 않았습니다** — 같은 PR 본문이 open addressing POC 를 해보고 `dict` + `no_value=1` 이 더 나은 균형이었다고 적습니다 `✓`. 이 차이가 8.1 에서 결정적으로 벌어집니다.
 
@@ -313,7 +313,7 @@ CVE 출처는 두 갈래입니다. Valkey 자체 GHSA 는 총 10건뿐이고, CV
 
 ## 8. Redis 8.x 대비 기능 매트릭스 — Valkey 관점
 
-기준은 **Valkey 9.1.1(2026-07-21)** vs **Redis Open Source 8.10.0(2026-07-29)**. Redis 쪽 릴리스별 서사는 [04 · Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}}) 가 소유하므로 여기서는 **Valkey 를 고를 때 얻는 것과 포기하는 것**만 봅니다.
+기준은 **Valkey 9.1.1(2026-07-21)** vs **Redis Open Source 8.10.0(2026-07-29)**. Redis 쪽 릴리스별 서사는 [04 · Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}}) 에서 다루므로 여기서는 **Valkey 를 고를 때 얻는 것과 포기하는 것**만 봅니다.
 
 **Valkey 에만 있는 것** `✓`
 
@@ -377,7 +377,7 @@ CVE 출처는 두 갈래입니다. Valkey 자체 GHSA 는 총 10건뿐이고, CV
 
 **소스 Redis 의 마이너 버전이 경로를 완전히 갈라놓습니다.** 7.4 이상이면 RDB·복제·`DUMP`/`RESTORE` 세 경로가 모두 막히므로 남는 것은 (a) 애플리케이션 이중 쓰기, (b) 논리적 재적재(키를 읽어 타입별 커맨드로 재생성)뿐이고 실질적으로 **(b) + `import-mode yes` + `CLIENT IMPORT-SOURCE ON`** 조합이 유일한 안전 경로입니다 `Σ` — import-mode 가 동기화 중 destination 의 expire/evict 가 데이터를 깨뜨리는 것을 막고 import-source 로 표시한 클라이언트에서 오는 커맨드만 예외 처리하기 때문입니다.
 
-AWS 환경의 엔진 전환(ElastiCache 의 Redis → Valkey, 엔드포인트가 바뀌는가)은 [07 · AWS 엔드포인트]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}}) 가 소유합니다.
+AWS 환경의 엔진 전환(ElastiCache 의 Redis → Valkey, 엔드포인트가 바뀌는가)은 [07 · AWS 엔드포인트]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}}) 에서 다룹니다.
 
 ## 10. 근거
 

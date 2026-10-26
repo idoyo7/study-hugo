@@ -15,7 +15,7 @@ url: "/monitoring/longterm-retention/08-recommendation-and-pitfalls/"
 - 진행 전 드라이런 2주로 실측해야 하는 항목: 집계 축소율 f(가정 0.1~0.3), 카운터/게이지 오분류, 라우터 vmagent 메모리 증분, sc1/st1 부하.
 {{< /callout >}}
 
-400d 보관 결정의 최종 종합입니다. VM 아카이브안을 왜 권장하는지 근거를 한자리에 모읍니다. 업계 선례로 패턴을 뒷받침한 뒤 검증에서 기각된 함정 10개와 진행 전 드라이런 2주 실측 목록을 정리합니다.
+400d 보관에는 VM 아카이브안을 권장합니다. 이 문서는 그 근거를 한자리에 모으고, 업계 선례로 패턴을 뒷받침합니다. 검증에서 기각된 함정 10개와 진행 전 드라이런 2주 실측 목록도 다룹니다.
 
 > 관련 문서: [02 VM 아카이브 상세]({{< relref "/observability/metrics/longterm-retention/02-vm-archive.md" >}}), [07 핵심논점·비용종합·판단트리]({{< relref "/observability/metrics/longterm-retention/07-streamaggr-vs-downsampling.md" >}}), [06 스토리지 단가]({{< relref "/observability/metrics/longterm-retention/06-storage-pricing.md" >}}), [01 문제·2축]({{< relref "/observability/metrics/longterm-retention/01-problem-and-axes.md" >}})
 

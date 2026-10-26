@@ -16,7 +16,7 @@ url: "/rum/04-datadog-replacement-matrix/"
 - **Grafana OnCall OSS는 2026-03-24 아카이브 예정**이므로 On-Call 대안으로 신규 채택하지 않습니다.
 {{< /callout >}}
 
-RUM 하나만 빼오는 것으로는 Datadog 청구서가 크게 줄지 않습니다. RUM은 진입점이고 실제 절감은 로그·트레이스·메트릭 "스토리지"를 옮길 때 나옵니다. 이 페이지는 웹 RUM 내재화([RUM 대체 커버리지]({{< relref "/observability/apm-rum/02-datadog-rum-coverage.md" >}}))를 넘어 **Datadog 전 제품군을 어디까지, 무엇으로 대체하는가**를 의사결정 관점에서 정리합니다.
+RUM 하나만 빼오는 것으로는 Datadog 청구서가 크게 줄지 않습니다. RUM은 진입점이고 실제 절감은 로그·트레이스·메트릭 "스토리지"를 옮길 때 나옵니다. 이 페이지는 웹 RUM 내재화([RUM 대체 커버리지]({{< relref "/observability/apm-rum/02-datadog-rum-coverage.md" >}}))에서 범위를 넓혀 **Datadog 전 제품군을 어디까지, 무엇으로 대체하는가**를 판단합니다.
 
 HyperDX/ClickStack은 Datadog의 **MELT+세션리플레이 코어(Logs·Traces·RUM 웹코어·Session Replay)** 를 단일 ClickHouse 백엔드에서 커버합니다 `✓`. 나머지 절반(Security·Synthetics·NPM/NDM·DBM·Profiler·CI·On-Call·Data Streams)은 ClickStack 범위 밖이라 전용 OSS로 개별 이관하거나 Datadog에 잔류시킵니다 `✓`. **메트릭 계층을 VictoriaMetrics+Grafana로 떼어내는** 판단이 이관을 실현 가능한 범위로 되돌립니다.
 

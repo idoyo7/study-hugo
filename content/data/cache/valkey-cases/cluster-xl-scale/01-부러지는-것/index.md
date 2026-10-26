@@ -30,7 +30,7 @@ url: "/valkey/cluster-xl-scale/01-부러지는-것/"
 
 서면판에 그대로 적혀 있습니다. 같은 실험을 글로 옮긴 [Scaling a Valkey Cluster to 1 Billion Request per Second](https://valkey.io/blog/1-billion-rps/) 원문에 Kubernetes·EKS·pod·StatefulSet·container 언급이 0회입니다. 대신 이렇게 적혀 있습니다. "Valkey cluster was deployed on AWS `r7g.2xlarge` instance type... we used 750 instances of AWS `c7g.16xlarge`." 튜닝도 코어 피닝(`taskset`, `cset`)과 NIC 인터럽트 어피니티(`ethtool`)를 손으로 잡았습니다. 셋 다 Kubernetes 위에서는 하기 까다롭거나 아예 안 합니다.
 
-슬라이드 그래프의 계열 이름이 `engine_cpu_percent_p99`인 것도 같은 방향을 가리킵니다. Prometheus 메트릭이 아니라 ElastiCache/AWS 내부 대시보드입니다. 발표자 본인 진술이 가장 명확합니다.
+슬라이드 그래프의 계열 이름이 `engine_cpu_percent_p99`인 것도 같은 사실을 뒷받침합니다. Prometheus 메트릭이 아니라 ElastiCache/AWS 내부 대시보드입니다. 발표자 본인 진술이 가장 명확합니다.
 
 > we come from Amazon, which is mostly a **VM based world**. So, we're all we look over here at Kubernetes and we're like, "Wow, this technology is amazing. I wish we could use more of it." — 00:13~00:24
 
@@ -187,7 +187,7 @@ Valkey의 pub/sub은 cluster bus를 그대로 탑니다. 아무 노드에나 pub
 
 - 용량 산정이 달라집니다. 평균 한 자릿수를 보고 노드를 줄이면 정확히 그 포화 노드들이 먼저 죽습니다. 반대로 p99 100%를 보고 전 클러스터를 키우면 대부분의 용량이 놉니다.
 - 알람 설계가 달라집니다. 클러스터 평균 CPU 임계값으로는 이 사고가 안 잡힙니다. 잡히는 건 분위수 알람과 "포화 노드 비율" 알람입니다.
-- 원인 추적이 달라집니다. 소수 노드가 탄다는 건 부하보다 토폴로지 비대칭을 가리킵니다. 어떤 노드가 유난히 많은 죽은 피어를 붙들고 있었다는 뜻입니다.
+- 원인 추적이 달라집니다. 소수 노드가 탄다는 건 부하보다 토폴로지가 비대칭임을 뜻합니다. 어떤 노드가 유난히 많은 죽은 피어를 붙들고 있었다는 뜻입니다.
 
 발표는 이 구분을 하지 않습니다. 스파이크를 클러스터 전체 현상처럼 서술하고 넘어갑니다. 잘못된 서술은 아니지만 그래프를 그대로 옮겨 "2,000노드 클러스터가 CPU 100%를 쳤다"고 인용하면 원 데이터보다 훨씬 센 주장이 됩니다.
 
@@ -260,7 +260,7 @@ Envoy를 두고 발표의 입장이 두 갈래라는 걸 놓치면 안 됩니다
 
 ## 6. operator는 지금 쓸 수 있나
 
-발표가 여러 번 가리키는 미래가 [valkey-io/valkey-operator](https://github.com/valkey-io/valkey-operator)입니다. Q&A의 마지막 질문("초기화할 때 모든 pod가 primary가 돼 버리지 않게 어떻게 보장하나")에 답한 것도 결국 operator였습니다.
+발표가 여러 번 제시한 다음 단계가 [valkey-io/valkey-operator](https://github.com/valkey-io/valkey-operator)입니다. Q&A의 마지막 질문("초기화할 때 모든 pod가 primary가 돼 버리지 않게 어떻게 보장하나")에 답한 것도 결국 operator였습니다.
 
 **판정: 부적합.** 지금 프로덕션에 넣을 것은 아닙니다.
 

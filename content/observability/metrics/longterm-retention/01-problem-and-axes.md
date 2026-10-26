@@ -15,7 +15,7 @@ url: "/monitoring/longterm-retention/01-problem-and-axes/"
 - 확정 시나리오(raw 90d + 5m 집계 400d) 기준 VM 아카이브안이 월 $385~416로 최저, 단순 확장($1,642)보다 자릿수로 쌉니다.
 {{< /callout >}}
 
-메트릭 400일 보관 문제를 정의하고 비용을 자릿수 단위로 좌우하는 두 결정축(무엇을 보관 / 어디에 저장)을 정리합니다. 시나리오별 저장량·비용 규모와 검증된 서울 리전 단가 요약표를 함께 싣습니다.
+메트릭을 400일 보관할 때는 보관할 대상과 저장 위치라는 두 결정축에 따라 비용이 자릿수 단위로 달라집니다. 시나리오별 저장량·비용 규모와 검증된 서울 리전 단가 요약표를 함께 싣습니다.
 
 관련 문서: [00 인덱스]({{< relref "/observability/metrics/longterm-retention/_index.md" >}}), [02 VM 아카이브(권장)]({{< relref "/observability/metrics/longterm-retention/02-vm-archive.md" >}}), [06 스토리지 단가]({{< relref "/observability/metrics/longterm-retention/06-storage-pricing.md" >}}), [07 핵심논점]({{< relref "/observability/metrics/longterm-retention/07-streamaggr-vs-downsampling.md" >}})
 

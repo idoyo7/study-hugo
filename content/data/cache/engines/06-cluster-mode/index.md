@@ -23,7 +23,7 @@ url: "/elasticache/06-cluster-mode/"
 
 근거 기준: 소스는 `valkey 9.1.0`/`9.1.1`, `redis 8.10.0`, `redis 3.0.0` 로컬 클론과 각 릴리스노트입니다. 릴리스일은 GitHub `published_at` 이고 사건 시각은 UTC 로 통일했습니다. 기준일 2026-08-06. 줄 번호는 해당 태그 스냅샷입니다.
 
-AWS 에서 이 구조가 어떤 엔드포인트로 노출되는지, CMD → CME 전환에서 무엇이 바뀌는지는 이 문서 소유가 아닙니다 → [07 · AWS 엔드포인트]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}}). 버전별 신기능 나열은 [04 · Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})(Redis)와 [05 · Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})(Valkey)가 소유합니다.
+AWS 에서 이 구조가 어떤 엔드포인트로 노출되는지, CMD → CME 전환에서 무엇이 바뀌는지는 이 문서의 범위가 아닙니다 → [07 · AWS 엔드포인트]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}}). 버전별 신기능 나열은 [04 · Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})(Redis)와 [05 · Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})(Valkey)에서 다룹니다.
 
 ## 1. 왜 프록시가 아니었나
 
@@ -176,9 +176,9 @@ void markNodeAsFailingIfNeeded(clusterNode *node) {
 | **커넥션 수 곱셈** | 클라이언트가 노드마다 풀을 따로 유지한다 | `maxclients` 를 클라이언트 인스턴스 수 × 풀 크기 × primary 수(replica 읽기까지 하면 전체 노드 수)로 재산정한다 `≈` |
 | **모듈 + ASM (Valkey)** | `moduleVerifyAllAllowAtomicSlotMigrationOrReply()` 가 전체 모듈을 순회해 **하나라도** `VALKEYMODULE_OPTIONS_HANDLE_ATOMIC_SLOT_MIGRATION` 이 없으면 `CLUSTER MIGRATESLOTS` 를 거부한다. **공식 4개 모듈(search/json/bloom/ldap) 전부 미선언** `✓` | ASM 을 쓰려면 모듈을 로드하지 않은 순수 서버여야 한다. `valkey-bundle` 이미지는 4개를 모두 로드하므로 ASM 이 불가능하다. 운영 중 확인은 `INFO modules` 의 `handle-atomic-slot-migration` 토큰 유무로 한다 |
 
-`per-slot kvstore` 는 이 표의 여러 행을 떠받치는 하부 구조입니다. **왜 만들었나**(메모리·엔진 관점)는 [05 · Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})가 소유합니다. cluster 관점에서는 슬롯 단위 순회가 쓸 만해졌습니다 — `CLUSTER COUNTKEYSINSLOT`/`GETKEYSINSLOT`, per-slot 메모리 회계(`CLUSTER SLOT-STATS`), 그리고 **§6 의 ASM 이 슬롯을 통째로 떼어내는 동작**이 여기서 나옵니다. `kvstore.c` 자체는 Redis 7.4.0 에 먼저 등장했고 Valkey 8.0.0 이 이어받았습니다 — 릴리스노트가 출처를 `Redis#12822` 로 명시하므로 "Valkey 가 만든 것"이 아닙니다(`redis 7.4.0:src/kvstore.c:1-10`, `valkey 8.0.0:src/kvstore.c:1-11`, `valkey:RELEASENOTES-8.0.0.txt:361-362`) `✓`. 포크 기점인 7.2.4 에는 없었습니다(`valkey 7.2.4:src/server.h:967-977` — 단일 `dict *dict`) `✓`.
+`per-slot kvstore` 는 이 표의 여러 행을 떠받치는 하부 구조입니다. **왜 만들었나**(메모리·엔진 관점)는 [05 · Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})에서 다룹니다. cluster 관점에서는 슬롯 단위 순회가 쓸 만해졌습니다 — `CLUSTER COUNTKEYSINSLOT`/`GETKEYSINSLOT`, per-slot 메모리 회계(`CLUSTER SLOT-STATS`), 그리고 **§6 의 ASM 이 슬롯을 통째로 떼어내는 동작**이 여기서 나옵니다. `kvstore.c` 자체는 Redis 7.4.0 에 먼저 등장했고 Valkey 8.0.0 이 이어받았습니다 — 릴리스노트가 출처를 `Redis#12822` 로 명시하므로 "Valkey 가 만든 것"이 아닙니다(`redis 7.4.0:src/kvstore.c:1-10`, `valkey 8.0.0:src/kvstore.c:1-11`, `valkey:RELEASENOTES-8.0.0.txt:361-362`) `✓`. 포크 기점인 7.2.4 에는 없었습니다(`valkey 7.2.4:src/server.h:967-977` — 단일 `dict *dict`) `✓`.
 
-sharded pub/sub 이 7.0 에 추가된 경위와 릴리스 맥락은 [04 · Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})가 소유합니다(`redis:RELEASENOTES-7.0.0.txt:316,343`).
+sharded pub/sub 이 7.0 에 추가된 경위와 릴리스 맥락은 [04 · Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})에서 다룹니다(`redis:RELEASENOTES-7.0.0.txt:316,343`).
 
 ## 6. 슬롯 마이그레이션 — 가장 아팠던 곳
 

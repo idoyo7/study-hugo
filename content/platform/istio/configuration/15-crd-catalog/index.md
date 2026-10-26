@@ -68,7 +68,7 @@ url: "/istio/15-crd-catalog/"
 
 {{< flow src="_flow/2-트래픽-축-이름과-라벨로.json" />}}
 
-각 고리를 필드 수준으로 옮기면 이렇습니다.
+각 연결 관계를 필드 수준으로 옮기면 이렇습니다.
 
 - Gateway → VirtualService (잇는 필드: VirtualService의 `gateways`) — 근거: "The names of gateways and sidecars that should apply these routes". 어긋나면: 게이트웨이에 규칙이 안 걸리거나 의도치 않게 메시 전체에 걸립니다.
 - VirtualService → DestinationRule (잇는 필드: `destination.host` + `subset`) — 근거: "The subset must be defined in a corresponding DestinationRule". 어긋나면: 정의되지 않은 subset을 부르므로 그 경로가 성립하지 않습니다.
@@ -76,7 +76,7 @@ url: "/istio/15-crd-catalog/"
 
 ### `gateways` 필드의 기본값이 함정인 이유
 
-가장 자주 걸리는 곳이 첫 번째 고리입니다. 레퍼런스 원문이 기본 동작을 명시합니다.
+가장 자주 문제가 생기는 곳이 첫 번째 연결 관계입니다. 레퍼런스 원문이 기본 동작을 명시합니다.
 
 > When this field is omitted, the default gateway (`mesh`) will be used, which would apply the rule to all sidecars in the mesh.
 
@@ -127,7 +127,7 @@ security 그룹 3개는 서로 다른 층을 담당합니다. 셋 다 단독으�
 
 > To restrict access to authenticated requests only, this should be accompanied by an authorization rule.
 
-실제 공식 예제도 RequestAuthentication에 `requestPrincipals: ["*"]`를 쓰는 AuthorizationPolicy를 반드시 붙입니다. [07]({{< relref "/platform/istio/configuration/07-from-nginx-to-istio.md" >}})의 JWT yaml 예제가 그 실무형입니다. RequestAuthentication은 "토큰이 있다면 검증한다"까지입니다. "토큰을 요구한다"는 AuthorizationPolicy의 몫입니다.
+실제 공식 예제도 RequestAuthentication에 `requestPrincipals: ["*"]`를 쓰는 AuthorizationPolicy를 반드시 붙입니다. [07]({{< relref "/platform/istio/configuration/07-from-nginx-to-istio.md" >}})의 JWT yaml 예제가 그 실무형입니다. RequestAuthentication은 "토큰이 있다면 검증한다"까지입니다. "토큰을 요구한다"는 AuthorizationPolicy가 담당합니다.
 
 {{< flow src="_flow/requestauthentication-authorizationpolicy-토큰이-없는.json" />}}
 
@@ -213,9 +213,9 @@ API 껍데기는 호환을 지키지만 그 안에 넣는 Envoy 설정은 호환
 
 ## 이 문서에서 가져갈 것
 
-- CRD는 독립된 설정 조각이 아닙니다. 트래픽 축은 `gateways` 이름 → `host`+`subset` 이름 → 라벨 필터로 이어집니다. 어느 고리가 끊겼는지가 곧 진단 순서입니다.
+- CRD는 독립된 설정 조각이 아닙니다. 트래픽 축은 `gateways` 이름 → `host`+`subset` 이름 → 라벨 필터로 이어집니다. 어느 연결 관계가 끊겼는지를 순서대로 진단합니다.
 - mTLS의 수신과 송신은 다른 리소스가 정합니다. PeerAuthentication은 받을 것을, DestinationRule `tls`는 보낼 것을 정하며 어긋나면 배포 직후 503으로 나타납니다. `tls`를 명시하지 않으면 기본값이 `DISABLE`입니다.
-- RequestAuthentication은 토큰을 요구하지 않습니다. 없는 토큰은 통과시키고 요구하는 것은 AuthorizationPolicy의 몫입니다. 그리고 ALLOW 정책 하나가 그 워크로드의 기본 동작을 deny-by-default로 뒤집습니다.
+- RequestAuthentication은 토큰을 요구하지 않습니다. 없는 토큰은 통과시키고 AuthorizationPolicy가 토큰을 요구합니다. 그리고 ALLOW 정책 하나가 그 워크로드의 기본 동작을 deny-by-default로 뒤집습니다.
 - `Sidecar`·`ProxyConfig`·`Telemetry`는 트래픽이 아니라 프록시를 조정합니다. 특히 `Sidecar`의 egress 목록은 설정 범위 축소이지 트래픽 차단이 아닙니다.
 - 버전 컬럼이 업그레이드 리스크의 지도입니다. EnvoyFilter만 `v1alpha3`, WasmPlugin은 `v1alpha1` — API 호환과 그 안의 Envoy 설정 호환은 별개입니다.
 

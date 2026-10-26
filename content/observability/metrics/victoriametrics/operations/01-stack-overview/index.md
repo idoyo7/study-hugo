@@ -16,7 +16,7 @@ url: "/monitoring/victoriametrics-operations/01-stack-overview/"
 - 공통 수집 설정은 `scrapeInterval 30s` · `promscrape.streamParse=true` · `promscrape.maxScrapeSize=24GiB`.
 {{< /callout >}}
 
-우리 환경에서 지표가 어디서 만들어져 어디로 흘러가는지, 그 구조와 stage/prod 값 차이를 정리합니다. 전송 안정화 Phase 1 튜닝은 [02 vmagent 전송 튜닝]({{< relref "/observability/metrics/victoriametrics/operations/02-vmagent-transport-tuning.md" >}})에서, 장기보관 아키텍처는 [메트릭 장기보관]({{< relref "/observability/metrics/longterm-retention/_index.md" >}}) 챕터에서 따로 다룹니다.
+우리 환경에서 지표가 생성되어 흐르는 구조와 stage/prod의 값 차이를 설명합니다. 전송 안정화 Phase 1 튜닝은 [02 vmagent 전송 튜닝]({{< relref "/observability/metrics/victoriametrics/operations/02-vmagent-transport-tuning.md" >}})에서, 장기보관 아키텍처는 [메트릭 장기보관]({{< relref "/observability/metrics/longterm-retention/_index.md" >}}) 챕터에서 따로 다룹니다.
 
 > 관련 문서: [개념 03 수집]({{< relref "/observability/metrics/victoriametrics/concepts/03-ingestion/index.md" >}}) · [02 vmagent 전송 튜닝]({{< relref "/observability/metrics/victoriametrics/operations/02-vmagent-transport-tuning.md" >}}) · [메트릭 장기보관]({{< relref "/observability/metrics/longterm-retention/_index.md" >}}) · [VictoriaMetrics 사용기]({{< relref "/observability/metrics/victoriametrics/operations/_index.md" >}})
 

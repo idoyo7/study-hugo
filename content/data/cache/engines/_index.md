@@ -91,7 +91,7 @@ linkTitle: "엔진·선택"
 
 ### 2026-08-06 시점의 좌표
 
-타임라인의 마지막 행을 판단에 쓸 수 있는 형태로 접으면 이렇습니다. 근거는 각 문서가 소유하고 여기서는 어느 문서로 가야 하는지만 표시합니다.
+타임라인의 마지막 행을 판단에 쓸 수 있는 형태로 접으면 이렇습니다. 근거는 각 문서에 있고 여기서는 어느 문서로 가야 하는지만 표시합니다.
 
 | 축 | Redis | Valkey | memcached |
 |---|---|---|---|
@@ -120,7 +120,7 @@ linkTitle: "엔진·선택"
 - **[05 · Valkey 8.0 → 9.1 — 엔진이 갈라진 지점]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})** · 반대쪽 진영의 버전 서사 — 8.0 의 비동기 I/O 스레딩이 6.0 방식의 튜닝이 아니라 **교체**인 이유, dual channel replication 이 무엇을 고치고 그 아픔을 어디로 옮겼나, 8.1 이 `dict` 를 버리고 얻은 키당 20~30바이트, 9.0 의 RDB 80 이 만든 영구 차단선, 그리고 Redis 8.x 대비 기능 매트릭스와 마이그레이션 사실관계.
 - **[06 · cluster mode — 16384 슬롯이 강제하는 것]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})** · 구조 문서 — 프록시를 두지 않기로 한 결정이 왜 smart client 를 필수로 만드나, `MOVED`/`ASK`/`TRYAGAIN` 의 조건이 각각 무엇인가, 16384 가 **gossip 헤더 2048바이트 예산**인 이유, cluster 를 쓰면 잃는 것 표, 11년간 가장 아팠던 슬롯 마이그레이션을 양 진영이 **반대 방향으로** 고친 결과, `cluster_state:ok` 가 거짓 안심을 주는 세 가지 방식.
 - **[07 · AWS 에서 엔드포인트는 어떻게 바뀌나]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}})** · 관리형 운영 문서 — CMD/CME/Serverless/MemoryDB 의 엔드포인트 종류와 DNS 로 판별하는 규칙, 모드 전환이 **단방향**이고 `compatible` 이 중간에 끼어 있는 절차, failover 시간을 만드는 것은 엔진이 아니라 **클라이언트 DNS 캐시**라는 사실, TLS 켜기가 설정 토글로 보이지만 실제로는 엔드포인트 마이그레이션인 이유, 관리형이 막는 커맨드와 k8s self-host 대조군.
-- **[08 · 무엇을 고를 것인가]({{< relref "/data/cache/engines/08-choosing.md" >}})** · 판단 문서 — Redis/Valkey/memcached 3자 판단표, managed vs self-host, 8.x 안에서 하는 버전 선택, 마이그레이션 경로 판정. 근거는 위 일곱 문서가 소유하고 여기서는 결론만 모읍니다.
+- **[08 · 무엇을 고를 것인가]({{< relref "/data/cache/engines/08-choosing.md" >}})** · 판단 문서 — Redis/Valkey/memcached 3자 판단표, managed vs self-host, 8.x 안에서 하는 버전 선택, 마이그레이션 경로 판정. 근거는 위 일곱 문서에 있고 여기서는 결론만 모읍니다.
 - **[99 · 출처]({{< relref "/data/cache/engines/99-sources.md" >}})** · 위 여덟 문서가 인용한 URL 을 주제별로 모은 목록. 로컬 클론에서 `git show` 로 실측한 태그·커밋도 함께 적었습니다.
 
 ## 공통 핵심

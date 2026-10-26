@@ -102,7 +102,7 @@ raw 90d + 전 메트릭 5m 집계 400d, 월 저장비 기준(컴퓨트 별도). 
 
 VM아카이브 월 저장비는 sc1 기준이며 st1로 하면 $415~507로 늘어납니다. Mimir가 부적합한 이유는 다운샘플링 부재이고 raw로 우회하면 시나리오 ① 경제성으로 취급합니다.
 
-**불확실성 명시**: VM 아카이브안의 f=0.1~0.3은 [샘플 수 축소] + [인덱스 몫(~20%, 시리즈 수는 안 줄음)] + [집계값 압축률 저하 가능성]의 합이며 **드라이런 2주 실측이 확정치**(검증 필요)입니다. Thanos안의 S3 범위(14.9~30.7 TiB)는 "5m·1h 블록이 raw와 비슷"이라는 공식 서술의 해석 폭입니다. 모든 수치는 3.6 TiB 100% 사용 상한 가정이므로 실측 사용률로 선형 보정합니다. 옵션별 상세 저장 구성은 각 옵션 문서([02]({{< relref "/observability/metrics/longterm-retention/02-vm-archive.md" >}})/[03]({{< relref "/observability/metrics/longterm-retention/03-thanos-s3.md" >}})/[04]({{< relref "/observability/metrics/longterm-retention/04-mimir.md" >}})/[05]({{< relref "/observability/metrics/longterm-retention/05-vmcluster-expansion.md" >}})), 시나리오 ① 표는 [01]({{< relref "/observability/metrics/longterm-retention/01-problem-and-axes.md" >}}).
+**불확실성 명시**: VM 아카이브안의 f=0.1~0.3은 [샘플 수 축소] + [인덱스 비중(~20%, 시리즈 수는 안 줄음)] + [집계값 압축률 저하 가능성]의 합이며 **드라이런 2주 실측이 확정치**(검증 필요)입니다. Thanos안의 S3 범위(14.9~30.7 TiB)는 "5m·1h 블록이 raw와 비슷"이라는 공식 서술의 해석 폭입니다. 모든 수치는 3.6 TiB 100% 사용 상한 가정이므로 실측 사용률로 선형 보정합니다. 옵션별 상세 저장 구성은 각 옵션 문서([02]({{< relref "/observability/metrics/longterm-retention/02-vm-archive.md" >}})/[03]({{< relref "/observability/metrics/longterm-retention/03-thanos-s3.md" >}})/[04]({{< relref "/observability/metrics/longterm-retention/04-mimir.md" >}})/[05]({{< relref "/observability/metrics/longterm-retention/05-vmcluster-expansion.md" >}})), 시나리오 ① 표는 [01]({{< relref "/observability/metrics/longterm-retention/01-problem-and-axes.md" >}}).
 
 ## 판정
 

@@ -128,7 +128,7 @@ Envoy의 stats는 **꽂아 바꿀 수 있는 싱크 모델**입니다 — "As of
 | **W3C Trace Context** | `traceparent` · `tracestate` |
 | 그 외 | LightStep · Datadog · SkyWalking(`sw8`) · AWS X-Ray |
 
-B3와 W3C 사이의 추출 fallback은 설정으로 정합니다. 그래서 [06]({{< relref "/platform/istio/operations/06-observability-points.md" >}})이 "트레이싱만은 앱의 헤더 전파가 필요하다"고 한 경계가 여기서 선명해집니다 — **스팬 생성·ID 발급·포맷 해석까지가 프록시의 몫**이고 앱이 인바운드에서 받은 헤더를 아웃바운드 호출에 실어 나르는 in-process 전파만 남습니다.
+B3와 W3C 사이의 추출 fallback은 설정으로 정합니다. 그래서 [06]({{< relref "/platform/istio/operations/06-observability-points.md" >}})이 "트레이싱만은 앱의 헤더 전파가 필요하다"고 한 경계가 여기서 선명해집니다 — **프록시는 스팬 생성·ID 발급·포맷 해석까지 담당**하고 앱은 인바운드에서 받은 헤더를 아웃바운드 호출에 실어 나르는 in-process 전파만 담당합니다.
 
 {{< callout type="info" >}}
 **이 절에서 하나는 간접 확인입니다.** 액세스 로그 전용 아키텍처 개요 페이지는 이번 확인 시점에 404였습니다. 액세스 로깅이 HCM이 중앙 관리하는 책임이라는 것은 HTTP connection management 문서로 확인했지만, 액세스 로그 자체의 포맷·싱크 설명은 이 문서의 재료에 들어 있지 않습니다.

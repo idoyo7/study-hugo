@@ -17,7 +17,7 @@ url: "/eks-upgrade/controlplane/03-provisioned-control-plane/"
 - 티어 수치는 보장 처리량이 아닙니다. AWS 표현은 "underlying configuration"이고 APF는 그 위에서 계속 작동합니다. 그래서 티어 선정은 계산이 아니라 측정입니다.
 {{< /callout >}}
 
-[레이어 1]({{< relref "/platform/kubernetes/eks-upgrade/controlplane/01-cluster-parameters.md" >}})이 "클러스터에 어떤 값을 넣을 수 있나"를, [레이어 2]({{< relref "/platform/kubernetes/eks-upgrade/controlplane/02-component-parameters.md" >}})가 "컨트롤 플레인 컴포넌트의 동작을 어디까지 바꿀 수 있나"를 다룹니다. 이 페이지는 축이 다릅니다 — 컨트롤 플레인을 얼마나 크게 사느냐입니다. 파라미터 하나를 열려면 이 축을 먼저 정해야 합니다. 그래서 레이어 2의 HPA `syncPeriod`는 이 페이지를 반드시 거칩니다.
+[레이어 1]({{< relref "/platform/kubernetes/eks-upgrade/controlplane/01-cluster-parameters.md" >}})이 "클러스터에 어떤 값을 넣을 수 있나"를, [레이어 2]({{< relref "/platform/kubernetes/eks-upgrade/controlplane/02-component-parameters.md" >}})가 "컨트롤 플레인 컴포넌트의 동작을 어디까지 바꿀 수 있나"를 다룹니다. 이 페이지는 컨트롤 플레인 용량을 얼마나 확보할지를 다룹니다. 파라미터 하나를 열기 전에 이 용량을 먼저 정해야 합니다. 그래서 레이어 2의 HPA `syncPeriod`는 이 페이지를 반드시 거칩니다.
 
 이 페이지의 사실은 전부 2026-08 기준 AWS 1차 문서(EKS User Guide·API Reference·Best Practices Guide·요금 페이지) 확인분입니다. 업스트림 소스 인용은 레이어 2가 단일 소유로 다루므로 여기서는 반복하지 않습니다.
 

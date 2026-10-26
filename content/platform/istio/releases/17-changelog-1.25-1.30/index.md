@@ -22,7 +22,7 @@ url: "/istio/17-changelog-1.25-1.30/"
 
 > 왜 이 문서인가. 목표로 잡은 1.30.3이 이 구간의 끝입니다. 그러니 남의 릴리스노트를 요약하지 않고 우리 업그레이드가 반드시 통과할 변경만 적습니다. 헤드라인은 전부 ambient(멀티클러스터 beta, DNS 캡처 기본화, 마이그레이션 가이드 신설)이고 우리는 ambient를 안 쓰는데 그래도 못 넘어갈 것이 세 종류 남습니다 — ① 파드 스펙 자체를 바꾸는 것(native sidecar), ② 리소스 이름·차트 구조를 바꾸는 것(1.29 통합), ③ 플래그·메트릭 기본값을 바꿔 알람을 무효화하는 것. CI는 셋 중 어느 것도 못 잡습니다. ①의 렌더 결과는 유효한 yaml이고 ②에서 Helm은 에러를 안 냅니다. ③은 쿼리가 0을 리턴할 뿐입니다.
 >
-> 축이 겹치는 문서는 넘깁니다. istiod 부하·`GOMAXPROCS`·xDS 커넥션 재분배 같은 메커니즘은 [09 istiod 스케일링]({{< relref "/platform/istio/operations/09-istiod-scaling-connections/index.md" >}})의 몫이고 여기서는 "**버전이 그 메커니즘의 무엇을 바꿨나**"만 씁니다. 1.20~1.24 구간은 [10 changelog 1.20→1.24]({{< relref "/platform/istio/releases/16-changelog-1.20-1.24/index.md" >}}), 우리 클러스터의 차트·values·이관 절차는 [eks-upgrade/istio]({{< relref "/platform/kubernetes/eks-upgrade/components/02-istio.md" >}})가 소유합니다.
+> 축이 겹치는 문서는 넘깁니다. istiod 부하·`GOMAXPROCS`·xDS 커넥션 재분배 같은 메커니즘은 [09 istiod 스케일링]({{< relref "/platform/istio/operations/09-istiod-scaling-connections/index.md" >}})에서 다루고 여기서는 "**버전이 그 메커니즘의 무엇을 바꿨나**"만 씁니다. 1.20~1.24 구간은 [10 changelog 1.20→1.24]({{< relref "/platform/istio/releases/16-changelog-1.20-1.24/index.md" >}}), 우리 클러스터의 차트·values·이관 절차는 [eks-upgrade/istio]({{< relref "/platform/kubernetes/eks-upgrade/components/02-istio.md" >}})가 소유합니다.
 
 > 근거 기준: 릴리스노트·업그레이드 노트는 `istio/istio.io` 로컬 클론의 `content/en/news/releases/1.2{5..9}.x`·`1.30.x`(`--depth 1` 스냅샷이라 문서 git 이력은 없습니다). 코드·차트 인용은 `istio/istio` full-history 클론의 태그 체크아웃으로, 주로 `1.30.3`이고 도입 시점 판정은 `1.26.0`/`1.27.0`/`1.28.0`/`1.29.0` 대조입니다. 릴리스일은 `gh release` API, EOL은 istio.io의 `data/compatibility/supportStatus.yml`. 기준 시각 2026-07-30. 문서와 코드가 어긋나는 곳은 코드를 따릅니다. 어긋났다는 사실 자체도 본문에 남깁니다.
 

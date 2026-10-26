@@ -113,7 +113,7 @@ LRU 종류를 `item->slabs_clsid` 의 상위 2비트에 인코딩하므로 **아
 
 **그래서 지는 지점도 정해집니다.** 아이템 락은 해시값 샤딩이므로 **핫 키 하나는 결국 락 하나에 몰립니다** — 단일 핫 키 워크로드에서는 `-t` 를 올려도 안 늘어납니다 `Σ` 그리고 `-t` 는 코어 수보다 조금 적게 잡습니다. lru_maintainer · lru_crawler · assoc 확장 · logger · slab mover · extstore IO 스레드가 별도로 코어를 먹기 때문입니다 `Σ`
 
-Redis 쪽 경계는 `redis.conf` 원문이 직접 그어 줍니다 — "Redis is **mostly single threaded**, however there are certain threaded operations such as UNLINK, slow I/O accesses and other things that are performed on side threads"(`redis 8.10.0:redis.conf:1381-1383`), 그리고 io-threads 는 "threads for **reads and protocol parsing**" 까지입니다. 같은 파일이 권하는 스케일 방식도 "spawn multiple instances in order to scale more" 입니다 `✓` Redis 6.0 threaded I/O 의 내부 경계(fan-out/fan-in 배리어)는 [01 · 2009 첫 커밋부터 6.2 까지]({{< relref "/data/cache/engines/01-origins-and-design/index.md" >}})가, Valkey 8.0 이 그것을 어떻게 바꿨는지는 [05 · Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})가 소유합니다.
+Redis 쪽 경계는 `redis.conf` 원문이 직접 그어 줍니다 — "Redis is **mostly single threaded**, however there are certain threaded operations such as UNLINK, slow I/O accesses and other things that are performed on side threads"(`redis 8.10.0:redis.conf:1381-1383`), 그리고 io-threads 는 "threads for **reads and protocol parsing**" 까지입니다. 같은 파일이 권하는 스케일 방식도 "spawn multiple instances in order to scale more" 입니다 `✓` Redis 6.0 threaded I/O 의 내부 경계(fan-out/fan-in 배리어)는 [01 · 2009 첫 커밋부터 6.2 까지]({{< relref "/data/cache/engines/01-origins-and-design/index.md" >}})가, Valkey 8.0 이 그것을 어떻게 바꿨는지는 [05 · Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})에서 다룹니다.
 
 운영 모델의 차이가 성능 숫자보다 앞섭니다. **memcached 16코어 = 프로세스 1개 = 설정 1벌**이고, **Redis 16코어 = 프로세스 여러 개 = 슬롯·리샤딩·클라이언트 인식**입니다([06 · cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})) `Σ` 반대로 Redis 의 단일 실행 스레드는 MULTI/EXEC·Lua·다중 키 커맨드의 원자성을 공짜로 줍니다. memcached 는 그것을 원리적으로 줄 수 없습니다 `✓`
 
@@ -235,11 +235,11 @@ memcached 에는 복제도 클러스터 버스도 없으므로(§7) 샤딩은 �
 | **관리형 경로** | §9 |
 | **버스 팩터** | 2026년 커밋의 79%가 한 사람이고, 날짜가 박힌 EOL 캘린더가 없다 — 컴플라이언스가 "지원 종료일 문서"를 요구하면 실제 장애물이 된다 `Σ` |
 
-판정은 한 문장으로 압축됩니다. **memcached 는 "캐시 이외의 요구가 하나도 없을 때" 이기고, 그 조건이 하나라도 깨지면 집니다** — 값이 blob 이고, 잃어도 되고, 다중 키 원자성이 필요 없고, 코어당 처리량과 지연 예측성이 중요하고, 배포·업그레이드를 직접 감당할 수 있을 때입니다 `Σ` 3자 판단표는 [08 · 무엇을 고를 것인가]({{< relref "/data/cache/engines/08-choosing.md" >}})가 소유합니다.
+판정은 한 문장으로 압축됩니다. **memcached 는 "캐시 이외의 요구가 하나도 없을 때" 이기고, 그 조건이 하나라도 깨지면 집니다** — 값이 blob 이고, 잃어도 되고, 다중 키 원자성이 필요 없고, 코어당 처리량과 지연 예측성이 중요하고, 배포·업그레이드를 직접 감당할 수 있을 때입니다 `Σ` 3자 판단표는 [08 · 무엇을 고를 것인가]({{< relref "/data/cache/engines/08-choosing.md" >}})에서 다룹니다.
 
 ## 9. 관리형 현황 — 두 줄
 
-**ElastiCache for Memcached** 에서 웹으로 확인 가능한 최신 지원 발표는 **1.6.22(2024-01-11)** 이고 그 뒤 발표는 재검색으로도 찾지 못했습니다 — 오픈소스 최신 1.6.45 와 23개 마이너 차이이며 그 사이의 1.6.34 mover 재작성·1.6.40 `mg` 조건부 CAS·1.6.42/43/45 보안 수정을 받지 못합니다 `✓` **GCP Memorystore for Memcached 는 deprecated** 입니다 — **2027-02-01** 부터 신규 프로젝트에서 생성 불가, **2029-01-31** 완전 종료, Valkey 이관 권고이고 지원 버전은 1.5.16(기본)/1.6.15 두 개뿐입니다 `✓` 엔드포인트·auto-discovery(`.cfg.` CNAME)·모드 전환 등 AWS 쪽 상세는 [07 · AWS 엔드포인트]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}})가 소유합니다.
+**ElastiCache for Memcached** 에서 웹으로 확인 가능한 최신 지원 발표는 **1.6.22(2024-01-11)** 이고 그 뒤 발표는 재검색으로도 찾지 못했습니다 — 오픈소스 최신 1.6.45 와 23개 마이너 차이이며 그 사이의 1.6.34 mover 재작성·1.6.40 `mg` 조건부 CAS·1.6.42/43/45 보안 수정을 받지 못합니다 `✓` **GCP Memorystore for Memcached 는 deprecated** 입니다 — **2027-02-01** 부터 신규 프로젝트에서 생성 불가, **2029-01-31** 완전 종료, Valkey 이관 권고이고 지원 버전은 1.5.16(기본)/1.6.15 두 개뿐입니다 `✓` 엔드포인트·auto-discovery(`.cfg.` CNAME)·모드 전환 등 AWS 쪽 상세는 [07 · AWS 엔드포인트]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}})에서 다룹니다.
 
 ## 10. 근거
 

@@ -8,7 +8,7 @@ url: "/karpenter/16-multinode-upstream-issue-review/"
 ---
 
 {{< callout type="info" >}}
-**먼저 결론**
+이 문제는 Karpenter core의 기존 MultiNode 이슈에 재현 자료를 보태는 편이 맞습니다.
 
 - 이 문제는 AWS provider가 아니라 **provider-neutral Karpenter core**의 MultiNode 후보 탐색 알고리즘에 있습니다.
 - 논의 장소도 `aws/karpenter-provider-aws`보다 `kubernetes-sigs/karpenter`가 맞습니다.

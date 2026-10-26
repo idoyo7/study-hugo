@@ -296,7 +296,7 @@ if p.ToleratePreferNoSchedule {
 | 노드가 필요 이상으로 뜬다 | preferred를 required처럼 만족시키려 새 노드 생성 | `PREFERENCE_POLICY=Ignore` 검토 |
 | consolidation이 정체됨 | preferred anti-affinity·TSC가 노드를 보호 | 로그 `prevent consolidation` |
 
-preferred anti-affinity 미반영은 상대 쪽을 required로 바꾸는 것 외에 고칠 방법이 없습니다. `PREFERENCE_POLICY=Ignore`는 배치 품질과 맞바꾸는 전역 옵션입니다. consolidation 정체는 메트릭 `karpenter_voluntary_disruption_failed_validations_total`로 확인합니다.
+preferred anti-affinity 미반영은 상대 쪽을 required로 바꾸는 것 외에 고칠 방법이 없습니다. `PREFERENCE_POLICY=Ignore`는 전역으로 적용되며 배치 품질을 낮출 수 있습니다. consolidation 정체는 메트릭 `karpenter_voluntary_disruption_failed_validations_total`로 확인합니다.
 
 ## 5. well-known labels 레퍼런스
 

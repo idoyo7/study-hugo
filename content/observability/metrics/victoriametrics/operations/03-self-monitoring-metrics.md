@@ -16,7 +16,7 @@ url: "/monitoring/victoriametrics-operations/03-self-monitoring-metrics/"
 - 카디널리티 감시(churn rate · slow insert)는 D2 개념을 계승합니다 → [실전 01 카디널리티]({{< relref "/observability/metrics/victoriametrics/practice/01-cardinality/index.md" >}}). 인벤토리는 vmui + `metric_names_stats`로 뽑습니다.
 {{< /callout >}}
 
-Phase 1이 제대로 적용됐는지 전송이 건강한지 판정할 때 보는 자기감시(self-monitoring) 메트릭을 정리합니다. [02]({{< relref "/observability/metrics/victoriametrics/operations/02-vmagent-transport-tuning.md" >}})의 적용 후 확인이 여기로 이어집니다.
+Phase 1이 제대로 적용됐는지와 전송 상태를 판정할 때는 자기감시(self-monitoring) 메트릭을 봅니다. [02]({{< relref "/observability/metrics/victoriametrics/operations/02-vmagent-transport-tuning.md" >}})의 적용 후 확인이 여기로 이어집니다.
 
 > 관련 문서: [02 vmagent 전송 튜닝]({{< relref "/observability/metrics/victoriametrics/operations/02-vmagent-transport-tuning.md" >}}) · [실전 01 카디널리티]({{< relref "/observability/metrics/victoriametrics/practice/01-cardinality/index.md" >}}) · [04 스케일링·용량 기준치]({{< relref "/observability/metrics/victoriametrics/operations/04-scaling-thresholds.md" >}}) · [VictoriaMetrics 사용기]({{< relref "/observability/metrics/victoriametrics/operations/_index.md" >}})
 

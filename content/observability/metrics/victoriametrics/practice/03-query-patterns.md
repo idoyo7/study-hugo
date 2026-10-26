@@ -15,7 +15,7 @@ url: "/monitoring/victoriametrics/practice/03-query-patterns/"
 - 무거운 쿼리(넓은 시간범위 × 고카디널리티)는 vmselect 메모리를 먹습니다 — 차원 축소·recording rule 선계산·캐시로 회피하고 카디널리티는 `/api/v1/status/tsdb` 와 vmui 카디널리티 익스플로러로 점검합니다.
 {{< /callout >}}
 
-[01 카디널리티]({{< relref "/observability/metrics/victoriametrics/practice/01-cardinality/index.md" >}})와 [02 대규모 운영]({{< relref "/observability/metrics/victoriametrics/practice/02-operations-at-scale/index.md" >}})이 "무엇을 저장하고 어떻게 운영하는가"였다면, 이 문서의 주제는 저장한 것을 어떻게 꺼내 읽는가 — 곧 쿼리입니다. VM은 PromQL을 그대로 받으면서 그 상위호환인 MetricsQL로 확장합니다. 지표 타입별 실전 패턴, MetricsQL만의 확장, 무거운 쿼리의 회피, 카디널리티 점검 쿼리를 차례로 정리합니다.
+[01 카디널리티]({{< relref "/observability/metrics/victoriametrics/practice/01-cardinality/index.md" >}})와 [02 대규모 운영]({{< relref "/observability/metrics/victoriametrics/practice/02-operations-at-scale/index.md" >}})이 "무엇을 저장하고 어떻게 운영하는가"였다면, 이 문서의 주제는 저장한 것을 어떻게 꺼내 읽는가 — 곧 쿼리입니다. VM은 PromQL을 그대로 받으면서 그 상위호환인 MetricsQL로 확장합니다. 지표 타입별 실전 패턴부터 MetricsQL 확장, 무거운 쿼리를 피하는 방법, 카디널리티 점검 쿼리까지 차례로 다룹니다.
 
 > 이 문서는 다른 문서와 달리 네이버 D2 발표 정독이 아니라 VictoriaMetrics·Prometheus 공식 문서를 근거로 합니다(문서 말미 출처 참조).
 

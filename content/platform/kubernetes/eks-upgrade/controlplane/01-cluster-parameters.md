@@ -233,6 +233,6 @@ finance blue를 Terraform으로 새로 세우는 맥락([클러스터 설정]({{
 
 둘째, **`deletion_protection = true`를 켭니다.** 네이티브 기능이 존재하므로 `prevent_destroy`에 의존할 이유가 없습니다. blue-green 기간에는 두 클러스터가 나란히 떠 있으니 콘솔·CLI 경로까지 막아두는 편이 실수 비용을 줄입니다.
 
-셋째가 되돌릴 수 없는 몫입니다. `service_ipv4_cidr`·`ip_family`·`bootstrap_cluster_creator_admin_permissions`는 create-only라 지금 틀리면 클러스터 재생성뿐입니다. `role_arn`은 update 경로 자체가 없어 롤 네이밍까지 생성 전에 확정해야 합니다. `authentication_mode`는 02가 정한 `API_AND_CONFIG_MAP`이 이 관점에서도 맞는 선택입니다. `API`로 생성하면 aws-auth 경로를 영구히 못 열게 되므로 되돌릴 여지를 남기는 값이 `API_AND_CONFIG_MAP`입니다. `bootstrap_cluster_creator_admin_permissions`를 02의 판단대로 `false`로 둘 경우에는 순서 제약이 하나 생깁니다. 생성 principal을 access entry로 먼저 등록해두지 않으면 생성 직후 클러스터에 들어갈 주체가 없습니다.
+셋째는 되돌릴 수 없는 항목입니다. `service_ipv4_cidr`·`ip_family`·`bootstrap_cluster_creator_admin_permissions`는 create-only라 지금 틀리면 클러스터 재생성뿐입니다. `role_arn`은 update 경로 자체가 없어 롤 네이밍까지 생성 전에 확정해야 합니다. `authentication_mode`는 02가 정한 `API_AND_CONFIG_MAP`이 이 관점에서도 맞는 선택입니다. `API`로 생성하면 aws-auth 경로를 영구히 못 열게 되므로 되돌릴 여지를 남기는 값이 `API_AND_CONFIG_MAP`입니다. `bootstrap_cluster_creator_admin_permissions`를 02의 판단대로 `false`로 둘 경우에는 순서 제약이 하나 생깁니다. 생성 principal을 access entry로 먼저 등록해두지 않으면 생성 직후 클러스터에 들어갈 주체가 없습니다.
 
 반대로 지금 결정을 미뤄도 되는 것들도 분명합니다. 엔드포인트 접근·로깅·태그·`deletionProtection`·Provisioned 티어는 전부 day-2 가변입니다. create 시점의 검토 예산은 위의 create-only·불가역 항목에 몰아주는 편이 낫습니다.

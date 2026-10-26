@@ -29,7 +29,7 @@ url: "/elasticache/01-origins-and-design/"
 
 같은 FAQ 가 요구사항을 자료구조로 진술합니다 — 컴퓨터별 로그를 모으려면 `RPUSH computer_ID` 하고 `LTRIM computer_ID 0 999` 로 잘라내면 되고 태그 검색은 태그마다 SET 을 두고 서버측 교집합을 시키면 됩니다. 결론 문장이 논지 전체입니다: `So what is Redis really about? The User interface with the programmer.` `✓` 값이 opaque blob 이면 이 중 아무것도 서버에서 할 수 없고 클라이언트가 값 전체를 왕복시켜 직렬화·역직렬화·재저장해야 하며 그 사이에 경쟁이 생깁니다.
 
-**memcached 로 안 됐던 부분**도 첫 커밋 문서가 스스로 두 축으로 정리합니다 — `Memcached is not persistent, it just holds everything in memory without saving since its main goal is to be used as a cache. Redis instead can be used as the main DB for the application.` 와 `while keys can just be strings, values in Redis can be lists and sets, and complex operations like intersections, set/get n-th element of lists, pop/push of elements, can be performed against sets and lists.`(`redis ed9b544e1:doc/README.html`) `✓`. memcached 쪽의 설계와 그 후 23년의 변화는 [02 · memcached]({{< relref "/data/cache/engines/02-memcached/index.md" >}})가 소유합니다.
+**memcached 로 안 됐던 부분**도 첫 커밋 문서는 그 한계를 두 축으로 설명합니다 — `Memcached is not persistent, it just holds everything in memory without saving since its main goal is to be used as a cache. Redis instead can be used as the main DB for the application.` 와 `while keys can just be strings, values in Redis can be lists and sets, and complex operations like intersections, set/get n-th element of lists, pop/push of elements, can be performed against sets and lists.`(`redis ed9b544e1:doc/README.html`) `✓`. memcached 쪽의 설계와 그 후 23년의 변화는 [02 · memcached]({{< relref "/data/cache/engines/02-memcached/index.md" >}})에서 다룹니다.
 
 **두 번째 결정: 락을 주지 않습니다.** day-1 문서의 답이 `Does Redis support locking? / No, the idea is to provide atomic primitives in order to make the programmer able to use redis with locking free algorithms.` 입니다(`redis ed9b544e1:doc/README.html`) `✓`. 락을 주지 않는다는 답이 단일 스레드의 원인이지 결과가 아닙니다 — 커맨드 하나가 곧 임계 구역이 되려면 서버가 커맨드를 겹쳐 실행하지 않아야 하고 그러면 락도 트랜잭션도 필요 없어집니다. FAQ 의 다른 문장이 도달점을 그립니다: `this special kind of memory containing your data structures is shared, atomic, persistent`(`redis ed9b544e1:doc/FAQ.html`) `✓`.
 
@@ -73,7 +73,7 @@ MANIFESTO 는 첫 커밋에 없습니다. **v1 은 2011-03-01 `be14f38de` "Redis
 | **6 — We're against complexity** | `One of the main Redis goals is to remain understandable, enough for a single programmer to have a clear idea of how it works in detail just reading the source code for a couple of weeks.` | 이벤트 루프 한 개·상태 공유 없음. §7 의 threaded I/O 가 굳이 배리어 방식인 이유 |
 | **7 — Threading is not a silver bullet** *(v2 신설)* | `Instead of making Redis threaded we believe on the idea of an efficient (mostly) single threaded Redis core.` … `In the future we may explore parallelism only for I/O, which is the low hanging fruit: minimal complexity could provide an improved single process experience.` | 6.0 threaded I/O 의 범위를 **문서가 먼저 못 박았다**. "I/O 만" 이라는 한정이 §7 의 경계 그대로다 |
 
-7번의 나머지 두 문장은 cluster 를 이 원칙의 짝으로 지목합니다 — `Multiple of such cores … are abstracted away as a single big system by higher order protocols and features: Redis Cluster and the upcoming Redis Proxy are our main goals.` **수직 확장을 포기하고 수평 확장에 위임한다**는 선언이고 그 대가는 8번 항목이 스스로 적습니다: multi-key API 를 분산에서 투명하게 만들 방법은 없으니 `expose the trade-offs to the user` 합니다 `✓`. cluster 가 강제하는 제약은 [06 · cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})가 소유합니다.
+7번의 나머지 두 문장은 cluster 를 이 원칙의 짝으로 지목합니다 — `Multiple of such cores … are abstracted away as a single big system by higher order protocols and features: Redis Cluster and the upcoming Redis Proxy are our main goals.` **수직 확장을 포기하고 수평 확장에 위임한다**는 선언이고 그 대가는 8번 항목이 스스로 적습니다: multi-key API 를 분산에서 투명하게 만들 방법은 없으니 `expose the trade-offs to the user` 합니다 `✓`. cluster 가 강제하는 제약은 [06 · cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})에서 다룹니다.
 
 {{< callout type="warning" >}}
 MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하면 v1 과 v2 를 섞게 됩니다. 스레딩 항목 자체가 **threaded I/O 직전에 쓰였고**, 그 문단이 I/O 병렬화를 예고합니다. 이 문서에서 인용하는 문구는 전부 `git -C ~/evejuni/redis show 8.10.0:MANIFESTO`(= `6.2.0:MANIFESTO`) 기준입니다.
@@ -127,7 +127,7 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 | 4.0.0 | `8` | `redis 4.0.0:src/rdb.h:41` |
 | **5.0.0 / 6.0.0 / 6.2.0** | **`9` — 세 마이너 연속 고정** | `redis 5.0.0:src/rdb.h:41`; `6.0.0:41`; `6.2.0:41` |
 
-5.0→6.2 가 세 마이너 내내 9 이므로 **이 구간은 RDB 호환 다운그레이드가 가능한 드문 구간**입니다. 3.2→4.0→5.0 은 메이저마다 올랐습니다. 7.0·7.2·7.4 가 10·11·12 로 다시 마이너마다 오른 뒤 8.0~8.4 는 12 에 머물다가 8.6 부터 또 마이너마다 오릅니다 — 그 이후의 차단선은 [04 · Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})가 소유합니다.
+5.0→6.2 가 세 마이너 내내 9 이므로 **이 구간은 RDB 호환 다운그레이드가 가능한 드문 구간**입니다. 3.2→4.0→5.0 은 메이저마다 올랐습니다. 7.0·7.2·7.4 가 10·11·12 로 다시 마이너마다 오른 뒤 8.0~8.4 는 12 에 머물다가 8.6 부터 또 마이너마다 오릅니다 — 그 이후의 차단선은 [04 · Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})에서 다룹니다.
 
 ### 4.1 Virtual Memory — 유일하게 되돌린 설계
 
@@ -158,7 +158,7 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 
 5.0.0 의 `SLAVEOF` → `REPLICAOF` 는 커맨드 추가가 아니라 **개명**입니다. `redis 5.0.0:src/server.c:263-264` 에서 두 이름이 같은 `replicaofCommand` 를 가리키고 노트도 `Slave removal: SLAVEOF -> REPLICAOF. SLAVEOF is now an alias.` 라고 씁니다 `✓`. 자동화 스크립트·INFO 파서를 `slave` 문자열에 맞춰 둔 쪽이 이 릴리스에서 경고 없이 깨집니다.
 
-**Sentinel 의 자리.** Sentinel 은 cluster 와 무관하게 **다른 문제를 푸는 별개 프로세스**입니다 — 샤딩 없이 "primary 가 죽었을 때 replica 를 승격하고 클라이언트에게 새 주소를 알린다"만 합니다. 2.6.0-rc8 에 백포트되고 **2.8.0 에서 "더 신뢰성 있는 알고리즘으로" 재구현**됐습니다 `✓`. 그래서 이 구간의 가용성 선택지는 둘입니다 — 단일 샤드 + Sentinel, 또는 3.0 이후의 cluster. cluster 내부 동작과 Sentinel 대비는 [06 · cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})가 소유합니다.
+**Sentinel 의 자리.** Sentinel 은 cluster 와 무관하게 **다른 문제를 푸는 별개 프로세스**입니다 — 샤딩 없이 "primary 가 죽었을 때 replica 를 승격하고 클라이언트에게 새 주소를 알린다"만 합니다. 2.6.0-rc8 에 백포트되고 **2.8.0 에서 "더 신뢰성 있는 알고리즘으로" 재구현**됐습니다 `✓`. 그래서 이 구간의 가용성 선택지는 둘입니다 — 단일 샤드 + Sentinel, 또는 3.0 이후의 cluster. cluster 내부 동작과 Sentinel 대비는 [06 · cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})에서 다룹니다.
 
 ## 6. 자료구조 서버가 넓어진 경로
 
@@ -207,7 +207,7 @@ MANIFESTO 를 "Redis 는 영원히 단일 스레드다"의 근거로 인용하�
 
 **그래서 커맨드 실행은 왜 직렬인가.** 병렬화하려면 §1 의 계약을 깨야 합니다 — 커맨드 하나가 임계 구역이라는 보장이 없어지고 자료구조 구현마다 락이 들어가고 MANIFESTO 6번의 "몇 주면 읽힌다"가 무너집니다. 6.0 은 그 계약을 손대지 않는 쪽을 골랐고 대신 **한 바퀴의 양 끝만 떼어냈습니다**. MANIFESTO 7번이 이 선택을 미리 적어둔 그대로입니다 — `parallelism only for I/O, which is the low hanging fruit: minimal complexity` `✓`.
 
-대가는 두 갈래로 남았습니다. `io-threads` 는 켜기 어려운 스위치입니다 — conf 스스로 기본 비활성, 4코어 이상에서만 권장(여유 코어 1개 남길 것), 8 초과는 무의미, `We also recommend using threaded I/O only if you actually have performance problems`, 읽기 스레딩은 `Usually threading reads doesn't help much.` 라고 안내합니다 `✓`. busy-spin 배리어와 라운드마다 바뀌는 워커 배정은 설계에서 온 한계로 남았습니다. **Valkey 8.0 이 교체 대상으로 지목한 것이 바로 이 배리어**입니다 — 그 차이는 [05 · Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})가 소유합니다.
+대가는 두 갈래로 남았습니다. `io-threads` 는 켜기 어려운 스위치입니다 — conf 스스로 기본 비활성, 4코어 이상에서만 권장(여유 코어 1개 남길 것), 8 초과는 무의미, `We also recommend using threaded I/O only if you actually have performance problems`, 읽기 스레딩은 `Usually threading reads doesn't help much.` 라고 안내합니다 `✓`. busy-spin 배리어와 라운드마다 바뀌는 워커 배정은 설계에서 온 한계로 남았습니다. **Valkey 8.0 이 교체 대상으로 지목한 것이 바로 이 배리어**입니다 — 그 차이는 [05 · Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})에서 다룹니다.
 
 ### 7.2 6.2 — 큰 기능 없이 커맨드를 완성시킨 릴리스
 

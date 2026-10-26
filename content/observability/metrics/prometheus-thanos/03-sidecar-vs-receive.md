@@ -8,7 +8,7 @@ url: "/monitoring/prometheus-thanos/03-sidecar-vs-receive/"
 
 # Prometheus에 붙이는 두 방식 — Sidecar vs Receive
 
-"Thanos를 붙인다"는 한마디가 전혀 다른 배치 둘을 가리킵니다. 어느 쪽을 고르느냐에 따라 방화벽 정책과 장애 반경이 달라집니다.
+"Thanos를 붙인다"는 한마디는 전혀 다른 배치 둘을 뜻합니다. 어느 쪽을 고르느냐에 따라 방화벽 정책과 장애 반경이 달라집니다.
 
 ## 먼저 오해 하나
 

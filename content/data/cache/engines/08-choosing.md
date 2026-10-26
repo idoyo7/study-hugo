@@ -18,7 +18,7 @@ url: "/elasticache/08-choosing/"
 - "9 를 기다린다" 는 전략이 없습니다. Redis 에 9.x 는 존재하지 않고 계획 문서도 확인되지 않았습니다([04]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})) `✓`. 9.x 를 가진 쪽은 Valkey 입니다.
 {{< /callout >}}
 
-> **왜 이 문서인가.** 앞 7개 문서는 각각 "무엇이 사실인가" 를 소유합니다. 이 문서는 새 사실을 도입하지 않고 그 사실들을 결정으로 압축합니다. 모든 행에 근거 문서로 가는 링크가 붙고 근거 없는 취향 서술은 넣지 않았습니다 — 근거가 부족한 자리는 §7 에 미확인으로 남겼습니다.
+> **왜 이 문서인가.** 앞 7개 문서는 각각 "무엇이 사실인가"를 다룹니다. 이 문서는 새 사실을 도입하지 않고 그 사실들을 결정으로 압축합니다. 모든 행에 근거 문서로 가는 링크가 붙고 근거 없는 취향 서술은 넣지 않았습니다 — 근거가 부족한 자리는 §7 에 미확인으로 남겼습니다.
 
 > **배지 규약.** `✓` = 앞 문서가 1차 근거(소스·릴리스노트·공식 문서 원문)로 확정한 사실에서 곧바로 나오는 판단. `≈` = 2차 근거이거나 조건이 붙어야 성립하는 판단. `Σ` = 여러 사실을 엮은 종합 판단 — 사실이 아니라 추론이므로 전제가 깨지면 결론도 깨집니다. 기준일 **2026-08-06**, 기준 버전은 **Redis Open Source 8.10.0**(2026-07-29) · **Valkey 9.1.1**(2026-07-21) · **memcached 1.6.45**(2026-07-09) 입니다.
 
@@ -60,7 +60,7 @@ url: "/elasticache/08-choosing/"
 
 - 조건 — sorted set·stream·hash 필드 TTL 같은 서버측 자료구조 연산이 필요하고 RDB/AOF 로 복구할 수 있어야 합니다.
 - 선택 — Valkey 9.1.x `Σ`.
-- 왜 — 세 축이 같은 방향을 가리킵니다. (a) 라이선스가 BSD-3 이고 재변경 장벽이 조문으로 있습니다([03]({{< relref "/data/cache/engines/03-license-and-fork.md" >}})) `✓`. (b) 8.1 의 새 hashtable 이 키당 20~30B 를 설정 변경 없이 회수하고 9.0 부터 `io-threads` 를 런타임에 켤 수 있습니다([05]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})) `✓`. (c) ElastiCache 에서 7.1 위로 갈 수 있는 유일한 엔진이라 self-host → 관리형 경로가 열려 있습니다([07]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}})) `✓`.
+- 왜 — 세 근거가 Valkey 선택을 뒷받침합니다. (a) 라이선스가 BSD-3 이고 재변경 장벽이 조문으로 있습니다([03]({{< relref "/data/cache/engines/03-license-and-fork.md" >}})) `✓`. (b) 8.1 의 새 hashtable 이 키당 20~30B 를 설정 변경 없이 회수하고 9.0 부터 `io-threads` 를 런타임에 켤 수 있습니다([05]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})) `✓`. (c) ElastiCache 에서 7.1 위로 갈 수 있는 유일한 엔진이라 self-host → 관리형 경로가 열려 있습니다([07]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}})) `✓`.
 - 되돌릴 수 있나 — Valkey 9.x 를 고르는 순간 파일 레벨 복귀는 끝납니다. RDB 80 은 Valkey 8.x 도 거부하고 12~79 예약 때문에 Redis 쪽으로 돌아가는 경로도 없습니다 `✓`. 롤백 계획은 "RDB 되돌리기" 대신 "전환 직전 스냅샷 보관 + 논리적 재적재" 로 세워야 합니다 `Σ`. 이 제약을 감당할 수 없다면 8.1.x 에 머무는 선택도 있습니다(RDB 11 이라 Redis 와 파일 호환) — 대가로 HFE·cluster multi-DB·DB 단위 ACL 을 포기합니다 `✓`.
 
 ### 3.3 이미 Redis 7.2 이하를 쓰고 있다
@@ -93,7 +93,7 @@ url: "/elasticache/08-choosing/"
 - 조건 — Search/Vector/JSON/TimeSeries/확률형 자료구조 중 하나 이상이 애플리케이션 요구사항입니다.
 - 선택 — Redis 8.x. 단 세 개의 조건을 받아들일 때만입니다 `Σ`.
 - 왜 — 이 축에서만 Valkey 가 명확히 집니다. Valkey 코어에 검색·JSON·시계열·확률형이 없고 공식 모듈 4개에 TimeSeries·Cuckoo·Count-min·Top-K·t-digest 대응물이 아예 없으며 `valkey-json` 최신이 2025-09-08 로 1년 가까이 멈춰 있습니다([05]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})) `✓`.
-- 받아들여야 하는 조건 — (1) "core 통합" 은 번들입니다. 소스에서 `make` 만 하면 코어뿐이고 모듈을 원하면 8.0 계열은 빌드 중 네트워크와 Rust 1.80.1 을 요구합니다(에어갭은 8.10 의 tarball 경로) `✓`. 설정은 `redis.conf` 가 아니라 `redis-full.conf` 를 가리켜야 하고 그 파일은 `make modules-update` 마다 재생성됩니다 — 직접 넣은 설정이 사라집니다([04]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})가 빌드 구조를 소유합니다) `✓`. (2) Vector Set 은 8.0 에서 beta 로 나온 뒤 GA 선언 문장이 없습니다 — 8.6~8.8 에 SIMD 최적화와 크래시 수정이 집중됐고 문서에서 beta 문구가 사라진 것까지가 확인 가능한 성숙도입니다 `✓`. big-endian 에서 8.2 이전에 벡터셋을 썼다면 그 RDB 는 신뢰할 수 없습니다 `✓`. (3) 관리형이 아닙니다 — ElastiCache 에 Redis 8.x 가 없으므로 self-host 를 전제합니다([07]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}})) `✓`.
+- 받아들여야 하는 조건 — (1) "core 통합" 은 번들입니다. 소스에서 `make` 만 하면 코어뿐이고 모듈을 원하면 8.0 계열은 빌드 중 네트워크와 Rust 1.80.1 을 요구합니다(에어갭은 8.10 의 tarball 경로) `✓`. 설정은 `redis.conf` 가 아니라 `redis-full.conf` 를 가리켜야 하고 그 파일은 `make modules-update` 마다 재생성됩니다 — 직접 넣은 설정이 사라집니다([04]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})에서 빌드 구조를 다룹니다) `✓`. (2) Vector Set 은 8.0 에서 beta 로 나온 뒤 GA 선언 문장이 없습니다 — 8.6~8.8 에 SIMD 최적화와 크래시 수정이 집중됐고 문서에서 beta 문구가 사라진 것까지가 확인 가능한 성숙도입니다 `✓`. big-endian 에서 8.2 이전에 벡터셋을 썼다면 그 RDB 는 신뢰할 수 없습니다 `✓`. (3) 관리형이 아닙니다 — ElastiCache 에 Redis 8.x 가 없으므로 self-host 를 전제합니다([07]({{< relref "/data/cache/engines/07-aws-endpoints/index.md" >}})) `✓`.
 - Valkey 로 이 요구를 받으려면 — `valkey-search` 를 추가하는 선택은 있지만 모듈을 하나라도 로드하면 `CLUSTER MIGRATESLOTS` 가 거부됩니다 — 공식 4개 모듈 전부가 ASM opt-in 플래그를 선언하지 않고 `valkey-bundle` 이미지는 4개를 다 로드합니다([06]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})) `✓`. Valkey + 모듈 + atomic slot migration 은 함께 성립하지 않으므로, 리샤딩을 일상 작업으로 쓸 계획이면 이 조합을 배제해야 합니다 `Σ`.
 - 되돌릴 수 있나 — 모듈 데이터는 RDB 롤백 논의 밖에 있습니다. 7.4~8.4 구간은 RDB 12 로 같아 코어 데이터의 롤백 여지가 있었지만 그것도 "모듈 데이터 제외" 조건이 붙습니다 `✓`. 검색 인덱스·벡터를 재구축하는 시간을 롤백 계획의 실제 소요로 잡아야 합니다 `Σ`.
 
@@ -180,7 +180,7 @@ url: "/elasticache/08-choosing/"
 
 ## 7. 근거
 
-이 문서는 새 1차 근거를 만들지 않습니다. 모든 사실의 소유 문서는 다음과 같습니다.
+이 문서는 새 1차 근거를 만들지 않습니다. 모든 사실의 근거가 있는 문서는 다음과 같습니다.
 
 - 자료구조 서버의 제약이 왜 이 모양인가(단일 스레드 = API 계약, threaded I/O 의 경계, RDB_VERSION 이 곧 다운그레이드 차단선) — [01 · 2009 첫 커밋부터 6.2 까지]({{< relref "/data/cache/engines/01-origins-and-design/index.md" >}})
 - memcached 의 구조와 2026년 상태(slab calcification 연대기, 4단 segmented LRU, 워커별 이벤트 루프, meta 프로토콜과 stampede 방어, extstore·restartable cache 가 영속성이 아닌 이유, 관리형 현황, 버스 팩터) — [02 · memcached]({{< relref "/data/cache/engines/02-memcached/index.md" >}})

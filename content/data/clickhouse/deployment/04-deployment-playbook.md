@@ -280,7 +280,7 @@ spec:
       default/select_sequential_consistency: "1"     # quorum 읽기 일관성(선택)
 ```
 
-이 노브는 내구성 vs 가용성을 맞바꿉니다 `≈`. [재수화 위험 창]({{< relref "/data/clickhouse/storage/02-storage-local-nvme.md" >}})과 겹칠 때가 결정적입니다 — RF2에서 한 replica가 재수화 중이면 그 shard의 확정 가능 replica는 1벌뿐이라 `insert_quorum: 2`를 걸어 뒀다면 창이 닫힐 때까지 그 shard로 들어가는 쓰기가 막힙니다(내구성을 지키려고 가용성을 포기). 반대로 기본 async면 쓰기는 계속되지만 창 동안 들어온 파트는 단일 사본이라 창 중 2차 장애 시 함께 사라집니다. RF3는 재수화 중에도 2벌이 남아 `insert_quorum: 2`를 유지한 채 쓰기와 내구성을 모두 지킬 여지가 있습니다 — insert_quorum을 실제로 켜려면 RF3가 짝이 되기 쉬운 이유입니다.
+이 설정은 내구성과 가용성 사이의 선택을 정합니다 `≈`. [재수화 위험 창]({{< relref "/data/clickhouse/storage/02-storage-local-nvme.md" >}})과 겹칠 때가 결정적입니다 — RF2에서 한 replica가 재수화 중이면 그 shard의 확정 가능 replica는 1벌뿐이라 `insert_quorum: 2`를 걸어 뒀다면 창이 닫힐 때까지 그 shard로 들어가는 쓰기가 막힙니다(내구성을 지키려고 가용성을 포기). 반대로 기본 async면 쓰기는 계속되지만 창 동안 들어온 파트는 단일 사본이라 창 중 2차 장애 시 함께 사라집니다. RF3는 재수화 중에도 2벌이 남아 `insert_quorum: 2`를 유지한 채 쓰기와 내구성을 모두 지킬 여지가 있습니다 — insert_quorum을 실제로 켜려면 RF3가 짝이 되기 쉬운 이유입니다.
 
 ### 배치·분산 강제 — 노드/AZ 1개 소실이 shard 전멸이 되지 않게
 

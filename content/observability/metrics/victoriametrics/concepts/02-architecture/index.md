@@ -16,7 +16,7 @@ url: "/monitoring/victoriametrics/concepts/02-architecture/"
 - IndexDB(거의 불변, 지표이름+레이블 역색인)와 DataDB(TSID → timestamp+value, 계속 쌓임)를 나눠 두면 정규화 효과로 압축 효율이 크게 올라갑니다.
 {{< /callout >}}
 
-여기서는 VM 클러스터를 이루는 컴포넌트, 그 사이를 흐르는 데이터, 그 아래를 떠받치는 두 아이디어 — LSM 트리와 IndexDB/DataDB 분리 — 를 정리합니다. 컴포넌트 하나하나의 내부 동작은 뒤 문서에서 따로 깊게 파고듭니다.
+여기서는 VM 클러스터의 컴포넌트와 그 사이를 흐르는 데이터, 기반 설계인 LSM 트리와 IndexDB/DataDB 분리를 설명합니다. 컴포넌트 하나하나의 내부 동작은 뒤 문서에서 따로 깊게 파고듭니다.
 
 > 관련 문서: [01 시계열과 VM]({{< relref "/observability/metrics/victoriametrics/concepts/01-tsdb-and-victoriametrics.md" >}}) · [03 수집]({{< relref "/observability/metrics/victoriametrics/concepts/03-ingestion/index.md" >}}) · [04 저장과 압축]({{< relref "/observability/metrics/victoriametrics/concepts/04-storage-and-compression/index.md" >}}) · [05 쿼리·운영 컴포넌트]({{< relref "/observability/metrics/victoriametrics/concepts/05-query-and-ops-components/index.md" >}}) · [실전 02 대규모 운영]({{< relref "/observability/metrics/victoriametrics/practice/02-operations-at-scale/index.md" >}})
 

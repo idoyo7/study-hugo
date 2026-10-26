@@ -16,7 +16,7 @@ url: "/monitoring/victoriametrics/concepts/01-tsdb-and-victoriametrics/"
 - VM은 **Prometheus 호환**(PromQL·remote_write 그대로)을 지키면서 자체 벤치마크 기준 **메모리 5배·스토리지 7배** 효율을 주장하는 오픈소스 TSDB입니다.
 {{< /callout >}}
 
-시계열 데이터가 무엇인지, 왜 "대용량"이 별도의 문제로 떨어져 나오는지, 그 문제를 푸는 도구로서 VictoriaMetrics(이하 VM)가 어디에 서 있는지를 정리합니다. VM 내부의 컴포넌트 구조는 [02 아키텍처]({{< relref "/observability/metrics/victoriametrics/concepts/02-architecture/index.md" >}})로 넘깁니다.
+시계열 데이터의 성격과 "대용량"이 별도 문제가 되는 이유, 그 문제를 푸는 VictoriaMetrics(이하 VM)의 역할을 설명합니다. VM 내부의 컴포넌트 구조는 [02 아키텍처]({{< relref "/observability/metrics/victoriametrics/concepts/02-architecture/index.md" >}})로 넘깁니다.
 
 > 관련 문서: [02 아키텍처]({{< relref "/observability/metrics/victoriametrics/concepts/02-architecture/index.md" >}}) · [04 저장과 압축]({{< relref "/observability/metrics/victoriametrics/concepts/04-storage-and-compression/index.md" >}}) · [실전 01 카디널리티]({{< relref "/observability/metrics/victoriametrics/practice/01-cardinality/index.md" >}}) · [개념 인덱스]({{< relref "/observability/metrics/victoriametrics/concepts/_index.md" >}})
 
@@ -77,7 +77,7 @@ rpc_duration_seconds_count 2693
 
 이 모든 숫자를 시간 순서대로 그대로 저장해야 할까요. 1초에 한 번씩만 찍어도 하루에 86,400개입니다. 지표가 수만 개라면 하루치만 해도 어마어마한 양이 됩니다. 그래서 **TSDB의 핵심 과제는 제한된 자원으로 이 수많은 데이터를 얼마나 잘 압축하느냐**가 됩니다.
 
-"대용량 시계열"이라는 말은 **시계열 개수**가 많아지는 쪽과, 시간이 흐를수록 데이터가 쌓여 **보관 기간**이 길어지는 쪽을 함께 가리킵니다. 규모의 감을 잡으려면 대략의 구간을 나눠 보는 편이 낫습니다.
+"대용량 시계열"에는 **시계열 개수**가 많아지는 경우와 시간이 흐를수록 데이터가 쌓여 **보관 기간**이 길어지는 경우가 모두 포함됩니다. 규모의 감을 잡으려면 대략의 구간을 나눠 보는 편이 낫습니다.
 
 | 규모 | 시계열 개수 | 상황 |
 |------|-----------|------|

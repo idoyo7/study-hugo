@@ -244,9 +244,9 @@ Redis 8 GA 블로그에는 실무 이유가 하나 더 있습니다 — "We hear
 | Valkey 전용 (18) | `CLUSTERSCAN`, `CLUSTER MIGRATESLOTS`/`GETSLOTMIGRATIONS`/`CANCELSLOTMIGRATIONS`/`FLUSHSLOT`, `COMMANDLOG`(+get/help/len/reset), `DELIFEQ`, `CLIENT CAPA`, `CLIENT IMPORT-SOURCE`, `SCRIPT SHOW`, `SENTINEL` primary 계열 4개 |
 | Redis 전용 (52) | `AR*` 18개(8.8 의 새 자료구조 Array, @antirez), `BACKUP` 계열 8개, `HIMPORT` 계열 5개, `HOTKEYS` 계열 6개, `XACKDEL`/`XDELEX`/`XNACK`/`XIDMPRECORD`/`XCFGSET`, `LMOVEM`/`BLMOVEM`, `SDIFFCARD`/`SUNIONCARD`, `SFLUSH`, `DELEX`, `INCREX`, `DIGEST`, `TRIMSLOTS`, `CLUSTER MIGRATION` |
 
-결정적 사례는 **atomic slot migration** 입니다. 양쪽이 같은 기능을 독립적으로, 반대 방향으로 구현했습니다 — Valkey 9.0.0(2025-10-21)은 `CLUSTER MIGRATESLOTS`(source 에서 push), Redis 8.4.0(2025-11-18)은 `CLUSTER MIGRATION IMPORT`(destination 에서 pull)입니다. **자동화 스크립트가 서로 호환되지 않습니다.** 동작 비교는 [cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})가 소유합니다 `✓`
+결정적 사례는 **atomic slot migration** 입니다. 양쪽이 같은 기능을 독립적으로, 반대 방향으로 구현했습니다 — Valkey 9.0.0(2025-10-21)은 `CLUSTER MIGRATESLOTS`(source 에서 push), Redis 8.4.0(2025-11-18)은 `CLUSTER MIGRATION IMPORT`(destination 에서 pull)입니다. **자동화 스크립트가 서로 호환되지 않습니다.** 동작 비교는 [cluster mode]({{< relref "/data/cache/engines/06-cluster-mode/index.md" >}})에서 다룹니다 `✓`
 
-여전히 같은 것은 **RESP 프로토콜**입니다. Harbor 는 교체 후 "same RESP protocol as Redis; **no application-level RESP changes were required**"라고 보고했습니다. Valkey 8.0 릴리스노트는 "fully compatible with Redis OSS 7.2.4"를 명시하고, `extended-redis-compatibility` 설정도 9.1.1 까지 살아 있습니다(`valkey 9.1.1:src/config.c:3320` — `MODIFIABLE_CONFIG`) `✓`. **드롭인 교체는 7.2 기능 집합 안에서만 참**입니다 — 7.4 이후 어느 한쪽의 신규 커맨드에 애플리케이션이 의존하는 순간 락인이 시작됩니다. 버전별 신기능은 [Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})과 [Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})이 소유합니다.
+여전히 같은 것은 **RESP 프로토콜**입니다. Harbor 는 교체 후 "same RESP protocol as Redis; **no application-level RESP changes were required**"라고 보고했습니다. Valkey 8.0 릴리스노트는 "fully compatible with Redis OSS 7.2.4"를 명시하고, `extended-redis-compatibility` 설정도 9.1.1 까지 살아 있습니다(`valkey 9.1.1:src/config.c:3320` — `MODIFIABLE_CONFIG`) `✓`. **드롭인 교체는 7.2 기능 집합 안에서만 참**입니다 — 7.4 이후 어느 한쪽의 신규 커맨드에 애플리케이션이 의존하는 순간 락인이 시작됩니다. 버전별 신기능은 [Redis 7.0 → 8.10]({{< relref "/data/cache/engines/04-redis-7-to-8.md" >}})과 [Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})에서 다룹니다.
 
 **넷째, 보안 패치 흐름이 역전된 구간이 있습니다.** Debian bug **#1136392**(2026-05-13, 신고자는 Debian redis 메인테이너 Aron Xu)가 사례입니다. Debian 의 redis 패키지가 CVE-2026-21863 패치를 **Valkey 커밋에서 그대로 복사해** 붙였습니다. 그런데 Valkey 는 그 검사를 전용 함수 `clusterIsValidPacket()`(0=invalid, 1=valid)에 두었고 Redis 는 `clusterProcessPacket()` 인라인(0=link freed, 1=link alive)에 두었습니다. **반환값 의미가 반대라서** 원 CVE 는 막았지만 새 remote DoS 를 만들었고 `5:8.0.6-2` 에서 수정됐습니다 `✓`. Redict 가 Valkey 에서 CVE 를 백포트하는 것(§4.1)과 합치면 이 계보의 보안 유지 중심이 어디인지가 보입니다. **두 코드베이스가 패치를 기계적으로 이식할 수 없을 만큼 갈라졌다**는 것도 함께 드러납니다 `Σ`
 
@@ -283,7 +283,7 @@ Redis 8 GA 블로그에는 실무 이유가 하나 더 있습니다 — "We hear
 
 `Σ`
 
-버전 선택으로 이 문제를 피하려 하면 함정이 둘입니다. 하나는 **7.2.x 가 형식상 살아 있어도 2023-08-15 이후 기능이 동결된 상태**라는 것이고(패치의 실제 상류가 어디인지는 §6 넷째 항목) 다른 하나는 **RDB 포맷이 마이그레이션을 단방향으로 막는다**는 것입니다 — Redis 7.4+ (RDB 12)는 Valkey 8.x 로 넘어가지 못합니다. 차단선 전체는 [무엇을 고를 것인가]({{< relref "/data/cache/engines/08-choosing.md" >}})와 [Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})이 소유합니다.
+버전 선택으로 이 문제를 피하려 하면 함정이 둘입니다. 하나는 **7.2.x 가 형식상 살아 있어도 2023-08-15 이후 기능이 동결된 상태**라는 것이고(패치의 실제 상류가 어디인지는 §6 넷째 항목) 다른 하나는 **RDB 포맷이 마이그레이션을 단방향으로 막는다**는 것입니다 — Redis 7.4+ (RDB 12)는 Valkey 8.x 로 넘어가지 못합니다. 차단선 전체는 [무엇을 고를 것인가]({{< relref "/data/cache/engines/08-choosing.md" >}})와 [Valkey 8.0 → 9.1]({{< relref "/data/cache/engines/05-valkey-8-to-9/index.md" >}})에서 다룹니다.
 
 이 문서의 논지를 운영 언어로 옮기면 이렇게 됩니다. **라이선스는 스냅샷이고 거버넌스는 그 스냅샷이 얼마나 오래 유효할지의 확률입니다.** 2026-08 시점에 Redis 8.x 는 AGPLv3 옵션으로 OSI 승인 라이선스이고 사내 캐시 용도로는 아무 문제가 없습니다. 그런데 그 옵션을 유지하거나 회수하는 결정은 단일 회사에 있습니다. 그 회사가 CLA 로 권리를 모아 두었기 때문입니다. Valkey 쪽은 같은 결정을 2/3 super-majority 와 1/3 조직 상한을 통과해야 내릴 수 있습니다. 재배포·외부 제공이 로드맵에 있는 조직이라면 판단 근거를 현재 라이선스 문자열이 아니라 이 구조 차이에 두는 편이 안전합니다 `Σ`
 
@@ -319,6 +319,6 @@ Redis 8 GA 블로그에는 실무 이유가 하나 더 있습니다 — "We hear
 
 **측정·계산**
 - 커밋/저자 수는 `git log --format='%ae' --since=… --all | sort -u | wc -l` 로 양쪽 repo 직접 계측. **core repo 만이므로 양 진영 모두 과소평가** — 방향성만 유효
-- 벤더·프로젝트 자체 발행 수치(AWS 가격 인하 발표, valkey.io 참여사·기여자 수)는 `Ⓥ` 로 표시하고 발표 시점을 함께 적었습니다. 가격 수치 자체는 07 이 소유합니다
+- 벤더·프로젝트 자체 발행 수치(AWS 가격 인하 발표, valkey.io 참여사·기여자 수)는 `Ⓥ` 로 표시하고 발표 시점을 함께 적었습니다. 가격 수치 자체는 07 에서 다룹니다
 
 **미확인으로 남긴 것** — OSI 도메인의 2024년 Redis 관련 공식 게시물 · LF 프레스릴리스와 valkey.io/topics/history 의 초기 참여사 목록 불일치의 정본 · AWS 할인폭의 2026-08 현재성 · Oracle OCI Cache 의 Valkey 9.x 지원 · Google Memorystore GA 날짜의 1차 근거 · antirez 복귀 "결정" 시점(2024-11)의 1차 근거 · 그룹사 간 제공이 라이선스상 "third parties" 인지의 판정 · Redis Inc. 의 소송 부재
