@@ -17,5 +17,5 @@ comments: false
 {{< callout type="info" >}}
 **출처**
 
-Substack 뉴스레터 [promkr](https://promkr.substack.com/)의 "Prometheus & Observability - 2025년·2026년 N월 소식" 2025년 1월호부터 2026년 10월호까지를 바탕으로 작성한 요약입니다. 뉴스레터는 Prometheus와 옵저버빌리티 관련 글, 릴리스, 오픈소스 도구를 매달 골라 소개하는 큐레이션입니다. 각 소식이 가리키는 원문 링크는 호별 문서에 달아 두었습니다.
+Substack 뉴스레터 [promkr](https://promkr.substack.com/)의 "Prometheus & Observability - 2025년·2026년 N월 소식" 2025년 1월호부터 2026년 10월호까지를 바탕으로 작성한 요약입니다. 뉴스레터는 Prometheus와 옵저버빌리티 관련 글, 릴리스, 오픈소스 도구를 매달 골라 소개하는 큐레이션입니다. 호별 문서에는 소식마다 링크가 가리키는 원문을 직접 읽고 요약한 내용과 원문 링크가 있습니다. 원문을 받지 못한 몇 건은 그 사실을 밝히고 뉴스레터 소개만 옮겼습니다.
 {{< /callout >}}
