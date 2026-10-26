@@ -1,0 +1,12 @@
+{
+  "caption": "atomai 실험(Istio 1.30.2, EKS 1.36.2)에서 ambient L4의 P50은 mesh 없음에 가까웠고, 사이드카와 waypoint 경로는 2ms를 넘었습니다.",
+  "font": 1.1,
+  "note": "200 QPS · 연결 16개 · 케이스당 12,000건. 원시 결과 미공개, 반복 횟수 불명",
+  "axis": { "kind": "linear", "max": 3, "unit": "ms", "ticks": [0, 1, 2, 3] },
+  "lanes": [
+    { "label": "mesh 없음", "sub": "기준선", "segments": [{ "start": 0, "end": 0.82, "label": "0.82ms", "kind": "src" }] },
+    { "label": "사이드카", "sub": "+1.29ms", "segments": [{ "start": 0, "end": 2.11, "label": "2.11ms", "kind": "proc" }] },
+    { "label": "ambient L4", "sub": "ztunnel · +0.04ms", "segments": [{ "start": 0, "end": 0.86, "label": "0.86ms", "kind": "sink" }] },
+    { "label": "ambient L7", "sub": "waypoint · +1.86ms", "segments": [{ "start": 0, "end": 2.68, "label": "2.68ms", "kind": "query" }] }
+  ]
+}

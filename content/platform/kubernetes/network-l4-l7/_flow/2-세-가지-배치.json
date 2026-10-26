@@ -1,0 +1,22 @@
+{
+  "caption": "L7을 처리하는 Envoy는 사이드카에서는 파드마다, ambient에서는 서비스 앞의 waypoint에, Cilium에서는 노드마다 하나씩 있습니다.",
+  "nodes": [
+    { "id": "c1", "col": 0, "row": 0, "label": "클라이언트 파드", "sub": "사이드카", "kind": "src" },
+    { "id": "s1", "col": 1, "row": 0, "label": "사이드카 Envoy", "sub": "발신 파드마다", "kind": "proc" },
+    { "id": "s2", "col": 2, "row": 0, "label": "사이드카 Envoy", "sub": "수신 파드마다", "kind": "sink" },
+    { "id": "c2", "col": 0, "row": 1, "label": "클라이언트 파드", "sub": "ambient", "kind": "src" },
+    { "id": "z", "col": 1, "row": 1, "label": "ztunnel", "sub": "노드마다 · L4", "kind": "proc" },
+    { "id": "w", "col": 2, "row": 1, "label": "waypoint", "sub": "Envoy · L7", "kind": "sink" },
+    { "id": "c3", "col": 0, "row": 2, "label": "클라이언트 파드", "sub": "Cilium", "kind": "src" },
+    { "id": "e", "col": 1, "row": 2, "label": "eBPF", "sub": "커널 · L4", "kind": "proc" },
+    { "id": "ce", "col": 2, "row": 2, "label": "cilium-envoy", "sub": "노드마다 · L7", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "c1", "to": "s1", "label": "iptables", "rate": 700 },
+    { "from": "s1", "to": "s2", "label": "mTLS", "rate": 700 },
+    { "from": "c2", "to": "z", "label": "캡처", "rate": 700 },
+    { "from": "z", "to": "w", "label": "HBONE", "rate": 700 },
+    { "from": "c3", "to": "e", "label": "소켓 LB", "rate": 700 },
+    { "from": "e", "to": "ce", "label": "L7만", "rate": 700 }
+  ]
+}

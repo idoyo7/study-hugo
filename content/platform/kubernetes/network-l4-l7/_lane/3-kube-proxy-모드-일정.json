@@ -1,0 +1,21 @@
+{
+  "caption": "nftables 모드는 1.33에서 GA가 됐고 1.40에 기본값이 되도록 제안돼 있으며, IPVS는 1.35에서 deprecated돼 1.43에 제거될 예정입니다.",
+  "font": 1.1,
+  "note": "1.40 이후 항목은 KEP-5343·KEP-5495 기준 예정이며, nftables 기본값 전환은 아직 Alpha 단계 제안",
+  "axis": { "kind": "category", "cols": ["1.29~1.31", "1.33", "1.35~1.37", "1.39~1.40", "1.43"] },
+  "lanes": [
+    { "label": "iptables", "segments": [
+      { "col": 2, "w": 1, "label": "1.37 현재 기본", "sub": "모드 미지정 시 경고", "kind": "src" }
+    ] },
+    { "label": "nftables", "segments": [
+      { "col": 0, "w": 1, "label": "1.29 alpha", "sub": "1.31 beta", "kind": "proc" },
+      { "col": 1, "w": 1, "label": "1.33 GA", "kind": "sink" },
+      { "col": 3, "w": 1, "label": "1.40 기본 전환(예정)", "sub": "1.39 beta", "kind": "query" }
+    ] },
+    { "label": "IPVS", "segments": [
+      { "col": 2, "w": 1, "label": "1.35 deprecated", "kind": "query" },
+      { "col": 3, "w": 1, "label": "1.40 기본 꺼짐(예정)", "kind": "query" },
+      { "col": 4, "w": 1, "label": "1.43 제거(예정)", "kind": "query" }
+    ] }
+  ]
+}

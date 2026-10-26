@@ -1,0 +1,18 @@
+{
+  "caption": "파드 A의 호출은 Service에서 백엔드 파드가 정해지고 CNI 경로로 파드 B에 닿으며, HTTP를 읽어야 하는 요청만 L7 프록시를 거칩니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "a", "col": 0, "row": 0, "label": "파드 A", "sub": "curl svc-b", "kind": "src" },
+    { "id": "s", "col": 1, "row": 0, "label": "Service 변환", "sub": "백엔드 파드 고르기", "kind": "query" },
+    { "id": "n", "col": 2, "row": 0, "label": "CNI 경로", "sub": "veth · 노드 간 전달", "kind": "proc" },
+    { "id": "b", "col": 3, "row": 0, "label": "파드 B", "sub": "백엔드", "kind": "sink" },
+    { "id": "p", "col": 1, "row": 1, "label": "L7 프록시", "sub": "HTTP를 읽는 자리", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "a", "to": "s", "label": "호출", "rate": 700 },
+    { "from": "s", "to": "n", "label": "목적지", "rate": 700 },
+    { "from": "n", "to": "b", "label": "도착", "rate": 700 },
+    { "from": "a", "to": "p", "label": "HTTP면", "dashed": true },
+    { "from": "p", "to": "n", "label": "요청별", "dashed": true }
+  ]
+}

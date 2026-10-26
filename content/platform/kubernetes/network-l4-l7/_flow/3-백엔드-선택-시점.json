@@ -1,0 +1,23 @@
+{
+  "caption": "iptables와 nftables는 연결의 첫 패킷에서, Cilium은 connect() 시점에 백엔드를 고르므로 어느 쪽이든 분산 단위는 연결입니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "i0", "col": 0, "row": 0, "label": "iptables", "sub": "kube-proxy", "kind": "src" },
+    { "id": "i1", "col": 1, "row": 0, "label": "KUBE-SERVICES", "sub": "서비스 수만큼 순차", "kind": "proc" },
+    { "id": "i2", "col": 2, "row": 0, "label": "첫 패킷 DNAT", "sub": "conntrack에 저장", "kind": "sink" },
+    { "id": "n0", "col": 0, "row": 1, "label": "nftables", "sub": "kube-proxy", "kind": "src" },
+    { "id": "n1", "col": 1, "row": 1, "label": "verdict map", "sub": "규칙 하나로 디스패치", "kind": "proc" },
+    { "id": "n2", "col": 2, "row": 1, "label": "첫 패킷 DNAT", "sub": "conntrack에 저장", "kind": "sink" },
+    { "id": "c0", "col": 0, "row": 2, "label": "Cilium", "sub": "소켓 레벨 LB", "kind": "src" },
+    { "id": "c1", "col": 1, "row": 2, "label": "eBPF 훅", "sub": "connect() 시점", "kind": "proc" },
+    { "id": "c2", "col": 2, "row": 2, "label": "목적지 교체", "sub": "패킷마다 NAT 없음", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "i0", "to": "i1", "label": "순차", "rate": 700 },
+    { "from": "i1", "to": "i2", "label": "일치", "rate": 700 },
+    { "from": "n0", "to": "n1", "label": "조회", "rate": 700 },
+    { "from": "n1", "to": "n2", "label": "일치", "rate": 700 },
+    { "from": "c0", "to": "c1", "label": "호출 시", "rate": 700 },
+    { "from": "c1", "to": "c2", "label": "교체", "rate": 700 }
+  ]
+}
