@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-10-26 — 쿠버네티스 네트워크 L4·L7 30분 스터디 자료
+
+- `content/platform/kubernetes/network-l4-l7/`을 새로 만들었습니다(공개 URL `/kubernetes/network-l4-l7/`). 파드 A의 `curl http://svc-b` 한 번을 따라가며 CNI·kube-proxy·Cilium eBPF의 L4 경로, 연결 단위 분산으로 풀리지 않는 문제, 사이드카·ambient의 L7 프록시와 그 비용, waypoint 503 장애, 프록시 배치 기준을 이어 설명합니다. 시간 배분 표, 데모 명령 표, 슬라이드로 옮길 기존 글의 도식 목록과 발표 전 점검 항목이 함께 들어 있습니다. Kubernetes 색인의 찾기 목록에 링크를 더했습니다.
+- L4 쪽은 2026-10-26 조사(Kubernetes 1.37.1, Cilium 1.20.4, Istio 1.31.3, VPC CNI v1.23.2)를, L7 쪽은 저장소의 Istio·Cilium 글 8편을 근거로 삼았습니다. kube-proxy IPVS 모드 deprecated(1.35)와 nftables 기본값 전환 예정(1.40, KEP-5343), Cilium Kafka L7 정책 제거(1.20)를 반영했습니다. 기존 Cilium 비교 글의 버전 표기(1.20.3·1.31.2)는 한 단계 이전 판이라는 점을 근거 표에 적었습니다.
+- executor 초안을 Astra(gpt-6-astra xhigh, read-only)가 제목·절 구성까지 다시 쓰고, 결정적 대조(FATAL 0)와 의미 검수 지적 6건·문장 12건을 보정 라운드로 반영했습니다. 실행 기록은 `_workspace/structure-2026-10-26-k8s-net-study/`에 있습니다.
+
 ## 2026-10-26 — 전체 문서 WWE 가독성 진단
 
 - 게시글·색인·안내 문서 354개를 WWE로 진단하고 53개 문서의 문장을 다듬었습니다. 역할을 흐리는 비유, 어색한 주어·서술어 연결, 반복되는 문서 소개를 고쳤으며 제목·문단 구조·코드·표·링크·수치·직접 인용은 보존했습니다.

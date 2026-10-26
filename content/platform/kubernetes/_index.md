@@ -15,5 +15,6 @@ cascade:
 - [Karpenter]({{< relref "/platform/kubernetes/karpenter/_index.md" >}})
 - [EKS 업그레이드]({{< relref "/platform/kubernetes/eks-upgrade/_index.md" >}})
 - [GPU 클러스터]({{< relref "/platform/kubernetes/gpu/_index.md" >}})
+- [네트워크 L4·L7 스터디]({{< relref "/platform/kubernetes/network-l4-l7/index.md" >}})
 
-파드와 노드의 동작부터 노드 프로비저닝, EKS 이관 절차, GPU 클러스터의 토폴로지와 스케줄링까지 이어집니다.
+파드와 노드의 동작부터 노드 프로비저닝, EKS 이관 절차, GPU 클러스터의 토폴로지와 스케줄링, 파드 네트워크의 L4·L7 처리까지 이어집니다.
