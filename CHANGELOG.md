@@ -6,6 +6,7 @@
 
 - Lilian Weng의 [Harness Engineering for Self-Improvement](https://lilianweng.github.io/posts/2026-07-04-harness/)를 요약한 AI 도구 05편을 추가했습니다. 공개 URL은 `/ai-tools/05-harness-engineering/`이며 AI 도구 색인에서 연결합니다.
 - 실행 결과가 다음 입력으로 이어지는 구조와 하네스 자체를 개선하는 과정을 flow 도식 두 장으로 그렸습니다. 연구별 개선 대상을 비교하고, 가중치를 고정한 실험과 공동 갱신의 초기 연구, 저자의 전망을 구분했습니다.
+- 같은 날 WWE 구조 편집 지침에 따라 Astra(`gpt-6-astra`, high)가 본문을 전면 재작성했습니다. 코드 수정과 테스트에서 시작해 기억·컨텍스트, 하네스 개선, 평가의 한계로 설명을 이어 가고, 연구 비교표와 압축된 불릿을 문단으로 풀었습니다. 별도 문장·의미 검토를 거쳤고, 출처·도식·공개 URL과 기존 소제목 앵커 5개를 보존했습니다. 실행 기록은 `_workspace/structure-2026-10-27-harness-wwe/`에 있습니다.
 
 ## 2026-10-26 — 네트워크 L4·L7 스터디 자료를 요약본과 전체본으로 나누고 도식 8장 추가
 
