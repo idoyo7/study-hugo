@@ -1,0 +1,20 @@
+{
+  "caption": "하네스는 도구의 실행 결과를 검사·기록하고 필요한 정보를 다음 입력에 반영해 작업을 이어갑니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "model", "col": 0, "row": 0, "label": "모델", "sub": "계획·다음 행동", "kind": "proc" },
+    { "id": "tools", "col": 1, "row": 0, "label": "도구 실행", "sub": "파일·셸·하위 작업", "kind": "proc" },
+    { "id": "result", "col": 2, "row": 0, "label": "실행 결과", "sub": "출력·오류", "kind": "src" },
+    { "id": "context", "col": 0, "row": 1, "label": "다음 입력", "sub": "필요한 기록 선택", "kind": "proc" },
+    { "id": "memory", "col": 1, "row": 1, "label": "작업 기록", "sub": "변경·실패 로그", "kind": "store" },
+    { "id": "check", "col": 2, "row": 1, "label": "결과 검사", "sub": "테스트·완료 기준", "kind": "query" }
+  ],
+  "edges": [
+    { "from": "model", "to": "tools", "label": "요청" },
+    { "from": "tools", "to": "result", "label": "출력" },
+    { "from": "result", "to": "check", "label": "검사" },
+    { "from": "check", "to": "memory", "label": "저장" },
+    { "from": "memory", "to": "context", "label": "조회" },
+    { "from": "context", "to": "model", "label": "전달" }
+  ]
+}

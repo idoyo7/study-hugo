@@ -2,6 +2,11 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-10-27 — 하네스 엔지니어링 글 요약
+
+- Lilian Weng의 [Harness Engineering for Self-Improvement](https://lilianweng.github.io/posts/2026-07-04-harness/)를 요약한 AI 도구 05편을 추가했습니다. 공개 URL은 `/ai-tools/05-harness-engineering/`이며 AI 도구 색인에서 연결합니다.
+- 실행 결과가 다음 입력으로 이어지는 구조와 하네스 자체를 개선하는 과정을 flow 도식 두 장으로 그렸습니다. 연구별 개선 대상을 비교하고, 가중치를 고정한 실험과 공동 갱신의 초기 연구, 저자의 전망을 구분했습니다.
+
 ## 2026-10-26 — 네트워크 L4·L7 스터디 자료를 요약본과 전체본으로 나누고 도식 8장 추가
 
 - 저자가 "너무 길고 그림이 부족하다"고 해서 `content/platform/kubernetes/network-l4-l7/`을 branch bundle로 바꿨습니다. 공개 URL `/kubernetes/network-l4-l7/`에는 도식 중심 요약본(`_index.md`)을 두고, 기존 전체본은 `detail/index.md`(공개 URL `/kubernetes/network-l4-l7/detail/`, 제목 "네트워크 L4·L7 스터디의 근거와 세부 설명")로 옮겼습니다. 문단 산문은 전체본의 약 1/4, 표·근거 블록을 포함한 파일 전체는 약 38%입니다.

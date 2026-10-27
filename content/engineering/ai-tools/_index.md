@@ -1,7 +1,7 @@
 ---
 title: "AI 도구"
 date: 2026-09-08
-lastmod: 2026-10-06
+lastmod: 2026-10-27
 weight: 40
 comments: false
 cascade:
@@ -18,8 +18,9 @@ linkTitle: "AI 도구·에이전트"
 - [02 Codex CLI 관측과 공통 대시보드 — Claude Code와 한 화면에]({{< relref "/engineering/ai-tools/02-codex-otel/index.md" >}})
 - [03 에이전트 개념 정리 (NAVER D2)]({{< relref "/engineering/ai-tools/03-agent-concepts/_index.md" >}})
 - [04 Computer Use Agent — 어디에 쓰고 어디엔 쓰지 않나]({{< relref "/engineering/ai-tools/04-computer-use-agents/index.md" >}})
+- [05 하네스 엔지니어링 — AI가 일하는 방식을 개선하기]({{< relref "/engineering/ai-tools/05-harness-engineering/index.md" >}})
 
-Claude Code 같은 AI 코딩 도구를 운영 관점에서 다루는 챕터입니다. 얼마를 쓰는지, 어디서 새는지, 어떤 설정이 비용과 품질을 갈랐는지를 숫자로 확인한 기록을 모읍니다. 03은 결이 조금 다릅니다. 에이전트 관련 용어를 같은 뜻으로 쓰려고 외부 발표를 전사해 정리했습니다. 04는 화면을 보고 조작하는 CUA가 어디까지 쓸 만한지 제품·벤치마크·비용·안전 자료로 따져 봅니다.
+Claude Code 같은 AI 코딩 도구를 운영 관점에서 다루는 챕터입니다. 얼마를 쓰는지, 어디서 새는지, 어떤 설정이 비용과 품질을 갈랐는지를 숫자로 확인한 기록을 모읍니다. 03은 결이 조금 다릅니다. 에이전트 관련 용어를 같은 뜻으로 쓰려고 외부 발표를 전사해 정리했습니다. 04는 화면을 보고 조작하는 CUA가 어디까지 쓸 만한지 제품·벤치마크·비용·안전 자료로 따져 봅니다. 05는 Lilian Weng의 글을 바탕으로 하네스의 설계와 자기개선 연구를 요약합니다.
 
 | 문서 | 한 줄 요약 |
 |------|-----------|
@@ -27,3 +28,4 @@ Claude Code 같은 AI 코딩 도구를 운영 관점에서 다루는 챕터입�
 | [02 Codex CLI 관측과 공통 대시보드]({{< relref "/engineering/ai-tools/02-codex-otel/index.md" >}}) | Codex CLI를 같은 hub 파이프라인에 — delta 고정과 그 처리(지금은 VictoriaMetrics에 delta 그대로 저장), 이름 규칙, 비용 신호 부재, Claude와 토큰 4축을 맞춘 공통 대시보드, 14일 실측 |
 | [03 에이전트 개념 정리]({{< relref "/engineering/ai-tools/03-agent-concepts/_index.md" >}}) | NAVER D2 발표 전사 정리 — 워크플로우와 에이전트의 구분, 하네스와 Context/Memory, MCP/A2A |
 | [04 Computer Use Agent]({{< relref "/engineering/ai-tools/04-computer-use-agents/index.md" >}}) | CUA의 동작 원리와 제품 지형, 실제 쓰이는 곳과 한계, 비용과 안전 — API가 있으면 API, 화면은 접근성 트리·코드 먼저, 픽셀은 마지막 |
+| [05 하네스 엔지니어링]({{< relref "/engineering/ai-tools/05-harness-engineering/index.md" >}}) | Lilian Weng 글 요약 — 실행·기억·평가를 관리하는 하네스, 개선 대상별 연구, 자기개선 루프와 한계 |

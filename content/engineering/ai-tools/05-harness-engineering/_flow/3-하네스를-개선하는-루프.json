@@ -1,0 +1,86 @@
+{
+  "caption": "Meta-Harness의 개념을 재구성한 그림으로, 이전 후보의 코드·점수·실행 기록이 다음 하네스를 제안하는 근거가 됩니다.",
+  "font": 1.1,
+  "nodes": [
+    {
+      "id": "history",
+      "col": 0,
+      "row": 0,
+      "label": "이전 시도",
+      "sub": "코드·점수·기록",
+      "kind": "store"
+    },
+    {
+      "id": "proposer",
+      "col": 1,
+      "row": 0,
+      "label": "코딩 에이전트",
+      "sub": "하네스 수정 제안",
+      "kind": "proc"
+    },
+    {
+      "id": "candidate",
+      "col": 2,
+      "row": 0,
+      "label": "후보 하네스",
+      "sub": "새 실행 코드",
+      "kind": "proc"
+    },
+    {
+      "id": "feedback",
+      "col": 0,
+      "row": 1,
+      "label": "평가 기록",
+      "sub": "점수·성공·실패",
+      "kind": "store"
+    },
+    {
+      "id": "evaluator",
+      "col": 1,
+      "row": 1,
+      "label": "평가기",
+      "sub": "성능·비용 확인",
+      "kind": "query"
+    },
+    {
+      "id": "tasks",
+      "col": 2,
+      "row": 1,
+      "label": "작업 실행",
+      "sub": "후보로 과제 수행",
+      "kind": "proc"
+    }
+  ],
+  "edges": [
+    {
+      "from": "history",
+      "to": "proposer",
+      "label": "조회"
+    },
+    {
+      "from": "proposer",
+      "to": "candidate",
+      "label": "수정"
+    },
+    {
+      "from": "candidate",
+      "to": "tasks",
+      "label": "실행"
+    },
+    {
+      "from": "tasks",
+      "to": "evaluator",
+      "label": "결과"
+    },
+    {
+      "from": "evaluator",
+      "to": "feedback",
+      "label": "측정"
+    },
+    {
+      "from": "feedback",
+      "to": "history",
+      "label": "축적"
+    }
+  ]
+}
