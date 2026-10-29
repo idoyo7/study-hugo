@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-10-29 — 서브에이전트를 메인 루프로 접는 글 요약과 제안
+
+- Anthropic의 [Building agents: When to fold subagents into your main agent loop](https://claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop)(Diane Sarkis, 2026-10-22)를 요약한 AI 도구 06편을 추가했습니다. 공개 URL은 `/ai-tools/06-fold-subagents/`이며 AI 도구 색인에서 연결합니다. 서브에이전트를 남길 세 조건, 조직도를 닮은 멀티 에이전트 구성의 실패 양상, 점진적 공개를 쓰는 단일 루프, 평가로 하나씩 접는 절차와 Claude API 스킬 네 가지를 정리했습니다.
+- 마지막 절은 원문이 아니라 이 사이트의 제안입니다. 역할별 서브에이전트 여럿 대신 큰 메인 에이전트 하나(Large Ultra 에이전트)를 관리 대상으로 삼고, 서브에이전트는 세 조건에 맞을 때만 남기자는 방향이며 측정 결과가 아니라는 점과 비용 영향을 확인하지 못했다는 점을 밝혔습니다.
+- 오케스트레이터 구성과 단일 루프를 같은 배치로 비교하는 flow 도식 두 장을 새로 그렸습니다(spec-lint 오류 0). Claude 초안을 Astra(`gpt-6-astra`, xhigh, read-only)가 제목·절 구성까지 전면 재작성했고, 원문 대조에서 빠진 논지 네 곳을 보정 라운드로 채웠습니다. 실행 기록은 `_workspace/structure-2026-10-29-fold-subagents/`에 있습니다.
+
 ## 2026-10-27 — 하네스 엔지니어링 글 요약
 
 - Lilian Weng의 [Harness Engineering for Self-Improvement](https://lilianweng.github.io/posts/2026-07-04-harness/)를 요약한 AI 도구 05편을 추가했습니다. 공개 URL은 `/ai-tools/05-harness-engineering/`이며 AI 도구 색인에서 연결합니다.

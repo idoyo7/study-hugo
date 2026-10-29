@@ -1,0 +1,18 @@
+{
+  "caption": "팀마다 전문 에이전트를 두면 요청이 오케스트레이터를 거쳐 나뉘고, 결과는 요약으로 돌아오며 그때마다 세부가 빠집니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "user", "col": 0, "row": 1, "label": "사용자", "kind": "src" },
+    { "id": "orch", "col": 1, "row": 1, "label": "오케스트레이터", "sub": "라우팅·계획", "kind": "proc" },
+    { "id": "a", "col": 2, "row": 0, "label": "전문 에이전트 A", "sub": "팀 A 프롬프트", "kind": "proc" },
+    { "id": "b", "col": 2, "row": 1, "label": "전문 에이전트 B", "sub": "팀 B 프롬프트", "kind": "proc" },
+    { "id": "c", "col": 2, "row": 2, "label": "전문 에이전트 C", "sub": "팀 C 프롬프트", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "user", "to": "orch", "label": "요청" },
+    { "from": "orch", "to": "a", "label": "위임" },
+    { "from": "orch", "to": "b", "label": "위임" },
+    { "from": "orch", "to": "c", "label": "위임" },
+    { "from": "b", "to": "orch", "label": "요약", "dashed": true }
+  ]
+}
