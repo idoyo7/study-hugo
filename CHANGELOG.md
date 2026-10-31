@@ -2,6 +2,11 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-10-31 — Keycloak 로그인 화면 글과 테마 시안
+
+- 홈랩 09편 `content/platform/homelab/09-keycloak-login-theme/`을 추가했습니다(공개 URL `/homelab/09-keycloak-login-theme/`). 개인 Gmail로 Google IdP를 붙인 방법, 이메일이 같은 기존 계정에만 연결하는 first broker flow, 로그인 화면 시안 53장, 실제로 적용한 HUD 다크 테마의 구조와 걸린 문제를 다룹니다. 홈랩 색인의 찾기 목록과 요약 표에 링크를 더했습니다.
+- 시안 스크린샷 53장과 적용 화면 3장은 `assets/images/keycloak-theme/`에 있습니다. 헤드리스 Chromium으로 찍었고, 공개용으로 계정 이름과 서비스 주소를 바꿨습니다. 테마 파일 세 개(`theme.properties`, `login.ftl`, `template.ftl`)는 글 번들의 `makgol-hud/login/`에 원본 그대로 두고 본문에도 전문을 실었습니다.
+
 ## 2026-10-29 — 서브에이전트를 메인 루프로 접는 글 요약과 제안
 
 - Anthropic의 [Building agents: When to fold subagents into your main agent loop](https://claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop)(Diane Sarkis, 2026-10-22)를 요약한 AI 도구 06편을 추가했습니다. 공개 URL은 `/ai-tools/06-fold-subagents/`이며 AI 도구 색인에서 연결합니다. 서브에이전트를 남길 세 조건, 조직도를 닮은 멀티 에이전트 구성의 실패 양상, 점진적 공개를 쓰는 단일 루프, 평가로 하나씩 접는 절차와 Claude API 스킬 네 가지를 정리했습니다.
