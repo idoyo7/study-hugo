@@ -15,5 +15,6 @@ cascade:
 - [커넥션 게이트웨이]({{< relref "/engineering/gateway/_index.md" >}})
 - [애플리케이션 런타임]({{< relref "/engineering/runtime/_index.md" >}})
 - [AI 도구·에이전트]({{< relref "/engineering/ai-tools/_index.md" >}})
+- [SRE]({{< relref "/engineering/sre/_index.md" >}})
 
-서비스 경계와 연결 상태를 설계하고, 애플리케이션 런타임과 AI 개발 도구의 동작을 살펴봅니다.
+서비스 경계와 연결 상태를 설계하고, 애플리케이션 런타임과 AI 개발 도구의 동작, SRE의 원칙과 팀 구성을 살펴봅니다.

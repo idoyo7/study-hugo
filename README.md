@@ -14,7 +14,7 @@ content/
   platform/         플랫폼·인프라: Kubernetes, Istio, 배포, 격리 런타임, 홈랩
   observability/    관측성: 메트릭, 로그, APM·RUM, HyperDX
   data/             데이터·스토리지: ClickHouse, 캐시, 블록 스토리지, S3
-  engineering/      설계·개발: 아키텍처, 게이트웨이, 앱 런타임, AI 도구
+  engineering/      설계·개발: 아키텍처, 게이트웨이, 앱 런타임, AI 도구, SRE
   external/         타사 테크블로그: 회사별(naver, daangn) 글 요약
 layouts/
   _markup/          마크다운 렌더 훅 (이미지: WebP 변환 + width/height)

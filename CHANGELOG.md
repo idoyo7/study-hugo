@@ -2,6 +2,11 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-01 — SRE 섹션 신설과 위키백과 요약 01편
+
+- `content/engineering/sre/`를 새로 만들었습니다(공개 URL `/sre/`). 첫 글 「01 SRE가 신뢰성을 책임지는 방식」(`/sre/01-what-is-sre/`)은 영어 위키백과 [Site reliability engineering](https://en.wikipedia.org/wiki/Site_reliability_engineering) 항목(2026-10-04 판)을 요약한 글로, SRE가 DevOps의 구체적 구현이라는 위치와 운영팀 이름만 바꾼 사례, 책임 범위, 실천 4개와 원칙 8개, 팀 배치 모델 5종과 도구·하이브리드 구성, Google에서 시작된 역사와 2020년 설문, 더 읽을 자료를 담습니다. 항목에 없는 내용은 보태지 않았습니다. 설계·개발 색인과 첫 화면 주제 표, README 구조에 SRE를 더했습니다.
+- executor 초안을 Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`)가 제목·절 구성까지 전면 재작성했고, 결정적 대조(frontmatter·URL·수치·고유명사·책 7권·외부 링크 4개)와 sonnet 검증자의 원문 대조에서 나온 지적 10건(SLI·SLO 풀이 범위, Embedded 인원 표현, 용량 계획과 변경 관리 분리, Tools를 팀 모델 표에서 도구 문단으로 분리 등)을 보정 라운드 1회로 반영했습니다. 실행 기록은 `_workspace/structure-2026-11-01-sre/`에 있습니다.
+
 ## 2026-10-31 — Keycloak 로그인 화면 글과 테마 시안
 
 - 홈랩 09편 `content/platform/homelab/09-keycloak-login-theme/`을 추가했습니다(공개 URL `/homelab/09-keycloak-login-theme/`). 개인 Gmail로 Google IdP를 붙인 방법, 이메일이 같은 기존 계정에만 연결하는 first broker flow, 로그인 화면 시안 53장, 실제로 적용한 HUD 다크 테마의 구조와 걸린 문제를 다룹니다. 홈랩 색인의 찾기 목록과 요약 표에 링크를 더했습니다.
