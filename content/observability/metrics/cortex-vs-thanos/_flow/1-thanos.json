@@ -1,0 +1,27 @@
+{
+  "caption": "Sidecar 경로는 Prometheus가 데이터를 소유한 채 2시간 블록만 올리고, Receive 경로는 push로 받은 샘플을 테넌트별 TSDB에 써서 올립니다. Query는 StoreAPI를 노출하는 모든 곳으로 fan-out합니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "prom", "col": 0, "row": 1, "label": "Prometheus", "sub": "Sidecar 방식", "kind": "src" },
+    { "id": "agent", "col": 0, "row": 2, "label": "Prometheus", "sub": "remote_write 방식", "kind": "src" },
+    { "id": "sidecar", "col": 1, "row": 1, "label": "Sidecar", "sub": "업로드·StoreAPI", "kind": "proc" },
+    { "id": "receive", "col": 1, "row": 2, "label": "Receive", "sub": "테넌트별 TSDB", "kind": "proc" },
+    { "id": "bucket", "col": 2, "row": 2, "label": "오브젝트 스토리지", "sub": "2시간 블록", "kind": "store" },
+    { "id": "query", "col": 3, "row": 1, "label": "Query", "sub": "fan-out·중복 제거", "kind": "query" },
+    { "id": "store-gw", "col": 3, "row": 2, "label": "Store Gateway", "sub": "블록 조회", "kind": "proc" },
+    { "id": "compactor", "col": 4, "row": 2, "label": "Compactor", "sub": "다운샘플링·보존", "kind": "sink" },
+    { "id": "ruler", "col": 4, "row": 1, "label": "Ruler", "sub": "규칙·경보", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "prom", "to": "sidecar", "label": "로컬 블록" },
+    { "from": "agent", "to": "receive", "label": "write" },
+    { "from": "sidecar", "to": "bucket", "label": "블록" },
+    { "from": "receive", "to": "bucket", "label": "블록" },
+    { "from": "bucket", "to": "store-gw", "label": "읽기" },
+    { "from": "store-gw", "to": "query", "label": "과거" },
+    { "from": "query", "to": "ruler", "label": "조회" },
+    { "from": "sidecar", "to": "query", "label": "최근 2시간" },
+    { "from": "receive", "to": "query" },
+    { "from": "compactor", "to": "bucket", "label": "컴팩션" }
+  ]
+}

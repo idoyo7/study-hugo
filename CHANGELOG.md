@@ -2,6 +2,11 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-01 — Cortex vs Thanos 비교 글 추가
+
+- 메트릭 분류에 「Cortex vs Thanos 비교와 선택」(`/monitoring/cortex-vs-thanos/`)을 더했습니다. 저자가 정한 순서대로 두 솔루션을 아키텍처 도식과 함께 먼저 소개하고, 쓰기 모델·컴포넌트 대응표·외부 의존성, 한눈 비교표와 장단점 표, 공개 성능 수치, 보존·다운샘플링, 운영과 프로젝트 활동, 선택 조건을 차례로 비교합니다. 기준 버전은 Thanos v0.42.5, Cortex v1.21.1입니다. 메트릭 색인의 찾기 목록과 소개 목록에 연결했습니다.
+- architect 조사 → executor 초안 → wwe 보존 윤문(`_workspace/docs-2026-11-01-071/`) → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`) 전면 재작성 → 결정적 대조와 sonnet 검증자 지적 4건(빠진 평가 내용·도입 사례·promql-engine 한정 문장, 권고로 바뀐 문장)과 문장 6건 보정 1회 순으로 만들었습니다. 실행 기록은 `_workspace/structure-2026-11-01-cortex-thanos/`에 있습니다.
+
 ## 2026-11-01 — Cortex·Mimir·VictoriaMetrics 비교 글 추가
 
 - 메트릭 분류에 「Cortex vs VictoriaMetrics 비교와 선택」(`/monitoring/cortex-vs-victoriametrics/`)을 더했습니다. Prometheus 뒤에 붙이는 Cortex(v1.21.1), Grafana Mimir(3.2.4), VictoriaMetrics cluster(v1.155.0)를 저장과 복제, 테넌트 경계, 메모리, 쿼리 호환, 증설과 장애, OSS·Enterprise 경계, 프로젝트 활동으로 나눠 비교합니다. 세 제품의 쓰기·조회 경로를 같은 배치의 flow 세 장으로 그렸고, 메트릭 색인의 찾기 목록과 소개 목록에 연결했습니다.
