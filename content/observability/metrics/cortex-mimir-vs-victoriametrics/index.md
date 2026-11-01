@@ -1,6 +1,6 @@
 ---
-title: "Cortex·Mimir·VictoriaMetrics 비교와 선택"
-linkTitle: "Cortex·Mimir vs VictoriaMetrics"
+title: "Cortex vs VictoriaMetrics 비교와 선택"
+linkTitle: "Cortex vs VictoriaMetrics"
 description: "2026-11-01 기준 Cortex, Mimir, VictoriaMetrics의 저장 방식과 장단점, 공개 지표를 비교한다. 보존 설정과 운영 조건에 따라 선택 기준을 좁힌다."
 date: 2026-11-01
 lastmod: 2026-11-01
@@ -8,7 +8,7 @@ weight: 8
 url: "/monitoring/cortex-mimir-vs-victoriametrics/"
 ---
 
-# Cortex·Mimir·VictoriaMetrics 비교와 선택
+# Cortex vs VictoriaMetrics 비교와 선택
 
 ## 1. 한눈 비교와 선택 조건
 
@@ -112,7 +112,27 @@ VictoriaMetrics 문서는 초당 100만 데이터 포인트 미만이면 single-
 | 최근 52주 커밋 | 462 | 2,648 | 1,546 | `gh api` 집계, 2026-11-01 |
 | 최근 52주 고유 작성자 | 44 | 137 | 104 | 같은 집계, 봇 제외 |
 
-성능 비교는 벤더 측정이며, 2022년 시험은 복제 계수가 다르고 Mimir의 MQE·ingest storage 도입 전 버전을 사용했습니다. 샘플당 바이트는 구버전 환산값·산정 가정·공식 안내값이므로 실측 순위로 읽을 수 없습니다. 현행 버전 셋을 같은 조건에서 잰 중립 제3자 공개 벤치마크는 찾지 못했습니다.
+위 표의 CPU·RAM·디스크·쿼리 수치는 2022년 9월 시점의 Mimir 2.2.0과 VictoriaMetrics 1.80.0을 VictoriaMetrics가 직접 잰 값입니다. 복제 계수도 3과 2로 달랐고, Cortex는 시험 대상이 아니었습니다. 2022년 이후 둘 이상을 같은 조건에서 다시 잰 공개 벤치마크는 찾지 못했으므로, 지금도 이 시험이 유일한 직접 비교입니다. 샘플당 바이트는 구버전 환산값·산정 가정·공식 안내값이라 실측 순위로 읽을 수 없습니다.
+
+### 2022년 이후 제품별 개선
+
+그 뒤 각 프로젝트가 밝힌 개선은 아래와 같습니다. 대부분 벤더가 자기 제품을 잰 값이고 "최대"가 붙은 수치가 많아서, 2022년 격차가 얼마나 줄었는지 이 표로 계산할 수는 없습니다.
+
+| 제품 | 버전·시점 | 개선 | 공개 수치 | 조건 |
+|---|---|---|---|---|
+| Mimir | 2.7 (2023) | store-gateway 스트리밍 기본값 | OOM 약 90% 감소 | Grafana 운영 환경 비교 |
+| Mimir | 2.9 (2023) | 넓은 매처 쿼리의 인덱스 조회 생략 | store-gateway 메모리 request 평균 30% 감소<br>일부 클러스터 최대 64% | Grafana 클러스터 적용 결과 |
+| Mimir | 2.10 (2023-09) | 라벨 자료구조 변경 | ingester 메모리 약 15% 감소 | 라벨 패턴·테넌트 수에 따라 다름 |
+| Mimir | 2.13 (2024-07) | OTLP 네이티브 변환 | distributor 메모리 최대 30%·CPU 최대 8% 감소 | OTLP 수집 경로 |
+| Mimir | 2.17~3.0 (2025) | MQE 기본 엔진 | 최대 메모리 92% 감소·39% 빠름 | Prometheus 엔진 대비, 쿼리 1종·입력 10만 시리즈 |
+| Mimir | 3.0 (2025-11) | ingest storage(Kafka) | Grafana Cloud TCO 25% 감소 | 메인테이너 팟캐스트 발언, CPU·RAM 단독 수치 아님 |
+| VictoriaMetrics | v1.82.0 (2022-10) | MetricsQL regex 필터 | 쿼리 최대 4배 빠름 | 단순하지 않은 regex 필터 쿼리 |
+| VictoriaMetrics | v1.92.0 (2023-07) | TSID 인덱스를 일별로 전환 | 메모리 최대 5배 감소 | churn이 높고 보존 기간이 긴 환경 |
+| VictoriaMetrics | v1.133.0 (2026-01) | 파티션별 indexDB | 수치 없음, indexDB 디스크 감소 | 기존 인덱스가 보존 밖으로 나간 뒤 효과 |
+| Cortex | 1.15 (2023-04) | Thanos PromQL 엔진 | 수치 없음 | 실험 기능 |
+| Cortex | 1.20~1.21 (2025-11~2026-06) | Parquet 저장·조회 | 수치 없음 | 실험 기능 |
+
+Mimir는 2022년 시험에서 문제가 됐던 영역을 직접 다룬 수치를 가장 많이 냈습니다. 2022년 시험의 Mimir는 RF 3이었는데, Grafana는 3.0의 ingest storage가 RF 3·쿼럼 2 구조를 없앴다고 설명합니다. VictoriaMetrics의 저장 경로 개선 중 수치가 붙은 것은 v1.92의 "최대 5배"뿐이고, 그것도 churn이 높고 보존이 긴 환경에 한정됩니다. Cortex는 1.14~1.21.1의 공식 자료에서 자원·쿼리 성능 개선 수치를 찾지 못했습니다.
 
 {{% details title="근거와 측정 조건" closed="true" %}}
 
@@ -128,6 +148,17 @@ VictoriaMetrics 문서는 초당 100만 데이터 포인트 미만이면 single-
 | VM 샘플당 바이트 | "less or around 1 byte after compression" | VictoriaMetrics 용량 산정 가이드 | `✓` |
 | 52주 활동량 | 커밋 462/2,648/1,546, 병합 PR 453/2,815/882, 고유 작성자(봇 제외) 44/137/104, stars 5,877/5,270/17,990. 2026-11-01 집계 | `gh api` 직접 집계 | `✓` |
 | 현행 버전 중립 벤치마크 | 찾지 못함. VM이 `prometheus-benchmark` 도구를 공개(Cortex·Mimir·Thanos 대상 지원) | VictoriaMetrics GitHub | `?` |
+| 2022 이후 비교 벤치마크 | 둘 이상을 비교한 새 측정은 찾지 못함. 2024 SlideShare는 2022 시험의 재발표. Criteo(2023-09) 평가는 원문 미열람. 2025~2026 비교 글은 자체 측정 없음 | 검색·원문 대조 | `?` |
+| Mimir 2.7 store-gateway | "The streaming store-gateway reduced out-of-memory errors by about 90%" | Grafana 블로그(2023-07-06) | `Ⓥ` |
+| Mimir 2.9 인덱스 조회 생략 | "reduce the store-gateway memory requests by 30%", "in some clusters by up to 64%" | Grafana 블로그(2023-08-21), Mimir 2.9.0 릴리스 | `Ⓥ` |
+| Mimir 2.10 라벨 구조 | "Expect ingesters to use around 15% less memory with this change, depending on the pattern of labels used, number of tenants, etc." | Mimir 2.10.0 릴리스 | `✓` |
+| Mimir 2.13 OTLP | "reduces memory usage in the distributor by up to 30% and CPU usage by up to 8%" | Mimir 2.13.0 릴리스 | `✓` |
+| MQE | "92% lower peak memory utilization and runs 39% faster than Prometheus' PromQL engine". 쿼리 `sum by (group)` 1종, 입력 10만 시리즈, 하드웨어·버전 미기재 | Grafana 블로그(2025-09-17) | `Ⓥ` |
+| Mimir ingest storage TCO | "In Grafana Cloud, we reduced the Mimir TCO by 25% moving from the old architecture to the new architecture." RF 3·쿼럼 2 제거 설명 포함 | Grafana 팟캐스트 전사(2026-01-02) | `Ⓥ` |
+| VM v1.82.0 regex | "improve performance by up to 4x for queries containing non-trivial `regex` filters" | VictoriaMetrics v1.82.0 CHANGELOG | `✓` |
+| VM v1.92.0 일별 인덱스 | "reduce memory usage by up to 5x for setups with high churn rate and long retention" | VictoriaMetrics v1.92.0 CHANGELOG | `✓` |
+| VM v1.133.0 파티션별 indexDB | "This should reduce disk space occupied by indexDBs as they get deleted along with the corresponding partitions". 수치 없음 | VictoriaMetrics v1.133.0 CHANGELOG | `✓` |
+| Cortex 1.14~1.21.1 | Thanos 엔진(1.15)·Parquet(1.20~1.21)은 실험 기능, 공식 자료에 자원·쿼리 성능 수치 없음 | Cortex CHANGELOG, Parquet 문서 | `✓` |
 
 {{% /details %}}
 
@@ -211,6 +242,18 @@ Thanos를 붙이는 방식은 [Prometheus · Thanos · VictoriaMetrics 조립]({
 - VictoriaMetrics 릴리스: https://github.com/VictoriaMetrics/VictoriaMetrics/releases
 - VictoriaMetrics prometheus-benchmark: https://github.com/VictoriaMetrics/prometheus-benchmark
 - VictoriaMetrics의 Mimir 비교(2022-09-09): https://victoriametrics.com/blog/mimir-benchmark/
+- Mimir store-gateway OOM 개선(2023-07-06): https://grafana.com/blog/2023/07/06/breaking-the-memory-barrier-how-grafana-mimirs-store-gateway-overcame-out-of-memory-errors
+- Mimir 인덱스 조회 생략(2023-08-21): https://grafana.com/blog/2023/08/21/less-is-more-how-grafana-mimir-queries-run-faster-and-more-cost-efficiently-with-fewer-indexes/
+- Mimir 2.9.0 릴리스: https://github.com/grafana/mimir/releases/tag/mimir-2.9.0
+- Mimir 2.10.0 릴리스: https://github.com/grafana/mimir/releases/tag/mimir-2.10.0
+- Mimir 2.13.0 릴리스: https://github.com/grafana/mimir/releases/tag/mimir-2.13.0
+- Mimir Query Engine(2025-09-17): https://grafana.com/blog/2025/09/17/faster-more-memory-efficient-performance-in-grafana-mimir-a-closer-look-at-mimir-query-engine
+- Mimir 차세대 아키텍처 팟캐스트: https://grafana.com/blog/mimir-s-next-gen-architecturekafka-in-the-middle-object-storage-underneath-and-a-whole-lot-less-coupling/
+- VictoriaMetrics v1.82.0: https://github.com/VictoriaMetrics/VictoriaMetrics/releases/tag/v1.82.0
+- VictoriaMetrics v1.92.0: https://github.com/VictoriaMetrics/VictoriaMetrics/releases/tag/v1.92.0
+- VictoriaMetrics v1.133.0: https://github.com/VictoriaMetrics/VictoriaMetrics/releases/tag/v1.133.0
+- Cortex CHANGELOG: https://github.com/cortexproject/cortex/blob/master/CHANGELOG.md
+- Cortex Parquet 모드: https://cortexmetrics.io/docs/guides/parquet-mode/
 - Thanos 보존 설정: https://thanos.io/tip/components/compact.md/#enforcing-retention-of-data
 - Mimir 보존 설정: https://grafana.com/docs/mimir/latest/configure/configure-metrics-storage-retention/
 - Mimir 런타임 설정: https://grafana.com/docs/mimir/latest/configure/about-runtime-configuration/
