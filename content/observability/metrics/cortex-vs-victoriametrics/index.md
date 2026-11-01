@@ -1,7 +1,7 @@
 ---
 title: "Cortex vs VictoriaMetrics 비교와 선택"
 linkTitle: "Cortex vs VictoriaMetrics"
-description: "2026-11-01 기준 Cortex, Mimir, VictoriaMetrics의 저장 방식과 장단점, 공개 지표를 비교한다. 보존 설정과 운영 조건에 따라 선택 기준을 좁힌다."
+description: "2026-11-01 기준 Cortex vs VictoriaMetrics의 저장 방식과 장단점, 공개 지표를 비교한다. Cortex에서 갈라진 Mimir와 보존 설정도 함께 보며 운영 조건에 따라 선택 기준을 좁힌다."
 date: 2026-11-01
 lastmod: 2026-11-01
 weight: 8
