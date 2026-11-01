@@ -154,3 +154,21 @@ html.dark {
 @media (prefers-reduced-motion: reduce) {
   .hextra-sidebar-collapse svg { transition: none; }
 }
+
+/* 본문 상단 인라인 목차(layouts/partials/custom/inline-toc.html). 색은 테마 토큰이 아니라
+   currentColor 와 반투명 회색으로 잡아, 라이트·다크(html.dark)에서 따로 덮을 필요가 없다. */
+.inline-toc {
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 0.5rem;
+  background: rgba(128, 128, 128, 0.06);
+  font-size: 0.9rem;
+}
+.inline-toc > summary { cursor: pointer; font-weight: 600; }
+.inline-toc nav { margin-top: 0.5rem; max-height: 50vh; overflow-y: auto; }
+.inline-toc ul { margin: 0; padding-left: 0; list-style: none; }
+.inline-toc ul ul { padding-left: 1rem; }
+.inline-toc li { margin: 0.25rem 0; line-height: 1.4; }
+.inline-toc a { text-decoration: none; opacity: 0.8; overflow-wrap: anywhere; }
+.inline-toc a:hover { opacity: 1; text-decoration: underline; }
