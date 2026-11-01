@@ -7,7 +7,7 @@
 - 메트릭 분류에 「Cortex vs VictoriaMetrics 비교와 선택」(`/monitoring/cortex-mimir-vs-victoriametrics/`)을 더했습니다. Prometheus 뒤에 붙이는 Cortex(v1.21.1), Grafana Mimir(3.2.4), VictoriaMetrics cluster(v1.155.0)를 저장과 복제, 테넌트 경계, 메모리, 쿼리 호환, 증설과 장애, OSS·Enterprise 경계, 프로젝트 활동으로 나눠 비교합니다. 세 제품의 쓰기·조회 경로를 같은 배치의 flow 세 장으로 그렸고, 메트릭 색인의 찾기 목록과 소개 목록에 연결했습니다.
 - architect 조사 보고서를 바탕으로 executor가 초안을 쓰고, Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`)가 제목과 절 구성까지 전면 재작성했습니다. 결정적 대조와 sonnet 검증자의 지적 6건(헤딩 어투, 벤더 주장을 측정으로 쓴 문장, 본문에서 빠진 미확인 단서, 원본에 없던 일반론)을 보정 라운드 1회로 반영했습니다. 실행 기록은 `_workspace/structure-2026-11-01-cortex-mimir-vm/`에 있습니다.
 - 같은 날 저자 검토에서 제목에 Cortex가 없고, 장단점과 벤치마크 지표가 눈에 띄지 않으며, 글이 길다는 지적을 받았습니다. 그래서 제목에 세 제품 이름을 넣고, 한눈 비교표·장단점 표·공개 벤치마크 표와 Thanos와 견준 보존(retention) 설정 표를 앞세워 464줄을 220줄로 줄였습니다. 보존 설정 값은 Thanos·Cortex·Mimir·VictoriaMetrics 공식 문서에서 다시 확인했습니다.
-- 이어서 제목을 「Cortex vs VictoriaMetrics 비교와 선택」으로 바꿨습니다(URL 유지). 벤치마크 절에는 2022년 Mimir 2.2·VictoriaMetrics 1.80 기준임을 밝히고, 2022년 이후 제품별 개선 표를 더했습니다. Mimir 2.7~3.0, VictoriaMetrics v1.82~v1.133, Cortex 1.15~1.21의 릴리스 노트와 벤더 블로그에서 공개 수치를 모았고, Cortex는 공식 수치가 없다고 적었습니다.
+- 이어서 제목을 「Cortex vs VictoriaMetrics 비교와 선택」으로 바꿨습니다(URL 유지). 벤치마크 절에는 2022년 Mimir 2.2·VictoriaMetrics 1.80 기준임을 밝히고, 2022년 이후 제품별 개선 표를 더했습니다. Mimir 2.7~3.0, VictoriaMetrics v1.82~v1.133, Cortex 1.15~1.21의 릴리스 노트와 벤더 블로그에서 공개 수치를 모았고, Cortex는 공식 수치가 없다고 적었습니다. Cortex와 VictoriaMetrics를 직접 잰 유일한 공개 수치인 adidas 측정(PromCon EU 2019, DynamoDB 청크 저장 시절 Cortex)도 조건과 함께 표에 넣었습니다.
 
 ## 2026-11-01 — SRE 01~05편 Astra 전면 재작성
 

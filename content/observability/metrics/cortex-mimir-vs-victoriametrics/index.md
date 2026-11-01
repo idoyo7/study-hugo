@@ -101,6 +101,9 @@ VictoriaMetrics 문서는 초당 100만 데이터 포인트 미만이면 single-
 
 | 지표 | Cortex | Mimir | VictoriaMetrics | 측정자·조건 |
 |---|---|---|---|---|
+| CPU (2019) | 1.08코어 | — | cluster 1.14코어<br>single 0.49코어 | adidas, PromCon EU 2019<br>DynamoDB 청크 저장 시절 Cortex<br>약 430K·900K 시리즈, 약 88K samples/s |
+| 메모리 (2019) | 24.15GiB | — | cluster 13.4GiB<br>single 11.94GiB | 위 측정 |
+| 샘플당 바이트 (2019) | 3.68B<br>DynamoDB 1133 WCU 별도 | — | 1.20B | 위 측정 |
 | 할당 CPU·RAM | — | 43.2 CPU·283GiB | 44 CPU·208GiB | VictoriaMetrics 측, 2022-09-09<br>Mimir 2.2.0(RF 3)·VM 1.80.0(RF 2), GKE e2-standard-16<br>약 550만 active series·36만 samples/s·24시간 |
 | 평균 CPU 사용량 | — | — | Mimir보다 약 1.7배 적음 | 위 시험 |
 | 평균 RAM 사용량 | — | — | Mimir보다 약 5배 적음 | 위 시험 |
@@ -112,7 +115,7 @@ VictoriaMetrics 문서는 초당 100만 데이터 포인트 미만이면 single-
 | 최근 52주 커밋 | 462 | 2,648 | 1,546 | `gh api` 집계, 2026-11-01 |
 | 최근 52주 고유 작성자 | 44 | 137 | 104 | 같은 집계, 봇 제외 |
 
-위 표의 CPU·RAM·디스크·쿼리 수치는 2022년 9월 시점의 Mimir 2.2.0과 VictoriaMetrics 1.80.0을 VictoriaMetrics가 직접 잰 값입니다. 복제 계수도 3과 2로 달랐고, Cortex는 시험 대상이 아니었습니다. 2022년 이후 둘 이상을 같은 조건에서 다시 잰 공개 벤치마크는 찾지 못했으므로, 지금도 이 시험이 유일한 직접 비교입니다. 샘플당 바이트는 구버전 환산값·산정 가정·공식 안내값이라 실측 순위로 읽을 수 없습니다.
+위 표의 CPU·RAM·디스크·쿼리 수치는 2022년 9월 시점의 Mimir 2.2.0과 VictoriaMetrics 1.80.0을 VictoriaMetrics가 직접 잰 값입니다. 복제 계수도 3과 2로 달랐고, Cortex는 시험 대상이 아니었습니다. Cortex와 VictoriaMetrics를 직접 잰 공개 수치는 2019년 PromCon에서 adidas가 발표한 측정 하나입니다. 이때의 Cortex는 청크를 DynamoDB에 쓰던 구조라 지금의 blocks storage와 다르고, CPU는 비슷했으며 차이는 메모리와 샘플당 바이트에서 났습니다. VictoriaMetrics README의 "Cortex보다 RAM 최대 7배 적다"는 문구는 Prometheus와 VictoriaMetrics를 비교한 벤치마크 글을 링크하고 있어 Cortex 측정치로 볼 수 없습니다. 2022년 이후 둘 이상을 같은 조건에서 다시 잰 공개 벤치마크는 찾지 못했으므로, 지금도 이 시험이 유일한 직접 비교입니다. 샘플당 바이트는 구버전 환산값·산정 가정·공식 안내값이라 실측 순위로 읽을 수 없습니다.
 
 ### 2022년 이후 제품별 개선
 
@@ -138,6 +141,8 @@ Mimir는 2022년 시험에서 문제가 됐던 영역을 직접 다룬 수치를
 
 | 항목 | 값·조건 | 출처 | 근거 |
 |---|---|---|---|
+| adidas Cortex·VM 측정 | PromCon EU 2019. Cortex는 distributor 2·ingester 4, 청크 저장 DynamoDB. VM cluster는 insert 2·storage 4, single 2노드. 약 430K·900K 시리즈, 15초, 약 88K samples/s. CPU 1.08/1.14/0.49코어, 메모리 24.15/13.4/11.94GiB, 바이트/샘플 3.68/1.20/1.20B, DynamoDB 1133 WCU. 버전 미기재 | adidas 발표 슬라이드 23쪽 | `Ⓑ` |
+| VM README의 Cortex 비교 문구 | "up to 7x less RAM than Prometheus, Thanos or Cortex"의 링크 대상은 "Prometheus vs VictoriaMetrics benchmark on node_exporter metrics" 글. "7x less storage" 문구도 같은 글을 링크 | VictoriaMetrics README | `Ⓥ` |
 | VM 측 Mimir 비교 | GKE e2-standard-16, Mimir 2.2.0(RF 3) vs VM 1.80.0(RF 2), node_exporter 6000타깃, 15초, 약 550만 active series, 36만 samples/s, 10분마다 타깃 1% churn, 24시간 | VictoriaMetrics 블로그(2022-09-09) | `Ⓑ` |
 | 위 벤치마크 결과 | 할당 Mimir 43.2 CPU/283GiB, VM 44 CPU/208GiB. 평균 CPU 약 1.7배, RAM 약 5배 차이. 디스크 VM 49GiB vs Mimir 369GiB+149.7GiB. instant p99 약 47초 vs 약 20초. 5배 부하에서 Mimir ingester OOM | VictoriaMetrics 블로그(2022-09-09) | `Ⓑ` |
 | 위 벤치마크 한계 | 저자 명시: 24시간이라 compaction 미완 가능, active series 계산법 상이, range 쿼리 미측정, 저자가 Mimir에 익숙지 않음, 복제 계수 상이. Mimir 2.2 기준이라 MQE·ingest storage 이전 | 같은 글 | `Ⓑ` |
@@ -242,6 +247,9 @@ Thanos를 붙이는 방식은 [Prometheus · Thanos · VictoriaMetrics 조립]({
 - VictoriaMetrics 릴리스: https://github.com/VictoriaMetrics/VictoriaMetrics/releases
 - VictoriaMetrics prometheus-benchmark: https://github.com/VictoriaMetrics/prometheus-benchmark
 - VictoriaMetrics의 Mimir 비교(2022-09-09): https://victoriametrics.com/blog/mimir-benchmark/
+- adidas, Remote Write Storage Wars(PromCon EU 2019): https://promcon.io/2019-munich/talks/remote-write-storage-wars/
+- 같은 발표 슬라이드: https://promcon.io/2019-munich/slides/remote-write-storage-wars.pdf
+- VictoriaMetrics README: https://github.com/VictoriaMetrics/VictoriaMetrics/blob/master/README.md
 - Mimir store-gateway OOM 개선(2023-07-06): https://grafana.com/blog/2023/07/06/breaking-the-memory-barrier-how-grafana-mimirs-store-gateway-overcame-out-of-memory-errors
 - Mimir 인덱스 조회 생략(2023-08-21): https://grafana.com/blog/2023/08/21/less-is-more-how-grafana-mimir-queries-run-faster-and-more-cost-efficiently-with-fewer-indexes/
 - Mimir 2.9.0 릴리스: https://github.com/grafana/mimir/releases/tag/mimir-2.9.0
