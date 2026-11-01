@@ -8,6 +8,11 @@
 - architect 조사 보고서를 바탕으로 executor가 초안을 쓰고, Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`)가 제목과 절 구성까지 전면 재작성했습니다. 결정적 대조와 sonnet 검증자의 지적 6건(헤딩 어투, 벤더 주장을 측정으로 쓴 문장, 본문에서 빠진 미확인 단서, 원본에 없던 일반론)을 보정 라운드 1회로 반영했습니다. 실행 기록은 `_workspace/structure-2026-11-01-cortex-mimir-vm/`에 있습니다.
 - 같은 날 저자 검토에서 제목에 Cortex가 없고, 장단점과 벤치마크 지표가 눈에 띄지 않으며, 글이 길다는 지적을 받았습니다. 그래서 제목에 세 제품 이름을 넣고, 한눈 비교표·장단점 표·공개 벤치마크 표와 Thanos와 견준 보존(retention) 설정 표를 앞세워 464줄을 220줄로 줄였습니다. 보존 설정 값은 Thanos·Cortex·Mimir·VictoriaMetrics 공식 문서에서 다시 확인했습니다.
 
+## 2026-11-01 — SRE 01~05편 Astra 전면 재작성
+
+- 저자가 SRE 섹션 다섯 편을 읽고 "너무 AI스럽다"고 해서 01~05편 전부를 Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`)로 제목·절 구성·문단·문장·단어까지 다시 썼습니다. 지시문에 균일한 문장 길이와 종결, 같은 골격의 절, 자리를 채우는 문장, 출처 목차 순서의 나열, 방어적 조건문, 용어마다 붙는 괄호 풀이, 불릿 쪼개기를 없앨 대상으로 적었습니다. 새 제목은 「01 SRE는 운영 문제를 어떻게 엔지니어링으로 푸는가」, 「02 AI가 장애를 해결할 때 SRE는 어디서 경험을 쌓나」, 「03 USE Method로 느린 서비스의 자원 병목 좁히기」, 「04 RED Method로 요청량·실패·지연을 함께 읽는 기준」, 「05 Four Golden Signals로 사용자 영향과 한계 읽기」이며 공개 URL과 색인 링크는 유지했습니다.
+- 편마다 1차 출처(영어 위키백과, Google SRE Book·Workbook 해당 장, SigNoz 원문과 GeekNews·HN 기록, Brendan Gregg USE 문서, Grafana RED 글, Prometheus 히스토그램 문서)를 프롬프트에 넣었고, 결정적 대조(frontmatter·URL·shortcode·relref·코드펜스·수치)와 sonnet 검증자 5명의 출처 대조에서 나온 지적 64건(귀속 오류, 빠진 조건과 헤지, 출처에 없는 해석 문장, 답글 관계 오류 등)을 보정 라운드 1회로 반영했습니다. 01편에는 Astra가 SRE Book의 운영 업무 50% 상한과 2020년 설문 수치를 새로 넣었는데 출처와 일치해 귀속을 붙여 남겼습니다. 실행 기록은 `_workspace/structure-2026-11-01-sre-series/`에 있습니다.
+
 ## 2026-11-01 — USE·RED·Four Golden Signals 글 추가
 
 - SRE 03~05편을 추가했습니다. Brendan Gregg의 USE Method, Tom Wilkie의 RED Method, Google SRE Book의 Four Golden Signals를 각각 원문과 공식 계측 문서를 바탕으로 설명합니다. 자원별 점검, 요청을 세는 범위, 지연 분포와 실패 기준, 포화도의 해석을 다루며 세 글을 서로 연결했습니다.
