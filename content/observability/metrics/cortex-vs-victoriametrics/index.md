@@ -5,7 +5,9 @@ description: "2026-11-01 기준 Cortex, Mimir, VictoriaMetrics의 저장 방식�
 date: 2026-11-01
 lastmod: 2026-11-01
 weight: 8
-url: "/monitoring/cortex-mimir-vs-victoriametrics/"
+url: "/monitoring/cortex-vs-victoriametrics/"
+aliases:
+  - "/monitoring/cortex-mimir-vs-victoriametrics/"
 ---
 
 # Cortex vs VictoriaMetrics 비교와 선택
