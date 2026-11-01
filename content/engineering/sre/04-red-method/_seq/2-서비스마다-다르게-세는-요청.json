@@ -1,0 +1,17 @@
+{
+  "caption": "한 번의 주문 요청에서 내부 조회를 재시도하면 주문 API에는 성공 한 건이, 조회 서비스에는 실패와 성공이 각각 한 건씩 남습니다. 가상의 호출 예시입니다.",
+  "participants": [
+    { "id": "user", "label": "사용자" },
+    { "id": "order", "label": "주문 API" },
+    { "id": "lookup", "label": "조회 서비스" }
+  ],
+  "steps": [
+    { "msg": ["user", "order"], "label": "주문 요청" },
+    { "msg": ["order", "lookup"], "label": "조회 시도" },
+    { "msg": ["lookup", "order"], "label": "일시 오류", "dashed": true },
+    { "msg": ["order", "lookup"], "label": "조회 재시도" },
+    { "msg": ["lookup", "order"], "label": "조회 성공", "dashed": true },
+    { "msg": ["order", "user"], "label": "주문 완료", "dashed": true },
+    { "note": ["order", "lookup"], "lines": ["주문 API: 성공 1건", "조회 서비스: 실패 1건·성공 1건"] }
+  ]
+}

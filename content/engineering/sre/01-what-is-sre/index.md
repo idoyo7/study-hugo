@@ -1,91 +1,83 @@
 ---
-title: "01 SRE가 신뢰성을 책임지는 방식"
-description: "SRE는 무엇을 책임지고 DevOps와 어떻게 다를까요? 영어 위키백과의 Site reliability engineering 항목을 바탕으로, 신뢰성에 초점을 둔 DevOps의 구체적인 구현으로 여겨지는 SRE의 책임과 원칙, 팀 구성을 설명합니다."
+title: "01 SRE는 신뢰성을 어떻게 만드는가"
+description: "SRE는 신뢰성을 측정 가능한 목표로 바꾸고, 운영에서 발견한 문제를 시스템 설계와 자동화로 해결합니다. SLI·SLO·오류 예산부터 토일 관리와 팀 구성까지, 서비스를 안정적으로 운영하는 방식을 살펴봅니다."
 date: 2026-11-01
 lastmod: 2026-11-01
 weight: 1
 url: "/sre/01-what-is-sre/"
 ---
 
-# 01 · SRE가 신뢰성을 책임지는 방식
+# 01 · SRE는 신뢰성을 어떻게 만드는가
 
-> 영어 위키백과 [Site reliability engineering](https://en.wikipedia.org/wiki/Site_reliability_engineering) 항목의 2026-10-04 판을 바탕으로 쓴 글입니다. 항목에 없는 내용은 보태지 않았습니다.
+> 영어 위키백과 [Site reliability engineering](https://en.wikipedia.org/wiki/Site_reliability_engineering) 항목의 2026-10-04 판을 바탕으로 구성했습니다. 용어와 실무 설명은 [Google SRE 책](https://sre.google/sre-book/table-of-contents/)을 참고해 보충했습니다.
 
-사이트 신뢰성 엔지니어링(SRE, site reliability engineering)은 배포된 소프트웨어 시스템과 대규모 소프트웨어 서비스의 가용성과 성능을 감시하고 개선하는 분야입니다. 소프트웨어 공학과 IT 인프라 지원에 속하며, 신뢰성을 높이기 위해 소프트웨어 공학·IT 인프라·웹 개발·운영의 요소를 함께 씁니다.
+서비스는 배포가 이어지고 장비가 고장 나며 예상하지 못한 트래픽이 몰리는 동안에도 응답해야 합니다. 문제가 생긴 뒤 서버를 되살리는 일만으로는 이 기대를 충족하기 어렵습니다. 어떤 상태를 신뢰할 수 있다고 볼지 정하고, 그 상태를 측정하며, 장애가 되풀이되지 않도록 시스템을 바꿔야 합니다.
 
-SRE는 DevOps의 구체적인 구현으로 여겨집니다. 배포된 시스템의 신뢰성과 가용성을 높이려는 목표는 비슷하지만, SRE는 신뢰할 수 있는 시스템을 만드는 데 초점을 두고 DevOps는 더 넓은 운영 범위를 다룹니다. 이처럼 초점에 차이가 있는데도 일부 회사는 기존 운영팀의 이름을 SRE 팀으로 바꿨습니다.
+사이트 신뢰성 엔지니어링(SRE)은 이 일을 소프트웨어 공학의 문제로 다루는 방식입니다. SRE는 가용성·지연 시간·성능·효율을 살피는 데서 그치지 않고 변경 관리, 모니터링, 장애 대응, 용량 계획까지 연결합니다. 운영 과정에서 반복되는 일을 코드와 자동화로 줄이고, 장애에서 드러난 약점을 다음 설계에 반영합니다.
 
-## 장애 대응과 시스템 개선을 함께 맡는다
+SRE와 DevOps는 개발과 운영의 협업을 통해 더 나은 서비스를 제공하려는 목표를 공유합니다. DevOps가 협업 문화와 소프트웨어를 전달하는 방식까지 아우른다면, SRE는 신뢰성을 어떤 지표로 측정하고 어떤 운영 원칙으로 지킬지 구체적으로 다룹니다. [Google SRE 책](https://sre.google/sre-book/introduction/)은 이런 의미에서 SRE를 DevOps를 구현하는 한 가지 방식으로 볼 수 있다고 설명합니다.
 
-서비스에는 새 소프트웨어 배포, 하드웨어 장애, 사이버 공격 같은 사건이 벌어져도 신뢰할 만한 응답 시간을 제공하리라는 기대가 있습니다. SRE가 책임지는 범위는 시스템 가용성, 지연 시간(latency), 성능, 효율에서 변경 관리, 모니터링, 긴급 대응, 용량 계획까지 이어집니다.
+## 신뢰성을 측정 가능한 목표로 바꾼다
 
-이 일을 맡는 엔지니어는 소프트웨어 공학, 시스템 공학, 시스템 관리 가운데 하나 이상의 배경을 가진 경우가 많습니다. SRE가 집중하는 일은 자동화와 시스템 설계, 시스템 회복력(resilience) 개선입니다. 보통 자동화와 코드형 인프라(infrastructure as code) 방법론에 무게를 둡니다.
+"서비스를 안정적으로 운영한다"는 말만으로는 우선순위를 정하기 어렵습니다. 신뢰성만 높이려 하면 변경을 과도하게 제한하기 쉽고, 출시 속도만 좇으면 장애 위험이 커집니다. SRE는 이 갈등을 SLI, SLO, 오류 예산이라는 공통 언어로 다룹니다.
 
-## 목표를 정하고 반복 작업을 줄인다
+- **SLI**(Service Level Indicator, 서비스 수준 지표)는 사용자가 실제로 겪는 서비스 수준을 나타내는 측정값입니다. 성공한 요청의 비율이나 응답 지연 시간처럼 관찰 가능한 값을 고릅니다.
+- **SLO**(Service Level Objective, 서비스 수준 목표)는 일정 기간에 SLI가 도달해야 할 목표입니다. “최근 30일 동안 요청의 99.9%가 성공한다”와 같이 기간과 기준을 함께 정합니다.
+- **오류 예산**(error budget)은 SLO가 허용하는 실패의 범위입니다. 앞의 예에서 성공률 목표가 99.9%라면 오류 예산은 같은 기간 요청의 0.1%입니다. 예산이 남아 있는 동안에는 변경을 이어 갈 여지가 있고, 예산을 다 썼다면 안정화 작업을 우선할 근거가 생깁니다.
 
-신뢰성 목표를 정하는 이유는 끝없이 노력을 들이는 일을 막기 위해서입니다. 위키백과는 이를 SRE에서 흔히 꼽는 실천으로 소개합니다. 신뢰성 목표를 정의하고 측정하는 원칙에는 SLI, SLO, 오류 예산(error budget)이 포함됩니다.
+목표를 정할 때는 사용자가 기대하는 수준과 서비스의 비용, 변경 속도를 함께 고려해야 합니다. SLO와 오류 예산은 출시와 안정화 중 무엇을 우선할지 결정하는 데 쓰입니다. 개념은 Google의 [서비스 수준 목표](https://sre.google/sre-book/service-level-objectives/)와 [오류 예산 설명](https://sre.google/sre-book/service-best-practices/)에서 더 자세히 다룹니다.
 
-반복 작업의 자동화는 비용 효율을 위한 실천입니다. SRE의 원칙에는 토일(toil) 관리도 있습니다. 토일은 수작업으로 반복되며 자동화할 수 있는 운영 작업을 가리킵니다.
+## 장애 대응을 시스템 개선으로 이어 간다
 
-## 설계부터 운영 절차까지 신뢰성을 반영한다
+SRE는 장애를 복구하는 사람만을 뜻하지 않습니다. 장애가 났을 때는 고객 영향을 줄이고 서비스를 복구하지만, 복구 뒤에는 같은 문제가 반복되지 않도록 시스템과 운영 절차를 바꿉니다. 이 과정에서 필요한 일은 서로 이어져 있습니다.
 
-SRE의 시스템 설계는 가용성, 지연 시간, 효율을 해칠 위험을 줄이는 데 목적을 둡니다. 신뢰성에 초점을 맞춘 NALSD(Non-Abstract Large Scale Systems Design, 추상에 머물지 않는 대규모 시스템 설계)도 원칙에 포함됩니다.
+관측성은 현재 상태를 보여 주는 고정된 대시보드보다 넓은 개념입니다. 미리 준비하지 못한 질문도 메트릭·로그·트레이스를 바탕으로 조사할 수 있어야 합니다. 그래야 장애 중에 가설을 세우고 원인을 좁힐 수 있습니다. 인시던트 관리 절차는 누가 상황을 지휘하고 어떻게 소통하며 무엇을 기록할지 정해, 긴급한 순간의 혼선을 줄입니다.
 
-관측성(observability)은 무엇을 물어야 할지 미리 알지 못해도 시스템에 임의의 질문을 던질 수 있는 능력을 뜻합니다. SRE는 이런 관측성을 갖추는 일을 실천으로 삼으며, 관측성을 설계하고 구현하는 일도 원칙으로 다룹니다.
+용량 계획은 트래픽과 자원 사용량이 늘어날 때 어디에서 한계가 나타날지 미리 살핍니다. 변경·릴리스 관리는 배포 단위를 줄이고 검증과 롤백을 자동화해 변경 위험을 낮춥니다. 카오스 엔지니어링은 통제된 조건에서 실패를 일으켜 시스템의 회복 능력과 대응 절차를 확인합니다. 대규모 시스템 설계도 추상적인 원칙에 머물지 않고 실제 용량, 장애 지점, 운영 비용을 함께 따져야 합니다.
 
-운영 절차에서는 인시던트 관리 프로세스를 정의하고, 시험하고, 운영합니다. 용량 계획도 SRE의 원칙 중 하나입니다. CI/CD를 포함한 변경·릴리스 관리와 카오스 엔지니어링(chaos engineering) 역시 원칙에 포함되며, 위키백과가 소개하는 실천과 원칙은 이 내용에 한정되지 않습니다.
+이 활동들은 운영에서 발견한 문제를 다음 개선으로 이어 주는 과정입니다. 무엇을 측정했는지, 어떤 대응을 했는지, 그 결과 시스템이 나아졌는지를 함께 살펴야 합니다.
 
-## 책임 범위와 협업 방식에 따라 팀의 모습이 달라진다
+{{< flow src="_flow/2-reliability-work.json" />}}
 
-SRE 팀은 조직의 다른 부서와 협력하며 이러한 원칙을 구현하도록 안내합니다. 팀이 맡는 서비스의 범위, 개발팀과 함께 일하는 방식에 따라 여러 형태가 쓰입니다.
+## 반복 작업을 줄여 엔지니어링 시간을 확보한다
 
-| 모델 | 맡는 일과 협업 방식 |
+운영에는 처리할 때마다 시간을 쓰면서도 시스템 자체는 나아지지 않는 반복 작업이 생깁니다. Google SRE가 설명하는 [토일(toil)](https://sre.google/sre-book/eliminating-toil/)은 이런 성격의 운영 작업입니다. 수작업으로 되풀이하고, 자동화할 수 있으며, 서비스 규모가 커질수록 함께 늘어나는 특징이 있습니다. 경보를 확인해 정해진 명령을 실행하거나, 같은 설정을 여러 환경에 손으로 반영하는 일이 여기에 해당할 수 있습니다.
+
+토일을 줄이는 이유는 단순히 일을 편하게 하려는 것이 아닙니다. 반복 작업이 엔지니어의 시간을 차지하면 장애 원인을 제거하고 시스템을 개선할 여력이 사라집니다. 실행 절차를 코드로 옮기고, 안전장치와 검증을 붙이고, 자주 발생하는 문제를 시스템이 스스로 복구하게 만들면 사람은 더 어려운 문제에 집중할 수 있습니다.
+
+자동화에도 운영 책임은 남습니다. 실패했을 때 멈출 조건, 사람이 개입할 지점, 실행 결과를 확인할 방법이 함께 있어야 합니다. 자동화가 불투명하면 수작업을 줄이는 대신 새로운 장애 원인을 만들 수 있습니다.
+
+## 팀의 모습은 책임 범위에 따라 달라진다
+
+SRE라는 이름을 쓴다고 모든 팀이 같은 일을 하지는 않습니다. 어떤 서비스를 책임지는지, 제품 개발팀과 얼마나 가까이 일하는지에 따라 구성이 달라집니다.
+
+| 팀 구성 | 책임과 협업 방식 |
 | --- | --- |
-| Kitchen Sink | 서비스와 업무 흐름을 폭넓게 맡으며, 책임 범위에 뚜렷한 경계가 없는 경우가 많다. 성능 최적화, 인시던트 관리, 자동화 등 여러 과제를 다루면서 시스템이 효율적으로 작동하고 달라지는 요구와 복잡성에 맞춰 발전하도록 한다. |
-| Infrastructure | 다른 팀의 업무 흐름을 받치는 시스템의 신뢰성을 유지하고 개선한다. 일차 책임은 가동 시간, 성능, 효율을 보장하는 일이다. |
-| Product/Application | 특정 제품이나 애플리케이션을 전담하며, 핵심 서비스의 신뢰성·확장성·성능을 책임진다. 대형 조직에서 흔한 방식이다. |
-| Embedded | SRE 개인이나 소규모 SRE 짝(pair)이 소프트웨어 엔지니어링 팀에 들어가 개발자와 협력한다. 자동화, 모니터링, 인시던트 대응 같은 원칙을 개발 수명 주기에 직접 적용하며, 신뢰성·성능과 SRE·개발자 사이의 협업을 높이는 것이 목적이다. |
-| Consulting | 조직이 SRE 원칙과 실천을 도입하도록 조언한다. 여러 도입 경험을 쌓은 경력 많은 SRE로 구성되는 경우가 보통이며, 조직의 구체적인 필요에 맞춰 안내한다. 고객과 직접 일하는 SRE는 흔히 Customer Reliability Engineer(고객 신뢰성 엔지니어)로 불린다. |
+| Infrastructure | 여러 제품이 함께 쓰는 기반 시스템의 가용성·성능·효율을 책임진다. 플랫폼 팀과 협업하되, 내부 도구를 만드는 일보다 그 기반이 신뢰성 목표를 지키도록 운영하는 데 초점을 둔다. |
+| Product/Application | 특정 제품이나 애플리케이션을 전담한다. 제품의 구조와 사용자 영향을 깊이 이해하며 개발팀과 신뢰성·확장성 문제를 함께 푼다. |
+| Embedded | 한두 명의 SRE가 개발팀 안에서 일한다. 설계와 개발 단계부터 자동화, 관측성, 장애 대응 원칙을 적용한다. |
+| Consulting | 여러 팀이 SRE 방식을 도입하도록 목표 설정, 운영 절차, 설계를 조언한다. 도입 경험이 많은 SRE가 조직의 필요에 맞춰 안내한다. |
+| Kitchen Sink | 성능 최적화부터 장애 대응과 자동화까지 여러 서비스의 일을 폭넓게 맡는다. 책임 범위에 뚜렷한 경계가 없는 경우가 많다. |
 
-Infrastructure SRE 팀은 플랫폼 엔지니어링 팀과 협력하기도 합니다. 신뢰성은 두 팀 모두의 목표이지만 우선하는 일이 다릅니다. 플랫폼 팀은 조직 전체에서 쓰는 소프트웨어와 시스템을 개발하며, 내부 이해관계자를 위한 도구와 서비스를 만들고 유지하는 일을 우선합니다. Infrastructure SRE 팀은 그 시스템이 원활하게 작동하고 신뢰성 기준을 충족하도록 책임집니다.
+큰 조직은 이 모델을 섞어 쓰기도 합니다. 제품별 SRE 팀이 각 서비스의 SLO를 맡고, Infrastructure SRE 팀이 공통 기반의 신뢰성을 책임지는 식입니다. 조직에 맞는 형태를 고르려면 먼저 서비스 소유권과 의사결정 권한을 분명히 해야 합니다. 출시 속도를 조절하거나 시스템을 개선할 권한 없이 장애 대응만 떠맡는다면, 이름과 실제 역할이 어긋납니다.
 
-SRE 팀은 여러 도구를 써서 시스템 신뢰성을 측정하고 유지하고 개선합니다. 이런 도구는 성능 감시, 문제 식별, 선제적 유지보수를 돕습니다. 예를 들어 Nagios Core는 시스템 모니터링과 경보에 흔히 쓰이며, Prometheus는 클라우드 네이티브 환경에서 메트릭을 수집하고 질의하는 데 자주 쓰입니다.
+## 운영팀의 이름을 바꾸는 것만으로는 충분하지 않다
 
-규모가 큰 회사는 보통 SRE 팀을 여럿 두고 팀마다 다른 제품이나 애플리케이션을 맡겨, 각 영역의 성능·가용성 목표를 전담 팀이 전문적으로 다루게 합니다. SRE를 도입한 대형 조직에서는 여러 모델을 섞은 하이브리드 모델도 흔한데, 제품마다 다른 신뢰성 요구를 맡는 Product/Application SRE 팀을 여럿 두는 구성이 여기에 포함됩니다. Infrastructure SRE 팀이 플랫폼 엔지니어링 그룹과 협력해 모든 제품과 애플리케이션을 받치는 통합 플랫폼의 신뢰성 목표를 함께 추구할 수도 있습니다.
+Google의 SRE는 2003년 Benjamin Treynor Sloss가 프로덕션 엔지니어 7명으로 팀을 꾸리면서 시작됐습니다. 이후 여러 인터넷 기업이 이 방식을 받아들였고, 조직마다 제품·인프라·컨설팅 등 서로 다른 형태로 발전시켰습니다. Meta처럼 비슷한 일을 프로덕션 엔지니어링이라는 이름으로 운영하는 회사도 있습니다.
 
-## Google에서 시작해 여러 조직으로 퍼진 방식
+조직마다 모습은 달라도, SRE를 도입하려면 팀 이름과 함께 실제 일하는 방식이 바뀌어야 합니다. 다음 질문에 답하는 데서 출발할 수 있습니다.
 
-Google의 SRE는 2003년 Benjamin Treynor Sloss가 “Site Reliability Tsar”라는 직함으로 입사해 처음 모인 production engineer(프로덕션 엔지니어) 7명으로 SRE 팀을 만들면서 시작됐습니다. 2016년에는 팀 규모가 SRE 1,000명을 넘었고, 다른 대형 인터넷 기업도 이 방식을 받아들였습니다.
+- 사용자가 기대하는 신뢰성을 무엇으로 측정할 것인가?
+- 목표를 벗어나면 기능 개발과 안정화 작업의 우선순위를 어떻게 바꿀 것인가?
+- 장애와 반복 작업에서 배운 내용을 누가 시스템 개선으로 이어 갈 것인가?
 
-SRE 개념을 도입한 조직으로는 Airbnb, Dropbox, IBM, LinkedIn, Netflix, Wikimedia가 있으며, Meta에서는 production engineer가 비슷한 일을 맡습니다. production engineer는 다른 대형 기술 기업의 SRE에 견줄 수 있는 역할로 설명됩니다.
-
-2020년 개발·운영 전문가 572명을 대상으로 한 설문에서는 조직 규모에 따라 다음과 같은 응답이 나왔습니다.
-
-| 응답자가 속한 조직의 직원 수 | 해당 규모 조직의 응답자 중 SRE 팀이 있다고 답한 비율 |
-| --- | --- |
-| 10,000명 이상 | 64% |
-| 101~1,000명 | 44% |
-| 100명 이하 | 32% |
-
-경험과 지식을 나누는 자리도 이어지고 있습니다. USENIX는 2014년부터 매년 SREcon 콘퍼런스를 개최합니다. 여러 업종의 SRE가 모여 지식을 공유하고, 효과적인 실천을 살피며, SRE의 동향을 논의하는 자리입니다.
+이 질문에 답할 지표와 권한, 엔지니어링 시간이 마련될 때 SRE는 장애를 처리하는 별도 조직을 넘어 신뢰성을 지속해서 만드는 운영 방식이 됩니다.
 
 ## 더 읽을 자료
 
-위키백과 항목이 소개하는 책 7권입니다.
-
-- Limoncelli, Tom; Chalup, Strata R.; Hogan, Christina J. (2014년 9월). The Practice of Cloud System Administration: DevOps and SRE Practices for Web Services. 2권. Addison-Wesley.
-- Beyer, Betsy; Jones, Chris; Petoff, Jennifer; Murphy, Niall Richard 편 (2016). Site Reliability Engineering: How Google Runs Production Systems. O'Reilly.
-- Blank-Edelman, David N. 편 (2018). Seeking SRE: Conversations About Running Production Systems at Scale. 1판. O'Reilly.
-- Beyer, Betsy; Murphy, Niall; Kawahara, Kent; Rensin, David; Thorne, Stephen (2018). The Site Reliability Workbook: Practical Ways to Implement SRE. O'Reilly.
-- Welch, Nat (2018). Real-World SRE: The Survival Guide for Responding to a System Outage and Maximizing Uptime. Packt.
-- Adkins, Heather; Beyer, Betsy; Blankinship, Paul; Lewandowski, Piotr; Oprea, Ana; Stubblefield, Adam (2020). Building Secure and Reliable Systems: Best Practices for Designing, Implementing, and Maintaining Systems. O'Reilly.
-- Rosenthal, Casey; Jones, Nora (2020). Chaos Engineering: System Resiliency in Practice. O'Reilly.
-
-자료 목록과 뉴스레터, Google의 안내 페이지도 소개합니다.
-
-- [Awesome Site Reliability Engineering](https://github.com/dastergon/awesome-sre) — 자료 목록
-- [How they SRE](https://github.com/upgundecha/howtheysre) — 자료 목록
-- [SRE Weekly](https://sreweekly.com/) — SRE 전문 주간 뉴스레터
-- [SRE at Google](https://sre.google/) — Google의 SRE를 더 알아볼 수 있는 안내 페이지
-
-원문의 각주가 가리키는 Google 자료도 있습니다. 토일은 [What is Toil in SRE](https://sre.google/sre-book/eliminating-toil/), NALSD는 [Non-Abstract Large System Design](https://sre.google/workbook/non-abstract-design/)에서 설명합니다.
+- [Site Reliability Engineering](https://sre.google/sre-book/table-of-contents/) — Google의 SRE 원칙과 운영 경험을 정리한 책
+- [The Site Reliability Workbook](https://sre.google/workbook/table-of-contents/) — SLO, 모니터링, 장애 대응 등 도입 방법을 다룬 실무서
+- [What is Toil in SRE?](https://sre.google/sre-book/eliminating-toil/) — 토일의 특성과 줄이는 방법
+- [Non-Abstract Large System Design](https://sre.google/workbook/non-abstract-design/) — 현실의 제약을 반영한 대규모 시스템 설계 연습
+- [SREcon](https://www.usenix.org/conferences/byname/925) — 여러 조직의 SRE 경험을 공유하는 USENIX 콘퍼런스
+- [Awesome Site Reliability Engineering](https://github.com/dastergon/awesome-sre) · [How they SRE](https://github.com/upgundecha/howtheysre) — 사례와 자료를 모은 목록

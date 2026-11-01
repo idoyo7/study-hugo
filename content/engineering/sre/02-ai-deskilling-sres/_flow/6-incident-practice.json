@@ -1,0 +1,20 @@
+{
+  "caption": "장애 훈련에서 사람의 가설과 AI의 분석을 대조하고, 근거와 결과를 검증해 다음 연습에 활용하는 흐름입니다. 토론의 제안을 비운영 환경의 훈련 예시로 재구성했습니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "case", "col": 0, "row": 0, "label": "장애 사례", "sub": "비운영 환경", "kind": "src" },
+    { "id": "hypothesis", "col": 1, "row": 0, "label": "사람의 가설", "sub": "로그·의존성 추론", "kind": "proc" },
+    { "id": "compare", "col": 2, "row": 0, "label": "AI와 비교", "sub": "제안·차이 확인", "kind": "query" },
+    { "id": "evidence", "col": 2, "row": 1, "label": "근거 확인", "sub": "관측·재현·반증", "kind": "query" },
+    { "id": "solve", "col": 1, "row": 1, "label": "해결·검증", "sub": "수정·테스트", "kind": "proc" },
+    { "id": "record", "col": 0, "row": 1, "label": "설명·기록", "sub": "판단 근거·회고", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "case", "to": "hypothesis", "label": "관찰" },
+    { "from": "hypothesis", "to": "compare", "label": "대조" },
+    { "from": "compare", "to": "evidence", "label": "검증" },
+    { "from": "evidence", "to": "solve", "label": "수정" },
+    { "from": "solve", "to": "record", "label": "설명" },
+    { "from": "record", "to": "case", "label": "다음 연습" }
+  ]
+}

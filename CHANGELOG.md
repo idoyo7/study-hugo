@@ -2,6 +2,17 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-01 — USE·RED·Four Golden Signals 글 추가
+
+- SRE 03~05편을 추가했습니다. Brendan Gregg의 USE Method, Tom Wilkie의 RED Method, Google SRE Book의 Four Golden Signals를 각각 원문과 공식 계측 문서를 바탕으로 설명합니다. 자원별 점검, 요청을 세는 범위, 지연 분포와 실패 기준, 포화도의 해석을 다루며 세 글을 서로 연결했습니다.
+- 자원 조사 흐름과 가상의 주문 요청 경로를 flow로, 내부 호출 재시도를 seq로 그렸습니다. RED 편에는 가정한 메트릭의 PromQL 예제와 결측 시계열·무트래픽·히스토그램 집계 조건을 함께 적었습니다. SRE 색인에 세 글을 연결했습니다.
+
+## 2026-11-01 — SRE 두 편의 구성 개편과 도식 추가
+
+- 01편을 「SRE는 신뢰성을 어떻게 만드는가」로 바꾸고, 신뢰성 목표·운영과 개선·토일·팀 구성 순서로 다시 썼습니다. Google SRE 자료를 바탕으로 SLI·SLO·오류 예산을 풀어 설명하고 색인의 제목과 소개를 맞췄습니다. 공개 URL은 유지했습니다.
+- 02편은 댓글을 따라가던 구성을 숙련 저하의 우려·근거의 한계·반론·실무 대응으로 묶었습니다. FAA의 수동 비행 권고와 의무 규정을 구분하고, 의료 분야의 관찰연구를 SRE의 숙련 저하에 대한 직접 증거로 읽지 않도록 보완했습니다.
+- 기존 flow 템플릿으로 신뢰성 개선 과정과 비운영 환경의 장애 대응 훈련을 한 장씩 추가했습니다. 훈련 도식은 토론의 제안을 재구성한 예시임을 본문과 캡션에 밝혔습니다.
+
 ## 2026-11-01 — AI 디스킬링 논쟁 요약, SRE 02편
 
 - SRE 섹션에 「02 AI가 바꾸는 SRE의 일과 숙련」(`/sre/02-ai-deskilling-sres/`)을 더했습니다. GeekNews 토픽 [AI는 SRE를 대체하는 게 아니라 숙련도를 떨어뜨리고 있음](https://news.hada.io/topic?id=36299)(2026-10-31)의 원문인 SigNoz 뉴스레터 [AI Isn't Replacing SREs. It's Deskilling Them.](https://newsletter.signoz.io/p/ai-isnt-replacing-sres-its-deskilling)(2026-02-28)과 GeekNews 댓글, [Hacker News 스레드](https://news.ycombinator.com/item?id=50305693)(646점, 댓글 464개)를 함께 읽고, 원문의 주장(Bainbridge 1983의 자동화의 역설, 디스킬링·네버스킬링, 의도적 비효율)과 토론의 반론(항공 비유의 비용과 규제, Terraform·Docker가 이미 한 디스킬링, 이해의 깊이, 새 역량, SRE·DevOps 직무 비판)을 쟁점별로 묶었습니다. 댓글 작성자 닉네임은 싣지 않았습니다. SRE 색인의 찾기 목록과 요약 표에 링크를 더했습니다.

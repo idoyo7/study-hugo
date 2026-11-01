@@ -1,0 +1,16 @@
+{
+  "caption": "가상의 주문 요청이 게이트웨이, 주문 서비스, 데이터베이스를 지나며 각 계층에서 서로 다른 지연과 오류를 관측할 수 있습니다.",
+  "font": 1.2,
+  "token": true,
+  "nodes": [
+    { "id": "user", "col": 0, "row": 0, "label": "사용자", "sub": "주문 요청", "kind": "src" },
+    { "id": "gateway", "col": 1, "row": 0, "label": "게이트웨이", "sub": "수신·응답", "kind": "proc" },
+    { "id": "orders", "col": 2, "row": 0, "label": "주문 서비스", "sub": "주문 처리", "kind": "proc" },
+    { "id": "db", "col": 3, "row": 0, "label": "데이터베이스", "sub": "주문 저장", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "user", "to": "gateway", "label": "요청" },
+    { "from": "gateway", "to": "orders", "label": "전달" },
+    { "from": "orders", "to": "db", "label": "조회·저장" }
+  ]
+}

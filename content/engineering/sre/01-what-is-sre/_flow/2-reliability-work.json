@@ -1,0 +1,20 @@
+{
+  "caption": "SRE는 신뢰성 목표에 비춰 서비스 상태를 살피고, 운영에서 발견한 문제를 설계와 자동화 개선에 반영합니다.",
+  "font": 1.1,
+  "nodes": [
+    { "id": "goal", "col": 0, "row": 0, "label": "신뢰성 목표", "sub": "SLI·SLO·오류 예산", "kind": "src" },
+    { "id": "measure", "col": 1, "row": 0, "label": "측정", "sub": "메트릭·로그·트레이스", "kind": "query" },
+    { "id": "assess", "col": 2, "row": 0, "label": "상태 판단", "sub": "장애·용량·변경 위험", "kind": "query" },
+    { "id": "operate", "col": 2, "row": 1, "label": "운영 대응", "sub": "복구·인시던트 관리", "kind": "proc" },
+    { "id": "improve", "col": 1, "row": 1, "label": "개선", "sub": "설계·자동화·검증", "kind": "proc" },
+    { "id": "learn", "col": 0, "row": 1, "label": "효과 확인", "sub": "반복 장애와 토일", "kind": "query" }
+  ],
+  "edges": [
+    { "from": "goal", "to": "measure", "label": "정의" },
+    { "from": "measure", "to": "assess", "label": "판정" },
+    { "from": "assess", "to": "operate", "label": "대응" },
+    { "from": "operate", "to": "improve", "label": "회고" },
+    { "from": "improve", "to": "learn", "label": "관찰" },
+    { "from": "learn", "to": "goal", "label": "재점검" }
+  ]
+}

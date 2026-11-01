@@ -1,0 +1,20 @@
+{
+  "caption": "USE로 자원별 이상 징후를 찾은 뒤 추가 분석과 증상 대조로 조사 범위를 좁히는 흐름입니다. 원문의 조사 원칙을 재구성한 예시입니다.",
+  "font": 1.1,
+  "token": true,
+  "nodes": [
+    { "id": "resources", "col": 0, "row": 0, "label": "자원 목록", "sub": "실제 구성과 한도", "kind": "src" },
+    { "id": "use", "col": 1, "row": 0, "label": "USE 점검", "sub": "사용·대기·오류", "kind": "query" },
+    { "id": "candidate", "col": 2, "row": 0, "label": "점검 결과", "sub": "이상·미확인 기록", "kind": "store" },
+    { "id": "analysis", "col": 2, "row": 1, "label": "추가 분석", "sub": "실행·대기 경로", "kind": "proc" },
+    { "id": "verify", "col": 1, "row": 1, "label": "증상 대조", "sub": "가설과 근거 확인", "kind": "query" },
+    { "id": "scope", "col": 0, "row": 1, "label": "범위 조정", "sub": "후보 확인·배제", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "resources", "to": "use", "label": "순회" },
+    { "from": "use", "to": "candidate", "label": "기록" },
+    { "from": "candidate", "to": "analysis", "label": "추적" },
+    { "from": "analysis", "to": "verify", "label": "검증" },
+    { "from": "verify", "to": "scope", "label": "판단" }
+  ]
+}
