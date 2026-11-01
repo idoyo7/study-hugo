@@ -2,6 +2,11 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-01 — Cortex·Mimir·VictoriaMetrics 비교 글 추가
+
+- 메트릭 분류에 「Prometheus 중앙 장기 저장소를 고를 때 감수할 조건」(`/monitoring/cortex-mimir-vs-victoriametrics/`)을 더했습니다. Prometheus 뒤에 붙이는 Cortex(v1.21.1), Grafana Mimir(3.2.4), VictoriaMetrics cluster(v1.155.0)를 저장과 복제, 테넌트 경계, 메모리, 쿼리 호환, 증설과 장애, OSS·Enterprise 경계, 프로젝트 활동으로 나눠 비교합니다. 세 제품의 쓰기·조회 경로를 같은 배치의 flow 세 장으로 그렸고, 메트릭 색인의 찾기 목록과 소개 목록에 연결했습니다.
+- architect 조사 보고서를 바탕으로 executor가 초안을 쓰고, Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`)가 제목과 절 구성까지 전면 재작성했습니다. 결정적 대조와 sonnet 검증자의 지적 6건(헤딩 어투, 벤더 주장을 측정으로 쓴 문장, 본문에서 빠진 미확인 단서, 원본에 없던 일반론)을 보정 라운드 1회로 반영했습니다. 실행 기록은 `_workspace/structure-2026-11-01-cortex-mimir-vm/`에 있습니다.
+
 ## 2026-11-01 — USE·RED·Four Golden Signals 글 추가
 
 - SRE 03~05편을 추가했습니다. Brendan Gregg의 USE Method, Tom Wilkie의 RED Method, Google SRE Book의 Four Golden Signals를 각각 원문과 공식 계측 문서를 바탕으로 설명합니다. 자원별 점검, 요청을 세는 범위, 지연 분포와 실패 기준, 포화도의 해석을 다루며 세 글을 서로 연결했습니다.

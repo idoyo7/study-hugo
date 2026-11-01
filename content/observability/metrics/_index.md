@@ -15,6 +15,7 @@ linkTitle: "메트릭"
 ## 이 분류에서 찾기 {#section-navigation}
 
 - [Prometheus와 VictoriaMetrics의 확장 방식과 운영 비용 비교]({{< relref "/observability/metrics/prometheus-vs-victoriametrics/index.md" >}})
+- [Prometheus 중앙 장기 저장소를 고를 때 감수할 조건]({{< relref "/observability/metrics/cortex-mimir-vs-victoriametrics/index.md" >}})
 - [여러 클러스터의 메트릭을 모으는 Thanos와 VictoriaMetrics 구성]({{< relref "/observability/metrics/prometheus-vs-victoriametrics-multi-cluster/index.md" >}})
 - [EKS와 ECS에서 Prometheus 타깃을 자동으로 찾는 구성]({{< relref "/observability/metrics/prometheus-ecs-eks-service-discovery/_index.md" >}})
 - [VictoriaMetrics]({{< relref "/observability/metrics/victoriametrics/_index.md" >}})
@@ -24,6 +25,7 @@ linkTitle: "메트릭"
 운영하면서 정리한 모니터링 도메인 인사이트.
 
 - **[Prometheus와 VictoriaMetrics의 확장 방식과 운영 비용 비교]({{< relref "/observability/metrics/prometheus-vs-victoriametrics/index.md" >}})** — 압축·메모리 공개 수치, HA·샤딩 비교 도식과 경보 평가 방식으로 선택 기준을 정리합니다.
+- **[Prometheus 중앙 장기 저장소를 고를 때 감수할 조건]({{< relref "/observability/metrics/cortex-mimir-vs-victoriametrics/index.md" >}})** — 아키텍처, 복제와 저장 용량, 쿼리 호환, 멀티테넌시, 운영 부담, 라이선스와 활동량을 조건별로 비교합니다.
 - **[여러 클러스터의 메트릭을 모으는 Thanos와 VictoriaMetrics 구성]({{< relref "/observability/metrics/prometheus-vs-victoriametrics-multi-cluster/index.md" >}})** — 중앙 수집과 지역 자립, WAN 단절, 복제·테넌트·객체 스토리지의 역할을 비교합니다.
 - **[EKS와 ECS에서 Prometheus 타깃을 자동으로 찾는 구성]({{< relref "/observability/metrics/prometheus-ecs-eks-service-discovery/_index.md" >}})** — EKS의 API server watch와 ECS API 폴링·사이드카 발견, 수집기 배치와 라벨 설계를 조건별로 비교합니다. 근거 표와 설정 예시는 하위 전체본에 있습니다.
 - **[VictoriaMetrics]({{< relref "/observability/metrics/victoriametrics/_index.md" >}})** — 기본 개념, 설계 원칙·초대규모 운영 패턴, 네이버 D2 원문별 정리.

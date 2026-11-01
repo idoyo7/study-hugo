@@ -1,0 +1,20 @@
+{
+  "caption": "vminsert는 같은 샘플을 서로 다른 vmstorage 둘에 기록하고, vmselect는 모든 vmstorage에서 데이터를 받아 계산합니다. 해시 링과 외부 저장소는 없습니다. RF=2 예시입니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "agent", "col": 0, "row": 1, "label": "vmagent", "sub": "scrape·buffer", "kind": "src" },
+    { "id": "vminsert", "col": 1, "row": 1, "label": "vminsert", "sub": "해시 분배", "kind": "proc" },
+    { "id": "storage-a", "col": 2, "row": 0, "label": "vmstorage A", "sub": "로컬 디스크", "kind": "store" },
+    { "id": "storage-b", "col": 2, "row": 2, "label": "vmstorage B", "sub": "로컬 디스크", "kind": "store" },
+    { "id": "vmselect", "col": 3, "row": 1, "label": "vmselect", "sub": "조회 시 dedup", "kind": "query" },
+    { "id": "vmalert", "col": 4, "row": 1, "label": "vmalert", "sub": "규칙·경보", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "agent", "to": "vminsert", "label": "write" },
+    { "from": "vminsert", "to": "storage-a", "label": "사본 1" },
+    { "from": "vminsert", "to": "storage-b", "label": "사본 2" },
+    { "from": "storage-a", "to": "vmselect", "label": "조회" },
+    { "from": "storage-b", "to": "vmselect", "label": "조회" },
+    { "from": "vmselect", "to": "vmalert", "label": "조회" }
+  ]
+}

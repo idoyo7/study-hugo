@@ -1,0 +1,22 @@
+{
+  "caption": "Prometheus agent가 보낸 샘플은 distributor가 검증해 ingester에 쓰고, 2시간 블록이 오브젝트 스토리지로 올라갑니다. querier는 최근 구간은 ingester에서, 과거 구간은 store-gateway에서 읽습니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "agent", "col": 0, "row": 1, "label": "Prometheus", "sub": "agent 모드", "kind": "src" },
+    { "id": "distributor", "col": 1, "row": 1, "label": "distributor", "sub": "limit 검증", "kind": "proc" },
+    { "id": "ingester", "col": 2, "row": 1, "label": "ingester", "sub": "메모리·WAL", "kind": "store" },
+    { "id": "bucket", "col": 2, "row": 2, "label": "오브젝트 스토리지", "sub": "2시간 블록", "kind": "store" },
+    { "id": "querier", "col": 3, "row": 1, "label": "querier", "sub": "frontend 경유", "kind": "query" },
+    { "id": "store-gw", "col": 3, "row": 2, "label": "store-gateway", "sub": "블록 조회", "kind": "proc" },
+    { "id": "ruler", "col": 4, "row": 1, "label": "ruler", "sub": "규칙·경보", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "agent", "to": "distributor", "label": "write" },
+    { "from": "distributor", "to": "ingester", "label": "쿼럼" },
+    { "from": "ingester", "to": "bucket", "label": "블록" },
+    { "from": "bucket", "to": "store-gw", "label": "읽기" },
+    { "from": "ingester", "to": "querier", "label": "최근" },
+    { "from": "store-gw", "to": "querier", "label": "과거" },
+    { "from": "querier", "to": "ruler", "label": "조회" }
+  ]
+}

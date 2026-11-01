@@ -1,0 +1,24 @@
+{
+  "caption": "ingest storage에서는 distributor가 Kafka 파티션에 먼저 쓰고, 파티션 하나를 소비하는 ingester가 블록을 만들어 올립니다. 읽기 경로는 Cortex와 같은 모양입니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "agent", "col": 0, "row": 0, "label": "Prometheus", "sub": "agent 모드", "kind": "src" },
+    { "id": "distributor", "col": 1, "row": 0, "label": "distributor", "sub": "limit 검증", "kind": "proc" },
+    { "id": "kafka", "col": 2, "row": 0, "label": "Kafka", "sub": "파티션 복제", "kind": "store" },
+    { "id": "ingester", "col": 2, "row": 1, "label": "ingester", "sub": "파티션 소비", "kind": "store" },
+    { "id": "bucket", "col": 2, "row": 2, "label": "오브젝트 스토리지", "sub": "2시간 블록", "kind": "store" },
+    { "id": "querier", "col": 3, "row": 1, "label": "querier", "sub": "scheduler 경유", "kind": "query" },
+    { "id": "store-gw", "col": 3, "row": 2, "label": "store-gateway", "sub": "블록 조회", "kind": "proc" },
+    { "id": "ruler", "col": 4, "row": 1, "label": "ruler", "sub": "규칙·경보", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "agent", "to": "distributor", "label": "write" },
+    { "from": "distributor", "to": "kafka", "label": "파티션" },
+    { "from": "kafka", "to": "ingester", "label": "소비" },
+    { "from": "ingester", "to": "bucket", "label": "블록" },
+    { "from": "bucket", "to": "store-gw", "label": "읽기" },
+    { "from": "ingester", "to": "querier", "label": "최근" },
+    { "from": "store-gw", "to": "querier", "label": "과거" },
+    { "from": "querier", "to": "ruler", "label": "조회" }
+  ]
+}
