@@ -2,6 +2,11 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-01 — AI 디스킬링 논쟁 요약, SRE 02편
+
+- SRE 섹션에 「02 AI가 바꾸는 SRE의 일과 숙련」(`/sre/02-ai-deskilling-sres/`)을 더했습니다. GeekNews 토픽 [AI는 SRE를 대체하는 게 아니라 숙련도를 떨어뜨리고 있음](https://news.hada.io/topic?id=36299)(2026-10-31)의 원문인 SigNoz 뉴스레터 [AI Isn't Replacing SREs. It's Deskilling Them.](https://newsletter.signoz.io/p/ai-isnt-replacing-sres-its-deskilling)(2026-02-28)과 GeekNews 댓글, [Hacker News 스레드](https://news.ycombinator.com/item?id=50305693)(646점, 댓글 464개)를 함께 읽고, 원문의 주장(Bainbridge 1983의 자동화의 역설, 디스킬링·네버스킬링, 의도적 비효율)과 토론의 반론(항공 비유의 비용과 규제, Terraform·Docker가 이미 한 디스킬링, 이해의 깊이, 새 역량, SRE·DevOps 직무 비판)을 쟁점별로 묶었습니다. 댓글 작성자 닉네임은 싣지 않았습니다. SRE 색인의 찾기 목록과 요약 표에 링크를 더했습니다.
+- 원문은 Substack API로, HN 스레드는 Algolia API로 받았고, GeekNews 페이지는 curl이 403이라 WebFetch로 본문·댓글을 문장 단위로 기록해 출처로 썼습니다. executor 초안(52KB)을 Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`)가 제목·절 구성까지 전면 재작성했고, 결정적 대조와 sonnet 검증자의 출처 대조 지적 24건(귀속 오류 1건, 빠진 주장 복원, 출처에 없는 용어 풀이 삭제, 이 사이트의 해석 문장 삭제 등)을 보정 라운드 1회로 반영했습니다. 실행 기록은 `_workspace/structure-2026-11-01-sre-deskilling/`에 있습니다.
+
 ## 2026-11-01 — SRE 섹션 신설과 위키백과 요약 01편
 
 - `content/engineering/sre/`를 새로 만들었습니다(공개 URL `/sre/`). 첫 글 「01 SRE가 신뢰성을 책임지는 방식」(`/sre/01-what-is-sre/`)은 영어 위키백과 [Site reliability engineering](https://en.wikipedia.org/wiki/Site_reliability_engineering) 항목(2026-10-04 판)을 요약한 글로, SRE가 DevOps의 구체적 구현이라는 위치와 운영팀 이름만 바꾼 사례, 책임 범위, 실천 4개와 원칙 8개, 팀 배치 모델 5종과 도구·하이브리드 구성, Google에서 시작된 역사와 2020년 설문, 더 읽을 자료를 담습니다. 항목에 없는 내용은 보태지 않았습니다. 설계·개발 색인과 첫 화면 주제 표, README 구조에 SRE를 더했습니다.
