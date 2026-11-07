@@ -46,7 +46,7 @@
       "col": 4,
       "row": 0,
       "label": "상대 :15006",
-      "sub": "mTLS 종단 → 앱 localhost",
+      "sub": "mTLS 종단 → 앱 (파드 IP)",
       "kind": "sink"
     }
   ],

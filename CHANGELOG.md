@@ -2,6 +2,10 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-07 — Istio 기존 글 7편 최소 교체
+
+- 한 요청의 여행 조사 중 찾은, Istio 1.31.4·Envoy 1.39 기준과 어긋나는 서술 9건을 문장 단위로 고쳤습니다. 11편의 앱 전달 주소(localhost → 파드 IP, 도식 두 장 포함)와 HTTP 해석 리스너, 11·13편의 "mTLS가 없으면 TCP 라벨이 빈다" 단정, 13편의 HTTP 메타데이터 교환 필터 이름, ambient 01의 15006/15008 분기 기준(source → destination port), cilium 05의 ztunnel L7 정책 동작, cilium 04의 기본 503 재시도 여부, operations 05의 NR·URX 정의, operations 06의 액세스 로그 기본값·gRPC 메시지 메트릭·`connection_security_policy` 조건입니다. 근거는 `_workspace/series-2026-11-07-istio-traffic/research/`에 있습니다.
+
 ## 2026-11-07 — 스터디 대분류 신설, 한 요청의 여행 시리즈 이동
 
 - 최상위 대분류 「스터디」(`content/study/`)를 새로 만들고, 같은 날 Istio 하위에 올렸던 5부작을 `content/study/istio-mesh/`(`/study/istio-mesh/…`)로 옮겼습니다. 이전 주소 `/istio/mesh-traffic/…`는 `aliases`로 남겨 새 주소로 넘어갑니다. 내비게이션 검사기의 루트 섹션 목록과 테스트에 `/study/`를 더했습니다.

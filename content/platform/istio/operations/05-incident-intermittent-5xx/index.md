@@ -1,7 +1,7 @@
 ---
 title: "장애 이야기 — 메시 경로의 간헐적 응답 이상을 어떻게 추적할까"
 date: 2026-08-01
-lastmod: 2026-08-24
+lastmod: 2026-11-07
 weight: 5
 url: "/istio/05-incident-intermittent-5xx/"
 ---
@@ -33,8 +33,8 @@ url: "/istio/05-incident-intermittent-5xx/"
 | **UF** | **U**pstream connection **F**ailure | 상대 파드에 연결 자체가 실패 (죽음·네트워크·mTLS 불일치) |
 | **UC** | **U**pstream **C**onnection termination | 연결이 중간에 끊김 (앱이 Envoy보다 먼저 keepalive 종료 등) |
 | **UO** | **U**pstream **O**verflow | 서킷브레이커·커넥션풀 상한 초과 (DestinationRule) |
-| **URX** | **U**pstream **R**etry lime**X**ceeded | 재시도 한도 소진 |
-| **NR** | **N**o **R**oute | 매칭되는 라우트 없음 (VirtualService·Gateway 설정 문제) |
+| **URX** | **U**pstream **R**etry lime**X**ceeded | 재시도 한도 소진 (TCP에서는 최대 연결 시도 초과) |
+| **NR** | **N**o **R**oute | 매칭되는 라우트 없음 (VirtualService·Gateway 설정 문제), downstream 연결에 맞는 filter chain이 없을 때도 |
 | **DC** | **D**ownstream **C**onnection termination | 클라이언트가 먼저 끊음 |
 
 **간헐적** 5xx라면 UH·UC·UF·UO가 단골입니다 — 전부 "가끔" 발생하는 성격입니다.

@@ -1,7 +1,7 @@
 ---
 title: "Istio의 Envoy 조립"
 date: 2026-08-01
-lastmod: 2026-08-24
+lastmod: 2026-11-07
 weight: 13
 url: "/istio/13-istio-envoy-assembly/"
 ---
@@ -51,10 +51,10 @@ istio/proxy README에는 2024-04-17 워크그룹 결론으로 "New extensions ar
 | 계층 | 필터 | 하는 일 |
 |---|---|---|
 | 네트워크(TCP) | `envoy.filters.network.metadata_exchange` | 커넥션 위에서 피어 메타데이터를 주고받는다 |
-| HTTP | `envoy.wasm.metadata_exchange` | 헤더로 피어 메타데이터를 주고받는다 |
+| HTTP | `istio.metadata_exchange` (`io.istio.http.peer_metadata.Config`) | 헤더(와 `workload_discovery`)로 피어 메타데이터를 주고받는다 |
 | HTTP | `envoy.wasm.stats` | 표준 메트릭을 생성한다 |
 
-네트워크 계층 필터의 설정 이름은 `istio.metadata_exchange`입니다. HTTP 계층의 두 필터는 `envoy.filters.http.wasm`으로 래핑된 같은 wasm 필터입니다.
+네트워크 계층 필터의 설정 이름은 `istio.metadata_exchange`입니다. 1.31 소스 기준으로 HTTP 계층의 메타데이터 교환 필터도 같은 이름의 네이티브 필터이며, `envoy.filters.http.wasm`으로 래핑된 wasm 필터가 아닙니다.
 
 ### peer metadata exchange — `source_*` / `destination_*` 라벨의 출처
 
@@ -66,7 +66,7 @@ istio/proxy README에는 2024-04-17 워크그룹 결론으로 "New extensions ar
 
 {{< seq src="_seq/peer-metadata-exchange-source.json" />}}
 
-[11]({{< relref "/platform/istio/fundamentals/11-request-path-anatomy/index.md" >}})에서 "mTLS가 꺼져 있으면 TCP 지표의 상대 워크로드 라벨이 빈다"고 한 것의 이유가 이 그림입니다. 협상이 mTLS 핸드셰이크에 붙어 있습니다. 핸드셰이크가 없으면 교환도 없고 교환이 없으면 라벨을 채울 재료가 없습니다.
+[11]({{< relref "/platform/istio/fundamentals/11-request-path-anatomy/index.md" >}})에서는 "mTLS가 꺼져 있으면 TCP 지표의 상대 워크로드 라벨이 빈다"고 했습니다. ALPN 협상이 mTLS 핸드셰이크에 붙어 있어서 핸드셰이크가 없으면 이 경로의 교환은 일어나지 않지만, 1.31에는 istiod 워크로드 정보로 보충하는 `workload_discovery` 경로도 있어 평문 TCP에서 실제로 채워지는지는 확인하지 못했습니다.
 
 ### telemetry v2 — 메트릭 생성이 프록시 안으로 들어온 것
 
@@ -154,7 +154,7 @@ kubectl exec <pod> -c istio-proxy -- pilot-agent request GET server_info
 ## 이 문서에서 가져갈 것
 
 - Istio가 Envoy를 "쓴다"는 것은 커밋을 pin해서 자기 확장과 함께 다시 빌드한다는 뜻입니다. proxyv2는 그 결과물과 pilot-agent를 한 이미지에 담은 것입니다. 엔트리포인트는 pilot-agent입니다.
-- 표준 메트릭과 그 `source_*`/`destination_*` 라벨은 프록시 안의 확장이 만듭니다. 라벨을 채우는 재료는 mTLS 위에서 교환되는 피어 메타데이터입니다. mTLS가 없으면 라벨도 없습니다.
+- 표준 메트릭과 그 `source_*`/`destination_*` 라벨은 프록시 안의 확장이 만듭니다. 라벨을 채우는 재료는 mTLS 위에서 교환되는 피어 메타데이터입니다. mTLS가 없을 때 TCP 라벨이 실제로 비는지는 1.31의 `workload_discovery` 때문에 단정하지 못합니다.
 - CRD는 xDS 리소스로 번역됩니다. 반영 여부를 묻는 가장 짧은 답은 `istioctl proxy-config route|cluster|listener`입니다. `DestinationRule`은 [12]({{< relref "/platform/istio/fundamentals/12-envoy-capabilities/index.md" >}})의 기능들을 켜는 cluster 쪽 스위치입니다.
 - 사이드카 업그레이드는 Envoy 업그레이드입니다. 실제 버전은 릴리스 노트에 없습니다. `pilot-agent request GET server_info`로 파드에 물어봅니다.
 

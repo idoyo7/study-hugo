@@ -2,7 +2,7 @@
 title: "05 요청 커스터마이즈와 정책 — 헤더부터 ext_authz까지, 그리고 함께 쓰기"
 description: "헤더·rewrite·redirect·mirror, L7 인가, 확장 지점을 Istio와 Cilium에서 견주고, Cilium CNI 위에 Istio를 올릴 때의 주의점과 고르는 기준을 정리한다."
 date: 2026-10-19
-lastmod: 2026-10-19
+lastmod: 2026-11-07
 weight: 5
 url: "/istio/cilium/05-request-customization/"
 ---
@@ -86,7 +86,7 @@ Istio AuthorizationPolicy 레퍼런스는 `ALLOW`, `DENY`, `AUDIT`, `CUSTOM` 네
 
 JWT를 사용할 때는 RequestAuthentication과 AuthorizationPolicy의 역할을 구분해야 합니다. RequestAuthentication은 토큰을 검증하지만 토큰이 없는 요청은 통과시킵니다. 토큰을 반드시 제출하게 하려면 AuthorizationPolicy의 `requestPrincipals` 조건도 필요합니다. 리소스 하나만 설정하고 JWT로 접근을 보호했다고 판단하면 요청이 열려 있을 수 있습니다.
 
-Ambient에서는 정책을 집행할 위치도 맞춰야 합니다. HTTP를 파싱하지 않는 ztunnel에 L7 속성이 든 정책을 적용하면, Istio 문서에 명시된 안전 실패 동작에 따라 `DENY` 정책이 됩니다. 따라서 L7 정책은 waypoint와 함께 설계해야 합니다.
+Ambient에서는 정책을 집행할 위치도 맞춰야 합니다. HTTP를 파싱하지 않는 ztunnel은 L7 속성이 든 ALLOW 정책의 규칙을 건너뛰어 트래픽을 막고, L7 속성만 든 DENY 정책은 건너뛰어 아무 트래픽도 막지 않습니다(1.31.4 l4-policy 문서). 따라서 L7 정책은 waypoint와 함께 설계해야 합니다.
 
 ### Cilium의 허용 목록과 중첩 규칙이 동작하는 방식 {#cilium-허용-목록과-규칙이-겹칠-때의-동작}
 
@@ -114,7 +114,7 @@ Cilium Mutual Authentication은 핸드셰이크를 대역 외로 처리할 뿐 �
 | RequestAuthentication은 검증만 | 토큰 없으면 통과, `requestPrincipals`로 요구 | Istio 문서 | `✓` |
 | CNP L7: HTTP·DNS, 403, allow-list | 확장 POSIX 정규식, L7 deny 없음, REFUSED | Cilium L7 정책 문서 | `✓` |
 | Kafka 정책 제거 | 1.19 deprecated, 1.20 제거 | Cilium 업그레이드 노트 | `✓` |
-| ztunnel에 건 L7 속성 정책은 DENY | 안전 실패 | Istio ambient L4 정책 문서 | `✓` |
+| ztunnel에 건 L7 속성 정책의 동작 | ALLOW는 건너뛰어 거부, L7 속성만 든 DENY는 건너뛰어 허용 | Istio ambient L4 정책 문서 | `✓` |
 | 비교표의 대비 구성 | Cilium 쪽은 공식, 대비는 조사자 정리 | — | `Σ` |
 | Mutual Authentication | Beta, 불완전, 1.20 deprecated, 데이터 비암호화 | Cilium Mutual Authentication 문서 | `✓` |
 | Cilium ztunnel 투명 암호화 | 1.19 베타 도입, 1.20.3 베타, TCP만 등 제약 | Cilium ztunnel 암호화 문서 | `✓` |

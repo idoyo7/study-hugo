@@ -2,7 +2,7 @@
 title: "04 재시도와 복원력 — 어느 API로 말할 수 있나"
 description: "Istio의 기본 재시도·타임아웃·연결 풀·outlier 설정과 Gateway API 표준, Cilium의 CEC 경로를 견주어 재시도와 복원력을 어느 API로 표현할 수 있는지 정리한다."
 date: 2026-10-19
-lastmod: 2026-10-19
+lastmod: 2026-11-07
 weight: 4
 url: "/istio/cilium/04-retry-resilience/"
 ---
@@ -59,7 +59,7 @@ Istio에서는 재시도를 따로 설정하지 않아도 HTTP 요청을 기본 
 
 타임아웃의 기본값은 이와 다릅니다. 요청 전체의 `timeout`은 비활성화되어 있고, 시도별 제한인 `perTryTimeout`은 기본적으로 요청 타임아웃과 같은 값을 씁니다. 둘을 모두 생략하면 한 번의 시도에도 시간제한이 없습니다. 느리게 응답하는 백엔드에서는 재시도만 켜져 있고 기다리는 시간은 제한하지 않는 조합이 문제가 됩니다.
 
-재시도 횟수만큼 중요한 것이 재시도 대상입니다. 기본 `retryOn`을 설명하는 문서는 서로 일치하지 않습니다. VirtualService 레퍼런스에는 `connect-failure,refused-stream,unavailable,cancelled`가 있고, MeshConfig의 `defaultHttpRetryPolicy` 문서와 소스(retry.go)에는 `retriable-status-codes`가 추가됩니다. 이 차이 때문에 기본 설정만으로 503을 재시도하는지는 확인하지 못했습니다. 일반 5xx 응답은 기본 목록에 없으므로 앱이 반환한 500을 자동으로 재시도한다고 기대해서는 안 됩니다. 인바운드 쪽 기본값에 `reset-before-request`가 있는 것은 소스에서 확인했으나 도입 버전은 확인하지 못했습니다.
+재시도 횟수만큼 중요한 것이 재시도 대상입니다. 기본 `retryOn`을 설명하는 문서는 서로 일치하지 않습니다. VirtualService 레퍼런스에는 `connect-failure,refused-stream,unavailable,cancelled`가 있고, MeshConfig의 `defaultHttpRetryPolicy` 문서와 소스(retry.go)에는 `retriable-status-codes`가 추가됩니다. 1.31.4 소스에서 기본 정책은 `retriable-status-codes`를 켜지만 코드 목록이 비어 있어, Envoy 문서상 503 응답은 기본 설정만으로 재시도하지 않는 것으로 읽힙니다(소스 해석이며 실측은 아닙니다). 일반 5xx 응답은 기본 목록에 없으므로 앱이 반환한 500을 자동으로 재시도한다고 기대해서는 안 됩니다. 인바운드 쪽 기본값에 `reset-before-request`가 있는 것은 소스에서 확인했으나 도입 버전은 확인하지 못했습니다.
 
 결제나 주문 생성처럼 중복 실행을 피해야 하는 비멱등 요청도 살펴야 합니다. 이런 경로는 `attempts: 0`으로 재시도를 끄라는 것이 일반적인 해석입니다. 메시 전체의 기본값은 `meshConfig.defaultHttpRetryPolicy`로 바꾸며, 여기에 `attempts: 0`을 지정하면 전역 재시도도 끌 수 있습니다. 개별 요청의 HTTPRetry 설정에는 `attempts`, `perTryTimeout`, `retryOn`, `retryRemoteLocalities`, `backoff` 필드를 사용합니다.
 
@@ -73,7 +73,7 @@ Istio에서는 재시도를 따로 설정하지 않아도 HTTP 요청을 기본 
 |---|---|---|---|
 | 기본 재시도 2회 | HTTP 요청, 간격 25ms 이상 | Istio 트래픽 관리 개념, VirtualService 레퍼런스 | `✓` |
 | 기본 retryOn | 문서마다 다름: VirtualService 레퍼런스는 4종, MeshConfig·소스는 `retriable-status-codes` 추가 | VirtualService 레퍼런스, MeshConfig, retry.go | `✓` |
-| 기본만으로 503을 재시도하는지 | 확인하지 못함 | — | `?` |
+| 기본만으로 503을 재시도하는지 | 재시도하지 않는 것으로 읽힘(1.31.4 retry.go 해석, 실측 아님) | retry.go, Envoy 문서 | `≈` |
 | 인바운드 기본 `reset-before-request` | 소스에서만 확인, 도입 버전 확인 못 함 | retry.go | `?` |
 | 전역 기본값 | `meshConfig.defaultHttpRetryPolicy`, `attempts: 0`으로 전역 off | Istio 트래픽 관리 개념, MeshConfig | `✓` |
 | 비멱등 경로는 `attempts: 0` | 일반적 해석 | — | `≈` |

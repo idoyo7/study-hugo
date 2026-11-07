@@ -1,7 +1,7 @@
 ---
 title: "요청 경로 해부"
 date: 2026-08-01
-lastmod: 2026-08-24
+lastmod: 2026-11-07
 weight: 11
 url: "/istio/11-request-path-anatomy/"
 ---
@@ -99,7 +99,7 @@ spiffe://<trust-domain>/ns/<namespace>/sa/<service-account>
 
 설치할 때 지정하지 않았다면 trust domain은 `cluster.local`입니다. 워크로드의 정체성이 파드 이름이나 IP가 아니라 **네임스페이스 + 서비스 어카운트**라는 점이 여기서 드러납니다 — `AuthorizationPolicy`가 principal로 무엇을 받는지도 이 포맷이 이유입니다.
 
-TCP 트래픽에서는 이 mTLS 위에 `istio-peer-exchange`라는 ALPN 프로토콜이 하나 더 붙습니다. 문서 표현대로 "advertised and prioritized by the client and the server sidecars in the mesh"이며 이걸로 피어 메타데이터를 교환합니다. **mTLS가 꺼져 있으면 이 교환도 안 되므로 TCP 지표의 상대 워크로드 라벨이 비게 됩니다.**
+TCP 트래픽에서는 이 mTLS 위에 `istio-peer-exchange`라는 ALPN 프로토콜이 하나 더 붙습니다. 문서 표현대로 "advertised and prioritized by the client and the server sidecars in the mesh"이며 이걸로 피어 메타데이터를 교환합니다. **mTLS가 꺼져 있으면 이 ALPN 교환은 일어나지 않습니다.** 1.31의 MX 필터에는 istiod의 워크로드 정보로 보충하는 `workload_discovery` 경로도 있어서, 평문 TCP에서 상대 워크로드 라벨이 실제로 비는지는 확인하지 못했습니다.
 
 ## 4. 요청이 L7이 되는 지점 = 기능이 생기는 지점
 
@@ -163,7 +163,7 @@ TCP 트래픽에서는 이 mTLS 위에 `istio-peer-exchange`라는 ALPN 프로�
 ## 이 문서에서 가져갈 것
 
 - 파드 안에는 Envoy만 있는 게 아닙니다. **istio-agent가 부트스트랩·CSR·SDS·xDS를 전부 중계**하고 Envoy는 istiod에 직접 붙지 않습니다. 게이트웨이 파드도 같은 구성입니다.
-- 요청이 **처음 HTTP로 해석되는 지점이 곧 기능이 붙는 지점**입니다. 남북에서는 게이트웨이 Envoy, 동서에서는 `:15001`의 아웃바운드 리스너입니다.
+- 요청이 **처음 HTTP로 해석되는 지점이 곧 기능이 붙는 지점**입니다. 남북에서는 게이트웨이 Envoy, 동서에서는 `:15001`이 넘겨준 `0.0.0.0_<port>` 리스너입니다(`:15001`은 `use_original_dst`로 원래 목적지 포트의 리스너에 넘기고, HTTP 해석은 거기서 합니다).
 - 그 해석에 실패하면 평문 TCP로 강등되어 라우팅·재시도·HTTP 지표가 함께 사라집니다. **`appProtocol` 또는 포트 이름으로 명시하는 것이 관측성 구멍을 막는 가장 싼 방법**입니다.
 - `reporter=source`/`destination`은 같은 요청의 두 시선입니다. 대시보드에서는 중복 계수의 원인이지만 장애에서는 홉을 가르는 첫 도구입니다.
 

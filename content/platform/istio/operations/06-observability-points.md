@@ -1,7 +1,7 @@
 ---
 title: "메시가 공짜로 주는 관측성"
 date: 2026-07-12
-lastmod: 2026-08-24
+lastmod: 2026-11-07
 weight: 6
 url: "/istio/06-observability-points/"
 ---
@@ -9,7 +9,7 @@ url: "/istio/06-observability-points/"
 # 06 · 메시가 공짜로 주는 관측성 — 무엇을 볼 수 있게 되나
 
 {{< callout type="info" >}}
-- 사이드카가 이미 모든 요청을 가로채므로 앱을 고치지 않아도 메트릭·액세스 로그·트레이싱(골든 시그널)이 공짜로 나옵니다.
+- 사이드카가 이미 모든 요청을 가로채므로 앱을 고치지 않아도 메트릭은 바로 나오고, 액세스 로그(1.31.4 기본 꺼짐)와 트레이싱(provider 설정·샘플링 전제)은 켜기만 하면 됩니다.
 - 힘은 표준 라벨 차원에 있습니다 — `response_flags`로 실패 원인, `connection_security_policy`로 mTLS 커버리지까지 서비스와 무관하게 슬라이스합니다.
 - 트레이싱만 예외입니다. 스팬 생성은 메시가 하지만 trace 컨텍스트 헤더 전파는 앱이 담당합니다.
 - 카디널리티는 공짜가 아닙니다 — Telemetry API로 태그를 정리·집약해 관리합니다.
@@ -40,6 +40,7 @@ Istio가 내보내는 핵심 프록시 메트릭은 다음과 같습니다. 메�
 | **`istio_requests_total`** | Counter | HTTP/gRPC 요청 수 | Rate · Errors |
 | **`istio_request_duration_milliseconds`** | Histogram | 요청 처리 지연 | Duration (Latency) |
 | **`istio_request_bytes` / `istio_response_bytes`** | Histogram | 요청·응답 본문 크기 | Saturation 보조 |
+| **`istio_request_messages_total` / `istio_response_messages_total`** | Counter | gRPC 스트리밍 메시지 수 | gRPC 스트리밍 |
 | **`istio_tcp_connections_opened_total` / `_closed_total`** | Counter | TCP 연결 개수 | TCP 트래픽 |
 | **`istio_tcp_sent_bytes_total` / `_received_bytes_total`** | Counter | TCP 바이트 | TCP 트래픽 |
 
@@ -50,11 +51,11 @@ Istio가 내보내는 핵심 프록시 메트릭은 다음과 같습니다. 메�
 | `source_workload` · `destination_service` · `destination_workload` | 누가 누구를 부르나 (서비스 그래프의 간선) |
 | `response_code` | HTTP 상태코드별 에러율 |
 | **`response_flags`** | Envoy가 본 실패 원인 (UH/UF/UC/UO…) → [05]({{< relref "/platform/istio/operations/05-incident-intermittent-5xx/index.md" >}})의 나침반 |
-| **`connection_security_policy`** | `mutual_tls` vs `none` → **mTLS 커버리지 모니터링** |
+| **`connection_security_policy`** | `mutual_tls` vs `none` → **mTLS 커버리지 모니터링** (source 쪽 리포트는 항상 `unknown`이라 `reporter="destination"`으로 봄) |
 | `request_protocol` | http / grpc / tcp |
 | `source_app` · `destination_app` · `*_canonical_service` | 앱 단위 집계 |
 
-라벨이 이렇게 고정이면 통합 대시보드 하나로 전 서비스의 RED를 봅니다. 에러율은 `sum(rate(istio_requests_total{response_code=~"5.."}[5m])) by (destination_service)` 한 줄로 나오고 서비스별로 대시보드를 새로 짤 일이 없습니다. mTLS가 안 걸린 트래픽 색출도 `connection_security_policy="none"` 한 줄이면 됩니다 — nginx 시절엔 없던 관측 포인트입니다.
+라벨이 이렇게 고정이면 통합 대시보드 하나로 전 서비스의 RED를 봅니다. 에러율은 `sum(rate(istio_requests_total{response_code=~"5.."}[5m])) by (destination_service)` 한 줄로 나오고 서비스별로 대시보드를 새로 짤 일이 없습니다. mTLS가 안 걸린 트래픽 색출도 `connection_security_policy="none"` 한 줄이면 됩니다(`reporter="destination"` 조건과 함께) — nginx 시절엔 없던 관측 포인트입니다.
 
 ## 2) 액세스 로그 — 요청 한 건의 진실
 
