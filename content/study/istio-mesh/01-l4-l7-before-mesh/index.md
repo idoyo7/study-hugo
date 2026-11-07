@@ -15,7 +15,7 @@ aliases:
 
 이 시리즈의 출발점은 사이드카가 없던 통신 경로입니다. 여기서 요청을 나누는 단위를 확인한 뒤, 게이트웨이와 프록시 사이를 지나 메시의 기능과 관측성으로 이어갑니다. 조사 기준은 2026-11-07 시점의 Istio 1.31.4, Kubernetes 1.37 문서입니다. Istio 안에서 두 계층을 어디에 배치하는지는 [L4와 L7 — 프록시는 어디에 있나]({{< relref "/platform/istio/cilium/01-l4-l7-proxy-placement/index.md" >}})에서 따로 비교합니다.
 
-## 암호화된 요청이 NLB를 지날 때
+## 암호화된 요청이 NLB 앞에 내보이는 겉모습 {#암호화된-요청이-nlb를-지날-때}
 
 클라이언트가 `GET /orders/42`를 보내도 L4 장비가 보는 것은 출발지 IP·포트와 목적지 IP·포트, 프로토콜입니다. HTTP 경로나 헤더는 읽지 않습니다. 연결이 맺힐 때 대상을 한 번 고르고, 이후 바이트는 연결이 끝날 때까지 같은 곳으로 보냅니다.
 
@@ -36,7 +36,7 @@ ALB와 Ingress는 입구에서 TLS를 종료한 뒤 HTTP 요청을 읽습니다.
 | Ingress는 443 단일 포트, 입구에서 TLS 종료, Service·파드 구간은 평문 | Kubernetes 1.37 문서 | [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) |
 {{% /details %}}
 
-## 앞뒤 연결을 나누면 요청마다 다시 고른다
+## 앞뒤 연결 사이에서 요청의 길을 다시 고른다 {#앞뒤-연결을-나누면-요청마다-다시-고른다}
 
 L7 프록시는 클라이언트와의 연결을 자신이 끝내고, HTTP 요청을 파싱한 뒤 백엔드로 가는 연결을 따로 엽니다. 앞쪽 연결 하나에 요청이 여러 개 실려 와도 뒤쪽에서는 요청마다 다른 백엔드를 고를 수 있는 배치입니다. 메서드·경로·Host·헤더가 선택 기준이 됩니다. 헤더를 고치거나 응답 상태 코드를 보고 다른 서버로 다시 보내는 일도 이 자리에서 가능합니다.
 
@@ -69,7 +69,7 @@ Kubernetes Ingress는 외부의 HTTP·HTTPS 요청을 클러스터 안으로 보
 | ingress-nginx는 2026년 3월까지 best-effort 유지보수 후 은퇴, 이후 릴리스·보안 패치 없음 | Kubernetes 블로그(2025-11-11) | [Ingress NGINX Retirement](https://kubernetes.io/blog/2025/11/11/ingress-Nginx-retirement/) |
 {{% /details %}}
 
-## 입구를 지난 서비스 호출은 다시 ClusterIP로
+## 입구 너머에서 다시 만나는 ClusterIP {#입구를-지난-서비스-호출은-다시-clusterip로}
 
 서비스 A의 파드가 Service 이름으로 B를 호출하면 DNS가 ClusterIP를 돌려줍니다. 이 주소는 가상 IP입니다. 실제 파드로 패킷을 보내는 데에는 kube-proxy가 노드마다 설치한 규칙이 쓰입니다.
 
@@ -100,7 +100,7 @@ kube-proxy의 모드가 달라져도 선택 단위는 연결입니다. IPVS의 r
 | NLB TCP 대상 선택은 5-튜플+시퀀스 번호 해시, 연결 수명 동안 대상 고정 | AWS ELB 문서 | [NLB 소개](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) |
 {{% /details %}}
 
-## 파드를 늘렸는데 새 파드가 노는 이유
+## 늘어난 파드 앞에 발길이 뜸한 까닭 {#파드를-늘렸는데-새-파드가-노는-이유}
 
 HTTP/1.1에서는 여러 요청을 함께 보내려면 연결을 여러 개 열어야 합니다. 연결 하나에는 한 번에 요청 하나만 실을 수 있기 때문입니다. 오래된 연결이 닫히고 새 연결이 열리는 동안 목적지를 다시 고르므로, 연결 단위로 나눠도 요청이 대체로 흩어졌습니다.
 
@@ -133,7 +133,7 @@ gRPC 제안서(A9)도 이 한계를 지적합니다. L4 로드밸런서가 나�
 | 클라이언트 측 LB는 언어별 구현·유지 부담 | gRPC 블로그 | [gRPC Load Balancing](https://grpc.io/blog/grpc-load-balancing/) |
 {{% /details %}}
 
-## 재시도 정책을 서비스마다 넣어야 했던 이유
+## 서비스마다 따로 닦던 재시도의 길 {#재시도-정책을-서비스마다-넣어야-했던-이유}
 
 입구의 nginx는 `proxy_next_upstream`으로 요청을 다음 서버에 다시 보냅니다. 기본 조건은 `error timeout`입니다. POST·PATCH 같은 비멱등 요청은 이미 업스트림에 보냈다면 재전송하지 않습니다. 하지만 서비스 A가 B를 부르다 실패한 호출은 입구의 nginx를 지나지 않습니다.
 
@@ -171,7 +171,7 @@ gRPC에서는 서비스 설정(service config)에 메서드별 재시도 정책�
 | `proxy_next_upstream` 기본 `error timeout`, 비멱등 요청은 업스트림 전송 후 재시도 안 함 | nginx 1.9.13 이후, `non_idempotent`로 허용 가능 | [ngx_http_proxy_module](https://nginx.org/en/docs/http/ngx_http_proxy_module.html) |
 {{% /details %}}
 
-## 호출하는 쪽과 받는 쪽에 프록시를 두기
+## 호출의 양 끝에 프록시라는 길잡이 {#호출하는-쪽과-받는-쪽에-프록시를-두기}
 
 호출하는 앱 옆에 L7 프록시를 두면 HTTP/2 연결 하나에 실린 요청도 각각 다른 대상으로 보낼 수 있습니다. 받는 앱 옆에도 프록시가 있으면, 앱이 직접 처리하지 않고 두 프록시 사이를 mTLS로 암호화할 수 있습니다. 재시도와 타임아웃은 언어에 관계없이 프록시 설정 한 곳에 모입니다.
 

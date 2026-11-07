@@ -17,7 +17,7 @@ aliases:
 
 {{< flow src="_flow/1-커넥션-하나가-지나는-리스너.json" />}}
 
-## ClusterIP로 연 커넥션이 먼저 닿는 곳
+## ClusterIP로 향한 연결이 먼저 두드리는 문 {#clusterip로-연-커넥션이-먼저-닿는-곳}
 
 앱이 지정한 TCP 커넥션의 목적지는 `svc-b`의 ClusterIP입니다. 하지만 파드 네트워크 네임스페이스의 iptables 규칙이 이 커넥션을 같은 파드의 Envoy `:15001`로 REDIRECT합니다. `istio-init` 컨테이너나 Istio CNI 플러그인이 파드가 뜰 때 넣어 둔 규칙입니다.
 
@@ -46,7 +46,7 @@ istioctl proxy-config listeners <pod-a> --address 0.0.0.0 --port 8080 -o json
 | `outboundTrafficPolicy` 기본 `ALLOW_ANY` | MeshConfig | [MeshConfig](https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/) |
 {{% /details %}}
 
-## HTTP인지는 포트 선언이 먼저 정한다
+## 포트 선언이 먼저 붙이는 HTTP 이름표 {#http인지는-포트-선언이-먼저-정한다}
 
 8080을 HTTP로 처리하는 근거는 Service 정의에 있습니다. 포트에 `appProtocol`이 있으면 그 값을 쓰고, 없으면 `name: http-web`처럼 `<protocol>[-<suffix>]` 형식으로 붙인 이름을 봅니다. 둘 다 선언했다면 `appProtocol`이 우선입니다.
 
@@ -74,7 +74,7 @@ MySQL처럼 서버가 먼저 말하는 프로토콜은 이 방식과 맞지 않�
 | server-first는 자동 감지·PERMISSIVE와 비호환(둘 다 초기 바이트를 읽음). 25·53·3306·27017은 TCP로 간주 | Istio 1.31.4 | [Application Requirements](https://istio.io/latest/docs/ops/deployment/application-requirements/) |
 {{% /details %}}
 
-### Host에서 대상 파드 IP까지
+### Host라는 이름을 따라 파드 IP까지 {#host에서-대상-파드-ip까지}
 
 HTTP로 처리하는 `0.0.0.0_8080` 리스너에는 HTTP 커넥션 매니저가 있습니다. 이 매니저는 RDS로 받아 둔 라우트 설정 `8080`을 사용합니다. 요청의 Host에 맞는 virtual host를 찾은 뒤 처음 일치하는 route를 따르면, 이 예제에서는 `outbound|8080||svc-b.default.svc.cluster.local` 클러스터에 도달합니다.
 
@@ -96,7 +96,7 @@ istioctl proxy-config endpoints <pod-a> --cluster "outbound|8080||svc-b.default.
 | 클러스터는 EDS로 istiod에서 엔드포인트를 받아 그중 하나로 프록시 | 같은 문서 | 위 문서 |
 {{% /details %}}
 
-## 앱의 커넥션 하나가 파드 하나를 고정하지 않는다
+## 앱의 연결 하나가 파드 하나에 매이지는 않는다 {#앱의-커넥션-하나가-파드-하나를-고정하지-않는다}
 
 앱이 커넥션 하나로 HTTP 요청 백 개를 보내도, 사이드카는 요청마다 엔드포인트를 고릅니다. 앱의 커넥션과 사이드카 사이의 커넥션이 별개이기 때문입니다. 앱은 localhost의 사이드카와 keep-alive를 맺고, 사이드카는 엔드포인트마다 자기 커넥션 풀을 둡니다.
 
@@ -104,7 +104,7 @@ Envoy의 HTTP/1.1 풀은 커넥션 하나에 요청을 하나씩 보냅니다. �
 
 풀 크기와 대기열을 조정하는 설정은 DestinationRule의 `connectionPool`입니다. `maxRequestsPerConnection: 1`로 지정하면 keep-alive를 끕니다.
 
-### HTTP/2 업그레이드는 별도 설정
+### HTTP/2 업그레이드, 따로 여는 문 {#http2-업그레이드는-별도-설정}
 
 사이드카끼리 통신한다고 HTTP/1.1 요청이 자동으로 HTTP/2로 바뀌지는 않습니다. `DefaultMeshConfig`가 `h2UpgradePolicy`를 설정하지 않는다는 소스와 proto enum의 기본값을 함께 보면, 기본 정책은 `DO_NOT_UPGRADE`로 해석됩니다.
 
@@ -141,7 +141,7 @@ spec:
 | 업그레이드된 요청을 목적지 사이드카가 앱에는 선언된 프로토콜(HTTP/1.1)로 넘김 | 소스 구조에서 추론, 문서 문장 없음 | — |
 {{% /details %}}
 
-## mTLS 연결에서 주고받는 신원과 프로토콜
+## mTLS에서 주고받는 신분증과 대화의 언어 {#mtls-연결에서-주고받는-신원과-프로토콜}
 
 보내는 사이드카는 EDS 엔드포인트의 `tlsMode: istio` 메타데이터를 보고 mTLS 여부를 정합니다. 이 값이 있으면 사이드카가 있는 파드로 보고 mTLS로, 없으면 평문으로 보냅니다. 이 동작이 auto mTLS이며, `enableAutoMtls`는 기본적으로 켜져 있습니다.
 
@@ -161,7 +161,7 @@ TLS 핸드셰이크에서는 앞서 판별한 HTTP 프로토콜도 전달합니�
 
 인증서를 준비하는 쪽은 파드 안의 istio-agent입니다. 개인키와 CSR을 만들어 istiod에서 서명을 받은 뒤, SDS로 Envoy에 인증서를 건넵니다. 기본 수명은 24시간이고, 절반쯤 지나면 다시 받습니다. Envoy가 istiod의 CA와 직접 통신하지 않는다는 점은 [요청 경로 해부]({{< relref "/platform/istio/fundamentals/11-request-path-anatomy/index.md" >}}) 1절에서 다룹니다.
 
-### 자동으로 암호화해도 평문이 차단되지는 않는다
+### 자동 암호화는 평문 앞의 문을 잠그지 않는다 {#자동으로-암호화해도-평문이-차단되지는-않는다}
 
 auto mTLS는 보내는 쪽의 선택입니다. 받는 쪽이 어떤 커넥션을 허용할지는 PeerAuthentication으로 정합니다.
 
@@ -202,7 +202,7 @@ spec:
 | port-level 정책이 우회돼 mTLS 필수 포트에 평문이 닿던 문제 수정(GHSA-rr2c-p22p-6r9r) | 1.31.4에서 수정, 2026-11-06 | [1.31.4 공지](https://istio.io/latest/news/releases/1.31.x/announcing-1.31.4/) |
 {{% /details %}}
 
-## 메트릭에 남길 상대 정보는 따로 교환한다
+## 메트릭에 남길 상대의 명함을 따로 주고받다 {#메트릭에-남길-상대-정보는-따로-교환한다}
 
 mTLS로 신원을 확인해도, 그 정보만으로 메트릭에 보낸 쪽의 워크로드, 버전, 앱을 적기는 어렵습니다. 두 사이드카는 자기 노드 메타데이터를 서로 건네 이 정보를 채웁니다.
 
@@ -221,7 +221,7 @@ TCP에는 HTTP 헤더가 없습니다. 대신 Istio 프록시끼리만 성립하
 | HTTP MX 필터 `istio.metadata_exchange`(타입 `io.istio.http.peer_metadata.Config`), discovery `istio_headers`·`workload_discovery` | release-1.31 소스 | [filters.go](https://github.com/istio/istio/blob/release-1.31/pilot/pkg/xds/filters/filters.go) |
 {{% /details %}}
 
-## ambient에서는 앱 커넥션을 HBONE으로 보낸다
+## ambient의 앱 연결은 HBONE을 입고 간다 {#ambient에서는-앱-커넥션을-hbone으로-보낸다}
 
 ambient 모드에는 파드마다 붙는 Envoy가 없습니다. 파드에서 나가는 모든 TCP는 노드의 ztunnel `:15001`로 리다이렉트됩니다. 목적지가 메시 안에 있으면 ztunnel이 HBONE으로 감싸 상대 쪽 `:15008`로 보냅니다.
 
@@ -253,6 +253,6 @@ HBONE을 Envoy 설정으로 조립하는 방식은 [ambient/02]({{< relref "/pla
 | 정책은 목적지 waypoint가 집행 | Istio 1.31.4 | [Waypoint](https://istio.io/latest/docs/ambient/usage/waypoint/) |
 {{% /details %}}
 
-## 다음 편에서는 HTTP를 읽어 가능한 기능을 다룬다
+## 다음 편, HTTP를 읽으면 열리는 문 {#다음-편에서는-http를-읽어-가능한-기능을-다룬다}
 
 양쪽 사이드카가 요청을 HTTP로 읽으면 재시도, 타임아웃, 가중치 분할, 요청 수준 인가가 가능해집니다. 이 기능들이 L4만 있을 때와 무엇이 다른지는 [04편]({{< relref "/study/istio-mesh/04-l7-only-features/index.md" >}})에서 이어갑니다.

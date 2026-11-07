@@ -19,7 +19,7 @@ aliases:
 
 {{< flow src="_flow/1-게이트웨이에서-사이드카까지.json" />}}
 
-## NLB가 나누는 것은 연결
+## NLB가 나누는 연결의 행렬 {#nlb가-나누는-것은-연결}
 
 게이트웨이 앞에서는 아직 HTTP를 읽지 않습니다. 클라우드 LB가 NLB라면 게이트웨이에 도착하기 전까지 요청은 TCP 연결로 다뤄집니다. NLB는 TLS를 풀거나 Host 헤더를 읽지 않으므로, 뒤에 도메인이 열 개 있어도 443 포트로 들어오는 연결만 봅니다.
 
@@ -34,7 +34,7 @@ aliases:
 | `instance` 모드가 NodePort·kube-proxy를 거친다는 설명 | 쿠버네티스 LoadBalancer Service의 일반 동작에서 따온 설명, 위 페이지 문장은 아님 | — |
 {{% /details %}}
 
-## 443을 넘겨받은 Envoy가 TLS를 끝내는 자리
+## 443의 문지기 Envoy가 TLS 봉인을 푼다 {#443을-넘겨받은-envoy가-tls를-끝내는-자리}
 
 Istio ingress gateway도 사이드카와 같은 Envoy입니다. 애플리케이션 파드에 붙는 대신 별도 Deployment로 실행되며, 이 배치를 분리하는 방법은 [03 게이트웨이 격리]({{< relref "/platform/istio/operations/03-gateway-node-isolation/index.md" >}})에서 다뤘습니다.
 
@@ -72,7 +72,7 @@ Istio API에서 Secret을 둘 곳은 게이트웨이 Deployment의 네임스페�
 
 TLS를 끝내지 않는 설정에서는 이후 동작이 달라집니다. `PASSTHROUGH`는 SNI만 보고 암호화된 연결을 그대로 넘기며, `AUTO_PASSTHROUGH`는 VirtualService 없이 SNI로 목적지를 찾습니다. 게이트웨이가 HTTP를 읽지 못하므로 route 설정 이름도 생기지 않고, 경로나 헤더로 요청을 나누지도 못합니다. 클라이언트 인증서까지 확인하는 모드는 `MUTUAL`과 `OPTIONAL_MUTUAL`입니다.
 
-## 목적지는 Service 이름으로 정하고 연결은 파드 IP로
+## Service 이름은 수신인, 파드 IP는 배달 주소 {#목적지는-service-이름으로-정하고-연결은-파드-ip로}
 
 TLS를 풀면 Host 헤더와 경로가 보입니다. 게이트웨이는 이 값을 route에 맞춰 목적지 cluster를 고릅니다. route는 요청을 어디로 보낼지 정하는 설정이고, cluster는 그 목적지의 엔드포인트 묶음입니다.
 
@@ -104,7 +104,7 @@ listener에 포트가 없으면 Gateway가 이 파드를 고르지 못한 것입
 | Gateway `selector`는 기본적으로 모든 네임스페이스에서 찾고, istiod `PILOT_SCOPE_GATEWAY_TO_NAMESPACE=true`면 설정 네임스페이스로 좁힌다 | Istio 1.31.4 | [Gateway 레퍼런스](https://istio.io/latest/docs/reference/config/networking/gateway/) |
 {{% /details %}}
 
-### 실제 연결 주소는 엔드포인트 목록에 있다
+### 엔드포인트 목록에 적힌 실제 배달 주소 {#실제-연결-주소는-엔드포인트-목록에-있다}
 
 설정에는 Service 이름을 썼지만 연결 대상은 파드입니다. istiod는 쿠버네티스 Service를 EDS 타입 cluster로 만들고, Service 뒤에 있는 파드의 IP:port 목록을 엔드포인트로 내려 줍니다. 게이트웨이 Envoy는 그 목록에서 파드 하나를 직접 고릅니다. 기본 알고리즘은 least request입니다. 헤드리스 Service도 게이트웨이에서는 EDS cluster로 바뀝니다.
 
@@ -129,7 +129,7 @@ istioctl proxy-config endpoint -n istio-ingress ${GW#pod/} \
 | "kube-proxy를 우회한다"를 그대로 적은 istio.io 문장 | 찾지 못함. EDS가 파드 IP를 직접 쓴다는 위 두 사실에서 도출 | — |
 {{% /details %}}
 
-### 메시 안쪽 연결에는 워크로드 인증서
+### 메시 안쪽에서 내미는 워크로드 인증서 {#메시-안쪽-연결에는-워크로드-인증서}
 
 대상 파드에 사이드카가 있으면 게이트웨이는 클라이언트 프록시로서 mTLS 연결을 엽니다. 이때는 외부용 Secret 대신 istiod가 서명한 게이트웨이 자신의 워크로드 인증서(SPIFFE ID)를 씁니다.
 
@@ -154,7 +154,7 @@ istioctl proxy-config secret -n istio-ingress ${GW#pod/}   # credentialName 인�
 | `proxy-config secret`에 외부 인증서와 워크로드 인증서가 함께 보인다는 설명 | 위 문서들에서 도출한 기대값, 출력 예시를 문서에서 직접 보지는 못함 | — |
 {{% /details %}}
 
-## 목적지는 8080, 먼저 받는 곳은 15006
+## 8080행 봉투를 먼저 받는 15006 {#목적지는-8080-먼저-받는-곳은-15006}
 
 게이트웨이가 연 연결의 목적지는 `파드IP:8080`입니다. 앱 컨테이너의 포트지만 앱이 바로 받지는 않습니다. 대상 파드의 네트워크 네임스페이스에 준비된 규칙이 인바운드 TCP를 사이드카의 15006으로 돌립니다.
 
@@ -195,7 +195,7 @@ metadata:
 | SYN-only 규칙을 ESTABLISHED divert 규칙보다 먼저 평가(GHSA-cxwg-46mx-q8hf) | 1.31.4, iptables·nftables 모드 | [1.31.4 릴리스 노트](https://istio.io/latest/news/releases/1.31.x/announcing-1.31.4/) |
 {{% /details %}}
 
-## Gateway API를 쓰면 배포 방식이 달라진다
+## Gateway API로 문지기를 세우는 방식 {#gateway-api를-쓰면-배포-방식이-달라진다}
 
 같은 진입점을 Kubernetes Gateway API로 작성해도 Envoy가 요청을 처리하는 경로는 같습니다. 크게 달라지는 것은 게이트웨이를 배포하는 방식입니다. Istio API의 Gateway는 이미 떠 있는 파드를 `selector`로 고르지만, Gateway API의 Gateway는 게이트웨이를 구성하고 배포합니다. 기본적으로 Gateway를 만들면 `<Gateway 이름>-<GatewayClass 이름>`의 Service와 Deployment가 자동으로 생깁니다.
 
@@ -237,7 +237,7 @@ YAML의 형태가 달라도 생성되는 Envoy 설정을 확인하는 방법은 
 | 컨트롤러가 Gateway API 리소스를 "Istio types (Gateway/VirtualService)"로 번역하고, 같은 gateway·hostname의 HTTP·gRPC 라우트를 VirtualService 하나로 합친다 | release-1.31 소스 | [istio/istio `pilot/pkg/config/kube/gateway/controller.go`](https://github.com/istio/istio/blob/release-1.31/pilot/pkg/config/kube/gateway/controller.go) |
 {{% /details %}}
 
-## ambient 목적지에서는 ztunnel이 받는다
+## ambient의 문 앞에서는 ztunnel이 받는다 {#ambient-목적지에서는-ztunnel이-받는다}
 
 목적지 워크로드가 ambient 모드라면 파드 안에 사이드카가 없고, 15006 가로채기도 없습니다. 받는 쪽은 노드의 ztunnel입니다. HBONE은 관례상 15008에서 받습니다. NLB가 연결을 넘기고 게이트웨이 Envoy가 TLS를 종료해 route를 고르는 앞부분은 그대로입니다.
 

@@ -6,6 +6,7 @@
 
 - 최상위 대분류 「스터디」(`content/study/`)를 새로 만들고, 같은 날 Istio 하위에 올렸던 5부작을 `content/study/istio-mesh/`(`/study/istio-mesh/…`)로 옮겼습니다. 이전 주소 `/istio/mesh-traffic/…`는 `aliases`로 남겨 새 주소로 넘어갑니다. 내비게이션 검사기의 루트 섹션 목록과 테스트에 `/study/`를 더했습니다.
 - 저자가 제목이 너무 사실적이라고 해서 시리즈 이름을 「한 요청의 여행」으로, 다섯 편 제목을 비유를 앞세우고 다루는 구간을 뒤에 붙인 꼴로 바꿨습니다. 예: 「02 문지기는 봉투를 열고 다시 봉인한다 — 게이트웨이에서 사이드카까지」. 본문은 바꾸지 않았습니다.
+- 이어서 본문 소제목 38개도 Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`)에 다섯 편을 한 번에 넘겨 같은 결로 바꿨습니다(예: 「Service 이름은 수신인, 파드 IP는 배달 주소」). 기존 앵커는 `{#id}`로 유지했습니다. 실행 기록은 `_workspace/structure-2026-11-07-istio-traffic/headings/`에 있습니다.
 
 ## 2026-11-07 — Istio 메시 통신 경로 5부작 추가
 
