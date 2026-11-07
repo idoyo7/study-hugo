@@ -1,17 +1,19 @@
 ---
-title: "05 메트릭에서 로그와 트레이스까지 요청의 흔적을 잇는 법"
+title: "05 요청이 지나간 자리에 남는 발자국 — 메트릭·로그·트레이스"
 description: "실패한 요청이 어느 프록시까지 갔는지 어떻게 찾나. 메트릭의 reporter로 기록 위치를 구분하고, 라벨과 요청 ID·trace ID로 로그와 트레이스를 이어 읽는다."
 date: 2026-11-07
 lastmod: 2026-11-07
 weight: 5
-url: "/istio/mesh-traffic/05-logs-and-tracing/"
+url: "/study/istio-mesh/05-logs-and-tracing/"
+aliases:
+  - "/istio/mesh-traffic/05-logs-and-tracing/"
 ---
 
-# 05 · 메트릭에서 로그와 트레이스까지 요청의 흔적을 잇는 법
+# 05 · 요청이 지나간 자리에 남는 발자국 — 메트릭·로그·트레이스
 
 5xx가 늘었다는 사실만으로는 실패한 위치를 알 수 없습니다. 메트릭에서 범위를 좁히고 로그에서 요청을 고른 뒤 트레이스로 홉을 이으려면, 각 기록을 어느 프록시가 남겼는지부터 구분해야 합니다.
 
-시리즈는 [01편]({{< relref "/platform/istio/mesh-traffic/01-l4-l7-before-mesh/index.md" >}})의 메시 이전 통신에서 출발해 [게이트웨이]({{< relref "/platform/istio/mesh-traffic/02-gateway-to-sidecar/index.md" >}})와 [프록시 사이 구간]({{< relref "/platform/istio/mesh-traffic/03-proxy-to-proxy/index.md" >}})을 따라왔습니다. [04편]({{< relref "/platform/istio/mesh-traffic/04-l7-only-features/index.md" >}})의 재시도와 카나리는 프록시가 요청 하나하나를 해석하기 때문에 가능한 기능입니다. 요청을 읽는 그 자리에서 메트릭과 액세스 로그, span도 만들어집니다.
+시리즈는 [01편]({{< relref "/study/istio-mesh/01-l4-l7-before-mesh/index.md" >}})의 메시 이전 통신에서 출발해 [게이트웨이]({{< relref "/study/istio-mesh/02-gateway-to-sidecar/index.md" >}})와 [프록시 사이 구간]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})을 따라왔습니다. [04편]({{< relref "/study/istio-mesh/04-l7-only-features/index.md" >}})의 재시도와 카나리는 프록시가 요청 하나하나를 해석하기 때문에 가능한 기능입니다. 요청을 읽는 그 자리에서 메트릭과 액세스 로그, span도 만들어집니다.
 
 설명의 기준은 2026-11-07의 Istio 1.31.4와, 이 버전이 고정한 Envoy 1.39 개발 브랜치 커밋입니다.
 
@@ -35,7 +37,7 @@ sum by (destination_service) (rate(istio_requests_total{reporter="destination", 
 
 무엇을 셀 수 있는지는 프로토콜 분류에 달렸습니다. 사이드카는 HTTP를 파싱해 메서드, 경로, 상태 코드, 지연을 읽으므로 앱에 계측 코드를 넣지 않아도 요청 단위의 표준 메트릭을 만듭니다. HTTP·gRPC로 분류된 요청에는 `istio_requests_total`, `istio_request_duration_milliseconds`, `istio_request_bytes`, `istio_response_bytes`가 붙고, gRPC에는 메시지 수 카운터 두 개가 더 생깁니다.
 
-TCP로 분류되면 `istio_tcp_*` 네 개만 남습니다. 포트 이름이나 `appProtocol`로 프로토콜을 정하지 않은 HTTP 서비스가 TCP로 분류되면 요청 메트릭은 나오지 않습니다. 요청 수가 보이지 않을 때 확인할 프로토콜 감지는 [03편]({{< relref "/platform/istio/mesh-traffic/03-proxy-to-proxy/index.md" >}})에서 이어집니다.
+TCP로 분류되면 `istio_tcp_*` 네 개만 남습니다. 포트 이름이나 `appProtocol`로 프로토콜을 정하지 않은 HTTP 서비스가 TCP로 분류되면 요청 메트릭은 나오지 않습니다. 요청 수가 보이지 않을 때 확인할 프로토콜 감지는 [03편]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})에서 이어집니다.
 
 기본 설정에서는 사이드카 메트릭과 앱 메트릭을 병합하며, 수집 주소는 `:15020/stats/prometheus`입니다. 프록시가 실제로 세는 값은 Envoy admin에서 직접 조회합니다.
 
@@ -63,7 +65,7 @@ Istio는 metadata exchange로 그 정보를 얻습니다. HTTP에서는 `istio.m
 
 교환에 쓰는 헤더는 `x-envoy-peer-metadata`와 `x-envoy-peer-metadata-id`입니다. 1.31.4가 생성하는 필터 설정에는 헤더를 읽는 `istio_headers`와 istiod가 내려 준 워크로드 정보를 조회하는 `workload_discovery`가 함께 들어갑니다. 헤더가 없으면 워크로드 정보에서 상대를 찾는다는 흐름은 이 설정 배열의 순서에서 읽은 것이며, 조회 우선순위 자체를 문서에서 확인한 것은 아닙니다.
 
-TCP에는 헤더를 붙일 곳이 없습니다. mTLS 핸드셰이크의 ALPN에 `istio-peer-exchange`를 넣어 교환을 협상합니다. ALPN 협상 과정은 [03편]({{< relref "/platform/istio/mesh-traffic/03-proxy-to-proxy/index.md" >}})에서 다뤘습니다.
+TCP에는 헤더를 붙일 곳이 없습니다. mTLS 핸드셰이크의 ALPN에 `istio-peer-exchange`를 넣어 교환을 협상합니다. ALPN 협상 과정은 [03편]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})에서 다뤘습니다.
 
 라벨이 비어 있거나 `unknown`인 이유도 여기서 찾습니다. 메시 밖 클라이언트가 호출하면 대상 사이드카에는 받을 헤더도, 조회할 워크로드 정보도 없어 `source_workload`가 `unknown`으로 남습니다. `source_principal`은 mTLS 피어 인증서의 SPIFFE ID에서 오므로 평문 호출에서는 비어 있습니다.
 
@@ -279,7 +281,7 @@ ztunnel과 waypoint가 놓이는 경로는 [ambient를 왜 쓰나]({{< relref "/
 | 1.31.4에서 ztunnel이 잘못된 `traceparent`에 panic하던 문제 수정 | GHSA-77vw-rg85-wx5x | [1.31.4 릴리스 공지](https://istio.io/latest/news/releases/1.31.x/announcing-1.31.4/) |
 {{% /details %}}
 
-프록시가 요청을 해석해 제공하는 재시도와 카나리는 [04편]({{< relref "/platform/istio/mesh-traffic/04-l7-only-features/index.md" >}})에서 다뤘습니다.
+프록시가 요청을 해석해 제공하는 재시도와 카나리는 [04편]({{< relref "/study/istio-mesh/04-l7-only-features/index.md" >}})에서 다뤘습니다.
 
 ## 참고 자료
 

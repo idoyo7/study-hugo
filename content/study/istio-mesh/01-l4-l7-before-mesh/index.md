@@ -1,13 +1,15 @@
 ---
-title: "01 입구의 L7을 지나 다시 L4로 돌아가는 서비스 호출"
+title: "01 한 번 맺은 연결은 길을 바꾸지 않는다 — 메시 이전의 L4와 L7"
 description: "입구에서 요청을 나눠도 내부 호출이 한 파드에 쏠리는 까닭을 다룬다. 서비스 사이의 L4는 연결이 맺힐 때만 대상을 고르므로, 그 연결에 실린 요청을 다시 나누려면 L7 프록시가 필요하다."
 date: 2026-11-07
 lastmod: 2026-11-07
 weight: 1
-url: "/istio/mesh-traffic/01-l4-l7-before-mesh/"
+url: "/study/istio-mesh/01-l4-l7-before-mesh/"
+aliases:
+  - "/istio/mesh-traffic/01-l4-l7-before-mesh/"
 ---
 
-# 01 · 입구의 L7을 지나 다시 L4로 돌아가는 서비스 호출
+# 01 · 한 번 맺은 연결은 길을 바꾸지 않는다 — 메시 이전의 L4와 L7
 
 입구의 Ingress에서 경로별로 요청을 나눠도, 그 뒤 서비스 A가 B를 부르는 호출에는 그 규칙이 적용되지 않습니다. 내부 호출은 다시 ClusterIP로 향합니다. 메시 이전에는 HTTP를 읽는 L7 프록시가 주로 입구에 있었고, 서비스 사이는 연결 단위로 대상을 고르는 L4 구간이었습니다.
 
@@ -188,7 +190,7 @@ Istio 문서에 따르면 Envoy의 기본 분산 방식은 least request이며, 
 | 사이드카 모드에서 요청은 클라이언트·서버 사이드카 두 개를 지난다 | Istio 성능 문서(벤치마크는 1.24 기준) | [Performance and Scalability](https://istio.io/latest/docs/ops/deployment/performance-and-scalability/) |
 {{% /details %}}
 
-다음 편 [02 게이트웨이에서 사이드카까지]({{< relref "/platform/istio/mesh-traffic/02-gateway-to-sidecar/index.md" >}})에서는 외부 NLB를 출발해 Istio ingress gateway와 대상 파드의 사이드카까지 따라갑니다. 입구의 L7 프록시가 메시의 첫 홉이 되는 과정과, 이 경로에서 kube-proxy를 거치지 않게 되는 이유가 이어집니다. 사이드카 내부의 처리 순서는 [11 요청 경로 해부]({{< relref "/platform/istio/fundamentals/11-request-path-anatomy/index.md" >}})에서 먼저 확인할 수 있습니다.
+다음 편 [02 게이트웨이에서 사이드카까지]({{< relref "/study/istio-mesh/02-gateway-to-sidecar/index.md" >}})에서는 외부 NLB를 출발해 Istio ingress gateway와 대상 파드의 사이드카까지 따라갑니다. 입구의 L7 프록시가 메시의 첫 홉이 되는 과정과, 이 경로에서 kube-proxy를 거치지 않게 되는 이유가 이어집니다. 사이드카 내부의 처리 순서는 [11 요청 경로 해부]({{< relref "/platform/istio/fundamentals/11-request-path-anatomy/index.md" >}})에서 먼저 확인할 수 있습니다.
 
 ## 참고 자료
 

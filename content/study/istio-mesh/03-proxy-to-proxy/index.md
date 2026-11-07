@@ -1,15 +1,17 @@
 ---
-title: "03 앱의 요청이 두 사이드카를 지나 상대 파드에 닿기까지"
+title: "03 낯선 두 프록시가 신분증을 주고받는 법 — 사이드카와 사이드카 사이"
 description: "앱이 ClusterIP로 보낸 요청은 어떻게 대상 파드에 닿는가. 보내는 사이드카가 원래 목적지를 찾고 HTTP 라우트와 EDS로 파드를 고른 뒤, 별도의 커넥션으로 요청을 전달한다. 엔드포인트에 `tlsMode: istio`가 있으면 mTLS를 쓰고, 없으면 평문으로 보낸다."
 date: 2026-11-07
 lastmod: 2026-11-07
 weight: 3
-url: "/istio/mesh-traffic/03-proxy-to-proxy/"
+url: "/study/istio-mesh/03-proxy-to-proxy/"
+aliases:
+  - "/istio/mesh-traffic/03-proxy-to-proxy/"
 ---
 
-# 03 · 앱의 요청이 두 사이드카를 지나 상대 파드에 닿기까지
+# 03 · 낯선 두 프록시가 신분증을 주고받는 법 — 사이드카와 사이드카 사이
 
-[02편]({{< relref "/platform/istio/mesh-traffic/02-gateway-to-sidecar/index.md" >}})에서는 외부 요청이 게이트웨이 Envoy를 지나 대상 파드의 사이드카 `:15006`에 도착했습니다. 이번 요청은 메시 안에서 출발합니다. 파드 A의 앱이 `http://svc-b:8080`을 호출하면 게이트웨이를 거치지 않고 양쪽 파드의 사이드카를 지납니다.
+[02편]({{< relref "/study/istio-mesh/02-gateway-to-sidecar/index.md" >}})에서는 외부 요청이 게이트웨이 Envoy를 지나 대상 파드의 사이드카 `:15006`에 도착했습니다. 이번 요청은 메시 안에서 출발합니다. 파드 A의 앱이 `http://svc-b:8080`을 호출하면 게이트웨이를 거치지 않고 양쪽 파드의 사이드카를 지납니다.
 
 앱이 연 커넥션이 상대 앱까지 그대로 이어지지는 않습니다. 보내는 사이드카가 요청을 받아 대상 파드를 고르고, 그 파드로 별도의 커넥션을 엽니다. 아래 경로는 Istio 1.31.4(Envoy 1.39 계열)의 사이드카 모드를 기준으로 합니다.
 
@@ -80,7 +82,7 @@ VirtualService를 바꾸면 route가 달라지고, DestinationRule을 바꾸면 
 
 이 클러스터는 EDS 타입입니다. istiod가 내려준 엔드포인트 목록에 `svc-b` 뒤의 파드 IP들이 들어 있고, 사이드카는 로드밸런싱 정책에 따라 그중 하나를 골라 직접 연결합니다. 앱이 ClusterIP를 목적지로 삼았어도 노드의 kube-proxy DNAT에 도착하기 전에 사이드카가 대상 파드 IP를 정합니다.
 
-대상 파드를 고르는 주체가 커널의 conntrack에서 사이드카로 넘어옵니다. [01편]({{< relref "/platform/istio/mesh-traffic/01-l4-l7-before-mesh/index.md" >}})에서 본 커넥션 단위 분산의 한계가 풀리기 시작하는 지점입니다.
+대상 파드를 고르는 주체가 커널의 conntrack에서 사이드카로 넘어옵니다. [01편]({{< relref "/study/istio-mesh/01-l4-l7-before-mesh/index.md" >}})에서 본 커넥션 단위 분산의 한계가 풀리기 시작하는 지점입니다.
 
 ```bash
 istioctl proxy-config routes <pod-a> --name 8080 -o json
@@ -125,7 +127,7 @@ spec:
 
 메시 설정만으로 업그레이드를 켰다면 HTTP로 명시한 포트에만 적용됩니다. 자동 감지 포트는 제외됩니다. 이런 포트에서 사이드카는 `use_downstream_protocol`에 따라 들어온 프로토콜을 그대로 사용하므로, 앱이 HTTP/1.1로 보내면 사이드카 사이에서도 HTTP/1.1입니다. HTTP/1.1만 아는 앱에 h2 스트림이 전달되는 일을 막기 위한 장치입니다.
 
-업그레이드 여부와 별개로 커넥션을 나누어 관리한다는 점이 요청 단위 로드밸런싱의 바탕입니다. 재시도나 서킷 브레이킹처럼 이 경로에서 동작하는 기능은 [04편]({{< relref "/platform/istio/mesh-traffic/04-l7-only-features/index.md" >}})에서 다룹니다.
+업그레이드 여부와 별개로 커넥션을 나누어 관리한다는 점이 요청 단위 로드밸런싱의 바탕입니다. 재시도나 서킷 브레이킹처럼 이 경로에서 동작하는 기능은 [04편]({{< relref "/study/istio-mesh/04-l7-only-features/index.md" >}})에서 다룹니다.
 
 {{% details title="근거와 출처" closed="true" %}}
 | 주장 | 조건 | 출처 |
@@ -208,7 +210,7 @@ HTTP에서는 요청과 응답의 `x-envoy-peer-metadata-id`·`x-envoy-peer-meta
 
 TCP에는 HTTP 헤더가 없습니다. 대신 Istio 프록시끼리만 성립하는 ALPN `istio-peer-exchange`를 협상합니다. 그러면 양쪽이 커넥션 첫머리에 매직 바이트와 길이가 붙은 protobuf 메타데이터를 서로 씁니다.
 
-이렇게 얻은 값은 `istio_requests_total`의 `source_*`/`destination_*` 라벨로 남습니다. 이 라벨을 어떻게 사용하는지는 [05편]({{< relref "/platform/istio/mesh-traffic/05-logs-and-tracing/index.md" >}})에서 이어집니다.
+이렇게 얻은 값은 `istio_requests_total`의 `source_*`/`destination_*` 라벨로 남습니다. 이 라벨을 어떻게 사용하는지는 [05편]({{< relref "/study/istio-mesh/05-logs-and-tracing/index.md" >}})에서 이어집니다.
 
 {{% details title="근거와 출처" closed="true" %}}
 | 주장 | 조건 | 출처 |
@@ -253,4 +255,4 @@ HBONE을 Envoy 설정으로 조립하는 방식은 [ambient/02]({{< relref "/pla
 
 ## 다음 편에서는 HTTP를 읽어 가능한 기능을 다룬다
 
-양쪽 사이드카가 요청을 HTTP로 읽으면 재시도, 타임아웃, 가중치 분할, 요청 수준 인가가 가능해집니다. 이 기능들이 L4만 있을 때와 무엇이 다른지는 [04편]({{< relref "/platform/istio/mesh-traffic/04-l7-only-features/index.md" >}})에서 이어갑니다.
+양쪽 사이드카가 요청을 HTTP로 읽으면 재시도, 타임아웃, 가중치 분할, 요청 수준 인가가 가능해집니다. 이 기능들이 L4만 있을 때와 무엇이 다른지는 [04편]({{< relref "/study/istio-mesh/04-l7-only-features/index.md" >}})에서 이어갑니다.

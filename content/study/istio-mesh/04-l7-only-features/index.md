@@ -1,21 +1,23 @@
 ---
-title: "04 요청을 읽는 프록시가 분산과 실패 처리를 바꾸는 방식"
+title: "04 편지를 읽는 우체부만 할 수 있는 일 — L7 프록시가 여는 기능"
 description: "L4만으로도 분산과 인가가 가능한데 L7 프록시는 무엇을 더하나. HTTP를 읽어 요청마다 목적지를 고르고, 실패한 요청만 다시 보내며, 경로와 메서드까지 인가 조건에 넣는다."
 date: 2026-11-07
 lastmod: 2026-11-07
 weight: 4
-url: "/istio/mesh-traffic/04-l7-only-features/"
+url: "/study/istio-mesh/04-l7-only-features/"
+aliases:
+  - "/istio/mesh-traffic/04-l7-only-features/"
 ---
 
-# 04 · 요청을 읽는 프록시가 분산과 실패 처리를 바꾸는 방식
+# 04 · 편지를 읽는 우체부만 할 수 있는 일 — L7 프록시가 여는 기능
 
 앱이 HTTP/2 연결 하나를 오래 열어 둬도 그 안의 요청은 여러 파드로 분산됩니다. 사이드카가 요청마다 목적지를 고르기 때문입니다.
 
-[03편]({{< relref "/platform/istio/mesh-traffic/03-proxy-to-proxy/index.md" >}})에서 요청은 클라이언트 사이드카를 나와 mTLS 터널을 지나 상대 사이드카에 도착했습니다. 이 경로의 양쪽 프록시는 HTTP를 읽습니다. 연결 안에서 요청을 구분하므로 실패한 요청만 다시 보내거나, 같은 호출자가 보낸 요청이라도 경로와 메서드에 따라 막을 수 있습니다. Envoy의 전체 기능은 [Envoy가 제공하는 것]({{< relref "/platform/istio/fundamentals/12-envoy-capabilities/index.md" >}})에 정리돼 있습니다.
+[03편]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})에서 요청은 클라이언트 사이드카를 나와 mTLS 터널을 지나 상대 사이드카에 도착했습니다. 이 경로의 양쪽 프록시는 HTTP를 읽습니다. 연결 안에서 요청을 구분하므로 실패한 요청만 다시 보내거나, 같은 호출자가 보낸 요청이라도 경로와 메서드에 따라 막을 수 있습니다. Envoy의 전체 기능은 [Envoy가 제공하는 것]({{< relref "/platform/istio/fundamentals/12-envoy-capabilities/index.md" >}})에 정리돼 있습니다.
 
 ## 연결 하나에 묶였던 요청을 다시 나누기
 
-[01편]({{< relref "/platform/istio/mesh-traffic/01-l4-l7-before-mesh/index.md" >}})에서는 오래 열린 연결 때문에 요청이 한 파드에 몰렸습니다. gRPC나 HTTP/2 클라이언트가 연결 하나에 요청을 계속 실어 보내면, kube-proxy가 연결을 맺을 때 DNAT로 고른 파드가 그 요청을 끝까지 받습니다.
+[01편]({{< relref "/study/istio-mesh/01-l4-l7-before-mesh/index.md" >}})에서는 오래 열린 연결 때문에 요청이 한 파드에 몰렸습니다. gRPC나 HTTP/2 클라이언트가 연결 하나에 요청을 계속 실어 보내면, kube-proxy가 연결을 맺을 때 DNAT로 고른 파드가 그 요청을 끝까지 받습니다.
 
 L4 프록시도 선택 단위는 TCP 연결입니다. Envoy의 TCP proxy 필터는 연결마다 업스트림 클러스터를 고르고, 연결이 맺힌 뒤에는 바이트를 해석하지 않고 넘깁니다. 로드밸런싱에 영향을 줄 값도 새 연결을 처리하기 전에 정해 둬야 합니다.
 
@@ -286,4 +288,4 @@ L7 정책은 `targetRefs`로 waypoint에 붙입니다. waypoint를 거치지 않
 | waypoint 우회 가능성 | waypoint가 없거나 주소가 없을 때 등. ztunnel 정책 병행 권고 | Istio ambient L7 features |
 {{% /details %}}
 
-프록시가 요청을 구분하면 결과 코드와 지연도 요청마다 기록할 수 있습니다. 어느 워크로드가 어느 워크로드를 불렀는지도 라벨로 남깁니다. [05편]({{< relref "/platform/istio/mesh-traffic/05-logs-and-tracing/index.md" >}})에서는 이 기록이 메트릭, 액세스 로그, 트레이스로 이어지는 과정을 따라갑니다.
+프록시가 요청을 구분하면 결과 코드와 지연도 요청마다 기록할 수 있습니다. 어느 워크로드가 어느 워크로드를 불렀는지도 라벨로 남깁니다. [05편]({{< relref "/study/istio-mesh/05-logs-and-tracing/index.md" >}})에서는 이 기록이 메트릭, 액세스 로그, 트레이스로 이어지는 과정을 따라갑니다.

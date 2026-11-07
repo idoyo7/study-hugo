@@ -1,23 +1,25 @@
 ---
-title: "메시 통신 경로"
-linkTitle: "메시 통신 경로"
+title: "한 요청의 여행"
+linkTitle: "Istio · 한 요청의 여행"
 description: "요청 하나가 L4에서 L7로 올라가 게이트웨이와 사이드카를 지나고, 프록시끼리 오가며 무엇을 할 수 있게 되고 무엇이 보이게 되는지를 다섯 편으로 따라간다. Istio 1.31.4 기준."
 date: 2026-11-07
 lastmod: 2026-11-07
-weight: 15
+weight: 10
 comments: false
-url: "/istio/mesh-traffic/"
+url: "/study/istio-mesh/"
+aliases:
+  - "/istio/mesh-traffic/"
 ---
 
-# 메시 통신 경로 — L4에서 관측성까지
+# 한 요청의 여행 — L4에서 관측성까지, Istio 메시 다섯 편
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [01 입구의 L7을 지나 다시 L4로 돌아가는 서비스 호출]({{< relref "/platform/istio/mesh-traffic/01-l4-l7-before-mesh/index.md" >}})
-- [02 외부 요청이 게이트웨이를 거쳐 사이드카에 닿기까지]({{< relref "/platform/istio/mesh-traffic/02-gateway-to-sidecar/index.md" >}})
-- [03 앱의 요청이 두 사이드카를 지나 상대 파드에 닿기까지]({{< relref "/platform/istio/mesh-traffic/03-proxy-to-proxy/index.md" >}})
-- [04 요청을 읽는 프록시가 분산과 실패 처리를 바꾸는 방식]({{< relref "/platform/istio/mesh-traffic/04-l7-only-features/index.md" >}})
-- [05 메트릭에서 로그와 트레이스까지 요청의 흔적을 잇는 법]({{< relref "/platform/istio/mesh-traffic/05-logs-and-tracing/index.md" >}})
+- [01 한 번 맺은 연결은 길을 바꾸지 않는다 — 메시 이전의 L4와 L7]({{< relref "/study/istio-mesh/01-l4-l7-before-mesh/index.md" >}})
+- [02 문지기는 봉투를 열고 다시 봉인한다 — 게이트웨이에서 사이드카까지]({{< relref "/study/istio-mesh/02-gateway-to-sidecar/index.md" >}})
+- [03 낯선 두 프록시가 신분증을 주고받는 법 — 사이드카와 사이드카 사이]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})
+- [04 편지를 읽는 우체부만 할 수 있는 일 — L7 프록시가 여는 기능]({{< relref "/study/istio-mesh/04-l7-only-features/index.md" >}})
+- [05 요청이 지나간 자리에 남는 발자국 — 메트릭·로그·트레이스]({{< relref "/study/istio-mesh/05-logs-and-tracing/index.md" >}})
 
 ## 이 시리즈가 따라가는 길
 

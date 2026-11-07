@@ -1,15 +1,17 @@
 ---
-title: "02 외부 요청이 게이트웨이를 거쳐 사이드카에 닿기까지"
+title: "02 문지기는 봉투를 열고 다시 봉인한다 — 게이트웨이에서 사이드카까지"
 description: "게이트웨이는 외부 요청을 어디로 넘기고 사이드카는 어느 포트에서 받는가. TLS를 종료한 게이트웨이가 파드 IP를 고르고, mTLS로 보낸 요청을 사이드카가 15006에서 받는 경로를 Envoy 설정으로 확인한다."
 date: 2026-11-07
 lastmod: 2026-11-07
 weight: 2
-url: "/istio/mesh-traffic/02-gateway-to-sidecar/"
+url: "/study/istio-mesh/02-gateway-to-sidecar/"
+aliases:
+  - "/istio/mesh-traffic/02-gateway-to-sidecar/"
 ---
 
-# 02 · 외부 요청이 게이트웨이를 거쳐 사이드카에 닿기까지
+# 02 · 문지기는 봉투를 열고 다시 봉인한다 — 게이트웨이에서 사이드카까지
 
-[01편]({{< relref "/platform/istio/mesh-traffic/01-l4-l7-before-mesh/index.md" >}})은 모든 홉에 L7 프록시를 두고 싶어진 이유에서 끝났습니다. 외부 요청을 받는 경로에서는 Istio ingress gateway가 그 첫 L7 홉입니다. 여기서 TLS를 종료하면 게이트웨이는 HTTP를 읽고 요청을 보낼 파드를 고릅니다.
+[01편]({{< relref "/study/istio-mesh/01-l4-l7-before-mesh/index.md" >}})은 모든 홉에 L7 프록시를 두고 싶어진 이유에서 끝났습니다. 외부 요청을 받는 경로에서는 Istio ingress gateway가 그 첫 L7 홉입니다. 여기서 TLS를 종료하면 게이트웨이는 HTTP를 읽고 요청을 보낼 파드를 고릅니다.
 
 조사 기준은 Istio 1.31.4(2026-11-06 릴리스)와 그 버전이 고정한 Envoy 1.39 계열, Gateway API v1.6.0입니다.
 
@@ -116,7 +118,7 @@ istioctl proxy-config endpoint -n istio-ingress ${GW#pod/} \
 # ENDPOINT 열에 10.x.y.z:8080 같은 파드 IP가 보이고, STATUS가 HEALTHY인지 본다
 ```
 
-파드가 Ready가 아니거나 Service 셀렉터가 틀리면 목록이 빕니다. 게이트웨이는 보낼 곳이 없어 503을 돌려줍니다. 응답 플래그로 이 상황을 구분하는 방법은 [05편]({{< relref "/platform/istio/mesh-traffic/05-logs-and-tracing/index.md" >}})에서 이어집니다.
+파드가 Ready가 아니거나 Service 셀렉터가 틀리면 목록이 빕니다. 게이트웨이는 보낼 곳이 없어 503을 돌려줍니다. 응답 플래그로 이 상황을 구분하는 방법은 [05편]({{< relref "/study/istio-mesh/05-logs-and-tracing/index.md" >}})에서 이어집니다.
 
 {{% details title="근거와 출처" closed="true" %}}
 | 주장 | 조건 | 출처 |
@@ -139,7 +141,7 @@ istioctl proxy-config endpoint -n istio-ingress ${GW#pod/} \
 istioctl proxy-config secret -n istio-ingress ${GW#pod/}   # credentialName 인증서와 워크로드 인증서가 함께 실려 있는지 본다
 ```
 
-게이트웨이와 사이드카 사이의 mTLS가 어떤 핸드셰이크와 정책으로 성립하는지는 [03편]({{< relref "/platform/istio/mesh-traffic/03-proxy-to-proxy/index.md" >}})에서 다룹니다.
+게이트웨이와 사이드카 사이의 mTLS가 어떤 핸드셰이크와 정책으로 성립하는지는 [03편]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})에서 다룹니다.
 
 {{% details title="근거와 출처" closed="true" %}}
 | 주장 | 조건 | 출처 |
@@ -241,7 +243,7 @@ YAML의 형태가 달라도 생성되는 Envoy 설정을 확인하는 방법은 
 
 목적지 서비스에 waypoint를 붙였다고 인그레스 요청도 그곳을 지나는 것은 아닙니다. 기본적으로 인그레스에서 들어온 요청은 목적지 waypoint를 건너뜁니다. 메시 내부 호출과 같은 L7 정책을 인그레스 요청에도 적용하려면 Service나 네임스페이스에 `istio.io/ingress-use-waypoint: "true"`를 붙여야 합니다.
 
-HBONE 터널이 맺어지는 과정은 [03편]({{< relref "/platform/istio/mesh-traffic/03-proxy-to-proxy/index.md" >}})과 [Envoy config로 해부하는 Ambient mode]({{< relref "/platform/istio/ambient/02-envoy-config-anatomy/index.md" >}})에서 이어집니다.
+HBONE 터널이 맺어지는 과정은 [03편]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})과 [Envoy config로 해부하는 Ambient mode]({{< relref "/platform/istio/ambient/02-envoy-config-anatomy/index.md" >}})에서 이어집니다.
 
 {{% details title="근거와 출처" closed="true" %}}
 | 주장 | 조건 | 출처 |
@@ -251,6 +253,6 @@ HBONE 터널이 맺어지는 과정은 [03편]({{< relref "/platform/istio/mesh-
 | 게이트웨이가 ambient 목적지에 HBONE으로 보낸다는 문장 | istio.io에서 직접 확인하지 못함 | — |
 {{% /details %}}
 
-[다음 편]({{< relref "/platform/istio/mesh-traffic/03-proxy-to-proxy/index.md" >}})에서는 사이드카가 요청을 보내는 지점에서 출발합니다. 15001 아웃바운드 가로채기부터 상대 사이드카의 15006까지, 두 프록시가 서로를 확인하고 연결을 맺는 과정을 다룹니다.
+[다음 편]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})에서는 사이드카가 요청을 보내는 지점에서 출발합니다. 15001 아웃바운드 가로채기부터 상대 사이드카의 15006까지, 두 프록시가 서로를 확인하고 연결을 맺는 과정을 다룹니다.
 
 같은 경로를 포트 지도와 함께 한 장으로 보고 싶다면 [11 요청 경로 해부]({{< relref "/platform/istio/fundamentals/11-request-path-anatomy/index.md" >}})도 함께 읽으면 됩니다.

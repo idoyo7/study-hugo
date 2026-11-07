@@ -15,7 +15,6 @@ linkTitle: "Istio·서비스 메시"
 ## 이 분류에서 찾기 {#section-navigation}
 
 - [기초·요청 경로]({{< relref "/platform/istio/fundamentals/_index.md" >}})
-- [메시 통신 경로]({{< relref "/platform/istio/mesh-traffic/_index.md" >}})
 - [설정·확장]({{< relref "/platform/istio/configuration/_index.md" >}})
 - [운영·장애 대응]({{< relref "/platform/istio/operations/_index.md" >}})
 - [Ambient]({{< relref "/platform/istio/ambient/_index.md" >}})
@@ -59,7 +58,7 @@ EKS 클러스터 위에서 Istio를 굴리며 실제로 부딪힌 일들을 스�
 - 장애 대응 관점이면 05부터 훑어 "메시가 낀 경로에서 무엇부터 의심하나" 체크리스트를 손에 쥐고 개념이 필요할 때 02·03으로 되짚습니다.
 - 메시로 무엇을 얻나가 궁금하면 06(관측성)에서 공짜로 얻는 모니터링 포인트를 봅니다. 07(nginx→Istio)에서 기존 nginx 설정이 어디로 갔는지 확인한 다음 08(EnvoyFilter)에서 표준 CRD 밖의 조작을 봅니다.
 - istiod를 오토스케일링하려면 02로 부하의 구조를 잡고 09로 넘어갑니다. 09가 답하는 질문은 "몇 대를 띄울까"가 아니라 "커넥션이 어느 파드로 가는가"입니다.
-- L4에서 관측성까지 요청 하나의 경로를 처음부터 따라가려면 [메시 통신 경로]({{< relref "/platform/istio/mesh-traffic/_index.md" >}}) 다섯 편을 차례로 읽습니다. 메시 이전의 L4·L7, 게이트웨이에서 사이드카, 프록시 간 mTLS, L7에서만 생기는 기능, 로그·트레이싱 순서입니다.
+- L4에서 관측성까지 요청 하나의 경로를 처음부터 따라가려면 스터디 분류의 [한 요청의 여행]({{< relref "/study/istio-mesh/_index.md" >}}) 다섯 편을 차례로 읽습니다. 메시 이전의 L4·L7, 게이트웨이에서 사이드카, 프록시 간 mTLS, L7에서만 생기는 기능, 로그·트레이싱 순서입니다.
 - 요청이 실제로 어디를 지나는지 궁금하면 11로 갑니다. 01(구조)·02(컨트롤 플레인)·03(게이트웨이)이 나눠 든 조각을 클라이언트→앱 경로 하나로 꿴 배선도입니다.
 - Ambient mode가 궁금하면 01~09로 사이드카 모드의 비용 구조를 먼저 잡고 [10 Ambient 이행 심사]({{< relref "/platform/istio/ambient/10-ambient-migration-questions.md" >}})로 그 비용 구조 중 무엇이 무효가 되는지 본 뒤 하위 섹션 [Ambient mode 도입기]({{< relref "/platform/istio/ambient/_index.md" >}})로 갑니다. 프록시가 파드에서 노드로 옮겨 가면 무엇이 달라지는지를 다룹니다.
 - Cilium과 비교하려면 [Istio와 Cilium]({{< relref "/platform/istio/cilium/_index.md" >}}) 섹션으로 갑니다. 같은 Envoy를 어디에 두는지, Gateway API·관측·재시도·요청 변형에서 무엇이 다른지, 둘을 함께 쓸 때 무엇을 조심하는지를 다룹니다.
