@@ -1,5 +1,5 @@
 ---
-title: "05 요청이 지나간 자리에 남는 발자국 — 메트릭·로그·트레이스"
+title: "05 요청 뒤에 남은 발자국 — 메트릭·로그·트레이스"
 description: "실패한 요청이 어느 프록시까지 갔는지 어떻게 찾나. 메트릭의 reporter로 기록 위치를 구분하고, 라벨과 요청 ID·trace ID로 로그와 트레이스를 이어 읽는다."
 date: 2026-11-07
 lastmod: 2026-11-07
@@ -9,7 +9,7 @@ aliases:
   - "/istio/mesh-traffic/05-logs-and-tracing/"
 ---
 
-# 05 · 요청이 지나간 자리에 남는 발자국 — 메트릭·로그·트레이스
+# 05 · 요청 뒤에 남은 발자국 — 메트릭·로그·트레이스
 
 5xx가 늘었다는 사실만으로는 실패한 위치를 알 수 없습니다. 메트릭에서 범위를 좁히고 로그에서 요청을 고른 뒤 트레이스로 홉을 이으려면, 각 기록을 어느 프록시가 남겼는지부터 구분해야 합니다.
 
@@ -55,7 +55,7 @@ kubectl exec deploy/web -c istio-proxy -- \
 | 메트릭 병합 기본 on, `:15020/stats/prometheus` | `meshConfig.enablePrometheusMerge=false`로 끔 | [Istio Prometheus 통합](https://istio.io/latest/docs/ops/integrations/prometheus/) |
 {{% /details %}}
 
-### IP 뒤에 있던 워크로드 이름이 드러난다 {#ip에서-워크로드-이름으로}
+### IP 뒤에서 드러나는 워크로드 이름 {#ip에서-워크로드-이름으로}
 
 `istio_requests_total`에는 `source_workload`, `source_principal`, `destination_workload`, `destination_service`, `response_code`, `response_flags`, `connection_security_policy` 같은 라벨이 붙습니다. 그런데 대상 사이드카가 아는 것은 연결의 출발지 IP이고, 호출 쪽 사이드카가 아는 것은 자신이 고른 엔드포인트 IP입니다. 상대의 워크로드와 버전을 채우려면 정보가 더 있어야 합니다.
 
@@ -90,7 +90,7 @@ istioctl proxy-config listener deploy/web --port 15006 -o json \
 | 헤더와 워크로드 조회의 우선순위 | 설정 배열 순서로 읽은 것, 문서 근거 없음 | — |
 {{% /details %}}
 
-## 5xx의 흔적을 따라 실패한 홉까지 {#5xx에서-실패한-홉으로-좁혀-가기}
+## 5xx의 흔적을 따라 좁혀 가는 실패한 홉 {#5xx에서-실패한-홉으로-좁혀-가기}
 
 메트릭에는 개별 요청이 없습니다. 라벨 조합별 합계에서 문제가 생긴 범위를 찾았다면, 같은 시간대의 `destination_workload`, `response_code`, `response_flags`를 조건으로 로그를 고릅니다. 액세스 로그에는 요청 한 건이 남지만, 보이는 범위는 그 로그를 쓴 홉까지입니다.
 
@@ -150,7 +150,7 @@ kubectl logs deploy/web -c istio-proxy --since=10m | awk '$6 != "-"' | tail
 | awk 예시의 `$6`이 flag 칸 | 기본 TEXT 포맷이고 메서드·경로·프로토콜에 공백이 없을 때 | 기본 포맷에서 계산 |
 {{% /details %}}
 
-## 앱이 헤더를 건네야 span도 이어진다 {#span을-이어-주는-것은-앱의-헤더-전파}
+## 앱이 건넨 헤더로 이어지는 span {#span을-이어-주는-것은-앱의-헤더-전파}
 
 사이드카가 span을 만들어도 앱의 연속된 호출까지 저절로 이어지지는 않습니다. 호출 쪽 사이드카는 클라이언트 span을, 대상 쪽 사이드카는 서버 span을 남깁니다. 그런데 대상 앱이 요청을 받은 뒤 다른 서비스를 호출하면, 사이드카에는 별개의 새 요청으로 보입니다. 앞서 받은 요청과 같은 트레이스에 속한다는 사실은 앱만 압니다.
 
@@ -193,7 +193,7 @@ spec:
 | x-request-id에 trace reason을 담아 Envoy 집합 전체에서 안정적으로 샘플링 | Envoy가 아닌 프록시가 섞이면 깨짐 | Envoy `arch_overview/observability/tracing.rst` (커밋 `8893f913`) |
 {{% /details %}}
 
-### 로그에 trace ID를 남겨 지나온 길을 잇다 {#로그에-trace-id를-남기는-설정}
+### 지나온 길을 로그로 잇는 trace ID {#로그에-trace-id를-남기는-설정}
 
 요청 ID도 trace 헤더처럼 앱이 전파해야 홉을 넘어 같은 값으로 남습니다. 전파가 되어 있다면 `x-request-id`는 홉별 로그를 맞추는 기준입니다. 호출 쪽과 대상 쪽 로그에서 같은 값을 찾으면 앞서 `UF`를 읽었듯 요청이 어느 홉에서 멈췄는지 확인합니다.
 
@@ -220,7 +220,7 @@ extensionProviders:
 | 비샘플 요청의 trace ID 출력 여부 | 확인하지 못함. tracer 구현에 따라 다를 수 있음 | — |
 {{% /details %}}
 
-## 남길 라벨이 바꾸는 기록의 두께 {#남길-라벨을-고르면-저장량도-달라진다}
+## 남길 라벨에 따라 달라지는 기록의 두께 {#남길-라벨을-고르면-저장량도-달라진다}
 
 표준 메트릭의 시계열 수에는 source 워크로드 수 × destination 서비스 수 × 응답 코드 × flag × reporter 두 값 × 버전이 곱해지고, 히스토그램에는 버킷 수도 더 곱해집니다.
 
@@ -262,7 +262,7 @@ reporter 한쪽을 끄면 시계열은 크게 줄어듭니다. 무엇을 보지 
 | 1.31.4에서 source_app·destination_app이 다시 `app` 라벨을 씀 | 이전 패치의 회귀 수정 | [1.31.4 릴리스 공지](https://istio.io/latest/news/releases/1.31.x/announcing-1.31.4/) |
 {{% /details %}}
 
-## ambient에서 waypoint를 지나면 요청이 보인다 {#ambient에서-요청을-읽는-자리는-waypoint}
+## ambient에서 waypoint가 드러내는 요청 {#ambient에서-요청을-읽는-자리는-waypoint}
 
 ambient 모드에는 파드마다 사이드카가 없습니다. 노드의 ztunnel은 L4만 처리하고 HTTP를 파싱하지 않으므로, 메트릭도 `istio_tcp_*` 네 개만 남깁니다. 로그는 연결이 끝날 때 한 줄씩 쓰는 `connection complete` 기록입니다. 양쪽 워크로드와 SPIFFE ID, 방향, 바이트, 지속 시간이 들어가며 상태 코드와 response flag는 없습니다.
 

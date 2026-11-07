@@ -15,11 +15,11 @@ aliases:
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [01 한 번 맺은 연결은 길을 바꾸지 않는다 — 메시 이전의 L4와 L7]({{< relref "/study/istio-mesh/01-l4-l7-before-mesh/index.md" >}})
-- [02 문을 지나 다시 길을 고른다 — 게이트웨이에서 사이드카까지]({{< relref "/study/istio-mesh/02-gateway-to-sidecar/index.md" >}})
-- [03 낯선 두 프록시가 신분증을 주고받는 법 — 사이드카와 사이드카 사이]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})
-- [04 요청을 읽는 곳에서 길은 달라진다 — L7 프록시가 여는 기능]({{< relref "/study/istio-mesh/04-l7-only-features/index.md" >}})
-- [05 요청이 지나간 자리에 남는 발자국 — 메트릭·로그·트레이스]({{< relref "/study/istio-mesh/05-logs-and-tracing/index.md" >}})
+- [01 한 연결에 묶인 길 — 메시 이전의 L4와 L7]({{< relref "/study/istio-mesh/01-l4-l7-before-mesh/index.md" >}})
+- [02 다시 길을 고르는 문 — 게이트웨이에서 사이드카까지]({{< relref "/study/istio-mesh/02-gateway-to-sidecar/index.md" >}})
+- [03 신원을 주고받는 두 프록시 — 사이드카와 사이드카 사이]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})
+- [04 요청을 읽는 갈림길 — L7 프록시가 여는 기능]({{< relref "/study/istio-mesh/04-l7-only-features/index.md" >}})
+- [05 요청 뒤에 남은 발자국 — 메트릭·로그·트레이스]({{< relref "/study/istio-mesh/05-logs-and-tracing/index.md" >}})
 
 ## 이 시리즈가 따라가는 길
 
