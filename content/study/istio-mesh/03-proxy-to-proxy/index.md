@@ -74,7 +74,7 @@ MySQL처럼 서버가 먼저 말하는 프로토콜은 이 방식과 맞지 않�
 | server-first는 자동 감지·PERMISSIVE와 비호환(둘 다 초기 바이트를 읽음). 25·53·3306·27017은 TCP로 간주 | Istio 1.31.4 | [Application Requirements](https://istio.io/latest/docs/ops/deployment/application-requirements/) |
 {{% /details %}}
 
-### Host라는 이름을 따라 파드 IP까지 {#host에서-대상-파드-ip까지}
+### Host를 따라 파드 IP로 이어지는 길 {#host에서-대상-파드-ip까지}
 
 HTTP로 처리하는 `0.0.0.0_8080` 리스너에는 HTTP 커넥션 매니저가 있습니다. 이 매니저는 RDS로 받아 둔 라우트 설정 `8080`을 사용합니다. 요청의 Host에 맞는 virtual host를 찾은 뒤 처음 일치하는 route를 따르면, 이 예제에서는 `outbound|8080||svc-b.default.svc.cluster.local` 클러스터에 도달합니다.
 
@@ -104,7 +104,7 @@ Envoy의 HTTP/1.1 풀은 커넥션 하나에 요청을 하나씩 보냅니다. �
 
 풀 크기와 대기열을 조정하는 설정은 DestinationRule의 `connectionPool`입니다. `maxRequestsPerConnection: 1`로 지정하면 keep-alive를 끕니다.
 
-### HTTP/2 업그레이드, 따로 여는 문 {#http2-업그레이드는-별도-설정}
+### HTTP/2 업그레이드는 저절로 오지 않는다 {#http2-업그레이드는-별도-설정}
 
 사이드카끼리 통신한다고 HTTP/1.1 요청이 자동으로 HTTP/2로 바뀌지는 않습니다. `DefaultMeshConfig`가 `h2UpgradePolicy`를 설정하지 않는다는 소스와 proto enum의 기본값을 함께 보면, 기본 정책은 `DO_NOT_UPGRADE`로 해석됩니다.
 
@@ -141,7 +141,7 @@ spec:
 | 업그레이드된 요청을 목적지 사이드카가 앱에는 선언된 프로토콜(HTTP/1.1)로 넘김 | 소스 구조에서 추론, 문서 문장 없음 | — |
 {{% /details %}}
 
-## mTLS에서 주고받는 신분증과 대화의 언어 {#mtls-연결에서-주고받는-신원과-프로토콜}
+## mTLS로 신원을 묻고 대화의 언어를 고른다 {#mtls-연결에서-주고받는-신원과-프로토콜}
 
 보내는 사이드카는 EDS 엔드포인트의 `tlsMode: istio` 메타데이터를 보고 mTLS 여부를 정합니다. 이 값이 있으면 사이드카가 있는 파드로 보고 mTLS로, 없으면 평문으로 보냅니다. 이 동작이 auto mTLS이며, `enableAutoMtls`는 기본적으로 켜져 있습니다.
 
@@ -161,7 +161,7 @@ TLS 핸드셰이크에서는 앞서 판별한 HTTP 프로토콜도 전달합니�
 
 인증서를 준비하는 쪽은 파드 안의 istio-agent입니다. 개인키와 CSR을 만들어 istiod에서 서명을 받은 뒤, SDS로 Envoy에 인증서를 건넵니다. 기본 수명은 24시간이고, 절반쯤 지나면 다시 받습니다. Envoy가 istiod의 CA와 직접 통신하지 않는다는 점은 [요청 경로 해부]({{< relref "/platform/istio/fundamentals/11-request-path-anatomy/index.md" >}}) 1절에서 다룹니다.
 
-### 자동 암호화는 평문 앞의 문을 잠그지 않는다 {#자동으로-암호화해도-평문이-차단되지는-않는다}
+### auto mTLS는 평문 앞의 문을 잠그지 않는다 {#자동으로-암호화해도-평문이-차단되지는-않는다}
 
 auto mTLS는 보내는 쪽의 선택입니다. 받는 쪽이 어떤 커넥션을 허용할지는 PeerAuthentication으로 정합니다.
 
@@ -202,7 +202,7 @@ spec:
 | port-level 정책이 우회돼 mTLS 필수 포트에 평문이 닿던 문제 수정(GHSA-rr2c-p22p-6r9r) | 1.31.4에서 수정, 2026-11-06 | [1.31.4 공지](https://istio.io/latest/news/releases/1.31.x/announcing-1.31.4/) |
 {{% /details %}}
 
-## 메트릭에 남길 상대의 명함을 따로 주고받다 {#메트릭에-남길-상대-정보는-따로-교환한다}
+## 메트릭에 남길 이름을 따로 주고받는다 {#메트릭에-남길-상대-정보는-따로-교환한다}
 
 mTLS로 신원을 확인해도, 그 정보만으로 메트릭에 보낸 쪽의 워크로드, 버전, 앱을 적기는 어렵습니다. 두 사이드카는 자기 노드 메타데이터를 서로 건네 이 정보를 채웁니다.
 
@@ -253,6 +253,6 @@ HBONE을 Envoy 설정으로 조립하는 방식은 [ambient/02]({{< relref "/pla
 | 정책은 목적지 waypoint가 집행 | Istio 1.31.4 | [Waypoint](https://istio.io/latest/docs/ambient/usage/waypoint/) |
 {{% /details %}}
 
-## 다음 편, HTTP를 읽으면 열리는 문 {#다음-편에서는-http를-읽어-가능한-기능을-다룬다}
+## HTTP를 읽으면 다음 길이 열린다 {#다음-편에서는-http를-읽어-가능한-기능을-다룬다}
 
 양쪽 사이드카가 요청을 HTTP로 읽으면 재시도, 타임아웃, 가중치 분할, 요청 수준 인가가 가능해집니다. 이 기능들이 L4만 있을 때와 무엇이 다른지는 [04편]({{< relref "/study/istio-mesh/04-l7-only-features/index.md" >}})에서 이어갑니다.

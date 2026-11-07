@@ -1,5 +1,5 @@
 ---
-title: "04 편지를 읽는 우체부만 할 수 있는 일 — L7 프록시가 여는 기능"
+title: "04 요청을 읽는 곳에서 길은 달라진다 — L7 프록시가 여는 기능"
 description: "L4만으로도 분산과 인가가 가능한데 L7 프록시는 무엇을 더하나. HTTP를 읽어 요청마다 목적지를 고르고, 실패한 요청만 다시 보내며, 경로와 메서드까지 인가 조건에 넣는다."
 date: 2026-11-07
 lastmod: 2026-11-07
@@ -9,13 +9,13 @@ aliases:
   - "/istio/mesh-traffic/04-l7-only-features/"
 ---
 
-# 04 · 편지를 읽는 우체부만 할 수 있는 일 — L7 프록시가 여는 기능
+# 04 · 요청을 읽는 곳에서 길은 달라진다 — L7 프록시가 여는 기능
 
 앱이 HTTP/2 연결 하나를 오래 열어 둬도 그 안의 요청은 여러 파드로 분산됩니다. 사이드카가 요청마다 목적지를 고르기 때문입니다.
 
 [03편]({{< relref "/study/istio-mesh/03-proxy-to-proxy/index.md" >}})에서 요청은 클라이언트 사이드카를 나와 mTLS 터널을 지나 상대 사이드카에 도착했습니다. 이 경로의 양쪽 프록시는 HTTP를 읽습니다. 연결 안에서 요청을 구분하므로 실패한 요청만 다시 보내거나, 같은 호출자가 보낸 요청이라도 경로와 메서드에 따라 막을 수 있습니다. Envoy의 전체 기능은 [Envoy가 제공하는 것]({{< relref "/platform/istio/fundamentals/12-envoy-capabilities/index.md" >}})에 정리돼 있습니다.
 
-## 한 연결에 묶인 요청을 한 통씩 나누다 {#연결-하나에-묶였던-요청을-다시-나누기}
+## 한 연결로 온 요청이 저마다 길을 찾는다 {#연결-하나에-묶였던-요청을-다시-나누기}
 
 [01편]({{< relref "/study/istio-mesh/01-l4-l7-before-mesh/index.md" >}})에서는 오래 열린 연결 때문에 요청이 한 파드에 몰렸습니다. gRPC나 HTTP/2 클라이언트가 연결 하나에 요청을 계속 실어 보내면, kube-proxy가 연결을 맺을 때 DNAT로 고른 파드가 그 요청을 끝까지 받습니다.
 
@@ -52,7 +52,7 @@ istioctl proxy-config endpoints deploy/frontend --cluster "outbound|8080||orders
 | `lbPolicy` 생략 = ROUND_ROBIN | Envoy cluster proto 기본값 | Envoy 1.39 API |
 {{% /details %}}
 
-## 요청마다 고르는 버전이라는 배달지 {#어떤-요청을-어느-버전으로-보낼-것인가}
+## 요청마다 향할 버전을 새로 고른다 {#어떤-요청을-어느-버전으로-보낼-것인가}
 
 VirtualService의 HTTP route에 지정한 가중치는 요청마다 적용됩니다. TCP route에도 `weight`는 있습니다. Istio의 TCP traffic shifting 예제는 v1과 v2를 80:20으로 나누지만, Envoy TCP proxy가 연결마다 클러스터를 고르므로 이 비율의 기준은 연결 수입니다.
 
@@ -91,7 +91,7 @@ VirtualService의 HTTP route에 지정한 가중치는 요청마다 적용됩니
 | 미러 요청 Host의 `-shadow` 접미사 | 태스크 문서는 붙는다고 쓰지만 1.31.4 소스의 `DISABLE_SHADOW_HOST_SUFFIX` 기본값은 true. 실측하지 않음 | Mirroring 태스크, `pilot/pkg/features/pilot.go` |
 {{% /details %}}
 
-## 실패한 편지는 다시 보내되 오래 기다리지 않는다 {#실패한-요청은-다시-보내고-대기-시간은-제한한다}
+## 실패 뒤에 다시 나서도 기다림에는 끝이 있다 {#실패한-요청은-다시-보내고-대기-시간은-제한한다}
 
 TCP proxy의 `max_connect_attempts`로 반복할 수 있는 것은 연결 시도뿐입니다. 연결이 맺혀 바이트가 오가기 시작하면 어디까지가 요청 하나인지 모르므로, 실패한 요청만 골라 다시 보낼 수 없습니다.
 
@@ -178,7 +178,7 @@ spec:
 | 풀 초과는 `UO` | response flag `UPSTREAM_OVERFLOW` | Envoy 1.39 `source/common/stream_info/utility.h` |
 {{% /details %}}
 
-## fault와 재시도를 서로 다른 홉에 부치다 {#fault로-재시도를-시험할-때는-홉을-나눈다}
+## fault와 재시도는 서로 다른 홉에 머문다 {#fault로-재시도를-시험할-때는-홉을-나눈다}
 
 재시도가 장애를 흡수하는지 시험하려면 fault와 재시도를 서로 다른 홉에 둬야 합니다. 같은 VirtualService의 route에 fault를 넣으면 그 route의 재시도와 타임아웃이 꺼지기 때문입니다.
 
@@ -203,7 +203,7 @@ fault injection은 일부 요청에 지연이나 오류를 넣어 호출하는 �
 | fault와 retry·timeout은 같이 안 됨 | "timeouts or retries will not be enabled when faults are enabled on the client side" | Istio VS 레퍼런스, Traffic Management 개념 |
 {{% /details %}}
 
-## 보낸 이의 신원에서 경로와 메서드까지 {#호출자-신원에서-경로와-메서드까지}
+## 신원에서 경로와 메서드까지 넓어지는 시선 {#호출자-신원에서-경로와-메서드까지}
 
 요청을 허용할지 판단할 때도 L7이 꼭 필요한 조건과 연결만으로 판단할 수 있는 조건이 있습니다. 상대 워크로드의 신원은 이미 03편의 mTLS 핸드셰이크에서 인증서의 SPIFFE ID로 확인했습니다. 따라서 주문 서비스 계정만 결제 서비스에 연결하도록 제한하는 정책은 TCP에서도 집행됩니다.
 

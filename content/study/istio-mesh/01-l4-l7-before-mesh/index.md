@@ -171,7 +171,7 @@ gRPC에서는 서비스 설정(service config)에 메서드별 재시도 정책�
 | `proxy_next_upstream` 기본 `error timeout`, 비멱등 요청은 업스트림 전송 후 재시도 안 함 | nginx 1.9.13 이후, `non_idempotent`로 허용 가능 | [ngx_http_proxy_module](https://nginx.org/en/docs/http/ngx_http_proxy_module.html) |
 {{% /details %}}
 
-## 호출의 양 끝에 프록시라는 길잡이 {#호출하는-쪽과-받는-쪽에-프록시를-두기}
+## 호출의 양 끝에서 프록시가 마주 선다 {#호출하는-쪽과-받는-쪽에-프록시를-두기}
 
 호출하는 앱 옆에 L7 프록시를 두면 HTTP/2 연결 하나에 실린 요청도 각각 다른 대상으로 보낼 수 있습니다. 받는 앱 옆에도 프록시가 있으면, 앱이 직접 처리하지 않고 두 프록시 사이를 mTLS로 암호화할 수 있습니다. 재시도와 타임아웃은 언어에 관계없이 프록시 설정 한 곳에 모입니다.
 
