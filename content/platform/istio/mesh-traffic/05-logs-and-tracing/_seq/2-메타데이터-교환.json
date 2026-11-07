@@ -1,0 +1,16 @@
+{
+  "caption": "HTTP에서는 두 사이드카가 요청과 응답 헤더에 자기 워크로드 정보를 실어 보내고, 받은 쪽이 그 값으로 상대편 라벨을 채웁니다.",
+  "participants": [
+    { "id": "c", "label": "호출 사이드카" },
+    { "id": "s", "label": "대상 사이드카" },
+    { "id": "b", "label": "대상 앱" }
+  ],
+  "steps": [
+    { "msg": ["c", "s"], "label": "1. 요청 + 호출 쪽 정보" },
+    { "msg": ["s", "b"], "label": "2. 요청 전달" },
+    { "msg": ["b", "s"], "label": "3. 응답", "dashed": true },
+    { "note": ["s"], "lines": ["source_* 라벨 채워", "destination 기록"] },
+    { "msg": ["s", "c"], "label": "4. 응답 + 대상 쪽 정보", "dashed": true },
+    { "note": ["c"], "lines": ["destination_* 라벨 채워", "source 기록"] }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "caption": "요청 하나가 NLB를 지나 게이트웨이 Envoy에서 처음 HTTP로 읽히고, 파드 IP로 직행한 뒤 iptables에 꺾여 사이드카 :15006을 거쳐 앱에 닿습니다.",
+  "token": true,
+  "nodes": [
+    { "id": "C", "col": 0, "row": 0, "label": "클라이언트", "sub": "TLS · SNI", "kind": "src" },
+    { "id": "L", "col": 1, "row": 0, "label": "NLB", "sub": "TCP만 전달", "kind": "proc" },
+    { "id": "G", "col": 2, "row": 0, "label": "gateway Envoy", "sub": "listener→route→cluster", "kind": "proc" },
+    { "id": "I", "col": 2, "row": 1, "label": "iptables", "sub": "PREROUTING", "kind": "query" },
+    { "id": "S", "col": 1, "row": 1, "label": "사이드카 :15006", "sub": "mTLS 종료", "kind": "proc" },
+    { "id": "A", "col": 0, "row": 1, "label": "앱 컨테이너", "sub": "파드 IP:8080", "kind": "sink" }
+  ],
+  "groups": [
+    { "id": "pod", "label": "대상 파드", "members": ["I", "S", "A"] }
+  ],
+  "edges": [
+    { "from": "C", "to": "L", "label": "TCP" },
+    { "from": "L", "to": "G", "label": "TCP" },
+    { "from": "G", "to": "I", "label": "파드 IP 직행" },
+    { "from": "I", "to": "S", "label": "15006" },
+    { "from": "S", "to": "A", "label": "평문" }
+  ]
+}

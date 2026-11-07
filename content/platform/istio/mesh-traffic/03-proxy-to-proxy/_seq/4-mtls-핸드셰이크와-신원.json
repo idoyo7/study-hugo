@@ -1,0 +1,19 @@
+{
+  "caption": "보내는 사이드카는 ALPN으로 메시 안의 HTTP/1.1임을 알리고, 상대 인증서의 SPIFFE ID를 확인한 뒤 자기 인증서를 냅니다. 받는 쪽은 그 신원으로 정책을 판단하고 앱에는 평문으로 넘깁니다.",
+  "participants": [
+    { "id": "SA", "label": "사이드카 A" },
+    { "id": "SB", "label": "사이드카 B" },
+    { "id": "B", "label": "앱 B" }
+  ],
+  "steps": [
+    { "msg": ["SA", "SB"], "label": "1. ClientHello (ALPN)" },
+    { "note": ["SA", "SB"], "lines": ["ALPN: istio-http/1.1, istio, http/1.1", "TCP 포트면 istio-peer-exchange, istio"] },
+    { "msg": ["SB", "SA"], "label": "2. 서버 인증서 (SPIFFE)", "dashed": true },
+    { "msg": ["SA", "SB"], "label": "3. SAN 확인 뒤 클라이언트 인증서" },
+    { "note": ["SB"], "lines": ["PeerAuthentication 판단", "상대 신원 기록"] },
+    { "msg": ["SA", "SB"], "label": "4. HTTP 요청 + peer 헤더" },
+    { "msg": ["SB", "B"], "label": "5. 평문 요청 (localhost)" },
+    { "msg": ["B", "SB"], "label": "6. 응답", "dashed": true },
+    { "msg": ["SB", "SA"], "label": "7. 응답 + peer 헤더", "dashed": true }
+  ]
+}

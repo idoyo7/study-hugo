@@ -1,0 +1,20 @@
+{
+  "caption": "앱이 서비스 이름으로 연 커넥션은 :15001에서 원래 목적지를 되찾고, 라우트와 EDS를 거쳐 고른 파드 IP로 곧장 mTLS를 엽니다. 받는 쪽은 :15006에서 TLS를 벗기고 앱에는 localhost로 넘깁니다.",
+  "token": true,
+  "font": 1.2,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "앱 A", "sub": "svc-b:8080 호출", "kind": "src" },
+    { "id": "O", "col": 1, "row": 0, "label": ":15001", "sub": "원본 목적지 복원", "kind": "proc" },
+    { "id": "L", "col": 2, "row": 0, "label": "8080 리스너", "sub": "route 선택", "kind": "proc" },
+    { "id": "C", "col": 3, "row": 0, "label": "cluster", "sub": "EDS 파드 IP 선택", "kind": "store" },
+    { "id": "I", "col": 3, "row": 1, "label": "B의 :15006", "sub": "mTLS 종단", "kind": "proc" },
+    { "id": "B", "col": 2, "row": 1, "label": "앱 B", "sub": "localhost:8080", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "A", "to": "O", "label": "가로챔" },
+    { "from": "O", "to": "L", "label": "넘김" },
+    { "from": "L", "to": "C", "label": "라우트" },
+    { "from": "C", "to": "I", "label": "mTLS 직행" },
+    { "from": "I", "to": "B", "label": "평문" }
+  ]
+}

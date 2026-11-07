@@ -1,0 +1,16 @@
+{
+  "caption": "HTTP/2를 해석하는 L7 프록시는 같은 연결 안의 요청을 하나씩 꺼내 고르므로, 연결이 하나여도 세 파드에 요청이 고르게 나뉩니다.",
+  "nodes": [
+    { "id": "c", "col": 0, "row": 1, "label": "gRPC 클라이언트", "sub": "HTTP/2 연결 1개", "kind": "src" },
+    { "id": "p", "col": 1, "row": 1, "label": "L7 프록시", "sub": "요청마다 선택", "kind": "proc" },
+    { "id": "a", "col": 2, "row": 0, "label": "파드 A", "sub": "요청 1/3", "kind": "sink" },
+    { "id": "b", "col": 2, "row": 1, "label": "파드 B", "sub": "요청 1/3", "kind": "sink" },
+    { "id": "d", "col": 2, "row": 2, "label": "파드 C", "sub": "요청 1/3", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "c", "to": "p", "label": "연결", "rate": 260 },
+    { "from": "p", "to": "a", "rate": 780 },
+    { "from": "p", "to": "b", "rate": 780 },
+    { "from": "p", "to": "d", "rate": 780 }
+  ]
+}
