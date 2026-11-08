@@ -1,0 +1,27 @@
+{
+  "caption": "istiod는 쿠버네티스의 변경을 watch하고, 게이트웨이와 사이드카 Envoy가 열어 둔 xDS 스트림으로 설정과 인증서를 내려보냅니다. 요청은 istiod를 거치지 않고 프록시끼리 이어집니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "dp", "label": "데이터 플레인", "members": ["g", "a", "b"] },
+    { "id": "cp", "label": "컨트롤 플레인", "members": ["k", "i"] }
+  ],
+  "nodes": [
+    { "id": "c", "col": 0, "row": 0, "label": "클라이언트", "sub": "Ingress traffic", "kind": "src" },
+    { "id": "g", "col": 1, "row": 0, "label": "ingress gateway", "sub": "Envoy", "kind": "proc" },
+    { "id": "a", "col": 2, "row": 0, "label": "Service A", "sub": "사이드카 Envoy", "kind": "proc" },
+    { "id": "b", "col": 3, "row": 0, "label": "Service B", "sub": "사이드카 Envoy", "kind": "proc" },
+    { "id": "e", "col": 4, "row": 0, "label": "외부 서비스", "sub": "Egress traffic", "kind": "sink" },
+    { "id": "k", "col": 1, "row": 2, "label": "Kubernetes API", "sub": "Service · CRD", "kind": "store" },
+    { "id": "i", "col": 2, "row": 2, "label": "istiod", "sub": "xDS 서버 · CA", "kind": "proc" }
+  ],
+  "edges": [
+    { "from": "c", "to": "g", "label": "TLS" },
+    { "from": "g", "to": "a", "label": "mTLS" },
+    { "from": "a", "to": "b", "label": "mTLS" },
+    { "from": "b", "to": "e", "label": "egress" },
+    { "from": "k", "to": "i", "label": "watch", "dashed": true },
+    { "from": "i", "to": "g", "label": "xDS", "dashed": true },
+    { "from": "i", "to": "a", "label": "설정·인증서", "dashed": true },
+    { "from": "i", "to": "b", "label": "xDS", "dashed": true }
+  ]
+}

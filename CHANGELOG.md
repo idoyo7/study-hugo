@@ -2,6 +2,11 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-08 — 한 요청의 여행 본문 보충과 istiod·xDS 아키텍처 그림
+
+- 그림 중심 개편에서 너무 많이 잘렸다는 저자 평가에 따라 다섯 편의 보이는 본문을 약 1.5배로 늘렸습니다(공백 제외 13,874자 → 21,253자). 개편 전 원고에서 확인 명령(`istioctl proxy-config`, iptables 등), 짧은 YAML 예, 그림만으로 안 보이는 인과와 기본값·함정, 사이드카와 ambient 대조를 골라 되살렸고 절마다 접힌 근거 표를 다시 달았습니다. 그림·제목·소제목·앵커는 그대로입니다. 분량 측정 스크립트와 브리프는 `_workspace/istio-visual-expand-2026-11-08/`에 있습니다.
+- 02편에 istiod가 Kubernetes API를 watch하고 ingress gateway와 사이드카 Envoy에 xDS로 설정과 인증서를 내려보내는 아키텍처 그림을 더했습니다. Istio 공식 아키텍처 그림(사이드카 모드)의 배치(위 데이터 플레인 Ingress → Service A → Service B → Egress, 아래 istiod)를 따라 flow로 다시 그렸고, Ingress 자리에 ingress gateway를, istiod 옆에 Kubernetes API를 더했습니다.
+
 ## 2026-11-08 — 타사 테크블로그에 쏘카 추가
 
 - 쏘카 기술 블로그(tech.socar.kr) 72편 가운데 인프라·플랫폼·데이터 파이프라인·운영에 해당하는 20편을 골라 `content/external/socar/blog/`에 한 편씩 요약했습니다. 형식은 당근 블로그 요약과 같고, 목록은 게시일 최신순입니다.
