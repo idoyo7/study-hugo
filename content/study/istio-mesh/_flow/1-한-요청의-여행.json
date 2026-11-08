@@ -1,0 +1,54 @@
+{
+  "caption": "Gateway를 지난 요청은 파드 A에 도착합니다. A가 B를 호출하는 내부 구간도 두 파드의 사이드카를 지납니다.",
+  "font": 1.2,
+  "nodes": [
+    {
+      "id": "client",
+      "col": 0,
+      "row": 0,
+      "label": "클라이언트",
+      "kind": "src"
+    },
+    {
+      "id": "gateway",
+      "col": 1,
+      "row": 0,
+      "label": "Gateway",
+      "sub": "외부 TLS 종료",
+      "kind": "proc"
+    },
+    {
+      "id": "a",
+      "col": 1,
+      "row": 1,
+      "label": "파드 A",
+      "sub": "사이드카 + 앱",
+      "kind": "proc"
+    },
+    {
+      "id": "b",
+      "col": 0,
+      "row": 1,
+      "label": "파드 B",
+      "sub": "사이드카 + 앱",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "client",
+      "to": "gateway",
+      "label": "TLS"
+    },
+    {
+      "from": "gateway",
+      "to": "a",
+      "label": "mTLS"
+    },
+    {
+      "from": "a",
+      "to": "b",
+      "label": "mTLS"
+    }
+  ]
+}

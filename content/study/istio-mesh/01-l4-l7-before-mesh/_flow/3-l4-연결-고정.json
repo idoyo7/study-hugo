@@ -1,16 +1,69 @@
 {
-  "caption": "kube-proxy는 연결이 맺힐 때 파드를 한 번 고르므로, gRPC 클라이언트가 연결 하나로 요청을 계속 보내면 모든 요청이 처음 고른 파드 하나에 몰립니다.",
+  "caption": "HTTP/2 연결 하나를 유지하면 그 안의 RPC는 처음 선택한 파드로 향하고, 나중에 늘린 파드로 옮겨 가지 않습니다.",
   "nodes": [
-    { "id": "c", "col": 0, "row": 1, "label": "gRPC 클라이언트", "sub": "HTTP/2 연결 1개", "kind": "src" },
-    { "id": "k", "col": 1, "row": 1, "label": "ClusterIP", "sub": "kube-proxy DNAT", "kind": "query" },
-    { "id": "a", "col": 2, "row": 0, "label": "파드 A", "sub": "모든 요청", "kind": "sink" },
-    { "id": "b", "col": 2, "row": 1, "label": "파드 B", "sub": "요청 없음", "kind": "sink", "ghost": true },
-    { "id": "d", "col": 2, "row": 2, "label": "파드 C", "sub": "요청 없음", "kind": "sink", "ghost": true }
+    {
+      "id": "c",
+      "col": 0,
+      "row": 1,
+      "label": "gRPC 클라이언트",
+      "kind": "src",
+      "sub": "HTTP/2 연결 1개"
+    },
+    {
+      "id": "k",
+      "col": 1,
+      "row": 1,
+      "label": "ClusterIP",
+      "kind": "query",
+      "sub": "연결 수립 때 선택"
+    },
+    {
+      "id": "a",
+      "col": 2,
+      "row": 0,
+      "label": "파드 A",
+      "kind": "sink",
+      "sub": "기존 연결의 요청"
+    },
+    {
+      "id": "b",
+      "col": 2,
+      "row": 1,
+      "label": "파드 B",
+      "kind": "sink",
+      "sub": "기존 연결 없음"
+    },
+    {
+      "id": "d",
+      "col": 2,
+      "row": 2,
+      "label": "새 파드 C",
+      "kind": "sink",
+      "sub": "기존 연결 없음"
+    }
   ],
   "edges": [
-    { "from": "c", "to": "k", "label": "연결", "rate": 260 },
-    { "from": "k", "to": "a", "label": "고정", "rate": 260, "w": 3 },
-    { "from": "k", "to": "b", "dashed": true },
-    { "from": "k", "to": "d", "dashed": true }
+    {
+      "from": "c",
+      "to": "k",
+      "label": "연결"
+    },
+    {
+      "from": "k",
+      "to": "a",
+      "label": "고정"
+    },
+    {
+      "from": "k",
+      "to": "b",
+      "label": "새 연결",
+      "dashed": true
+    },
+    {
+      "from": "k",
+      "to": "d",
+      "label": "새 연결",
+      "dashed": true
+    }
   ]
 }

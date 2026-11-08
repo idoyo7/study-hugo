@@ -1,0 +1,65 @@
+{
+  "caption": "입구의 L7 규칙은 외부 요청에 적용되고, 앱 A가 시작한 내부 호출은 ClusterIP의 연결 단위 선택을 따릅니다.",
+  "token": true,
+  "nodes": [
+    {
+      "id": "c",
+      "col": 0,
+      "row": 0,
+      "label": "외부 클라이언트",
+      "kind": "src"
+    },
+    {
+      "id": "g",
+      "col": 1,
+      "row": 0,
+      "label": "Ingress",
+      "kind": "proc",
+      "sub": "L7 · 경로별 분기"
+    },
+    {
+      "id": "a",
+      "col": 2,
+      "row": 0,
+      "label": "앱 A",
+      "kind": "proc"
+    },
+    {
+      "id": "k",
+      "col": 2,
+      "row": 1,
+      "label": "ClusterIP",
+      "kind": "query",
+      "sub": "L4 · 연결별 선택"
+    },
+    {
+      "id": "b",
+      "col": 1,
+      "row": 1,
+      "label": "앱 B",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "c",
+      "to": "g",
+      "label": "HTTP"
+    },
+    {
+      "from": "g",
+      "to": "a",
+      "label": "요청"
+    },
+    {
+      "from": "a",
+      "to": "k",
+      "label": "새 호출"
+    },
+    {
+      "from": "k",
+      "to": "b",
+      "label": "DNAT"
+    }
+  ]
+}

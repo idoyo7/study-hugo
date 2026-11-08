@@ -1,0 +1,71 @@
+{
+  "caption": "호출 쪽 Envoy가 요청을 나누고, 두 Envoy가 mTLS를 맡아 앱 사이의 공통 통신 처리를 옮겨 받습니다.",
+  "font": 1.2,
+  "groups": [
+    {
+      "id": "a-pod",
+      "label": "파드 A",
+      "members": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "b-pod",
+      "label": "파드 B",
+      "members": [
+        "c",
+        "d"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "a",
+      "col": 0,
+      "row": 0,
+      "label": "앱 A",
+      "kind": "src"
+    },
+    {
+      "id": "b",
+      "col": 1,
+      "row": 0,
+      "label": "Envoy A",
+      "kind": "proc",
+      "sub": "분산 · 재시도"
+    },
+    {
+      "id": "c",
+      "col": 2,
+      "row": 0,
+      "label": "Envoy B",
+      "kind": "proc",
+      "sub": "인증 · 인가"
+    },
+    {
+      "id": "d",
+      "col": 3,
+      "row": 0,
+      "label": "앱 B",
+      "kind": "sink"
+    }
+  ],
+  "edges": [
+    {
+      "from": "a",
+      "to": "b",
+      "label": "HTTP"
+    },
+    {
+      "from": "b",
+      "to": "c",
+      "label": "mTLS"
+    },
+    {
+      "from": "c",
+      "to": "d",
+      "label": "HTTP"
+    }
+  ]
+}

@@ -1,19 +1,79 @@
 {
-  "caption": "요청 하나가 두 사이드카를 지나면 호출 쪽은 reporter=source로, 대상 쪽은 reporter=destination으로 같은 요청을 한 번씩 기록합니다.",
+  "caption": "정상적인 내부 호출을 양쪽 사이드카가 각각 관측합니다. reporter를 구분하지 않고 합산하면 같은 호출을 중복해서 셉니다.",
   "font": 1.2,
   "nodes": [
-    { "id": "a", "col": 0, "row": 0, "label": "호출 앱", "kind": "src" },
-    { "id": "cs", "col": 1, "row": 0, "label": "호출 사이드카", "sub": "outbound", "kind": "proc" },
-    { "id": "ss", "col": 2, "row": 0, "label": "대상 사이드카", "sub": "inbound", "kind": "proc" },
-    { "id": "b", "col": 3, "row": 0, "label": "대상 앱", "kind": "sink" },
-    { "id": "cr", "col": 1, "row": 1, "label": "source 기록", "sub": "메트릭·로그·span", "kind": "store" },
-    { "id": "sr", "col": 2, "row": 1, "label": "destination 기록", "sub": "메트릭·로그·span", "kind": "store" }
+    {
+      "id": "a",
+      "col": 0,
+      "row": 0,
+      "label": "호출 앱",
+      "kind": "src"
+    },
+    {
+      "id": "cs",
+      "col": 0,
+      "row": 1,
+      "label": "호출 사이드카",
+      "sub": "outbound",
+      "kind": "proc"
+    },
+    {
+      "id": "ss",
+      "col": 1,
+      "row": 1,
+      "label": "대상 사이드카",
+      "sub": "inbound",
+      "kind": "proc"
+    },
+    {
+      "id": "b",
+      "col": 1,
+      "row": 0,
+      "label": "대상 앱",
+      "kind": "sink"
+    },
+    {
+      "id": "cr",
+      "col": 0,
+      "row": 2,
+      "label": "source",
+      "sub": "호출 쪽 메트릭",
+      "kind": "store"
+    },
+    {
+      "id": "sr",
+      "col": 1,
+      "row": 2,
+      "label": "destination",
+      "sub": "대상 쪽 메트릭",
+      "kind": "store"
+    }
   ],
   "edges": [
-    { "from": "a", "to": "cs", "label": "HTTP" },
-    { "from": "cs", "to": "ss", "label": "mTLS" },
-    { "from": "ss", "to": "b", "label": "HTTP" },
-    { "from": "cs", "to": "cr", "label": "요청마다" },
-    { "from": "ss", "to": "sr", "label": "요청마다" }
+    {
+      "from": "a",
+      "to": "cs",
+      "label": "HTTP"
+    },
+    {
+      "from": "cs",
+      "to": "ss",
+      "label": "mTLS"
+    },
+    {
+      "from": "ss",
+      "to": "b",
+      "label": "HTTP"
+    },
+    {
+      "from": "cs",
+      "to": "cr",
+      "label": "요청마다"
+    },
+    {
+      "from": "ss",
+      "to": "sr",
+      "label": "요청마다"
+    }
   ]
 }

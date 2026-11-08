@@ -1,0 +1,55 @@
+{
+  "caption": "게이트웨이 Envoy는 EDS의 파드 IP 목록에서 대상을 골라 연결하므로, 이 홉의 목적지는 ClusterIP가 아닙니다.",
+  "nodes": [
+    {
+      "id": "e",
+      "col": 0,
+      "row": 0,
+      "label": "EDS 목록",
+      "kind": "store",
+      "sub": "파드 IP:8080"
+    },
+    {
+      "id": "g",
+      "col": 1,
+      "row": 0,
+      "label": "gateway Envoy",
+      "kind": "proc",
+      "sub": "cart:8080 cluster"
+    },
+    {
+      "id": "a",
+      "col": 2,
+      "row": 0,
+      "label": "파드 A",
+      "kind": "sink",
+      "sub": "10.0.1.8:8080"
+    },
+    {
+      "id": "b",
+      "col": 2,
+      "row": 1,
+      "label": "파드 B",
+      "kind": "sink",
+      "sub": "10.0.2.9:8080"
+    }
+  ],
+  "edges": [
+    {
+      "from": "e",
+      "to": "g",
+      "label": "설정",
+      "dashed": true
+    },
+    {
+      "from": "g",
+      "to": "a",
+      "label": "요청"
+    },
+    {
+      "from": "g",
+      "to": "b",
+      "label": "요청"
+    }
+  ]
+}

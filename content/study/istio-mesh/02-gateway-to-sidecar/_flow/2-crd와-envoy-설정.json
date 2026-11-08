@@ -1,0 +1,99 @@
+{
+  "caption": "istiod는 Gateway·VirtualService·Service 정보를 Envoy 설정으로 번역하며, 실제 요청은 Envoy가 처리합니다.",
+  "nodes": [
+    {
+      "id": "g",
+      "col": 0,
+      "row": 0,
+      "label": "Gateway",
+      "kind": "src",
+      "sub": "포트 · TLS"
+    },
+    {
+      "id": "v",
+      "col": 0,
+      "row": 1,
+      "label": "VirtualService",
+      "kind": "src",
+      "sub": "Host · 경로"
+    },
+    {
+      "id": "s",
+      "col": 0,
+      "row": 2,
+      "label": "Service · 파드",
+      "kind": "src",
+      "sub": "대상 · 주소"
+    },
+    {
+      "id": "i",
+      "col": 1,
+      "row": 1,
+      "label": "istiod",
+      "kind": "proc",
+      "sub": "설정 생성"
+    },
+    {
+      "id": "l",
+      "col": 2,
+      "row": 0,
+      "label": "listener",
+      "kind": "sink",
+      "sub": "수신 포트"
+    },
+    {
+      "id": "r",
+      "col": 2,
+      "row": 1,
+      "label": "route · cluster",
+      "kind": "sink",
+      "sub": "요청의 목적지"
+    },
+    {
+      "id": "d",
+      "col": 2,
+      "row": 2,
+      "label": "endpoints",
+      "kind": "sink",
+      "sub": "파드 IP 목록"
+    }
+  ],
+  "edges": [
+    {
+      "from": "g",
+      "to": "i",
+      "label": "설정",
+      "dashed": true
+    },
+    {
+      "from": "v",
+      "to": "i",
+      "label": "설정",
+      "dashed": true
+    },
+    {
+      "from": "s",
+      "to": "i",
+      "label": "발견",
+      "dashed": true
+    },
+    {
+      "from": "i",
+      "to": "l",
+      "label": "xDS",
+      "dashed": true
+    },
+    {
+      "from": "i",
+      "to": "r",
+      "label": "xDS",
+      "dashed": true
+    },
+    {
+      "from": "i",
+      "to": "d",
+      "label": "xDS",
+      "dashed": true
+    }
+  ]
+}

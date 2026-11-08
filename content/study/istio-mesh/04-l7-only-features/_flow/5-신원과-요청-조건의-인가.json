@@ -1,0 +1,54 @@
+{
+  "caption": "같은 서비스 계정의 요청이라도 HTTP 메서드와 경로를 읽으면 GET /orders/*만 허용하는 정책을 적용할 수 있습니다.",
+  "nodes": [
+    {
+      "id": "a",
+      "col": 0,
+      "row": 1,
+      "label": "호출자",
+      "kind": "src",
+      "sub": "서비스 계정 확인"
+    },
+    {
+      "id": "p",
+      "col": 1,
+      "row": 1,
+      "label": "대상 사이드카",
+      "kind": "query",
+      "sub": "HTTP 인가"
+    },
+    {
+      "id": "b",
+      "col": 2,
+      "row": 0,
+      "label": "앱",
+      "kind": "sink",
+      "sub": "GET /orders/*"
+    },
+    {
+      "id": "deny",
+      "col": 2,
+      "row": 2,
+      "label": "거부 응답",
+      "kind": "sink",
+      "sub": "그 밖의 요청"
+    }
+  ],
+  "edges": [
+    {
+      "from": "a",
+      "to": "p",
+      "label": "mTLS"
+    },
+    {
+      "from": "p",
+      "to": "b",
+      "label": "허용"
+    },
+    {
+      "from": "p",
+      "to": "deny",
+      "label": "거부"
+    }
+  ]
+}

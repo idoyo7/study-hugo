@@ -1,18 +1,69 @@
 {
-  "caption": "사이드카는 실패한 요청을 기억하고 있어서 같은 요청을 다른 파드로 다시 보낼 수 있습니다. L4 프록시가 되풀이할 수 있는 것은 연결 시도뿐입니다.",
+  "caption": "재시도 조건에 맞는 연결 실패가 나면 사이드카가 다른 파드로 다시 보낼 수 있으며, 전체 타임아웃 안에서만 시도합니다.",
   "participants": [
-    { "id": "app", "label": "앱" },
-    { "id": "sc", "label": "클라이언트 사이드카" },
-    { "id": "a", "label": "파드 A" },
-    { "id": "b", "label": "파드 B" }
+    {
+      "id": "app",
+      "label": "앱"
+    },
+    {
+      "id": "sc",
+      "label": "사이드카"
+    },
+    {
+      "id": "a",
+      "label": "파드 A"
+    },
+    {
+      "id": "b",
+      "label": "파드 B"
+    }
   ],
   "steps": [
-    { "msg": ["app", "sc"], "label": "1. GET /orders" },
-    { "msg": ["sc", "a"], "label": "2. 전달" },
-    { "msg": ["a", "sc"], "label": "3. 연결 실패", "dashed": true },
-    { "note": ["sc"], "lines": ["retryOn 조건에 맞음", "이미 시도한 파드는 제외"] },
-    { "msg": ["sc", "b"], "label": "4. 같은 요청 재시도" },
-    { "msg": ["b", "sc"], "label": "5. 200 OK", "dashed": true },
-    { "msg": ["sc", "app"], "label": "6. 200 OK", "dashed": true }
+    {
+      "msg": [
+        "app",
+        "sc"
+      ],
+      "label": "1. GET /orders"
+    },
+    {
+      "msg": [
+        "sc",
+        "a"
+      ],
+      "label": "2. 연결 시도"
+    },
+    {
+      "note": [
+        "sc",
+        "a"
+      ],
+      "lines": [
+        "연결 실패: retryOn에 해당"
+      ]
+    },
+    {
+      "msg": [
+        "sc",
+        "b"
+      ],
+      "label": "3. 다른 파드로 재시도"
+    },
+    {
+      "msg": [
+        "b",
+        "sc"
+      ],
+      "label": "4. 200 OK",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "sc",
+        "app"
+      ],
+      "label": "5. 200 OK",
+      "dashed": true
+    }
   ]
 }

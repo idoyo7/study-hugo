@@ -1,0 +1,73 @@
+{
+  "caption": "NLB의 TCP 리스너는 암호문을 전달하고 TLS 리스너는 NLB에서 복호화하지만, 어느 쪽도 HTTP 경로별로 분기하지 않습니다.",
+  "nodes": [
+    {
+      "id": "a",
+      "col": 0,
+      "row": 0,
+      "label": "클라이언트",
+      "kind": "src"
+    },
+    {
+      "id": "b",
+      "col": 1,
+      "row": 0,
+      "label": "NLB TCP",
+      "kind": "proc",
+      "sub": "TLS 통과"
+    },
+    {
+      "id": "c",
+      "col": 2,
+      "row": 0,
+      "label": "백엔드",
+      "kind": "sink",
+      "sub": "TLS 종료"
+    },
+    {
+      "id": "d",
+      "col": 0,
+      "row": 1,
+      "label": "클라이언트",
+      "kind": "src"
+    },
+    {
+      "id": "f",
+      "col": 1,
+      "row": 1,
+      "label": "NLB TLS",
+      "kind": "proc",
+      "sub": "TLS 종료"
+    },
+    {
+      "id": "g",
+      "col": 2,
+      "row": 1,
+      "label": "백엔드",
+      "kind": "sink",
+      "sub": "대상 프로토콜 적용"
+    }
+  ],
+  "edges": [
+    {
+      "from": "a",
+      "to": "b",
+      "label": "TLS"
+    },
+    {
+      "from": "b",
+      "to": "c",
+      "label": "TLS"
+    },
+    {
+      "from": "d",
+      "to": "f",
+      "label": "TLS"
+    },
+    {
+      "from": "f",
+      "to": "g",
+      "label": "TCP/TLS"
+    }
+  ]
+}

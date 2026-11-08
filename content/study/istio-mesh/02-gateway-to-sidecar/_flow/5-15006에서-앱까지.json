@@ -1,0 +1,79 @@
+{
+  "caption": "파드 IP:8080으로 온 연결은 15006으로 리다이렉트되고, 사이드카가 복호화한 요청은 기본 구성에서 같은 파드 IP:8080의 앱으로 전달됩니다.",
+  "token": true,
+  "groups": [
+    {
+      "id": "pod",
+      "label": "대상 파드",
+      "members": [
+        "p",
+        "l",
+        "c",
+        "a"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "g",
+      "col": 0,
+      "row": 0,
+      "label": "gateway Envoy",
+      "kind": "src"
+    },
+    {
+      "id": "p",
+      "col": 1,
+      "row": 0,
+      "label": "파드 eth0",
+      "kind": "proc",
+      "sub": "파드 IP:8080"
+    },
+    {
+      "id": "l",
+      "col": 2,
+      "row": 0,
+      "label": "virtualInbound",
+      "kind": "proc",
+      "sub": ":15006"
+    },
+    {
+      "id": "c",
+      "col": 2,
+      "row": 1,
+      "label": "inbound cluster",
+      "kind": "proc",
+      "sub": "inbound|8080||"
+    },
+    {
+      "id": "a",
+      "col": 1,
+      "row": 1,
+      "label": "앱",
+      "kind": "sink",
+      "sub": "파드 IP:8080"
+    }
+  ],
+  "edges": [
+    {
+      "from": "g",
+      "to": "p",
+      "label": "mTLS"
+    },
+    {
+      "from": "p",
+      "to": "l",
+      "label": "가로채기"
+    },
+    {
+      "from": "l",
+      "to": "c",
+      "label": "복호화"
+    },
+    {
+      "from": "c",
+      "to": "a",
+      "label": "평문"
+    }
+  ]
+}

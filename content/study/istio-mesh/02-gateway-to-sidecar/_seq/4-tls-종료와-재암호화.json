@@ -1,21 +1,79 @@
 {
-  "caption": "게이트웨이는 외부 TLS를 Secret 인증서로 끝내고 route와 cluster를 고른 뒤, 같은 요청을 워크로드 인증서의 mTLS로 다시 감싸 파드 IP로 보냅니다.",
+  "caption": "게이트웨이는 외부용 인증서로 클라이언트 TLS를 끝내고, 자신의 워크로드 인증서로 대상 사이드카와 별도 mTLS를 맺습니다.",
   "participants": [
-    { "id": "C", "label": "클라이언트" },
-    { "id": "G", "label": "gateway Envoy" },
-    { "id": "S", "label": "사이드카 :15006" },
-    { "id": "A", "label": "앱" }
+    {
+      "id": "c",
+      "label": "클라이언트"
+    },
+    {
+      "id": "g",
+      "label": "gateway Envoy"
+    },
+    {
+      "id": "s",
+      "label": "대상 사이드카"
+    }
   ],
   "steps": [
-    { "msg": ["C", "G"], "label": "1. ClientHello · SNI" },
-    { "note": ["G"], "lines": ["SNI로 필터 체인 선택", "credentialName 인증서로 TLS 종료"] },
-    { "msg": ["C", "G"], "label": "2. GET /cart · Host" },
-    { "note": ["G"], "lines": ["route에서 Host·경로 매칭", "cluster의 EDS에서 파드 IP 선택"] },
-    { "msg": ["G", "S"], "label": "3. mTLS (SPIFFE 인증서)" },
-    { "msg": ["G", "S"], "label": "4. 같은 요청 재전송" },
-    { "msg": ["S", "A"], "label": "5. 평문 → 파드 IP" },
-    { "msg": ["A", "S"], "label": "6. 200", "dashed": true },
-    { "msg": ["S", "G"], "label": "7. mTLS 응답", "dashed": true },
-    { "msg": ["G", "C"], "label": "8. TLS 응답", "dashed": true }
+    {
+      "msg": [
+        "c",
+        "g"
+      ],
+      "label": "1. 외부 TLS 연결"
+    },
+    {
+      "note": [
+        "g"
+      ],
+      "lines": [
+        "외부용 Secret 인증서"
+      ]
+    },
+    {
+      "msg": [
+        "c",
+        "g"
+      ],
+      "label": "2. GET /cart"
+    },
+    {
+      "note": [
+        "g"
+      ],
+      "lines": [
+        "HTTP 해석 · 파드 선택"
+      ]
+    },
+    {
+      "msg": [
+        "g",
+        "s"
+      ],
+      "label": "3. 별도 mTLS 연결"
+    },
+    {
+      "msg": [
+        "g",
+        "s"
+      ],
+      "label": "4. HTTP 요청"
+    },
+    {
+      "msg": [
+        "s",
+        "g"
+      ],
+      "label": "5. mTLS 응답",
+      "dashed": true
+    },
+    {
+      "msg": [
+        "g",
+        "c"
+      ],
+      "label": "6. TLS 응답",
+      "dashed": true
+    }
   ]
 }

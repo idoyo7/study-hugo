@@ -1,0 +1,82 @@
+{
+  "caption": "waypoint가 없는 ambient 경로에서 ztunnel은 앱의 TCP 연결을 HBONE 스트림으로 운반하며, 앱의 HTTP 요청은 해석하지 않습니다.",
+  "participants": [
+    {
+      "id": "a",
+      "label": "앱 A"
+    },
+    {
+      "id": "za",
+      "label": "소스 ztunnel"
+    },
+    {
+      "id": "zb",
+      "label": "대상 ztunnel"
+    },
+    {
+      "id": "b",
+      "label": "앱 B"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "a",
+        "za"
+      ],
+      "label": "1. TCP 연결"
+    },
+    {
+      "msg": [
+        "za",
+        "zb"
+      ],
+      "label": "2. mTLS·:15008"
+    },
+    {
+      "msg": [
+        "za",
+        "zb"
+      ],
+      "label": "3. CONNECT 터널"
+    },
+    {
+      "note": [
+        "za",
+        "zb"
+      ],
+      "lines": [
+        "HTTP/2 스트림에 앱 연결 수용",
+        "ztunnel은 앱 HTTP를 해석하지 않음"
+      ]
+    },
+    {
+      "msg": [
+        "zb",
+        "b"
+      ],
+      "label": "4. TCP 연결"
+    },
+    {
+      "msg": [
+        "a",
+        "za"
+      ],
+      "label": "5. 앱 바이트"
+    },
+    {
+      "msg": [
+        "za",
+        "zb"
+      ],
+      "label": "6. 터널로 전달"
+    },
+    {
+      "msg": [
+        "zb",
+        "b"
+      ],
+      "label": "7. 앱 바이트"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "caption": "앱이 수신한 trace context를 다음 호출에 전달해야 여러 홉의 span이 같은 트레이스로 이어집니다.",
+  "participants": [
+    {
+      "id": "before",
+      "label": "호출 서비스"
+    },
+    {
+      "id": "app",
+      "label": "앱"
+    },
+    {
+      "id": "after",
+      "label": "다음 서비스"
+    }
+  ],
+  "steps": [
+    {
+      "msg": [
+        "before",
+        "app"
+      ],
+      "label": "요청 + trace context"
+    },
+    {
+      "alt": "trace context 전파",
+      "steps": [
+        {
+          "msg": [
+            "app",
+            "after"
+          ],
+          "label": "다음 요청 + context"
+        },
+        {
+          "note": [
+            "after"
+          ],
+          "lines": [
+            "같은 trace ID",
+            "이어지는 span"
+          ]
+        }
+      ],
+      "elseLabel": "전파 누락",
+      "elseSteps": [
+        {
+          "msg": [
+            "app",
+            "after"
+          ],
+          "label": "context 없는 요청"
+        },
+        {
+          "note": [
+            "after"
+          ],
+          "lines": [
+            "앞선 trace와",
+            "연결할 정보 없음"
+          ]
+        }
+      ]
+    }
+  ]
+}

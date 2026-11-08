@@ -1,0 +1,72 @@
+{
+  "caption": "카나리 헤더가 있는 요청은 v2로 보내고, 나머지 요청에만 v1:v2의 90:10 가중치를 적용합니다.",
+  "nodes": [
+    {
+      "id": "r",
+      "col": 0,
+      "row": 1,
+      "label": "HTTP 요청",
+      "kind": "src",
+      "sub": "x-canary 헤더"
+    },
+    {
+      "id": "h",
+      "col": 1,
+      "row": 1,
+      "label": "헤더 조건",
+      "kind": "query",
+      "sub": "true인가"
+    },
+    {
+      "id": "w",
+      "col": 1,
+      "row": 2,
+      "label": "일반 요청",
+      "kind": "query",
+      "sub": "가중치 선택"
+    },
+    {
+      "id": "v2",
+      "col": 2,
+      "row": 0,
+      "label": "v2",
+      "kind": "sink",
+      "sub": "카나리 버전"
+    },
+    {
+      "id": "v1",
+      "col": 2,
+      "row": 2,
+      "label": "v1",
+      "kind": "sink",
+      "sub": "기존 버전"
+    }
+  ],
+  "edges": [
+    {
+      "from": "r",
+      "to": "h",
+      "label": "평가"
+    },
+    {
+      "from": "h",
+      "to": "v2",
+      "label": "true"
+    },
+    {
+      "from": "h",
+      "to": "w",
+      "label": "그 외"
+    },
+    {
+      "from": "w",
+      "to": "v1",
+      "label": "90%"
+    },
+    {
+      "from": "w",
+      "to": "v2",
+      "label": "10%"
+    }
+  ]
+}

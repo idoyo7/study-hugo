@@ -1,0 +1,59 @@
+{
+  "caption": "HTTP로 선언하거나 자동 감지한 연결만 HTTP 필터로 처리하며, 감지되지 않는 연결은 TCP로 중계합니다.",
+  "nodes": [
+    {
+      "id": "p",
+      "col": 0,
+      "row": 0,
+      "label": "Service 포트",
+      "kind": "src",
+      "sub": "프로토콜 선언"
+    },
+    {
+      "id": "h",
+      "col": 1,
+      "row": 0,
+      "label": "HTTP 필터",
+      "kind": "sink",
+      "sub": "라우트·재시도"
+    },
+    {
+      "id": "d",
+      "col": 0,
+      "row": 1,
+      "label": "자동 감지",
+      "kind": "query",
+      "sub": "HTTP·HTTP/2"
+    },
+    {
+      "id": "t",
+      "col": 1,
+      "row": 1,
+      "label": "TCP 필터",
+      "kind": "sink",
+      "sub": "바이트 중계"
+    }
+  ],
+  "edges": [
+    {
+      "from": "p",
+      "to": "h",
+      "label": "HTTP"
+    },
+    {
+      "from": "p",
+      "to": "d",
+      "label": "미지정"
+    },
+    {
+      "from": "d",
+      "to": "h",
+      "label": "HTTP"
+    },
+    {
+      "from": "d",
+      "to": "t",
+      "label": "그 외"
+    }
+  ]
+}

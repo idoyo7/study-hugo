@@ -1,25 +1,54 @@
 {
-  "caption": "gRPC 연결 하나를 kube-proxy에 맡기면 연결이 맺힐 때 고른 파드 하나가 요청을 모두 받고, 사이드카는 같은 연결 안의 요청을 하나씩 다시 나눕니다.",
+  "caption": "앱의 HTTP/2 연결이 하나여도 사이드카는 요청마다 대상 파드를 고르고 대상별 연결 풀을 사용합니다.",
   "nodes": [
-    { "id": "c1", "col": 0, "row": 0, "label": "앱", "sub": "gRPC 연결 1개", "kind": "src" },
-    { "id": "k", "col": 1, "row": 0, "label": "kube-proxy", "sub": "연결 시점에 DNAT", "kind": "proc" },
-    { "id": "a1", "col": 2, "row": 0, "label": "파드 A", "sub": "요청 전부", "kind": "sink" },
-    { "id": "b1", "col": 2, "row": 1, "label": "파드 B", "sub": "요청 없음", "kind": "sink", "ghost": true },
-    { "id": "c2", "col": 0, "row": 2, "label": "앱", "sub": "gRPC 연결 1개", "kind": "src" },
-    { "id": "s", "col": 1, "row": 2, "label": "사이드카", "sub": "요청마다 선택", "kind": "proc" },
-    { "id": "a2", "col": 2, "row": 2, "label": "파드 A", "sub": "요청 절반쯤", "kind": "sink" },
-    { "id": "b2", "col": 2, "row": 3, "label": "파드 B", "sub": "요청 절반쯤", "kind": "sink" }
-  ],
-  "groups": [
-    { "id": "l4", "label": "L4 분산", "members": ["c1", "k", "a1", "b1"] },
-    { "id": "l7", "label": "L7 분산", "members": ["c2", "s", "a2", "b2"] }
+    {
+      "id": "a",
+      "col": 0,
+      "row": 1,
+      "label": "앱",
+      "kind": "src",
+      "sub": "HTTP/2 연결 1개"
+    },
+    {
+      "id": "s",
+      "col": 1,
+      "row": 1,
+      "label": "사이드카",
+      "kind": "proc",
+      "sub": "요청마다 선택"
+    },
+    {
+      "id": "p1",
+      "col": 2,
+      "row": 0,
+      "label": "파드 A",
+      "kind": "sink",
+      "sub": "대상별 연결 풀"
+    },
+    {
+      "id": "p2",
+      "col": 2,
+      "row": 2,
+      "label": "파드 B",
+      "kind": "sink",
+      "sub": "대상별 연결 풀"
+    }
   ],
   "edges": [
-    { "from": "c1", "to": "k", "rate": 300 },
-    { "from": "k", "to": "a1", "rate": 300 },
-    { "from": "k", "to": "b1", "dashed": true },
-    { "from": "c2", "to": "s", "rate": 300 },
-    { "from": "s", "to": "a2", "rate": 600 },
-    { "from": "s", "to": "b2", "rate": 600 }
+    {
+      "from": "a",
+      "to": "s",
+      "label": "요청"
+    },
+    {
+      "from": "s",
+      "to": "p1",
+      "label": "요청 ①"
+    },
+    {
+      "from": "s",
+      "to": "p2",
+      "label": "요청 ②"
+    }
   ]
 }
