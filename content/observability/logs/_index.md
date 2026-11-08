@@ -17,6 +17,7 @@ linkTitle: "로그"
 - [Vector · ClickHouse 파이프라인]({{< relref "/observability/logs/09-vector-clickhouse-pipeline/index.md" >}})
 - [저장소 비교·선택]({{< relref "/observability/logs/comparison/_index.md" >}})
 - [로그 스택 통합 비교]({{< relref "/observability/logs/10-log-stack-comparison/index.md" >}})
+- [VictoriaLogs 스토리지 내부 구조]({{< relref "/observability/logs/victorialogs-internals/_index.md" >}})
 
 로그·메트릭·RUM을 여러 저장소에 흩뿌려 놓은 MSA 팀이 "이거랑 저거만 있으면 다 될 것 같은" 최소 조합을 찾으며 검토한 솔루션을 정리한 챕터입니다. Elasticsearch(OpenSearch) 기반 EFK 말고 애플리케이션 로깅을 내재화하는 다른 길이 있는지, 솔루션마다 성격은 어떻고 우리 케이스에서는 무엇을 골랐는지 다룹니다.
 

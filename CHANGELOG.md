@@ -7,6 +7,12 @@
 - 그림 중심 개편에서 너무 많이 잘렸다는 저자 평가에 따라 다섯 편의 보이는 본문을 약 1.5배로 늘렸습니다(공백 제외 13,874자 → 21,253자). 개편 전 원고에서 확인 명령(`istioctl proxy-config`, iptables 등), 짧은 YAML 예, 그림만으로 안 보이는 인과와 기본값·함정, 사이드카와 ambient 대조를 골라 되살렸고 절마다 접힌 근거 표를 다시 달았습니다. 그림·제목·소제목·앵커는 그대로입니다. 분량 측정 스크립트와 브리프는 `_workspace/istio-visual-expand-2026-11-08/`에 있습니다.
 - 02편에 istiod가 Kubernetes API를 watch하고 ingress gateway와 사이드카 Envoy에 xDS로 설정과 인증서를 내려보내는 아키텍처 그림을 더했습니다. Istio 공식 아키텍처 그림(사이드카 모드)의 배치(위 데이터 플레인 Ingress → Service A → Service B → Egress, 아래 istiod)를 따라 flow로 다시 그렸고, Ingress 자리에 ingress gateway를, istiod 옆에 Kubernetes API를 더했습니다.
 
+## 2026-11-09 — 로깅에 VictoriaLogs 스토리지 내부 구조 시리즈 추가
+
+- Write-Ahead 블로그의 VictoriaLogs 스토리지 내부 구조 시리즈 1편(데이터 모델, 2026-11-07)을 읽고 `content/observability/logs/victorialogs-internals/`에 시리즈 묶음 페이지와 1편 정리를 두었습니다. 로그 한 줄이 필드 가방, 스트림 해시, 일 파티션을 거쳐 datadb·indexdb로 갈라지는 흐름을 flow 도식 한 장으로 그렸습니다.
+- 1편 본문은 Claude 초안을 Astra xhigh가 전면 재작성하고 보정 1회를 거쳤습니다. 실행 기록과 편집 전 초안은 `_workspace/structure-2026-11-09-victorialogs-data-model/`에 있습니다. 시리즈 묶음 페이지는 색인 성격이라 재작성하지 않았습니다.
+- 로깅 색인과 VictoriaLogs 비교 글에서 새 시리즈로 가는 링크를 추가했습니다. Hugo 0.164.0 빌드, 내비게이션 검사, 도식 spec-lint를 통과했습니다.
+
 ## 2026-11-08 — 타사 테크블로그에 티맵모빌리티 추가
 
 - 티맵모빌리티 테크노트(브런치 @tmapmobility) 29편 가운데 지도·측위·경로탐색 엔진, 실시간 데이터 파이프라인, 클라우드 인프라, 보안에 해당하는 18편을 `content/external/tmap/blog/`에 한 편씩 요약했습니다. 형식은 쏘카·당근 요약과 같고, 목록은 게시일 최신순입니다.

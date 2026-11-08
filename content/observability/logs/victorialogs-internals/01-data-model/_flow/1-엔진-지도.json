@@ -1,0 +1,19 @@
+{
+  "caption": "로그 한 줄은 필드 가방이 되고, 고른 필드의 해시로 스트림이 정해지고, _time이 가리키는 일 단위 파티션 안에서 데이터 트리와 색인 트리로 갈라집니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "로그 한 줄", "sub": "수집 요청", "kind": "src" },
+    { "id": "B", "col": 1, "row": 0, "label": "필드 가방", "sub": "문자열 쌍", "kind": "proc" },
+    { "id": "C", "col": 2, "row": 0, "label": "스트림 id", "sub": "tenant + hash128", "kind": "proc" },
+    { "id": "D", "col": 3, "row": 0, "label": "일 파티션", "sub": "_time 기준", "kind": "proc" },
+    { "id": "E", "col": 4, "row": 0, "label": "datadb", "sub": "로그 데이터", "kind": "store" },
+    { "id": "F", "col": 4, "row": 1, "label": "indexdb", "sub": "스트림 색인", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "A", "to": "B", "label": "평탄화", "rate": 700 },
+    { "from": "B", "to": "C", "label": "해시", "rate": 700 },
+    { "from": "C", "to": "D", "label": "배정", "rate": 700 },
+    { "from": "D", "to": "E", "label": "행", "rate": 700 },
+    { "from": "D", "to": "F", "label": "스트림", "rate": 1400 }
+  ]
+}
