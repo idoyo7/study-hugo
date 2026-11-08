@@ -1,0 +1,17 @@
+{
+  "caption": "VictoriaLogs의 쿼리는 시간으로 날을, 스트림 색인으로 스트림을, 블룸으로 블록을 차례로 걸러 낸 뒤 남은 블록에서 필요한 컬럼만 읽습니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "쿼리", "sub": "시간·스트림·단어", "kind": "src" },
+    { "id": "B", "col": 1, "row": 0, "label": "일 파티션", "sub": "겹치는 날만", "kind": "proc" },
+    { "id": "C", "col": 2, "row": 0, "label": "indexdb", "sub": "맞는 스트림만", "kind": "store" },
+    { "id": "D", "col": 3, "row": 0, "label": "블룸 필터", "sub": "없는 블록 제외", "kind": "query" },
+    { "id": "E", "col": 3, "row": 1, "label": "컬럼 읽기", "sub": "필요한 컬럼만", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "A", "to": "B", "label": "시간", "rate": 700 },
+    { "from": "B", "to": "C", "label": "스트림", "rate": 700 },
+    { "from": "C", "to": "D", "label": "블록", "rate": 700 },
+    { "from": "D", "to": "E", "label": "통과한 블록", "rate": 700 }
+  ]
+}

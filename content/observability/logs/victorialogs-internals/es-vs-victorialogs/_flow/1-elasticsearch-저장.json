@@ -1,0 +1,23 @@
+{
+  "caption": "Elasticsearch는 문서 하나를 세그먼트 안의 역색인, doc_values, _source 세 곳에 나눠 담고, 세그먼트 메타데이터는 JVM 힙에 올립니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "로그 한 줄", "sub": "JSON 문서", "kind": "src" },
+    { "id": "B", "col": 1, "row": 0, "label": "인덱스·샤드", "sub": "Lucene 인덱스", "kind": "proc" },
+    { "id": "C", "col": 2, "row": 0, "label": "세그먼트", "sub": "불변, 병합", "kind": "store" },
+    { "id": "D", "col": 3, "row": 0, "label": "역색인", "sub": "term → 문서", "kind": "store" },
+    { "id": "E", "col": 3, "row": 1, "label": "doc_values", "sub": "컬럼 구조", "kind": "store" },
+    { "id": "F", "col": 3, "row": 2, "label": "_source", "sub": "원본 JSON", "kind": "store" },
+    { "id": "G", "col": 2, "row": 1, "label": "JVM 힙", "sub": "세그먼트·매핑 메타", "kind": "query" },
+    { "id": "H", "col": 2, "row": 2, "label": "페이지 캐시", "sub": "색인·컬럼 파일", "kind": "query" }
+  ],
+  "edges": [
+    { "from": "A", "to": "B", "label": "색인", "rate": 700 },
+    { "from": "B", "to": "C", "label": "기록", "rate": 700 },
+    { "from": "C", "to": "D", "label": "term", "rate": 700 },
+    { "from": "C", "to": "E", "label": "컬럼", "rate": 700 },
+    { "from": "C", "to": "F", "label": "원본", "rate": 700 },
+    { "from": "C", "to": "G", "label": "메타 상주", "rate": 1400 },
+    { "from": "G", "to": "H", "label": "나머지", "dashed": true }
+  ]
+}

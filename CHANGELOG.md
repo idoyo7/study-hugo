@@ -10,7 +10,8 @@
 ## 2026-11-09 — 로깅에 VictoriaLogs 스토리지 내부 구조 시리즈 추가
 
 - Write-Ahead 블로그의 VictoriaLogs 스토리지 내부 구조 시리즈 1편(데이터 모델, 2026-11-07)을 읽고 `content/observability/logs/victorialogs-internals/`에 시리즈 묶음 페이지와 1편 정리를 두었습니다. 로그 한 줄이 필드 가방, 스트림 해시, 일 파티션을 거쳐 datadb·indexdb로 갈라지는 흐름을 flow 도식 한 장으로 그렸습니다.
-- 1편 본문은 Claude 초안을 Astra xhigh가 전면 재작성하고 보정 1회를 거쳤습니다. 실행 기록과 편집 전 초안은 `_workspace/structure-2026-11-09-victorialogs-data-model/`에 있습니다. 시리즈 묶음 페이지는 색인 성격이라 재작성하지 않았습니다.
+- 1편 본문은 Claude 초안을 Astra xhigh가 전면 재작성하고 보정 1회를 거쳤습니다. 첫 재작성(초안만 입력)은 사실은 맞았지만 단정문만 늘어 딱딱하다는 평가를 받아, 영어 원문 전문을 참고 자료로 함께 넘기고 원문의 비유와 어조를 살리도록 지시를 바꿔 다시 돌렸습니다. 실행 기록과 편집 전 초안은 로컬 `_workspace/structure-2026-11-09-victorialogs-data-model{,-v2}/`에 있습니다. 시리즈 묶음 페이지는 색인 성격이라 재작성하지 않았습니다.
+- 원문 시리즈와 별도로 `es-vs-victorialogs/`에 Elasticsearch와 VictoriaLogs의 저장 구조를 같은 배치의 flow 도식 두 장으로 나란히 놓고, 자원 차이가 생기는 지점과 벤치마크 조건을 표로 정리한 비교 글을 두었습니다. 근거는 2026-11-09에 공식 문서·소스·벤치 저장소를 직접 확인했고(VictoriaLogs v1.53.0, Elasticsearch 9.5.6 기준), 벤더 주장과 구조상 추정을 본문에서 구분했습니다. 출처 URL이 없는 일화 한 건은 뺐습니다.
 - 로깅 색인과 VictoriaLogs 비교 글에서 새 시리즈로 가는 링크를 추가했습니다. Hugo 0.164.0 빌드, 내비게이션 검사, 도식 spec-lint를 통과했습니다.
 
 ## 2026-11-08 — 타사 테크블로그에 티맵모빌리티 추가

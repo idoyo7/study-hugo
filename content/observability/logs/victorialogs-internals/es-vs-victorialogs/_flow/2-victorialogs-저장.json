@@ -1,0 +1,25 @@
+{
+  "caption": "VictoriaLogs는 한 줄을 스트림별 블록의 컬럼과 블룸 필터로만 담고, 원본 JSON은 따로 두지 않으며 메모리에는 블록 위치 색인만 올립니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "A", "col": 0, "row": 0, "label": "로그 한 줄", "sub": "필드 가방", "kind": "src" },
+    { "id": "B", "col": 1, "row": 0, "label": "일 파티션", "sub": "UTC 하루", "kind": "proc" },
+    { "id": "C", "col": 2, "row": 0, "label": "part", "sub": "스트림별 블록", "kind": "store" },
+    { "id": "D", "col": 3, "row": 0, "label": "블룸 필터", "sub": "블록·컬럼마다", "kind": "store" },
+    { "id": "E", "col": 3, "row": 1, "label": "컬럼 파일", "sub": "타입별 인코딩", "kind": "store" },
+    { "id": "F", "col": 3, "row": 2, "label": "원본 JSON", "sub": "저장 안 함", "kind": "store", "ghost": true },
+    { "id": "I", "col": 1, "row": 1, "label": "indexdb", "sub": "스트림 카탈로그", "kind": "store" },
+    { "id": "G", "col": 2, "row": 1, "label": "metaindex", "sub": "블록 위치 색인", "kind": "query" },
+    { "id": "H", "col": 2, "row": 2, "label": "페이지 캐시", "sub": "데이터·블룸 파일", "kind": "query" }
+  ],
+  "edges": [
+    { "from": "A", "to": "B", "label": "_time", "rate": 700 },
+    { "from": "B", "to": "C", "label": "기록", "rate": 700 },
+    { "from": "B", "to": "I", "label": "스트림", "rate": 1400 },
+    { "from": "C", "to": "D", "label": "토큰", "rate": 700 },
+    { "from": "C", "to": "E", "label": "컬럼", "rate": 700 },
+    { "from": "C", "to": "F", "label": "없음", "dashed": true },
+    { "from": "C", "to": "G", "label": "상주", "rate": 1400 },
+    { "from": "G", "to": "H", "label": "나머지", "dashed": true }
+  ]
+}
