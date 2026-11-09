@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-09 — 한 요청의 여행 5편을 3편으로 합치고 response flag 절 추가
+
+- 저자 결정으로 다섯 편을 세 편으로 합쳤습니다. 「01 연결 너머의 길 — NLB에서 사이드카 15006까지」(01+02, `/study/istio-mesh/01-to-the-gateway/`), 「02 요청마다 달라지는 길 — 사이드카 통신과 L7 제어」(03+04, `/study/istio-mesh/02-between-proxies/`), 「03 두 프록시의 발자국 — 메트릭·로그·트레이스」(05, `/study/istio-mesh/03-traces-left-behind/`)입니다. 이전 주소(`/study/istio-mesh/0N-…/`, `/istio/mesh-traffic/0N-…/`)는 모두 aliases로 새 주소에 연결했고 앵커 id는 그대로입니다. 그림 24장도 모두 옮겼습니다.
+- 2편에 Envoy response flag 절을 새로 넣었습니다. UH·UF·URX·UT·UO·NR·NC·UC·DC를 뜻, 주로 찍히는 쪽(호출 쪽/대상 쪽 사이드카), 대표 장면으로 정리하고 나머지 flag는 접힌 블록에 두었습니다. Envoy 1.39 문서와 소스로 확인했고, 실측하지 않은 장면은 추정으로 표시했습니다(`_workspace/istio-merge-2026-11-09/research-flags.md`).
+- sonnet 병합 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`) 전면 재작성(명사구 제목 규칙, 분량 85~110% 유지) → sonnet 검증 → 보정 1회 순으로 만들었습니다. 1편에서 Astra가 근거 표 링크를 다른 글로 바꾼 것과 2편의 절 배치를 보정에서 바로잡았습니다. 실행 기록은 `_workspace/structure-2026-11-09-istio-merge/`에 있습니다.
+
 ## 2026-11-08 — 한 요청의 여행 본문 보충과 istiod·xDS 아키텍처 그림
 
 - 그림 중심 개편에서 너무 많이 잘렸다는 저자 평가에 따라 다섯 편의 보이는 본문을 약 1.5배로 늘렸습니다(공백 제외 13,874자 → 21,253자). 개편 전 원고에서 확인 명령(`istioctl proxy-config`, iptables 등), 짧은 YAML 예, 그림만으로 안 보이는 인과와 기본값·함정, 사이드카와 ambient 대조를 골라 되살렸고 절마다 접힌 근거 표를 다시 달았습니다. 그림·제목·소제목·앵커는 그대로입니다. 분량 측정 스크립트와 브리프는 `_workspace/istio-visual-expand-2026-11-08/`에 있습니다.
