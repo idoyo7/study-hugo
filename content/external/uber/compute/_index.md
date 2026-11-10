@@ -1,6 +1,6 @@
 ---
 title: "컴퓨트·Kubernetes"
-description: "우버 엔지니어링 블로그의 컴퓨트·Kubernetes 글 28편 목록입니다. 2020년 이후 글 12편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 컴퓨트·Kubernetes 글 28편 목록입니다. 2020년 이후 글 13편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 3
 comments: false
@@ -22,6 +22,7 @@ comments: false
 - [Go 프로그램 효율을 자동으로 올리는 프로파일 기반 최적화 (2025-03)]({{< relref "/external/uber/compute/automating-efficiency-of-go-programs-with-pgo.md" >}})
 - [수천 개 서비스를 Arm으로 옮긴 멀티 아키텍처 전환 (2025-02)]({{< relref "/external/uber/compute/adopting-arm-at-scale-transitioning-to-a-multi-architecture-environment.md" >}})
 - [x86 일색 인프라에 Arm을 들이는 부트스트래핑 (2025-02)]({{< relref "/external/uber/compute/adopting-arm-at-scale-bootstrapping-infrastructure.md" >}})
+- [클라우드를 위한 이동 가능한 마이크로서비스 Up (2023-09)]({{< relref "/external/uber/compute/up-portable-microservices-ready-for-the-cloud.md" >}})
 
 Mesos·Peloton에서 Kubernetes로의 이전, Arm 도입, CPU 할당과 스케일링, Go·JVM 효율화처럼 서버 자원을 다루는 글입니다.
 
@@ -29,7 +30,6 @@ Mesos·Peloton에서 Kubernetes로의 이전, Arm 도입, CPU 할당과 스케�
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Up: Portable Microservices Ready for the Cloud](https://www.uber.com/us/en/blog/up-portable-microservices-ready-for-the-cloud/) · 2023-09-07
 - [Bootstrapping Uber’s Infrastructure on arm64 with Zig](https://www.uber.com/us/en/blog/bootstrapping-ubers-infrastructure-on-arm64-with-zig/) · 2023-05-03
 - [Uber’s Sustainable Engineering Journey](https://www.uber.com/us/en/blog/ubers-sustainable-engineering-journey/) · 2023-03-02
 - [Fixing Go’s Linker: An Unexpected Journey into ARM64, DWARF, and Linker Internals](https://www.uber.com/us/en/blog/fixing-gos-linker/) · 2023-02-16

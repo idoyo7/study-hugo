@@ -1,6 +1,6 @@
 ---
 title: "CI·모노레포·개발자 도구"
-description: "우버 엔지니어링 블로그의 CI·모노레포·개발자 도구 글 25편 목록입니다. 2020년 이후 글 9편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 CI·모노레포·개발자 도구 글 25편 목록입니다. 2020년 이후 글 12편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 7
 comments: false
@@ -19,6 +19,9 @@ comments: false
 - [머지 전에 도는 E2E 테스트 시스템 BITS (2024-08)]({{< relref "/external/uber/devx/shifting-e2e-testing-left.md" >}})
 - [SLATE로 프로덕션 이웃과 함께 하는 디버깅 (2024-06)]({{< relref "/external/uber/devx/debugging-with-production-neighbors.md" >}})
 - [Testopedia로 갈아엎은 우버의 불안정 테스트 관리 (2024-06)]({{< relref "/external/uber/devx/flaky-tests-overhaul.md" >}})
+- [Go의 nil panic을 잡아내는 정적 분석 도구 NilAway (2023-11)]({{< relref "/external/uber/devx/nilaway-practical-nil-panic-detection-for-go.md" >}})
+- [그래프로 찾아내는 환경 간 RPC 호출 CheckEnv (2023-09)]({{< relref "/external/uber/devx/checkenv.md" >}})
+- [SubmitQueue에서 큰 변경을 건너뛰는 BLRD (2023-08)]({{< relref "/external/uber/devx/bypassing-large-diffs-in-submitqueue.md" >}})
 
 모노레포 CI·배포, 빌드, 테스트 인프라, 원격 개발 환경, Go 정적·동적 분석처럼 개발과 배포 흐름을 다루는 글입니다.
 
@@ -26,9 +29,6 @@ comments: false
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [NilAway: Practical Nil Panic Detection for Go](https://www.uber.com/us/en/blog/nilaway-practical-nil-panic-detection-for-go/) · 2023-11-15
-- [CheckEnv: Fast Detection of RPC Calls Between Environments Powered by Graphs](https://www.uber.com/us/en/blog/checkenv/) · 2023-09-13
-- [Bypassing Large Diffs in SubmitQueue](https://www.uber.com/us/en/blog/bypassing-large-diffs-in-submitqueue/) · 2023-08-31
 - [Devpod: Improving Developer Productivity at Uber with Remote Development](https://www.uber.com/us/en/blog/devpod-improving-developer-productivity-at-uber/) · 2022-12-13
 - [LeakProf: Featherlight In-Production Goroutine Leak Detection](https://www.uber.com/us/en/blog/leakprof-featherlight-in-production-goroutine-leak-detection/) · 2022-11-10
 - [Simplifying Developer Testing Through SLATE](https://www.uber.com/us/en/blog/simplifying-developer-testing-through-slate/) · 2022-10-20
