@@ -1,6 +1,6 @@
 ---
 title: "신뢰성·트래픽 관리"
-description: "우버 엔지니어링 블로그의 신뢰성·트래픽 관리 글 17편 목록입니다. 2020년 이후 글 9편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 신뢰성·트래픽 관리 글 17편 목록입니다. 2020년 이후 글 10편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 5
 comments: false
@@ -19,6 +19,7 @@ comments: false
 - [Cinnamon 거절기를 움직이는 PID 컨트롤러 (2023-11)]({{< relref "/external/uber/reliability/pid-controller-for-cinnamon.md" >}})
 - [100년 된 기법으로 만든 로드 셰더 Cinnamon (2023-11)]({{< relref "/external/uber/reliability/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder.md" >}})
 - [대규모 인보이스 서비스 이전에서 겪은 위험과 교훈 (2023-08)]({{< relref "/external/uber/reliability/the-perils-of-migrating-a-large-scale-service-at-uber.md" >}})
+- [마이크로서비스 부하 테스트 서비스 Shadower (2022-06)]({{< relref "/external/uber/reliability/introducing-shadower-a-minimalistic-load-testing-tool.md" >}})
 
 재시도 폭주, rate limiting, 부하 차단(load shedding), 로드 밸런싱, 부하 테스트, 존 장애 대비처럼 장애를 막고 견디는 글입니다.
 
@@ -26,7 +27,6 @@ comments: false
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Introducing Shadower: A Minimalistic Load Testing Tool](https://www.uber.com/us/en/blog/introducing-shadower-a-minimalistic-load-testing-tool/) · 2022-06-30
 - [Better Load Balancing: Real-Time Dynamic Subsetting](https://www.uber.com/us/en/blog/better-load-balancing-real-time-dynamic-subsetting/) · 2022-05-17
 - [Introducing Ballast: An Adaptive Load Test Framework](https://www.uber.com/us/en/blog/introducing-ballast-an-adaptive-load-test-framework/) · 2022-03-01
 - [Eats Safety Team On-Call Overview](https://www.uber.com/us/en/blog/eats-safety-team-on-call-overview/) · 2021-08-19

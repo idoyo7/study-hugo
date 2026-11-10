@@ -1,6 +1,6 @@
 ---
 title: "컴퓨트·Kubernetes"
-description: "우버 엔지니어링 블로그의 컴퓨트·Kubernetes 글 28편 목록입니다. 2020년 이후 글 16편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 컴퓨트·Kubernetes 글 28편 목록입니다. 2020년 이후 글 18편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 3
 comments: false
@@ -26,6 +26,8 @@ comments: false
 - [Zig 툴체인으로 시작한 우버 인프라의 arm64 전환 (2023-05)]({{< relref "/external/uber/compute/bootstrapping-ubers-infrastructure-on-arm64-with-zig.md" >}})
 - [우버 엔지니어링의 지속가능성 로드맵과 추천 서비스 (2023-03)]({{< relref "/external/uber/compute/ubers-sustainable-engineering-journey.md" >}})
 - [ARM64 Go 바이너리의 디버깅 실패를 추적한 링커 트램폴린 버그 (2023-02)]({{< relref "/external/uber/compute/fixing-gos-linker.md" >}})
+- [하이브리드·멀티클라우드를 위해 다시 만든 우버 인프라 스택 Crane (2022-09)]({{< relref "/external/uber/compute/crane-ubers-next-gen-infrastructure-stack.md" >}})
+- [스토리지 컨테이너의 CPU 코어를 자동으로 맞추는 수직 스케일링 (2022-07)]({{< relref "/external/uber/compute/vertical-cpu-scaling.md" >}})
 
 Mesos·Peloton에서 Kubernetes로의 이전, Arm 도입, CPU 할당과 스케일링, Go·JVM 효율화처럼 서버 자원을 다루는 글입니다.
 
@@ -33,8 +35,6 @@ Mesos·Peloton에서 Kubernetes로의 이전, Arm 도입, CPU 할당과 스케�
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Crane: Uber’s Next-Gen Infrastructure Stack](https://www.uber.com/us/en/blog/crane-ubers-next-gen-infrastructure-stack/) · 2022-09-15
-- [Vertical CPU Scaling: Reduce Cost of Capacity and Increase Reliability](https://www.uber.com/us/en/blog/vertical-cpu-scaling/) · 2022-07-14
 - [Avoiding CPU Throttling in a Containerized Environment](https://www.uber.com/us/en/blog/avoiding-cpu-throttling-in-a-containerized-environment/) · 2022-03-22
 - [Capacity Recommendation Engine: Throughput and Utilization Based Predictive Scaling](https://www.uber.com/us/en/blog/capacity-recommendation-engine/) · 2022-01-19
 - [How We Saved 70K Cores Across 30 Mission-Critical Services (Large-Scale, Semi-Automated Go GC Tuning @Uber)](https://www.uber.com/us/en/blog/how-we-saved-70k-cores-across-30-mission-critical-services/) · 2021-12-22
