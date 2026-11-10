@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-10 — 네이버에 n3r OIDC 발표 요약 추가
+
+- NAVER Engineering Day 10th 공개 세션 「로그인 화면, 이제 만들지 마세요 - n3r OIDC」(YouTube, 2026-11-08 공개, 약 32분)를 `content/external/naver/n3r-oidc.md`에 요약했습니다. 사내 쿠버네티스 플랫폼 n3r의 IAM을 OIDC 프로바이더로 열면서 내린 네 가지 설계 결정(프로젝트 접두사 groups와 프로젝트별 roles 클레임, 클라이언트 등록 주체로 정하는 audience, 토큰의 롤만 보는 인가, introspection 없이 짧은 액세스 토큰 수명)과 트레이드오프가 중심입니다.
+- 본문은 YouTube 한국어 자동 자막(306구간)을 Chrome 스크립트 패널에서 받아 썼습니다. timedtext API는 빈 응답을 돌려줬습니다. n3r→NCR, 사번→4번, 감사 로그→오딘로그 같은 인식 오류를 문맥으로 고친 전사본은 로컬 `_workspace/n3r-oidc-2026-11-10/transcript.md`에만 두고 게시하지 않았습니다. 슬라이드에만 있던 설정 예와 토큰 예시 값은 요약에 없습니다.
+- Claude 초안 → Astra(`gpt-6-astra`, xhigh) 전면 재작성(전사본을 사실 확인용으로 함께 제공) → 전사본 대조 순으로 만들었고 보정은 필요 없었습니다.
+
 ## 2026-11-10 — 타사 테크블로그에 올리브영·여기어때 온콜 사례 추가
 
 - Amazon Connect `StartOutboundVoiceContact`로 장애 전화를 거는 국내 사례 두 편을 요약했습니다. 올리브영(2025-12-24, SES·SQS·Lambda 서버리스, Google Groups와 플러스 어드레싱으로 수신자 식별)은 `content/external/oliveyoung/`에, 여기어때(2025-12-16, Grafana OnCall 당번표·ELBv2 직접 감지·Slack 전화 중지 버튼)는 `content/external/yeogi/`에 두고 두 문서가 서로를 잇습니다. 분류 색인에도 두 출처를 더했습니다.
