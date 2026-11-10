@@ -1,0 +1,52 @@
+---
+title: "ML 플랫폼·인프라"
+description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 5편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+date: 2026-11-10
+weight: 2
+comments: false
+---
+
+# ML 플랫폼·인프라
+
+## 이 분류에서 찾기 {#section-navigation}
+
+- [피처 일관성을 지키는 추론 시점 피처 로깅 (2026-09)]({{< relref "/external/uber/ml-platform/taming-ml-firehose.md" >}})
+- [오픈소스와 자체 인프라로 최적화한 Uber의 LLM 학습 (2026-04)]({{< relref "/external/uber/ml-platform/open-source-and-in-house-how-uber-optimizes-llm-training.md" >}})
+- [모델 카탈로그로 시작한 우버의 Responsible AI 프로그램 (2026-04)]({{< relref "/external/uber/ml-platform/scaling-responsible-ai.md" >}})
+- [GPU를 놀리지 않는 Petastorm 데이터 로딩과 재현 가능한 학습 (2026-04)]({{< relref "/external/uber/ml-platform/accelerating-deep-learning.md" >}})
+- [Spark와 Ray를 함께 쓴 라이드 마켓플레이스 예산 최적화 (2025-01)]({{< relref "/external/uber/ml-platform/how-uber-uses-ray-to-optimize-the-rides-business.md" >}})
+
+Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어, 모델 배포 안전장치처럼 모델을 학습·서빙하는 플랫폼 쪽 글입니다.
+
+## 요약하지 않은 원문 {#original-only}
+
+2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
+
+- [Raising the Bar on ML Model Deployment Safety](https://www.uber.com/us/en/blog/raising-the-bar-on-ml-model-deployment-safety/) · 2025-10-30
+- [Uber’s Journey to Ray on Kubernetes: Resource Management](https://www.uber.com/us/en/blog/ubers-journey-to-ray-on-kubernetes-resource-management/) · 2025-04-10
+- [Uber’s Journey to Ray on Kubernetes: Ray Setup](https://www.uber.com/us/en/blog/ubers-journey-to-ray-on-kubernetes-ray-setup/) · 2025-04-03
+- [From Predictive to Generative – How Michelangelo Accelerates Uber’s AI Journey](https://www.uber.com/us/en/blog/from-predictive-to-generative-ai/) · 2024-05-02
+- [Scaling AI/ML Infrastructure at Uber](https://www.uber.com/us/en/blog/scaling-ai-ml-infrastructure-at-uber/) · 2024-03-28
+- [Model Excellence Scores: A Framework for Enhancing the Quality of Machine Learning Systems at Scale](https://www.uber.com/us/en/blog/enhancing-the-quality-of-machine-learning-systems-at-scale/) · 2024-03-21
+- [Palette Meta Store Journey](https://www.uber.com/us/en/blog/palette-meta-store-journey/) · 2024-01-18
+- [D3: An Automated System to Detect Data Drifts](https://www.uber.com/us/en/blog/d3-an-automated-system-to-detect-data-drifts/) · 2023-02-23
+- [Enabling Offline Inferences at Uber Scale](https://www.uber.com/us/en/blog/enabling-offline-inferences-at-uber-scale/) · 2022-06-15
+- [Tuning Model Performance](https://www.uber.com/us/en/blog/tuning-model-performance/) · 2021-07-09
+- [Elastic Distributed Training with XGBoost on Ray](https://www.uber.com/us/en/blog/elastic-xgboost-ray/) · 2021-07-07
+- [Continuous Integration and Deployment for Machine Learning Online Serving and Models](https://www.uber.com/us/en/blog/continuous-integration-deployment-ml/) · 2021-06-30
+- [Elastic Deep Learning with Horovod on Ray](https://www.uber.com/us/en/blog/horovod-ray/) · 2021-03-08
+- [Horovod v0.21: Optimizing Network Utilization with Local Gradient Aggregation and Grouped Allreduce](https://www.uber.com/us/en/blog/horovod-v0-21/) · 2020-11-24
+- [Introducing Neuropod, Uber ATG’s Open Source Deep Learning Inference Engine](https://www.uber.com/us/en/blog/introducing-neuropod/) · 2020-06-08
+- [Under the Hood of Uber ATG’s Machine Learning Infrastructure and Versioning Control Platform for Self-Driving Vehicles](https://www.uber.com/us/en/blog/machine-learning-model-life-cycle-version-control/) · 2020-03-04
+- [Building a Backtesting Service to Measure Model Performance at Uber-scale](https://www.uber.com/us/en/blog/backtesting-at-scale/) · 2020-02-13
+- [Open Sourcing Manifold, a Visual Debugging Tool for Machine Learning](https://www.uber.com/us/en/blog/manifold-open-source/) · 2020-01-07
+- [Productionizing Distributed XGBoost to Train Deep Tree Models with Large Data Sets at Uber](https://www.uber.com/us/en/blog/productionizing-distributed-xgboost/) · 2019-12-10
+- [Evolving Michelangelo Model Representation for Flexibility at Scale](https://www.uber.com/us/en/blog/michelangelo-machine-learning-model-representation/) · 2019-10-16
+- [Science at Uber: Powering Machine Learning at Uber](https://www.uber.com/us/en/blog/uber-science-machine-learning-platform/) · 2019-09-10
+- [Accessible Machine Learning through Data Workflow Management](https://www.uber.com/us/en/blog/machine-learning-data-workflow-management/) · 2019-03-18
+- [Using Machine Learning to Ensure the Capacity Safety of Individual Microservices](https://www.uber.com/us/en/blog/machine-learning-capacity-safety/) · 2019-03-07
+- [Horovod Adds Support for PySpark and Apache MXNet and Additional Features for Faster Training](https://www.uber.com/us/en/blog/horovod-pyspark-apache-mxnet-support/) · 2019-02-21
+- [Scaling Machine Learning at Uber with Michelangelo](https://www.uber.com/us/en/blog/scaling-michelangelo/) · 2018-11-02
+- [Michelangelo PyML: Introducing Uber’s Platform for Rapid Python ML Model Development](https://www.uber.com/us/en/blog/michelangelo-pyml/) · 2018-10-23
+- [Meet Horovod: Uber’s Open Source Distributed Deep Learning Framework for TensorFlow](https://www.uber.com/us/en/blog/horovod/) · 2017-10-17
+- [Meet Michelangelo: Uber’s Machine Learning Platform](https://www.uber.com/us/en/blog/michelangelo-machine-learning-platform/) · 2017-09-05
