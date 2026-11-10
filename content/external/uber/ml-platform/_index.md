@@ -1,6 +1,6 @@
 ---
 title: "ML 플랫폼·인프라"
-description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 17편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 20편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 2
 comments: false
@@ -27,6 +27,9 @@ comments: false
 - [Ray 위에서 탄력적으로 돌리는 분산 XGBoost 학습 (2021-07)]({{< relref "/external/uber/ml-platform/elastic-xgboost-ray.md" >}})
 - [ML 온라인 서빙과 모델의 지속적 통합·배포 (2021-06)]({{< relref "/external/uber/ml-platform/continuous-integration-deployment-ml.md" >}})
 - [Ray 위에서 탄력적으로 돌리는 Horovod 딥러닝 학습 (2021-03)]({{< relref "/external/uber/ml-platform/horovod-ray.md" >}})
+- [Horovod v0.21의 로컬 그래디언트 집계와 그룹 Allreduce (2020-11)]({{< relref "/external/uber/ml-platform/horovod-v0-21.md" >}})
+- [딥러닝 프레임워크를 가리지 않는 추론 엔진 Neuropod (2020-06)]({{< relref "/external/uber/ml-platform/introducing-neuropod.md" >}})
+- [자율주행 ML 모델의 생애주기와 버전 관리 플랫폼 VerCD (2020-03)]({{< relref "/external/uber/ml-platform/machine-learning-model-life-cycle-version-control.md" >}})
 
 Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어, 모델 배포 안전장치처럼 모델을 학습·서빙하는 플랫폼 쪽 글입니다.
 
@@ -35,9 +38,6 @@ Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
 - [Enabling Offline Inferences at Uber Scale](https://www.uber.com/us/en/blog/enabling-offline-inferences-at-uber-scale/) · 2022-06-15
-- [Horovod v0.21: Optimizing Network Utilization with Local Gradient Aggregation and Grouped Allreduce](https://www.uber.com/us/en/blog/horovod-v0-21/) · 2020-11-24
-- [Introducing Neuropod, Uber ATG’s Open Source Deep Learning Inference Engine](https://www.uber.com/us/en/blog/introducing-neuropod/) · 2020-06-08
-- [Under the Hood of Uber ATG’s Machine Learning Infrastructure and Versioning Control Platform for Self-Driving Vehicles](https://www.uber.com/us/en/blog/machine-learning-model-life-cycle-version-control/) · 2020-03-04
 - [Building a Backtesting Service to Measure Model Performance at Uber-scale](https://www.uber.com/us/en/blog/backtesting-at-scale/) · 2020-02-13
 - [Open Sourcing Manifold, a Visual Debugging Tool for Machine Learning](https://www.uber.com/us/en/blog/manifold-open-source/) · 2020-01-07
 - [Productionizing Distributed XGBoost to Train Deep Tree Models with Large Data Sets at Uber](https://www.uber.com/us/en/blog/productionizing-distributed-xgboost/) · 2019-12-10
