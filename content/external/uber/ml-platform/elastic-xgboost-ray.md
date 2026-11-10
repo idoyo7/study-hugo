@@ -2,7 +2,7 @@
 title: "워커가 멈춘 뒤에도 학습을 이어 가는 XGBoost on Ray"
 description: "분산 XGBoost의 장애 복구와 하이퍼파라미터 탐색 비용을 어떻게 줄일까요? 우버는 살아남은 Ray 액터의 데이터를 유지하고 Ray Tune으로 병렬 학습을 조율하면서, Ray Estimator로 기존 Spark 파이프라인과의 호환성을 지켰습니다."
 date: 2026-11-10
-weight: 15
+weight: 12
 ---
 
 # 워커가 멈춘 뒤에도 학습을 이어 가는 XGBoost on Ray (2021-07)

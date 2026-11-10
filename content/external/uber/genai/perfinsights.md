@@ -2,7 +2,7 @@
 title: "Go 성능 안티패턴을 몇 시간 만에 찾는 PerfInsights"
 description: "Uber는 며칠씩 걸리던 Go 성능 안티패턴 탐지를 어떻게 몇 시간으로 줄였을까요? 프로덕션 프로파일에서 고른 함수에 LLM 분석을 집중하고, LLM juries와 LLMCheck로 제안을 검증했습니다."
 date: 2026-11-10
-weight: 14
+weight: 7
 ---
 
 # Go 성능 안티패턴을 몇 시간 만에 찾는 PerfInsights (2025-07)

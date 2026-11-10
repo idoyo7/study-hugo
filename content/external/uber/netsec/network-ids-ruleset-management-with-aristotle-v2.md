@@ -2,7 +2,7 @@
 title: "9만 개 넘는 IDS 룰을 다듬는 Aristotle v2"
 description: "9만 개 넘는 IDS 룰을 일일이 검토하지 않고 어떻게 환경에 맞출까요? 우버는 Aristotle v2로 메타데이터를 정규화하고 빠진 정보를 채워 룰을 다듬으며, 룰마다 붙인 위험 점수를 후속 상관 분석에 사용합니다."
 date: 2026-11-10
-weight: 8
+weight: 6
 ---
 
 # 9만 개 넘는 IDS 룰을 다듬는 Aristotle v2 (2024-02)

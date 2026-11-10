@@ -2,7 +2,7 @@
 title: "Java GC 실험에서 부하 테스트 서비스로 자란 Shadower"
 description: "로컬에서 Java GC 설정을 비교하던 Shadower는 어떻게 부하 테스트 서비스가 됐을까요? Uber는 Ballast에 부하량 판단을, Shadower에 실행을 맡기고 요청 저장소와 스케줄링·쿼터 관리를 추가했습니다."
 date: 2026-11-10
-weight: 10
+weight: 9
 ---
 
 # Java GC 실험에서 부하 테스트 서비스로 자란 Shadower (2022-06)

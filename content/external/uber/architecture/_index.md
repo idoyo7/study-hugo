@@ -1,6 +1,6 @@
 ---
 title: "서비스 아키텍처·워크플로"
-description: "우버 엔지니어링 블로그의 서비스 아키텍처·워크플로 글 15편 목록입니다. 2020년 이후 글 7편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 서비스 아키텍처·워크플로 글 13편 목록입니다. 2020년 이후 글 5편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 8
 comments: false
@@ -10,8 +10,6 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [CNCF에서 커뮤니티와 개발 방향을 함께 정하는 Cadence (2025-10)]({{< relref "/external/uber/architecture/cadence-workflow-joins-the-cloud-native-computing-foundation.md" >}})
-- [Cadence 워크플로를 입력으로 받는 Starlark Worker (2025-09)]({{< relref "/external/uber/architecture/starlark.md" >}})
 - [늘어나는 워크플로의 운영 부담을 줄인 Cadence 1.0 (2023-06)]({{< relref "/external/uber/architecture/announcing-cadence.md" >}})
 - [15만 대의 설정 배포를 하나로 모은 우버의 UCDP (2023-03)]({{< relref "/external/uber/architecture/how-we-unified-configuration-distribution-across-systems-at-uber.md" >}})
 - [한 고객의 폭주에도 처리를 이어 가는 Cadence의 큐 (2021-12)]({{< relref "/external/uber/architecture/cadence-multi-tenant-task-processing.md" >}})

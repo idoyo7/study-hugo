@@ -2,7 +2,7 @@
 title: "휴가 사진과 사업 계획을 구별하는 File Semantic Analyzer"
 description: "외부로 나가는 파일에서 개인 자료와 민감한 업무 정보를 어떻게 구별할까요? Uber는 File Semantic Analyzer로 파일의 맥락을 읽어 오탐을 줄이고, 분석가가 검증할 요약과 판단 근거를 제공합니다."
 date: 2026-11-10
-weight: 7
+weight: 4
 ---
 
 # 휴가 사진과 사업 계획을 구별하는 File Semantic Analyzer (2026-06)

@@ -2,7 +2,7 @@
 title: "남는 자원을 빌려 쓰는 우버의 Ray on Kubernetes"
 description: "Kubernetes에서 팀별 예약 용량을 보장하면서 남는 자원을 더 쓰려면 어떻게 해야 할까요? 우버는 Ray 작업의 자원 사용을 먼저 승인하고, 수요가 바뀌면 빌려 쓰던 자원을 선점해 돌려주는 기능을 추가했습니다."
 date: 2026-11-10
-weight: 6
+weight: 5
 ---
 
 # 남는 자원을 빌려 쓰는 우버의 Ray on Kubernetes (2025-04)

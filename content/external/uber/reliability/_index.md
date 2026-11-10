@@ -1,6 +1,6 @@
 ---
 title: "신뢰성·트래픽 관리"
-description: "우버 엔지니어링 블로그의 신뢰성·트래픽 관리 글 17편 목록입니다. 2020년 이후 글 13편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 신뢰성·트래픽 관리 글 16편 목록입니다. 2020년 이후 글 12편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 5
 comments: false
@@ -18,7 +18,6 @@ comments: false
 - [과부하 속에서 한계를 찾는 Cinnamon Auto-tuner (2023-12)]({{< relref "/external/uber/reliability/cinnamon-auto-tuner-adaptive-concurrency-in-the-wild.md" >}})
 - [Cinnamon의 거절 비율을 안정시킨 PID 컨트롤러 (2023-11)]({{< relref "/external/uber/reliability/pid-controller-for-cinnamon.md" >}})
 - [설정값 없이 과부하를 견디는 로드 셰더 Cinnamon (2023-11)]({{< relref "/external/uber/reliability/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder.md" >}})
-- [Invoice-gen에서 Invoicer로 옮겨 간 인보이스 (2023-08)]({{< relref "/external/uber/reliability/the-perils-of-migrating-a-large-scale-service-at-uber.md" >}})
 - [Java GC 실험에서 부하 테스트 서비스로 자란 Shadower (2022-06)]({{< relref "/external/uber/reliability/introducing-shadower-a-minimalistic-load-testing-tool.md" >}})
 - [서비스 메시의 연결 폭을 조절하는 Uber 동적 서브셋팅 (2022-05)]({{< relref "/external/uber/reliability/better-load-balancing-real-time-dynamic-subsetting.md" >}})
 - [실제 트래픽을 재생해 서비스 한계를 찾는 Ballast (2022-03)]({{< relref "/external/uber/reliability/introducing-ballast-an-adaptive-load-test-framework.md" >}})

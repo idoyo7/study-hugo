@@ -1,6 +1,6 @@
 ---
 title: "네트워크·보안"
-description: "우버 엔지니어링 블로그의 네트워크·보안 글 17편 목록입니다. 2020년 이후 글 15편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 네트워크·보안 글 14편 목록입니다. 2020년 이후 글 12편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 9
 comments: false
@@ -10,17 +10,14 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [매일 밤 사무실 네트워크의 설정을 되돌리는 Ansible (2026-04)]({{< relref "/external/uber/netsec/ansible-automation-powers.md" >}})
 - [슈퍼유저 권한을 서비스로 옮긴 Superuser Gateway (2026-02)]({{< relref "/external/uber/netsec/superuser-gateway-guardrails.md" >}})
 - [Uber IAM 정책 변경에 테스트를 더한 Policy Simulator (2025-09)]({{< relref "/external/uber/netsec/adding-determinism-and-safety-to-uber-iam-policy-changes.md" >}})
-- [지역 PoP를 건너뛴 우버 사무실의 SD-WAN 전환 (2025-08)]({{< relref "/external/uber/netsec/lightweight-office-infrastructure.md" >}})
 - [LVM과 LUKS로 10만 호스트의 디스크를 나눈 Odin (2025-08)]({{< relref "/external/uber/netsec/locking-down-the-fleet.md" >}})
 - [10만 개 Kerberos keytab을 나눠 교체하는 KDP (2025-06)]({{< relref "/external/uber/netsec/automating-kerberos-keytab-rotation-at-uber.md" >}})
 - [15만 시크릿의 수명 주기를 맡은 우버의 멀티클라우드 플랫폼 (2025-05)]({{< relref "/external/uber/netsec/building-ubers-multi-cloud-secrets-management-platform.md" >}})
 - [9만 개 넘는 IDS 룰을 다듬는 Aristotle v2 (2024-02)]({{< relref "/external/uber/netsec/network-ids-ruleset-management-with-aristotle-v2.md" >}})
 - [4,500개 서비스의 신원을 책임지는 SPIFFE/SPIRE (2023-11)]({{< relref "/external/uber/netsec/our-journey-adopting-spiffe-spire.md" >}})
 - [UUID만으로 풀리지 않던 권한 문제와 Uber의 ABAC (2023-07)]({{< relref "/external/uber/netsec/attribute-based-access-control-at-uber.md" >}})
-- [함께 대응할 준비를 시험하는 Uber의 보안 사고 시뮬레이션 (2023-05)]({{< relref "/external/uber/netsec/cybersecurity-incident-simulation.md" >}})
 - [설정과 코드 몇 줄로 넓힌 Uber의 Kerberos 인증 (2023-01)]({{< relref "/external/uber/netsec/scaling-adoption-of-kerberos-at-uber.md" >}})
 - [수백 명의 개발자를 기다리게 한 Edge Gateway 빌드 (2021-06)]({{< relref "/external/uber/netsec/scaling-api-gateway.md" >}})
 - [설정만으로 API를 여는 Uber Edge Gateway의 설계 (2021-05)]({{< relref "/external/uber/netsec/architecture-api-gateway.md" >}})

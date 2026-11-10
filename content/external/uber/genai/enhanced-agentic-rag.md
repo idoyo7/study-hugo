@@ -2,7 +2,7 @@
 title: "Genie의 정책 답변을 바꾼 Enhanced Agentic RAG"
 description: "Genie가 보안·프라이버시 질문에 더 정확히 답하도록 우버는 표의 맥락을 보존하고 검색 앞뒤에 에이전트를 배치했습니다. 그 결과 허용 가능한 답변 비율은 상대 27% 높아지고, 잘못된 조언은 상대 60% 줄었습니다."
 date: 2026-11-10
-weight: 16
+weight: 8
 ---
 
 # Genie의 정책 답변을 바꾼 Enhanced Agentic RAG (2025-05)

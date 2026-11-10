@@ -2,7 +2,7 @@
 title: "설정만으로 API를 여는 Uber Edge Gateway의 설계"
 description: "Uber Edge Gateway에서 API 개발자는 어떻게 코드를 쓰지 않고 API를 공개할까요? 게이트웨이가 YAML·Thrift 설정으로 실행 코드와 모바일 SDK를 만들고, 인증과 요청 변환 같은 공통 기능을 제공합니다."
 date: 2026-11-10
-weight: 14
+weight: 11
 ---
 
 # 설정만으로 API를 여는 Uber Edge Gateway의 설계 (2021-05)

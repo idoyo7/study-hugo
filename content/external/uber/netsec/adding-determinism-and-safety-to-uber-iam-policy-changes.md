@@ -2,7 +2,7 @@
 title: "Uber IAM 정책 변경에 테스트를 더한 Policy Simulator"
 description: "IAM 정책 변경이 어떤 접근을 막거나 허용할지 배포 전에 어떻게 확인할까요? Uber는 Policy Simulator로 과거 접근을 현재 정책과 제안 정책에서 재생해 비교하고, 작성자와 리뷰어가 그 결과를 확인하도록 했습니다."
 date: 2026-11-10
-weight: 3
+weight: 2
 ---
 
 # Uber IAM 정책 변경에 테스트를 더한 Policy Simulator (2025-09)

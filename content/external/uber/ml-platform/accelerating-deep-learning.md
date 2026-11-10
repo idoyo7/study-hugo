@@ -2,7 +2,7 @@
 title: "GPU의 긴 기다림을 줄인 Petastorm 데이터 로더"
 description: "GPU는 왜 데이터를 기다리고, 시드를 고정해도 학습 결과는 왜 달라졌을까요? Uber는 Petastorm에서 변환된 데이터를 캐시하고 워커 간 경쟁 상태를 없애 학습 속도와 재현성을 높였습니다."
 date: 2026-11-10
-weight: 4
+weight: 3
 ---
 
 # GPU의 긴 기다림을 줄인 Petastorm 데이터 로더 (2026-04)

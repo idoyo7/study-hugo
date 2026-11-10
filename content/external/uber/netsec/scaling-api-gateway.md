@@ -2,7 +2,7 @@
 title: "수백 명의 개발자를 기다리게 한 Edge Gateway 빌드"
 description: "Edge Gateway에서 엔드포인트 변경이 3시간 넘는 대기로 이어진 이유와 이를 줄인 방법을 다룹니다. Uber는 설정과 생성 코드를 반영하는 경로를 나누고, 테스트·코드 생성 범위와 코드 크기를 줄였습니다."
 date: 2026-11-10
-weight: 13
+weight: 10
 ---
 
 # 수백 명의 개발자를 기다리게 한 Edge Gateway 빌드 (2021-06)

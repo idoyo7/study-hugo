@@ -2,7 +2,7 @@
 title: "10만 개 Kerberos keytab을 나눠 교체하는 KDP"
 description: "10만 개 넘는 Kerberos keytab을 인증 중단 위험을 줄이며 교체하려면 무엇을 바꿔야 할까요? 우버는 티켓 유효 시간에 맞춰 키를 교체하고 장애 도메인별로 교체 범위를 제한하도록 KDP를 확장했습니다."
 date: 2026-11-10
-weight: 6
+weight: 4
 ---
 
 # 10만 개 Kerberos keytab을 나눠 교체하는 KDP (2025-06)

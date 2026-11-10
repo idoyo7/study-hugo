@@ -2,7 +2,7 @@
 title: "GPU 수가 달라져도 학습을 이어 가는 Horovod와 Ray"
 description: "GPU 수가 바뀌어도 학습을 이어 가려면 무엇이 필요합니까? 우버는 Elastic Horovod의 워커 조정과 Ray의 자원 운영을 결합하고, 수렴 실험과 Ray Tune 연동으로 성능과 자원 활용을 개선할 방법을 찾았습니다."
 date: 2026-11-10
-weight: 17
+weight: 14
 ---
 
 # GPU 수가 달라져도 학습을 이어 가는 Horovod와 Ray (2021-03)

@@ -2,7 +2,7 @@
 title: "모델 개발의 길을 다시 설계한 Michelangelo의 8년"
 description: "모델과 팀이 늘어날 때 ML 플랫폼도 어떻게 달라져야 할까요? 우버는 Michelangelo의 품질 기준과 개발·운영 흐름을 다시 설계하고, 딥러닝과 LLMOps를 지원하는 기반으로 넓혔습니다."
 date: 2026-11-10
-weight: 9
+weight: 7
 ---
 
 # 모델 개발의 길을 다시 설계한 Michelangelo의 8년 (2024-05)

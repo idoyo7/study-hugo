@@ -2,7 +2,7 @@
 title: "제품 개발의 병목을 풀기 위한 우버의 Edge Gateway"
 description: "우버는 RTAPI에 쌓인 비즈니스 로직과 공통 인프라의 책임을 어떻게 나눴을까요? Go 기반 Edge Gateway에는 공통 API 처리를 남기고, 화면 조합과 비즈니스 로직은 제품 팀이 운영하는 서비스로 옮겼습니다."
 date: 2026-11-10
-weight: 15
+weight: 12
 ---
 
 # 제품 개발의 병목을 풀기 위한 우버의 Edge Gateway (2020-08)

@@ -2,7 +2,7 @@
 title: "기존 API를 에이전트 도구로 바꾸는 우버의 MCP Gateway"
 description: "팀마다 MCP 서버를 새로 만들지 않고 기존 API를 에이전트에 연결하려면 무엇이 필요합니까? 우버는 MCP Gateway에 프로토콜 변환과 도구 관리를 모으고, 규모가 커지자 탐색 방식과 컨텍스트 사용법도 바꿨습니다."
 date: 2026-11-10
-weight: 4
+weight: 2
 ---
 
 # 기존 API를 에이전트 도구로 바꾸는 우버의 MCP Gateway (2026-10)

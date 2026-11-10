@@ -1,6 +1,6 @@
 ---
 title: "ML 플랫폼·인프라"
-description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 22편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 26편 목록입니다. 2020년 이후 글 15편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 2
 comments: false
@@ -12,26 +12,19 @@ comments: false
 
 - [초당 800만 건의 예측을 감당하는 Uber 피처 로깅 (2026-09)]({{< relref "/external/uber/ml-platform/taming-ml-firehose.md" >}})
 - [GPU 메모리부터 줄인 Uber Michelangelo의 LLM 학습 (2026-04)]({{< relref "/external/uber/ml-platform/open-source-and-in-house-how-uber-optimizes-llm-training.md" >}})
-- [개발과 배포에 자리 잡은 Uber의 Responsible AI (2026-04)]({{< relref "/external/uber/ml-platform/scaling-responsible-ai.md" >}})
 - [GPU의 긴 기다림을 줄인 Petastorm 데이터 로더 (2026-04)]({{< relref "/external/uber/ml-platform/accelerating-deep-learning.md" >}})
 - [수천 개 모델의 배포를 지키는 Michelangelo 안전장치 (2025-10)]({{< relref "/external/uber/ml-platform/raising-the-bar-on-ml-model-deployment-safety.md" >}})
 - [남는 자원을 빌려 쓰는 우버의 Ray on Kubernetes (2025-04)]({{< relref "/external/uber/ml-platform/ubers-journey-to-ray-on-kubernetes-resource-management.md" >}})
 - [클러스터 선택을 플랫폼에 맡긴 Ray on Kubernetes (2025-04)]({{< relref "/external/uber/ml-platform/ubers-journey-to-ray-on-kubernetes-ray-setup.md" >}})
-- [Spark와 Ray로 약 40배 빨라진 우버의 예산 최적화기 (2025-01)]({{< relref "/external/uber/ml-platform/how-uber-uses-ray-to-optimize-the-rides-business.md" >}})
 - [모델 개발의 길을 다시 설계한 Michelangelo의 8년 (2024-05)]({{< relref "/external/uber/ml-platform/from-predictive-to-generative-ai.md" >}})
 - [우버 AI/ML 인프라에서 찾은 GPU 효율의 조건 (2024-03)]({{< relref "/external/uber/ml-platform/scaling-ai-ml-infrastructure-at-uber.md" >}})
 - [운영 모델의 품질을 지키는 Model Excellence Scores (2024-03)]({{< relref "/external/uber/ml-platform/enhancing-the-quality-of-machine-learning-systems-at-scale.md" >}})
 - [Tier1 서빙 장애에서 출발한 Palette 메타 스토어 재설계 (2024-01)]({{< relref "/external/uber/ml-platform/palette-meta-store-journey.md" >}})
 - [조용한 데이터 누락을 찾아내는 Uber의 자동 감시 시스템 D3 (2023-02)]({{< relref "/external/uber/ml-platform/d3-an-automated-system-to-detect-data-drifts.md" >}})
-- [반복 실험의 수작업을 줄인 Michelangelo의 모델 튜닝 (2021-07)]({{< relref "/external/uber/ml-platform/tuning-model-performance.md" >}})
 - [워커가 멈춘 뒤에도 학습을 이어 가는 XGBoost on Ray (2021-07)]({{< relref "/external/uber/ml-platform/elastic-xgboost-ray.md" >}})
 - [모델 배포와 서비스 릴리스를 분리한 Uber의 ML 서빙 (2021-06)]({{< relref "/external/uber/ml-platform/continuous-integration-deployment-ml.md" >}})
 - [GPU 수가 달라져도 학습을 이어 가는 Horovod와 Ray (2021-03)]({{< relref "/external/uber/ml-platform/horovod-ray.md" >}})
-- [빠른 GPU와 느린 네트워크 사이의 Horovod v0.21 (2020-11)]({{< relref "/external/uber/ml-platform/horovod-v0-21.md" >}})
 - [프레임워크가 바뀔 때마다 반복하던 통합을 줄인 Neuropod (2020-06)]({{< relref "/external/uber/ml-platform/introducing-neuropod.md" >}})
-- [자율주행 ML의 깊은 의존성을 관리하는 VerCD (2020-03)]({{< relref "/external/uber/ml-platform/machine-learning-model-life-cycle-version-control.md" >}})
-- [예산을 맡길 예측 모델의 오차를 재는 우버 백테스팅 서비스 (2020-02)]({{< relref "/external/uber/ml-platform/backtesting-at-scale.md" >}})
-- [데이터 분포에서 성능 문제의 단서를 찾는 Manifold (2020-01)]({{< relref "/external/uber/ml-platform/manifold-open-source.md" >}})
 
 Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어, 모델 배포 안전장치처럼 모델을 학습·서빙하는 플랫폼 쪽 글입니다.
 

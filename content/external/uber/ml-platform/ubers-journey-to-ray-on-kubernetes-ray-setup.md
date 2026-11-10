@@ -2,7 +2,7 @@
 title: "클러스터 선택을 플랫폼에 맡긴 Ray on Kubernetes"
 description: "ML 엔지니어가 GPU를 찾아 클러스터를 직접 고르던 부담을 어떻게 줄였을까요? 우버는 Ray on Kubernetes로 옮기며 작업 요구와 팀별 소유권에 맞춰 자원을 고르고, 실행부터 종료 후 반납까지 관리하는 플랫폼을 만들었습니다."
 date: 2026-11-10
-weight: 7
+weight: 6
 ---
 
 # 클러스터 선택을 플랫폼에 맡긴 Ray on Kubernetes (2025-04)

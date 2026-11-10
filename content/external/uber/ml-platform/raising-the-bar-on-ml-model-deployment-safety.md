@@ -2,7 +2,7 @@
 title: "수천 개 모델의 배포를 지키는 Michelangelo 안전장치"
 description: "우버는 모델 배포 속도를 늦추지 않고 위험을 줄이기 위해 Michelangelo에 자동 검사와 롤백을 기본으로 넣었습니다. 섀도 테스트와 Hue로 회귀를 일찍 찾고, 팀별 검증과 안전 점수로 보호 범위를 넓힌 과정을 살펴봅니다."
 date: 2026-11-10
-weight: 5
+weight: 4
 ---
 
 # 수천 개 모델의 배포를 지키는 Michelangelo 안전장치 (2025-10)

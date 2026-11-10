@@ -2,7 +2,7 @@
 title: "UUID만으로 풀리지 않던 권한 문제와 Uber의 ABAC"
 description: "고객의 지역이나 직원과 매니저의 관계까지 어떻게 인가 정책에 담을까요? Uber는 Charter의 권한 모델에 속성 조건을 추가하고, 속성 저장소와 CEL로 이를 평가해 Kafka 토픽 관리에도 적용했습니다."
 date: 2026-11-10
-weight: 10
+weight: 8
 ---
 
 # UUID만으로 풀리지 않던 권한 문제와 Uber의 ABAC (2023-07)

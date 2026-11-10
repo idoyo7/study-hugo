@@ -2,7 +2,7 @@
 title: "Slack 온콜의 긴 기다림에서 출발한 코파일럿 Genie"
 description: "문서에 답이 있는데도 Slack에서 온콜을 기다려야 하는 문제를 어떻게 줄일까요? Uber는 흩어진 문서를 검색하는 RAG 코파일럿 Genie를 만들고, 답변과 문서의 품질을 함께 평가했습니다."
 date: 2026-11-10
-weight: 19
+weight: 10
 ---
 
 # Slack 온콜의 긴 기다림에서 출발한 코파일럿 Genie (2024-10)

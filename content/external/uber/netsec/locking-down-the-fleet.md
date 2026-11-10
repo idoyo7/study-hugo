@@ -2,7 +2,7 @@
 title: "LVM과 LUKS로 10만 호스트의 디스크를 나눈 Odin"
 description: "공유 디스크의 유연성을 포기한 Odin은 공간과 성능을 어떻게 관리했을까요? LVM·LUKS 볼륨을 축소 없이 확장하도록 설계하고, 암호화 큐 설정과 확장 시 플러시 동작을 바꿨습니다."
 date: 2026-11-10
-weight: 5
+weight: 3
 ---
 
 # LVM과 LUKS로 10만 호스트의 디스크를 나눈 Odin (2025-08)

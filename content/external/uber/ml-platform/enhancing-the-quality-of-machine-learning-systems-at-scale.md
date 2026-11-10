@@ -2,7 +2,7 @@
 title: "운영 모델의 품질을 지키는 Model Excellence Scores"
 description: "오프라인 평가 이후에도 ML 모델의 품질을 어떻게 관리할까요? 우버는 Model Excellence Scores로 수명주기 전반의 품질을 추적하고, 각 지표의 목표와 개선 조치, 담당 팀을 명확히 했습니다."
 date: 2026-11-10
-weight: 11
+weight: 9
 ---
 
 # 운영 모델의 품질을 지키는 Model Excellence Scores (2024-03)

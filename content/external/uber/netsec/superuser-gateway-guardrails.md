@@ -2,7 +2,7 @@
 title: "슈퍼유저 권한을 서비스로 옮긴 Superuser Gateway"
 description: "급한 운영 작업에 필요한 슈퍼유저 권한을 어떻게 통제할까요? 우버는 위험한 쓰기 명령을 PR에서 검토하고 백엔드에서 실행하도록 바꾸되, 읽기 전용 디버깅에는 별도 경로를 두었습니다."
 date: 2026-11-10
-weight: 2
+weight: 1
 ---
 
 # 슈퍼유저 권한을 서비스로 옮긴 Superuser Gateway (2026-02)

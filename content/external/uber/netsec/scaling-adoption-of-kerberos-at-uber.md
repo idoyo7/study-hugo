@@ -2,7 +2,7 @@
 title: "설정과 코드 몇 줄로 넓힌 Uber의 Kerberos 인증"
 description: "Kerberos를 수천 대 머신에 도입하면서 keytab 수작업을 어떻게 없앴을까요? Uber는 계정 체계와 리전별 KDC를 정비하고, KDP로 keytab 생성과 배포를 자동화했습니다."
 date: 2026-11-10
-weight: 12
+weight: 9
 ---
 
 # 설정과 코드 몇 줄로 넓힌 Uber의 Kerberos 인증 (2023-01)

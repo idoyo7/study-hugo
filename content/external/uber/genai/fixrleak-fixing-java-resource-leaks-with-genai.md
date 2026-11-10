@@ -2,7 +2,7 @@
 title: "함수 안에서 끝나는 Java 리소스 누수를 고치는 FixrLeak"
 description: "SonarQube가 찾은 Java 누수를 어디까지 자동으로 고칠 수 있을까요? Uber의 FixrLeak은 AST 분석으로 함수 안에서 수명이 끝나는 리소스만 골라 GenAI로 수정해, 대상 102건 중 93건을 자동으로 고쳤습니다."
 date: 2026-11-10
-weight: 17
+weight: 9
 ---
 
 # 함수 안에서 끝나는 Java 리소스 누수를 고치는 FixrLeak (2025-05)

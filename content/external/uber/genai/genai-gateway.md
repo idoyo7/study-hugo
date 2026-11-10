@@ -2,7 +2,7 @@
 title: "LLM 연동을 OpenAI API로 통일한 GenAI Gateway"
 description: "우버는 팀마다 달랐던 LLM 연동을 어떻게 하나로 모았을까요? OpenAI API를 따르는 GenAI Gateway로 기존 도구와의 호환성을 확보했지만, 개인정보를 가리는 과정에는 지연 시간과 결과 품질의 부담이 따랐습니다."
 date: 2026-11-10
-weight: 21
+weight: 12
 ---
 
 # LLM 연동을 OpenAI API로 통일한 GenAI Gateway (2024-07)
