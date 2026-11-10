@@ -17,6 +17,7 @@ cascade:
 - [여기어때]({{< relref "/external/yeogi/_index.md" >}})
 - [올리브영]({{< relref "/external/oliveyoung/_index.md" >}})
 - [티맵모빌리티]({{< relref "/external/tmap/_index.md" >}})
+- [Anthropic]({{< relref "/external/anthropic/_index.md" >}})
 - [Uber]({{< relref "/external/uber/_index.md" >}})
 - [promkr 뉴스레터]({{< relref "/external/promkr/_index.md" >}})
 - [Amazon Connect로 만든 두 회사의 온콜 전화 (올리브영·여기어때 비교)]({{< relref "/external/oncall-amazon-connect-comparison.md" >}})
