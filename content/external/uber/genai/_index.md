@@ -1,6 +1,6 @@
 ---
 title: "GenAI·LLM 에이전트"
-description: "우버 엔지니어링 블로그의 GenAI·LLM 에이전트 글 23편 목록입니다. 2020년 이후 글 16편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 GenAI·LLM 에이전트 글 23편 목록입니다. 2020년 이후 글 20편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 1
 comments: false
@@ -25,7 +25,11 @@ comments: false
 - [오탐을 걷어낸 우버의 AI 코드 리뷰어 uReview (2025-08)]({{< relref "/external/uber/genai/ureview.md" >}})
 - [Go 코드의 성능 개선 지점을 찾는 GenAI 도구 PerfInsights (2025-07)]({{< relref "/external/uber/genai/perfinsights.md" >}})
 - [Slack에서 재무 데이터를 묻고 답하는 AI 에이전트 Finch (2025-07)]({{< relref "/external/uber/genai/unlocking-financial-insights-with-finch.md" >}})
+- [사람에 가까운 정확도를 노린 Enhanced Agentic RAG (2025-05)]({{< relref "/external/uber/genai/enhanced-agentic-rag.md" >}})
 - [GenAI로 Java 리소스 누수를 고치는 FixrLeak (2025-05)]({{< relref "/external/uber/genai/fixrleak-fixing-java-resource-leaks-with-genai.md" >}})
+- [GenAI로 자동화한 우버의 송장 문서 처리 (2025-04)]({{< relref "/external/uber/genai/advancing-invoice-document-processing-using-genai.md" >}})
+- [Slack 온콜 질문에 답하는 RAG 기반 코파일럿 Genie (2024-10)]({{< relref "/external/uber/genai/genie-ubers-gen-ai-on-call-copilot.md" >}})
+- [자연어를 SQL로 바꾸는 우버의 QueryGPT (2024-09)]({{< relref "/external/uber/genai/query-gpt.md" >}})
 
 사내 LLM 게이트웨이, MCP 게이트웨이, 온콜·코드 리뷰·데이터 분석 에이전트, 에이전트 보안처럼 생성형 AI를 사내 시스템에 붙인 글입니다.
 
@@ -33,10 +37,6 @@ comments: false
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Enhanced Agentic-RAG: What If Chatbots Could Deliver Near-Human Precision?](https://www.uber.com/us/en/blog/enhanced-agentic-rag/) · 2025-05-29
-- [Advancing Invoice Document Processing at Uber using GenAI](https://www.uber.com/us/en/blog/advancing-invoice-document-processing-using-genai/) · 2025-04-17
 - [Introducing the Prompt Engineering Toolkit](https://www.uber.com/us/en/blog/introducing-the-prompt-engineering-toolkit/) · 2024-11-26
-- [Genie: Uber’s Gen AI On-Call Copilot](https://www.uber.com/us/en/blog/genie-ubers-gen-ai-on-call-copilot/) · 2024-10-10
-- [QueryGPT – Natural Language to SQL Using Generative AI](https://www.uber.com/us/en/blog/query-gpt/) · 2024-09-19
 - [Navigating the LLM Landscape: Uber’s Innovation with GenAI Gateway](https://www.uber.com/us/en/blog/genai-gateway/) · 2024-07-11
 - [DragonCrawl: Generative AI for High-Quality Mobile Testing](https://www.uber.com/us/en/blog/generative-ai-for-high-quality-mobile-testing/) · 2024-04-23

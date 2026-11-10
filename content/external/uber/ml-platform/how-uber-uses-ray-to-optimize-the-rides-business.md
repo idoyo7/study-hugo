@@ -2,7 +2,7 @@
 title: "Spark와 Ray를 함께 쓴 라이드 마켓플레이스 예산 최적화"
 description: "우버가 Spark 기반 예산 배분 시스템의 병렬화 병목을 Spark와 Ray의 하이브리드 구성으로 풀어 최적화 속도를 약 40배 높인 과정을 요약합니다. Michelangelo 팀의 KubeRay 백엔드까지 함께 다룹니다."
 date: 2026-11-10
-weight: 6
+weight: 8
 ---
 
 # Spark와 Ray를 함께 쓴 라이드 마켓플레이스 예산 최적화 (2025-01)

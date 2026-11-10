@@ -1,6 +1,6 @@
 ---
 title: "ML 플랫폼·인프라"
-description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 6편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 8편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 2
 comments: false
@@ -15,6 +15,8 @@ comments: false
 - [모델 카탈로그로 시작한 우버의 Responsible AI 프로그램 (2026-04)]({{< relref "/external/uber/ml-platform/scaling-responsible-ai.md" >}})
 - [GPU를 놀리지 않는 Petastorm 데이터 로딩과 재현 가능한 학습 (2026-04)]({{< relref "/external/uber/ml-platform/accelerating-deep-learning.md" >}})
 - [Michelangelo가 기본으로 깔아 둔 ML 모델 배포 안전망 (2025-10)]({{< relref "/external/uber/ml-platform/raising-the-bar-on-ml-model-deployment-safety.md" >}})
+- [Kubernetes 위 Ray 작업을 위한 탄력적 자원 관리 (2025-04)]({{< relref "/external/uber/ml-platform/ubers-journey-to-ray-on-kubernetes-resource-management.md" >}})
+- [Kubernetes 위에 세운 연합형 Ray 작업 관리 구조 (2025-04)]({{< relref "/external/uber/ml-platform/ubers-journey-to-ray-on-kubernetes-ray-setup.md" >}})
 - [Spark와 Ray를 함께 쓴 라이드 마켓플레이스 예산 최적화 (2025-01)]({{< relref "/external/uber/ml-platform/how-uber-uses-ray-to-optimize-the-rides-business.md" >}})
 
 Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어, 모델 배포 안전장치처럼 모델을 학습·서빙하는 플랫폼 쪽 글입니다.
@@ -23,8 +25,6 @@ Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Uber’s Journey to Ray on Kubernetes: Resource Management](https://www.uber.com/us/en/blog/ubers-journey-to-ray-on-kubernetes-resource-management/) · 2025-04-10
-- [Uber’s Journey to Ray on Kubernetes: Ray Setup](https://www.uber.com/us/en/blog/ubers-journey-to-ray-on-kubernetes-ray-setup/) · 2025-04-03
 - [From Predictive to Generative – How Michelangelo Accelerates Uber’s AI Journey](https://www.uber.com/us/en/blog/from-predictive-to-generative-ai/) · 2024-05-02
 - [Scaling AI/ML Infrastructure at Uber](https://www.uber.com/us/en/blog/scaling-ai-ml-infrastructure-at-uber/) · 2024-03-28
 - [Model Excellence Scores: A Framework for Enhancing the Quality of Machine Learning Systems at Scale](https://www.uber.com/us/en/blog/enhancing-the-quality-of-machine-learning-systems-at-scale/) · 2024-03-21

@@ -1,6 +1,6 @@
 ---
 title: "데이터베이스·스토리지"
-description: "우버 엔지니어링 블로그의 데이터베이스·스토리지 글 26편 목록입니다. 2020년 이후 글 3편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 데이터베이스·스토리지 글 26편 목록입니다. 2020년 이후 글 9편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 6
 comments: false
@@ -13,6 +13,12 @@ comments: false
 - [대규모에서도 굴러가는 MySQL Group Replication 운영 자동화 (2025-12)]({{< relref "/external/uber/database/improving-mysql-cluster-uptime-part2.md" >}})
 - [Group Replication으로 설계한 MySQL 클러스터 장애 감지·완화와 합의 구조 (2025-12)]({{< relref "/external/uber/database/improving-mysql-cluster-uptime-part1.md" >}})
 - [초당 1억 5천만 읽기를 처리하는 통합 캐시와 더 강한 일관성 (2025-08)]({{< relref "/external/uber/database/how-uber-serves-over-150-million-reads.md" >}})
+- [상시 백업과 상시 복구로 만든 우버의 데이터베이스 백업 체계 (2025-05)]({{< relref "/external/uber/database/robust-database-backup-recovery-at-uber.md" >}})
+- [2,300개 클러스터를 다루는 우버 MySQL 컨트롤 플레인 (2025-01)]({{< relref "/external/uber/database/mysql-at-uber.md" >}})
+- [Odin의 작업 충돌을 막는 전역 조율기 The Accounter (2024-11)]({{< relref "/external/uber/database/the-accounter.md" >}})
+- [MySQL 8.0으로 옮긴 우버의 대규모 플릿 업그레이드 (2024-08)]({{< relref "/external/uber/database/upgrading-ubers-mysql-fleet.md" >}})
+- [SSTable 공유로 줄인 MyRocks 차등 백업 (2024-08)]({{< relref "/external/uber/database/differential-backups-on-myrocks.md" >}})
+- [기술에 구애받지 않는 우버의 상태 저장 플랫폼 Odin (2024-07)]({{< relref "/external/uber/database/odin-stateful-platform.md" >}})
 
 MySQL·MyRocks, Cassandra, Schemaless·Docstore, LedgerStore, 통합 캐시, 백업 복구처럼 상태를 저장하는 시스템 운영 글입니다.
 
@@ -20,12 +26,6 @@ MySQL·MyRocks, Cassandra, Schemaless·Docstore, LedgerStore, 통합 캐시, 백
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Robust Database Backup Recovery at Uber](https://www.uber.com/us/en/blog/robust-database-backup-recovery-at-uber/) · 2025-05-22
-- [MySQL At Uber](https://www.uber.com/us/en/blog/mysql-at-uber/) · 2025-01-30
-- [The Accounter: Scaling Operational Throughput on Uber’s Stateful Platform](https://www.uber.com/us/en/blog/the-accounter/) · 2024-11-21
-- [Upgrading Uber’s MySQL Fleet to version 8.0](https://www.uber.com/us/en/blog/upgrading-ubers-mysql-fleet/) · 2024-08-08
-- [Differential Backups in MyRocks Based Distributed Databases at Uber](https://www.uber.com/us/en/blog/differential-backups-on-myrocks/) · 2024-08-01
-- [Odin: Uber’s Stateful Platform](https://www.uber.com/us/en/blog/odin-stateful-platform/) · 2024-07-18
 - [How Uber ensures Apache Cassandra®’s tolerance for single-zone failure](https://www.uber.com/us/en/blog/single-zone-failure-tolerance/) · 2024-06-20
 - [Migrating a Trillion Entries of Uber’s Ledger Data from DynamoDB to LedgerStore](https://www.uber.com/us/en/blog/migrating-from-dynamodb-to-ledgerstore/) · 2024-04-11
 - [How LedgerStore Supports Trillions of Indexes at Uber](https://www.uber.com/us/en/blog/how-ledgerstore-supports-trillions-of-indexes/) · 2024-04-04

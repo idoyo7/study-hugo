@@ -2,7 +2,7 @@
 title: "GenAI로 Java 리소스 누수를 고치는 FixrLeak"
 description: "우버가 SonarQube가 찾아낸 Java 리소스 누수를 AST 분석과 생성형 AI로 자동 수정하는 FixrLeak을 만든 과정을 요약합니다. 안전하게 고칠 수 있는 누수만 골라 풀 리퀘스트까지 만드는 흐름과 적용 결과를 다룹니다."
 date: 2026-11-10
-weight: 16
+weight: 17
 ---
 
 # GenAI로 Java 리소스 누수를 고치는 FixrLeak (2025-05)
