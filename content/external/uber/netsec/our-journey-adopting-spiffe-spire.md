@@ -78,7 +78,7 @@ SPIRE(SPIFFE Runtime Environment)는 이 명세를 구현한 오픈소스 소프
 
 추가 연결로 읽기 복제본을 사용할 수 있게 바꾸면서, 읽기 부하를 여러 복제본에 나눴습니다. 쓰기와 보안에 민감한 읽기는 프라이머리에 남겼습니다. 모든 읽기를 일괄적으로 복제본으로 옮기는 설계는 아닙니다.
 
-시험에는 프라이머리 하나와 읽기 복제본 둘로 구성한 MySQL 클러스터를 사용했습니다. ListRegistrationEntries와 GetNodeSelectors 같은 읽기 중심 작업을 복제본으로 옮겨 부하가 분산되는 것을 확인했습니다. 에이전트의 캐시와 서버의 읽기 복제본 지원은 모두 SPIRE 커뮤니티에 기여한 개선입니다.
+시험에는 프라이머리 하나와 읽기 복제본 둘로 구성한 MySQL 클러스터를 사용했습니다. ListRegistrationEntries와 GetNodeSelectors 같은 읽기 중심 작업을 복제본으로 옮겨 부하가 분산되는 것을 확인했습니다. 서버의 읽기 복제본 지원은 우버가 SPIRE 커뮤니티에 기여한 개선입니다.
 
 ## 호스트 한 대의 고장까지 살피는 SPIRE 에이전트 {#agent-operations}
 
