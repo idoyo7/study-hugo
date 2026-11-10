@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-10 — HyperDX·ClickStack에 타사 사례 분류와 게임듀오 사례 추가
+
+- `content/observability/hyperdx/cases/`를 새로 만들고 HyperDX·ClickStack 색인에서 잇습니다. 다른 회사의 ClickStack 구축·운영 공개 사례를 우리 설계 문서와 대조하려고 모으는 자리입니다.
+- 첫 문서는 AWS 기술 블로그의 게임듀오 사례(2026-11-10, 서창민·이은학)입니다. 250대 넘는 게임 서버의 로그·트레이스를 SaaS에서 EC2 기반 ClickStack으로 옮기면서 Loki를 접은 이유, 게이트웨이가 S3에 먼저 쓰고 응답하는 S3+SQS 버퍼, EBS 핫(로그 7일)·S3 콜드(180일) 티어링, 카나리·데드맨·정합성 점검, TTL 변경·머지 예약·자동 컬럼 통계로 겪은 장애를 요약했습니다. 끝에서 우리 EBS·S3 티어링·용량 산정 문서로 잇습니다.
+- 원문은 Chrome으로 읽었습니다. Claude 초안 → Astra(`gpt-6-astra`, xhigh) 전면 재작성 → 코드 블록·수치·앵커·표 기계 대조와 문장 대조 순으로 만들었고, 보정은 필요 없었습니다.
+
 ## 2026-11-10 — 네이버에 n3r OIDC 발표 요약 추가
 
 - NAVER Engineering Day 10th 공개 세션 「로그인 화면, 이제 만들지 마세요 - n3r OIDC」(YouTube, 2026-11-08 공개, 약 32분)를 `content/external/naver/n3r-oidc.md`에 요약했습니다. 사내 쿠버네티스 플랫폼 n3r의 IAM을 OIDC 프로바이더로 열면서 내린 네 가지 설계 결정(프로젝트 접두사 groups와 프로젝트별 roles 클레임, 클라이언트 등록 주체로 정하는 audience, 토큰의 롤만 보는 인가, introspection 없이 짧은 액세스 토큰 수명)과 트레이드오프가 중심입니다.
