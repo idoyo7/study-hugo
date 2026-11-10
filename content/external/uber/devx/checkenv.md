@@ -2,7 +2,7 @@
 title: "부하 테스트 전에 환경 간 RPC를 찾는 CheckEnv"
 description: "우버의 CheckEnv는 서비스 의존성 그래프에서 환경 경계를 넘는 RPC 호출 경로를 찾습니다. 부하 테스트 플랫폼 Ballast는 이 경로를 실행 전에 확인해 의심스러운 호출을 사용자에게 알립니다."
 date: 2026-11-10
-weight: 11
+weight: 10
 ---
 
 # 부하 테스트 전에 환경 간 RPC를 찾는 CheckEnv (2023-09)

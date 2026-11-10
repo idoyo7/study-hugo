@@ -2,7 +2,7 @@
 title: "도착 순서의 제약을 풀어낸 SubmitQueue의 BLRD"
 description: "검증을 마친 변경도 왜 큰 diff 뒤에서 기다려야 했을까요? 우버는 모든 추측 경로의 결과가 같으면 먼저 반영하거나 거절하는 BLRD를 SubmitQueue에 도입해 P95 대기 시간을 74% 줄였습니다."
 date: 2026-11-10
-weight: 12
+weight: 11
 ---
 
 # 도착 순서의 제약을 풀어낸 SubmitQueue의 BLRD (2023-08)

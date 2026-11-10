@@ -2,7 +2,7 @@
 title: "9천만 줄 Go 코드의 nil panic을 추적하는 NilAway"
 description: "9천만 줄의 Go 코드에서 nil panic을 어떻게 미리 찾을까요? 우버는 어노테이션 없이 nil 흐름을 추론하는 NilAway를 만들어 일반 빌드 대비 5% 미만의 오버헤드로 검사합니다."
 date: 2026-11-10
-weight: 10
+weight: 9
 ---
 
 # 9천만 줄 Go 코드의 nil panic을 추적하는 NilAway (2023-11)

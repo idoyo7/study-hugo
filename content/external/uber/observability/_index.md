@@ -1,6 +1,6 @@
 ---
 title: "관측성"
-description: "우버 엔지니어링 블로그의 관측성 글 22편 목록입니다. 2020년 이후 글 10편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 관측성 글 19편 목록입니다. 2020년 이후 글 9편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 4
 comments: false
@@ -15,7 +15,6 @@ comments: false
 - [Uber 사내망의 긴 레이스를 바꾼 Kubernetes 관측 플랫폼 (2026-01)]({{< relref "/external/uber/observability/from-monitoring-to-observability-cloud-native.md" >}})
 - [우버 CLP 2편 — 압축한 로그에서 되짚는 오류의 전후 (2024-06)]({{< relref "/external/uber/observability/modernizing-logging-with-clp-ii.md" >}})
 - [3년 만의 M3DB v1.5 업그레이드에 필요했던 검증 (2024-05)]({{< relref "/external/uber/observability/upgrading-m3db.md" >}})
-- [작은 도시의 결제 이상까지 찾아내는 Uber의 uVitals (2023-12)]({{< relref "/external/uber/observability/uvitals-an-anomaly-detection-alerting-system.md" >}})
 - [3일 뒤 버리던 Spark 로그를 한 달간 남겨 둔 CLP (2022-09)]({{< relref "/external/uber/observability/reducing-logging-cost-by-two-orders-of-magnitude-using-clp.md" >}})
 - [Jaeger 트레이스에서 최적화의 우선순위를 찾는 CRISP (2021-11)]({{< relref "/external/uber/observability/crisp-critical-path-analysis-for-microservice-architectures.md" >}})
 - [10ms 타이머의 한계를 보완한 Go 프로파일러 pprof++ (2021-05)]({{< relref "/external/uber/observability/pprof-go-profiler.md" >}})
@@ -34,8 +33,6 @@ M3 메트릭, 분산 트레이싱, CLP 로그, 알림·이상 탐지, 프로파�
 - [M3: Uber’s Open Source, Large-scale Metrics Platform for Prometheus](https://www.uber.com/us/en/blog/m3/) · 2018-08-07
 - [JVM Profiler: An Open Source Tool for Tracing Distributed JVM Applications at Scale](https://www.uber.com/us/en/blog/jvm-profiler/) · 2018-06-28
 - [Engineering a Job-based Forecasting Workflow for Observability Anomaly Detection](https://www.uber.com/us/en/blog/observability-anomaly-detection/) · 2018-05-16
-- [Implementing Model-Agnosticism in Uber’s Real-Time Anomaly Detection Platform](https://www.uber.com/us/en/blog/anomaly-detection/) · 2018-02-14
 - [Engineering Uber’s On-Call Dashboard](https://www.uber.com/us/en/blog/software-engineers-on-call-dashboard/) · 2017-11-02
 - [Evolving Distributed Tracing at Uber Engineering](https://www.uber.com/us/en/blog/distributed-tracing/) · 2017-02-02
-- [Pyflame: Uber Engineering’s Ptracing Profiler for Python](https://www.uber.com/us/en/blog/pyflame-python-profiler/) · 2016-09-27
 - [Identifying Outages with Argos, Uber Engineering’s Real-Time Monitoring and Root-Cause Exploration Tool](https://www.uber.com/us/en/blog/argos-real-time-alerts/) · 2015-11-24

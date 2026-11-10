@@ -1,6 +1,6 @@
 ---
 title: "서비스 아키텍처·워크플로"
-description: "우버 엔지니어링 블로그의 서비스 아키텍처·워크플로 글 13편 목록입니다. 2020년 이후 글 5편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 서비스 아키텍처·워크플로 글 8편 목록입니다. 2020년 이후 글 5편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 8
 comments: false
@@ -22,11 +22,6 @@ comments: false
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Conducting Better Business with Uber’s Open Source Orchestration Tool, Cadence](https://www.uber.com/us/en/blog/open-source-orchestration-tool-cadence-overview/) · 2019-11-12
-- [Cherami: Uber Engineering’s Durable and Scalable Task Queue in Go](https://www.uber.com/us/en/blog/cherami-message-queue-system/) · 2016-12-06
 - [The Uber Engineering Tech Stack, Part II: The Edge and Beyond](https://www.uber.com/us/en/blog/uber-tech-stack-part-two/) · 2016-07-21
 - [The Uber Engineering Tech Stack, Part I: The Foundation](https://www.uber.com/us/en/blog/tech-stack-part-one-foundation/) · 2016-07-19
-- [Rewriting Uber Engineering: The Opportunities Microservices Provide](https://www.uber.com/us/en/blog/building-tincup-microservice-implementation/) · 2016-04-20
-- [How We Built Uber Engineering’s Highest Query per Second Service Using Go](https://www.uber.com/us/en/blog/go-geofence-highest-query-per-second-service/) · 2016-02-24
-- [How Ringpop from Uber Engineering Helps Distribute Your Application](https://www.uber.com/us/en/blog/ringpop-open-source-nodejs-library/) · 2016-02-04
 - [Service-Oriented Architecture: Scaling the Uber Engineering Codebase As We Grow](https://www.uber.com/us/en/blog/service-oriented-architecture/) · 2015-09-08

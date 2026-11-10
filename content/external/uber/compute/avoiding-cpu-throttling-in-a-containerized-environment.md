@@ -2,7 +2,7 @@
 title: "CPU 스로틀링을 멈춘 Uber의 cpuset 전환"
 description: "Uber는 CPU 스로틀링을 없애면서 어떻게 코어 할당까지 줄였을까요? CPU 쿼터 대신 cpuset으로 코어를 고정해 P99 지연을 안정시켰지만, 버스팅을 포기하고 하드웨어 구성을 고려해 코어를 배정해야 했습니다."
 date: 2026-11-10
-weight: 19
+weight: 17
 ---
 
 # CPU 스로틀링을 멈춘 Uber의 cpuset 전환 (2022-03)

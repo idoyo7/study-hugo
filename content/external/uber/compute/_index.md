@@ -1,6 +1,6 @@
 ---
 title: "컴퓨트·Kubernetes"
-description: "우버 엔지니어링 블로그의 컴퓨트·Kubernetes 글 28편 목록입니다. 2020년 이후 글 23편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 컴퓨트·Kubernetes 글 24편 목록입니다. 2020년 이후 글 21편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 3
 comments: false
@@ -15,7 +15,6 @@ comments: false
 - [스택을 미리 키워 CPU 비용을 줄인 Uber의 Go 런타임 (2026-05)]({{< relref "/external/uber/compute/zero-growth-stack.md" >}})
 - [Uber의 장기 클라우드 약정을 떠받치는 다섯 물리 계층 (2026-05)]({{< relref "/external/uber/compute/five-layers-cloud.md" >}})
 - [버스트 부하에 맞춰 전용·공유 코어를 배분하는 Odin (2026-04)]({{< relref "/external/uber/compute/hybrid-core-allocation.md" >}})
-- [우버의 워크로드가 바꾼 OCI AmpereOne M A4 (2025-12)]({{< relref "/external/uber/compute/how-uber-oci-and-ampere-co-optimized-oci-ampereone-m-a4-compute.md" >}})
 - [서버 성능 검증에 공통 기준을 세운 우버의 Ceilometer (2025-11)]({{< relref "/external/uber/compute/ceilometer-ubers-adaptive-benchmarking-framework.md" >}})
 - [재시작의 부담을 줄여 Kubernetes로 옮긴 DSW (2025-05)]({{< relref "/external/uber/compute/migrating-large-scale-compute-workloads-to-kubernetes.md" >}})
 - [Mesos에서 Kubernetes로 옮긴 우버의 300만 코어 (2025-04)]({{< relref "/external/uber/compute/migrating-ubers-compute-platform-to-kubernetes-a-technical-journey.md" >}})
@@ -24,7 +23,6 @@ comments: false
 - [Arm 서비스 하나를 위해 다시 준비한 우버의 빌드 기반 (2025-02)]({{< relref "/external/uber/compute/adopting-arm-at-scale-bootstrapping-infrastructure.md" >}})
 - [4,500개 서비스가 실행될 존을 엔지니어 대신 고르는 Up (2023-09)]({{< relref "/external/uber/compute/up-portable-microservices-ready-for-the-cloud.md" >}})
 - [첫 arm64 호스트를 준비한 우버의 Zig 툴체인 (2023-05)]({{< relref "/external/uber/compute/bootstrapping-ubers-infrastructure-on-arm64-with-zig.md" >}})
-- [지속가능한 선택을 기본값으로 만드는 우버의 클라우드 설계 (2023-03)]({{< relref "/external/uber/compute/ubers-sustainable-engineering-journey.md" >}})
 - [ARM64 Go 바이너리의 줄 정보를 빠뜨린 링커의 가정 (2023-02)]({{< relref "/external/uber/compute/fixing-gos-linker.md" >}})
 - [노트북 한 대에서 존을 세우는 우버의 인프라 스택 Crane (2022-09)]({{< relref "/external/uber/compute/crane-ubers-next-gen-infrastructure-stack.md" >}})
 - [페일오버 여유까지 계산한 Uber의 수직 CPU 스케일링 (2022-07)]({{< relref "/external/uber/compute/vertical-cpu-scaling.md" >}})
@@ -40,8 +38,6 @@ Mesos·Peloton에서 Kubernetes로의 이전, Arm 도입, CPU 할당과 스케�
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Open Sourcing Peloton, Uber’s Unified Resource Scheduler](https://www.uber.com/us/en/blog/open-sourcing-peloton/) · 2019-03-08
 - [Introducing Kraken, an Open Source Peer-to-Peer Docker Registry](https://www.uber.com/us/en/blog/introducing-kraken/) · 2019-03-05
-- [Introducing Makisu: Uber’s Fast, Reliable Docker Image Builder for Apache Mesos and Kubernetes](https://www.uber.com/us/en/blog/makisu/) · 2018-12-06
 - [Peloton: Uber’s Unified Resource Scheduler for Diverse Cluster Workloads](https://www.uber.com/us/en/blog/resource-scheduler-cluster-management-peloton/) · 2018-10-30
 - [Scaling Infrastructure Management with Grail](https://www.uber.com/us/en/blog/grail/) · 2018-03-13

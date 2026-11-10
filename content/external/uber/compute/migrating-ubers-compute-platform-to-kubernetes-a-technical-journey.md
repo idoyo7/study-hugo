@@ -2,7 +2,7 @@
 title: "Mesos에서 Kubernetes로 옮긴 우버의 300만 코어"
 description: "우버는 300만 코어가 넘는 서비스를 어떻게 개발자 개입 없이 Mesos에서 Kubernetes로 옮겼을까요? Up으로 이전을 자동화하고, 대형 클러스터의 성능과 배포·운영 기능을 보완했습니다."
 date: 2026-11-10
-weight: 9
+weight: 8
 ---
 
 # Mesos에서 Kubernetes로 옮긴 우버의 300만 코어 (2025-04)

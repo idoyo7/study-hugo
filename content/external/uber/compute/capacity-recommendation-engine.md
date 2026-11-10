@@ -2,7 +2,7 @@
 title: "다음 피크에 맞춘 Capacity Recommendation Engine"
 description: "피크 트래픽을 버틸 용량과 장애 대응 여유를 어떻게 함께 계산합니까? 우버의 CRE는 처리량과 사용률의 관계를 존별로 모델링하고, 예상 피크와 목표 사용률로 인스턴스 수를 추천합니다."
 date: 2026-11-10
-weight: 20
+weight: 18
 ---
 
 # 다음 피크에 맞춘 Capacity Recommendation Engine (2022-01)

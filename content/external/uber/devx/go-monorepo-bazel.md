@@ -2,7 +2,7 @@
 title: "커지는 우버 Go 모노레포에 맞춰 고친 빌드 공장 Bazel"
 description: "우버는 커지는 Go 모노레포의 빌드와 테스트를 어떻게 감당했을까요? Bazel을 도입한 뒤 SubmitQueue가 검사할 타깃을 찾는 도구를 만들고 Gazelle의 규칙 생성 방식을 보강했습니다."
 date: 2026-11-10
-weight: 22
+weight: 20
 ---
 
 # 커지는 우버 Go 모노레포에 맞춰 고친 빌드 공장 Bazel (2020-05)

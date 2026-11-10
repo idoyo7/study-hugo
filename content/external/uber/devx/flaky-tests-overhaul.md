@@ -2,7 +2,7 @@
 title: "재시도로 버티던 CI를 바꾼 우버의 Testopedia"
 description: "불안정한 테스트 하나가 다른 변경까지 막는 CI에서 재시도를 줄이려면 무엇을 바꿔야 할까요? 우버는 Testopedia에 테스트 이력과 판정 근거를 모으고, 저장소별 실행 정책과 소유 팀의 수정 책임을 연결했습니다."
 date: 2026-11-10
-weight: 9
+weight: 8
 ---
 
 # 재시도로 버티던 CI를 바꾼 우버의 Testopedia (2024-06)

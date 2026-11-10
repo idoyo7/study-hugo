@@ -2,7 +2,7 @@
 title: "Jaeger 트레이스에서 최적화의 우선순위를 찾는 CRISP"
 description: "어느 서비스를 빠르게 해야 요청 전체의 지연이 줄어드는지, 우버는 CRISP로 답을 찾았습니다. Jaeger 트레이스의 임계 경로를 따라 최적화 대상을 좁히고 CPU에 따른 지연 차이까지 비교합니다."
 date: 2026-11-10
-weight: 8
+weight: 7
 ---
 
 # Jaeger 트레이스에서 최적화의 우선순위를 찾는 CRISP (2021-11)

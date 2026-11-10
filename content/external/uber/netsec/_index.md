@@ -1,6 +1,6 @@
 ---
 title: "네트워크·보안"
-description: "우버 엔지니어링 블로그의 네트워크·보안 글 14편 목록입니다. 2020년 이후 글 12편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 네트워크·보안 글 12편 목록입니다. 2020년 이후 글 11편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 9
 comments: false
@@ -21,7 +21,6 @@ comments: false
 - [설정과 코드 몇 줄로 넓힌 Uber의 Kerberos 인증 (2023-01)]({{< relref "/external/uber/netsec/scaling-adoption-of-kerberos-at-uber.md" >}})
 - [수백 명의 개발자를 기다리게 한 Edge Gateway 빌드 (2021-06)]({{< relref "/external/uber/netsec/scaling-api-gateway.md" >}})
 - [설정만으로 API를 여는 Uber Edge Gateway의 설계 (2021-05)]({{< relref "/external/uber/netsec/architecture-api-gateway.md" >}})
-- [제품 개발의 병목을 풀기 위한 우버의 Edge Gateway (2020-08)]({{< relref "/external/uber/netsec/gatewayuberapi.md" >}})
 
 API·엣지 게이트웨이, 사내망 자동화, SPIFFE/SPIRE·Kerberos, 시크릿 관리, IAM, 침입 탐지처럼 네트워크와 보안 인프라 글입니다.
 
@@ -30,4 +29,3 @@ API·엣지 게이트웨이, 사내망 자동화, SPIFFE/SPIRE·Kerberos, 시크
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
 - [Adopting the Next-Gen Internet Protocol: Deploying IPv6 for Uber Engineering](https://www.uber.com/us/en/blog/ipv6/) · 2017-04-27
-- [Engineering Security Through Uber’s Custom Email IDS](https://www.uber.com/us/en/blog/custom-email-ids/) · 2016-12-21

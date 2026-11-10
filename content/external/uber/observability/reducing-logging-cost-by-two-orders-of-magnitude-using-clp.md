@@ -2,7 +2,7 @@
 title: "3일 뒤 버리던 Spark 로그를 한 달간 남겨 둔 CLP"
 description: "Uber는 저장 비용과 SSD 마모 때문에 Spark 로그를 줄여야 했습니다. Log4j에서 시작하는 CLP 압축으로 INFO 로그를 한 달간 보관하고 저장 비용을 17배 줄였습니다."
 date: 2026-11-10
-weight: 7
+weight: 6
 ---
 
 # 3일 뒤 버리던 Spark 로그를 한 달간 남겨 둔 CLP (2022-09)

@@ -2,7 +2,7 @@
 title: "남는 메모리로 Go GC 비용을 줄인 우버의 GOGCTuner"
 description: "고정된 GOGC로는 컨테이너 메모리 한도와 서비스마다 다른 사용량을 함께 다루기 어려웠습니다. 우버가 GOGCTuner로 남는 메모리를 활용해 약 7만 코어를 절감한 과정과 튜닝의 한계를 설명합니다."
 date: 2026-11-10
-weight: 21
+weight: 19
 ---
 
 # 남는 메모리로 Go GC 비용을 줄인 우버의 GOGCTuner (2021-12)

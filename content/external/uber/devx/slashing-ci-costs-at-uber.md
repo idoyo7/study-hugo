@@ -2,7 +2,7 @@
 title: "끝까지 돌릴 빌드를 다시 고른 Uber의 SubmitQueue"
 description: "빌드를 덜 돌리면서 변경을 더 빨리 반영하려면 어떤 빌드를 골라야 할까요? Uber는 SubmitQueue에 건너뛰기 가능성을 반영한 확률 모델과 투기 임계값을 적용해 CI 자원 사용량을 53%, 대기 시간을 37% 줄였습니다."
 date: 2026-11-10
-weight: 5
+weight: 4
 ---
 
 # 끝까지 돌릴 빌드를 다시 고른 Uber의 SubmitQueue (2025-06)

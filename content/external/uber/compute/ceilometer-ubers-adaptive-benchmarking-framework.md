@@ -2,7 +2,7 @@
 title: "서버 성능 검증에 공통 기준을 세운 우버의 Ceilometer"
 description: "우버는 새 서버와 인프라 변경을 검증할 때 제각각이던 결과를 어떻게 비교했을까요? Ceilometer로 시험 구성을 표준화하고, 서버 사양과 기대 SLA를 결과에 함께 담았습니다."
 date: 2026-11-10
-weight: 7
+weight: 6
 ---
 
 # 서버 성능 검증에 공통 기준을 세운 우버의 Ceilometer (2025-11)

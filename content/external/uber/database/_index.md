@@ -1,6 +1,6 @@
 ---
 title: "데이터베이스·스토리지"
-description: "우버 엔지니어링 블로그의 데이터베이스·스토리지 글 26편 목록입니다. 2020년 이후 글 18편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 데이터베이스·스토리지 글 25편 목록입니다. 2020년 이후 글 18편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 6
 comments: false
@@ -37,7 +37,6 @@ MySQL·MyRocks, Cassandra, Schemaless·Docstore, LedgerStore, 통합 캐시, 백
 
 - [Herb: Multi-DC Replication Engine for Uber’s Schemaless Datastore](https://www.uber.com/us/en/blog/herb-datacenter-replication/) · 2018-07-25
 - [Code Migration in Production: Rewriting the Sharding Layer of Uber’s Schemaless Datastore](https://www.uber.com/us/en/blog/schemaless-rewrite/) · 2018-02-22
-- [Dockerizing MySQL at Uber Engineering](https://www.uber.com/us/en/blog/dockerizing-mysql/) · 2016-11-01
 - [Why Uber Engineering Switched from Postgres to MySQL](https://www.uber.com/us/en/blog/postgres-to-mysql-migration/) · 2016-07-26
 - [Using Triggers On Schemaless, Uber Engineering’s Datastore Using MySQL](https://www.uber.com/us/en/blog/schemaless-part-three-datastore-triggers/) · 2016-01-19
 - [The Architecture of Schemaless, Uber Engineering’s Trip Datastore Using MySQL](https://www.uber.com/us/en/blog/schemaless-part-two-architecture/) · 2016-01-15

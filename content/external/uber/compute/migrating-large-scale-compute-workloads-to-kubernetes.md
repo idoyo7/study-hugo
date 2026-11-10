@@ -2,7 +2,7 @@
 title: "재시작의 부담을 줄여 Kubernetes로 옮긴 DSW"
 description: "DSW 세션 3,500개를 Kubernetes로 옮길 때 사용자 환경은 어떻게 지켰을까요? Uber는 추가 패키지 목록으로 환경을 복원하고, Job과 Federator로 세션 실행과 클러스터 배치를 바꿨습니다."
 date: 2026-11-10
-weight: 8
+weight: 7
 ---
 
 # 재시작의 부담을 줄여 Kubernetes로 옮긴 DSW (2025-05)
