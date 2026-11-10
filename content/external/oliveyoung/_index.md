@@ -20,6 +20,6 @@ comments: false
 - [운영 비용을 95% 절감한 서버리스 온콜 시스템 구축기](https://oliveyoung.tech/2025-12-24/amazon-connect/) · 2025-12-24 · 태극기
 {{< /callout >}}
 
-같은 Amazon Connect 발신 API로 당번 스케줄과 Slack 확인 버튼을 붙인 사례는 [여기어때]({{< relref "/external/yeogi/_index.md" >}}) 분류에 있습니다.
+같은 Amazon Connect 발신 API로 당번 스케줄과 Slack 확인 버튼을 붙인 사례는 [여기어때]({{< relref "/external/yeogi/_index.md" >}}) 분류에 있고, 두 설계를 항목별로 나란히 놓은 비교는 [Amazon Connect로 만든 두 회사의 온콜 전화]({{< relref "/external/oncall-amazon-connect-comparison.md" >}})에 있습니다.
 
 원문이 아니라 읽고 재구성한 요약이므로 정확한 내용은 각 문서의 원문 링크에서 확인하시기 바랍니다.

@@ -7,6 +7,7 @@
 - Amazon Connect `StartOutboundVoiceContact`로 장애 전화를 거는 국내 사례 두 편을 요약했습니다. 올리브영(2025-12-24, SES·SQS·Lambda 서버리스, Google Groups와 플러스 어드레싱으로 수신자 식별)은 `content/external/oliveyoung/`에, 여기어때(2025-12-16, Grafana OnCall 당번표·ELBv2 직접 감지·Slack 전화 중지 버튼)는 `content/external/yeogi/`에 두고 두 문서가 서로를 잇습니다. 분류 색인에도 두 출처를 더했습니다.
 - 여기어때 블로그는 WebFetch에 403을 돌려줘서 두 원문 모두 Chrome으로 읽었습니다. 여기어때 원문의 values.yaml 예시는 `ingress.enabled: true`인데 본문은 Ingress를 껐다고 설명하므로, 요약에 그 불일치를 주의로 남겼습니다.
 - Claude 초안 → Astra(`gpt-6-astra`, xhigh) 전면 재작성 → Claude 원문 대조 → 보정 1회(올리브영의 "수신 확인 절차를 두지 않는다"는 원문에 없는 단정이라 "원문에 나오지 않는다"로 낮춤) 순으로 만들었습니다. 실행 기록은 `_workspace/structure-2026-11-10-oncall/`에 있습니다.
+- 두 설계를 항목 17개로 나란히 놓은 비교 문서 `content/external/oncall-amazon-connect-comparison.md`를 더했습니다. 여기어때 원문 이후 Grafana OnCall OSS가 2026-03-24 아카이브된 사실은 Grafana 공식 블로그·문서로 확인해 출처와 함께 실었고, 여기어때의 Connect 직접 호출 경로가 Cloud Connection 종료와 무관해 보인다는 부분은 추정으로 표시했습니다. 같은 방식(초안 → Astra xhigh → 대조)으로 만들었고 보정은 필요 없었습니다.
 
 ## 2026-11-10 — 타사 테크블로그에 Uber 추가
 
