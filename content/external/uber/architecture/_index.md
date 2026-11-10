@@ -1,6 +1,6 @@
 ---
 title: "서비스 아키텍처·워크플로"
-description: "우버 엔지니어링 블로그의 서비스 아키텍처·워크플로 글 15편 목록입니다. 2020년 이후 글 4편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 서비스 아키텍처·워크플로 글 15편 목록입니다. 2020년 이후 글 5편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 8
 comments: false
@@ -14,6 +14,7 @@ comments: false
 - [Cadence 워크플로를 Starlark로 정의하는 Starlark Worker (2025-09)]({{< relref "/external/uber/architecture/starlark.md" >}})
 - [규모와 신뢰성을 갖춘 워크플로 플랫폼 Cadence 1.0 (2023-06)]({{< relref "/external/uber/architecture/announcing-cadence.md" >}})
 - [여러 설정 배포 파이프라인을 하나로 합친 UCDP (2023-03)]({{< relref "/external/uber/architecture/how-we-unified-configuration-distribution-across-systems-at-uber.md" >}})
+- [Cadence의 멀티 테넌트 태스크 처리 (2021-12)]({{< relref "/external/uber/architecture/cadence-multi-tenant-task-processing.md" >}})
 
 도메인 지향 마이크로서비스, 멀티테넌시, Cadence 워크플로, 설정 배포처럼 서비스 구조를 다루는 글입니다.
 
@@ -21,7 +22,6 @@ comments: false
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Cadence Multi-Tenant Task Processing](https://www.uber.com/us/en/blog/cadence-multi-tenant-task-processing/) · 2021-12-16
 - [Introducing Domain-Oriented Microservice Architecture](https://www.uber.com/us/en/blog/microservice-architecture/) · 2020-07-23
 - [Why We Leverage Multi-tenancy in Uber’s Microservice Architecture](https://www.uber.com/us/en/blog/multitenancy-microservice-architecture/) · 2020-03-11
 - [Conducting Better Business with Uber’s Open Source Orchestration Tool, Cadence](https://www.uber.com/us/en/blog/open-source-orchestration-tool-cadence-overview/) · 2019-11-12

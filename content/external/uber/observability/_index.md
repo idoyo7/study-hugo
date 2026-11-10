@@ -1,6 +1,6 @@
 ---
 title: "관측성"
-description: "우버 엔지니어링 블로그의 관측성 글 22편 목록입니다. 2020년 이후 글 7편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 관측성 글 22편 목록입니다. 2020년 이후 글 8편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 4
 comments: false
@@ -16,7 +16,8 @@ comments: false
 - [CLP로 현대화한 우버 로깅 2편, 로그 뷰어와 분석 라이브러리 (2024-06)]({{< relref "/external/uber/observability/modernizing-logging-with-clp-ii.md" >}})
 - [3년 만에 올린 M3DB v1.5 업그레이드 (2024-05)]({{< relref "/external/uber/observability/upgrading-m3db.md" >}})
 - [다차원 시계열의 이상을 잡아내는 uVitals (2023-12)]({{< relref "/external/uber/observability/uvitals-an-anomaly-detection-alerting-system.md" >}})
-- [CLP로 로그 비용을 두 자릿수 줄인 Spark 로깅 (2022-09)]({{< relref "/external/uber/observability/reducing-logging-cost-by-two-orders-of-magnitude-using-clp.md" >}})
+- [3일 뒤 버리던 Spark 로그를 한 달간 남겨 둔 CLP (2022-09)]({{< relref "/external/uber/observability/reducing-logging-cost-by-two-orders-of-magnitude-using-clp.md" >}})
+- [Jaeger 트레이스에서 임계 경로를 찾는 CRISP (2021-11)]({{< relref "/external/uber/observability/crisp-critical-path-analysis-for-microservice-architectures.md" >}})
 
 M3 메트릭, 분산 트레이싱, CLP 로그, 알림·이상 탐지, 프로파일러처럼 시스템을 들여다보는 도구 글입니다.
 
@@ -24,7 +25,6 @@ M3 메트릭, 분산 트레이싱, CLP 로그, 알림·이상 탐지, 프로파�
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [CRISP: Critical Path Analysis for Microservice Architectures](https://www.uber.com/us/en/blog/crisp-critical-path-analysis-for-microservice-architectures/) · 2021-11-18
 - [pprof++: A Go Profiler with Hardware Performance Monitoring](https://www.uber.com/us/en/blog/pprof-go-profiler/) · 2021-05-11
 - [Fast and Reliable Schema-Agnostic Log Analytics Platform](https://www.uber.com/us/en/blog/logging/) · 2021-02-19
 - [Optimizing Observability with Jaeger, M3, and XYS at Uber](https://www.uber.com/us/en/blog/optimizing-observability/) · 2019-11-26
