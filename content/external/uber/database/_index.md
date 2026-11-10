@@ -23,7 +23,7 @@ comments: false
 - [DynamoDB에서 LedgerStore까지 1조 건의 무중단 이전 (2024-04)]({{< relref "/external/uber/database/migrating-from-dynamodb-to-ledgerstore.md" >}})
 - [수조 개의 인덱스를 다시 설계한 LedgerStore의 선택 (2024-04)]({{< relref "/external/uber/database/how-ledgerstore-supports-trillions-of-indexes.md" >}})
 - [Docstore의 읽기 확장을 바꾼 통합 캐시 CacheFront (2024-02)]({{< relref "/external/uber/database/how-uber-serves-over-40-million-reads-per-second-using-an-integrated-cache.md" >}})
-- [대규모 Cassandra 운영을 안정시킨 작은 개선들 (2023-07)]({{< relref "/external/uber/database/how-uber-optimized-cassandra-operations-at-scale.md" >}})
+- [멈춘 자동화를 되살린 Uber Cassandra의 작은 수정 (2023-07)]({{< relref "/external/uber/database/how-uber-optimized-cassandra-operations-at-scale.md" >}})
 - [MySQL에서 MyRocks로 옮겨 간 Schemaless·Docstore (2022-09)]({{< relref "/external/uber/database/mysql-to-myrocks-migration-in-uber-distributed-datastores.md" >}})
 - [DynamoDB를 떠난 LedgerStore의 새 백엔드 Docstore (2021-11)]({{< relref "/external/uber/database/dynamodb-to-docstore-migration.md" >}})
 - [같은 티어에서 Schemaless의 비용을 줄인 Jellyfish (2021-09)]({{< relref "/external/uber/database/jellyfish-cost-effective-data-tiering.md" >}})
