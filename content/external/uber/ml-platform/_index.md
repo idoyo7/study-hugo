@@ -1,6 +1,6 @@
 ---
 title: "ML 플랫폼·인프라"
-description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 12편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 13편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 2
 comments: false
@@ -22,6 +22,7 @@ comments: false
 - [우버 AI/ML 인프라의 확장 (2024-03)]({{< relref "/external/uber/ml-platform/scaling-ai-ml-infrastructure-at-uber.md" >}})
 - [ML 모델 품질을 점수로 관리하는 Model Excellence Scores (2024-03)]({{< relref "/external/uber/ml-platform/enhancing-the-quality-of-machine-learning-systems-at-scale.md" >}})
 - [Palette 피처 스토어의 메타 스토어 재설계 (2024-01)]({{< relref "/external/uber/ml-platform/palette-meta-store-journey.md" >}})
+- [조용히 번지는 데이터 이상을 잡는 D3 자동 드리프트 감지 (2023-02)]({{< relref "/external/uber/ml-platform/d3-an-automated-system-to-detect-data-drifts.md" >}})
 
 Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어, 모델 배포 안전장치처럼 모델을 학습·서빙하는 플랫폼 쪽 글입니다.
 
@@ -29,7 +30,6 @@ Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [D3: An Automated System to Detect Data Drifts](https://www.uber.com/us/en/blog/d3-an-automated-system-to-detect-data-drifts/) · 2023-02-23
 - [Enabling Offline Inferences at Uber Scale](https://www.uber.com/us/en/blog/enabling-offline-inferences-at-uber-scale/) · 2022-06-15
 - [Tuning Model Performance](https://www.uber.com/us/en/blog/tuning-model-performance/) · 2021-07-09
 - [Elastic Distributed Training with XGBoost on Ray](https://www.uber.com/us/en/blog/elastic-xgboost-ray/) · 2021-07-07

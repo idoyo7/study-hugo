@@ -1,6 +1,6 @@
 ---
 title: "컴퓨트·Kubernetes"
-description: "우버 엔지니어링 블로그의 컴퓨트·Kubernetes 글 28편 목록입니다. 2020년 이후 글 13편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 컴퓨트·Kubernetes 글 28편 목록입니다. 2020년 이후 글 16편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 3
 comments: false
@@ -23,6 +23,9 @@ comments: false
 - [수천 개 서비스를 Arm으로 옮긴 멀티 아키텍처 전환 (2025-02)]({{< relref "/external/uber/compute/adopting-arm-at-scale-transitioning-to-a-multi-architecture-environment.md" >}})
 - [x86 일색 인프라에 Arm을 들이는 부트스트래핑 (2025-02)]({{< relref "/external/uber/compute/adopting-arm-at-scale-bootstrapping-infrastructure.md" >}})
 - [클라우드를 위한 이동 가능한 마이크로서비스 Up (2023-09)]({{< relref "/external/uber/compute/up-portable-microservices-ready-for-the-cloud.md" >}})
+- [Zig 툴체인으로 시작한 우버 인프라의 arm64 전환 (2023-05)]({{< relref "/external/uber/compute/bootstrapping-ubers-infrastructure-on-arm64-with-zig.md" >}})
+- [우버 엔지니어링의 지속가능성 로드맵과 추천 서비스 (2023-03)]({{< relref "/external/uber/compute/ubers-sustainable-engineering-journey.md" >}})
+- [ARM64 Go 바이너리의 디버깅 실패를 추적한 링커 트램폴린 버그 (2023-02)]({{< relref "/external/uber/compute/fixing-gos-linker.md" >}})
 
 Mesos·Peloton에서 Kubernetes로의 이전, Arm 도입, CPU 할당과 스케일링, Go·JVM 효율화처럼 서버 자원을 다루는 글입니다.
 
@@ -30,9 +33,6 @@ Mesos·Peloton에서 Kubernetes로의 이전, Arm 도입, CPU 할당과 스케�
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Bootstrapping Uber’s Infrastructure on arm64 with Zig](https://www.uber.com/us/en/blog/bootstrapping-ubers-infrastructure-on-arm64-with-zig/) · 2023-05-03
-- [Uber’s Sustainable Engineering Journey](https://www.uber.com/us/en/blog/ubers-sustainable-engineering-journey/) · 2023-03-02
-- [Fixing Go’s Linker: An Unexpected Journey into ARM64, DWARF, and Linker Internals](https://www.uber.com/us/en/blog/fixing-gos-linker/) · 2023-02-16
 - [Crane: Uber’s Next-Gen Infrastructure Stack](https://www.uber.com/us/en/blog/crane-ubers-next-gen-infrastructure-stack/) · 2022-09-15
 - [Vertical CPU Scaling: Reduce Cost of Capacity and Increase Reliability](https://www.uber.com/us/en/blog/vertical-cpu-scaling/) · 2022-07-14
 - [Avoiding CPU Throttling in a Containerized Environment](https://www.uber.com/us/en/blog/avoiding-cpu-throttling-in-a-containerized-environment/) · 2022-03-22
