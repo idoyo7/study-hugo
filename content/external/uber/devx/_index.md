@@ -1,6 +1,6 @@
 ---
 title: "CI·모노레포·개발자 도구"
-description: "우버 엔지니어링 블로그의 CI·모노레포·개발자 도구 글 25편 목록입니다. 2020년 이후 글 7편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 CI·모노레포·개발자 도구 글 25편 목록입니다. 2020년 이후 글 9편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 7
 comments: false
@@ -17,6 +17,8 @@ comments: false
 - [SubmitQueue의 빌드 우선순위로 줄인 CI 비용 (2025-06)]({{< relref "/external/uber/devx/slashing-ci-costs-at-uber.md" >}})
 - [대형 모노레포를 위한 우버의 지속적 배포 Up CD (2024-08)]({{< relref "/external/uber/devx/continuous-deployment.md" >}})
 - [머지 전에 도는 E2E 테스트 시스템 BITS (2024-08)]({{< relref "/external/uber/devx/shifting-e2e-testing-left.md" >}})
+- [SLATE로 프로덕션 이웃과 함께 하는 디버깅 (2024-06)]({{< relref "/external/uber/devx/debugging-with-production-neighbors.md" >}})
+- [Testopedia로 갈아엎은 우버의 불안정 테스트 관리 (2024-06)]({{< relref "/external/uber/devx/flaky-tests-overhaul.md" >}})
 
 모노레포 CI·배포, 빌드, 테스트 인프라, 원격 개발 환경, Go 정적·동적 분석처럼 개발과 배포 흐름을 다루는 글입니다.
 
@@ -24,8 +26,6 @@ comments: false
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Debugging with Production Neighbors – Powered by SLATE](https://www.uber.com/us/en/blog/debugging-with-production-neighbors/) · 2024-06-18
-- [Flaky Tests Overhaul at Uber](https://www.uber.com/us/en/blog/flaky-tests-overhaul/) · 2024-06-04
 - [NilAway: Practical Nil Panic Detection for Go](https://www.uber.com/us/en/blog/nilaway-practical-nil-panic-detection-for-go/) · 2023-11-15
 - [CheckEnv: Fast Detection of RPC Calls Between Environments Powered by Graphs](https://www.uber.com/us/en/blog/checkenv/) · 2023-09-13
 - [Bypassing Large Diffs in SubmitQueue](https://www.uber.com/us/en/blog/bypassing-large-diffs-in-submitqueue/) · 2023-08-31

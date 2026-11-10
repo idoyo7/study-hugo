@@ -1,6 +1,6 @@
 ---
 title: "네트워크·보안"
-description: "우버 엔지니어링 블로그의 네트워크·보안 글 17편 목록입니다. 2020년 이후 글 7편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 네트워크·보안 글 17편 목록입니다. 2020년 이후 글 8편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 9
 comments: false
@@ -17,6 +17,7 @@ comments: false
 - [Odin 전체 호스트의 저장 데이터 암호화와 디스크 격리 (2025-08)]({{< relref "/external/uber/netsec/locking-down-the-fleet.md" >}})
 - [10만 개 Kerberos keytab의 자동 교체 (2025-06)]({{< relref "/external/uber/netsec/automating-kerberos-keytab-rotation-at-uber.md" >}})
 - [멀티클라우드 시크릿 관리 플랫폼으로 보안을 끌어올린 우버 (2025-05)]({{< relref "/external/uber/netsec/building-ubers-multi-cloud-secrets-management-platform.md" >}})
+- [메타데이터로 관리하는 네트워크 IDS 룰셋, Aristotle v2 (2024-02)]({{< relref "/external/uber/netsec/network-ids-ruleset-management-with-aristotle-v2.md" >}})
 
 API·엣지 게이트웨이, 사내망 자동화, SPIFFE/SPIRE·Kerberos, 시크릿 관리, IAM, 침입 탐지처럼 네트워크와 보안 인프라 글입니다.
 
@@ -24,7 +25,6 @@ API·엣지 게이트웨이, 사내망 자동화, SPIFFE/SPIRE·Kerberos, 시크
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Network IDS Ruleset Management with Aristotle v2](https://www.uber.com/us/en/blog/network-ids-ruleset-management-with-aristotle-v2/) · 2024-02-29
 - [Our Journey Adopting SPIFFE/SPIRE at Scale](https://www.uber.com/us/en/blog/our-journey-adopting-spiffe-spire/) · 2023-11-09
 - [Attribute-Based Access Control at Uber](https://www.uber.com/us/en/blog/attribute-based-access-control-at-uber/) · 2023-07-13
 - [Cybersecurity Incident Simulation @ Uber](https://www.uber.com/us/en/blog/cybersecurity-incident-simulation/) · 2023-05-11

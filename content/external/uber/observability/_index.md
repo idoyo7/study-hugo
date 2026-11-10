@@ -1,6 +1,6 @@
 ---
 title: "관측성"
-description: "우버 엔지니어링 블로그의 관측성 글 22편 목록입니다. 2020년 이후 글 3편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 관측성 글 22편 목록입니다. 2020년 이후 글 6편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 4
 comments: false
@@ -13,6 +13,9 @@ comments: false
 - [서비스 메시 전체를 자동으로 분석한 fail-close 의존성 지도 (2026-09)]({{< relref "/external/uber/observability/automated-dependency-analysis.md" >}})
 - [M3DB 샤드 분산을 서브클러스터로 묶은 배치 알고리즘 (2026-09)]({{< relref "/external/uber/observability/from-chaos-to-control.md" >}})
 - [오픈소스로 다시 짠 사내망 관측 플랫폼 (2026-01)]({{< relref "/external/uber/observability/from-monitoring-to-observability-cloud-native.md" >}})
+- [CLP로 현대화한 우버 로깅 2편, 로그 뷰어와 분석 라이브러리 (2024-06)]({{< relref "/external/uber/observability/modernizing-logging-with-clp-ii.md" >}})
+- [3년 만에 올린 M3DB v1.5 업그레이드 (2024-05)]({{< relref "/external/uber/observability/upgrading-m3db.md" >}})
+- [다차원 시계열의 이상을 잡아내는 uVitals (2023-12)]({{< relref "/external/uber/observability/uvitals-an-anomaly-detection-alerting-system.md" >}})
 
 M3 메트릭, 분산 트레이싱, CLP 로그, 알림·이상 탐지, 프로파일러처럼 시스템을 들여다보는 도구 글입니다.
 
@@ -20,9 +23,6 @@ M3 메트릭, 분산 트레이싱, CLP 로그, 알림·이상 탐지, 프로파�
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Modernizing Logging at Uber with CLP (Part II)](https://www.uber.com/us/en/blog/modernizing-logging-with-clp-ii/) · 2024-06-27
-- [Upgrading M3DB from v1.1 to v1.5](https://www.uber.com/us/en/blog/upgrading-m3db/) · 2024-05-16
-- [uVitals – An Anomaly Detection & Alerting System](https://www.uber.com/us/en/blog/uvitals-an-anomaly-detection-alerting-system/) · 2023-12-28
 - [Reducing Logging Cost by Two Orders of Magnitude using CLP](https://www.uber.com/us/en/blog/reducing-logging-cost-by-two-orders-of-magnitude-using-clp/) · 2022-09-29
 - [CRISP: Critical Path Analysis for Microservice Architectures](https://www.uber.com/us/en/blog/crisp-critical-path-analysis-for-microservice-architectures/) · 2021-11-18
 - [pprof++: A Go Profiler with Hardware Performance Monitoring](https://www.uber.com/us/en/blog/pprof-go-profiler/) · 2021-05-11

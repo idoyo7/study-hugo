@@ -1,6 +1,6 @@
 ---
 title: "GenAI·LLM 에이전트"
-description: "우버 엔지니어링 블로그의 GenAI·LLM 에이전트 글 23편 목록입니다. 2020년 이후 글 20편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 GenAI·LLM 에이전트 글 23편 목록입니다. 2020년 이후 글 22편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 1
 comments: false
@@ -30,6 +30,8 @@ comments: false
 - [GenAI로 자동화한 우버의 송장 문서 처리 (2025-04)]({{< relref "/external/uber/genai/advancing-invoice-document-processing-using-genai.md" >}})
 - [Slack 온콜 질문에 답하는 RAG 기반 코파일럿 Genie (2024-10)]({{< relref "/external/uber/genai/genie-ubers-gen-ai-on-call-copilot.md" >}})
 - [자연어를 SQL로 바꾸는 우버의 QueryGPT (2024-09)]({{< relref "/external/uber/genai/query-gpt.md" >}})
+- [OpenAI 인터페이스를 따른 우버 GenAI Gateway (2024-07)]({{< relref "/external/uber/genai/genai-gateway.md" >}})
+- [사람처럼 모바일 앱을 테스트하는 DragonCrawl (2024-04)]({{< relref "/external/uber/genai/generative-ai-for-high-quality-mobile-testing.md" >}})
 
 사내 LLM 게이트웨이, MCP 게이트웨이, 온콜·코드 리뷰·데이터 분석 에이전트, 에이전트 보안처럼 생성형 AI를 사내 시스템에 붙인 글입니다.
 
@@ -38,5 +40,3 @@ comments: false
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
 - [Introducing the Prompt Engineering Toolkit](https://www.uber.com/us/en/blog/introducing-the-prompt-engineering-toolkit/) · 2024-11-26
-- [Navigating the LLM Landscape: Uber’s Innovation with GenAI Gateway](https://www.uber.com/us/en/blog/genai-gateway/) · 2024-07-11
-- [DragonCrawl: Generative AI for High-Quality Mobile Testing](https://www.uber.com/us/en/blog/generative-ai-for-high-quality-mobile-testing/) · 2024-04-23

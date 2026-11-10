@@ -1,6 +1,6 @@
 ---
 title: "ML 플랫폼·인프라"
-description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 8편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 12편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 2
 comments: false
@@ -18,6 +18,10 @@ comments: false
 - [Kubernetes 위 Ray 작업을 위한 탄력적 자원 관리 (2025-04)]({{< relref "/external/uber/ml-platform/ubers-journey-to-ray-on-kubernetes-resource-management.md" >}})
 - [Kubernetes 위에 세운 연합형 Ray 작업 관리 구조 (2025-04)]({{< relref "/external/uber/ml-platform/ubers-journey-to-ray-on-kubernetes-ray-setup.md" >}})
 - [Spark와 Ray를 함께 쓴 라이드 마켓플레이스 예산 최적화 (2025-01)]({{< relref "/external/uber/ml-platform/how-uber-uses-ray-to-optimize-the-rides-business.md" >}})
+- [예측 모델에서 생성형 AI까지 8년의 Michelangelo (2024-05)]({{< relref "/external/uber/ml-platform/from-predictive-to-generative-ai.md" >}})
+- [우버 AI/ML 인프라의 확장 (2024-03)]({{< relref "/external/uber/ml-platform/scaling-ai-ml-infrastructure-at-uber.md" >}})
+- [ML 모델 품질을 점수로 관리하는 Model Excellence Scores (2024-03)]({{< relref "/external/uber/ml-platform/enhancing-the-quality-of-machine-learning-systems-at-scale.md" >}})
+- [Palette 피처 스토어의 메타 스토어 재설계 (2024-01)]({{< relref "/external/uber/ml-platform/palette-meta-store-journey.md" >}})
 
 Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어, 모델 배포 안전장치처럼 모델을 학습·서빙하는 플랫폼 쪽 글입니다.
 
@@ -25,10 +29,6 @@ Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [From Predictive to Generative – How Michelangelo Accelerates Uber’s AI Journey](https://www.uber.com/us/en/blog/from-predictive-to-generative-ai/) · 2024-05-02
-- [Scaling AI/ML Infrastructure at Uber](https://www.uber.com/us/en/blog/scaling-ai-ml-infrastructure-at-uber/) · 2024-03-28
-- [Model Excellence Scores: A Framework for Enhancing the Quality of Machine Learning Systems at Scale](https://www.uber.com/us/en/blog/enhancing-the-quality-of-machine-learning-systems-at-scale/) · 2024-03-21
-- [Palette Meta Store Journey](https://www.uber.com/us/en/blog/palette-meta-store-journey/) · 2024-01-18
 - [D3: An Automated System to Detect Data Drifts](https://www.uber.com/us/en/blog/d3-an-automated-system-to-detect-data-drifts/) · 2023-02-23
 - [Enabling Offline Inferences at Uber Scale](https://www.uber.com/us/en/blog/enabling-offline-inferences-at-uber-scale/) · 2022-06-15
 - [Tuning Model Performance](https://www.uber.com/us/en/blog/tuning-model-performance/) · 2021-07-09
