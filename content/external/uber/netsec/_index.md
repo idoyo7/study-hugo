@@ -1,6 +1,6 @@
 ---
 title: "네트워크·보안"
-description: "우버 엔지니어링 블로그의 네트워크·보안 글 17편 목록입니다. 2020년 이후 글 12편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 네트워크·보안 글 17편 목록입니다. 2020년 이후 글 14편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 9
 comments: false
@@ -22,6 +22,8 @@ comments: false
 - [Uber의 속성 기반 접근 제어 (2023-07)]({{< relref "/external/uber/netsec/attribute-based-access-control-at-uber.md" >}})
 - [세 갈래로 나눈 사이버 보안 사고 시뮬레이션 (2023-05)]({{< relref "/external/uber/netsec/cybersecurity-incident-simulation.md" >}})
 - [데이터 플랫폼에 Kerberos 인증을 넓힌 계정 체계와 Keytab 자동 배포 (2023-01)]({{< relref "/external/uber/netsec/scaling-adoption-of-kerberos-at-uber.md" >}})
+- [수백 명이 함께 쓰는 API 게이트웨이의 코드 빌드 확장 (2021-06)]({{< relref "/external/uber/netsec/scaling-api-gateway.md" >}})
+- [설정으로 API를 만드는 셀프서비스 게이트웨이 아키텍처 (2021-05)]({{< relref "/external/uber/netsec/architecture-api-gateway.md" >}})
 
 API·엣지 게이트웨이, 사내망 자동화, SPIFFE/SPIRE·Kerberos, 시크릿 관리, IAM, 침입 탐지처럼 네트워크와 보안 인프라 글입니다.
 
@@ -29,8 +31,6 @@ API·엣지 게이트웨이, 사내망 자동화, SPIFFE/SPIRE·Kerberos, 시크
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Scaling of Uber’s API gateway](https://www.uber.com/us/en/blog/scaling-api-gateway/) · 2021-06-08
-- [The Architecture of Uber’s API gateway](https://www.uber.com/us/en/blog/architecture-api-gateway/) · 2021-05-19
 - [Designing Edge Gateway, Uber’s API Lifecycle Management Platform](https://www.uber.com/us/en/blog/gatewayuberapi/) · 2020-08-18
 - [Adopting the Next-Gen Internet Protocol: Deploying IPv6 for Uber Engineering](https://www.uber.com/us/en/blog/ipv6/) · 2017-04-27
 - [Engineering Security Through Uber’s Custom Email IDS](https://www.uber.com/us/en/blog/custom-email-ids/) · 2016-12-21

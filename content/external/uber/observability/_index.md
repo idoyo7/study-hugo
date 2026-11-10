@@ -1,6 +1,6 @@
 ---
 title: "관측성"
-description: "우버 엔지니어링 블로그의 관측성 글 22편 목록입니다. 2020년 이후 글 8편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 관측성 글 22편 목록입니다. 2020년 이후 글 9편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 4
 comments: false
@@ -18,6 +18,7 @@ comments: false
 - [다차원 시계열의 이상을 잡아내는 uVitals (2023-12)]({{< relref "/external/uber/observability/uvitals-an-anomaly-detection-alerting-system.md" >}})
 - [3일 뒤 버리던 Spark 로그를 한 달간 남겨 둔 CLP (2022-09)]({{< relref "/external/uber/observability/reducing-logging-cost-by-two-orders-of-magnitude-using-clp.md" >}})
 - [Jaeger 트레이스에서 임계 경로를 찾는 CRISP (2021-11)]({{< relref "/external/uber/observability/crisp-critical-path-analysis-for-microservice-architectures.md" >}})
+- [하드웨어 성능 카운터를 붙인 Go 프로파일러 pprof++ (2021-05)]({{< relref "/external/uber/observability/pprof-go-profiler.md" >}})
 
 M3 메트릭, 분산 트레이싱, CLP 로그, 알림·이상 탐지, 프로파일러처럼 시스템을 들여다보는 도구 글입니다.
 
@@ -25,7 +26,6 @@ M3 메트릭, 분산 트레이싱, CLP 로그, 알림·이상 탐지, 프로파�
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [pprof++: A Go Profiler with Hardware Performance Monitoring](https://www.uber.com/us/en/blog/pprof-go-profiler/) · 2021-05-11
 - [Fast and Reliable Schema-Agnostic Log Analytics Platform](https://www.uber.com/us/en/blog/logging/) · 2021-02-19
 - [Optimizing Observability with Jaeger, M3, and XYS at Uber](https://www.uber.com/us/en/blog/optimizing-observability/) · 2019-11-26
 - [Optimizing M3: How Uber Halved Our Metrics Ingestion Latency by (Briefly) Forking the Go Compiler](https://www.uber.com/us/en/blog/optimizing-m3/) · 2019-04-18

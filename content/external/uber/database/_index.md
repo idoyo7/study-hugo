@@ -1,6 +1,6 @@
 ---
 title: "데이터베이스·스토리지"
-description: "우버 엔지니어링 블로그의 데이터베이스·스토리지 글 26편 목록입니다. 2020년 이후 글 17편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 데이터베이스·스토리지 글 26편 목록입니다. 2020년 이후 글 18편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 6
 comments: false
@@ -27,6 +27,7 @@ comments: false
 - [MySQL에서 MyRocks로 옮겨 간 Schemaless·Docstore (2022-09)]({{< relref "/external/uber/database/mysql-to-myrocks-migration-in-uber-distributed-datastores.md" >}})
 - [금융 데이터를 DynamoDB에서 Docstore로 옮긴 LedgerStore 마이그레이션 (2021-11)]({{< relref "/external/uber/database/dynamodb-to-docstore-migration.md" >}})
 - [Schemaless의 비용을 줄인 데이터 티어링 Jellyfish (2021-09)]({{< relref "/external/uber/database/jellyfish-cost-effective-data-tiering.md" >}})
+- [Schemaless에서 분산 SQL 데이터베이스 Docstore로 (2021-02)]({{< relref "/external/uber/database/schemaless-sql-database.md" >}})
 
 MySQL·MyRocks, Cassandra, Schemaless·Docstore, LedgerStore, 통합 캐시, 백업 복구처럼 상태를 저장하는 시스템 운영 글입니다.
 
@@ -34,7 +35,6 @@ MySQL·MyRocks, Cassandra, Schemaless·Docstore, LedgerStore, 통합 캐시, 백
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Evolving Schemaless into a Distributed SQL Database](https://www.uber.com/us/en/blog/schemaless-sql-database/) · 2021-02-23
 - [Herb: Multi-DC Replication Engine for Uber’s Schemaless Datastore](https://www.uber.com/us/en/blog/herb-datacenter-replication/) · 2018-07-25
 - [Code Migration in Production: Rewriting the Sharding Layer of Uber’s Schemaless Datastore](https://www.uber.com/us/en/blog/schemaless-rewrite/) · 2018-02-22
 - [Dockerizing MySQL at Uber Engineering](https://www.uber.com/us/en/blog/dockerizing-mysql/) · 2016-11-01

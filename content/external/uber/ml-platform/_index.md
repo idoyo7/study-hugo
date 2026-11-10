@@ -1,6 +1,6 @@
 ---
 title: "ML 플랫폼·인프라"
-description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 14편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 ML 플랫폼·인프라 글 33편 목록입니다. 2020년 이후 글 17편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 2
 comments: false
@@ -24,6 +24,9 @@ comments: false
 - [Palette 피처 스토어의 메타 스토어 재설계 (2024-01)]({{< relref "/external/uber/ml-platform/palette-meta-store-journey.md" >}})
 - [조용히 번지는 데이터 이상을 잡는 D3 자동 드리프트 감지 (2023-02)]({{< relref "/external/uber/ml-platform/d3-an-automated-system-to-detect-data-drifts.md" >}})
 - [Michelangelo의 ML 모델 성능 튜닝 (2021-07)]({{< relref "/external/uber/ml-platform/tuning-model-performance.md" >}})
+- [Ray 위에서 탄력적으로 돌리는 분산 XGBoost 학습 (2021-07)]({{< relref "/external/uber/ml-platform/elastic-xgboost-ray.md" >}})
+- [ML 온라인 서빙과 모델의 지속적 통합·배포 (2021-06)]({{< relref "/external/uber/ml-platform/continuous-integration-deployment-ml.md" >}})
+- [Ray 위에서 탄력적으로 돌리는 Horovod 딥러닝 학습 (2021-03)]({{< relref "/external/uber/ml-platform/horovod-ray.md" >}})
 
 Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어, 모델 배포 안전장치처럼 모델을 학습·서빙하는 플랫폼 쪽 글입니다.
 
@@ -32,9 +35,6 @@ Michelangelo, Ray on Kubernetes, Horovod, GPU 학습 최적화, 피처 스토어
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
 - [Enabling Offline Inferences at Uber Scale](https://www.uber.com/us/en/blog/enabling-offline-inferences-at-uber-scale/) · 2022-06-15
-- [Elastic Distributed Training with XGBoost on Ray](https://www.uber.com/us/en/blog/elastic-xgboost-ray/) · 2021-07-07
-- [Continuous Integration and Deployment for Machine Learning Online Serving and Models](https://www.uber.com/us/en/blog/continuous-integration-deployment-ml/) · 2021-06-30
-- [Elastic Deep Learning with Horovod on Ray](https://www.uber.com/us/en/blog/horovod-ray/) · 2021-03-08
 - [Horovod v0.21: Optimizing Network Utilization with Local Gradient Aggregation and Grouped Allreduce](https://www.uber.com/us/en/blog/horovod-v0-21/) · 2020-11-24
 - [Introducing Neuropod, Uber ATG’s Open Source Deep Learning Inference Engine](https://www.uber.com/us/en/blog/introducing-neuropod/) · 2020-06-08
 - [Under the Hood of Uber ATG’s Machine Learning Infrastructure and Versioning Control Platform for Self-Driving Vehicles](https://www.uber.com/us/en/blog/machine-learning-model-life-cycle-version-control/) · 2020-03-04

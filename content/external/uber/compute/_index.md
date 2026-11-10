@@ -1,6 +1,6 @@
 ---
 title: "컴퓨트·Kubernetes"
-description: "우버 엔지니어링 블로그의 컴퓨트·Kubernetes 글 28편 목록입니다. 2020년 이후 글 21편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 컴퓨트·Kubernetes 글 28편 목록입니다. 2020년 이후 글 22편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 3
 comments: false
@@ -31,6 +31,7 @@ comments: false
 - [CPU 스로틀링을 멈춘 Uber의 cpuset 전환 (2022-03)]({{< relref "/external/uber/compute/avoiding-cpu-throttling-in-a-containerized-environment.md" >}})
 - [다음 피크에 맞춘 Capacity Recommendation Engine (2022-01)]({{< relref "/external/uber/compute/capacity-recommendation-engine.md" >}})
 - [Go GC 튜닝으로 코어 7만 개를 아낀 GOGCTuner (2021-12)]({{< relref "/external/uber/compute/how-we-saved-70k-cores-across-30-mission-critical-services.md" >}})
+- [CPU 오버커밋을 받치는 cQoS 클러스터 관리 (2021-06)]({{< relref "/external/uber/compute/compute-cluster-management.md" >}})
 
 Mesos·Peloton에서 Kubernetes로의 이전, Arm 도입, CPU 할당과 스케일링, Go·JVM 효율화처럼 서버 자원을 다루는 글입니다.
 
@@ -38,7 +39,6 @@ Mesos·Peloton에서 Kubernetes로의 이전, Arm 도입, CPU 할당과 스케�
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Efficient and Reliable Compute Cluster Management at Scale](https://www.uber.com/us/en/blog/compute-cluster-management/) · 2021-06-22
 - [Tricks of the Trade: Tuning JVM Memory for Large-scale Services](https://www.uber.com/us/en/blog/jvm-tuning-garbage-collection/) · 2020-02-26
 - [Open Sourcing Peloton, Uber’s Unified Resource Scheduler](https://www.uber.com/us/en/blog/open-sourcing-peloton/) · 2019-03-08
 - [Introducing Kraken, an Open Source Peer-to-Peer Docker Registry](https://www.uber.com/us/en/blog/introducing-kraken/) · 2019-03-05
