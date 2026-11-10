@@ -10,11 +10,11 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [이기종 서버 위에서 스테이트풀 워크로드에 같은 연산 능력을 주는 NCU (2026-10)]({{< relref "/external/uber/compute/diverse-server-fleet.md" >}})
-- [수평 스케일링 컨트롤러를 둘로 나눈 우버 컴퓨트 플랫폼 (2026-09)]({{< relref "/external/uber/compute/evolving-ubers-compute-platform.md" >}})
-- [Go 고루틴 스택을 미리 키워 아끼는 CPU 10% (2026-05)]({{< relref "/external/uber/compute/zero-growth-stack.md" >}})
-- [클라우드 약정이 기대는 물리 계층 다섯 가지 (2026-05)]({{< relref "/external/uber/compute/five-layers-cloud.md" >}})
-- [전용 코어와 공유 코어를 섞은 Odin의 하이브리드 CPU 할당 (2026-04)]({{< relref "/external/uber/compute/hybrid-core-allocation.md" >}})
+- [서버마다 다른 코어 성능을 CPU 할당에 반영한 Odin의 NCU (2026-10)]({{< relref "/external/uber/compute/diverse-server-fleet.md" >}})
+- [우버의 수평 스케일링을 나눠 맡은 ServiceScale (2026-09)]({{< relref "/external/uber/compute/evolving-ubers-compute-platform.md" >}})
+- [스택을 미리 키워 CPU 비용을 줄인 Uber의 Go 런타임 (2026-05)]({{< relref "/external/uber/compute/zero-growth-stack.md" >}})
+- [Uber의 장기 클라우드 약정을 떠받치는 다섯 물리 계층 (2026-05)]({{< relref "/external/uber/compute/five-layers-cloud.md" >}})
+- [버스트 부하에 맞춰 전용·공유 코어를 배분하는 Odin (2026-04)]({{< relref "/external/uber/compute/hybrid-core-allocation.md" >}})
 - [Arm 이전 경험으로 함께 다듬은 OCI AmpereOne M A4 인스턴스 (2025-12)]({{< relref "/external/uber/compute/how-uber-oci-and-ampere-co-optimized-oci-ampereone-m-a4-compute.md" >}})
 - [우버의 적응형 벤치마킹 프레임워크 Ceilometer (2025-11)]({{< relref "/external/uber/compute/ceilometer-ubers-adaptive-benchmarking-framework.md" >}})
 - [중단 없이 Kubernetes로 옮긴 대화형 노트북 워크로드 (2025-05)]({{< relref "/external/uber/compute/migrating-large-scale-compute-workloads-to-kubernetes.md" >}})
@@ -30,7 +30,7 @@ comments: false
 - [페일오버 여유까지 계산한 Uber의 수직 CPU 스케일링 (2022-07)]({{< relref "/external/uber/compute/vertical-cpu-scaling.md" >}})
 - [CPU 스로틀링을 멈춘 Uber의 cpuset 전환 (2022-03)]({{< relref "/external/uber/compute/avoiding-cpu-throttling-in-a-containerized-environment.md" >}})
 - [다음 피크에 맞춘 Capacity Recommendation Engine (2022-01)]({{< relref "/external/uber/compute/capacity-recommendation-engine.md" >}})
-- [Go GC 튜닝으로 코어 7만 개를 아낀 GOGCTuner (2021-12)]({{< relref "/external/uber/compute/how-we-saved-70k-cores-across-30-mission-critical-services.md" >}})
+- [남는 메모리로 Go GC 비용을 줄인 우버의 GOGCTuner (2021-12)]({{< relref "/external/uber/compute/how-we-saved-70k-cores-across-30-mission-critical-services.md" >}})
 - [CPU 오버커밋을 받치는 cQoS 클러스터 관리 (2021-06)]({{< relref "/external/uber/compute/compute-cluster-management.md" >}})
 - [대규모 서비스를 위한 JVM 메모리와 GC 튜닝 (2020-02)]({{< relref "/external/uber/compute/jvm-tuning-garbage-collection.md" >}})
 

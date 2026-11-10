@@ -10,7 +10,7 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [전 세계 사무실 네트워크를 움직이는 Ansible 자동화 (2026-04)]({{< relref "/external/uber/netsec/ansible-automation-powers.md" >}})
+- [매일 밤 사무실 네트워크의 설정을 되돌리는 Ansible (2026-04)]({{< relref "/external/uber/netsec/ansible-automation-powers.md" >}})
 - [슈퍼유저 명령에 동료 리뷰를 거는 Superuser Gateway (2026-02)]({{< relref "/external/uber/netsec/superuser-gateway-guardrails.md" >}})
 - [접근 로그를 재생해 미리 확인하는 IAM 정책 변경 시뮬레이터 (2025-09)]({{< relref "/external/uber/netsec/adding-determinism-and-safety-to-uber-iam-policy-changes.md" >}})
 - [백본에서 SD-WAN으로 옮긴 우버 사무실 네트워크 (2025-08)]({{< relref "/external/uber/netsec/lightweight-office-infrastructure.md" >}})

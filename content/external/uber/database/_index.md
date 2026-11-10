@@ -25,8 +25,8 @@ comments: false
 - [초당 4,000만 읽기를 받아 내는 Docstore 통합 캐시 CacheFront (2024-02)]({{< relref "/external/uber/database/how-uber-serves-over-40-million-reads-per-second-using-an-integrated-cache.md" >}})
 - [대규모 Cassandra 운영을 안정시킨 작은 개선들 (2023-07)]({{< relref "/external/uber/database/how-uber-optimized-cassandra-operations-at-scale.md" >}})
 - [MySQL에서 MyRocks로 옮겨 간 Schemaless·Docstore (2022-09)]({{< relref "/external/uber/database/mysql-to-myrocks-migration-in-uber-distributed-datastores.md" >}})
-- [금융 데이터를 DynamoDB에서 Docstore로 옮긴 LedgerStore 마이그레이션 (2021-11)]({{< relref "/external/uber/database/dynamodb-to-docstore-migration.md" >}})
-- [Schemaless의 비용을 줄인 데이터 티어링 Jellyfish (2021-09)]({{< relref "/external/uber/database/jellyfish-cost-effective-data-tiering.md" >}})
+- [DynamoDB를 떠난 LedgerStore의 새 백엔드 Docstore (2021-11)]({{< relref "/external/uber/database/dynamodb-to-docstore-migration.md" >}})
+- [같은 티어에서 Schemaless의 비용을 줄인 Jellyfish (2021-09)]({{< relref "/external/uber/database/jellyfish-cost-effective-data-tiering.md" >}})
 - [Schemaless에서 분산 SQL 데이터베이스 Docstore로 (2021-02)]({{< relref "/external/uber/database/schemaless-sql-database.md" >}})
 
 MySQL·MyRocks, Cassandra, Schemaless·Docstore, LedgerStore, 통합 캐시, 백업 복구처럼 상태를 저장하는 시스템 운영 글입니다.

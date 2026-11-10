@@ -10,8 +10,8 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [재시도 폭주를 막는 에러 소유권 (2026-09)]({{< relref "/external/uber/reliability/protecting-against-retry-storms.md" >}})
-- [존 장애를 견디는 우버의 OpenSearch (2026-06)]({{< relref "/external/uber/reliability/zone-failure-resilient.md" >}})
+- [깊은 호출 체인의 재시도 폭주를 막은 Uber의 에러 소유권 (2026-09)]({{< relref "/external/uber/reliability/protecting-against-retry-storms.md" >}})
+- [존 하나와 노드 하나를 잃어도 버티는 우버의 OpenSearch (2026-06)]({{< relref "/external/uber/reliability/zone-failure-resilient.md" >}})
 - [정적 쿼터에서 지능형 부하 관리로 옮겨 간 우버 데이터베이스 과부하 대응 (2026-04)]({{< relref "/external/uber/reliability/from-static-rate-limiting-to-intelligent-load-management.md" >}})
 - [서비스 메시에 넣은 Global Rate Limiter와 자동 한도 설정 (2026-02)]({{< relref "/external/uber/reliability/ubers-rate-limiting-system.md" >}})
 - [이기종 하드웨어를 다루는 로드 밸런싱 (2024-03)]({{< relref "/external/uber/reliability/load-balancing-handling-heterogeneous-hardware.md" >}})
@@ -22,7 +22,7 @@ comments: false
 - [Java GC 실험에서 부하 테스트 서비스로 자란 Shadower (2022-06)]({{< relref "/external/uber/reliability/introducing-shadower-a-minimalistic-load-testing-tool.md" >}})
 - [서비스 메시의 연결 폭을 조절하는 Uber 동적 서브셋팅 (2022-05)]({{< relref "/external/uber/reliability/better-load-balancing-real-time-dynamic-subsetting.md" >}})
 - [실제 트래픽을 재생해 서비스 한계를 찾는 Ballast (2022-03)]({{< relref "/external/uber/reliability/introducing-ballast-an-adaptive-load-test-framework.md" >}})
-- [Eats Safety 팀의 온콜 운영 방식 (2021-08)]({{< relref "/external/uber/reliability/eats-safety-team-on-call-overview.md" >}})
+- [Eats Safety의 온콜 부담을 줄인 모바일·백엔드 통합 교대 (2021-08)]({{< relref "/external/uber/reliability/eats-safety-team-on-call-overview.md" >}})
 
 재시도 폭주, rate limiting, 부하 차단(load shedding), 로드 밸런싱, 부하 테스트, 존 장애 대비처럼 장애를 막고 견디는 글입니다.
 

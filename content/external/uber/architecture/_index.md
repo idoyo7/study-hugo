@@ -14,7 +14,7 @@ comments: false
 - [Cadence 워크플로를 Starlark로 정의하는 Starlark Worker (2025-09)]({{< relref "/external/uber/architecture/starlark.md" >}})
 - [규모와 신뢰성을 갖춘 워크플로 플랫폼 Cadence 1.0 (2023-06)]({{< relref "/external/uber/architecture/announcing-cadence.md" >}})
 - [여러 설정 배포 파이프라인을 하나로 합친 UCDP (2023-03)]({{< relref "/external/uber/architecture/how-we-unified-configuration-distribution-across-systems-at-uber.md" >}})
-- [Cadence의 멀티 테넌트 태스크 처리 (2021-12)]({{< relref "/external/uber/architecture/cadence-multi-tenant-task-processing.md" >}})
+- [한 고객의 폭주에도 처리를 이어 가는 Cadence의 큐 (2021-12)]({{< relref "/external/uber/architecture/cadence-multi-tenant-task-processing.md" >}})
 - [마이크로서비스 복잡도를 다스리는 도메인 지향 아키텍처 DOMA (2020-07)]({{< relref "/external/uber/architecture/microservice-architecture.md" >}})
 - [마이크로서비스 아키텍처에 들인 멀티테넌시 (2020-03)]({{< relref "/external/uber/architecture/multitenancy-microservice-architecture.md" >}})
 

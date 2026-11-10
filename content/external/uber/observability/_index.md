@@ -10,14 +10,14 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [서비스 메시 전체를 자동으로 분석한 fail-close 의존성 지도 (2026-09)]({{< relref "/external/uber/observability/automated-dependency-analysis.md" >}})
-- [M3DB 샤드 분산을 서브클러스터로 묶은 배치 알고리즘 (2026-09)]({{< relref "/external/uber/observability/from-chaos-to-control.md" >}})
+- [모든 실패로 그린 Uber의 fail-close 의존성 지도 (2026-09)]({{< relref "/external/uber/observability/automated-dependency-analysis.md" >}})
+- [M3DB 노드 하나의 장애가 번지는 범위를 줄인 서브클러스터 (2026-09)]({{< relref "/external/uber/observability/from-chaos-to-control.md" >}})
 - [오픈소스로 다시 짠 사내망 관측 플랫폼 (2026-01)]({{< relref "/external/uber/observability/from-monitoring-to-observability-cloud-native.md" >}})
 - [CLP로 현대화한 우버 로깅 2편, 로그 뷰어와 분석 라이브러리 (2024-06)]({{< relref "/external/uber/observability/modernizing-logging-with-clp-ii.md" >}})
 - [3년 만에 올린 M3DB v1.5 업그레이드 (2024-05)]({{< relref "/external/uber/observability/upgrading-m3db.md" >}})
 - [다차원 시계열의 이상을 잡아내는 uVitals (2023-12)]({{< relref "/external/uber/observability/uvitals-an-anomaly-detection-alerting-system.md" >}})
 - [3일 뒤 버리던 Spark 로그를 한 달간 남겨 둔 CLP (2022-09)]({{< relref "/external/uber/observability/reducing-logging-cost-by-two-orders-of-magnitude-using-clp.md" >}})
-- [Jaeger 트레이스에서 임계 경로를 찾는 CRISP (2021-11)]({{< relref "/external/uber/observability/crisp-critical-path-analysis-for-microservice-architectures.md" >}})
+- [Jaeger 트레이스에서 최적화의 우선순위를 찾는 CRISP (2021-11)]({{< relref "/external/uber/observability/crisp-critical-path-analysis-for-microservice-architectures.md" >}})
 - [하드웨어 성능 카운터를 붙인 Go 프로파일러 pprof++ (2021-05)]({{< relref "/external/uber/observability/pprof-go-profiler.md" >}})
 - [ClickHouse로 다시 만든 스키마 비종속 로그 분석 플랫폼 (2021-02)]({{< relref "/external/uber/observability/logging.md" >}})
 

@@ -10,8 +10,8 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [대형 모노레포를 위한 서비스형 Git, GitFarm (2026-07)]({{< relref "/external/uber/devx/gitfarm-as-a-service.md" >}})
-- [SaaS와 검증 프록시로 바꾼 우버의 아티팩트 저장소 (2026-05)]({{< relref "/external/uber/devx/modernizing-artifact-storage.md" >}})
+- [수백 개 자동화 시스템의 모노레포 관리를 맡은 GitFarm (2026-07)]({{< relref "/external/uber/devx/gitfarm-as-a-service.md" >}})
+- [SaaS 원본을 매번 확인하는 우버의 아티팩트 검증 프록시 (2026-05)]({{< relref "/external/uber/devx/modernizing-artifact-storage.md" >}})
 - [OpenRewrite로 자동화한 우버의 대규모 JUnit 5 이전 (2026-04)]({{< relref "/external/uber/devx/junit-migration.md" >}})
 - [서비스 티어를 따라 단계적으로 배포하는 모노레포 대규모 변경 (2025-08)]({{< relref "/external/uber/devx/controlling-the-rollout-of-large-scale-monorepo-changes.md" >}})
 - [SubmitQueue의 빌드 우선순위로 줄인 CI 비용 (2025-06)]({{< relref "/external/uber/devx/slashing-ci-costs-at-uber.md" >}})
@@ -26,7 +26,7 @@ comments: false
 - [운영 환경에서 고루틴 누수를 찾는 가벼운 도구 LeakProf (2022-11)]({{< relref "/external/uber/devx/leakprof-featherlight-in-production-goroutine-leak-detection.md" >}})
 - [운영 환경 안에 만드는 임시 E2E 테스트 환경 SLATE (2022-10)]({{< relref "/external/uber/devx/simplifying-developer-testing-through-slate.md" >}})
 - [주 10만 건 컨테이너 이미지 빌드를 빠르고 안전하게 처리하는 uBuild (2022-10)]({{< relref "/external/uber/devx/ubuild-fast-and-safe-building-of-thousands-of-container-images.md" >}})
-- [Go 모노레포 CI 빌드 시간을 절반으로 줄인 샤딩과 캐시 (2022-06)]({{< relref "/external/uber/devx/how-we-halved-go-monorepo-ci-build-time.md" >}})
+- [큰 변경에 막힌 Go 모노레포 대기열을 줄인 Uber CI (2022-06)]({{< relref "/external/uber/devx/how-we-halved-go-monorepo-ci-build-time.md" >}})
 - [잠그고 기다려도 놓치기 쉬운 우버 Go 코드의 데이터 레이스 (2022-06)]({{< relref "/external/uber/devx/data-race-patterns-in-go.md" >}})
 - [PR을 막지 않고 Go 데이터 레이스를 찾아내는 Uber (2022-04)]({{< relref "/external/uber/devx/dynamic-data-race-detection-in-go-code.md" >}})
 - [모노레포의 Java 불안정 테스트 대응 (2021-06)]({{< relref "/external/uber/devx/handling-flaky-tests-java.md" >}})
