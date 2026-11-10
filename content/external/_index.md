@@ -14,6 +14,8 @@ cascade:
 - [네이버]({{< relref "/external/naver/_index.md" >}})
 - [당근]({{< relref "/external/daangn/_index.md" >}})
 - [쏘카]({{< relref "/external/socar/_index.md" >}})
+- [여기어때]({{< relref "/external/yeogi/_index.md" >}})
+- [올리브영]({{< relref "/external/oliveyoung/_index.md" >}})
 - [티맵모빌리티]({{< relref "/external/tmap/_index.md" >}})
 - [Uber]({{< relref "/external/uber/_index.md" >}})
 - [promkr 뉴스레터]({{< relref "/external/promkr/_index.md" >}})

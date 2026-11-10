@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-10 — 타사 테크블로그에 올리브영·여기어때 온콜 사례 추가
+
+- Amazon Connect `StartOutboundVoiceContact`로 장애 전화를 거는 국내 사례 두 편을 요약했습니다. 올리브영(2025-12-24, SES·SQS·Lambda 서버리스, Google Groups와 플러스 어드레싱으로 수신자 식별)은 `content/external/oliveyoung/`에, 여기어때(2025-12-16, Grafana OnCall 당번표·ELBv2 직접 감지·Slack 전화 중지 버튼)는 `content/external/yeogi/`에 두고 두 문서가 서로를 잇습니다. 분류 색인에도 두 출처를 더했습니다.
+- 여기어때 블로그는 WebFetch에 403을 돌려줘서 두 원문 모두 Chrome으로 읽었습니다. 여기어때 원문의 values.yaml 예시는 `ingress.enabled: true`인데 본문은 Ingress를 껐다고 설명하므로, 요약에 그 불일치를 주의로 남겼습니다.
+- Claude 초안 → Astra(`gpt-6-astra`, xhigh) 전면 재작성 → Claude 원문 대조 → 보정 1회(올리브영의 "수신 확인 절차를 두지 않는다"는 원문에 없는 단정이라 "원문에 나오지 않는다"로 낮춤) 순으로 만들었습니다. 실행 기록은 `_workspace/structure-2026-11-10-oncall/`에 있습니다.
+
 ## 2026-11-10 — 타사 테크블로그에 Uber 추가
 
 - Uber 엔지니어링 블로그 777편 가운데 게시일이 있는 745편을 제목과 태그로 분류했고, 인프라(컴퓨트·Kubernetes, 관측성, 신뢰성, 데이터베이스, CI·개발자 도구, 서비스 아키텍처, 네트워크·보안)와 AI(GenAI 에이전트, ML 플랫폼) 글 206편을 골랐습니다. 데이터 플랫폼, 응용 ML 모델링, AI Labs 연구, 모바일·웹, 조직 소개 글은 제외했습니다.
