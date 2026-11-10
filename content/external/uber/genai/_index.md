@@ -1,6 +1,6 @@
 ---
 title: "GenAI·LLM 에이전트"
-description: "우버 엔지니어링 블로그의 GenAI·LLM 에이전트 글 23편 목록입니다. 2020년 이후 글 11편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 GenAI·LLM 에이전트 글 23편 목록입니다. 2020년 이후 글 16편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 1
 comments: false
@@ -21,6 +21,11 @@ comments: false
 - [PRD를 먼저 검토하는 AI 리뷰어 PRD Evaluator (2026-05)]({{< relref "/external/uber/genai/first-pass-prd.md" >}})
 - [제품 개발의 출발점을 바꾼 AI 프로토타이핑 (2026-04)]({{< relref "/external/uber/genai/ai-prototyping.md" >}})
 - [Figma 링크 하나로 디자인 스펙을 쓰는 에이전트 uSpec (2026-03)]({{< relref "/external/uber/genai/automate-design-specs.md" >}})
+- [라벨링 도구 안에서 요구사항을 검증하는 LLM 기반 Requirement Adherence (2025-10)]({{< relref "/external/uber/genai/requirement-adherence-boosting-data-labeling-quality-using-llms.md" >}})
+- [오탐을 걷어낸 우버의 AI 코드 리뷰어 uReview (2025-08)]({{< relref "/external/uber/genai/ureview.md" >}})
+- [Go 코드의 성능 개선 지점을 찾는 GenAI 도구 PerfInsights (2025-07)]({{< relref "/external/uber/genai/perfinsights.md" >}})
+- [Slack에서 재무 데이터를 묻고 답하는 AI 에이전트 Finch (2025-07)]({{< relref "/external/uber/genai/unlocking-financial-insights-with-finch.md" >}})
+- [GenAI로 Java 리소스 누수를 고치는 FixrLeak (2025-05)]({{< relref "/external/uber/genai/fixrleak-fixing-java-resource-leaks-with-genai.md" >}})
 
 사내 LLM 게이트웨이, MCP 게이트웨이, 온콜·코드 리뷰·데이터 분석 에이전트, 에이전트 보안처럼 생성형 AI를 사내 시스템에 붙인 글입니다.
 
@@ -28,12 +33,7 @@ comments: false
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Requirement Adherence: Boosting Data Labeling Quality Using LLMs](https://www.uber.com/us/en/blog/requirement-adherence-boosting-data-labeling-quality-using-llms/) · 2025-10-21
-- [uReview: Scalable, Trustworthy GenAI for Code Review at Uber](https://www.uber.com/us/en/blog/ureview/) · 2025-08-12
-- [PerfInsights: Detecting Performance Optimization Opportunities in Go Code using Generative AI](https://www.uber.com/us/en/blog/perfinsights/) · 2025-07-22
-- [Unlocking Financial Insights with Finch: Uber’s Conversational AI Data Agent](https://www.uber.com/us/en/blog/unlocking-financial-insights-with-finch/) · 2025-07-17
 - [Enhanced Agentic-RAG: What If Chatbots Could Deliver Near-Human Precision?](https://www.uber.com/us/en/blog/enhanced-agentic-rag/) · 2025-05-29
-- [Fixrleak: Fixing Java Resource Leaks with GenAI](https://www.uber.com/us/en/blog/fixrleak-fixing-java-resource-leaks-with-genai/) · 2025-05-01
 - [Advancing Invoice Document Processing at Uber using GenAI](https://www.uber.com/us/en/blog/advancing-invoice-document-processing-using-genai/) · 2025-04-17
 - [Introducing the Prompt Engineering Toolkit](https://www.uber.com/us/en/blog/introducing-the-prompt-engineering-toolkit/) · 2024-11-26
 - [Genie: Uber’s Gen AI On-Call Copilot](https://www.uber.com/us/en/blog/genie-ubers-gen-ai-on-call-copilot/) · 2024-10-10

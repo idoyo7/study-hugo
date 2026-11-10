@@ -1,6 +1,6 @@
 ---
 title: "데이터베이스·스토리지"
-description: "우버 엔지니어링 블로그의 데이터베이스·스토리지 글 26편 목록입니다. 2020년 이후 글 2편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
+description: "우버 엔지니어링 블로그의 데이터베이스·스토리지 글 26편 목록입니다. 2020년 이후 글 3편은 한국어 요약으로, 나머지는 원문 링크로 정리했습니다."
 date: 2026-11-10
 weight: 6
 comments: false
@@ -10,6 +10,7 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
+- [대규모에서도 굴러가는 MySQL Group Replication 운영 자동화 (2025-12)]({{< relref "/external/uber/database/improving-mysql-cluster-uptime-part2.md" >}})
 - [Group Replication으로 설계한 MySQL 클러스터 장애 감지·완화와 합의 구조 (2025-12)]({{< relref "/external/uber/database/improving-mysql-cluster-uptime-part1.md" >}})
 - [초당 1억 5천만 읽기를 처리하는 통합 캐시와 더 강한 일관성 (2025-08)]({{< relref "/external/uber/database/how-uber-serves-over-150-million-reads.md" >}})
 
@@ -19,7 +20,6 @@ MySQL·MyRocks, Cassandra, Schemaless·Docstore, LedgerStore, 통합 캐시, 백
 
 2019년 이전 글이거나 아직 요약하지 않은 글입니다. 원문 제목 그대로 링크합니다.
 
-- [Improving MySQL® Cluster Uptime: Making MGR Viable at Scale](https://www.uber.com/us/en/blog/improving-mysql-cluster-uptime-part2/) · 2025-12-04
 - [Robust Database Backup Recovery at Uber](https://www.uber.com/us/en/blog/robust-database-backup-recovery-at-uber/) · 2025-05-22
 - [MySQL At Uber](https://www.uber.com/us/en/blog/mysql-at-uber/) · 2025-01-30
 - [The Accounter: Scaling Operational Throughput on Uber’s Stateful Platform](https://www.uber.com/us/en/blog/the-accounter/) · 2024-11-21

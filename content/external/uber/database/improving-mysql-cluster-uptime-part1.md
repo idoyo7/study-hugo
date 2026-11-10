@@ -2,7 +2,7 @@
 title: "Group Replication으로 설계한 MySQL 클러스터 장애 감지·완화와 합의 구조"
 description: "우버가 외부 시스템에 기대던 MySQL 장애 조치를 MySQL Group Replication 기반 합의 그룹으로 바꾼 이유와 구조를 요약합니다. YCSB 벤치마크 지연 비교와 승격 시간 목표까지 정리했습니다."
 date: 2026-11-10
-weight: 1
+weight: 2
 ---
 
 # Group Replication으로 설계한 MySQL 클러스터 장애 감지·완화와 합의 구조 (2025-12)

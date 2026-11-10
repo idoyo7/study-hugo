@@ -2,7 +2,7 @@
 title: "초당 1억 5천만 읽기를 처리하는 통합 캐시와 더 강한 일관성"
 description: "우버 Docstore의 통합 캐시 CacheFront가 TTL과 CDC만으로는 풀 수 없던 stale 값 문제를 쓰기 경로의 동기 무효화로 줄인 과정을 요약합니다. 조건부 업데이트에서 바뀐 행을 알아내는 방법과 Cache Inspector 측정 결과를 정리했습니다."
 date: 2026-11-10
-weight: 2
+weight: 3
 ---
 
 # 초당 1억 5천만 읽기를 처리하는 통합 캐시와 더 강한 일관성 (2025-08)

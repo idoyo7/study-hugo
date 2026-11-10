@@ -2,7 +2,7 @@
 title: "SubmitQueue의 빌드 우선순위로 줄인 CI 비용"
 description: "우버가 SubmitQueue의 빌드 우선순위 모델을 고쳐 CI 자원 사용량을 53%, 대기 시간을 37% 줄인 과정을 정리했습니다. BLRD와 확률 모델, 투기 임계값, 세 모노레포의 21주 측정 결과를 요약합니다."
 date: 2026-11-10
-weight: 4
+weight: 5
 ---
 
 # SubmitQueue의 빌드 우선순위로 줄인 CI 비용 (2025-06)

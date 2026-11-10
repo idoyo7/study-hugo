@@ -2,7 +2,7 @@
 title: "Arm 이전 경험으로 함께 다듬은 OCI AmpereOne M A4 인스턴스"
 description: "우버가 OCI, Ampere와 협력해 Arm 기반 인스턴스를 도입하며 겪은 성능 문제를 정리하고, 이를 반영해 설계한 OCI Ampere A4 인스턴스 계열을 요약합니다. 실제 워크로드 특성을 실리콘 설계와 인스턴스 구성에 되먹인 과정이 핵심입니다."
 date: 2026-11-10
-weight: 100
+weight: 6
 ---
 
 # Arm 이전 경험으로 함께 다듬은 OCI AmpereOne M A4 인스턴스 (2025-12)
