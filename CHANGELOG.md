@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-14 — AI 도구에 pstack 조사 글 추가
+
+- `content/engineering/ai-tools/07-pstack/`를 새로 만들고 AI 도구 색인에서 잇습니다. Lauren Tan(poteto)이 Cursor 플러그인 모노레포 `cursor/plugins`의 `pstack/`으로 공개한 에이전트 스킬 묶음(v0.15.36)을 다룹니다. `poteto-mode` 라우터와 플레이북 23개·원칙 24개, Feature 플레이북의 진행 순서, Claude Code 공식 하네스와 `michael-denyer/pstack-claude` 포트(v0.9.138)의 차이, 포트 이슈 #264·#310·#387과 비용 비평, superpowers·gstack·oh-my-claudecode와의 비교 표를 실었습니다.
+- 근거는 2026-11-14에 GitHub 저장소 원문(README, SKILL.md, plugin.json, 이슈)과 저자의 X 글로 확인했고, 직접 설치해 돌려 보지는 않았습니다. 처음 검색에서 별개 프로젝트로 보였던 `backnotprop/pstack`은 원본 미러였고, 원본에 plan·execute·review나 init·doctor 스킬은 없었습니다. 확인하지 못한 항목은 글 끝에 따로 적었습니다. 조사 보고서는 로컬 `_workspace/structure-2026-11-14-pstack/research.md`에 있습니다.
+- Claude 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`) 전면 재작성(조사 보고서를 사실 확인용으로 함께 제공) → URL·인라인 코드·수치·frontmatter 기계 대조와 문장 대조 순으로 만들었습니다. 저자의 "capable yet stupid" 비유에서 한쪽이 빠진 구절 하나만 직접 되살렸습니다. 도식은 넣지 않았습니다.
+
 ## 2026-11-10 — 타사 테크블로그에 Anthropic 추가
 
 - `content/external/anthropic/`을 새로 만들고 타사 테크블로그 색인에서 잇습니다. 첫 문서는 claude.dev 블로그의 「Safely scaling multi-agent teams with Claude Fable 5.2」(2026-11-09) 요약입니다. Fable 5.2 초기 버전 에이전트 1,000개가 Prove2Me와 연구자 지휘 없이 Git과 공유 Postgres만으로 페르마의 마지막 정리를 28.7시간에 다시 형식화한 실험으로, 하네스 구성, 샌드박스 일곱 가지·실시간 분류기·오프라인 모니터의 안전 경계, 리드가 만든 다섯 테이블과 Langlands–Tunnell 태스크 트리를 정리했습니다.
