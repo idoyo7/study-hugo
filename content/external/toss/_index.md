@@ -1,6 +1,6 @@
 ---
 title: "토스"
-description: "토스 기술 블로그 407편 가운데 인프라(컴퓨트·관측성·신뢰성·데이터베이스·CI·네트워크·보안)와 AI(LLM 에이전트·ML 플랫폼) 글 19편을 분류별로 모았습니다. 글마다 원문을 읽고 한국어로 요약했습니다."
+description: "토스 기술 블로그 407편 가운데 인프라(컴퓨트·관측성·신뢰성·데이터베이스·CI·네트워크·보안)와 AI(LLM 에이전트·ML 플랫폼) 글 26편을 분류별로 모았습니다. 글마다 원문을 읽고 한국어로 요약했습니다."
 date: 2026-11-14
 weight: 90
 comments: false
@@ -12,6 +12,7 @@ comments: false
 
 - [GenAI·LLM 에이전트]({{< relref "/external/toss/genai/_index.md" >}})
 - [ML 플랫폼·인프라]({{< relref "/external/toss/ml-platform/_index.md" >}})
+- [컴퓨트·Kubernetes]({{< relref "/external/toss/compute/_index.md" >}})
 - [신뢰성·트래픽 관리]({{< relref "/external/toss/reliability/_index.md" >}})
 - [데이터베이스·스토리지]({{< relref "/external/toss/database/_index.md" >}})
 - [CI·모노레포·개발자 도구]({{< relref "/external/toss/devx/_index.md" >}})

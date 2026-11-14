@@ -2,7 +2,7 @@
 title: "토스의 Feature Store와 학습 파이프라인 도구 Trainkit"
 description: "토스 ML Platform 팀이 Feature Store를 직접 만든 이유와 구조, 그 위에서 학습 데이터셋을 만드는 Trainkit을 요약했습니다. 멀티 Feature Package 조인, 시간 Shift, 런타임 PIT 조인 세 가지 기능을 다룹니다."
 date: 2026-11-14
-weight: 3
+weight: 4
 ---
 
 # 토스의 Feature Store와 학습 파이프라인 도구 Trainkit (2025-08)

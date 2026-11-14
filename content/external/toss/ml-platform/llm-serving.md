@@ -2,7 +2,7 @@
 title: "vLLM, Triton, KServe로 간소화한 토스증권의 LLM 서빙"
 description: "토스증권이 자체 학습한 LLM의 추론 속도와 배포 허들을 풀려고 vLLM과 Triton Inference Server를 고르고 KServe로 배포를 yaml 한 장으로 줄인 과정을 요약했습니다."
 date: 2026-11-14
-weight: 100
+weight: 6
 ---
 
 # vLLM, Triton, KServe로 간소화한 토스증권의 LLM 서빙 (2024-11)

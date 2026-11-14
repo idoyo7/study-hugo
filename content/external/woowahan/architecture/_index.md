@@ -10,6 +10,6 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [SMS 발송 외부 시스템 이중화와 배포 없는 트래픽 전환 (2022-03)]({{< relref "/external/woowahan/architecture/7724-sms-dual-provider-routing.md" >}})
+- [Spring Cloud Config로 이중화한 SMS 발송 경로 (2022-03)]({{< relref "/external/woowahan/architecture/7724-sms-dual-provider-routing.md" >}})
 
 서비스 구조와 시스템 설계, 워크플로 설계를 다루는 글입니다. 우아한형제들 기술 블로그에서 고른 1편을 게시일 최신순으로 실었습니다.

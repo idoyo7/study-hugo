@@ -2,7 +2,7 @@
 title: "토스증권의 GPU 가상화 MIG 도입기"
 description: "토스증권 ML 플랫폼팀이 작은 모델이 고성능 GPU를 낭비하는 문제를 MIG로 푼 과정을 요약했습니다. 클라우드와 혼합 GPU 운영, GPU 가상화의 비교와 MIG 설정, Kubernetes 재배포, 모니터링 방법을 다룹니다."
 date: 2026-11-14
-weight: 4
+weight: 5
 ---
 
 # 토스증권의 GPU 가상화 MIG 도입기 (2025-07)

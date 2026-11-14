@@ -2,7 +2,7 @@
 title: "토스뱅크의 배포 Pipeline 운영 방식"
 description: "토스뱅크가 400개가 넘는 GoCD 배포 Pipeline을 가시성, 생산성, 확장성, 복잡성 네 가지 어려움에 맞춰 관리한 방법을 정리했습니다. Pipeline as Code, Helm Template, CI를 차례로 도입한 과정입니다."
 date: 2026-11-14
-weight: 4
+weight: 5
 ---
 
 # 토스뱅크의 배포 Pipeline 운영 방식 (2023-10)

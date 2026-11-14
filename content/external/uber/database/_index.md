@@ -14,7 +14,7 @@ comments: false
 - [장애 복구를 그룹 안으로 옮긴 MySQL Group Replication (2025-12)]({{< relref "/external/uber/database/improving-mysql-cluster-uptime-part1.md" >}})
 - [더 긴 TTL을 위해 바꾼 CacheFront의 쓰기 경로 (2025-08)]({{< relref "/external/uber/database/how-uber-serves-over-150-million-reads.md" >}})
 - [복구 시험까지 자동화한 Uber의 약 100PB 백업 체계 (2025-05)]({{< relref "/external/uber/database/robust-database-backup-recovery-at-uber.md" >}})
-- [99.99% 가용성을 뒷받침한 우버 MySQL 컨트롤 플레인 (2025-01)]({{< relref "/external/uber/database/mysql-at-uber.md" >}})
+- [99.99% 가용성을 향해 다시 짠 우버 MySQL 컨트롤 플레인 (2025-01)]({{< relref "/external/uber/database/mysql-at-uber.md" >}})
 - [Odin의 복구 작업을 조율하는 문지기 The Accounter (2024-11)]({{< relref "/external/uber/database/the-accounter.md" >}})
 - [MySQL 8.0 승격 전까지 되돌릴 길을 남긴 우버 (2024-08)]({{< relref "/external/uber/database/upgrading-ubers-mysql-fleet.md" >}})
 - [백업마다 쌓이던 중복을 줄인 MyRocks의 SSTable 풀 (2024-08)]({{< relref "/external/uber/database/differential-backups-on-myrocks.md" >}})

@@ -2,7 +2,7 @@
 title: "토스의 Zero Trust 아키텍처 도입"
 description: "토스가 방화벽 경계 중심의 보안에서 Zero Trust로 옮겨 간 이유와 구성 요소, 전환 절차를 정리했습니다. IAM, SASE, ZTNA, UEM, EPP를 연계해 보안 가시성과 업무 편의를 함께 챙긴 사례입니다."
 date: 2026-11-14
-weight: 1
+weight: 2
 ---
 
 # 토스의 Zero Trust 아키텍처 도입 (2023-09)
