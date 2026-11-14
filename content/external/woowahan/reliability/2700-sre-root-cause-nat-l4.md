@@ -1,6 +1,6 @@
 ---
 title: "NAT Gateway 뒤의 L4 포트 한계를 찾아낸 SRE 팀"
-description: "주말마다 반복된 5xx는 IDC L4의 포트 할당 한계에서 비롯됐습니다. SRE 팀은 connection pool 사용 여부와 통신 경로를 바꿔 원인을 검증하고, 관련 서비스에도 재발 방지 조치를 적용했습니다."
+description: "주말마다 반복된 5xx의 원인을 SRE 팀은 IDC L4 구간의 이상 동작으로 좁혔습니다. SRE 팀은 connection pool 사용 여부와 통신 경로를 바꿔 원인을 검증하고, 관련 서비스에도 재발 방지 조치를 적용했습니다."
 date: 2026-11-14
 weight: 8
 ---

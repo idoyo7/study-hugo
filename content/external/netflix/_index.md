@@ -1,6 +1,6 @@
 ---
 title: "Netflix"
-description: "Netflix 기술 블로그 298편 가운데 인프라(컴퓨트·관측성·신뢰성·데이터베이스·CI·네트워크·보안)와 AI(LLM 에이전트·ML 플랫폼) 글 8편을 분류별로 모았습니다. 글마다 원문을 읽고 한국어로 요약했습니다."
+description: "Netflix 기술 블로그 298편 가운데 인프라(컴퓨트·관측성·신뢰성·데이터베이스·CI·네트워크·보안)와 AI(LLM 에이전트·ML 플랫폼) 글 55편을 분류별로 모았습니다. 글마다 원문을 읽고 한국어로 요약했습니다."
 date: 2026-11-14
 weight: 110
 comments: false
@@ -14,9 +14,11 @@ comments: false
 - [ML 플랫폼·인프라]({{< relref "/external/netflix/ml-platform/_index.md" >}})
 - [컴퓨트·Kubernetes]({{< relref "/external/netflix/compute/_index.md" >}})
 - [관측성]({{< relref "/external/netflix/observability/_index.md" >}})
+- [신뢰성·트래픽 관리]({{< relref "/external/netflix/reliability/_index.md" >}})
 - [데이터베이스·스토리지]({{< relref "/external/netflix/database/_index.md" >}})
 - [CI·모노레포·개발자 도구]({{< relref "/external/netflix/devx/_index.md" >}})
 - [서비스 아키텍처·워크플로]({{< relref "/external/netflix/architecture/_index.md" >}})
+- [네트워크·보안]({{< relref "/external/netflix/netsec/_index.md" >}})
 
 {{< callout type="info" >}}
 **출처**
