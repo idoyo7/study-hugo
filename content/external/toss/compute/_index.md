@@ -10,6 +10,6 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [레거시 IDC를 OpenStack 프라이빗 클라우드로 바꾼 토스페이먼츠 하이브리드 클라우드 (2026-01)]({{< relref "/external/toss/compute/payments-legacy-9.md" >}})
+- [AWS 리전처럼 쓰는 토스페이먼츠의 OpenStack (2026-01)]({{< relref "/external/toss/compute/payments-legacy-9.md" >}})
 
 컨테이너와 Kubernetes 클러스터, 서버 자원 운영을 다루는 글입니다. 토스 기술 블로그에서 고른 1편을 게시일 최신순으로 실었습니다.

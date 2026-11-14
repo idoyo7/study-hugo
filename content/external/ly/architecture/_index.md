@@ -10,6 +10,6 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [Central Dogma 컨트롤 플레인과 사이드카 없는 서비스 메시 (2025-11)]({{< relref "/external/ly/architecture/connecting-thousands-of-services-with-central-dogma-control-plane.md" >}})
+- [쿠버네티스 밖의 서비스까지 연결하는 Central Dogma (2025-11)]({{< relref "/external/ly/architecture/connecting-thousands-of-services-with-central-dogma-control-plane.md" >}})
 
 서비스 구조와 시스템 설계, 워크플로 설계를 다루는 글입니다. LY Corporation 기술 블로그에서 고른 1편을 게시일 최신순으로 실었습니다.

@@ -10,10 +10,10 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [메시징 서버 스트레스 테스트 노하우와 AI 자동화 (2026-05)]({{< relref "/external/kakao/reliability/822-messaging-stress-test-ai.md" >}})
-- [실시간 메시징 시스템의 성능 테스트 설계와 pprof 분석 (2편) (2024-12)]({{< relref "/external/kakao/reliability/679-realtime-messaging-perf-test-design.md" >}})
-- [실시간 메시징 시스템 카리브의 성능 개선 과정 (3편) (2024-12)]({{< relref "/external/kakao/reliability/680-realtime-messaging-perf-tuning.md" >}})
-- [이용자 관점의 안정성과 회복탄력성 전략 (2024-12)]({{< relref "/external/kakao/reliability/672-stability-report-prologue.md" >}})
-- [BCM 체계와 장애·재해 복구 훈련 (2024-12)]({{< relref "/external/kakao/reliability/676-recovery-system-bcm.md" >}})
+- [AI에 반복 작업을 맡긴 카카오톡 메시징 서버 스트레스 테스트 (2026-05)]({{< relref "/external/kakao/reliability/822-messaging-stress-test-ai.md" >}})
+- [Go pprof로 CPU 사용처를 따라 찾은 카리브의 병목 (2024-12)]({{< relref "/external/kakao/reliability/679-realtime-messaging-perf-test-design.md" >}})
+- [카리브의 메시지 전달 비용을 줄인 Go 성능 최적화 실험 (2024-12)]({{< relref "/external/kakao/reliability/680-realtime-messaging-perf-tuning.md" >}})
+- [4천만 명의 일상을 기준으로 삼은 카카오의 회복탄력성 전략 (2024-12)]({{< relref "/external/kakao/reliability/672-stability-report-prologue.md" >}})
+- [서비스 장애부터 전사 재해 복구까지 대비하는 카카오 BCM (2024-12)]({{< relref "/external/kakao/reliability/676-recovery-system-bcm.md" >}})
 
 장애 대응과 이중화, 트래픽 제어처럼 서비스를 안정적으로 유지하는 방법을 다루는 글입니다. 카카오 기술 블로그에서 고른 5편을 게시일 최신순으로 실었습니다.

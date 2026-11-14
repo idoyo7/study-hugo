@@ -10,6 +10,6 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [토스의 Gateway 활용 사례 (2023-10)]({{< relref "/external/toss/architecture/slash23-server.md" >}})
+- [토스의 수많은 서비스가 거치는 Spring Cloud Gateway (2023-10)]({{< relref "/external/toss/architecture/slash23-server.md" >}})
 
 서비스 구조와 시스템 설계, 워크플로 설계를 다루는 글입니다. 토스 기술 블로그에서 고른 1편을 게시일 최신순으로 실었습니다.

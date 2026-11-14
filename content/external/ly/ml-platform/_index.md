@@ -10,6 +10,6 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [LINE의 엔드 투 엔드 MLOps 플랫폼 MLU (2023-03)]({{< relref "/external/ly/ml-platform/line-end-to-end-mlops-platform-mlu.md" >}})
+- [LINE VOOM의 추천 모델 운영을 바꾼 MLU 파이프라인 (2023-03)]({{< relref "/external/ly/ml-platform/line-end-to-end-mlops-platform-mlu.md" >}})
 
 모델 학습과 서빙, GPU 자원 운영 같은 ML 플랫폼과 인프라를 다루는 글입니다. LY Corporation 기술 블로그에서 고른 1편을 게시일 최신순으로 실었습니다.

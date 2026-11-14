@@ -1,11 +1,11 @@
 ---
-title: "토스의 Gateway 활용 사례"
-description: "토스 서버플랫폼팀이 Spring Cloud Gateway와 Istio로 공통 로직, 보안, 모니터링을 처리하는 방식을 정리했습니다. Sanitize, 유저 Passport, 종단간 암호화, Dynamic Security, mTLS, Circuit breaker를 다룹니다."
+title: "토스의 수많은 서비스가 거치는 Spring Cloud Gateway"
+description: "토스는 수많은 서비스의 공통 로직과 장애 전파를 어디에서 다룰까요? Spring Cloud Gateway와 Istio로 요청 처리를 모으고, Gateway와 각 애플리케이션에서 서킷 브레이킹을 적용합니다."
 date: 2026-11-14
 weight: 1
 ---
 
-# 토스의 Gateway 활용 사례 (2023-10)
+# 토스의 수많은 서비스가 거치는 Spring Cloud Gateway (2023-10)
 
 {{< callout type="info" >}}
 **원문 정보**
@@ -16,36 +16,50 @@ weight: 1
 - 원문 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 
-## Gateway의 역할과 토스의 구성 {#gateway-role}
+## 반복된 유저 정보 조회를 줄인 Passport {#common-logic}
 
-Gateway는 라우팅과 프로토콜 변환을 맡아 마이크로서비스 앞에서 중개자 역할을 하는 서버입니다. 서비스가 클라이언트와 독립적으로 확장되고 보안과 모니터링을 위한 단일 제어 지점이 생깁니다. 서비스와 트래픽이 적을 때는 각 서비스가 모든 로직을 처리해도 부담이 없지만, 서버가 무수히 많아지는 MSA에서는 공통 로직을 모든 서버에 적용하고 배포하는 일 자체가 큰일이 됩니다. Gateway 패턴은 이 공통 로직을 모아서 처리하고 업스트림 서버에 넘깁니다.
+토스의 내부 서비스들은 유저 정보가 필요할 때마다 유저 API를 호출했습니다. 한 트랜잭션 안에서도 조회가 거듭됐습니다. 불필요한 중복 요청으로 서버 자원을 낭비하던 문제를 해결하려고, 토스는 인증 시 id 토큰을 트랜잭션 안으로 전파하는 Netflix의 Passport를 팀에 맞게 바꿨습니다.
 
-요청이 오면 Gateway는 설정에 따라 라우팅하고 필터를 실행합니다. 설정은 Route 단위이며 Route는 Predicate와 Filter로 구성됩니다. Predicate는 Path, Method, Host 등으로 요청을 구분하고, Filter는 요청 전처리나 응답 후처리를 맡습니다. 토스는 Gateway를 Spring Cloud Gateway로 만듭니다. Spring Webflux 기반이고 내부에서 Reactor-Netty로 비동기 처리하며, 필터 개발에는 Kotlin Coroutine을 적극 쓰고 Istio의 Ingress/Egress Gateway, Envoy 필터와 함께 개발합니다.
+앱이 유저 식별키와 함께 API를 요청하면 Gateway는 이 키로 인증 서버에 Passport를 요청합니다. 기기 정보와 유저 정보를 담은 토큰을 받아 serialize한 뒤 서비스로 전파하는 흐름입니다. 사용자 정보가 여권처럼 트랜잭션 안을 따라다닙니다. 각 서비스는 유저 API를 다시 호출하지 않고 Passport에서 필요한 정보를 얻습니다.
 
-## 공통 로직 처리 {#common-logic}
+## Spring Cloud Gateway에 모인 공통 로직 {#gateway-role}
 
-Gateway가 처리하는 공통 로직은 크게 요청 전처리·후처리, 유저 정보를 이용한 로직, 보안과 서비스 안정화 설정입니다.
+서비스와 트래픽이 적을 때는 각 서버가 공통 로직까지 처리해도 큰 부담이 없습니다. 서버가 무수히 늘어나면 배포도 큰일입니다. 같은 로직을 모든 서버에 적용해야 하기 때문입니다. 라우팅과 프로토콜 변환을 맡는 Gateway는 요청을 먼저 받아 공통 처리를 마치고 업스트림 서비스로 넘깁니다. 서비스는 클라이언트와 독립적으로 확장하고, 보안과 모니터링은 한 지점에서 제어하는 구성입니다.
 
-Sanitize는 클라이언트의 올바르지 않은 요청 값을 지우거나 올바른 값으로 바꾸는 일입니다. 사용자가 악의적인 값을 넣어 요청해도 Gateway가 바로잡아 서비스에 넘깁니다.
+토스는 Spring Cloud Gateway로 이 역할을 구현했습니다. Spring Webflux 기반으로 내부에서 Reactor-Netty를 사용해 비동기 처리를 지원하며, 필터 개발에는 Kotlin Coroutine을 적극 활용합니다. Istio의 Ingress/Egress Gateway, Envoy 필터도 함께 사용하는 구성입니다.
 
-유저 Passport는 서비스가 유저 정보를 얻는 방식을 바꿨습니다. 예전에는 서비스마다 유저 정보가 필요할 때 유저 API를 호출했고, 이것이 트랜잭션 안의 불필요한 중복 요청과 서버 자원 낭비로 이어졌습니다. 토스는 Netflix가 id 토큰인 Passport를 트랜잭션 안으로 전파하는 구조를 참고해 팀에 맞게 바꿨습니다. 앱이 유저 식별키와 함께 API를 요청하면 Gateway가 이 키로 인증 서버에서 기기 정보와 유저 정보가 담긴 Passport를 받아 serialize해 서비스에 전달하고, 서비스는 유저 API 호출 없이 이 정보를 씁니다.
+설정의 단위는 Route입니다. Route 안에서 Predicate가 Path, Method, Host 등으로 요청을 구분하면, Filter가 매칭된 요청을 전처리하거나 서비스의 응답을 후처리합니다. 요청을 받았을 때 우선 수행하는 Sanitize도 공통 처리의 하나입니다. 클라이언트가 잘못되거나 악의적인 값을 보내면 해당 값을 지우거나 올바른 값으로 바꿔 서비스에 넘깁니다.
 
-## 보안과 안정성 {#security-stability}
+## 토스 앱의 요청을 검증하는 Dynamic Security {#security-stability}
 
-종단간 암호화는 토스 앱 API의 대부분에 적용됩니다. 앱이 암호화 키로 요청 바디를 암호화하면 Gateway가 복호화하면서 인증/인가를 처리하고, 복호화한 데이터와 유저 정보를 서비스에 넘깁니다.
+토스 앱의 대부분 API에는 패킷 분석을 어렵게 하기 위한 종단간 암호화가 적용됩니다. 앱이 암호화 키로 요청 바디를 암호화하면 Gateway가 이를 복호화하면서 인증/인가를 처리합니다. 서비스가 받는 것은 복호화한 데이터와 유저 정보입니다. 개별 서비스가 이 과정을 직접 처리하지 않아도 됩니다.
 
-Dynamic Security는 요청이 위변조되지 않은 토스 앱에서 왔는지까지 검증합니다. 앱은 아주 짧은 유효기간의 키와 변조되지 않은 앱만 아는 정보로 매 요청을 서명하고, Gateway는 서명으로 앱에서 만든 요청인지, 중복 사용되지 않았는지, 만료된 키로 만들지 않았는지를 확인합니다. 앱 위변조, delayed request, replaying attack을 막기 위함이며, 의심스러운 요청은 FDS(fraud detection system)를 통해 계정을 비활성화합니다.
+인증/인가에서 검증이 끝나지는 않습니다. Dynamic Security는 요청이 위변조되지 않은 토스 앱에서 만들어졌는지까지 확인하는 장치입니다. 앱은 아주 짧은 유효기간을 가진 키와 변조되지 않은 앱만 아는 정보로 매 요청을 서명해 Gateway에 보냅니다.
 
-외부 회사나 내부 개발자의 호출을 위해서는 클라이언트 인증서 기반 mTLS API도 지원합니다. Istio의 mTLS flow 위에 Gateway 애플리케이션을 두고 인증/인가를 처리합니다. Istio만으로도 가능하지만 코드 기반 애플리케이션이 matching rule보다 자유도가 높고 Auditing 등을 처리할 수 있으며 카나리 배포의 이점도 누릴 수 있어서입니다. Edge에서 Istio가 인증서의 CA 유효성을 확인하고 인증서 정보를 헤더에 실어 Gateway에 전달하면, Gateway가 X.509 extensions의 Subject Alternative Name으로 사용자 정보를 얻고 도착지 호스트와 요청 경로를 함께 보아 인증/인가와 Auditing을 처리합니다.
+Gateway는 이 서명으로 토스 앱에서 만든 요청인지, 중복 사용됐는지, 만료된 키로 서명했는지를 확인합니다. 앱 위변조, delayed request, replaying attack을 막기 위한 검증입니다. 의심스러운 요청을 발견하면 FDS(fraud detection system)로 계정을 비활성화해 사용자를 보호합니다.
 
-Circuit breaker는 서비스가 거미줄처럼 얽힌 MSA에서 응답 지연이 의존하는 서비스로 번져 시스템 전체가 멈추는 일을 막습니다. 지연을 일으키는 서비스에 요청을 보내지 않고 빠르게 실패시켜 회복할 시간을 줍니다. 내부 서비스 간에도 중요하지만 트래픽의 근원인 클라이언트에 백프레셔를 빠르게 주려면 Gateway에서 거는 것이 중요합니다. Istio로 하는 인프라 레이어 방식은 호스트 단위로 쉽고 빠르게 전체 적용이 되고 애플리케이션 개발 주기와 독립적이지만, 호스트 단위 설정만 가능하고 룰에 한계가 있습니다. 라이브러리(Resilience4J, Hystrix)로 하는 애플리케이션 레이어 방식은 더 정교합니다. 토스는 각 애플리케이션과 Gateway에 직접 적용해 호스트, Route, 기능 단위로 세밀하게 걸고 있습니다.
+## Istio의 mTLS 뒤에서 권한을 판단하는 Gateway {#mtls-auth}
 
-## 모니터링 {#monitoring}
+외부 회사나 내부 개발자의 서비스 호출에는 클라이언트 인증서 기반 mTLS API도 지원합니다. Edge의 Istio가 먼저 인증서의 CA 유효성을 확인합니다. 인증서 정보를 헤더에 실어 모든 트래픽을 Gateway로 전달하면, Gateway는 인증서를 Decode한 뒤 X.509 extensions의 Subject Alternative Name에서 사용자 정보를 얻습니다. 이 정보와 도착지 호스트, 요청 경로를 바탕으로 인증/인가와 Auditing을 처리하는 흐름입니다.
 
-Gateway는 토스의 모든 서비스가 거치는 컴포넌트라 로깅, 메트릭, 트레이싱 모니터링이 더 꼼꼼해야 합니다. 로깅은 Gateway를 지나는 모든 요청과 응답의 Route id, method, URI, 상태 코드를 Elasticsearch에 남깁니다. 어떤 Route로 들어왔고 업스트림의 어떤 URI를 호출했는지 바로 확인할 수 있습니다.
+Istio만으로 인증/인가를 처리하는 것도 가능합니다. 토스가 그 위에 Gateway 애플리케이션을 둔 이유는 코드로 구현할 때의 자유도에 있습니다. Istio의 matching rule보다 유연하게 로직을 작성하고 Auditing을 처리할 수 있으며, 카나리 배포의 이점도 얻습니다.
 
-메트릭은 Prometheus가 수집합니다. Node Exporter의 시스템 메트릭(CPU, memory, 네트워크 RX/TX)과 Spring actuator의 애플리케이션 메트릭(JVM thread block, 세대별 메모리 할당, full GC 여부)을 Grafana로 시각화하고 슬랙으로 알립니다. Spring Cloud Gateway가 주는 Route별 메트릭에 Path 값을 더해 API Path별 Route 메트릭도 봅니다.
+## 거미줄처럼 얽힌 서비스 사이의 Circuit breaker {#circuit-breaker}
 
-## 마무리 {#wrap-up}
+한 서비스의 응답 지연은 그곳에서 끝나지 않습니다. 거미줄처럼 얽힌 MSA에서는 해당 서비스에 의존하는 다른 서비스로 지연이 번지고, 시스템 자원을 점유하다 전체가 먹통이 될 수 있습니다. Circuit breaker는 지연을 일으키는 서비스에 요청을 더 보내지 않고 빠르게 실패시키는 장치입니다. 부하를 겪는 서비스의 회복을 돕고 지연이 전체로 퍼지는 일을 막습니다.
 
-원문은 Gateway가 외부에 노출되는 엔드포인트를 중앙에서 관리하게 해 주어, 트래픽 모니터링, 속도 제한, 요청과 응답 수정 같은 일로 거대한 MSA 클러스터를 확장, 관리, 모니터링하기 쉽게 한다고 맺습니다. 더 많은 사례는 SLASH23 영상을 참고하라고 안내합니다.
+Gateway에도 서킷 브레이킹을 적용하는 이유가 있습니다. 내부 서비스 사이에서 요청을 차단하는 데 더해, 트래픽의 근원인 클라이언트에 백프레셔를 빠르게 주기 위해서입니다.
+
+어느 계층에서 적용하느냐에 따라 제어 범위도 달라집니다. Istio를 쓰면 호스트 단위로 쉽고 빠르게 전체에 적용하고, 애플리케이션 개발 주기와 독립적으로 관리할 수 있습니다. 하지만 설정은 호스트 단위로만 가능하고 룰에도 한계가 있습니다.
+
+애플리케이션 레이어에서는 Resilience4J나 Hystrix 같은 라이브러리를 사용하는 방법이 있습니다. 토스는 각 애플리케이션과 Gateway에 서킷 브레이킹을 적용했습니다. 호스트뿐 아니라 Route나 기능 단위로도 세밀하게 요청을 차단하는 방식입니다.
+
+## API Path까지 좁혀 보는 모니터링 {#monitoring}
+
+모든 서비스가 거치는 Gateway인 만큼 요청의 경로와 시스템 상태도 꼼꼼히 확인합니다. Gateway를 지나는 모든 요청과 응답의 Route id, method, URI, 상태 코드를 Elasticsearch에 남깁니다. 어떤 Route로 들어왔고 업스트림의 어떤 URI를 호출했는지 바로 확인할 수 있는 기록입니다.
+
+메트릭은 Prometheus가 수집합니다. 수집 대상은 Node Exporter의 시스템 메트릭과 Spring actuator의 애플리케이션 메트릭입니다. Grafana로 시각화하고 슬랙으로 알림을 보냅니다.
+
+시스템 메트릭의 CPU, memory, 네트워크 RX/TX는 애플리케이션 변경이 시스템에 미친 영향을 먼저 파악하고, 문제가 생겼을 때 현상과 원인을 찾는 데 쓰입니다. 애플리케이션 쪽에서는 JVM thread block, 세대별 메모리 할당, full GC 발생 여부를 살핍니다. 관찰 단위를 더 좁히기도 합니다. Spring Cloud Gateway가 제공하는 Route별 메트릭에 Path 값을 더해 API Path별 Route 메트릭까지 확인하는 방식입니다.
+
+더 많은 Gateway 활용 사례는 SLASH23 영상에서 볼 수 있습니다.

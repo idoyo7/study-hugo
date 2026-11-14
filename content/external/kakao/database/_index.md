@@ -10,16 +10,16 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [MongoDB 8.0 업그레이드를 검토하는 12가지 이유 (2025-12)]({{< relref "/external/kakao/database/803-mongodb-8-upgrade-reasons.md" >}})
-- [MySQL Orchestrator 기반의 새로운 HA 표준 (2025-09)]({{< relref "/external/kakao/database/775-mysql-orchestrator-ha.md" >}})
-- [MySQL 8.0 Instant DDL 알고리즘의 동작 원리 (2025-09)]({{< relref "/external/kakao/database/731-mysql-instant-ddl-algorithm.md" >}})
-- [MySQL InnoDB Redo Log와 MTR의 동작 방식 (1편) (2025-08)]({{< relref "/external/kakao/database/721-mysql-innodb-redo-log.md" >}})
-- [MySQL 인증 플러그인 caching_sha2_password의 동작과 도입 준비 (2025-07)]({{< relref "/external/kakao/database/712-mysql-caching-sha2-password.md" >}})
-- [MySQL ALTER DDL의 수행 흐름과 알고리즘별 Metadata Lock (2025-05)]({{< relref "/external/kakao/database/703-mysql-alter-ddl-algorithms.md" >}})
-- [MongoDB WiredTiger의 B+Tree 구조 (2025-02)]({{< relref "/external/kakao/database/688-mongodb-wiredtiger-bplustree.md" >}})
-- [MongoDB WiredTiger 데이터 디렉터리의 파일 구조 (2024-12)]({{< relref "/external/kakao/database/670-mongodb-wiredtiger-files.md" >}})
-- [Object Storage MetaKage의 분산 Radix Tree (2022-08)]({{< relref "/external/kakao/database/532-distributed-radix-tree-metakage.md" >}})
-- [쿠버네티스 위의 Redis 캐시 클러스터 구축 (2022-02)]({{< relref "/external/kakao/database/491-redis-cluster-on-kubernetes.md" >}})
-- [Kubernetes와 Redis로 구성한 카카오톡 캐시 팜 (2020-11)]({{< relref "/external/kakao/database/406-kakaotalk-cache-farm.md" >}})
+- [카카오 DBA가 약 1년을 기다려 살펴본 MongoDB 8.0 (2025-12)]({{< relref "/external/kakao/database/803-mongodb-8-upgrade-reasons.md" >}})
+- [카카오 MySQL의 새 HA 표준이 된 Orchestrator (2025-09)]({{< relref "/external/kakao/database/775-mysql-orchestrator-ha.md" >}})
+- [MySQL 8.0 Instant DDL의 속도를 만드는 메타데이터 (2025-09)]({{< relref "/external/kakao/database/731-mysql-instant-ddl-algorithm.md" >}})
+- [MySQL InnoDB Redo Log에 모이는 MTR의 기록 (2025-08)]({{< relref "/external/kakao/database/721-mysql-innodb-redo-log.md" >}})
+- [접속 방식까지 살펴야 할 MySQL caching_sha2_password (2025-07)]({{< relref "/external/kakao/database/712-mysql-caching-sha2-password.md" >}})
+- [서비스 중 MySQL ALTER DDL이 다른 세션을 막는 순간 (2025-05)]({{< relref "/external/kakao/database/703-mysql-alter-ddl-algorithms.md" >}})
+- [MongoDB WiredTiger의 B+Tree에 없는 형제 연결 (2025-02)]({{< relref "/external/kakao/database/688-mongodb-wiredtiger-bplustree.md" >}})
+- [MongoDB WiredTiger 파일에서 찾은 데이터의 행방 (2024-12)]({{< relref "/external/kakao/database/670-mongodb-wiredtiger-files.md" >}})
+- [수천 억 파일을 탐색하는 MetaKage의 분산 Radix Tree (2022-08)]({{< relref "/external/kakao/database/532-distributed-radix-tree-metakage.md" >}})
+- [이벤트에 맞춰 늘리고 줄이는 쿠버네티스 Redis 클러스터 (2022-02)]({{< relref "/external/kakao/database/491-redis-cluster-on-kubernetes.md" >}})
+- [새벽 교체 작업에서 출발한 Kubernetes와 Redis 캐시 팜 (2020-11)]({{< relref "/external/kakao/database/406-kakaotalk-cache-farm.md" >}})
 
 데이터베이스와 캐시, 스토리지 운영을 다루는 글입니다. 카카오 기술 블로그에서 고른 11편을 게시일 최신순으로 실었습니다.

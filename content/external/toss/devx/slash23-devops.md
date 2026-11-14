@@ -1,11 +1,11 @@
 ---
-title: "토스뱅크의 배포 Pipeline 운영 방식"
-description: "토스뱅크가 400개가 넘는 GoCD 배포 Pipeline을 가시성, 생산성, 확장성, 복잡성 네 가지 어려움에 맞춰 관리한 방법을 정리했습니다. Pipeline as Code, Helm Template, CI를 차례로 도입한 과정입니다."
+title: "400개 넘는 GoCD Pipeline의 변경을 검증하는 CI"
+description: "400개가 넘는 Pipeline을 어떻게 빠르고 안전하게 고칠 수 있을까요? 토스뱅크는 설정을 Git에 모으고, Helm Template으로 일부 Pipeline에서 변경을 시험하며, CI로 의도하지 않은 차이를 검사했습니다."
 date: 2026-11-14
 weight: 5
 ---
 
-# 토스뱅크의 배포 Pipeline 운영 방식 (2023-10)
+# 400개 넘는 GoCD Pipeline의 변경을 검증하는 CI (2023-10)
 
 {{< callout type="info" >}}
 **원문 정보**
@@ -15,41 +15,57 @@ weight: 5
 - 원문 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 
-## Pipeline과 토스뱅크의 요구 {#pipeline-needs}
+토스뱅크에서는 Pipeline Template을 잘못 고쳐 배포가 안 되거나 잘못된 배포가 되는 일이 종종 있었습니다. 설정은 이미 Git에 있었습니다. 공통 동작도 Template으로 묶어 관리했지만, 시간이 지나며 복잡해진 Template을 수정하다 보면 오타나 의도하지 않은 변경이 생겼습니다. 변경 이력을 남기는 데서 더 나아가, 변경을 검증할 방법이 필요했습니다.
 
-Pipeline은 반복하는 일을 자동화하는 시스템입니다. 서버 빌드와 배포가 대표적이고 라이브러리 업로드나 운영 작업 자동화에도 씁니다. Micro Service Architecture를 적극 쓰는 토스뱅크는 하루에 수십~수백 번 서버를 배포하므로, Pipeline은 개발자들이 가장 많이 쓰는 시스템 중 하나입니다.
+## 여러 스쿼드의 설정을 모은 Git 저장소 {#visibility}
 
-서비스가 자주 생기고 동작이 자주 바뀌므로 Pipeline을 빠르게 만들고 고칠 수 있어야 합니다. 안정적 운영을 위해 Pipeline끼리 일관되게 동작해야 하고, 금융권에 적용되는 전자금융감독규정에 따라 서버를 배포할 때 동료가 검증하는 절차 같은 Compliance 요건도 모든 Pipeline에서 지켜야 합니다. 토스뱅크는 이를 위해 Pipeline 설정을 중앙화하기로 했고, 여러 스쿼드가 쓰는 설정을 한곳에 모아 DevOps Engineer가 주도해 운영합니다. 도구는 주로 GoCD를 쓰며, Server가 작업을 할당하고 Agent가 실행하는 구조는 Jenkins와 비슷합니다.
+Micro Service Architecture를 적극적으로 활용하는 토스뱅크는 하루에도 수십~수백 번 서버를 배포합니다. Pipeline은 개발자들이 일상적으로 가장 많이 쓰는 시스템 중 하나입니다. 새 서비스가 자주 생기고 동작도 바뀌므로 빠르게 만들고 고쳐야 하지만, 서비스의 안정성을 위해 일관된 동작도 지켜야 했습니다.
 
-## 가시성과 Pipeline as Code {#visibility}
+금융권에 적용되는 전자금융감독규정도 준수해야 합니다. 서버를 배포할 때 동료끼리 검증하는 절차 같은 Compliance 요건은 모든 Pipeline에 필요했습니다. 토스뱅크는 이런 요구를 충족하려고 여러 스쿼드의 Pipeline 설정을 한곳에 모으고, DevOps Engineer가 주도적으로 운영했습니다.
 
-GoCD에서 새 Pipeline은 웹 UI의 Pipeline Wizard로 만듭니다. 토스뱅크에는 서비스 빌드/배포 Pipeline 281개, 작업 자동화 Pipeline 76개, 기타 47개로 400개가 넘는 Pipeline이 있습니다. 이 규모에서는 웹 UI로 어떤 Pipeline이 있는지 보는 것부터 쉽지 않고, 한 Pipeline의 단계를 보려면 페이지를 여러 번 오가야 하며, Pipeline끼리 비교하기도 어렵습니다. 가장 큰 문제는 현재 설정만 보여서 언제 어떻게 바뀌었는지 알 수 없다는 점이었습니다.
+주로 사용하는 도구는 GoCD입니다. Jenkins와 비슷하게 Server가 작업을 할당하고 Agent가 실행하며, 웹 UI의 Pipeline Wizard로 새 Pipeline을 만듭니다. 수가 적을 때는 이 방식으로도 큰 어려움이 없었습니다.
 
-해법은 Pipeline as Code, 즉 Pipeline을 YAML 파일로 써서 Git에 저장하고 gocd-yaml-config-plugin으로 GoCD 서버와 연동하는 것입니다. 수백 개 Pipeline을 한 폴더에서 볼 수 있고, 여러 단계도 한 파일에서 확인하며, Version Control로 변경 이력을 추적합니다.
+400개가 넘는 Pipeline을 웹 UI에서 살피는 일은 달랐습니다. 이름을 알면 검색하면 되지만, 모르면 모든 Pipeline을 훑어야 했습니다. 한 Pipeline의 단계와 순서를 확인하려 해도 여러 페이지를 오가야 했고, 서로 다른 Pipeline을 비교하기도 어려웠습니다. 가장 큰 문제는 이력이었습니다. 동작이 이상해도 웹 UI에는 현재 설정만 보여 언제 어떻게 바뀌었는지 알기 어려웠습니다.
 
-## 생산성과 GoCD Template {#productivity}
+토스뱅크는 설정을 코드로 표현해 Git에 저장하는 Pipeline as Code를 적용했습니다. YAML로 작성한 설정을 gocd-yaml-config-plugin으로 GoCD 서버와 연동했습니다. 수백 개의 Pipeline을 한 폴더에서 살피고, 한 Pipeline의 모든 단계를 한 파일에서 확인하게 됐습니다. Git에 변경 이력이 남으니 설정이 언제 어떻게 달라졌는지도 추적할 수 있었습니다.
 
-토스뱅크의 Pipeline 수는 약 6개월 간격으로 집계하면 1년에 2배 이상 늘었습니다. 새 서비스는 기존 서비스와 기술 스택이 비슷한 경우가 많아 기존 설정을 복사해 붙이다 보니 잘못 붙이거나 바꿀 부분을 빼먹는 실수가 잦았습니다. 모든 Pipeline에 공통 변경이 생길 때도 모든 파일을 고쳐야 해서 실수하기 쉬웠습니다.
+## 공통 설정을 한 줄로 줄인 GoCD Template {#productivity}
 
-GoCD Template은 Pipeline 동작을 추상화해 여러 Pipeline이 공유합니다. 공통 설정은 Template을 지정하는 한 줄로 대체되고 달라야 하는 값은 변수로 주입하며, 공통 변경은 Template만 고치면 모두에 적용됩니다. gocd-yaml-config-plugin과도 함께 쓸 수 있습니다.
+설정을 찾기 쉬워졌어도 만드는 일은 계속 늘었습니다. 약 6개월 간격으로 집계한 Pipeline 수는 1년에 2배 이상 증가했습니다. 새 서비스는 기존 서비스와 기술 스택과 구성이 비슷한 경우가 많아 설정을 복사해 쓰곤 했는데, 잘못 붙여 넣거나 바꿔야 할 부분을 놓치기 쉬웠습니다. 공통 변경이 생길 때마다 모든 파일을 수정하는 작업에도 같은 위험이 있었습니다.
 
-## 확장성과 Helm Template {#scalability}
+GoCD Template은 이 반복을 줄였습니다. 여러 Pipeline이 공유할 동작을 Template으로 만들면 공통 설정은 Template을 지정하는 한 줄로 줄어들고, 서로 달라야 하는 값만 변수로 주입하면 됩니다. gocd-yaml-config-plugin과도 함께 쓸 수 있어, 공통 변경을 Template 한곳에 반영하는 방식으로 실수할 여지를 줄였습니다.
 
-Pipeline 설정은 Git에, Template 설정은 웹 UI에 있어서 둘을 비교하며 Template을 고치기 불편했고, Template 하나를 고치면 많은 Pipeline에 한꺼번에 적용되어 실수의 영향도 컸습니다. 토스뱅크는 Template Rendering 도구인 Helm Template으로 이 문제를 풀기로 했습니다. 공통 부분을 Template으로, 고유 부분을 Values로 주입하고 조건문, 반복문, 변수로 복잡한 내용도 표현할 수 있습니다.
+수정할 곳은 줄었지만 영향은 커졌습니다. Template을 한 번 고치면 많은 Pipeline에 적용되므로 잘못 고쳤을 때의 영향도 컸습니다. Pipeline 설정은 Git에서, Template 설정은 웹 UI에서 봐야 한다는 점도 불편했습니다. 둘을 비교하며 수정하기 어려운 데다 실수의 영향까지 크니, Template을 유연하게 바꾸기 힘들었습니다.
 
-Helm Template은 YAML을 잘 지원해 gocd-yaml-config-plugin과 어울리고, GoCD Template이 지원하지 못하는 부분도 Template으로 만들 수 있습니다. Template이 파일이라 Pipeline 설정과 같은 Git 저장소에 두면 한곳에서 볼 수 있습니다. 조건문으로 일부 Pipeline에서만 Template 변경을 시험해 보고 전체에 적용할 수 있어서 변경 실수가 모든 Pipeline으로 번지는 일도 줄었습니다. Values 파일은 Pipeline 도구와 무관한 추상 설정을 담으므로 GitHub Actions 같은 다른 도구를 쓰게 되면 Template 파일만 새로 쓰면 Values를 재사용할 수 있습니다.
+## 일부 Pipeline에서 먼저 시험하는 Helm Template {#scalability}
 
-## 복잡성과 CI {#complexity-ci}
+토스뱅크는 GoCD Template을 Helm Template으로 대체했습니다. 공통 부분을 Template으로 작성하고 Pipeline마다 다른 값을 Values로 주입해 설정 파일을 Rendering하는 방식입니다. 조건문과 반복문, 변수도 사용할 수 있어 복잡한 동작을 표현할 수 있습니다.
 
-Template은 시간이 갈수록 복잡해집니다. 2023년 1월 기준 토스뱅크의 Pipeline은 5가지 Type, 72개 설정값, Template 파일 길이 합계 1,182줄이었고, Helm Template 문법은 일반 프로그래밍 언어만큼 직관적이지 않아 오타나 의도하지 않은 변경으로 배포가 안 되거나 잘못 배포되는 일이 종종 있었습니다.
+Helm Template은 YAML을 잘 지원하므로 gocd-yaml-config-plugin과도 잘 맞았습니다. GoCD Template이 지원하지 않는 부분까지 Template으로 만들 수 있었고, Template 자체도 파일이어서 Pipeline 설정과 같은 Git 저장소에 둘 수 있었습니다. 설정과 Template을 한곳에서 비교하게 된 것입니다.
 
-그래서 GitHub Actions로 CI를 구성했습니다. Template 파일은 develop 브랜치에서만 수정하고, 검증을 통과해야 master에 반영됩니다. 검증은 develop에 변경이 생길 때 모든 Pipeline 설정 파일을 다시 Rendering하는 것으로, 의도한 변경은 이미 파일에 반영돼 있으니 다시 Rendering했는데 내용이 바뀌면 의도하지 않은 변경일 가능성이 높습니다. 이때 검증은 실패하고 사내 메신저로 작업자에게 알립니다.
+변경을 시험할 여지도 생겼습니다. 조건문으로 일부 Pipeline에만 변경된 Template을 적용하면, 전체에 적용하기 전에 테스트용 Pipeline에서 충분히 동작을 검증할 수 있습니다. 이 과정을 거치면서 Template 수정 실수가 모든 Pipeline에 영향을 주는 일이 줄었습니다.
 
-Kubernetes에 배포하는 Object Template도 같은 문제가 있었습니다. 채널계 서비스는 Kubernetes에서 운영하고 배포할 때 Helm Template을 쓰는데, 2023년 1월 기준 7가지 Object, 110개 설정값, Template 합계 762줄이었습니다. 이쪽은 Rendering 결과를 Git에 저장하지 않고 바로 배포하므로 비교할 파일이 없었고, 그래서 검증용 Kubernetes Object 파일을 Git에 저장하기로 했습니다. CI에서 이 파일들을 다시 Rendering해 같은 방식으로 비교합니다. Pipeline 설정과 검증용 Object 파일이 모두 바뀌지 않았다면 의도하지 않은 변경이 없다고 보고 master에 자동 반영합니다.
+Values 파일은 다른 도구에서도 재사용할 수 있습니다. Pipeline 도구에 종속되지 않는 추상적인 설정을 담고 있기 때문입니다. GitHub Actions 같은 다른 도구를 사용하게 된다면, 그 도구에 맞는 Template 파일을 새로 작성하고 기존 Values를 쓰는 방식입니다.
 
-## 마무리 {#wrap-up}
+## 다시 Rendering한 파일의 차이를 찾는 CI {#complexity-ci}
 
-원문은 네 가지로 정리합니다. Pipeline이 너무 많아 파악하기 어렵다면 Pipeline as Code, 빠르고 정확하게 만들려면 Template, Template을 고치기 어렵다면 Helm Template, 복잡해서 수정 실수가 많다면 CI가 도움이 된다고 합니다. 보통 Pipeline as Code는 Version Control되는 Pipeline을 뜻하는데, 여기에 Helm Template으로 Programmable한 특성을, CI로 Testable한 특성을 더하면 코드처럼 유연하고 안전하게 운영할 수 있다고 봅니다.
+Helm Template으로 표현할 수 있는 내용이 늘어도 수정 실수까지 사라지지는 않았습니다. 2023년 1월 기준 Pipeline에는 5가지 Type과 72개의 설정값이 있었고, Template 파일 길이는 합계 1,182줄이었습니다. Helm Template 문법도 일반 프로그래밍 언어만큼 직관적이지 않아, 복잡해진 내용을 수정하다 오타나 의도하지 않은 변경을 만들기 쉬웠습니다.
+
+토스뱅크는 GitHub Actions로 변경을 자동 검증하는 CI를 구성했습니다. Template 파일은 develop 브랜치에서만 수정하고, 검증을 통과한 변경만 master 브랜치에 반영하도록 했습니다.
+
+검증은 파일 비교에서 시작합니다. develop에 변경이 생기면 모든 Pipeline 설정 파일을 다시 Rendering합니다. 의도한 변경은 이미 설정 파일에 반영되어 있다는 전제입니다. 다시 Rendering했을 때 새로 생기는 차이는 의도하지 않은 변경일 가능성이 높다고 봅니다.
+
+내용이 달라지면 검증은 실패합니다. 사내 메신저로 알람을 보내 작업자가 다시 확인하도록 했습니다. Git에 이력을 남기는 데 그쳤던 Pipeline 설정에, Template을 수정한 뒤 결과를 검사하는 절차가 더해졌습니다.
+
+## 비교할 파일이 없었던 Kubernetes Object {#kubernetes-ci}
+
+같은 검증 방식을 Kubernetes Object에도 적용했습니다. 토스뱅크의 채널계 서비스는 Kubernetes에서 운영하며, 배포할 때 Helm Template으로 Kubernetes Object를 만듭니다. 2023년 1월 기준 7가지 Object와 110개의 설정값을 다뤘고, Template 파일 길이는 합계 762줄이었습니다. 이 Template도 복잡해서 수정할 때 실수하기 쉬웠습니다.
+
+여기에는 비교할 파일이 없었습니다. Pipeline 설정과 달리 Kubernetes Object는 Rendering한 결과를 Git에 저장하지 않고 Kubernetes에 배포했기 때문입니다. 토스뱅크는 검증용 Kubernetes Object 파일을 Git에 저장해 비교 기준으로 삼았습니다.
+
+CI에서는 검증용 파일을 모두 다시 Rendering합니다. 의도한 변경은 이 파일들에 이미 반영되어 있다는 전제도 같습니다. 다시 Rendering하면서 내용이 달라지면 예상하지 않은 변경일 가능성이 높다고 보고, 사내 메신저로 알람을 보냅니다.
+
+CI를 수행하는 동안 Pipeline 설정 파일과 검증용 Kubernetes Object 파일이 모두 바뀌지 않으면, 의도하지 않은 변경이 없는 것으로 간주해 master 브랜치에 자동으로 반영합니다. 이후 실행하는 Pipeline과 이후 배포하는 Kubernetes Object는 변경 사항을 반영한 Template을 사용합니다.
 
 {{% details title="규모와 Template 수치" closed="true" %}}
 

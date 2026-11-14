@@ -1,11 +1,11 @@
 ---
-title: "카카오엔터프라이즈의 GitHub Actions 도입과 Runner 운영"
-description: "카카오엔터프라이즈가 CI를 GitHub Actions로 통일한 이유와 Self-hosted Runner 구성을 정리했습니다. 워크플로 문법과 Runner를 도커로 옮기며 만난 프록시, DinD, DooD 이슈를 요약합니다."
+title: "CI 표준화를 위해 직접 꾸린 GitHub Actions Runner"
+description: "카카오엔터프라이즈는 프로젝트마다 CI를 구성하고 문법을 익히는 부담을 줄이려고 GitHub Actions를 선택했습니다. 내부 GitHub Enterprise에서 클라우드 Runner를 사용할 수 없어 Self-hosted Runner를 제공하고, 프록시 설정과 도커 실행 방식을 조정했습니다."
 date: 2026-11-14
 weight: 9
 ---
 
-# 카카오엔터프라이즈의 GitHub Actions 도입과 Runner 운영 (2022-05)
+# CI 표준화를 위해 직접 꾸린 GitHub Actions Runner (2022-05)
 
 {{< callout type="info" >}}
 **원문 정보**
@@ -15,41 +15,46 @@ weight: 9
 - 원문 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 
-## DevOps 표준안과 도입 이유 {#standard}
+## 협업 전에 맞춰야 했던 CI 도구 {#standard}
 
-카카오엔터프라이즈는 전사 DevOps 표준화를 위해 GitHub Actions를 도입했습니다. 표준 흐름은 이렇습니다. 소스 저장소는 GitHub Enterprise이고, 커밋 같은 액션이 생기면 GitHub Actions가 CI를 돌려 소스를 이미지로 만들어 카카오 i 클라우드의 컨테이너 레지스트리에 올립니다. 올라간 이미지는 Argo CD로 카카오 i 클라우드의 쿠버네티스 엔진에 배포합니다.
+카카오엔터프라이즈의 프로젝트들은 Jenkins, Drone, Bamboo 등 서로 다른 CI 도구를 쓰고 있었습니다. 프로젝트마다 CI 구성을 맡을 담당자가 필요했습니다. 여러 프로젝트가 협업할 때는 도구를 하나로 맞추기 어려웠고, CI 문서를 작성하려면 도구마다 다른 문법도 익혀야 했습니다.
 
-기존에는 Jenkins, Drone, Bamboo 같은 CI가 프로젝트마다 달랐습니다. 프로젝트마다 CI 담당자를 두어야 했고, 여러 프로젝트가 협업할 때 CI를 하나로 합치기 어려웠으며, 도구마다 문법도 익혀야 했습니다. 업무와 직접 관련 없는 허들이었고, 이를 없애려고 하나의 솔루션으로 GitHub Actions를 골랐습니다. 이유는 네 가지입니다.
+이 허들을 줄이려고 선택한 도구가 GitHub Actions입니다. 소스 저장소와 CI를 GitHub의 한 환경에서 다루고, 친숙한 YAML로 파이프라인을 구성할 수 있다는 점이 도입 이유였습니다. Runner를 중앙에서 관리하며 문제를 해결하되, 프로젝트별 Runner로 빌드와 테스트를 하는 방식도 지원합니다.
 
-- GitHub과 하나로 통일된 환경에서 CI를 돌릴 수 있습니다.
-- 중앙에서 관리하는 Runner를 계속 트러블슈팅해 원활한 CI 환경을 만들 수 있습니다.
-- 프로젝트마다 개별 Runner로 빌드와 테스트를 할 수 있습니다.
-- 친숙한 YAML 문법으로 파이프라인을 간단히 구성할 수 있습니다.
+전사 DevOps 표준안에서는 GitHub Enterprise에 커밋 같은 이벤트가 생기면 GitHub Actions가 소스를 이미지로 만들어 카카오 i 클라우드의 컨테이너 레지스트리에 올립니다. 이후 Argo CD가 그 이미지를 카카오 i 클라우드의 쿠버네티스 엔진에 배포합니다.
 
-## Self-hosted Runner {#runner}
+## 빌드 순서를 적는 YAML {#workflow}
 
-GitHub는 퍼블릭용 Actions Runner를 클라우드에서 제공하지만, 카카오엔터프라이즈는 사정상 내부 GitHub Enterprise에서 그 Runner를 쓰지 못합니다. 그래서 로컬 Runner나 중앙에서 프로비저닝하는 Runner로 Actions를 수행합니다. 중앙에서 제공하는 Runner에는 `k8s` 라벨이 붙어 있고, 프로젝트가 자기 Runner를 쓰고 싶으면 다른 라벨로 등록해 따로 쓸 수 있습니다.
+워크플로 파일은 직접 작성합니다. 저장소의 `.github/workflows/`에 YAML을 두고, `on`으로 작업을 시작할 이벤트를, `jobs`와 그 아래 `steps`로 수행할 과정을 적습니다. 소개된 예시의 파일 이름은 `main.yaml`입니다.
 
-Runner는 Access token을 발급받아 GitHub에 인증하고, GitHub이 Runner로 인식합니다. 토큰은 계정에서 발급하며 `admin:enterprise`의 manage Runners: enterprise 권한으로 만들 수도 있습니다. UI에서 직접 만들 수도 있는데, 저장소 Settings의 Actions > Runner 페이지에서 New self-hosted runner를 눌러 서버뿐 아니라 로컬 환경에도 설치할 수 있습니다. 워크플로의 `runs-on`에 `k8s` 라벨을 쓰면 그 라벨의 Runner 중 Idle 상태인 하나가 골라져 작업을 맡고, 작업 중에는 Active가 됩니다. Runner는 group으로도 관리해서, Default 그룹에 16개를 제공하고 별도로 만든 DevOps 그룹은 선택된 organization 두 곳에서만 접근하고 빌드할 수 있습니다.
+push나 pull request를 트리거로 삼으면 해당 이벤트가 발생할 때 CI가 시작됩니다. `branches`로 대상 브랜치를 하나 또는 여러 개 고를 수 있고, `branches-ignore`를 쓰면 지정한 브랜치만 제외하고 나머지 브랜치에서 실행합니다.
 
-## 워크플로 문법 {#workflow}
+job 사이의 실행 순서도 YAML에 적습니다. build와 deploy로 나눈 예시에서는 deploy에 `needs: build`를 지정해 build 뒤에 실행하도록 했습니다. `needs`가 없으면 job은 병렬로 실행됩니다. build 성공 시 `on_success`, 실패 시 `on_failure`를 실행하도록 분기를 두는 예시도 있습니다.
 
-각 저장소의 `.github/workflows/`에 YAML을 직접 작성합니다. 원문 예시는 `main.yaml`이고, `on`으로 트리거하며 `jobs` 아래 `steps`가 실제 과정입니다.
+각 step에서 `uses`는 GitHub Marketplace에 미리 정의된 작업을 가져오고, `run`은 직접 적은 명령을 실행합니다. actions checkout 같은 패키지에 변수를 넣거나 기본값을 사용해 환경을 준비하고, 실제 build 명령은 `run` 아래에 적는 식입니다.
 
-- 트리거: push나 pull request에서 자동 실행하고, `branches`로 하나나 여러 개를 고르거나 `branches-ignore`로 제외할 브랜치를 지정합니다.
-- job: 예시는 build와 deploy로 구성되며 deploy에 `needs: build`가 있어 build 뒤에 실행됩니다. `needs`가 없으면 병렬로 돕니다.
-- 분기: build 성공 시 `on_success`, 실패 시 `on_failure`가 도는 식으로 분기를 둘 수 있습니다.
-- step: `uses`는 Marketplace에 정의된 것(예: actions checkout)을 가져와 환경 설정용으로 쓰고, `run`은 직접 쓴 명령을 수행하는 실제 수행용입니다. build 자체는 `run` 아래에 쓰고 앞의 사전 작업은 Marketplace 것을 쓰면 된다고 설명합니다.
+## `k8s` 라벨로 연결한 공용 Runner {#runner}
 
-## 운영 이슈와 개선 {#issues}
+CI 작업을 실행할 Runner는 직접 준비해야 했습니다. GitHub은 퍼블릭용 Runner를 클라우드에서 제공하지만, 카카오엔터프라이즈는 사정상 내부 GitHub Enterprise에서 이를 쓸 수 없었습니다. 그래서 로컬 Runner나 중앙에서 프로비저닝하는 Self-hosted Runner로 작업을 실행했습니다.
 
-백엔드 부서가 Node.js를 많이 쓰고 앱은 Android, Erlang은 elixir로 빌드해서 하나의 config로 커버할 수 없었고, 플랫폼과 언어별 설정이 필요했습니다. 원문이 기승전프록시라고 부를 만큼 프록시 쪽 오류가 잦아서, Node.js 패키지를 받을 때의 npm, yarn config를 Runner 기본 설정에 넣었습니다. Android 빌드는 `JAVA OPTS`에 프록시 옵션을 가져와 등록해 Java 빌드가 정상 동작하게 했습니다.
+중앙에서 제공하는 Runner의 라벨은 `k8s`입니다. 워크플로의 `runs-on`에 이 라벨을 지정하면 `k8s` Runner 가운데 Idle 상태인 하나가 작업을 맡고, 작업 중에는 Active로 표시됩니다. 프로젝트가 자체 Runner를 쓰고 싶으면 `ian`, `aaron` 같은 라벨로 등록해 별도로 사용할 수 있습니다.
 
-Runner는 처음 VM 프로세스로 띄웠다가 지금은 도커로 띄워 쿠버네티스로 스케일링합니다. 쿠버네티스로 오토스케일이 가능하고 프로비저닝도 더 효율적이기 때문입니다. 검토 중에는 `ephemeral` 옵션으로 계속 재시작해 CI 작업이 이어져도 원래 Runner 설정을 유지하려 했습니다. 하지만 `ephemeral`을 적용하면 여러 job을 한꺼번에 병렬로 돌리지 못하는 이슈가 있어 파악 중이며 개선할 예정이라고 합니다.
+접근 범위는 Runner group으로 관리합니다. Default 그룹에는 16개의 Runner를 제공했고, 별도로 만든 DevOps 그룹은 선택된 organization 두 곳에서만 접근해 빌드하도록 했습니다.
 
-도커로 Runner를 띄우면서 DinD와 DooD 중 선택해야 했습니다.
+직접 설치할 Runner는 저장소 Settings의 Actions > Runner에 있는 New self-hosted runner에서 생성하며, 서버뿐 아니라 로컬 환경에도 설치할 수 있습니다. Runner는 Access token으로 GitHub에 인증한 뒤 등록됩니다. 토큰은 GitHub 계정에서 발급하며, `admin:enterprise`의 manage Runners: enterprise 권한을 사용하는 방법도 있습니다.
 
-- DinD(Docker in Docker): CI에서 별다른 설정 없이 도커 명령을 쓰면 이 방식으로 수행되어 편합니다. 그러나 정상 동작하려면 privileged 옵션이 필요하고, 그러면 호스트에서 할 수 있는 거의 모든 작업을 Runner 안에서 할 수 있어 보안 이슈가 생깁니다. 그래서 선택하지 않았습니다.
-- DooD(Docker out of Docker): `docker.sock` 파일을 마운트해 호스트의 도커 데몬을 쓰는 방식이고, 팀은 이쪽으로 Runner를 띄우기로 했습니다. `docker.sock`을 소유한 그룹과 유저를 Runner 안에서 인식할 수 있어야 합니다. 도커 설정이 Runner 내부와 호스트 사이에 달라지는 경우가 있어 두 설정을 함께 맞춰야 한다는 점이 이슈가 될 수 있다고 짚습니다.
+## 언어별 설정에서 만난 기승전프록시 {#issues}
 
-원문은 GitHub Actions가 빌드와 배포를 어떻게 자동화하고 협업을 얼마나 편하게 하는지 전달됐기를 바란다며 맺습니다.
+CI 도구를 통일해도 빌드 설정은 제각각이었습니다. 백엔드 부서에서는 Node.js를 많이 사용했고, Android 앱 빌드와 elixir를 사용하는 Erlang 빌드도 있어 하나의 config로 모두 처리할 수 없었습니다. 플랫폼과 언어마다 설정을 맞춰야 했습니다.
+
+그중에서도 프록시 오류가 잦았습니다. npm과 yarn으로 Node.js 패키지를 받을 때 필요한 config를 Runner 기본 설정에 넣은 이유입니다. Android 빌드에서도 `JAVA OPTS`에 프록시 옵션을 등록해 Java 빌드가 정상 동작하도록 했습니다.
+
+## 쿠버네티스 스케일링을 위한 도커 전환 {#docker-runner}
+
+Runner는 처음에 VM 프로세스로 실행했습니다. 이후 도커로 옮겨 쿠버네티스로 스케일링하는 방식으로 바꿨습니다. 쿠버네티스에서 auto scaling이 가능하고, Runner를 더 효율적으로 프로비저닝할 수 있다는 점이 전환 이유입니다.
+
+Runner를 도커로 띄우자 CI 작업에서 호출하는 도커를 어디서 실행할지도 정해야 했습니다. DinD(Docker in Docker)는 Runner 컨테이너 안에서 도커를 실행하는 방식입니다. CI에서 도커를 쓰기에는 편하지만, 정상 동작에 필요한 `privileged` 옵션을 주면 Runner 안에서 호스트의 거의 모든 작업을 할 수 있어 보안 문제가 생깁니다.
+
+팀이 선택한 방식은 DooD(Docker out of Docker)입니다. Runner에 `docker.sock`을 마운트해 호스트의 도커 데몬을 사용하므로, Runner 안에서 명령을 내려도 컨테이너는 호스트 위에 뜹니다. 이때 소켓 파일을 소유한 그룹과 유저를 Runner 내부에서도 인식할 수 있어야 합니다. 호스트와 Runner 내부의 도커 설정에 차이가 생기면 양쪽 설정을 함께 맞춰야 한다는 제약도 있습니다.
+
+CI 작업이 이어져도 원래 Runner 설정으로 계속 작업하려고, `ephemeral` 옵션으로 재시작하는 방식도 검토했습니다. 그러나 당시 팀의 환경에서는 이 옵션을 적용하면 여러 job을 병렬로 실행하지 못하는 문제가 있었습니다. 팀은 이 문제를 파악 중이었으며 개선할 예정이었습니다.

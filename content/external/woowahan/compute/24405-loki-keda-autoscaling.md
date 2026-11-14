@@ -1,11 +1,11 @@
 ---
-title: "Grafana Loki 로그 시스템의 KEDA 오토스케일링 적용"
-description: "하루 수십TB, 피크 초당 100만 단위 레코드를 받는 우아한형제들의 Loki 로그 시스템에 HPA의 한계를 넘어 KEDA를 도입한 과정을 정리했습니다. 메트릭 선정과 OverProvisioning 방지 설정을 다룹니다."
+title: "밥때 몰리는 로그에 맞춘 Grafana Loki의 KEDA 도입기"
+description: "Pod가 잇달아 죽는데도 HPA가 확장하지 않던 로그 시스템에서 우아한형제들은 Fluentd 버퍼 사용률을 새 확장 신호로 삼았습니다. Grafana Loki에 KEDA를 도입하면서 메트릭과 증설 속도를 조정한 과정입니다."
 date: 2026-11-14
 weight: 1
 ---
 
-# Grafana Loki 로그 시스템의 KEDA 오토스케일링 적용 (2025-11)
+# 밥때 몰리는 로그에 맞춘 Grafana Loki의 KEDA 도입기 (2025-11)
 
 {{< callout type="info" >}}
 **원문 정보**
@@ -15,47 +15,65 @@ weight: 1
 - 원문 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 
-## 풀타임 오토스케일링이 필요했던 이유 {#background}
+## OOM 뒤에도 확장하지 않은 HPA {#hpa-limits}
 
-우아한형제들의 운영환경 로그는 하루 수십TB가 처리되고 피크 기준 초당 레코드가 100만 단위를 넘습니다. 배달의민족은 점심과 저녁에 트래픽이 몰려, 로그 유입 기준으로 새벽 최저점 대비 저녁 피크에 10배 이상 많아집니다. 기존에도 소극적으로 HPA를 쓰고 야간에 스케일을 줄였지만, 비용 압박 속에서 풀타임 오토스케일링은 불가피했습니다. 이 글은 비용과 안정성을 함께 잡으려고 Grafana Loki에 KEDA를 도입한 경험입니다. 앞서 쓴 ELK Stack에서 Loki로 전환한 글을 사전에 읽어 두면 좋다고 안내합니다.
+Ingester가 OOM Kill로 재시작했는데도 HPA는 Pod를 늘리지 않았습니다. 우아한형제들의 Grafana Loki 로그 시스템에서 겪은 일입니다. 재기동한 Pod가 비어 있는 메모리에 데이터를 채우는 사이, 부하를 견디지 못한 다른 Pod들이 차례로 죽었습니다.
 
-## 로그 시스템 구성 {#architecture}
+문제는 평균이었습니다. 기본 HPA는 대상 Pod들의 CPU·메모리 사용률 평균이 임계치를 넘으면 계산식에 따라 확장하는데, 재시작한 Pod의 낮은 사용률이 전체 평균까지 끌어내렸습니다. 구성이 단순해 먼저 도입했지만, 정작 부하가 심해 Pod가 죽는 상황에서는 스케일아웃을 놓친 것입니다.
 
-전사 로그시스템 백엔드는 Fluentd와 Grafana Loki로 이루어지고 모든 컴포넌트는 복수 replica로 EKS에서 돕니다(S3 제외). 이 글은 리소스 대부분을 차지하는 Write Path만 다룹니다.
+밥때면 로그도 몰립니다. 운영환경에서 하루 수십TB를 처리하고 피크에는 초당 레코드 수가 100만 단위를 넘는 데다, 배달의민족의 점심·저녁 식사 시간에 유입이 집중됩니다. 저녁 피크의 로그 유입량은 새벽 최저점의 10배 이상입니다.
 
-- Fluentd: 로그의 1차 도착점인 데이터 파이프라인으로, Loki의 컴포넌트는 아니다. 버퍼 역할을 해서 Loki가 느려지거나 장애로 전송이 실패해도 디스크에 저장해 유실을 막는다. CPU 의존도가 비교적 높아 스케일아웃이 늦으면 병목이 생기고, Loki 처리가 늦어져 버퍼 사용률이 오르면 스케일아웃이 필요하다. StatefulSet으로 운영한다.
-- Distributor: 고가용성을 위해 로그를 복제해 여러 Ingester에 보내고 나면 Fluentd에 응답하고, 그러면 버퍼에서 로그가 지워진다. 상대적으로 가벼워 여유 있게 늘려도 비용 부담이 작다. Deployment로 운영한다.
-- Ingester: S3에 쓰기 전에 로그를 쌓아 두는 곳이다. 매 레코드마다 보내면 HTTP 호출이 지나치게 많아 API Throttling에 걸릴 수 있어서, 일정량이 쌓이거나 시간이 지나면 쓴다. 전체에서 리소스를 가장 많이 쓰는 컴포넌트이고 특히 메모리 의존도가 높다. 새 Ingester가 뜨는 데 짧으면 1~2분, 로그량이 많고 할당량이 큰 경우 5분 이상 걸린다. StatefulSet으로 운영한다.
+이 상태로 리소스를 빠듯하게 쓰며 오토스케일링하기는 어려웠습니다. 결국 낮에는 높은 스케일을 유지하고 야간에는 배치로 줄이면서 HPA를 소극적으로 썼습니다. 비용 압박이 커지자, 하루 내내 부하에 맞춰 규모를 조절할 방법이 필요해졌습니다.
 
-어느 한 컴포넌트라도 리소스가 모자라면 시스템이 정상 동작하지 못하고, Fluentd 버퍼가 가득 차면 로그 유실이라는 큰 장애로 이어집니다.
+## 처리 지연을 드러내는 Fluentd 버퍼 {#architecture}
 
-## 기본 HPA의 한계 {#hpa-limits}
+전사 로그 시스템의 백엔드는 Fluentd와 Grafana Loki입니다. 리소스 대부분을 쓰는 Write Path, 즉 로그 유입 경로는 Fluentd → Distributor → Ingester → AWS S3 순서로 이어집니다. S3를 제외한 컴포넌트는 모두 EKS에서 복수 replica로 운영합니다. ELK Stack에서 이 구성으로 옮겨 온 배경은 앞선 글 「따끈따끈한 전사 로그 시스템 전환기: ELK Stack에서 Loki로 전환한 이유」에서 다뤘습니다.
 
-기본 HPA는 대상 컴포넌트의 CPU와 Memory 사용률 평균이 임계치를 넘으면 계산식에 따라 스케일아웃합니다. 구성이 단순해 처음에는 HPA를 썼지만 평균에는 함정이 있었습니다.
+Fluentd는 Loki의 컴포넌트가 아닌, 그 앞에서 로그를 받는 데이터 파이프라인입니다. 로그를 재가공하고 목적에 따라 라우팅하며, Loki가 느려지거나 전송에 실패하면 디스크 버퍼에 보관해 유실을 막습니다. StatefulSet으로 운영하고 CPU 의존도가 비교적 높아, 스케일아웃이 늦으면 여기서도 병목이 생깁니다.
 
-첫째, Pod마다 사용률이 균일하지 않을 수 있습니다. Stateless 서버는 균일한 로드밸런싱으로 사용률이 평준화되지만, 상태가 있는 Fluentd와 Ingester는 그렇지 않습니다. Fluentd는 스케일아웃으로 새로 뜬 Pod의 버퍼가 상대적으로 낮고, Ingester는 로그를 메모리와 디스크에 쓰다가 일정 시간 뒤 flush하므로 신생 Pod의 메모리 사용률이 낮습니다. 트래픽이 균일해도 사용률은 균일하지 않습니다.
+Distributor는 고가용성을 위해 로그를 복제해 여러 Ingester에 보냅니다. 이후 Fluentd에 응답하면 버퍼에서 해당 로그가 삭제됩니다. Deployment로 운영하는 상대적으로 가벼운 컴포넌트라, 여유 있게 늘려 두어도 비용 부담은 작습니다.
 
-둘째, OOM Kill이 평균을 낮춥니다. Pod가 죽고 다시 뜨면 막 부하를 받기 시작해 사용률이 낮아서 전체 평균이 OOM 직전보다 오히려 떨어질 수 있습니다. 실제로 Ingester에서 이 현상이 심했고, 재기동한 Pod가 비어 있는 메모리에 데이터를 올리는 사이 HPA는 낮아진 평균 때문에 스케일아웃을 하지 않았고, 부하를 못 견딘 다른 Pod들이 차례로 죽었습니다. 결국 낮에는 높은 스케일을 유지하고 야간에는 배치로 줄이면서 HPA는 유명무실하게 두었습니다.
+가장 무거운 곳은 Ingester입니다. 메모리와 디스크에 로그를 쌓았다가 일정량이 모이거나 시간이 지나면 S3에 씁니다. 레코드마다 HTTP 요청을 보내면 API Throttling에 걸릴 수 있기 때문입니다. 메모리 의존도가 높고 StatefulSet으로 운영하며, 새 Ingester가 구동되는 데 짧으면 1~2분, 로그량이 많고 한 대에 할당한 리소스가 크면 5분 이상 걸리기도 합니다.
 
-## KEDA와 ScaledObject {#keda}
+데이터를 쌓아 두는 특성은 평균 사용률에도 영향을 줍니다. 새로 뜬 Fluentd Pod는 버퍼가 덜 차 있고, 새 Ingester Pod는 메모리 사용률이 낮습니다. 트래픽을 고르게 나눠도 기존 Pod와 새 Pod의 리소스 사용률까지 균일하다고 보장할 수 없는 이유입니다.
 
-KEDA는 Kubernetes Event Driven Autoscaling의 약자로, 제3의 소스를 이용해 오토스케일링하자는 것입니다. 2.18 버전 기준 79개의 스케일러를 지원하고 Prometheus, Datadog, AWS CloudWatch, Kafka 등이 있습니다. 핵심 커스텀 리소스는 ScaledObject이며, 선언하면 내부적으로 또 하나의 HPA가 만들어져 그 HPA를 조정하는 방식으로 스케일을 관리합니다. 원문은 `loki-ingester` StatefulSet을 대상으로 min 4, max 12, Prometheus 트리거와 memory 트리거, `pollingInterval` 60, `cooldownPeriod` 900을 둔 가상 예시를 보여 줍니다(실제 운영 리소스에 기반한 예시).
+어느 한 컴포넌트라도 리소스가 부족하면 시스템이 정상적으로 동작하지 못합니다. Loki의 처리가 늦어질수록 Fluentd 버퍼 사용률이 높아져 Fluentd의 확장도 필요해집니다. 이 버퍼마저 가득 차면 로그 유실로 이어집니다.
 
-## 메트릭 선정과 주의점 {#metrics}
+## Fluentd 버퍼를 확장 신호로 쓰는 KEDA {#metrics}
 
-기본 지표인 CPU와 Memory를 `spec.triggers`로 먼저 지정했고 평균 사용률 60% 이상이면 스케일아웃하도록 했습니다. Utilization의 모수는 limits가 아니라 requests입니다. 여기에 시스템이 로그를 충분히 처리하지 못하면 Fluentd 버퍼가 쌓인다는 점을 위기 신호로 보고, Prometheus로 `avg(100 - fluentd_output_status_buffer_available_space_ratio{app="fluentd"})`를 가져와 버퍼 사용률이 5%를 넘으면 스케일아웃하는 트리거를 더했습니다.
+CPU와 메모리에 Fluentd 버퍼 사용률을 더했습니다. 로그를 충분히 처리하지 못할 때 버퍼가 쌓인다는 점을 확장 신호로 삼은 것입니다. 이 메트릭을 오토스케일링에 연결하기 위해 KEDA를 도입했습니다.
 
-삽질 포인트가 하나 있습니다. `metricType`을 쓰지 않으면 기본이 AverageValue라서 쿼리 결과를 현재 replica 수로 나눕니다. 결과가 20이고 replicas가 10이면 20/10=2가 되어 threshold 5에 못 미쳐 스케일링되지 않습니다. 이 트리거는 `metricType: Value`로 지정했습니다.
+KEDA는 Kubernetes Event Driven Autoscaling의 약자로, 외부 소스를 이용해 스케일링합니다. 2.18 버전 기준 Prometheus, Datadog, AWS CloudWatch, Kafka 등 79개의 스케일러를 지원합니다. ScaledObject라는 커스텀 리소스에 대상과 트리거를 선언하면 KEDA가 내부적으로 HPA를 만들고 조정하는 방식입니다.
 
-## OverProvisioning 방지 {#overprovisioning}
+원문에 나온 설정 예시는 실제 운영 리소스를 바탕으로 만든 가상 설정입니다. CPU와 메모리는 `spec.triggers`에 지정하고, 평균 사용률이 60% 이상이면 스케일아웃하도록 했습니다. 여기서 `Utilization`은 실제 사용량을 Pod에 할당한 `requests`로 나눈 값이며, `limits`를 분모로 쓰지 않습니다.
 
-CPU, 메모리, 버퍼 사용률 중 하나라도 트리거되면 스케일아웃되는데, 버퍼로 트리거될 때 과대 스케일링이 생겼습니다. desiredReplicas 계산식 때문입니다. Value 타입은 `ceil(currentReplicas * (metricValue / targetValue))`, AverageValue 타입은 `ceil(metricValue / targetAverageValue)`입니다. 쿼리 결과가 10이고 replicas가 5이면 `ceil(5 * (10/5)) = 10`으로 두 배가 됩니다. Ingester는 뜨는 데 몇 분씩 걸리고 그동안 버퍼 메트릭이 계속 오르므로, 버퍼가 조금만 올라도 desired가 max를 향해 치솟았습니다.
+버퍼 지표는 Prometheus에서 `avg(100 - fluentd_output_status_buffer_available_space_ratio{app="fluentd"})`로 가져옵니다. 예시의 임계치는 5%입니다. CPU·메모리 사용률에 더해, 버퍼 사용률이 이 값을 초과해도 확장하도록 트리거를 추가했습니다.
 
-해결은 ScaledObject의 `spec.advanced.horizontalPodAutoscalerConfig`로 K8s HPA의 behavior를 직접 지정하는 것입니다. 스펙은 KEDA가 아니라 K8s 공식 문서를 따릅니다. 원문은 scaleUp을 300초 동안 Pod 2대만 늘리도록 제한하는 예를 보여 줍니다. `stabilizationWindowSeconds`는 설정 시간 동안의 과거 메트릭 중 가장 보수적인 값으로 replicas를 정해 급격한 스파이크를 막는 기능인데, Fluentd 버퍼 메트릭은 갑자기 튀지 않고 조회 시점 값을 즉시 반영하는 편이 좋아서 0초로 두었습니다. 메트릭 특성에 맞춰 정하라는 것이 원문의 당부입니다.
+### replica 수로 한 번 더 나뉘는 쿼리 결과
 
-## 결과와 클러스터 오토스케일링 {#results}
+이 쿼리에는 `metricType: Value`를 명시했습니다. `metricType`을 생략하면 기본값인 `AverageValue`가 적용돼 쿼리 결과를 현재 replica 수로 다시 나누기 때문입니다.
 
-기존에는 주간과 야간 두 구간으로 requests 총량이 크게 갈리는 정적인 형태였습니다. KEDA 도입 뒤 시스템이 지연 없이 안정적으로 돌아가는 것을 확인하고 임계치를 더 공격적으로 적용했고, 클러스터 오토스케일링도 더 엄격하게 적용해 실시간으로 필요한 만큼의 Pod와 노드를 쓰게 됐다고 합니다(원문의 AS-IS와 TO-BE 비교 그림은 본문에서 수치로 제시되지 않습니다). 비용을 실제로 줄이려면 노드 수가 줄어야 하므로 인프라팀의 지원을 받아 Karpenter로 클러스터 오토스케일링을 적용했습니다. Pod의 requests가 줄어 노드의 유휴 자원이 늘면 Pod를 옮기고 노드를 제거하고, requests가 늘면 새 노드를 투입하는, Pod 오토스케일링이 노드 오토스케일링의 조건이 되는 체인입니다.
+쿼리 결과가 20이고 replicas가 10이라면 계산 결과는 20/10=2입니다. 버퍼 사용률은 이미 기준을 넘었지만, 나눈 값은 threshold 5에 못 미쳐 스케일링이 일어나지 않습니다. 쿼리에서 구한 버퍼 사용률을 그대로 비교하려면 타입도 그 의미에 맞춰 지정해야 했습니다.
+
+## 기동 중에도 치솟는 desiredReplicas {#overprovisioning}
+
+버퍼를 확장 신호로 삼자 과도한 증설이 생겼습니다. CPU·메모리·버퍼 사용률 중 하나라도 트리거되면 스케일아웃하는 설정에서, 버퍼가 원인일 때 나타난 문제입니다.
+
+`Value` 타입은 `ceil(currentReplicas * (metricValue / targetValue))`로 desiredReplicas를 계산합니다. `ceil`은 소수점 올림입니다. 임계치가 5인 예시에서 쿼리 결과가 10이고 현재 replicas가 5라면, `ceil(5 * (10/5)) = 10`으로 현재의 두 배를 요구합니다. Ingester가 구동되는 몇 분 동안에도 버퍼는 계속 쌓이므로, desiredReplicas가 Max Replicas를 향해 치솟는 경우가 생겼습니다.
+
+늘리는 속도를 제한했습니다. ScaledObject의 `spec.advanced.horizontalPodAutoscalerConfig`에서 HPA의 `behavior`를 지정하고, 예시에서는 `scaleUp`을 300초 동안 Pod 2대만 추가하도록 설정했습니다. KEDA가 만드는 HPA의 동작을 조정하는 항목이므로, 설정 스펙은 Kubernetes의 HPA 공식 문서를 따릅니다.
+
+`stabilizationWindowSeconds`는 증설량 제한과 별도로 판단했습니다. 이 설정은 지정한 기간의 과거 메트릭에서 가장 보수적인 값으로 replica 수를 정해 급격한 스파이크에 따른 확장을 막습니다. 예를 들어 300초로 설정했다면, 지금은 2대가 필요해도 5분 전 메트릭으로는 1대만 늘리면 됐던 경우 1대만 추가합니다.
+
+Fluentd 버퍼 메트릭에는 갑작스러운 스파이크가 발생하지 않았습니다. 조회 시점의 값을 바로 반영하는 편이 좋았으므로, OverProvisioning 방지 예시에서는 `stabilizationWindowSeconds`를 0초로 두었습니다. 증설 속도는 제한하면서 버퍼 상태는 현재 값으로 판단한 설정입니다.
+
+## 줄어든 requests를 노드 축소로 잇는 Karpenter {#results}
+
+도입 전에는 Pod에 할당한 requests 총량이 주간과 야간에 크게 달라지는 정적인 형태였습니다. KEDA 도입 후 시스템이 지연 없이 안정적으로 동작하는 것을 확인하고, 임계치를 더 공격적으로 적용했습니다. 클러스터 오토스케일링도 더 엄격하게 적용해 실시간으로 필요한 만큼의 Pod와 노드를 쓰도록 했습니다.
+
+비용을 줄이려면 EKS 노드도 줄어야 했습니다. Pod 오토스케일링과는 별개의 작업입니다. 우아한형제들은 사내 인프라팀의 지원을 받아 Karpenter로 클러스터 오토스케일링을 적용했습니다.
+
+Pod의 requests가 줄어 노드의 유휴 자원이 늘면 Karpenter가 Pod를 옮기고 노드를 제거합니다. requests 요구량이 증가할 때는 새 노드를 투입합니다. Pod 오토스케일링이 노드 오토스케일링의 조건을 만드는 연결입니다. 원문은 도입 전후를 AS-IS와 TO-BE 그림으로 비교하며, 구체적인 절감 수치는 제시하지 않았습니다.
 
 {{% details title="ScaledObject 설정과 계산식" closed="true" %}}
 

@@ -10,10 +10,10 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [Grafana Loki 로그 시스템의 KEDA 오토스케일링 적용 (2025-11)]({{< relref "/external/woowahan/compute/24405-loki-keda-autoscaling.md" >}})
-- [우아한형제들의 Cloud FinOps 여정 (2025-09)]({{< relref "/external/woowahan/compute/22855-cloud-finops-journey.md" >}})
-- [Rightsizing Recommendations 시스템으로 인스턴스 비용 줄이기 (2024-11)]({{< relref "/external/woowahan/compute/19685-rightsizing-recommendations-system.md" >}})
-- [베어메탈 MLOps 플랫폼을 위한 EKS Anywhere 구축 (2023-01)]({{< relref "/external/woowahan/compute/10221-eks-anywhere-baremetal.md" >}})
-- [띠잉 서비스의 EKS 전환과 불편함 해소 (2020-10)]({{< relref "/external/woowahan/compute/2696-thiiing-eks-migration.md" >}})
+- [밥때 몰리는 로그에 맞춘 Grafana Loki의 KEDA 도입기 (2025-11)]({{< relref "/external/woowahan/compute/24405-loki-keda-autoscaling.md" >}})
+- [비용과 성장의 관계를 추적하는 우아한형제들 Cloud FinOps (2025-09)]({{< relref "/external/woowahan/compute/22855-cloud-finops-journey.md" >}})
+- [추천을 비용 절감으로 이은 Rightsizing Recommendations (2024-11)]({{< relref "/external/woowahan/compute/19685-rightsizing-recommendations-system.md" >}})
+- [남은 Hadoop 장비에서 시작한 EKS Anywhere 구축기 (2023-01)]({{< relref "/external/woowahan/compute/10221-eks-anywhere-baremetal.md" >}})
+- [롤백 앞에서 발을 동동 구르던 띠잉 팀의 AWS EKS 전환 (2020-10)]({{< relref "/external/woowahan/compute/2696-thiiing-eks-migration.md" >}})
 
 컨테이너와 Kubernetes 클러스터, 서버 자원 운영을 다루는 글입니다. 우아한형제들 기술 블로그에서 고른 5편을 게시일 최신순으로 실었습니다.

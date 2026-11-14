@@ -22,6 +22,8 @@ cascade:
 - [카카오]({{< relref "/external/kakao/_index.md" >}})
 - [토스]({{< relref "/external/toss/_index.md" >}})
 - [LY Corporation]({{< relref "/external/ly/_index.md" >}})
+- [쿠팡]({{< relref "/external/coupang/_index.md" >}})
+- [Netflix]({{< relref "/external/netflix/_index.md" >}})
 - [Uber]({{< relref "/external/uber/_index.md" >}})
 - [promkr 뉴스레터]({{< relref "/external/promkr/_index.md" >}})
 - [Amazon Connect로 만든 두 회사의 온콜 전화 (올리브영·여기어때 비교)]({{< relref "/external/oncall-amazon-connect-comparison.md" >}})

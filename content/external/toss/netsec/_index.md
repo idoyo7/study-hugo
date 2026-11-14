@@ -10,7 +10,7 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [경계 보안에서 제로트러스트까지 토스페이먼츠의 4년 (2026-02)]({{< relref "/external/toss/netsec/payments-legacy-10.md" >}})
-- [토스의 Zero Trust 아키텍처 도입 (2023-09)]({{< relref "/external/toss/netsec/slash23-security.md" >}})
+- [보이지 않던 공격에서 시작한 토스페이먼츠의 제로트러스트 (2026-02)]({{< relref "/external/toss/netsec/payments-legacy-10.md" >}})
+- [권한이 있어도 기기를 검증하는 토스의 Zero Trust (2023-09)]({{< relref "/external/toss/netsec/slash23-security.md" >}})
 
 네트워크 구성과 서비스 보안을 다루는 글입니다. 토스 기술 블로그에서 고른 2편을 게시일 최신순으로 실었습니다.

@@ -1,11 +1,11 @@
 ---
-title: "쿠버네티스 커스텀 리소스와 컨트롤러의 내부 동작"
-description: "Cloud DBS 팀이 사내 클라우드 Verda의 Redis, MySQL, MongoDB, OpenSearch를 커스텀 리소스와 컨트롤러로 관리하는 방식을 정리한 글입니다. CRD 등록과 컨트롤러 작성 예시에 이어, 이벤트가 Informer와 WorkQueue를 거쳐 Reconcile에 닿는 과정을 요약합니다."
+title: "Verda VM을 원하는 상태로 만드는 쿠버네티스 컨트롤러"
+description: "쿠버네티스에 등록한 커스텀 리소스는 어떻게 Verda의 실제 VM으로 이어질까요? Cloud DBS 팀의 컨트롤러는 UUID로 VM 생성 여부를 판단해 VM을 만들고, ACTIVE에 도달할 때까지 상태를 확인합니다."
 date: 2026-11-14
 weight: 3
 ---
 
-# 쿠버네티스 커스텀 리소스와 컨트롤러의 내부 동작 (2024-08)
+# Verda VM을 원하는 상태로 만드는 쿠버네티스 컨트롤러 (2024-08)
 
 {{< callout type="info" >}}
 **원문 정보**
@@ -15,41 +15,54 @@ weight: 3
 - 원문 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 
-두 저자는 Cloud DBS 팀에서 사내 클라우드 Verda의 데이터베이스와 OpenSearch 서비스 개발을 맡고 있습니다. 글은 쿠버네티스 v1.21.9, controller-runtime v0.12.3, client-go v0.24.2 기준입니다.
+Cloud DBS 팀은 쿠버네티스에서 Redis Service의 `replicas`를 지정해 사내 클라우드 Verda에 VM을 만듭니다. VM을 생성하는 주체는 커스텀 리소스를 관리하는 컨트롤러입니다. MySQL, MongoDB, OpenSearch도 같은 방식으로 제공합니다.
 
-## 컨트롤러의 기본 동작 {#controller-basics}
+설명은 쿠버네티스 v1.21.9, controller-runtime v0.12.3, client-go v0.24.2를 기준으로 합니다.
 
-파드나 디플로이먼트 같은 쿠버네티스 리소스는 모두 같은 방식으로 관리됩니다. 리소스가 바뀌면 변경이 감지돼 컨트롤러로 이벤트가 전달되고, 컨트롤러는 Reconcile 함수로 리소스가 원하는 상태(desired status)가 될 때까지 조정합니다. 디플로이먼트를 만들면 컨트롤러가 스펙의 `replicas`만큼 파드를 만들고, `replicas`를 2에서 3으로 바꾸면 이벤트가 디플로이먼트 컨트롤러로 가서 모자란 파드 하나를 새로 만듭니다. 원문은 설명을 쉽게 하려고 디플로이먼트와 파드 사이의 레플리카셋을 생략했다고 밝힙니다.
+## 파드 대신 VM을 만드는 Redis Service {#use-case}
 
-## 팀의 활용 사례 {#use-case}
+컨트롤러는 리소스가 바뀌었다는 이벤트를 받으면 Reconcile 함수로 현재 상태를 스펙이 요구하는 상태에 맞춥니다. 디플로이먼트의 `replicas`가 2이면 파드를 두 개 만들고, 3으로 바뀌면 부족한 하나를 더 만드는 식입니다. 실제로는 디플로이먼트와 파드 사이에 레플리카셋이 있지만, 여기서는 컨트롤러의 동작을 설명하기 위해 중간 과정을 생략한 것입니다.
 
-팀은 Redis Services라는, 쿠버네티스에 기본으로 없는 리소스를 커스텀 리소스로 정의하고 컨트롤러를 만들어 관리합니다. Redis 외에 MySQL, MongoDB, OpenSearch도 같은 방식으로 제공합니다. 디플로이먼트가 `replicas`만큼 파드를 만들듯, Redis Service를 만들고 `replicas`를 지정하면 그 수만큼 VM이 만들어져 사용자에게 제공됩니다. 커스텀 리소스를 관리하는 컨트롤러가 VM을 만드는 것입니다. 사용법도 같아서 `kubectl get redisservice`로 조회하고 YAML에 스펙을 적어 `kubectl apply -f redisservice.yaml`로 생성한 뒤, 대응하는 서버가 잘 만들어졌는지 확인합니다.
+팀이 직접 정의한 Redis Services도 이 방식을 따릅니다. Redis Service를 생성하고 `replicas`를 지정하면 컨트롤러가 그 수에 맞게 VM을 만들어 사용자에게 제공합니다.
 
-## 커스텀 리소스 등록과 컨트롤러 작성 {#crd-and-controller}
+사용하는 명령도 파드를 다룰 때와 같습니다. `kubectl get redisservice`로 리소스를 조회하고, YAML에 스펙을 적어 `kubectl apply -f redisservice.yaml`로 생성합니다. 이후에는 커스텀 리소스에 대응하는 서버가 잘 만들어졌는지 확인하는 과정입니다.
 
-예시는 Verda의 VM과 일대일로 대응하는 커스텀 리소스인 VerdaVM입니다. 먼저 쿠버네티스 API에 이 리소스를 등록해 API 서버가 VerdaVM의 CRUD를 제공하게 해야 합니다. 원문은 이를 블록을 만들어 기존 블록에 붙이는 일에 비유합니다. 블록을 만드는 일은 CustomResourceDefinition 매니페스트를 쓰는 것이고, 붙이는 일은 `kubectl apply -f`로 생성하는 것입니다.
+## 쿠버네티스 API에 붙이는 VerdaVM 블록 {#crd-and-controller}
 
-컨트롤러의 목표는 리소스를 스펙대로 만드는 것이고, VM이라면 스펙(`flavor`, `image`)에 맞게 VM을 만들어 `ACTIVE` 상태로 두고 그 상태를 기록하는 일입니다. 핵심 로직은 두 가지입니다.
+VerdaVM은 Verda의 실제 VM과 일대일로 대응하는 커스텀 리소스입니다. 이를 사용하려면 API 서버가 VerdaVM의 CRUD를 제공하도록 CustomResourceDefinition(CRD)을 등록해야 합니다.
 
-- VerdaVM 리소스가 생성되면 Verda에 실제 VM을 만든다. UUID 필드가 비어 있으면 아직 만들지 않은 것으로 보고 Verda의 VM 생성 API를 호출한 뒤, 전달받은 UUID를 리소스에 업데이트한다. UUID가 채워져 있으면 이미 생성된 것으로 보고 끝낸다.
-- VM의 서버 상태를 확인해 `ACTIVE`에 도달했는지 검증한다. UUID가 없으면 생성될 때까지 기다리고, 있으면 상태를 보다가 `ACTIVE`가 아니면 일정 간격으로 API를 호출해 `ACTIVE`가 나올 때까지 갱신한다.
+쿠버네티스 API를 블록 장난감에 빗대면, CRD 매니페스트를 작성하는 일은 새 블록을 만드는 과정입니다. `kubectl apply -f verdaVM-crd.yaml`로 등록하면 그 블록이 기존 API에 붙습니다. 이제 컨트롤러와 클라이언트가 쿠버네티스 API에서 VerdaVM을 조회하거나 업데이트할 수 있습니다.
 
-원문은 두 단계가 순차 실행이 아니라고 덧붙입니다. 동기화 함수가 모두 함께 수행되는데, 두 번째 로직이 첫 번째의 성공을 기다려 동작하기 때문에 나눠 설명한 것입니다.
+### ACTIVE 상태까지 확인하는 컨트롤러
 
-## 컨트롤러 내부 동작 {#internals}
+API에 리소스를 등록한 뒤에는 실제 VM을 관리할 컨트롤러가 필요합니다. 목표는 `flavor`, `image` 스펙에 맞는 VM을 만들고, VM이 `ACTIVE`에 도달하면 그 상태를 기록하는 것입니다.
 
-컨트롤러는 API 서버의 부하를 줄이고 속도를 높이려고 오브젝트를 직접 가져오지 않고 Informer를 거칩니다. Informer는 캐시 스토리지를 두고, Watch로 API 서버에서 오브젝트를 받아 캐시에 저장합니다. Watch는 `kubectl -w`와 같은 기능으로 리소스의 생성, 수정, 삭제 이벤트를 실시간으로 받습니다.
+VM 생성 여부는 UUID 필드로 판단합니다. UUID가 비어 있으면 아직 VM을 만들지 않았다고 보고, Verda의 VM 생성 API를 호출한 뒤 전달받은 UUID를 VerdaVM 리소스에 기록합니다. 이미 UUID가 있다면 생성 로직은 종료합니다.
 
-이벤트 경로는 다음과 같습니다.
+상태 확인은 UUID가 있어야 진행되는 작업입니다. UUID가 없으면 기다리고, 있다면 API로 서버 상태를 조회합니다. 아직 `ACTIVE`가 아니면 일정 간격으로 API를 호출하면서 상태를 갱신하고, `ACTIVE`라는 결과를 받으면 이를 리소스에 기록한 뒤 종료합니다.
 
-- etcd와 API 서버 사이: etcd가 Watcher 인터페이스를 구현해 두어서 API 서버는 Watcher 클라이언트로 변화를 받는다. 받은 이벤트는 타입(`create`, `delete`, `update`)과 오브젝트만 있는 이벤트 구조체로 바뀐다.
-- API 서버와 Informer 사이: Informer는 이벤트가 올 때마다 캐시를 갱신하고, 자신을 가진 컨트롤러들에 이벤트 구조체를 전달한다. API 서버는 `watchEncoder`로 이를 내려 준다.
-- Informer 내부: Reflector가 streamWatcher로 받은 이벤트 구조체를 DeltaFIFO 큐에 넣는다. DeltaFIFO는 맵과 큐로 이뤄져, 맵에는 Delta를 값으로, 오브젝트의 namespacedName을 키(ID)로 저장하고 그 키가 큐에 없으면 큐에도 넣는다. 대기하던 goroutine이 ID를 하나씩 꺼내 캐시 스토리지를 갱신하는 Indexer와 핸들러가 있는 Processor로 Delta를 보내며, 같은 ID의 Delta를 모두 처리할 때까지 반복한다. 캐시 스토리지는 namespacedName을 키로 하는 스레드 세이프 맵이다.
-- 이벤트 핸들러와 WorkQueue: Processor의 리스너가 타입에 따라 `OnAdd`, `OnUpdate`, `OnDelete`를 부르는데, 셋 모두 같은 일, 곧 `NamespacedName`만 담은 구조체를 WorkQueue에 푸시한다. WorkQueue를 가져가는 goroutine이 이것을 Reconcile 함수의 파라미터로 넘긴다.
-- Reconcile: 보통 캐시 스토리지에서 오브젝트를 가져와 작업하고 API 서버에 업데이트한다. 원문은 Memcached-operator 예제를 참고 자료로 듭니다.
+생성과 상태 확인을 나눠 설명했지만, 각 동기화 함수가 순서대로 실행되는 것은 아닙니다. 함수들은 함께 수행되며, 상태 확인의 주요 로직이 VM 생성 성공을 기다린 뒤 작동하는 관계입니다.
 
-정리하면 API 서버가 etcd Watcher로 이벤트를 전하고, Reflector가 DeltaFIFO로 캐시를 갱신한 뒤 핸들러에 알리고, 핸들러가 Name과 Namespace를 WorkQueue에 넣고, Reconcile이 이를 키로 캐시에서 오브젝트를 읽어 처리한 뒤 API 서버를 호출(`POST`/`PUT`)해 상태를 갱신합니다. Redis의 `replicas`를 2에서 3으로 바꾸면 이 경로를 거쳐 캐시의 Redis Service가 갱신되고, Reconcile이 노드 개수를 확인한 뒤 노드를 하나 더 만듭니다(`POST`).
+이처럼 컨트롤러를 작성해 리소스를 선언적으로 관리하는 방식을 오퍼레이터 패턴이라고 합니다. 처음부터 모든 내부 동작을 파악하기 어렵다면 Operator SDK의 도움을 받을 수 있습니다. Reconcile의 내용을 구현할 수 있도록 스캐폴딩을 제공하고, Go 코드만으로 CRD를 생성하는 기능도 갖춘 도구입니다.
 
-## 맺음 {#wrap-up}
+## 이름으로 캐시를 읽는 Reconcile {#internals}
 
-컨트롤러를 만들어 리소스를 선언적으로 관리하는 방식을 오퍼레이터 패턴이라고 합니다. 원문은 처음부터 이 내용을 모두 파악하기는 어렵다며, Reconcile 내용만 구현하도록 스캐폴딩을 제공하고 Go 코드만으로 CustomResourceDefinition을 만들 수 있게 해 주는 Operator SDK를 팁으로 권합니다. 저자는 캐시 스토리지 때문에 어려움을 겪은 경험에서 내부 구조까지 살펴보게 됐고, 쿠버네티스 코드와 함께 보면 이해가 더 쉬울 것이라고 말합니다.
+저자들은 컨트롤러를 작성하면서 캐시 스토리지 때문에 어려움을 겪었고, 내부 동작을 파악한 뒤에야 문제가 생기는 위치와 해결 방법을 알게 됐습니다. 컨트롤러는 API 서버의 부하를 줄이고 속도를 높이려고 Informer를 사용합니다. Reconcile이 일반적으로 오브젝트를 가져오는 곳도 이 Informer의 캐시 스토리지입니다.
+
+Reconcile에 도착하는 것은 오브젝트 전체가 아닙니다. 이벤트 핸들러의 `OnAdd`, `OnUpdate`, `OnDelete`는 모두 `NamespacedName`만 담은 구조체를 WorkQueue에 넣습니다. 생성·수정·삭제 중 어떤 이벤트였든 큐에 넣는 정보는 이름과 네임스페이스뿐입니다. WorkQueue에서 요청을 꺼내는 goroutine이 이 구조체를 Reconcile의 파라미터로 전달합니다.
+
+Reconcile은 그 이름을 키로 캐시에서 오브젝트를 읽고, 필요한 작업을 수행한 뒤 API 서버를 호출해 상태를 업데이트합니다(`POST`/`PUT`). Memcached-operator 예제에서도 `req.NamespacedName`으로 오브젝트를 가져와 작업하고 상태를 갱신하는 흐름을 확인할 수 있습니다.
+
+## WorkQueue보다 먼저 갱신되는 Informer 캐시 {#informer-cache}
+
+Informer는 Watch로 리소스의 생성·수정·삭제를 실시간으로 감지하고 캐시를 갱신합니다. `kubectl -w`와 같은 기능입니다. Reconcile이 읽을 오브젝트가 캐시에 들어오는 과정을 따라가면 API 서버와 etcd까지 이어집니다.
+
+etcd는 Watcher 인터페이스를 구현하고 있어서 API 서버가 Watcher 클라이언트로 오브젝트의 변화를 전달받습니다. 받은 이벤트를 변환한 구조체에는 타입(`create`, `delete`, `update`)과 오브젝트가 들어갑니다. API 서버는 자신을 Watch하는 Informer에 `watchEncoder`로 이벤트 구조체를 전달합니다.
+
+Informer 안에서는 Reflector가 streamWatcher로 받은 이벤트를 DeltaFIFO에 넣습니다. DeltaFIFO는 맵과 큐로 이뤄진 구성입니다. 맵에는 이벤트를 Delta로 바꿔 값으로 저장하고, 키(ID)는 오브젝트의 `namespacedName`으로 정합니다. 그 키가 큐에 없다면 큐에도 추가합니다.
+
+대기하던 goroutine은 큐에서 ID를 하나씩 꺼내 그 ID에 쌓인 Delta를 모두 처리합니다. 각 오브젝트를 Indexer로 보내 캐시를 갱신한 다음 Processor에 전달하는 과정입니다. 캐시 스토리지는 `namespacedName`을 키로, 오브젝트를 값으로 저장하는 스레드 세이프 맵입니다.
+
+Processor의 리스너가 알림 타입에 맞는 이벤트 핸들러를 호출하면, 앞서 본 WorkQueue에 이름을 넣는 작업으로 이어집니다. 캐시를 갱신한 뒤 핸들러에 알리는 순서입니다.
+
+Redis Service의 `replicas`를 2에서 3으로 바꾸는 경우에도 이 순서를 따릅니다. Watch로 전달된 이벤트가 DeltaFIFO를 거쳐 캐시의 `replicas`를 3으로 바꾸고, `OnUpdate`가 호출되면 Redis Service의 `namespacedName`이 WorkQueue에 들어갑니다. Reconcile은 그 이름으로 캐시에서 오브젝트를 읽어 노드 개수를 확인한 뒤, 부족한 노드 하나를 더 만듭니다(`POST`).
