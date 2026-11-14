@@ -20,7 +20,7 @@ linkTitle: "AI 도구·에이전트"
 - [04 Computer Use Agent — 어디에 쓰고 어디엔 쓰지 않나]({{< relref "/engineering/ai-tools/04-computer-use-agents/index.md" >}})
 - [05 하네스 엔지니어링 — AI가 일하는 방식을 개선하기]({{< relref "/engineering/ai-tools/05-harness-engineering/index.md" >}})
 - [06 역할별 서브에이전트에서 Large Ultra 에이전트 하나로]({{< relref "/engineering/ai-tools/06-fold-subagents/index.md" >}})
-- [07 pstack — 설계와 검증으로 이끄는 병렬 작업]({{< relref "/engineering/ai-tools/07-pstack/index.md" >}})
+- [07 pstack의 작업 위임과 검증]({{< relref "/engineering/ai-tools/07-pstack/index.md" >}})
 
 Claude Code 같은 AI 코딩 도구를 운영 관점에서 다루는 챕터입니다. 얼마를 쓰는지, 어디서 새는지, 어떤 설정이 비용과 품질을 갈랐는지를 숫자로 확인한 기록을 모읍니다. 03은 결이 조금 다릅니다. 에이전트 관련 용어를 같은 뜻으로 쓰려고 외부 발표를 전사해 정리했습니다. 04는 화면을 보고 조작하는 CUA가 어디까지 쓸 만한지 제품·벤치마크·비용·안전 자료로 따져 봅니다. 05는 Lilian Weng의 글을 바탕으로 하네스의 설계와 자기개선 연구를 요약합니다. 06은 Anthropic 글을 바탕으로 서브에이전트를 메인 루프로 접는 기준을 요약하고, 큰 메인 에이전트 하나를 관리하는 방향을 제안합니다. 07은 Lauren Tan이 Cursor 플러그인으로 공개한 스킬 묶음 pstack을 저장소 원문으로 조사한 글입니다.
 
