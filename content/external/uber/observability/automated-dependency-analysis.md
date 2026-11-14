@@ -11,7 +11,7 @@ weight: 1
 **원문 정보**
 - 원문: [Large-Scale Automated Dependency Analysis Across Uber's Service Mesh](https://www.uber.com/us/en/blog/automated-dependency-analysis/)
 - 매체 · 게시일: Uber Engineering Blog · 2026-09-15
-- 저자: Deepanshu Mehndiratta(Senior Staff Engineer), Alok Srivastava(Principal Engineer), Shivam Jindal(Staff Software Engineer)
+- 저자: Deepanshu Mehndiratta(Senior Staff Engineer), Alok Srivastava(Principal Engineer), Shivam Jindal(Staff Software Engineer), Ankit Srivastava(Distinguished Engineer)
 - 원문 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 
@@ -23,7 +23,7 @@ API의 의존성을 펼치면 호출 트리가 됩니다. 각 노드는 서비�
 
 이 관계를 알면 신뢰성에 투자할 지점도 구체적으로 고를 수 있습니다. 하드 의존성과 그 영향을 알림에 반영해 감지 시간(TTD)을 줄이고, 근본 원인을 빨리 찾아 복구 시간(TTM)을 줄이는 데 쓰는 것입니다. 페이저 알림을 줄여 온콜 부담을 낮추거나, 핵심 사용자 여정에서 가용성 개선 효과가 큰 호출 경로를 찾는 데도 필요한 정보입니다.
 
-Uber는 실제로 핵심 API 전체의 의존성을 목록으로 만들었습니다. 이 작업은 서비스 복원력 기준을 다루는 신뢰성 개선 과제로 이어졌고, 서비스 메시에서 색인한 fail-close 이상 징후 대부분은 Failover Architecture 2.0의 회귀 방지 안전장치가 되었습니다. 서비스들이 트래픽이 몰리는 시간에도 장애를 더 잘 견디고 안정성을 유지할 기반을 갖춘 것입니다.
+Uber는 실제로 핵심 API 전체의 의존성을 목록으로 만들었습니다. 이 작업은 서비스 복원력 기준을 다루는 신뢰성 개선 과제로 이어졌고, 서비스 메시의 fail-close 이상 징후 대부분을 색인했고, 이는 Failover Architecture 2.0의 회귀 방지 안전장치를 다지는 기반이 되었습니다. 서비스들이 트래픽이 몰리는 시간에도 장애를 더 잘 견디고 안정성을 유지할 기반을 갖춘 것입니다.
 
 ## 실패 열 건을 기다리기엔 느린 트레이스 {#sampling}
 

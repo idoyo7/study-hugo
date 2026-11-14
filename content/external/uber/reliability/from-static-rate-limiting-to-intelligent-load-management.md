@@ -11,7 +11,7 @@ weight: 3
 **원문 정보**
 - 원문: [How Uber Conquered Database Overload: The Journey from Static Rate-Limiting to Intelligent Load Management](https://www.uber.com/us/en/blog/from-static-rate-limiting-to-intelligent-load-management/)
 - 매체 · 게시일: Uber Engineering Blog · 2026-04-21
-- 저자: Dhyanam Vaidya, Prathamesh Deshpande, Mike Ma (본문 하단 소개에는 Chaitanya Yalamanchili도 포함. 직함은 Software Engineer, Staff Engineer, Staff Software Engineer, Sr. Manager)
+- 저자: Dhyanam Vaidya(Software Engineer, Storage Platform), Prathamesh Deshpande(Staff Engineer, Storage Platform), Mike Ma(Staff Software Engineer, Storage Platform), Chaitanya Yalamanchili(Sr. Manager, Storage Platform)
 - 원문 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 
