@@ -267,8 +267,14 @@ html.dark .term:focus-visible { outline-color: var(--hx-color-primary-400); }
 }
 /* 용어와 툴팁 사이에 빈틈이 없도록 위아래 6px 를 투명 border 로 두고 배경은 padding-box 까지만 칠한다
    (WCAG 1.4.13: 포인터가 용어에서 툴팁으로 건너가도 닫히지 않는다 — ::after 위의 hover 도 .term 의 hover).
-   숨은 동안은 visibility:hidden 이라 클릭을 가로채지 않는다. 그림자는 border-box 가 아니라
-   드러난 모양을 따라가도록 box-shadow 대신 drop-shadow 필터를 쓴다. */
+   그림자는 border-box 가 아니라 드러난 모양을 따라가도록 box-shadow 대신 drop-shadow 필터를 쓴다.
+   숨김은 visibility 가 아니라 display:none 이다 — 지우거나 visibility 로 "단순화"하지 말 것.
+   Chrome 은 position-try-fallbacks 를 레이아웃 때만 다시 고르고 스크롤에는 반응하지 않는다. 숨은 동안에도
+   박스가 렌더되면 마지막 위치를 그대로 쥐고 있어, 용어를 내비바 바로 아래까지 스크롤한 뒤 hover 하면
+   툴팁이 위쪽에 열려 내비바 뒤로 숨는다(2026-11-15 Chrome 157 에서 확인). 보일 때마다 새 박스를 만들어야
+   fallback 선택이 다시 돈다. 페이드는 transition 의 display allow-discrete 와 @starting-style 이 맡는다.
+   둘을 모르는 브라우저는 페이드 없이 바로 나타나고 사라질 뿐 툴팁은 정상으로 뜬다.
+   숨은 동안 렌더되지 않으니 클릭도 가로채지 않는다. */
 .term::after {
   content: attr(data-tip);
   position: absolute;
@@ -294,10 +300,10 @@ html.dark .term:focus-visible { outline-color: var(--hx-color-primary-400); }
   background-color: #1f2937;
   filter: drop-shadow(0 4px 8px rgb(0 0 0 / 18%));
   cursor: text;
+  display: none;
   opacity: 0;
-  visibility: hidden;
   transform: translateY(3px);
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out, visibility 0s linear 0.15s;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out, display 0.15s allow-discrete;
 }
 html.dark .term::after {
   color: #f3f4f6;
@@ -307,10 +313,17 @@ html.dark .term::after {
 .term:hover::after,
 .term:focus::after,
 .term:focus-visible::after {
+  display: block;
   opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  transition-delay: 0s;
+  transform: none;
+}
+@starting-style {
+  .term:hover::after,
+  .term:focus::after,
+  .term:focus-visible::after {
+    opacity: 0;
+    transform: translateY(3px);
+  }
 }
 /* 앵커 포지셔닝 경로: 툴팁을 자기 용어에 묶고 뷰포트 안에 머물게 한다(fixed 라 표·스크롤 래퍼에 안 잘린다).
    top 을 내비바 높이만큼 내려 칸의 위쪽 경계가 내비바 바닥이 되므로, 위쪽 칸에 자리가 없으면
