@@ -1,0 +1,22 @@
+{
+  "caption": "Feature 플레이북에서 메인 에이전트는 설계와 검증을 직접 맡고, 코드 작성만 구현 모델이나 arena 후보들에게 넘깁니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "mode", "col": 0, "row": 0, "label": "poteto-mode", "sub": "플레이북 선택", "kind": "src" },
+    { "id": "design", "col": 1, "row": 0, "label": "how · architect", "sub": "파악, 설계 탐색", "kind": "proc" },
+    { "id": "impl", "col": 2, "row": 0, "label": "구현 모델", "sub": "코드 작성 위임", "kind": "proc" },
+    { "id": "arena", "col": 2, "row": 1, "label": "arena", "sub": "후보별 worktree", "kind": "proc" },
+    { "id": "verify", "col": 3, "row": 0, "label": "검증", "sub": "맞는 화면에서", "kind": "query" },
+    { "id": "inter", "col": 3, "row": 1, "label": "interrogate", "sub": "다른 모델의 반박", "kind": "query" },
+    { "id": "pr", "col": 4, "row": 0, "label": "PR", "sub": "opening-a-pr", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "mode", "to": "design", "label": "절차" },
+    { "from": "design", "to": "impl", "label": "위임" },
+    { "from": "design", "to": "arena", "label": "여러 안" },
+    { "from": "impl", "to": "verify", "label": "diff" },
+    { "from": "arena", "to": "verify", "label": "고른 후보" },
+    { "from": "verify", "to": "inter", "label": "설계 이견" },
+    { "from": "verify", "to": "pr", "label": "통과" }
+  ]
+}

@@ -6,7 +6,8 @@
 
 - `content/engineering/ai-tools/07-pstack/`를 새로 만들고 AI 도구 색인에서 잇습니다. Lauren Tan(poteto)이 Cursor 플러그인 모노레포 `cursor/plugins`의 `pstack/`으로 공개한 에이전트 스킬 묶음(v0.15.36)을 다룹니다. `poteto-mode` 라우터와 플레이북 23개·원칙 24개, Feature 플레이북의 진행 순서, Claude Code 공식 하네스와 `michael-denyer/pstack-claude` 포트(v0.9.138)의 차이, 포트 이슈 #264·#310·#387과 비용 비평, superpowers·gstack·oh-my-claudecode와의 비교 표를 실었습니다.
 - 근거는 2026-11-14에 GitHub 저장소 원문(README, SKILL.md, plugin.json, 이슈)과 저자의 X 글로 확인했고, 직접 설치해 돌려 보지는 않았습니다. 처음 검색에서 별개 프로젝트로 보였던 `backnotprop/pstack`은 원본 미러였고, 원본에 plan·execute·review나 init·doctor 스킬은 없었습니다. 확인하지 못한 항목은 글 끝에 따로 적었습니다. 조사 보고서는 로컬 `_workspace/structure-2026-11-14-pstack/research.md`에 있습니다.
-- Claude 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`) 전면 재작성(조사 보고서를 사실 확인용으로 함께 제공) → URL·인라인 코드·수치·frontmatter 기계 대조와 문장 대조 순으로 만들었습니다. 저자의 "capable yet stupid" 비유에서 한쪽이 빠진 구절 하나만 직접 되살렸습니다. 도식은 넣지 않았습니다.
+- Claude 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`) 전면 재작성(조사 보고서를 사실 확인용으로 함께 제공) → URL·인라인 코드·수치·frontmatter 기계 대조와 문장 대조 순으로 만들었습니다. 저자의 "capable yet stupid" 비유에서 한쪽이 빠진 구절 하나만 직접 되살렸습니다.
+- Feature 플레이북 절에 flow 도식 한 장을 더했습니다. 메인 에이전트가 설계와 검증을 맡고 코드 작성만 구현 모델이나 arena 후보에 넘기는 역할 분담을 그렸고, 단계 목록은 그대로 두었습니다.
 
 ## 2026-11-10 — 타사 테크블로그에 Anthropic 추가
 
