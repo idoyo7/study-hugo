@@ -21,7 +21,7 @@ weight: 5
 
 Clymene-agent의 출발점은 이 부담을 줄이는 일이었습니다. 필자는 Prometheus의 스레드별 동작을 살펴 Config, Service Discovery, Endpoint Scrape만 분리해 쓰기로 했습니다. 설정을 관리하고, 관측할 엔드포인트를 찾고, HTTP로 시계열 데이터를 수집하는 부분입니다. 여기에 백엔드로 데이터를 보내는 기능을 두면 WAL(Write Ahead Logging), WAL Watcher, TSDB, Query까지 갖춘 Prometheus보다 적은 리소스를 쓰는 수집 에이전트를 만들 수 있다고 판단했습니다.
 
-수집 과정에도 비용은 들었습니다. Prometheus의 Endpoint Scrape는 HTTP 응답으로 받은 raw 시계열 데이터를 파싱할 때 CPU를 많이 사용했습니다. 이 부담을 줄이기 위해 한 번 파싱한 데이터를 메모리에 캐싱하는 방식입니다.
+수집 과정에도 비용은 들었습니다. Prometheus의 Endpoint Scrape는 HTTP 응답으로 받은 raw 시계열 데이터를 파싱할 때 CPU를 많이 사용했습니다. Prometheus는 이 부담을 줄이려고 한 번 파싱한 데이터를 메모리에 캐싱합니다.
 
 ## 저장소에 맞춰 조립하는 Clymene 파이프라인 {#architecture}
 

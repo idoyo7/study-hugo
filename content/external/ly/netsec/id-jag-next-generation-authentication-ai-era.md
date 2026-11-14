@@ -69,7 +69,8 @@ LY Corporation의 오픈소스 권한 관리 플랫폼 Athenz도 ID-JAG 공식 �
 
 | 항목 | 값 |
 |---|---|
-| 결합 사양 | RFC 8693(Token Exchange), RFC 7523(JWT Profile for Authorization Grants), RFC 6749 |
+| 결합 사양 | RFC 8693(Token Exchange), RFC 7523(JWT Profile for Authorization Grants) |
+| 흐름 마지막 단계의 API 호출 | RFC 6749 |
 | 최초 공개 | 2024년 3월 개별 초안 |
 | Okta 공식 지지 발표 | 2025년 6월 23일 |
 | 원문이 인용한 초안 버전 | draft-ietf-oauth-identity-assertion-authz-grant-02 |

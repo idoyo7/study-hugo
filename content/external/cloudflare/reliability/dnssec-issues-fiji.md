@@ -32,7 +32,7 @@ Hacker News 댓글에서 DNSSEC 문제일 수 있다는 의견이 나왔고, 조
 
 ## 복구와 시사점 {#resolution}
 
-Cloudflare 리졸버 지표를 더 분석하니 문제는 대략 14:00 UTC에 DS가 갱신되면서 해결되었습니다. 원문은 DNSSEC를 잘못 설정하면 단일 도메인에서도 접속 문제가 생기지만, ccTLD 수준에서 생기면 영향이 훨씬 크다고 지적하고, 이런 일이 너무 자주 일어난다고 덧붙입니다. DNSSEC 전문 지식을 제공한 Ólafur Guðmundsson에게 감사를 전합니다.
+Cloudflare 리졸버 지표를 더 분석하니 문제는 대략 14:00 UTC에 DS가 갱신되면서 해결되었습니다. 원문은 DNSSEC를 잘못 설정하면 단일 도메인에서도 접속 문제가 생기지만, ccTLD 수준에서 생기면 영향이 훨씬 크다고 지적하고, 이런 일이 너무 자주 일어나는 것 같다고 덧붙입니다. DNSSEC 전문 지식을 제공한 Ólafur Guðmundsson에게 감사를 전합니다.
 
 {{% details title="관측 시각과 수치" closed="true" %}}
 

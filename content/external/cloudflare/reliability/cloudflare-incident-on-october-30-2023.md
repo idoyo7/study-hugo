@@ -33,8 +33,8 @@ KV에서 get, put, delete, list 중 무엇을 해도 401이 돌아왔고, 이에
 - 단일 파일 캐시 퍼지: 일부 데이터 센터가 KV의 설정에 접근하지 못해 부분적으로 불가했습니다. 태그 퍼지 같은 다른 방식은 영향이 없었습니다.
 - Workers: 대시보드·wrangler·API로 올리거나 수정하는 일이 오류를 냈고, KV를 쓰지 않는 배포된 Workers는 영향이 없었습니다.
 - AI Gateway: 장애 내내 요청을 프록시하지 못했습니다.
-- Waiting Room: 설정이 엣지의 KV에 있어 설정과 변경을 쓸 수 없었고 서비스는 fail open이었습니다. KV가 돌아온 뒤 일부 사용자는 대기열을 겪었습니다.
-- Turnstile과 Challenge Pages: Turnstile의 JavaScript 자산이 KV에 있어 진입점 api.js를 서빙하지 못했고 위젯이 초기화되지 않아 fail closed로 동작했습니다. Turnstile 인프라를 쓰는 Challenge Pages는 챌린지를 받은 사용자를 막았습니다.
+- Waiting Room: 설정이 엣지의 KV에 있어 설정과 변경을 쓸 수 없었고 서비스는 fail open이었습니다. KV가 돌아온 뒤 일부 사용자는 서비스가 복구되는 동안 대기열을 겪었을 수 있습니다.
+- Turnstile과 Challenge Pages: Turnstile의 JavaScript 자산이 KV에 있어 진입점 api.js를 서빙하지 못했고 위젯이 초기화되지 않아 fail closed로 동작했을 것입니다. Turnstile 인프라를 쓰는 Challenge Pages는 챌린지를 받은 사용자를 막았을 것이라고 합니다.
 - 대시보드: Turnstile이나 KV로 설정을 읽는 내부 feature flag 도구에 기대는 부분이 오류를 냈습니다.
 
 ## 원인 {#root-cause}

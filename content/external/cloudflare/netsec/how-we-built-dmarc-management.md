@@ -35,7 +35,7 @@ Cloudflare는 자사 제품을 내부에서 직접 쓰는 "dogfood" 방식으로
 
 ## 아키텍처 {#architecture}
 
-Email Workers는 Email Routing 제품의 기능입니다. Email Routing 구성요소는 모든 노드에서 돌고, 메일 인그레스 BGP 프리픽스를 모든 데이터센터에서 광고하기 때문에 어느 노드든 수신 메일을 처리할 수 있습니다. Workers로 보내는 일은 Email Routing 대시보드에서 규칙 하나를 설정하는 것으로 충분합니다.
+Email Workers는 Email Routing 제품의 기능입니다. Email Routing 구성요소는 모든 노드에서 돌아 어느 노드든 수신 메일을 처리할 수 있고, 메일 인그레스 BGP 프리픽스를 모든 데이터센터에서 광고하기 때문에 이 점이 중요합니다. Workers로 보내는 일은 Email Routing 대시보드에서 규칙 하나를 설정하는 것으로 충분합니다.
 
 Email Routing이 Worker로 전달하라는 규칙에 맞는 메일을 받으면, 최근 오픈소스로 공개된 workerd 런타임의 내부 버전에 연결합니다. 이 런타임도 모든 노드에서 돌고, 둘 사이의 RPC 스키마는 Capnproto로 정의되어 메일 본문을 읽는 대로 Edgeworker로 스트리밍할 수 있습니다. 스크립트가 메일을 전달하기로 하면 Edgeworker는 처음 요청에 실려 온 capability를 써서 Email Routing에 접속합니다.
 

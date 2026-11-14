@@ -55,7 +55,7 @@ Instant는 대상 테이블의 Metadata와 Row Version 값을 수정해 변경�
 | 시간 | 가장 느림 | 작업과 테이블 크기에 따라 다름 | 가장 빠름 |
 | CPU/IO | 높음 | 중간 | 낮음 |
 | 사용 가능 버전 | 모든 버전 | 5.6 이상 | 8.0.12 이상, 컬럼 추가 외 기능은 8.0.29부터 |
-| Exclusive Metadata Lock 횟수 | 해당 없음 | 2회 | 1회 |
+| Exclusive Metadata Lock 횟수 | 원문에 언급 없음 | 2회 | 1회 |
 
 {{% /details %}}
 

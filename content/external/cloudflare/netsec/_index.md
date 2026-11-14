@@ -14,7 +14,7 @@ comments: false
 - [Merkle Tree Certificates로 만드는 포스트 퀀텀 인증 기관 (2026-09)]({{< relref "/external/cloudflare/netsec/pq-ca-with-mtcs.md" >}})
 - [Containers 테넌트 간 디스크 데이터 노출 취약점 대응 (2026-09)]({{< relref "/external/cloudflare/netsec/containers-cross-tenant-vulnerability.md" >}})
 - [Linux 커널 Copy Fail 취약점 대응 기록 (2026-05)]({{< relref "/external/cloudflare/netsec/copy-fail-linux-vulnerability-mitigation.md" >}})
-- [ACME 검증 경로에서 WAF가 꺼지던 취약점 완화 (2026-01)]({{< relref "/external/cloudflare/netsec/acme-path-vulnerability.md" >}})
+- [ACME 검증 경로에서 WAF 기능 일부가 꺼지던 취약점 완화 (2026-01)]({{< relref "/external/cloudflare/netsec/acme-path-vulnerability.md" >}})
 - [Automatic SSL/TLS 600만 도메인 업그레이드와 포스트 양자 준비 (2025-09)]({{< relref "/external/cloudflare/netsec/automatically-secure.md" >}})
 - [Salesloft Drift 침해가 Cloudflare와 고객에게 미친 영향 (2025-09)]({{< relref "/external/cloudflare/netsec/response-to-salesloft-drift-incident.md" >}})
 - [형식 검증으로 막는 권한 DNS 설정 충돌 (2024-11)]({{< relref "/external/cloudflare/netsec/topaz-policy-engine-design.md" >}})

@@ -46,7 +46,7 @@ Prometheus를 직접 운영하면 가장 먼저 듣는 문제가 카디널리티
 
 시계열 하나가 쓰는 메모리는 레이블 사본, 샘플을 담은 청크, 내부용 필드로 이뤄집니다. 레이블은 개수와 길이에 비례하고, 청크는 스크레이프할 때마다 차올라 새 청크가 생길 때까지 늘었다 줄기를 되풀이합니다. 시계열당 메모리는 `go_memstats_alloc_bytes / prometheus_tsdb_head_series` 쿼리로 구할 수 있습니다. 서버가 자기 자신을 스크레이프하도록 설정되어 있어야 하고, 시계열 데이터만이 아니라 Prometheus 전체의 메모리로 계산하므로 근사치이며, Go의 가비지 컬렉션 탓에 실제 필요한 물리 메모리는 보통 더 큽니다.
 
-Prometheus가 기본으로 주는 옵션은 스크레이프 설정의 한도들입니다. `body_size_limit`, `sample_limit`, `label_limit`, `label_name_length_limit`, `label_value_length_limit`, `target_limit`이 있습니다. 레이블 길이 한도는 오류 레이블에 수백 줄짜리 스택 트레이스가 들어가 시계열 하나가 수 MB를 쓰는 상황을 막습니다. `label_limit`은 약간의 보호를 주지만 레이블이 하나라도 값이 아주 많으면 카디널리티가 높을 수 있고, `sample_limit`이 궁극의 보호로 앱 인스턴스마다 수집 가능한 시계열 수의 하드 한도를 정합니다. 단점은 한도를 넘으면 스크레이프 전체가 실패한다는 것입니다. `sample_limit`이 100인데 응답에 샘플이 101개이면 아무것도 수집하지 않습니다. 부분적으로 수집된 메트릭은 다루기 어려우므로 실패한 스크레이프를 사고로 취급하는 편이 낫다는 Prometheus 개발자들의 의도적인 설계입니다.
+Prometheus가 기본으로 주는 옵션은 스크레이프 설정의 한도들입니다. `body_size_limit`, `sample_limit`, `label_limit`, `label_name_length_limit`, `label_value_length_limit`, `target_limit`이 있습니다. 레이블 길이 한도는 오류 레이블에 수백 줄짜리 스택 트레이스가 들어가 시계열 하나가 수 MB를 쓰는 상황을 막습니다. `label_limit`은 약간의 보호를 주지만 레이블이 하나라도 값이 아주 많으면 카디널리티가 높을 수 있고, `sample_limit`이 궁극의 보호로 앱 인스턴스마다 수집 가능한 시계열 수의 하드 한도를 정합니다. 단점은 한도를 넘으면 스크레이프 전체가 실패한다는 것입니다. `sample_limit`이 100인데 응답에 샘플이 101개이면 아무것도 수집하지 않습니다. Prometheus 개발자들의 의도적인 설계이고, 원문은 부분적으로 수집된 메트릭은 다루기 어려우므로 실패한 스크레이프를 사고로 취급하는 편이 낫다는 것이 주된 동기로 보인다고 합니다.
 
 ## Cloudflare의 방어 계층 {#cloudflare-layers}
 

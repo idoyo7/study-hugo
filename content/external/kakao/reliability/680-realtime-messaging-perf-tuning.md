@@ -19,7 +19,7 @@ weight: 3
 
 카리브의 성능 개선은 pprof에서 출발했습니다. 실시간으로 메시지를 주고받으며 발생하는 많은 I/O 연산이 CPU에 부하를 주고 있었습니다. 팀은 메시지를 모아 보내는 방법을 찾고, 내부 전달 경로에서 같은 작업을 거듭하는 지점도 살폈습니다.
 
-구축 과정의 시행착오를 다룬 [1편]({{< relref "/external/kakao/architecture/678-realtime-messaging-carib-journey.md" >}}), 성능 테스트를 설계하고 분석한 [2편]({{< relref "/external/kakao/reliability/679-realtime-messaging-perf-test-design.md" >}}에 이은 마지막 3편입니다. 앞서 확인한 부하를 줄이려던 시도 중에는 실제 개선으로 이어진 것도, 테스트 후 기존 방식을 유지한 것도 있었습니다.
+구축 과정의 시행착오를 다룬 [1편]({{< relref "/external/kakao/architecture/678-realtime-messaging-carib-journey.md" >}}), 성능 테스트를 설계하고 분석한 [2편]({{< relref "/external/kakao/reliability/679-realtime-messaging-perf-test-design.md" >}})에 이은 마지막 3편입니다. 앞서 확인한 부하를 줄이려던 시도 중에는 실제 개선으로 이어진 것도, 테스트 후 기존 방식을 유지한 것도 있었습니다.
 
 ## 수신자마다 되풀이하던 JSON 마샬링 {#message-path}
 

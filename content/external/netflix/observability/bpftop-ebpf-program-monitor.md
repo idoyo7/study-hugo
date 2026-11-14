@@ -31,4 +31,4 @@ Netflix가 bpftop을 공개한 배경에는 늘어나는 eBPF 활용이 있습�
 
 ## Rust로 만든 오픈소스 프로젝트 {#getting-started}
 
-bpftop은 Rust로 작성했으며 libbpf-rs와 ratatui crate를 사용합니다. Apache 2 라이선스로 공개했고, 커뮤니티의 기여도 받고 있습니다. 사용법은 프로젝트의 GitHub 페이지에서 확인할 수 있습니다.
+bpftop은 Rust로 작성했으며 libbpf-rs와 ratatui crate를 사용합니다. Apache 2 라이선스로 공개했고, 커뮤니티의 기여를 기대한다고 밝혔습니다. 사용법은 프로젝트의 GitHub 페이지에서 확인할 수 있습니다.

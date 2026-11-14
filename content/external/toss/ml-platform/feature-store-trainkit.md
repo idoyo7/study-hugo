@@ -12,7 +12,7 @@ weight: 4
 - 원문: [토스가 다양한 ML 모델을 만드는 법: Feature Store & Trainkit](https://toss.tech/article/feature-store-trainkit)
 - 매체 · 게시일: 토스 기술 블로그 · 2025-08-14
 - 저자: 우종호, 송석현 (토스 ML Platform 팀)
-- 원문은 "이번 시리즈"라고 소개하며, Feature Serving과 Model Registry, Inference, Monitoring 등은 다른 글에서 다룰 내용으로 남겨 둡니다.
+- 원문은 "이번 시리즈"라고 소개하며, Feature Serving은 추후 공유하겠다고 밝힙니다. Model Registry, Inference System, Monitoring System은 팀이 플랫폼화에 힘쓰는 영역으로만 언급합니다.
 - 원문 내용을 바탕으로 재구성한 요약입니다.
 {{< /callout >}}
 

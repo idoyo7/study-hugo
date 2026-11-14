@@ -43,7 +43,7 @@ DNS 클라이언트 중에는 응답을 순차적으로 훑으며 기대하는 �
 
 문제는 CNAME 뒤섞임에 그치지 않습니다. CNAME이 다른 레코드보다 앞에 있어도 체인 자체가 `cdn.example.com → server...`, `www.example.com → cdn.example.com` 순으로 뒤바뀌면 순차 파싱은 똑같이 실패합니다. 각 CNAME은 소유자 이름이 달라 서로 다른 RRset이라 "RRset 순서는 무의미하다"는 문장이 적용되지 않고, RFC 1034는 체인의 순서도 정하지 않습니다.
 
-리졸버 동작을 다룬 5.2.2절은 CNAME을 만나면 새 이름으로 질의를 다시 시작한다고 적습니다. 다만 이 절은 재귀 질의를 직접 수행하는 full resolver를 염두에 두고 쓴 것이고, glibc의 `getaddrinfo` 같은 stub resolver는 CNAME 재시작 로직 같은 부분을 구현하지 않을 수 있다고 원문은 짚습니다. 이후 DNSSEC 명세인 RFC 4035는 RRSIG 포함에 MUST와 "higher priority"를 명시하지만 이것은 포함 여부에 관한 규정이지 순서가 아닙니다.
+리졸버 동작을 다룬 5.2.2절은 대부분의 경우 리졸버가 CNAME을 만나면 새 이름으로 질의를 다시 시작한다고 적습니다. 다만 이 절은 재귀 질의를 직접 수행하는 full resolver를 염두에 두고 쓴 것이고, glibc의 `getaddrinfo` 같은 stub resolver는 CNAME 재시작 로직 같은 부분을 구현하지 않을 수 있다고 원문은 짚습니다. 이후 DNSSEC 명세인 RFC 4035는 RRSIG 포함에 MUST와 "higher priority"를 명시하지만 이것은 포함 여부에 관한 규정이지 순서가 아닙니다.
 
 ## 대응과 결론 {#response}
 
