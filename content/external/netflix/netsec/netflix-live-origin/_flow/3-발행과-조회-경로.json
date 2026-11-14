@@ -1,0 +1,23 @@
+{
+  "caption": "발행(PUT)과 CDN 조회(GET)는 EC2 스택부터 KV 클러스터까지 서로 다른 경로를 쓰고, 읽기는 대부분 EVCache에서 끝납니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "packager", "col": 0, "row": 0, "label": "Packager", "kind": "src" },
+    { "id": "pub-stack", "col": 1, "row": 0, "label": "발행용 스택", "sub": "Live Origin · EC2", "kind": "proc" },
+    { "id": "kv-write", "col": 2, "row": 0, "label": "KV 쓰기 클러스터", "kind": "proc" },
+    { "id": "cassandra", "col": 3, "row": 0, "label": "Cassandra", "sub": "청크 저장", "kind": "store" },
+    { "id": "oc", "col": 0, "row": 1, "label": "Open Connect 최상위 노드", "kind": "src" },
+    { "id": "cdn-stack", "col": 1, "row": 1, "label": "CDN 조회용 스택", "sub": "Live Origin · EC2", "kind": "proc" },
+    { "id": "kv-read", "col": 2, "row": 1, "label": "KV 읽기 클러스터", "kind": "proc" },
+    { "id": "evcache", "col": 3, "row": 1, "label": "EVCache", "sub": "write-through 캐시", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "packager", "to": "pub-stack", "label": "PUT" },
+    { "from": "pub-stack", "to": "kv-write", "label": "쓰기" },
+    { "from": "kv-write", "to": "cassandra", "label": "저장" },
+    { "from": "kv-write", "to": "evcache", "label": "캐시 기록" },
+    { "from": "oc", "to": "cdn-stack", "label": "GET" },
+    { "from": "cdn-stack", "to": "kv-read", "label": "읽기" },
+    { "from": "kv-read", "to": "evcache", "label": "캐시 조회" }
+  ]
+}

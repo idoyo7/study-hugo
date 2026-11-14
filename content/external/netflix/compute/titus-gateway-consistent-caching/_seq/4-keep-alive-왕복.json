@@ -1,0 +1,20 @@
+{
+  "caption": "게이트웨이는 keep-alive의 ACK를 받은 뒤에야 로컬 캐시에서 조회에 응답하므로, 요청 시점까지의 변경이 캐시에 들어 있음을 보장합니다.",
+  "participants": [
+    { "id": "client", "label": "클라이언트" },
+    { "id": "gw", "label": "Titus Gateway" },
+    { "id": "cache", "label": "로컬 캐시" },
+    { "id": "jc", "label": "Job Coordinator" }
+  ],
+  "steps": [
+    { "msg": ["client", "gw"], "label": "1. 조회 요청" },
+    { "msg": ["gw", "cache"], "label": "2. 최신 데이터 요청" },
+    { "msg": ["cache", "jc"], "label": "3. keep-alive (논리 시각)" },
+    { "note": ["jc"], "lines": ["도착 시각을 붙여 큐에 저장"] },
+    { "msg": ["jc", "cache"], "label": "4. 상태 변경 이벤트" },
+    { "note": ["jc"], "lines": ["변경이 없으면 더미 메시지로", "이벤트 간격 유지"] },
+    { "msg": ["jc", "cache"], "label": "5. ACK", "dashed": true },
+    { "msg": ["cache", "gw"], "label": "6. 최신 상태 응답", "dashed": true },
+    { "msg": ["gw", "client"], "label": "7. 조회 응답", "dashed": true }
+  ]
+}

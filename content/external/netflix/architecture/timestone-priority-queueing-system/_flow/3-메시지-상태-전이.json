@@ -1,0 +1,19 @@
+{
+  "caption": "메시지는 invisible에서 pending을 거쳐 running이 되고, completed, canceled, errored 가운데 하나로 끝납니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "invisible", "col": 0, "row": 1, "label": "invisible", "sub": "비가시 기간", "kind": "proc" },
+    { "id": "pending", "col": 1, "row": 1, "label": "pending", "sub": "꺼낼 수 있음", "kind": "proc" },
+    { "id": "running", "col": 2, "row": 1, "label": "running", "sub": "lease 만료 시 시도가 남으면 pending으로", "kind": "proc" },
+    { "id": "completed", "col": 3, "row": 0, "label": "completed", "kind": "sink" },
+    { "id": "canceled", "col": 3, "row": 1, "label": "canceled", "kind": "sink" },
+    { "id": "errored", "col": 3, "row": 2, "label": "errored", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "invisible", "to": "pending", "label": "기간 만료" },
+    { "from": "pending", "to": "running", "label": "dequeue" },
+    { "from": "running", "to": "completed", "label": "complete" },
+    { "from": "running", "to": "canceled", "label": "취소", "dashed": true },
+    { "from": "running", "to": "errored", "label": "시도 소진", "dashed": true }
+  ]
+}
