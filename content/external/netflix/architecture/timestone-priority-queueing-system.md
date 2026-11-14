@@ -47,8 +47,6 @@ project=foo인 메시지가 둘 있고 하나를 워커가 이미 맡고 있다�
 
 큐에 넣은 메시지가 곧바로 처리 대상이 되는 것은 아닙니다. enqueue할 때 비가시 기간을 주면 invisible 상태로 들어가고, 그 기간이 지난 뒤 꺼낼 수 있는 pending 상태가 됩니다. 비가시 기간을 주지 않으면 처음부터 pending입니다.
 
-{{< flow src="_flow/3-메시지-상태-전이.json" />}}
-
 워커는 dequeue 요청에서 메시지를 맡을 기간인 lease를 지정합니다. pending 메시지를 꺼내면 상태는 running으로 바뀌며, 여러 메시지를 배치로 가져올 수도 있습니다. 그 워커가 lease 안에 complete를 호출하면 completed가 됩니다. 시간이 더 필요하면 lease를 연장하고, 더는 처리할 필요가 없으면 running 메시지를 취소해 canceled로 바꿉니다.
 
 lease 안에 아무 호출도 없으면 메시지는 다시 꺼낼 수 있게 됩니다. 재시도는 무한하지 않습니다. 메시지마다 꺼낼 수 있는 횟수인 attempts가 정해져 있고, dequeue할 때마다 남은 횟수가 하나씩 줄어듭니다. lease가 끝났을 때 남은 시도가 없으면 자동으로 errored 상태가 됩니다.
