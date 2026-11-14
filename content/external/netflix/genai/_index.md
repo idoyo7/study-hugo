@@ -10,6 +10,6 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [Pensive AI 기반 워크로드 장애 진단 (2026-10)]({{< relref "/external/netflix/genai/pensive-ai-failure-diagnosis.md" >}})
+- [규칙 밖의 실패 로그까지 살피는 Netflix Pensive AI (2026-10)]({{< relref "/external/netflix/genai/pensive-ai-failure-diagnosis.md" >}})
 
 LLM 에이전트와 생성형 AI 서비스를 만들고 운영하는 방법을 다루는 글입니다. Netflix 기술 블로그에서 고른 1편을 게시일 최신순으로 실었습니다.

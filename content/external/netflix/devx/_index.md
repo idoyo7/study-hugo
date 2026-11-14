@@ -10,8 +10,8 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [Quasar로 측정하는 라이브러리 변경의 영향 범위 (2026-10)]({{< relref "/external/netflix/devx/quasar-library-change-blast-radius.md" >}})
-- [Temporal로 안정화한 Spinnaker 클라우드 오퍼레이션 (2025-12)]({{< relref "/external/netflix/devx/temporal-spinnaker-cloud-operations.md" >}})
-- [Workbench UI 지연 추적기 (2024-10)]({{< relref "/external/netflix/devx/workbench-ui-latency-investigation.md" >}})
+- [호환성 경고를 넘어 저장소 밖의 호출자를 찾는 Quasar (2026-10)]({{< relref "/external/netflix/devx/quasar-library-change-blast-radius.md" >}})
+- [Spinnaker의 며칠짜리 배포를 이어 주는 Temporal (2025-12)]({{< relref "/external/netflix/devx/temporal-spinnaker-cloud-operations.md" >}})
+- [Workbench UI를 멈춘 JupyterLab 리소스 확장 (2024-10)]({{< relref "/external/netflix/devx/workbench-ui-latency-investigation.md" >}})
 
 빌드와 배포 파이프라인, 저장소 운영, 개발자 도구를 다루는 글입니다. Netflix 기술 블로그에서 고른 3편을 게시일 최신순으로 실었습니다.

@@ -20,6 +20,6 @@ AI가 작성한 기술 초안과 조사 자료를 모으는 공간입니다. 이
 | [데이터·스토리지]({{< relref "/data/_index.md" >}}) | ClickHouse, Redis·Valkey·Memcached, 블록 스토리지, S3 데이터 이관 |
 | [설계·개발]({{< relref "/engineering/_index.md" >}}) | 서비스 아키텍처, 커넥션 게이트웨이, 애플리케이션 런타임, AI 도구·에이전트, SRE |
 | [스터디]({{< relref "/study/_index.md" >}}) | 주제 하나를 요청·데이터의 흐름을 따라 여러 편으로 풀어 가는 학습 시리즈. 첫 시리즈는 Istio 메시의 한 요청의 여행 |
-| [타사 테크블로그]({{< relref "/external/_index.md" >}}) | 네이버·당근·쏘카·티맵·우아한형제들·카카오·토스·LY·쿠팡·Uber·Netflix 등 다른 회사 기술 블로그 글을 회사별로 요약한 자료 |
+| [타사 테크블로그]({{< relref "/external/_index.md" >}}) | 네이버·당근·쏘카·티맵·우아한형제들·카카오·토스·LY·쿠팡·Uber·Netflix·Cloudflare 등 다른 회사 기술 블로그 글을 회사별로 요약한 자료 |
 
 기술명이나 오류 메시지를 알고 있다면 검색으로 바로 찾아볼 수 있습니다. 글의 작성 배경과 근거 표기 방식은 [사이트 소개]({{< relref "/about.md" >}})에 있습니다.
