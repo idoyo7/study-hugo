@@ -1,0 +1,22 @@
+{{- /* term: 용어에 마우스를 올리거나 포커스하면 짧은 설명이 뜨는 인라인 툴팁.
+       사용: {{< term tip="설명 문장" >}}용어{{< /term >}}  (뒤따르는 조사는 붙여 쓴다: {{< /term >}}를)
+       안쪽은 한 줄짜리 인라인 마크다운(<p> 로 감싸지 않음). tip 은 속성값으로 이스케이프된다.
+       tip 이 없으면 안쪽 글자만 내고 빌드 경고를 남긴다.
+
+       설명은 자식 요소가 아니라 data-tip 속성이고, 화면에는 assets/css/custom.css 의 .term::after 가
+       attr(data-tip) 으로 그린다. 보조기기에는 aria-description 이 같은 문장을 전한다.
+       그래서 설명 문장이 페이지 텍스트에 섞이지 않는다: 본문 요약·검색 색인·llms.txt 에는 용어만 실리고,
+       RSS 리더에는 용어만 보인다(속성은 피드 HTML 에 남지만 리더가 그리지 않는다).
+       대신 툴팁 글자는 의사 요소라 선택·복사할 수 없다.
+
+       알려진 한계: 제목(#, ##) 안에서는 쓰지 말 것. 숏코드 자리표시자(HAHAHUGOSHORTCODE…)가
+       제목 id 와 우측·인라인 목차 링크 글자로 새어 나와 앵커가 깨진다(Hugo 숏코드 처리 방식 때문이라
+       툴팁 마크업과 무관하다). */ -}}
+{{- $tip := .Get "tip" -}}
+{{- $inner := .Inner | strings.TrimSpace | $.Page.RenderString (dict "display" "inline") -}}
+{{- if $tip -}}
+<span class="term" tabindex="0" data-tip="{{ $tip }}" aria-description="{{ $tip }}">{{ $inner }}</span>
+{{- else -}}
+{{- warnf "term 숏코드에 tip 이 없습니다: %s" .Page.File.Path -}}
+{{ $inner }}
+{{- end -}}
