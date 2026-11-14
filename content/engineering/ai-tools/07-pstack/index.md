@@ -88,6 +88,18 @@ Claude Code에는 원본 공식 하네스와 별도로 개발된 pstack-claude �
 
 포트 README는 자체 서버나 텔레메트리가 없다고 밝힙니다. 스킬이 에이전트에게 읽게 하는 내용은 트랜스크립트를 포함해 모두 모델 제공자에게 간다고 명시합니다. `automate-me`에는 현재 프로젝트의 트랜스크립트 경로만 쓰고 다른 프로젝트까지 glob하지 말라는 지시가 있습니다.
 
+## 다른 스킬 묶음 사이의 pstack
+
+pstack은 작업별 플레이북 안에서 설계와 검증을 진행하며, 계획 문서를 기본 출발점으로 삼지 않습니다. 계획 중심의 superpowers, 역할 페르소나를 쓰는 gstack, 팀 오케스트레이션을 앞세운 oh-my-claudecode와 비교하면 이 차이가 드러납니다.
+
+| 항목 | pstack(원본) | superpowers | gstack | oh-my-claudecode |
+|---|---|---|---|---|
+| 저장소 | `cursor/plugins`의 `pstack/` | `obra/superpowers` | `garrytan/gstack` | `Yeachan-Heo/oh-my-claudecode` |
+| 조회일 버전 | 0.15.36 | v7.0.2 | v1.99.2.0 | v5.8.4 |
+| 접근 방식 | 라우터 하나가 플레이북을 고르고 원칙을 인용. 다른 모델의 적대적 검증. 계획 스킬 없음 | brainstorming → writing-plans → executing-plans로 이어지는 계획 중심 방법론 | CEO, 엔지니어링 매니저, QA 리드 같은 역할 페르소나 | 멀티 에이전트 팀과 오케스트레이션 |
+| 스킬 수 | 공개 34 + 원칙 24, 플레이북 23 | 15 | 설명문 기준 23 | SKILL.md 84 |
+| 기본 대상 | Cursor, Claude Code 공식 하네스 | Claude Code를 비롯한 다수 하네스 | Claude Code와 주요 코딩 에이전트 | Claude Code |
+
 ## 공개 이슈와 비용 비평의 한계
 
 포트 이슈 [#264](https://github.com/michael-denyer/pstack-claude/issues/264)에서 한 사용자가 집계한 45일치 로컬 로그를 보면, 훅 문구가 들어간 Claude Code 메인 세션 1,725개 중 `poteto-mode`를 연 세션은 332개(19%)였습니다. 플레이북을 연 세션과 원칙을 연 세션은 각각 3%였습니다. 메인테이너는 예전 훅 문구를 쓰던 시기의 수치라고 답했습니다. 0.9.31부터는 작은 작업을 직접 처리하도록 바꿨으므로 낮은 열람률이 정상일 수 있다는 설명입니다.
@@ -104,3 +116,4 @@ Rob Shocks는 「Pstack Is Agent Overkill. Use It Anyway!」(2026-09-08)에서 �
 - [michael-denyer/pstack-claude](https://github.com/michael-denyer/pstack-claude), [reference](https://github.com/michael-denyer/pstack-claude/blob/main/docs/reference.md)
 - Lauren Tan, [How I Use Cursor](https://x.com/poteto/status/2058975157503570132) (X, 2026-05-25), [설치 안내 글](https://x.com/poteto/status/2110757066709356851) (X, 2026-10-15)
 - Rob Shocks, [Pstack Is Agent Overkill. Use It Anyway!](https://the-agent-daily.org/agentnews-experimental/deep-dives/pstack-is-agent-overkill-use-it-anyway) (2026-09-08)
+- [obra/superpowers](https://github.com/obra/superpowers), [garrytan/gstack](https://github.com/garrytan/gstack), [Yeachan-Heo/oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode)

@@ -8,7 +8,7 @@
 - 근거는 2026-11-14에 GitHub 저장소 원문(README, SKILL.md, plugin.json, 이슈)과 저자의 X 글로 확인했고, 직접 설치해 돌려 보지는 않았습니다. 처음 검색에서 별개 프로젝트로 보였던 `backnotprop/pstack`은 원본 미러였고, 원본에 plan·execute·review나 init·doctor 스킬은 없었습니다. 확인하지 못한 항목은 글 끝에 따로 적었습니다. 조사 보고서는 로컬 `_workspace/structure-2026-11-14-pstack/research.md`에 있습니다.
 - Claude 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`) 전면 재작성(조사 보고서를 사실 확인용으로 함께 제공) → URL·인라인 코드·수치·frontmatter 기계 대조와 문장 대조 순으로 만들었습니다. 저자의 "capable yet stupid" 비유에서 한쪽이 빠진 구절 하나만 직접 되살렸습니다.
 - Feature 플레이북 절에 flow 도식 한 장을 더했습니다. 메인 에이전트가 설계와 검증을 맡고 코드 작성만 구현 모델이나 arena 후보에 넘기는 역할 분담을 그렸고, 단계 목록은 그대로 두었습니다.
-- 글이 길다는 저자 평가에 따라 Astra xhigh로 한 번 더 재작성해 분량을 53%로 줄였습니다(공백 제외 10,190자 → 5,388자). 원칙·플레이북 이름 나열, 도식과 겹치는 8단계 목록, superpowers·gstack·oh-my-claudecode 비교 표, 미러 저장소와 스캐너 지적, 확인하지 못한 항목 목록을 뺐고 제목은 「07 pstack의 작업 위임과 검증」으로 바뀌었습니다. 남은 URL·코드·수치는 줄이기 전 글과 대조해 새로 생긴 값이 없음을 확인했습니다. 줄이기 전 글은 커밋 `faa1d01`에 있습니다.
+- 글이 길다는 저자 평가에 따라 Astra xhigh로 한 번 더 재작성해 분량을 53%로 줄였습니다(공백 제외 10,190자 → 5,388자). 원칙·플레이북 이름 나열, 도식과 겹치는 8단계 목록, superpowers·gstack·oh-my-claudecode 비교 표, 미러 저장소와 스캐너 지적, 확인하지 못한 항목 목록을 뺐고 제목은 「07 pstack의 작업 위임과 검증」으로 바뀌었습니다. 남은 URL·코드·수치는 줄이기 전 글과 대조해 새로 생긴 값이 없음을 확인했습니다. 줄이기 전 글은 커밋 `faa1d01`에 있습니다. 이어서 저자 요청으로 superpowers·gstack·oh-my-claudecode 비교 표와 그 출처 줄은 되살렸습니다.
 
 ## 2026-11-10 — 타사 테크블로그에 Anthropic 추가
 
