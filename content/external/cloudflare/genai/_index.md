@@ -10,6 +10,6 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [Cloudflare OS로 다시 짠 사내 AI 업무 방식 (2026-08)]({{< relref "/external/cloudflare/genai/how-we-use-ai-with-cloudflare-os.md" >}})
+- [SuperApp의 권한 요청에서 시작한 Cloudflare OS (2026-08)]({{< relref "/external/cloudflare/genai/how-we-use-ai-with-cloudflare-os.md" >}})
 
 LLM 에이전트와 생성형 AI 서비스를 만들고 운영하는 방법을 다루는 글입니다. Cloudflare 기술 블로그에서 고른 1편을 게시일 최신순으로 실었습니다.

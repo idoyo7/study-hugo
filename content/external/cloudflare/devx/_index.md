@@ -10,8 +10,8 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
-- [Infrastructure as Code로 옮긴 Cloudflare 내부 계정 관리 (2025-12)]({{< relref "/external/cloudflare/devx/shift-left-enterprise-scale.md" >}})
-- [OpenAPI로 SDK를 자동 생성한 파이프라인 구축 교훈 (2024-04)]({{< relref "/external/cloudflare/devx/lessons-from-building-an-automated-sdk-pipeline.md" >}})
-- [Terraform으로 Cloudflare 계정 설정 관리하기 (2022-11)]({{< relref "/external/cloudflare/devx/terraforming-cloudflare-at-cloudflare.md" >}})
+- [Cloudflare 계정의 설정 실수를 배포 전에 잡는 IaC (2025-12)]({{< relref "/external/cloudflare/devx/shift-left-enterprise-scale.md" >}})
+- [OpenAPI로 다시 설계한 Cloudflare SDK 파이프라인 (2024-04)]({{< relref "/external/cloudflare/devx/lessons-from-building-an-automated-sdk-pipeline.md" >}})
+- [수백 개 Cloudflare 계정에 코드 리뷰를 들인 Terraform (2022-11)]({{< relref "/external/cloudflare/devx/terraforming-cloudflare-at-cloudflare.md" >}})
 
 빌드와 배포 파이프라인, 저장소 운영, 개발자 도구를 다루는 글입니다. Cloudflare 기술 블로그에서 고른 3편을 게시일 최신순으로 실었습니다.

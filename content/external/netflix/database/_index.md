@@ -12,7 +12,7 @@ comments: false
 
 - [TimeSeries의 보관 비용을 줄인 Cassandra 백업 읽기 (2026-08)]({{< relref "/external/netflix/database/timeseries-tiered-storage-cassandra-cold.md" >}})
 - [Cassandra의 넓은 파티션을 나누는 TimeSeries (2026-06)]({{< relref "/external/netflix/database/dynamic-repartitioning-time-series.md" >}})
-- [RDS PostgreSQL에서 Aurora PostgreSQL로의 자동 마이그레이션 (2026-02)]({{< relref "/external/netflix/database/rds-to-aurora-postgres-migration.md" >}})
+- [RDS PostgreSQL을 Aurora PostgreSQL로 옮기는 자동화 (2026-02)]({{< relref "/external/netflix/database/rds-to-aurora-postgres-migration.md" >}})
 - [데이터 변경을 끝까지 전달하는 Netflix의 Write-Ahead Log (2025-09)]({{< relref "/external/netflix/database/write-ahead-log-data-platform.md" >}})
 - [Netflix Counter Abstraction의 몇 초 늦은 집계 (2024-11)]({{< relref "/external/netflix/database/distributed-counter-abstraction.md" >}})
 - [불변 이벤트를 시간으로 나눠 담는 Netflix TimeSeries (2024-10)]({{< relref "/external/netflix/database/timeseries-data-abstraction-layer.md" >}})
