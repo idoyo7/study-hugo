@@ -2,7 +2,7 @@
 title: "오리진의 리전을 알게 된 Smart Tiered Cache"
 description: "anycast IP까지의 짧은 지연이 가까운 오리진을 뜻하지는 않습니다. Cloudflare는 리전 힌트와 클라우드 IP 대역, 탐사 데이터를 결합해 퍼블릭 클라우드 오리진에 맞는 upper tier를 선택합니다."
 date: 2026-11-16
-weight: 5
+weight: 7
 ---
 
 # 오리진의 리전을 알게 된 Smart Tiered Cache (2026-07)

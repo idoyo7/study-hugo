@@ -2,7 +2,7 @@
 title: "Workflows의 병렬 실행을 드러내는 AST 다이어그램"
 description: "실행 순서가 미리 정해지지 않은 Cloudflare Workflows를 어떻게 그림으로 옮길까요? 배포 시점의 코드를 AST로 분석하고 Promise와 await 관계를 추적해 병렬 실행과 대기 지점을 드러냅니다."
 date: 2026-11-14
-weight: 8
+weight: 9
 ---
 
 # Workflows의 병렬 실행을 드러내는 AST 다이어그램 (2026-03)

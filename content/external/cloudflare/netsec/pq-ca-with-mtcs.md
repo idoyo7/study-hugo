@@ -2,7 +2,7 @@
 title: "MTC로 포스트 퀀텀 인증을 준비하는 Cloudflare CA"
 description: "기존 인증서에 포스트 퀀텀 서명을 넣으면 TLS와 투명성 로그의 부담이 커집니다. Cloudflare는 MTC로 발급과 로그 기록을 묶고, 큰 서명을 연결 밖에서 미리 배포해 이 부담을 줄이려 합니다."
 date: 2026-11-14
-weight: 2
+weight: 3
 ---
 
 # MTC로 포스트 퀀텀 인증을 준비하는 Cloudflare CA (2026-09)

@@ -2,7 +2,7 @@
 title: "큐 사이에 멈춘 NCMEC 신고와 Cloudflare Workflows"
 description: "실패한 NCMEC 신고가 어디에서 멈췄는지 어떻게 확인하고 다시 처리할까요? Cloudflare는 여러 큐에 흩어진 절차를 Workflows 하나로 모아 단계별 상태를 드러내고, 실패한 곳부터 작업을 이어 가도록 바꿨습니다."
 date: 2026-11-14
-weight: 10
+weight: 11
 ---
 
 # 큐 사이에 멈춘 NCMEC 신고와 Cloudflare Workflows (2025-04)

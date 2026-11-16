@@ -2,7 +2,7 @@
 title: "요청마다 할 일을 줄인 Cloudflare의 Rust FL2"
 description: "Cloudflare는 제품이 늘 때마다 더뎌지던 요청 처리를 어떻게 바꿨을까요? 필요한 모듈만 실행하는 Rust 기반 FL2로 응답 시간 중앙값을 10ms 줄이고, 기존 FL1에서도 새 모듈을 실행해 이관 중 제품 개발을 이어갔습니다."
 date: 2026-11-16
-weight: 14
+weight: 16
 ---
 
 # 요청마다 할 일을 줄인 Cloudflare의 Rust FL2 (2025-09)

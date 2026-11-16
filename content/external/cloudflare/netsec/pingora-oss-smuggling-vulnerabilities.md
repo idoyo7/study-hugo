@@ -2,7 +2,7 @@
 title: "백엔드와 HTTP 요청의 끝을 다르게 읽은 Pingora"
 description: "Pingora 프록시에서 요청이 보안 검사를 건너뛸 수 있었던 원인은 백엔드와 다른 요청 경계 해석이었습니다. Pingora 0.8.0은 Upgrade 전환과 본문 길이 처리를 고치고, 캐시 오염을 일으킬 수 있는 기본 CacheKey를 제거했습니다."
 date: 2026-11-16
-weight: 9
+weight: 11
 ---
 
 # 백엔드와 HTTP 요청의 끝을 다르게 읽은 Pingora (2026-03)

@@ -2,7 +2,7 @@
 title: "드문 요청을 한데 모은 Cloudflare Worker 샤딩"
 description: "트래픽이 적은 Worker에서 콜드 스타트가 반복되는 이유는 무엇일까요? Cloudflare는 기존 인스턴스로 요청을 모으는 샤딩으로 enterprise 트래픽의 콜드 스타트 비율을 10분의 1로 낮췄습니다."
 date: 2026-11-16
-weight: 8
+weight: 10
 ---
 
 # 드문 요청을 한데 모은 Cloudflare Worker 샤딩 (2025-09)

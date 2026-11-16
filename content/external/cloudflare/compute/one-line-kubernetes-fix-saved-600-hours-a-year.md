@@ -2,7 +2,7 @@
 title: "Atlantis를 30분씩 붙잡은 Kubernetes 기본값"
 description: "Cloudflare의 Atlantis 재시작이 30분씩 걸린 원인은 볼륨 전체에 반복되던 그룹 변경이었습니다. 볼륨 내부의 그룹 변경 가능성을 확인한 뒤 Kubernetes 설정 한 줄을 추가해 재시작 시간을 약 30초로 줄였습니다."
 date: 2026-11-16
-weight: 4
+weight: 5
 ---
 
 # Atlantis를 30분씩 붙잡은 Kubernetes 기본값 (2026-03)

@@ -1,6 +1,6 @@
 ---
 title: "Cloudflare"
-description: "Cloudflare 기술 블로그 3699편 가운데 인프라(컴퓨트·관측성·신뢰성·데이터베이스·CI·네트워크·보안)와 AI(LLM 에이전트·ML 플랫폼) 글 123편을 분류별로 모았습니다. 글마다 원문을 읽고 한국어로 요약했습니다."
+description: "Cloudflare 기술 블로그 3699편 가운데 인프라(컴퓨트·관측성·신뢰성·데이터베이스·CI·네트워크·보안)와 AI(LLM 에이전트·ML 플랫폼) 글 153편을 분류별로 모았습니다. 글마다 원문을 읽고 한국어로 요약했습니다."
 date: 2026-11-14
 weight: 120
 comments: false

@@ -2,7 +2,7 @@
 title: "무료 인증서의 새 공급원이 되려는 Cloudflare CA"
 description: "Cloudflare는 무료 인증서 발급이 한 CA에 크게 의존하는 웹에 새 공급원을 보태려 합니다. 기존 기기 호환성과 갱신 자동화를 갖춘 공개 CA를 준비하고 있으며, 첫 MTC 발급 목표는 2027년 1분기입니다."
 date: 2026-11-14
-weight: 1
+weight: 2
 ---
 
 # 무료 인증서의 새 공급원이 되려는 Cloudflare CA (2026-09)

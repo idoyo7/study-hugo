@@ -2,7 +2,7 @@
 title: "Cloudflare의 4시간 대기를 줄인 UEFI 부팅 순서"
 description: "Cloudflare의 일부 코어 서버가 펌웨어 업데이트 뒤 거의 4시간을 기다린 원인은 네트워크 부팅 인터페이스의 연속된 타임아웃이었습니다. iPXE에서 UEFI 부팅 순서를 미리 지정하고 검증해 펌웨어 업그레이드 자동화를 3분으로 줄였습니다."
 date: 2026-11-14
-weight: 2
+weight: 3
 ---
 
 # Cloudflare의 4시간 대기를 줄인 UEFI 부팅 순서 (2026-06)

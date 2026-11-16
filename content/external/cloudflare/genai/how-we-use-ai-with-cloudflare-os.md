@@ -2,7 +2,7 @@
 title: "SuperApp의 권한 요청에서 시작한 Cloudflare OS"
 description: "직원이 AI로 만든 앱에 사내 데이터 접근을 요청하면 어떻게 지원해야 할까요? Cloudflare는 사용자 권한을 지키는 Cloudflare OS를 만들고, 반복 업무마다 추론하던 절차를 AI가 작성한 코드로 바꿨습니다."
 date: 2026-11-14
-weight: 1
+weight: 4
 ---
 
 # SuperApp의 권한 요청에서 시작한 Cloudflare OS (2026-08)

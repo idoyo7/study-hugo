@@ -1,6 +1,6 @@
 ---
 title: "네트워크·보안"
-description: "Cloudflare 기술 블로그의 네트워크·보안 글 31편 목록입니다. 글마다 원문을 읽고 한국어로 요약했습니다."
+description: "Cloudflare 기술 블로그의 네트워크·보안 글 33편 목록입니다. 글마다 원문을 읽고 한국어로 요약했습니다."
 date: 2026-11-14
 weight: 9
 comments: false
@@ -10,9 +10,11 @@ comments: false
 
 ## 이 분류에서 찾기 {#section-navigation}
 
+- [공격 요청을 바꾸는 AI로 검증한 Cloudflare WAF (2026-09)]({{< relref "/external/cloudflare/netsec/adaptive-ai-waf-testing.md" >}})
 - [무료 인증서의 새 공급원이 되려는 Cloudflare CA (2026-09)]({{< relref "/external/cloudflare/netsec/cloudflare-certificate-authority.md" >}})
 - [MTC로 포스트 퀀텀 인증을 준비하는 Cloudflare CA (2026-09)]({{< relref "/external/cloudflare/netsec/pq-ca-with-mtcs.md" >}})
 - [Cloudflare Containers의 빈 공간에 남은 다른 고객의 데이터 (2026-09)]({{< relref "/external/cloudflare/netsec/containers-cross-tenant-vulnerability.md" >}})
+- [평범한 HTTPS 요청 속 MCP를 찾아내는 Cloudflare One (2026-08)]({{< relref "/external/cloudflare/netsec/mcp-security-updates.md" >}})
 - [.al 장애 때 DNSSEC 검증 우회를 알린 1.1.1.1 (2026-07)]({{< relref "/external/cloudflare/netsec/dnssec-nta-ede-33.md" >}})
 - [오리진의 리전을 알게 된 Smart Tiered Cache (2026-07)]({{< relref "/external/cloudflare/netsec/smart-tiered-cache-for-public-clouds.md" >}})
 - [Linux CUBIC의 유휴 보정에 갇힌 QUIC 연결 (2026-05)]({{< relref "/external/cloudflare/netsec/quic-death-spiral-fix.md" >}})
@@ -42,4 +44,4 @@ comments: false
 - [행간을 읽지 않는 Tamarin의 KEMTLS 보안 증명 (2022-02)]({{< relref "/external/cloudflare/netsec/post-quantum-formal-analysis.md" >}})
 - [상주 데몬 없이 수백만 IP의 연결을 배분하는 tubular (2022-02)]({{< relref "/external/cloudflare/netsec/tubular-fixing-the-socket-api-with-ebpf.md" >}})
 
-네트워크 구성과 서비스 보안을 다루는 글입니다. Cloudflare 기술 블로그에서 고른 31편을 게시일 최신순으로 실었습니다.
+네트워크 구성과 서비스 보안을 다루는 글입니다. Cloudflare 기술 블로그에서 고른 33편을 게시일 최신순으로 실었습니다.

@@ -2,7 +2,7 @@
 title: "동시성을 키워 최대 5배 빨라진 Super Slurper"
 description: "Cloudflare는 대규모 데이터 이전에 필요한 동시성을 어떻게 확보했을까요? Workers, Durable Objects, Queues로 Super Slurper를 재설계하고 중복 전송을 막아 R2 이전 속도를 최대 5배 높였습니다."
 date: 2026-11-14
-weight: 11
+weight: 12
 ---
 
 # 동시성을 키워 최대 5배 빨라진 Super Slurper (2025-04)

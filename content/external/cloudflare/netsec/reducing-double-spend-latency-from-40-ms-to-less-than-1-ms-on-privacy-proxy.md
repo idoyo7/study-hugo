@@ -2,7 +2,7 @@
 title: "Privacy Proxy의 40ms 지연을 줄인 명령 버퍼링"
 description: "Privacy Proxy의 토큰 검사가 약 40ms씩 늦어진 원인은 분할 전송과 ACK 대기의 상호작용이었습니다. Cloudflare는 명령을 버퍼에 모아 한 번에 보내 검사 지연 중앙값을 1ms 미만으로 낮췄습니다."
 date: 2026-11-16
-weight: 18
+weight: 20
 ---
 
 # Privacy Proxy의 40ms 지연을 줄인 명령 버퍼링 (2025-08)

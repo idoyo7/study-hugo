@@ -2,7 +2,7 @@
 title: "수학과 Rust로 100TB의 RAM을 되찾은 Pingora"
 description: "Pingora의 해시 링은 왜 많은 메모리를 차지했을까요? Cloudflare는 해시 하나의 저장 크기와 해시 개수를 줄이고 데이터 센터별로 링을 이전해 100TB가 넘는 RAM을 회수했습니다."
 date: 2026-11-16
-weight: 1
+weight: 2
 ---
 
 # 수학과 Rust로 100TB의 RAM을 되찾은 Pingora (2026-09)

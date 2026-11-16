@@ -2,7 +2,7 @@
 title: "Cloudflare Workers의 보안 경계가 된 샌드박스 배치"
 description: "Cloudflare Workers는 수천 개의 스크립트를 격리할 가상 주소 공간을 어떻게 확보했을까요? V8 sandbox를 밀집 배치하고 메모리 보호 키를 순환 배정해 공간을 아끼고 격리 경계도 강화했습니다."
 date: 2026-11-16
-weight: 15
+weight: 17
 ---
 
 # Cloudflare Workers의 보안 경계가 된 샌드박스 배치 (2025-09)

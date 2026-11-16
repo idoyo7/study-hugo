@@ -2,7 +2,7 @@
 title: "Linux로 만든 WARP VPN이 마주한 IPv4 비용"
 description: "초기 WARP는 사용자 패킷을 어떻게 안전하게 인터넷에 내보냈을까요? Linux의 NAT와 연결 마크로 경로를 마련했지만, 서버마다 필요한 IPv4 주소의 임대 비용이 확장의 걸림돌이 됐습니다."
 date: 2026-11-16
-weight: 12
+weight: 14
 ---
 
 # Linux로 만든 WARP VPN이 마주한 IPv4 비용 (2025-10)

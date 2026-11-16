@@ -2,7 +2,7 @@
 title: "Salesloft Drift에서 시작된 Cloudflare 지원 케이스 유출"
 description: "Cloudflare 서비스와 인프라가 침해되지 않았는데도 고객은 왜 자격 증명을 교체해야 했을까요? 탈취된 Salesloft Drift 연동 자격 증명으로 Salesforce 지원 기록이 유출됐고, 그 안에는 고객이 보낸 토큰과 비밀번호가 포함될 수 있었기 때문입니다."
 date: 2026-11-14
-weight: 17
+weight: 19
 ---
 
 # Salesloft Drift에서 시작된 Cloudflare 지원 케이스 유출 (2025-09)

@@ -2,7 +2,7 @@
 title: "오래 쓸 부품을 남기는 Cloudflare Gen 12의 설계"
 description: "새 CPU를 쓰려면 왜 멀쩡한 서버 부품까지 교체해야 할까요? Cloudflare는 Gen 12의 모듈형 설계와 오픈 표준으로 재사용 범위를 넓히고, 늘어나는 워크로드에 맞춰 전력 효율의 평가 기준도 바꾸려 합니다."
 date: 2026-11-14
-weight: 10
+weight: 12
 ---
 
 # 오래 쓸 부품을 남기는 Cloudflare Gen 12의 설계 (2022-12)

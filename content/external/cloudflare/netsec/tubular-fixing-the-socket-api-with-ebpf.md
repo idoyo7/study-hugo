@@ -2,7 +2,7 @@
 title: "상주 데몬 없이 수백만 IP의 연결을 배분하는 tubular"
 description: "수백만 IP의 연결을 다루는 tubular를 상주 데몬 없이 어떻게 운영할까요? Cloudflare는 상태를 eBPF 맵에 보관하고, 짧게 실행되는 명령으로 바인딩 변경과 프로그램 교체를 처리합니다."
 date: 2026-11-14
-weight: 31
+weight: 33
 ---
 
 # 상주 데몬 없이 수백만 IP의 연결을 배분하는 tubular (2022-02)

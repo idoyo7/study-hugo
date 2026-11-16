@@ -2,7 +2,7 @@
 title: "Node.js API를 갖춘 Cloudflare Workers 런타임"
 description: "Cloudflare Workers는 서버를 전제로 만든 Node.js 코드를 어떻게 실행할까요? 기존 네트워크 기능과 새 가상 파일 시스템을 활용해 API를 런타임에 구현하고, 호환성 날짜와 플래그로 기존 코드를 보호합니다."
 date: 2026-11-16
-weight: 9
+weight: 11
 ---
 
 # Node.js API를 갖춘 Cloudflare Workers 런타임 (2025-09)

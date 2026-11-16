@@ -2,7 +2,7 @@
 title: "연결을 끊지 않고 Rust 서비스의 코드를 바꾸는 ecdysis"
 description: "Rust 서비스를 업데이트하면서 새 연결과 처리 중인 연결을 어떻게 지킬까요? Cloudflare의 ecdysis는 리스닝 소켓을 공유하며 새 프로세스를 준비하고, 이전 프로세스가 기존 연결을 마저 처리한 뒤 종료하도록 합니다."
 date: 2026-11-16
-weight: 6
+weight: 8
 ---
 
 # 연결을 끊지 않고 Rust 서비스의 코드를 바꾸는 ecdysis (2026-02)

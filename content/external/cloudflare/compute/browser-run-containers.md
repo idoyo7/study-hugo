@@ -2,7 +2,7 @@
 title: "Containers에서 더 빠르게 확장하는 Browser Run"
 description: "짧고 급증하는 Browser Run 요청을 감당하려고 Cloudflare는 공유 인프라에서 Containers로 옮겼습니다. 지역별 브라우저 풀과 D1·Queues로 확장 병목을 풀고 Quick Action 응답 시간을 50% 넘게 줄였습니다."
 date: 2026-11-16
-weight: 3
+weight: 4
 ---
 
 # Containers에서 더 빠르게 확장하는 Browser Run (2026-05)

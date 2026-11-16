@@ -2,7 +2,7 @@
 title: "요청 하나에 맞춰 할당을 줄인 Cloudflare의 CatBoost"
 description: "요청마다 실행하는 ML 추론에서 어떤 비용을 줄일 수 있었을까요? Cloudflare는 CatBoost를 단일 요청 평가에 맞추고 버퍼와 범주형 피처 해시를 재사용해 불필요한 할당과 계산을 줄였습니다."
 date: 2026-11-14
-weight: 1
+weight: 9
 ---
 
 # 요청 하나에 맞춰 할당을 줄인 Cloudflare의 CatBoost (2023-06)

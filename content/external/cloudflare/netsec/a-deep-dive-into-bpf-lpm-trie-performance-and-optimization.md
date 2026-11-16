@@ -2,7 +2,7 @@
 title: "수백만 항목 앞에서 한계를 드러낸 BPF LPM trie"
 description: "Cloudflare가 BPF LPM trie의 조회 지연을 추적하자, 자식 포인터 두 개로 제한된 분기와 노드별 메모리 할당이 병목으로 드러났습니다. Linux 라우팅 코드의 Level-Compressed Trie를 재사용하려는 개선 방향까지 짚습니다."
 date: 2026-11-16
-weight: 13
+weight: 15
 ---
 
 # 수백만 항목 앞에서 한계를 드러낸 BPF LPM trie (2025-10)

@@ -2,7 +2,7 @@
 title: "키를 쓸 지역을 암호화로 제한한 Geo Key Manager v2"
 description: "모든 데이터 센터에 키의 암호문을 복제하면서 사용 지역은 어떻게 제한할까요? Cloudflare는 Geo Key Manager v2에서 속성 기반 암호화로 복호화 권한을 제한하고, 정책 키를 재사용해 키 교체와 요청 처리의 부담을 줄였습니다."
 date: 2026-11-14
-weight: 27
+weight: 29
 ---
 
 # 키를 쓸 지역을 암호화로 제한한 Geo Key Manager v2 (2023-01)

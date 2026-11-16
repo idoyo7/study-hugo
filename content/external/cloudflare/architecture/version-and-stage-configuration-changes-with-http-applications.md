@@ -2,7 +2,7 @@
 title: "HTTP Applications로 배포 전에 시험하는 설정 변경"
 description: "별도 스테이징 zone 없이 Cloudflare 설정 변경을 어떻게 시험할까요? HTTP Applications의 설정 버전을 테스트용 IP에서 시험하고, Routing Rules로 같은 버전을 전체 트래픽에 적용합니다."
 date: 2026-11-14
-weight: 15
+weight: 16
 ---
 
 # HTTP Applications로 배포 전에 시험하는 설정 변경 (2022-05)

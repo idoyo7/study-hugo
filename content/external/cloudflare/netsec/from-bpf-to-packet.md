@@ -2,7 +2,7 @@
 title: "BPF 바이트코드에서 매직 패킷을 만드는 filterforge"
 description: "BPF 필터가 받아들이는 매직 패킷은 어떻게 만들 수 있을까요? Cloudflare의 filterforge는 허용 경로의 조건을 Z3로 풀고 scapy로 패킷 골격을 자동 생성합니다."
 date: 2026-11-16
-weight: 8
+weight: 10
 ---
 
 # BPF 바이트코드에서 매직 패킷을 만드는 filterforge (2026-04)

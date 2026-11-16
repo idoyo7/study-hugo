@@ -2,7 +2,7 @@
 title: "Cloudflare가 FL의 제품 로직을 옮기는 Workers"
 description: "FL에 모인 제품 로직을 Workers로 옮기려면 무엇이 필요할까요? Cloudflare가 내부 서비스에 필요한 자원 접근·관측·배포 기능을 보완한 과정과 점진 이전의 조건을 짚습니다."
 date: 2026-11-14
-weight: 13
+weight: 14
 ---
 
 # Cloudflare가 FL의 제품 로직을 옮기는 Workers (2023-05)

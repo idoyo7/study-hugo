@@ -2,7 +2,7 @@
 title: "Workers에서 운영 부담을 줄인 Matrix 홈서버 실험"
 description: "Matrix 홈서버를 직접 운영하는 부담을 Workers로 줄일 수 있을까요? 개인 프로젝트 개념 증명에서는 데이터마다 필요한 일관성에 맞춰 저장소를 나누고, 포스트 퀀텀 TLS를 자동으로 적용하면서 운영 작업과 유휴 비용을 줄였습니다."
 date: 2026-11-14
-weight: 9
+weight: 10
 ---
 
 # Workers에서 운영 부담을 줄인 Matrix 홈서버 실험 (2026-01)

@@ -2,7 +2,7 @@
 title: "사설망 안의 서비스에 닿는 Workers VPC Services"
 description: "전 세계에서 실행되는 Workers는 지역 사설망의 서비스에 어떻게 접근할까요? Workers VPC Services는 Cloudflare Tunnel로 요청을 전달하고, 배포 시점에 권한을 검증하는 바인딩으로 접근 대상을 서비스별로 한정합니다."
 date: 2026-11-16
-weight: 11
+weight: 13
 ---
 
 # 사설망 안의 서비스에 닿는 Workers VPC Services (2025-11)

@@ -2,7 +2,7 @@
 title: "Linux CUBIC의 유휴 보정에 갇힌 QUIC 연결"
 description: "손실이 끝난 QUIC 연결의 혼잡 윈도는 왜 다시 자라지 않았을까요? Cloudflare는 quiche의 CUBIC이 ACK 대기 시간을 유휴 시간으로 잘못 세던 문제를 마지막 ACK 시각을 계산에 포함해 해결했습니다."
 date: 2026-11-16
-weight: 6
+weight: 8
 ---
 
 # Linux CUBIC의 유휴 보정에 갇힌 QUIC 연결 (2026-05)

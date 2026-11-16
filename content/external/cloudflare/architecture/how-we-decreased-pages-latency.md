@@ -2,7 +2,7 @@
 title: "Cloudflare Pages를 빠르게 한 Workers for Platforms"
 description: "Cloudflare Pages는 배포가 늘수록 커지는 라우팅 테이블 때문에 느려졌습니다. Workers for Platforms의 해시 조회로 에셋 서빙 TTFB를 최대 10배 줄이고, 기존 경로를 유지한 채 1,400만 건이 넘는 배포를 옮겼습니다."
 date: 2026-11-14
-weight: 12
+weight: 13
 ---
 
 # Cloudflare Pages를 빠르게 한 Workers for Platforms (2023-06)
