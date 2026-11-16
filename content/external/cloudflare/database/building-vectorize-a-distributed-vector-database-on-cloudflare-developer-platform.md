@@ -2,7 +2,7 @@
 title: "수백만 벡터를 전 세계에서 찾는 Cloudflare Vectorize"
 description: "Cloudflare Vectorize는 수백만 벡터를 어떻게 빠르고 저렴하게 검색할까요? IVF와 PQ로 검색할 데이터를 줄이고, 전 세계 서버가 불변 스냅샷을 읽는 동안 WAL이 비동기 쓰기를 조율하도록 설계했습니다."
 date: 2026-11-14
-weight: 8
+weight: 14
 ---
 
 # 수백만 벡터를 전 세계에서 찾는 Cloudflare Vectorize (2024-10)

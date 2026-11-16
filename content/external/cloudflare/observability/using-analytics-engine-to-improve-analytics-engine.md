@@ -2,7 +2,7 @@
 title: "SQL API 계측으로 다듬은 Workers Analytics Engine"
 description: "Cloudflare는 SQL API의 성능과 고객이 겪는 오류를 쿼리별 이벤트로 확인했습니다. Workers Analytics Engine으로 자사 API를 분석하고, 그 결과를 기능 우선순위와 보존 기간에 반영한 사례입니다."
 date: 2026-11-14
-weight: 4
+weight: 6
 ---
 
 # SQL API 계측으로 다듬은 Workers Analytics Engine (2022-11)

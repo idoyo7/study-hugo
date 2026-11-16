@@ -2,7 +2,7 @@
 title: "Node.js와 모듈 규칙을 맞춘 Workers의 새 레지스트리"
 description: "Workers에서 Node.js 앱을 실행하려면 API뿐 아니라 모듈을 찾고 불러오는 규칙도 맞아야 합니다. Cloudflare는 URL을 기준으로 모듈 레지스트리를 다시 쓰고, 지연 컴파일과 캐시 공유를 처음부터 설계에 넣었습니다."
 date: 2026-11-14
-weight: 3
+weight: 4
 ---
 
 # Node.js와 모듈 규칙을 맞춘 Workers의 새 레지스트리 (2026-09)

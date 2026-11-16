@@ -2,7 +2,7 @@
 title: "Cloudflare for SaaS 이전 중 잘못 활성화된 호스트네임"
 description: "Cloudflare for SaaS 이전 중 24개 호스트네임의 트래픽은 왜 clickfunnels.com으로 향했을까요? blocked 호스트네임이 잘못 active 상태로 바뀌면서 해당 트래픽에 clickfunnels.com의 설정이 적용됐습니다."
 date: 2026-11-14
-weight: 32
+weight: 37
 ---
 
 # Cloudflare for SaaS 이전 중 잘못 활성화된 호스트네임 (2022-01)

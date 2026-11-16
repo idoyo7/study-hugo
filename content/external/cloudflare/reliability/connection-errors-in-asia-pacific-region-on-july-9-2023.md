@@ -2,7 +2,7 @@
 title: "Verisign DNSSEC 장애로 태평양을 건넌 DNS 쿼리"
 description: "Cloudflare는 아시아태평양의 DNSSEC 오류를 어떻게 해결했을까요? Verisign의 .com과 .net 네임서버가 만료된 서명을 보내자 DNS 쿼리를 미국 서부로 우회해 오류율을 0으로 낮췄습니다."
 date: 2026-11-14
-weight: 26
+weight: 31
 ---
 
 # Verisign DNSSEC 장애로 태평양을 건넌 DNS 쿼리 (2023-07)

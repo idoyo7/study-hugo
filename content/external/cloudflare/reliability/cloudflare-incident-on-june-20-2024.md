@@ -2,7 +2,7 @@
 title: "DDoS 규칙이 드러낸 Cloudflare의 무한 루프"
 description: "Cloudflare는 왜 트래픽을 줄여도 CPU 부하를 낮추지 못했을까요? 새 DDoS 규칙이 드러낸 잠복 버그로 HTTP 처리 프로세스가 무한 루프에 빠졌고, 트래픽 재분배가 문제의 요청을 다른 서버와 데이터 센터로 옮겼습니다."
 date: 2026-11-14
-weight: 19
+weight: 24
 ---
 
 # DDoS 규칙이 드러낸 Cloudflare의 무한 루프 (2024-06)

@@ -2,7 +2,7 @@
 title: "수백 개 Cloudflare 계정에 코드 리뷰를 들인 Terraform"
 description: "Cloudflare는 수백 개 계정의 설정을 어떻게 검토하고 관리할까요? Terraform과 Atlantis로 변경을 검토하고, 계정별 tfstate와 하루 한 번의 apply로 설정을 관리합니다."
 date: 2026-11-14
-weight: 3
+weight: 6
 ---
 
 # 수백 개 Cloudflare 계정에 코드 리뷰를 들인 Terraform (2022-11)

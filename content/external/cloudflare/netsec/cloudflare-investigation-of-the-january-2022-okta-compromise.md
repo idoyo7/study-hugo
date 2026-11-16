@@ -2,7 +2,7 @@
 title: "Okta 침해 뒤 계정 변경 기록을 되짚은 Cloudflare"
 description: "Okta 침해 소식을 접한 Cloudflare는 FIDO 토큰과 계정 변경 기록을 조사하고, 비밀번호 재설정 기록을 이메일 로그와 대조했습니다. 비밀번호나 MFA를 변경한 직원 144명에게는 비밀번호 재설정을 다시 요구했습니다."
 date: 2026-11-14
-weight: 17
+weight: 29
 ---
 
 # Okta 침해 뒤 계정 변경 기록을 되짚은 Cloudflare (2022-03)

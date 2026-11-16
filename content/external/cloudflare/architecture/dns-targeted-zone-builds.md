@@ -2,7 +2,7 @@
 title: "수천만 레코드의 재빌드를 줄인 Cloudflare Zone Builder"
 description: "수천만 레코드를 가진 영역의 설정 변경을 어떻게 더 작게 처리했을까요? Cloudflare는 타깃 빌드와 통합 스케줄러로 피크 메모리를 85% 줄였고, 이후 대기 간격을 단축해 빌드 완료 지연의 중앙값을 절반으로 낮췄습니다."
 date: 2026-11-14
-weight: 1
+weight: 2
 ---
 
 # 수천만 레코드의 재빌드를 줄인 Cloudflare Zone Builder (2026-11)

@@ -2,7 +2,7 @@
 title: "Cloudflare 트래픽을 멈춘 Bot Management 피처 파일"
 description: "ClickHouse 권한 변경이 왜 Cloudflare의 트래픽을 멈췄을까요? Bot Management 피처 파일에 중복 항목이 들어가면서 코어 프록시가 처리할 수 있는 피처 수 한도를 넘었습니다."
 date: 2026-11-14
-weight: 10
+weight: 11
 ---
 
 # Cloudflare 트래픽을 멈춘 Bot Management 피처 파일 (2025-11)

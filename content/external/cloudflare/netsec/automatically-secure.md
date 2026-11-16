@@ -2,7 +2,7 @@
 title: "600만 도메인의 암호화를 높인 Automatic SSL/TLS"
 description: "추천만으로 바뀌지 않던 오리진 암호화를 어떻게 높였을까요? Cloudflare는 Automatic SSL/TLS로 호환성을 검사하고 트래픽을 점진적으로 전환해 600만 개 넘는 도메인을 업그레이드했으며, 이 방식을 포스트 양자 키 합의까지 확장할 계획입니다."
 date: 2026-11-14
-weight: 6
+weight: 16
 ---
 
 # 600만 도메인의 암호화를 높인 Automatic SSL/TLS (2025-09)

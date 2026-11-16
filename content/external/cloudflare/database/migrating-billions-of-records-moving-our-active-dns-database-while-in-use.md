@@ -2,7 +2,7 @@
 title: "Cloudflare DNS를 공용 DB에서 분리한 2초의 전환"
 description: "계속 바뀌는 수십억 DNS 레코드를 어떻게 별도 데이터베이스로 옮겼을까요? Cloudflare는 접근을 gRPC API로 모으고 변경을 배치로 복사·검증하면서, 마지막 쓰기 전환을 2초 이내에 마쳤습니다."
 date: 2026-11-14
-weight: 7
+weight: 13
 ---
 
 # Cloudflare DNS를 공용 DB에서 분리한 2초의 전환 (2024-10)

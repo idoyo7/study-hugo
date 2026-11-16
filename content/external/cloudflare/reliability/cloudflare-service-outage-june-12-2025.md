@@ -2,7 +2,7 @@
 title: "Cloudflare Workers KV 뒤에 남은 단일 장애점"
 description: "각 거점에서 독립적으로 실행되는 Workers KV도 중앙 저장소 장애를 피하지 못했습니다. 공통 저장소의 실패가 Cloudflare의 여러 제품으로 번진 경로와, 복구 중 캐시 부하까지 제어하려는 후속 작업을 짚습니다."
 date: 2026-11-14
-weight: 15
+weight: 17
 ---
 
 # Cloudflare Workers KV 뒤에 남은 단일 장애점 (2025-06)

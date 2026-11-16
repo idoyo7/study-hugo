@@ -2,7 +2,7 @@
 title: "필요한 트래픽만 옮기는 Cloudflare Traffic Manager"
 description: "데이터 센터 장애 때 트래픽을 얼마나, 어디로 옮겨야 하는지 Cloudflare의 Traffic Manager에서 답을 찾습니다. 실제 경로 시험으로 이동할 곳을 예측하고, CPU 시간과 사용자 지연을 기준으로 필요한 양을 옮겼다가 여유가 생기면 되돌립니다."
 date: 2026-11-14
-weight: 24
+weight: 29
 ---
 
 # 필요한 트래픽만 옮기는 Cloudflare Traffic Manager (2023-09)

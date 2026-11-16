@@ -2,7 +2,7 @@
 title: "AI 크롤러의 반복 스캔에 흔들리는 Cloudflare 캐시"
 description: "AI 크롤러를 받으면서 사람의 응답 속도를 지키려면 캐시를 어떻게 바꿔야 할까요? Cloudflare는 ETH Zurich와 교체 알고리즘을 실험하고, AI 작업이 감수할 수 있는 지연에 맞춰 별도 캐시 계층을 구상하고 있습니다."
 date: 2026-11-14
-weight: 5
+weight: 6
 ---
 
 # AI 크롤러의 반복 스캔에 흔들리는 Cloudflare 캐시 (2026-04)

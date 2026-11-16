@@ -2,7 +2,7 @@
 title: "조용히 멈춘 Prometheus 알림 규칙을 찾아내는 pint"
 description: "Prometheus 알림이 없을 때 서비스가 정상인지, 규칙이 멈춘 것인지 어떻게 구분할까요? Cloudflare는 pint로 실제 메트릭과 규칙을 대조해 빈 쿼리 결과에 숨은 문제를 찾습니다."
 date: 2026-11-14
-weight: 5
+weight: 7
 ---
 
 # 조용히 멈춘 Prometheus 알림 규칙을 찾아내는 pint (2022-05)

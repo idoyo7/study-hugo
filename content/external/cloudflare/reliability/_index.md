@@ -1,6 +1,6 @@
 ---
 title: "신뢰성·트래픽 관리"
-description: "Cloudflare 기술 블로그의 신뢰성·트래픽 관리 글 32편 목록입니다. 글마다 원문을 읽고 한국어로 요약했습니다."
+description: "Cloudflare 기술 블로그의 신뢰성·트래픽 관리 글 37편 목록입니다. 글마다 원문을 읽고 한국어로 요약했습니다."
 date: 2026-11-14
 weight: 5
 comments: false
@@ -17,14 +17,19 @@ comments: false
 - [Cloudflare BYOIP 대량 철회로 번진 삭제 자동화 (2026-02)]({{< relref "/external/cloudflare/reliability/cloudflare-outage-february-20-2026.md" >}})
 - [프리픽스 목록 삭제가 부른 Cloudflare BGP 경로 유출 (2026-01)]({{< relref "/external/cloudflare/reliability/route-leak-incident-january-22-2026.md" >}})
 - [1.1.1.1의 메모리 최적화가 뒤집은 CNAME 순서 (2026-01)]({{< relref "/external/cloudflare/reliability/cname-a-record-order-dns-standards.md" >}})
+- [겹친 유지보수의 위험을 가려내는 Workers 스케줄러 (2025-12)]({{< relref "/external/cloudflare/reliability/building-our-maintenance-scheduler-on-workers.md" >}})
 - [Cloudflare의 장애 확산을 막을 Code Orange Fail Small (2025-12)]({{< relref "/external/cloudflare/reliability/fail-small-resilience-plan.md" >}})
 - [Cloudflare의 HTTP 500 오류를 부른 WAF 킬스위치 (2025-12)]({{< relref "/external/cloudflare/reliability/5-december-2025-outage.md" >}})
 - [Cloudflare 트래픽을 멈춘 Bot Management 피처 파일 (2025-11)]({{< relref "/external/cloudflare/reliability/18-november-2025-outage.md" >}})
+- [멈춘 Salt 배포의 원인을 좁혀 가는 Cloudflare (2025-11)]({{< relref "/external/cloudflare/reliability/finding-the-grain-of-sand-in-a-heap-of-salt.md" >}})
 - [Cloudflare 대시보드에서 시작된 Tenant Service 장애 (2025-09)]({{< relref "/external/cloudflare/reliability/deep-dive-into-cloudflares-sept-12-dashboard-and-api-outage.md" >}})
 - [한 고객이 포화시킨 Cloudflare와 AWS us-east-1 연결 (2025-08)]({{< relref "/external/cloudflare/reliability/cloudflare-incident-on-august-21-2025.md" >}})
 - [288바이트에 맞춰 다시 설계한 Workers KV 저장소 (2025-08)]({{< relref "/external/cloudflare/reliability/rearchitecting-workers-kv-for-redundancy.md" >}})
 - [Cloudflare 1.1.1.1을 멈춘 서비스 토폴로지 설정 (2025-07)]({{< relref "/external/cloudflare/reliability/cloudflare-1-1-1-1-incident-on-july-14-2025.md" >}})
 - [Cloudflare Workers KV 뒤에 남은 단일 장애점 (2025-06)]({{< relref "/external/cloudflare/reliability/cloudflare-service-outage-june-12-2025.md" >}})
+- [새 인증 정보를 받지 못한 R2 Gateway Worker (2025-03)]({{< relref "/external/cloudflare/reliability/cloudflare-incident-march-21-2025.md" >}})
+- [Linux hung task 경고에 이름이 찍힌 프로세스 (2025-02)]({{< relref "/external/cloudflare/reliability/searching-for-the-cause-of-hung-tasks-in-the-linux-kernel.md" >}})
+- [피싱 신고 처리 중 닫힌 Cloudflare R2 Gateway (2025-02)]({{< relref "/external/cloudflare/reliability/cloudflare-incident-on-february-6-2025.md" >}})
 - [로그를 지키려다 과부하를 부른 Cloudflare Logs (2024-11)]({{< relref "/external/cloudflare/reliability/cloudflare-incident-on-november-14-2024-resulting-in-lost-logs.md" >}})
 - [Cloudflare에서 추적한 OVHcloud 장애의 경로 (2024-10)]({{< relref "/external/cloudflare/reliability/cloudflare-perspective-of-the-october-30-2024-ovhcloud-outage.md" >}})
 - [비어 있다고 믿은 주소에서 시작된 Cloudflare IPv4 장애 (2024-09)]({{< relref "/external/cloudflare/reliability/cloudflare-incident-on-september-17-2024.md" >}})
@@ -43,4 +48,4 @@ comments: false
 - [DNSSEC 검증 오류로 접속이 엇갈린 피지 .fj 도메인 (2022-03)]({{< relref "/external/cloudflare/reliability/dnssec-issues-fiji.md" >}})
 - [Cloudflare for SaaS 이전 중 잘못 활성화된 호스트네임 (2022-01)]({{< relref "/external/cloudflare/reliability/incorrect-proxying-of-24-hostnames-on-january-24-2022.md" >}})
 
-장애 대응과 이중화, 트래픽 제어처럼 서비스를 안정적으로 유지하는 방법을 다루는 글입니다. Cloudflare 기술 블로그에서 고른 32편을 게시일 최신순으로 실었습니다.
+장애 대응과 이중화, 트래픽 제어처럼 서비스를 안정적으로 유지하는 방법을 다루는 글입니다. Cloudflare 기술 블로그에서 고른 37편을 게시일 최신순으로 실었습니다.

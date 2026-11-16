@@ -2,7 +2,7 @@
 title: "복제본 사이에서도 읽기 순서를 지키는 D1 Sessions"
 description: "읽기 복제본이 바뀔 때 데이터가 과거로 돌아간 듯 보이는 문제를 D1은 commit token과 Sessions API로 풀 계획입니다. 2024년 4월 GA 기능과 당시 개발 중이던 전역 읽기 복제 설계를 함께 다룹니다."
 date: 2026-11-14
-weight: 9
+weight: 15
 ---
 
 # 복제본 사이에서도 읽기 순서를 지키는 D1 Sessions (2024-04)

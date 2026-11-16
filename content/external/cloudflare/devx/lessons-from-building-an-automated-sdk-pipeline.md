@@ -2,7 +2,7 @@
 title: "OpenAPI로 다시 설계한 Cloudflare SDK 파이프라인"
 description: "언어별 SDK의 지원 격차와 수작업 부담을 Cloudflare는 OpenAPI와 Stainless로 줄였습니다. 대부분의 변경을 PR 하나로 배포하기까지 사용법을 먼저 설계하고 스키마를 다듬은 과정을 담았습니다."
 date: 2026-11-14
-weight: 2
+weight: 5
 ---
 
 # OpenAPI로 다시 설계한 Cloudflare SDK 파이프라인 (2024-04)

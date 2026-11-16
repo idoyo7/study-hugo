@@ -2,7 +2,7 @@
 title: "FL2에 맞춰 다시 설계한 Cloudflare Gen 13"
 description: "FL2 전환 뒤 Cloudflare는 왜 L3 캐시가 작은 CPU를 골랐을까요? Gen 13은 코어 수에 거의 비례해 처리량이 늘어나는 워크로드에 맞춰 192코어와 이를 뒷받침할 메모리·네트워크·전원 구성을 택했습니다."
 date: 2026-11-14
-weight: 2
+weight: 5
 ---
 
 # FL2에 맞춰 다시 설계한 Cloudflare Gen 13 (2026-03)

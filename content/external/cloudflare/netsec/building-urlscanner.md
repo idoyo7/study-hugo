@@ -2,7 +2,7 @@
 title: "브라우저를 재사용하도록 바꾼 Cloudflare URL Scanner"
 description: "브라우저 시작 지연과 검색 DB의 쓰기 부하를 어떻게 줄일까요? Cloudflare URL Scanner는 브라우저를 재사용하고 검색 반영을 배치 처리하되, 완성된 보고서는 ID로 바로 조회하도록 했습니다."
 date: 2026-11-14
-weight: 10
+weight: 22
 ---
 
 # 브라우저를 재사용하도록 바꾼 Cloudflare URL Scanner (2024-03)

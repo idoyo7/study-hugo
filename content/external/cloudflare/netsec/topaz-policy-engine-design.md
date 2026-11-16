@@ -2,7 +2,7 @@
 title: "배포 전에 DNS 정책 충돌을 잡는 Cloudflare Topaz"
 description: "여러 팀이 작성한 DNS 주소 선택 규칙이 서로를 가리거나 충돌하는지 어떻게 알아낼까요? Cloudflare는 Topaz 프로그램을 배포하기 전에 실행 조건을 형식 검증하고, 충돌을 일으키는 질의를 예시로 보여 줍니다."
 date: 2026-11-14
-weight: 8
+weight: 20
 ---
 
 # 배포 전에 DNS 정책 충돌을 잡는 Cloudflare Topaz (2024-11)

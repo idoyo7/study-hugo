@@ -2,7 +2,7 @@
 title: "Okta 통보보다 먼저 시작된 Cloudflare의 침해 대응"
 description: "Okta의 관리자 세션을 악용한 공격자를 Cloudflare는 어떻게 막았을까요? Okta의 통보보다 24시간 넘게 앞서 침입을 탐지했고, 공격자가 고객 데이터와 시스템에 접근하기 전에 봉쇄했습니다."
 date: 2026-11-14
-weight: 11
+weight: 23
 ---
 
 # Okta 통보보다 먼저 시작된 Cloudflare의 침해 대응 (2023-10)

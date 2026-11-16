@@ -2,7 +2,7 @@
 title: "롤백 뒤에 번진 Cloudflare 서비스 토큰 장애"
 description: "서비스 토큰 기능을 롤백한 뒤에 왜 Cloudflare의 여러 서비스가 멈췄을까요? 마지막 사용 시각을 기록하던 코드가 Client Secret을 빈 문자열로 덮어썼고, 손상된 값이 토큰 갱신 때 네트워크에 반영되면서 121분 장애로 이어졌습니다."
 date: 2026-11-14
-weight: 27
+weight: 32
 ---
 
 # 롤백 뒤에 번진 Cloudflare 서비스 토큰 장애 (2023-01)

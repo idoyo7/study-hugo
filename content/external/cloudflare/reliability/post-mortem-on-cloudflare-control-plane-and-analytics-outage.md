@@ -2,7 +2,7 @@
 title: "PDX-04 정전으로 드러난 Cloudflare의 숨은 의존성"
 description: "데이터 센터 한 곳의 정전이 Cloudflare의 컨트롤 플레인까지 멈춘 데에는 PDX-04에만 남은 의존성이 있었습니다. Cloudflare는 Code Orange를 도입하고, 시설 전체를 끄는 시험과 검증된 재해 복구 절차를 강화하기로 했습니다."
 date: 2026-11-14
-weight: 21
+weight: 26
 ---
 
 # PDX-04 정전으로 드러난 Cloudflare의 숨은 의존성 (2023-11)

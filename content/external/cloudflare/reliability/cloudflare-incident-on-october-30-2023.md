@@ -2,7 +2,7 @@
 title: "Cloudflare의 복구 도구까지 멈춘 Workers KV 장애"
 description: "Workers KV의 배포 오류는 왜 37분 장애로 이어졌을까요? 배포 도구가 스테이징 빌드를 참조해 KV는 401을 반환했고, KV에 의존하던 인증까지 멈춰 롤백이 늦어졌습니다."
 date: 2026-11-14
-weight: 22
+weight: 27
 ---
 
 # Cloudflare의 복구 도구까지 멈춘 Workers KV 장애 (2023-11)

@@ -2,7 +2,7 @@
 title: "Cloudflare 대시보드에서 시작된 Tenant Service 장애"
 description: "대시보드 버그가 왜 Cloudflare API까지 멈추게 했을까요? 반복 호출이 인가 경로의 Tenant Service를 과부하로 몰아넣었고, 복구를 위한 패치는 두 번째 장애를 일으켰습니다."
 date: 2026-11-14
-weight: 11
+weight: 13
 ---
 
 # Cloudflare 대시보드에서 시작된 Tenant Service 장애 (2025-09)

@@ -2,7 +2,7 @@
 title: "DNSSEC 검증 오류로 접속이 엇갈린 피지 .fj 도메인"
 description: "2022년 3월 8일 피지 .fj 사이트에 일부 사용자만 접속하지 못한 현상은 DNSSEC 검증 문제와 맞아떨어졌습니다. Cloudflare가 관찰한 키 불일치의 흔적과 DS 갱신 뒤의 복구 경과를 짚습니다."
 date: 2026-11-14
-weight: 31
+weight: 36
 ---
 
 # DNSSEC 검증 오류로 접속이 엇갈린 피지 .fj 도메인 (2022-03)

@@ -2,7 +2,7 @@
 title: "Cloudflare의 장애 확산을 막을 Code Orange Fail Small"
 description: "설정 오류가 전 세계 장애로 번지지 않도록 Cloudflare는 설정에도 HMD의 단계별 배포 검증을 적용하려 합니다. 서비스 간 실패 처리와 긴급 접근 절차까지 고치는 Code Orange: Fail Small 계획입니다."
 date: 2026-11-14
-weight: 8
+weight: 9
 ---
 
 # Cloudflare의 장애 확산을 막을 Code Orange Fail Small (2025-12)

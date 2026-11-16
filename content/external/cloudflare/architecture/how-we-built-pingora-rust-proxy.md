@@ -2,7 +2,7 @@
 title: "워커마다 흩어진 연결을 모은 Rust 프록시 Pingora"
 description: "Cloudflare는 NGINX의 연결 재사용과 기능 확장 한계를 풀기 위해 Rust 프록시 Pingora를 만들었습니다. 연결 풀 공유로 핸드셰이크를 줄이고, 자체 HTTP 라이브러리와 개발 인터페이스로 새 기능을 지원한 과정을 설명합니다."
 date: 2026-11-14
-weight: 12
+weight: 14
 ---
 
 # 워커마다 흩어진 연결을 모은 Rust 프록시 Pingora (2022-09)

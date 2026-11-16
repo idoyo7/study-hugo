@@ -2,7 +2,7 @@
 title: "Cloudflare의 30분 지연을 부른 pipefail 누락"
 description: "검증된 코드로 롤백하던 Cloudflare에서 요청이 최대 5초 지연된 이유를 짚습니다. 매시 10분에 몰린 API 조회와 pipefail 누락이 dosd를 멈췄고, 비워진 Front Line 캐시가 그 장애를 요청 처리까지 전했습니다."
 date: 2026-11-14
-weight: 30
+weight: 35
 ---
 
 # Cloudflare의 30분 지연을 부른 pipefail 누락 (2022-04)

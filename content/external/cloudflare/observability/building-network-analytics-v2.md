@@ -2,7 +2,7 @@
 title: "패킷의 운명을 기록하는 Network Analytics v2"
 description: "패킷 내용만으로 통과와 폐기를 추론하는 방식은 어디서 한계에 부딪혔을까요? Cloudflare는 연결 상태를 추적하는 시스템까지 관측하려고, 각 완화 시스템이 처리 결과와 판단 이유를 샘플에 담도록 바꿨습니다."
 date: 2026-11-14
-weight: 2
+weight: 4
 ---
 
 # 패킷의 운명을 기록하는 Network Analytics v2 (2023-05)

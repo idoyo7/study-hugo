@@ -2,7 +2,7 @@
 title: "Cloudflare의 Prometheus를 지키는 시계열 한도"
 description: "시계열이 급증할 때 Prometheus를 어떻게 지킬 수 있을까요? Cloudflare는 CI로 여유 용량을 검증하고, 자체 패치로 한도에 이른 뒤 새 시계열 생성을 막으면서 기존 시계열의 수집은 이어 갑니다."
 date: 2026-11-14
-weight: 3
+weight: 5
 ---
 
 # Cloudflare의 Prometheus를 지키는 시계열 한도 (2023-03)

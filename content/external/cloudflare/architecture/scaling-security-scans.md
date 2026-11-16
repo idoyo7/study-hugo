@@ -2,7 +2,7 @@
 title: "Security Insights의 10배 확장을 막던 병목"
 description: "초당 10건에서도 밀리던 Security Insights가 어떻게 모든 계정을 더 자주 스캔하게 됐을까요? Cloudflare가 Kafka 소비 방식, Postgres 쓰기, API 배치와 스케줄링을 고쳐 처리량을 10배 넘게 늘린 과정입니다."
 date: 2026-11-14
-weight: 5
+weight: 7
 ---
 
 # Security Insights의 10배 확장을 막던 병목 (2026-06)

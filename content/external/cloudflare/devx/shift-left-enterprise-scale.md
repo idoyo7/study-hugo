@@ -2,7 +2,7 @@
 title: "Cloudflare 계정의 설정 실수를 배포 전에 잡는 IaC"
 description: "수백 개 Cloudflare 계정에서 설정 실수를 어떻게 줄일 수 있을까요? Customer Zero 팀은 Terraform 변경을 배포 전에 검증하고, 정책 예외를 코드로 관리하며 긴급 변경 뒤의 드리프트를 추적합니다."
 date: 2026-11-14
-weight: 1
+weight: 2
 ---
 
 # Cloudflare 계정의 설정 실수를 배포 전에 잡는 IaC (2025-12)

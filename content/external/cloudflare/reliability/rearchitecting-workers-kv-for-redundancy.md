@@ -2,7 +2,7 @@
 title: "288바이트에 맞춰 다시 설계한 Workers KV 저장소"
 description: "서드파티 장애로 멈춘 Workers KV는 어떻게 가용성과 성능을 함께 높였을까요? Cloudflare는 작은 객체에 맞춘 자체 백엔드를 추가하고, 두 백엔드를 함께 쓰면서 드러난 캐시 일관성 문제를 고쳤습니다."
 date: 2026-11-14
-weight: 13
+weight: 15
 ---
 
 # 288바이트에 맞춰 다시 설계한 Workers KV 저장소 (2025-08)

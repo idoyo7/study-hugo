@@ -2,7 +2,7 @@
 title: "분산 트레이싱이 지운 Tiered Cache의 제어 헤더"
 description: "Tiered Cache에 관측 코드를 추가했는데 왜 530 DNS 오류가 났을까요? 상위 계층으로 전달해야 할 제어 헤더를 지우면서, 일부 요청의 DNS 조회에 필요한 호스트 이름이 사라졌기 때문입니다."
 date: 2026-11-14
-weight: 28
+weight: 33
 ---
 
 # 분산 트레이싱이 지운 Tiered Cache의 제어 헤더 (2022-10)

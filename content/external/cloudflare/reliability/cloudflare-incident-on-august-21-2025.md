@@ -2,7 +2,7 @@
 title: "한 고객이 포화시킨 Cloudflare와 AWS us-east-1 연결"
 description: "한 고객에게 보낸 캐시 응답으로 Cloudflare와 AWS us-east-1 사이의 링크가 포화됐습니다. Cloudflare는 다른 고객에게 번지는 영향을 막기 위해 용량 증설과 고객별 네트워크 자원 배분을 추진하고 있습니다."
 date: 2026-11-14
-weight: 12
+weight: 14
 ---
 
 # 한 고객이 포화시킨 Cloudflare와 AWS us-east-1 연결 (2025-08)

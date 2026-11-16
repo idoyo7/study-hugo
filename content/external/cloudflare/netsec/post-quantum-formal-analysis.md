@@ -2,7 +2,7 @@
 title: "행간을 읽지 않는 Tamarin의 KEMTLS 보안 증명"
 description: "Cloudflare는 KEMTLS의 종이 증명을 보완하려고 Tamarin에서 메시지 조작과 키 유출을 모델링하고 세션 키의 비밀성을 검증했습니다. 무엇을 증명했으며 어떤 가정 아래에서 그 결과를 믿을 수 있는지 짚습니다."
 date: 2026-11-14
-weight: 18
+weight: 30
 ---
 
 # 행간을 읽지 않는 Tamarin의 KEMTLS 보안 증명 (2022-02)

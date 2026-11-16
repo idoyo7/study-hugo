@@ -2,7 +2,7 @@
 title: "Cloudflare Workers로 완성한 DMARC Management"
 description: "전 세계에서 들어오는 DMARC 리포트를 어떻게 받아 분석할까요? Cloudflare는 Email Workers, Workers KV, R2, Workers Analytics Engine으로 메일 수신부터 원본 보관과 대시보드 조회까지 구현했습니다."
 date: 2026-11-14
-weight: 14
+weight: 26
 ---
 
 # Cloudflare Workers로 완성한 DMARC Management (2023-03)

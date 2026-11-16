@@ -2,7 +2,7 @@
 title: "Cloudflare HMD의 백테스트를 앞당긴 Thanos"
 description: "Cloudflare는 HMD가 장애 신호에 얼마나 빨리 반응하는지 과거 장애 데이터로 검증합니다. Thanos의 쿼리 처리와 요청 흐름을 바꿔 이 백테스트를 약 30시간에서 2시간으로 줄였습니다."
 date: 2026-11-14
-weight: 1
+weight: 2
 ---
 
 # Cloudflare HMD의 백테스트를 앞당긴 Thanos (2025-05)

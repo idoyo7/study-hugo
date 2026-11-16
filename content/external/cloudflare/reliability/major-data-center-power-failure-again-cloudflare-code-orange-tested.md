@@ -2,7 +2,7 @@
 title: "두 번째 정전으로 검증한 Cloudflare의 Code Orange"
 description: "같은 데이터 센터의 정전이 반복됐는데 Cloudflare의 API와 대시보드는 어떻게 7분 만에 돌아왔을까요? 설정 데이터베이스의 고가용성과 미리 확보한 용량이 자동 복구를 가능하게 했지만, 애널리틱스에는 해결하지 못한 의존성이 남았습니다."
 date: 2026-11-14
-weight: 20
+weight: 25
 ---
 
 # 두 번째 정전으로 검증한 Cloudflare의 Code Orange (2024-04)

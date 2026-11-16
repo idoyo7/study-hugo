@@ -2,7 +2,7 @@
 title: "Cloudflare MCP 19곳의 연결을 끊은 BGP 정책 순서"
 description: "검토와 단계적 배포를 거친 변경이 왜 Cloudflare MCP 19곳을 멈췄을까요? BGP 광고 항목이 거부 항목 뒤로 밀렸고, MCP는 배포 마지막 단계에야 포함돼 오류를 미리 발견하지 못했습니다."
 date: 2026-11-14
-weight: 29
+weight: 34
 ---
 
 # Cloudflare MCP 19곳의 연결을 끊은 BGP 정책 순서 (2022-06)

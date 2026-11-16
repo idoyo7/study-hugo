@@ -2,7 +2,7 @@
 title: "Cloudflare의 HTTP 500 오류를 부른 WAF 킬스위치"
 description: "고객 트래픽에 영향을 주지 않던 WAF 테스트 도구를 끄자 왜 장애가 났을까요? FL1의 execute 처리 버그를 건드린 설정이 전체 네트워크로 퍼지면서, 전체 HTTP 트래픽의 약 28%가 약 25분간 영향을 받았습니다."
 date: 2026-11-14
-weight: 9
+weight: 10
 ---
 
 # Cloudflare의 HTTP 500 오류를 부른 WAF 킬스위치 (2025-12)

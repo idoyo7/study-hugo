@@ -2,7 +2,7 @@
 title: "비어 있다고 믿은 주소에서 시작된 Cloudflare IPv4 장애"
 description: "1,661개 웹사이트의 IPv4 접속은 왜 끊겼을까요? 레거시 SSL 코드의 부수 효과로 주소 이전이 누락됐고, Cloudflare는 이를 확인하지 않은 채 IPv4 프리픽스 15개를 철회했습니다."
 date: 2026-11-14
-weight: 18
+weight: 23
 ---
 
 # 비어 있다고 믿은 주소에서 시작된 Cloudflare IPv4 장애 (2024-09)

@@ -2,7 +2,7 @@
 title: "Cloudflare Workflows의 step 곁에 둔 saga 롤백"
 description: "다단계 작업이 중간에 실패했을 때 이미 끝난 외부 연산은 어떻게 수습할까요? Cloudflare Workflows는 step에 보상 로직을 붙이고, 실행 기록과 replay로 재시작 뒤에도 롤백을 이어 갑니다."
 date: 2026-11-14
-weight: 4
+weight: 6
 ---
 
 # Cloudflare Workflows의 step 곁에 둔 saga 롤백 (2026-06)

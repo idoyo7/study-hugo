@@ -2,6 +2,13 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-16 — Cloudflare 2025~2026년 인프라 글 36편 추가
+
+- 2025~2026년 Cloudflare 블로그에서 아직 다루지 않은 인프라 글 74편 가운데 자사 시스템을 만들고 운영한 엔지니어링 글과 장애 보고 36편을 골랐습니다. 제품 출시 공지, 스타트업·행사 홍보, Radar 결산은 뺐습니다.
+- curl로 받은 원문 전문으로 Codex(`gpt-6.1-sol`, high, `--sandbox read-only`)가 초안을 쓰고, 형식 검사 뒤 Astra(`gpt-6-astra`, xhigh)가 원문과 함께 전면 재작성했습니다. 결정적 검증에서 FATAL이 나온 6편은 보정을 한 번 더 거쳤고 36편 모두 통과했습니다.
+- 재작성본에 섞인 해요체 6곳을 합쇼체로 고쳤습니다. 표본 2편(2025-03-21 R2 장애, Atlantis 재시작 Kubernetes 설정)을 원문과 대조했고 사실 오류는 없었습니다.
+- 새 글이 들어가면서 Cloudflare 분류별 글 순서(weight)를 게시일 순으로 다시 매겼습니다.
+
 ## 2026-11-14 — AI 도구에 pstack 조사 글 추가
 
 - `content/engineering/ai-tools/07-pstack/`를 새로 만들고 AI 도구 색인에서 잇습니다. Lauren Tan(poteto)이 Cursor 플러그인 모노레포 `cursor/plugins`의 `pstack/`으로 공개한 에이전트 스킬 묶음(v0.15.36)을 다룹니다. `poteto-mode` 라우터와 플레이북 23개·원칙 24개, Feature 플레이북의 진행 순서, Claude Code 공식 하네스와 `michael-denyer/pstack-claude` 포트(v0.9.138)의 차이, 포트 이슈 #264·#310·#387과 비용 비평, superpowers·gstack·oh-my-claudecode와의 비교 표를 실었습니다.

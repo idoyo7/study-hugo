@@ -2,7 +2,7 @@
 title: "비밀번호 유출 뒤에도 Cloudflare를 지킨 보안 키"
 description: "직원 세 명이 비밀번호를 넘겼는데도 Cloudflare의 시스템은 어떻게 무사했을까요? 모든 애플리케이션에 요구한 FIDO2 보안 키가 로그인을 막았고, Access와 Gateway가 차단과 추적을 도왔습니다."
 date: 2026-11-14
-weight: 16
+weight: 28
 ---
 
 # 비밀번호 유출 뒤에도 Cloudflare를 지킨 보안 키 (2022-08)

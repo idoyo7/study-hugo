@@ -2,7 +2,7 @@
 title: "로그를 지키려다 과부하를 부른 Cloudflare Logs"
 description: "Cloudflare Logs는 왜 5분 안에 되돌린 설정 변경 뒤에도 로그를 잃었을까요? Logfwdr의 fail open이 버퍼를 폭증시켰고, 설정하지 않은 Buftee의 보호 장치가 연쇄 과부하를 막지 못했습니다."
 date: 2026-11-14
-weight: 16
+weight: 21
 ---
 
 # 로그를 지키려다 과부하를 부른 Cloudflare Logs (2024-11)

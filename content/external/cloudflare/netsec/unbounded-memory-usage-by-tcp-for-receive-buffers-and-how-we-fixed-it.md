@@ -2,7 +2,7 @@
 title: "TCP 수신 버퍼의 과도한 증가를 멈춘 Cloudflare의 커널 패치"
 description: "TCP 수신 버퍼는 왜 autotuning 한도를 넘어 계속 커졌을까요? Cloudflare는 윈도 스케일링의 제약을 추적하고, 윈도의 오른쪽 끝을 왼쪽으로 옮기는 커널 패치로 메모리 한도와 ZeroWindow 동작을 바로잡았습니다."
 date: 2026-11-14
-weight: 13
+weight: 25
 ---
 
 # TCP 수신 버퍼의 과도한 증가를 멈춘 Cloudflare의 커널 패치 (2023-05)

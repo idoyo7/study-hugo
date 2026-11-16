@@ -2,7 +2,7 @@
 title: "Cloudflare에서 추적한 OVHcloud 장애의 경로"
 description: "OVHcloud의 백본 장애를 Cloudflare는 어떻게 추적했을까요? 트래픽과 BGP 로그에서 Worldstream의 라우트 릭을 의심할 단서가 드러났고, max prefix-limit은 Cloudflare 네트워크를 보호했습니다."
 date: 2026-11-14
-weight: 17
+weight: 22
 ---
 
 # Cloudflare에서 추적한 OVHcloud 장애의 경로 (2024-10)
