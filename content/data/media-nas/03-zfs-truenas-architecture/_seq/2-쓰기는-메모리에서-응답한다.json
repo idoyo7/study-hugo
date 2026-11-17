@@ -1,0 +1,21 @@
+{
+  "caption": "SMB 쓰기는 메모리의 dirty 버퍼에 들어간 시점에 응답을 받고, 디스크 기록은 트랜잭션 그룹 단위로 뒤따릅니다. FLUSH를 받은 쓰기만 ZIL에 먼저 기록합니다.",
+  "participants": [
+    { "id": "c", "label": "편집 프로그램" },
+    { "id": "s", "label": "smbd" },
+    { "id": "m", "label": "ZFS 메모리" },
+    { "id": "d", "label": "디스크" }
+  ],
+  "steps": [
+    { "msg": ["c", "s"], "label": "1. 쓰기" },
+    { "msg": ["s", "m"], "label": "2. dirty 버퍼에 기록" },
+    { "msg": ["s", "c"], "label": "3. 응답", "dashed": true },
+    { "note": ["m"], "lines": ["5초가 지나거나", "dirty가 20% 쌓이면"] },
+    { "msg": ["m", "d"], "label": "4. 트랜잭션 그룹 기록" },
+    { "msg": ["m", "d"], "label": "5. uberblock 기록" },
+    { "note": ["c", "s"], "lines": ["클라이언트가 FLUSH를 보낼 때"] },
+    { "msg": ["c", "s"], "label": "6. FLUSH" },
+    { "msg": ["m", "d"], "label": "7. ZIL 기록" },
+    { "msg": ["s", "c"], "label": "8. 응답", "dashed": true }
+  ]
+}

@@ -9,6 +9,8 @@
 - 도식은 글마다 세 장입니다. 01은 요청 경로(flow), 공식 상한과 추정 범위(lane), 캐시 장치가 경로에 들어오는 조건(flow)이고, 02는 풀 두 개와 단일 풀을 같은 배치로 그린 flow 두 장과 포맷별 스트림 데이터율(lane)입니다. lint와 lane 스모크는 통과했고 브라우저 화면 확인은 하지 못했습니다.
 - Claude 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`) 전면 재작성 → URL·인라인 코드·shortcode·수치 기계 대조와 문장 단위 의미 대조(사실 오류 0) → Astra 보정 1회 순서로 만들었습니다. 실행 기록은 `_workspace/structure-2026-11-17-media-nas/`에 있습니다.
 - 같은 날 두 편을 절반 이하로 줄였다가(8ece053) 구조와 대역폭 서술이 너무 많이 빠져 되돌렸습니다. 본문은 첫 Astra 판 그대로이고, 절마다 펼쳐져 있던 `근거와 조건` 표 일곱 개만 접힌 블록으로 바꿨습니다.
+- 03편 `03-zfs-truenas-architecture`를 더했습니다. ZFS가 메모리를 쓰기 버퍼와 읽기 캐시로 쓰는 방식(트랜잭션 그룹, dirty 버퍼 한도, ARC, 프리페치, L2ARC)과 TrueNAS의 프로토콜 구현, 듀얼 컨트롤러 HA 전환 순서를 OpenZFS 2.3.9 man 페이지와 소스, TrueNAS 25.10.8 소스로 확인한 기본값과 함께 다룹니다. 도식은 flow 2장, seq 1장, lane 1장입니다.
+- 01편에 `편집실 규모별 V-Series 권장 구성` 절을 더했습니다. V140 Hybrid Cache, V160 Hybrid Flash, V160 All-Flash의 사양 표와 구성별로 감당하는 편집실 규모, 견적제 가격과 1PB 구성의 예산 추정(공식 견적 아님)을 담았습니다. SMB 추정 표에는 공식 상한 열을 넣었고, L2ARC를 "밀려난 블록을 받는 캐시"로 쓴 문장을 소스 주석에 맞게 고쳤습니다(01·02편).
 
 ## 2026-11-18 — 블록 스토리지에 Mayastor·LINSTOR·SupremeRAID 최대 성능 비교 추가
 

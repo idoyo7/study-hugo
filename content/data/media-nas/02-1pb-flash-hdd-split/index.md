@@ -12,7 +12,7 @@ url: "/media-nas/02-1pb-flash-hdd-split/"
 
 1PB 편집 스토리지를 플래시 200TB와 HDD 800TB로 나누는 구성은 ZFS에서 가능합니다. 현행 TrueNAS 25.10(OpenZFS 2.3 계열)에서는 한 헤드에 NVMe 풀과 HDD 풀을 따로 두는 쪽을 권합니다. HDD 풀에 플래시를 special vdev로 붙여 데이터셋별로 배치를 정하는 방식은 OpenZFS 2.4를 쓰는 TrueNAS 27이 정식 출시된 뒤 다시 검토할 선택지입니다.
 
-구성별 성능 범위와 편집자 수에 따른 요구 대역은 [01]({{< relref "/data/media-nas/01-truenas-performance-range/index.md" >}})에서 다뤘습니다. 이 글의 용량은 1TB = 10^12바이트 기준이며, 드라이브 수와 처리량은 이 글이 계산하거나 추정한 값입니다.
+구성별 성능 범위와 편집자 수에 따른 요구 대역은 [01]({{< relref "/data/media-nas/01-truenas-performance-range/index.md" >}})에서 다뤘습니다. 풀과 vdev, special vdev, L2ARC의 동작 원리는 [03]({{< relref "/data/media-nas/03-zfs-truenas-architecture/index.md" >}})에 있습니다. 이 글의 용량은 1TB = 10^12바이트 기준이며, 드라이브 수와 처리량은 이 글이 계산하거나 추정한 값입니다.
 
 ## 스트림과 읽기 방식으로 나누는 플래시와 HDD {#placement}
 
@@ -43,7 +43,7 @@ url: "/media-nas/02-1pb-flash-hdd-split/"
 |---|---|---|
 | 풀 두 개 | NVMe 풀의 데이터셋 전부 | 복제 작업, 스크립트, 사람 |
 | 단일 풀 + special vdev | 메타데이터, `special_small_blocks` 이하 블록 | 데이터셋 속성. 이미 쓴 블록은 그대로 |
-| L2ARC | ARC에서 밀려난 반복 읽기 블록 | ZFS가 자동으로 처리. 계층이 아닌 캐시 |
+| L2ARC | ARC에서 곧 밀려날 반복 읽기 블록의 복사본 | ZFS가 자동으로 처리. 계층이 아닌 캐시 |
 | MAM·HSM의 아카이브 기능 | 도구의 정책이 정한 것 | 서드파티 도구 |
 
 L2ARC는 200TB 핫 티어로 쓸 수 없습니다. 기본 설정에서 프리페치로 읽은 순차 블록을 담지 않는 데다, 채우는 속도도 장치당 32MiB/s로 제한돼 있습니다. 200TB 장치 하나를 채우는 데 약 69일이 걸린다는 계산입니다.

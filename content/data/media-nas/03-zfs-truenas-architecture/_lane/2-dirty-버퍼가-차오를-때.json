@@ -1,0 +1,14 @@
+{
+  "caption": "dirty 버퍼가 한도의 20%에 이르면 디스크 기록이 시작되고, 60%를 넘으면 새 쓰기가 지연되며, 100%에서는 멈춥니다.",
+  "font": 1.1,
+  "note": "100%는 zfs_dirty_data_max. 기본값은 RAM의 10%이고 상한은 4GiB",
+  "axis": { "kind": "linear", "max": 100, "unit": "%", "ticks": [0, 20, 40, 60, 80, 100] },
+  "lanes": [
+    { "label": "디스크 기록", "sub": "txg sync", "segments": [{ "start": 20, "end": 100, "label": "20%부터 시작", "kind": "proc" }] },
+    { "label": "동시 쓰기 증가", "sub": "디스크당 2→10개", "segments": [{ "start": 30, "end": 60, "label": "30~60%", "kind": "store" }] },
+    { "label": "쓰기 지연", "sub": "write throttle", "segments": [{ "start": 60, "end": 100, "label": "60%부터 지연", "kind": "query" }] }
+  ],
+  "markers": [
+    { "at": 100, "label": "쓰기 정지", "kind": "query" }
+  ]
+}

@@ -14,7 +14,7 @@ ProRes 422 HQ UHD를 쓰는 편집자 20명까지는 서버 쪽 100GbE 한두 �
 
 그렇다고 스토리지 서버에 200GbE나 400GbE NIC를 달면 그만큼의 대역이 나오는 것은 아닙니다. ZFS 기반 NAS를 SMB나 NFS로 제공하는 편집실에서는 필요한 대역과 실제로 낼 수 있는 대역을 따로 살펴야 합니다. TrueNAS V-Series의 공식 상한은 All-Flash 480Gb/s, Hybrid Flash 240Gb/s, Hybrid Cache 120Gb/s이며, 시험 조건은 공개되지 않았습니다. SMB로 여러 편집자가 대용량 파일을 읽는 조건에서는 All-Flash가 200~400Gb/s, HDD가 들어간 두 구성은 200Gb/s 아래에 머문다고 추정했습니다.
 
-이 글의 기준 버전은 TrueNAS 25.10.8(2026-11-05, OpenZFS 2.3 계열)입니다. 하드웨어 수치는 2026년 9월판 V-Series 데이터시트에서 가져왔습니다. 1PB를 플래시와 HDD로 나누는 풀 구성은 [02]({{< relref "/data/media-nas/02-1pb-flash-hdd-split/index.md" >}})에서 다룹니다.
+이 글의 기준 버전은 TrueNAS 25.10.8(2026-11-05, OpenZFS 2.3 계열)입니다. 하드웨어 수치는 2026년 9월판 V-Series 데이터시트에서 가져왔습니다. 1PB를 플래시와 HDD로 나누는 풀 구성은 [02]({{< relref "/data/media-nas/02-1pb-flash-hdd-split/index.md" >}})에서 다룹니다. ARC와 SLOG, L2ARC, special vdev가 ZFS 안에서 맡는 자리는 [03]({{< relref "/data/media-nas/03-zfs-truenas-architecture/index.md" >}})에서 설명합니다.
 
 ## 편집자 수와 코덱에 맞춘 서버 NIC {#minimum}
 
@@ -131,7 +131,7 @@ All-Flash의 추정 범위는 제3자 실측 세 건을 바탕으로 잡았습�
 
 HDD가 들어간 구성의 처리량은 HDD 대수에 비례합니다. iXsystems 백서는 RAIDZ vdev의 순차 속도를 데이터 디스크 수에 디스크 한 대의 속도를 곱한 값으로 계산합니다. 여기서 디스크 속도를 최대치로만 잡을 수는 없습니다. Exos X24는 안쪽 트랙에서 전송률이 절반 가까이 떨어지며, 여러 편집자의 읽기에 탐색이 섞이면 vdev 처리량은 더 낮아진다고 봤습니다.
 
-아래 표에는 제3자 실측을 바탕으로 잡은 All-Flash의 SMB 읽기·쓰기 추정 범위와 HDD 대수 산식에 기댄 Hybrid Flash·Hybrid Cache의 추정 범위를 모았습니다. Hybrid Flash와 Hybrid Cache의 공식 상한은 셸프를 가득 채운 이상적인 순차 조건의 값으로 해석했습니다.
+아래 표에는 공식 상한 옆에 SMB 읽기·쓰기 추정 범위를 나란히 적었습니다. All-Flash의 추정은 제3자 실측을, Hybrid Flash와 Hybrid Cache의 추정은 HDD 대수 산식을 바탕으로 잡았습니다. Hybrid Flash와 Hybrid Cache의 공식 상한은 셸프를 가득 채운 이상적인 순차 조건의 값으로 해석했습니다.
 
 | 구성 | 공식 대역폭 | 공식 쓰기 | SMB 읽기 추정 | SMB 쓰기 추정 |
 |---|---|---|---|---|
@@ -164,6 +164,63 @@ HDD가 들어간 구성의 처리량은 HDD 대수에 비례합니다. iXsystems
 
 {{< /details >}}
 
+## 편집실 규모별 V-Series 권장 구성 {#recommend}
+
+편집실 규모와 작업에 맞춰 권장 구성을 골랐습니다. 표의 요구 대역은 앞 절의 계산이며, SMB 읽기는 이 글의 추정 범위입니다. 세 구성 모두 4U 듀얼 컨트롤러 HA 섀시를 쓰고, 하드웨어에 TrueNAS Enterprise 25.10 라이선스가 포함돼 용량에 따른 추가 과금이 없습니다.
+
+| 항목 | V140 Hybrid Cache | V160 Hybrid Flash | V160 All-Flash |
+|---|---|---|---|
+| 맞는 편집실 | ProRes HQ 편집자 10명 안팎, 프록시 편집 | ProRes HQ 20~40명에 8K·멀티캠 소수 | 8K RAW·비압축 10~20명 |
+| 요구 대역(앞 절의 표) | 약 3~4GB/s = 27Gb/s 안팎 | 7~14GB/s = 54~109Gb/s | 12~24GB/s = 96~192Gb/s |
+| 공식 대역폭 | 15GB/s = 120Gb/s | 30GB/s = 240Gb/s | 60GB/s = 480Gb/s |
+| SMB 읽기 추정 | 4~10GB/s | 8~20GB/s | 25~50GB/s |
+| CPU(컨트롤러당) | 16코어 32스레드 | 32코어 64스레드 | 32코어 64스레드 |
+| RAM 최대 | 192GB | 384~768GB | 384~768GB |
+| 데이터 드라이브 | SAS HDD 60~100대 | 전면 NVMe 24베이 + SAS HDD 셸프 | NVMe 24베이 + NVMe 셸프 |
+| 읽기 캐시 | NVMe 최대 12TB | NVMe 최대 24TB | DRAM |
+| 확장 셸프 | ES102 6대 또는 ES24N 2대 | ES102 14대 또는 ES24N 4대 | ES24N 6대 |
+| 서버 NIC | 4× 100GbE | 4× 200GbE 또는 2× 400GbE | 4× 200GbE 또는 2× 400GbE |
+| 전력 평균/피크 | 600W / 900W | 800W / 1,200W | 800W / 1,200W |
+
+드라이브 선택지는 세 구성 모두 NVMe SSD 3.8~122.8TB, SAS HDD 7,200rpm 8~30TB입니다. 파이버 채널은 16Gb 8포트나 32Gb 4포트를 고를 수 있습니다.
+
+V140 Hybrid Cache는 ProRes HQ 편집자가 10명 안팎인 팀이나 프록시 편집 팀에 맞습니다. HDD 풀에 100GbE를 붙인 구성으로, ProRes 422 HQ UHD를 2스트림씩 쓰는 편집자 10명의 요구 대역 3.4GB/s는 HDD 60~100대의 SMB 읽기 추정 범위 4~10GB/s 안에 들어옵니다. 프록시 편집이라면 40명의 요구 대역도 5.6GB/s입니다. 다만 8K RAW는 스트림 하나가 10GbE를 채우므로 이 구성에 맞지 않습니다. 편집자가 10명을 넘으면 RAIDZ2 HDD 풀의 IOPS 한계도 함께 봐야 합니다.
+
+V160 Hybrid Flash는 ProRes HQ 편집자 20~40명에 8K·멀티캠 작업자가 소수인 팀에 맞습니다. NVMe 풀과 HDD 풀을 한 장비에 두고, 진행 중인 8K·멀티캠 작업은 전면 NVMe 풀에서, ProRes 편집과 보관 소재는 HDD 셸프에서 받을 수 있습니다. ProRes HQ 40명의 요구 대역 13.6GB/s는 공식 상한 30GB/s 안쪽입니다. [02]({{< relref "/data/media-nas/02-1pb-flash-hdd-split/index.md" >}})의 플래시 200TB와 HDD 800TB 분할이 이 구성에 해당합니다. 편집자 전원이 10GbE를 가득 쓰는 작업이라면 V160 All-Flash가 맞습니다.
+
+V160 All-Flash는 8K RAW·비압축 편집자 10~20명이 일하는 팀에 맞습니다. 편집자 전원이 10GbE를 가득 쓰는 작업을 받으며, 8K RAW 20명의 요구 대역 24GB/s는 SMB 읽기 추정 범위 25~50GB/s 아래에 있습니다. 400GbE를 실제로 채울 수 있는 구성도 셋 중 이것뿐입니다. 다만 40명의 요구 대역 48GB/s는 추정 범위의 상단이므로, 이 규모로 도입하려면 PoC로 확인해야 합니다.
+
+### 견적제 가격과 예산 범위
+
+TrueNAS Enterprise는 견적으로만 판매하며, V140과 V160의 발표문과 제품 페이지에는 시작가나 TB당 단가가 없습니다. 02편의 1PB 구성(V160 Hybrid Flash, 15.36TB NVMe 24개, HDD 50개, ES102 1대, 3년 지원)을 과거 공개 가격과 2026년 11월 부품 시세로 역산하면 30만~80만 달러, 중심값 40만~55만 달러로 추정됩니다. 같은 드라이브를 쓰는 단일 컨트롤러 화이트박스의 추정 범위는 15만~34만 달러입니다. 두 범위 모두 공식 견적이 아닙니다.
+
+어플라이언스 가격이 화이트박스의 1.8~2.5배인 까닭은 듀얼 컨트롤러 HA, 3~5년 지원, 드라이브 마진입니다. 화이트박스에는 HA와 NFS over RDMA, 벤더 지원이 빠져 있습니다.
+
+2026년은 부품 가격이 오른 시기입니다. 엔터프라이즈 SSD 계약가는 2분기에 전 분기보다 48~53%, 3분기에 20~25% 올랐고, Seagate와 WD의 니어라인 HDD는 모두 2026년 물량 배정이 끝났습니다. 리셀러 DATAZONE은 견적가가 8주 사이에 15~25% 움직인다고 적었습니다. 정확한 금액은 같은 구성에서 지원 등급(Bronze, Silver, Gold)과 기간을 바꿔 견적을 받아야 알 수 있습니다.
+
+{{< details title="근거와 조건" closed="true" >}}
+
+| 항목 | 값 | 출처·조건 |
+|---|---|---|
+| 구성별 사양 | 위 표 | V-Series 데이터시트 2026년 9월판 |
+| 라이선스 | "ships fully licensed from day one", TB당 과금 없음 | V160 발표 2026-04-20 |
+| 공식 가격 | V140·V160 시작가와 TB당 단가 없음 | V160·V140 발표문과 제품 페이지 |
+| 옛 M-Series 시작가 | 듀얼 컨트롤러 $13,500 / $20,000 / $35,000 / $60,000 | 삭제된 공식 페이지의 검색 요약. 모델 대응과 연도 미확인 |
+| 옛 X-Series 안내 | HDD 약 $80/TB, 플래시 약 $500/TB | 단종된 공식 페이지의 검색 요약 |
+| CDW 게재가 | M40-HA $66,408, M50-HA $102,955 | 검색 요약. 드라이브 포함 여부 미확인 |
+| 2022년 M50 견적표 | 18TB HDD 505개에 $824,247(raw TB당 약 $91), SSD는 raw TB당 약 $511~574 | 리셀러 techgardens, 3년 지원 포함. TB당 단가는 계산 |
+| 5년 비용 구성 | 하드웨어 45~60%, 지원 20~30%. Gold는 Silver보다 30~60% 높음 | DATAZONE 2026 가격 가이드 |
+| SSD 계약가 | 2026년 2분기 +48~53%, 3분기 +20~25% | TrendForce |
+| HDD 공급 | 2026년 니어라인 물량 배정 완료 | Seagate·WD 발표를 인용한 보도 |
+| 어플라이언스 추정 | HA 헤드 $60k~150k, NVMe 368.6TB × $250~600/TB, HDD 1.6PB × $70~140/TB, 3년 지원 +15~30% | 위 근거를 바탕으로 한 이 글의 추정 |
+| 화이트박스 추정 | 서버 $15k~35k, NVMe 24개 × $3,000~8,000, HDD 50개 × $900~1,900, JBOD $9k~12k | 2026년 11월 소매·채널 시세를 바탕으로 한 이 글의 추정 |
+
+- V-Series의 확장 셸프 목록에 ES60은 없다. HDD 50개는 ES102 1대로 잡았다
+- 데이터시트의 HDD 선택지는 30TB까지다. 02편이 계산에 쓴 32TB 드라이브를 TrueNAS가 공급하는지는 확인하지 못했다
+- 지원 등급 이름은 2024년 1월 문서 기준이다. 2026년판은 찾지 못했다
+
+{{< /details >}}
+
 ## 영상 편집에서 쓰임이 달라지는 캐시 장치 {#cache}
 
 영상 편집에서 Hybrid Cache의 실효 성능은 HDD 풀의 성능으로 봐야 합니다. 플래시 캐시가 있다고 해서 HDD 풀이 플래시처럼 빨라지지는 않습니다.
@@ -174,7 +231,7 @@ HDD가 들어간 구성의 처리량은 HDD 대수에 비례합니다. iXsystems
 
 SLOG는 동기 쓰기의 기록(ZIL)을 받는 장치입니다. SMB 쓰기는 기본이 비동기여서 메모리의 트랜잭션 그룹에 모였다가 데이터 vdev로 바로 내려갑니다. TrueNAS 문서도 비동기 쓰기에는 SLOG를 쓰지 않는다고 명시합니다. NFS로 쓰기를 받으면 기본이 sync이므로 그때는 SLOG가 의미를 갖습니다.
 
-L2ARC는 ARC에서 밀려난 블록을 플래시에 보관하는 2차 읽기 캐시입니다. 영상 재생의 순차 읽기는 대부분 프리페치로 들어오는데, 기본값 `l2arc_noprefetch=1`은 이렇게 읽은 블록을 L2ARC에 넣지 않습니다. 캐시를 채우는 속도에도 장치별 기본 제한이 있습니다. 같은 소스를 여러 명이 반복해서 읽는 경우에만 일부 이득을 얻습니다. 읽기 캐시가 효과를 내는 조건은 반복해서 읽는 작업 집합이 캐시 용량 안에 들어오는 경우입니다.
+L2ARC는 ARC에서 곧 밀려날 블록을 플래시에 미리 복사해 두는 2차 읽기 캐시입니다. 영상 재생의 순차 읽기는 대부분 프리페치로 들어오는데, 기본값 `l2arc_noprefetch=1`은 이렇게 읽은 블록을 L2ARC에 넣지 않습니다. 캐시를 채우는 속도에도 장치별 기본 제한이 있습니다. 같은 소스를 여러 명이 반복해서 읽는 경우에만 일부 이득을 얻습니다. 읽기 캐시가 효과를 내는 조건은 반복해서 읽는 작업 집합이 캐시 용량 안에 들어오는 경우입니다.
 
 special vdev는 캐시가 아니라 풀의 일부입니다. 메타데이터와 작은 블록을 플래시에 두어 폴더 탐색, 썸네일과 프로젝트 파일 읽기, 스크럽을 빠르게 합니다. 대용량 영상의 순차 대역폭은 올리지 않습니다. special vdev를 잃으면 풀 전체를 잃으므로 데이터 vdev와 같은 수준의 중복이 필요합니다.
 
@@ -275,4 +332,12 @@ macOS 클라이언트는 설정에 따라 속도 편차가 큽니다. Dell Power
 - [Keycode Media, Avid Media Composer 2026.8 빈 잠금 변경](https://www.keycodemedia.com/avid-media-composer-2026-8-the-big-bin-locking-change/)
 - [EditShare EFS SSD 데이터시트](https://editshare.com/efs-ssd-datasheet)
 - [Quantum 4K 레퍼런스 아키텍처](https://www.svconline.com/products/quantum-4k-video-reference-architectures-408620)
+- [TrueNAS V160 제품 페이지](https://www.truenas.com/truenas-v160/)
+- [techgardens, TrueNAS M50 구성 견적표 2022](https://techgardens.com/storage-solutions/truenas-m50-information-o/)
+- [DATAZONE, TrueNAS 가격 가이드 2026](https://datazone.de/en/aktuelles/truenas-preis-2026-was-kostet-enterprise-storage/)
+- [DATAZONE, TrueNAS V-Series](https://www.datazone.de/en/truenas/v-serie/)
+- [CDW, TrueNAS M40 HA](https://www.cdw.com/product/ixsystems-truenas-m40-high-availability-nas-server/8318025)
+- [CDW, TrueNAS M50 HA](https://cdw.com/product/ixsystems-truenas-m50-high-availability-nas-server/8053092)
+- [TrendForce, 2026년 4분기 엔터프라이즈 SSD 계약가](https://www.trendforce.com/presscenter/news/20260930-13258.html)
+- [PC Server and Parts, 2026년 HDD 공급 부족](https://pcserverandparts.com/news/hard-drive-shortage-2026-what-to-do/)
 - [StorageReview, Seagate Exos X24](https://www.storagereview.com/review/seagate-exos-x24-24tb-hdd-review)

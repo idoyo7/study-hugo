@@ -1,0 +1,21 @@
+{
+  "caption": "평소에는 컨트롤러 하나가 풀을 잡고 서비스하며, 장애가 나면 다른 컨트롤러가 가상 IP와 풀을 넘겨받습니다. V-Series에서 이 전환을 직접 시험하지는 않았습니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "srv", "label": "스토리지 서버", "members": ["a", "b", "disk"] }
+  ],
+  "nodes": [
+    { "id": "c", "col": 0, "row": 0, "label": "편집자", "kind": "src" },
+    { "id": "vip", "col": 1, "row": 0, "label": "가상 IP", "sub": "keepalived", "kind": "query" },
+    { "id": "a", "col": 2, "row": 0, "label": "컨트롤러 A", "sub": "active", "kind": "proc" },
+    { "id": "b", "col": 2, "row": 1, "label": "컨트롤러 B", "sub": "standby", "kind": "proc" },
+    { "id": "disk", "col": 3, "row": 0, "label": "디스크", "sub": "양쪽에 연결", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "c", "to": "vip", "label": "SMB·NFS" },
+    { "from": "vip", "to": "a", "label": "서비스" },
+    { "from": "vip", "to": "b", "label": "장애 시", "dashed": true },
+    { "from": "a", "to": "disk", "label": "풀 사용" },
+    { "from": "b", "to": "disk", "label": "import", "dashed": true }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "caption": "쓰기는 메모리의 dirty 버퍼에 모였다가 디스크로 내려가고, 읽기는 ARC에서 먼저 찾은 뒤 없을 때만 디스크로 갑니다.",
+  "groups": [
+    { "id": "mem", "label": "메모리", "members": ["dirty", "arc"] },
+    { "id": "pool", "label": "풀", "members": ["data", "sp", "l2"] }
+  ],
+  "nodes": [
+    { "id": "w", "col": 0, "row": 0, "label": "쓰기 요청", "kind": "src" },
+    { "id": "r", "col": 0, "row": 1, "label": "읽기 요청", "kind": "src" },
+    { "id": "dirty", "col": 1, "row": 0, "label": "dirty 버퍼", "sub": "쓰기를 모으는 곳", "kind": "proc" },
+    { "id": "arc", "col": 1, "row": 1, "label": "ARC", "sub": "읽기 캐시", "kind": "store" },
+    { "id": "data", "col": 2, "row": 0, "label": "데이터 vdev", "sub": "HDD 또는 NVMe", "kind": "store" },
+    { "id": "sp", "col": 2, "row": 1, "label": "special vdev", "sub": "메타데이터", "kind": "store" },
+    { "id": "l2", "col": 2, "row": 2, "label": "L2ARC", "sub": "플래시 2차 캐시", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "w", "to": "dirty", "label": "기록" },
+    { "from": "dirty", "to": "data", "label": "묶어 쓰기", "rate": 1800 },
+    { "from": "r", "to": "arc", "label": "조회" },
+    { "from": "arc", "to": "data", "label": "미스" },
+    { "from": "arc", "to": "sp", "label": "메타" },
+    { "from": "arc", "to": "l2", "label": "꼬리 복사", "dashed": true }
+  ]
+}
