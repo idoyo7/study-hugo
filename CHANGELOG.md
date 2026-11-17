@@ -2,6 +2,13 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-18 — 데이터·스토리지에 ZFS 미디어 NAS 분류 추가
+
+- `content/data/media-nas/`를 새로 만들었습니다(공개 URL `/media-nas/`). 01은 TrueNAS V-Series의 All-Flash·Hybrid Flash·Hybrid Cache 구성별 공식 상한을 Gb/s로 환산하고 SMB 편집 워크로드의 추정 범위, 편집자 수와 코덱별 최소 요구를 다룹니다. 02는 1PB를 플래시 200TB와 HDD 800TB로 나눌 때 풀 두 개와 단일 풀 special vdev 방식, 드라이브 수와 가용 용량을 다룹니다. 데이터·스토리지 색인에 링크를 더했습니다.
+- 근거는 2026-11-17에 TrueNAS 데이터시트·제품 페이지·문서, OpenZFS man 페이지, 코덱 제조사 표, 제3자 측정으로 확인했고 직접 측정한 값은 없습니다. 기준 버전은 TrueNAS 25.10.8입니다. 현실 범위와 드라이브 산정은 글의 추정·계산이며 본문에 그렇게 표시했습니다.
+- 도식은 글마다 세 장입니다. 01은 요청 경로(flow), 공식 상한과 추정 범위(lane), 캐시 장치가 경로에 들어오는 조건(flow)이고, 02는 풀 두 개와 단일 풀을 같은 배치로 그린 flow 두 장과 포맷별 스트림 데이터율(lane)입니다. lint와 lane 스모크는 통과했고 브라우저 화면 확인은 하지 못했습니다.
+- Claude 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`) 전면 재작성 → URL·인라인 코드·shortcode·수치 기계 대조와 문장 단위 의미 대조(사실 오류 0) → Astra 보정 1회 순서로 만들었습니다. 실행 기록은 `_workspace/structure-2026-11-17-media-nas/`에 있습니다.
+
 ## 2026-11-18 — 블록 스토리지에 Mayastor·LINSTOR·SupremeRAID 최대 성능 비교 추가
 
 - `content/data/block-storage/09-mayastor-linstor-supremeraid/`를 새로 만들고 스토리지 색인에서 잇습니다. OpenEBS Mayastor 2.12.2, LINSTOR 1.35.3·DRBD 9.3.4(piraeus-operator 2.12.1), Graid SupremeRAID 드라이버 2.0.1의 쓰기 경로와 장애 뒤 사본 판정 방식을 설명하고, 공개된 IOPS·스루풋을 볼륨 하나·클러스터 합계·서버 한 대로 나눠 측정 조건과 함께 실었습니다. Graid의 2026-07-15 "1억 IOPS" 발표는 GPU가 직접 내는 512바이트 I/O 경로의 벤더 수치라는 점과 공개되지 않은 조건을 따로 적었습니다.

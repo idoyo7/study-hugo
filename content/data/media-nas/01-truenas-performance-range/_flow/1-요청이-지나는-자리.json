@@ -1,0 +1,27 @@
+{
+  "caption": "편집자의 읽기 요청은 10GbE와 스위치를 거쳐 서버 NIC에 모이고, Samba 프로세스와 ARC를 지난 뒤 데이터 vdev와 special vdev로 갈립니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "room", "label": "편집실", "members": ["win", "mac"] },
+    { "id": "srv", "label": "스토리지 서버", "members": ["nic", "smbd", "arc", "data", "special"] }
+  ],
+  "nodes": [
+    { "id": "win", "col": 0, "row": 0, "label": "Windows 편집자", "sub": "10GbE", "kind": "src" },
+    { "id": "mac", "col": 0, "row": 1, "label": "macOS 편집자", "sub": "10GbE", "kind": "src" },
+    { "id": "sw", "col": 1, "row": 0, "label": "스위치", "sub": "업링크 집선", "kind": "proc" },
+    { "id": "nic", "col": 2, "row": 0, "label": "서버 NIC", "sub": "200·400GbE", "kind": "proc" },
+    { "id": "smbd", "col": 3, "row": 0, "label": "Samba smbd", "sub": "클라이언트당 1개", "kind": "proc" },
+    { "id": "arc", "col": 3, "row": 1, "label": "ARC", "sub": "메모리 캐시", "kind": "store" },
+    { "id": "data", "col": 4, "row": 1, "label": "데이터 vdev", "sub": "NVMe 또는 HDD", "kind": "store" },
+    { "id": "special", "col": 4, "row": 2, "label": "special vdev", "sub": "메타데이터", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "win", "to": "sw", "label": "SMB" },
+    { "from": "mac", "to": "sw", "label": "SMB" },
+    { "from": "sw", "to": "nic", "label": "업링크" },
+    { "from": "nic", "to": "smbd", "label": "요청" },
+    { "from": "smbd", "to": "arc", "label": "블록 조회" },
+    { "from": "arc", "to": "data", "label": "미스" },
+    { "from": "arc", "to": "special", "label": "메타" }
+  ]
+}

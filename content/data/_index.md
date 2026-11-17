@@ -15,6 +15,7 @@ cascade:
 - [Redis·Valkey·Memcached]({{< relref "/data/cache/_index.md" >}})
 - [블록 스토리지]({{< relref "/data/block-storage/_index.md" >}})
 - [GPU 클러스터 스토리지]({{< relref "/data/gpu-storage/_index.md" >}})
+- [ZFS 미디어 NAS]({{< relref "/data/media-nas/_index.md" >}})
 - [S3 데이터 이관]({{< relref "/data/s3-transfer.md" >}})
 
 분석 데이터베이스와 인메모리 저장소를 선택·운영하고, 블록 스토리지, GPU 클러스터 스토리지, S3 데이터 이동을 살펴봅니다.

@@ -1,0 +1,22 @@
+{
+  "caption": "SMB의 비동기 쓰기는 SLOG를 거치지 않고, 순차 읽기는 기본 설정에서 L2ARC에 쌓이지 않습니다. 두 장치는 sync 쓰기와 반복 읽기에서만 경로에 들어옵니다.",
+  "nodes": [
+    { "id": "wa", "col": 0, "row": 0, "label": "SMB 쓰기", "sub": "비동기", "kind": "src" },
+    { "id": "ws", "col": 0, "row": 1, "label": "NFS 쓰기", "sub": "sync", "kind": "src" },
+    { "id": "rd", "col": 0, "row": 2, "label": "순차 읽기", "sub": "영상 재생", "kind": "src" },
+    { "id": "txg", "col": 1, "row": 0, "label": "메모리 버퍼", "sub": "트랜잭션 그룹", "kind": "proc" },
+    { "id": "slog", "col": 1, "row": 1, "label": "SLOG", "sub": "sync 기록 전용", "kind": "store" },
+    { "id": "arc", "col": 1, "row": 2, "label": "ARC", "sub": "메모리 캐시", "kind": "store" },
+    { "id": "data", "col": 2, "row": 0, "label": "데이터 vdev", "kind": "store" },
+    { "id": "l2", "col": 2, "row": 2, "label": "L2ARC", "sub": "반복 읽기만", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "wa", "to": "txg", "label": "쓰기" },
+    { "from": "ws", "to": "txg", "label": "쓰기" },
+    { "from": "ws", "to": "slog", "label": "ZIL" },
+    { "from": "txg", "to": "data", "label": "기록" },
+    { "from": "rd", "to": "arc", "label": "조회" },
+    { "from": "arc", "to": "data", "label": "미스" },
+    { "from": "arc", "to": "l2", "label": "재조회", "dashed": true }
+  ]
+}

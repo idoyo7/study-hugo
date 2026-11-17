@@ -1,0 +1,19 @@
+{
+  "caption": "All-Flash 구성만 200GbE 한 포트를 넘는 대역을 현실적으로 내고, HDD가 들어간 두 구성의 추정 범위는 200GbE 안쪽에 머뭅니다. 추정 막대는 이 글이 산정한 값입니다.",
+  "font": 1.1,
+  "note": "공식 상한은 2026년 9월 데이터시트 값(시험 조건 미공개). 추정은 SMB, 다수 클라이언트, 대용량 순차 읽기 조건",
+  "axis": { "kind": "linear", "max": 500, "unit": "Gb/s", "ticks": [0, 100, 200, 300, 400, 500] },
+  "lanes": [
+    { "label": "All-Flash", "sub": "공식 상한", "segments": [{ "start": 0, "end": 480, "label": "480 Gb/s", "kind": "src" }] },
+    { "label": "All-Flash", "sub": "SMB 읽기 추정", "segments": [{ "start": 200, "end": 400, "label": "200~400", "kind": "proc" }] },
+    { "label": "Hybrid Flash", "sub": "공식 상한", "segments": [{ "start": 0, "end": 240, "label": "240 Gb/s", "kind": "src" }] },
+    { "label": "Hybrid Flash", "sub": "SMB 읽기 추정", "segments": [{ "start": 64, "end": 160, "label": "64~160", "kind": "proc" }] },
+    { "label": "Hybrid Cache", "sub": "공식 상한", "segments": [{ "start": 0, "end": 120, "label": "120 Gb/s", "kind": "src" }] },
+    { "label": "Hybrid Cache", "sub": "SMB 읽기 추정", "segments": [{ "start": 32, "end": 80, "label": "32~80", "kind": "proc" }] }
+  ],
+  "markers": [
+    { "at": 100, "label": "100GbE", "kind": "query" },
+    { "at": 200, "label": "200GbE", "kind": "query" },
+    { "at": 400, "label": "400GbE", "kind": "query" }
+  ]
+}

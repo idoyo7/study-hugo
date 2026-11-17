@@ -1,0 +1,22 @@
+{
+  "caption": "풀 하나에 플래시를 special vdev로 붙이면 데이터셋 설정으로 자리를 가르지만, special이 차면 새 블록이 알림 없이 HDD로 넘어갑니다.",
+  "groups": [
+    { "id": "head", "label": "스토리지 헤드", "members": ["dsa", "dsb", "sp", "hdd"] },
+    { "id": "pool", "label": "풀 하나", "members": ["sp", "hdd"], "pad": 6 }
+  ],
+  "nodes": [
+    { "id": "ed", "col": 0, "row": 0, "label": "편집자", "sub": "10GbE", "kind": "src" },
+    { "id": "dsa", "col": 1, "row": 0, "label": "진행 데이터셋", "sub": "전 블록을 special로", "kind": "proc" },
+    { "id": "dsb", "col": 1, "row": 1, "label": "보관 데이터셋", "sub": "기본 설정", "kind": "proc" },
+    { "id": "sp", "col": 2, "row": 0, "label": "special vdev", "sub": "플래시 200TB", "kind": "store" },
+    { "id": "hdd", "col": 2, "row": 1, "label": "HDD vdev", "sub": "800TB", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "ed", "to": "dsa", "label": "SMB" },
+    { "from": "ed", "to": "dsb", "label": "SMB" },
+    { "from": "dsa", "to": "sp", "label": "모든 블록" },
+    { "from": "dsb", "to": "hdd", "label": "큰 블록" },
+    { "from": "dsb", "to": "sp", "label": "메타" },
+    { "from": "sp", "to": "hdd", "label": "가득 차면 넘침", "dashed": true }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "caption": "스트림 하나가 300MB/s를 넘는 포맷부터는 HDD 풀에서 여러 명이 직접 편집하기 어렵다고 보고 플래시 풀에 둡니다. 300MB/s 경계는 이 글이 잡은 추정값입니다.",
+  "font": 1.1,
+  "note": "ProRes·DNxHR·BRAW는 제조사 표, ARRIRAW와 DPX는 프레임 크기에서 계산한 값",
+  "axis": { "kind": "linear", "max": 900, "unit": "MB/s", "ticks": [0, 150, 300, 450, 600, 750, 900] },
+  "lanes": [
+    { "label": "XAVC-I 4K", "sub": "59.94p", "segments": [{ "start": 0, "end": 75, "label": "75", "kind": "proc" }] },
+    { "label": "DNxHR HQX UHD", "sub": "25p", "segments": [{ "start": 0, "end": 87, "label": "87", "kind": "proc" }] },
+    { "label": "ProRes 422 HQ UHD", "sub": "25p", "segments": [{ "start": 0, "end": 92, "label": "92", "kind": "proc" }] },
+    { "label": "BRAW 8K 5:1", "sub": "24p", "segments": [{ "start": 0, "end": 320, "label": "320", "kind": "src" }] },
+    { "label": "ProRes 422 HQ 8K", "sub": "24p", "segments": [{ "start": 0, "end": 377, "label": "377", "kind": "src" }] },
+    { "label": "ARRIRAW 4.5K", "sub": "Open Gate 24p", "segments": [{ "start": 0, "end": 502, "label": "502", "kind": "src" }] },
+    { "label": "DPX 4K 10bit", "sub": "24p 비압축", "segments": [{ "start": 0, "end": 849, "label": "849", "kind": "src" }] }
+  ],
+  "markers": [
+    { "at": 300, "label": "HDD 직접 편집 경계", "kind": "query" }
+  ]
+}

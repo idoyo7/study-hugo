@@ -1,0 +1,22 @@
+{
+  "caption": "풀을 둘로 나누면 편집자는 공유 두 개를 보고, 끝난 프로젝트는 복제 작업으로 NVMe 풀에서 HDD 풀로 옮깁니다.",
+  "groups": [
+    { "id": "head", "label": "스토리지 헤드", "members": ["sha", "shb", "fpool", "hpool", "sp"] }
+  ],
+  "nodes": [
+    { "id": "ed", "col": 0, "row": 0, "label": "편집자", "sub": "10GbE", "kind": "src" },
+    { "id": "sha", "col": 1, "row": 0, "label": "프로젝트 공유", "sub": "진행 중 작업", "kind": "proc" },
+    { "id": "shb", "col": 1, "row": 1, "label": "아카이브 공유", "sub": "니어라인·보관", "kind": "proc" },
+    { "id": "fpool", "col": 2, "row": 0, "label": "NVMe 풀", "sub": "RAIDZ2 12폭 2개", "kind": "store" },
+    { "id": "hpool", "col": 2, "row": 1, "label": "HDD 풀", "sub": "RAIDZ2 12폭 4개", "kind": "store" },
+    { "id": "sp", "col": 2, "row": 2, "label": "special vdev", "sub": "NVMe 3중 미러", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "ed", "to": "sha", "label": "SMB" },
+    { "from": "ed", "to": "shb", "label": "SMB" },
+    { "from": "sha", "to": "fpool", "label": "읽기·쓰기" },
+    { "from": "shb", "to": "hpool", "label": "읽기·쓰기" },
+    { "from": "fpool", "to": "hpool", "label": "복제 작업", "rate": 2400 },
+    { "from": "hpool", "to": "sp", "label": "메타데이터" }
+  ]
+}
