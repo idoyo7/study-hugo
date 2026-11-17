@@ -16,6 +16,7 @@
 - 근거는 2026-11-17에 릴리스 노트·공식 문서·소스(Mayastor io-engine과 control-plane v2.12.2, piraeus-operator, linstor-csi)·벤더 자료·제3자 측정으로 확인했고, 직접 측정한 값은 없습니다. 조사 보고서 세 편은 로컬 `_workspace/research-2026-11-17-nvmeof-maxperf/`에 있습니다.
 - 도식은 flow 4장(Mayastor·DRBD 쓰기 경로, SupremeRAID 노드 내부, 노드 안 RAID와 노드 간 복제의 조합)과 seq 1장(replica 실패 때 etcd 기록과 응답의 순서)입니다.
 - Claude 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`) 전면 재작성(조사 보고서를 사실 확인용으로 함께 제공) → URL·인라인 코드·shortcode·표 행·수치 기계 대조와 문장 대조 순으로 만들었습니다. 재작성본이 본문에서 대표 수치를 접힌 표로만 내려 보낸 Mayastor·LINSTOR 절에는 조건을 붙인 대표 수치 표를 직접 더했습니다. 실행 기록은 `_workspace/structure-2026-11-17-nvmeof-maxperf/`에 있습니다.
+- 글이 길고 불필요한 내용이 많다는 저자 평가에 따라 Astra xhigh로 한 번 더 재작성해 분량을 40%로 줄였습니다(43,672바이트 → 17,489바이트, 354줄 → 172줄). 접힌 근거 표 세 개와 설정 표 두 개, KIOXIA·NVIDIA 배경, 저널·라이선스·에디션 세부를 뺐고 비교 표 두 개를 하나로 합쳤으며 참고 자료는 43개에서 18개가 됐습니다. 제목은 「Mayastor·LINSTOR·SupremeRAID의 NVMe 성능과 선택 조건」으로 바뀌었습니다. 남은 URL·인라인 코드·수치는 줄이기 전 글과 대조해 새로 생긴 값이 없음을 확인했습니다. 줄이기 전 글은 커밋 `ac1e6dc`에 있습니다.
 
 ## 2026-11-17 — Cloudflare 2025~2026년 LLM·에이전트 글 30편 추가
 
