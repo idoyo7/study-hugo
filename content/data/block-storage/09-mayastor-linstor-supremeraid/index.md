@@ -12,6 +12,10 @@ url: "/storage/09-mayastor-linstor-supremeraid/"
 
 Mayastor와 LINSTOR·Piraeus는 노드 사이에 볼륨 사본을 만들고, SupremeRAID는 노드 안의 SSD를 RAID로 묶습니다. 공개 최대치는 볼륨 하나, 여러 볼륨·노드 합계, GPU 직접 I/O처럼 측정 범위가 달라 같은 조건의 순위로 읽을 수 없습니다. 도입 조건은 [08 Kubernetes NVMe-oF와 Mayastor]({{< relref "/data/block-storage/08-kubernetes-nvmeof-mayastor/index.md" >}}), 복제 계층은 [03 로컬 디스크와 복제]({{< relref "/data/block-storage/03-local-disk-ha/index.md" >}}), 전송 차이는 [07 FC·TCP·RDMA 전송 비교]({{< relref "/data/block-storage/07-fc-tcp-rdma-transports/index.md" >}})에서 다룹니다.
 
+Mayastor와 LINSTOR는 로컬 PV에 복제 계층을 더한 구조입니다. 사본 하나하나는 각 노드의 로컬 디스크에서 잘라 낸 볼륨입니다. Mayastor에서는 SPDK lvol이고 LINSTOR에서는 LVM 논리 볼륨입니다. 그 위에서 nexus와 DRBD가 노드 사이 복제를 맡습니다. TopoLVM이나 OpenEBS LocalPV-LVM 같은 로컬 PV 드라이버는 이 가운데 아래층만 제공하고 복제는 하지 않습니다.
+
+두 제품 모두 쓰기는 모든 사본에 기록돼야 끝나고, 읽기는 사본 하나에서 끝납니다. 그래서 쓰기 수치에는 네트워크 왕복과 가장 느린 사본의 지연이 들어가고, 읽기 수치는 로컬 디스크 성능에 가깝게 나올 수 있습니다. 아래 표에서 읽기와 쓰기를 따로 봐야 하는 이유입니다.
+
 2026-11-17 기준으로 확인한 버전은 OpenEBS 4.6.2(Mayastor 2.12.2), piraeus-operator 2.12.1(LINSTOR 1.35.3, DRBD 9.3.4), SupremeRAID Linux 드라이버 2.0.1 Update 262입니다. 직접 측정한 값은 없습니다. 모두 공개 자료이며, 벤더 측정과 제3자 측정을 구분했습니다.
 
 ## 1. Mayastor의 쓰기 경로와 사본 선택
@@ -98,13 +102,15 @@ SupremeRAID는 GPU로 RAID 패리티를 계산하며, 일반 애플리케이션�
 
 보도자료에는 GPU 모델과 카드 수, 서버, 드라이버 버전, 읽기와 쓰기의 구분, 큐 깊이, 지연이 없습니다. 제품·에디션 이름도 명시되지 않았습니다. 제3자 재현 자료는 찾지 못했습니다.
 
+커널 블록 장치 쪽 수치는 카드 세대를 구분해서 읽어야 합니다. SR-1010은 2022년에 나온 구형 카드(RTX A2000)입니다. 현행 라인업은 Ultra(RTX 2000 Ada), Pro(RTX A1000), Core(RTX A400)이고 Ultra가 SR-1010의 자리를 이은 최상위 카드입니다. 조건을 밝힌 제3자 측정은 구형 SR-1010에만 있습니다. Ultra의 수치는 조건이 없는 벤더 브로셔 값입니다. 쓰기 성능은 카드 세대와 별개로 2.0 드라이버에서도 올랐다고 벤더가 밝혔습니다.
+
 | 경로·측정 | 공개 성능 | 조건 | 측정 주체 |
 |---|---|---|---|
 | GPU 직접 I/O | 1억 IOPS | RAID 5 볼륨 1개, KIOXIA XD8 32개, 512바이트 랜덤 | Graid(벤더, 2026-07) |
-| 커널 블록 장치, Ultra | 읽기 30M IOPS, 쓰기 6M IOPS, 최대 280GB/s | SSD 32개, RTX 2000 Ada, PCIe Gen4 x8. RAID 레벨·SSD 모델·fio 조건 미공개 | Graid 브로셔(벤더, 2026-04) |
-| 커널 블록 장치, SR-1010 랜덤 I/O | 4k 읽기 2,850만 IOPS, 쓰기 202만 IOPS | RAID 5, CM7-R 3.84TB 24개(Gen5), Supermicro AS-2125HS-TNR, EPYC 9654 2개, 드라이버 1.5.0-659. fio 192스레드·QD32 | StorageReview(제3자, 2023-11) |
-| 커널 블록 장치, SR-1010 순차 I/O | 1M 읽기 279GB/s, 쓰기 148GB/s | 위와 같은 플랫폼·SSD·드라이버. fio 192스레드·QD16 | StorageReview(제3자, 2023-11) |
-| 커널 블록 장치, 드라이버 2.0 | 4k 랜덤 쓰기 494만 IOPS | RAID 5, CM7 3.2TB 24개, EPYC 9755 2개, Pro 카드(RTX A1000), fio 3.40. iodepth·numjobs 미기재 | Graid(벤더, 2025-12) |
+| 커널 블록 장치, Ultra(현행 최상위) | 읽기 30M IOPS, 쓰기 6M IOPS, 최대 280GB/s | SSD 32개, RTX 2000 Ada, PCIe Gen4 x8. RAID 레벨·SSD 모델·fio 조건 미공개 | Graid 브로셔(벤더, 2026-04) |
+| 커널 블록 장치, SR-1010(구형) 랜덤 I/O | 4k 읽기 2,850만 IOPS, 쓰기 202만 IOPS | RAID 5, CM7-R 3.84TB 24개(Gen5), Supermicro AS-2125HS-TNR, EPYC 9654 2개, 드라이버 1.5.0-659. fio 192스레드·QD32 | StorageReview(제3자, 2023-11) |
+| 커널 블록 장치, SR-1010(구형) 순차 I/O | 1M 읽기 279GB/s, 쓰기 148GB/s | 위와 같은 플랫폼·SSD·드라이버. fio 192스레드·QD16 | StorageReview(제3자, 2023-11) |
+| 커널 블록 장치, Pro(현행 중간 등급)와 드라이버 2.0 | 4k 랜덤 쓰기 494만 IOPS | RAID 5, CM7 3.2TB 24개, EPYC 9755 2개, Pro 카드(RTX A1000), fio 3.40. iodepth·numjobs 미기재 | Graid(벤더, 2025-12) |
 
 StorageReview의 같은 플랫폼에서 Linux mdraid도 1M 순차 읽기는 같은 대역폭을 냈고, 큰 격차는 랜덤·순차 쓰기에서 나타났습니다. 읽기 최대치만으로 패리티 RAID의 차이를 판단하기는 어렵습니다.
 
