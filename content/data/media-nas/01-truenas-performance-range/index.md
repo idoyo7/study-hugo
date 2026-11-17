@@ -133,11 +133,11 @@ HDD가 들어간 구성의 처리량은 HDD 대수에 비례합니다. iXsystems
 
 아래 표에는 제3자 실측을 바탕으로 잡은 All-Flash의 SMB 읽기·쓰기 추정 범위와 HDD 대수 산식에 기댄 Hybrid Flash·Hybrid Cache의 추정 범위를 모았습니다. Hybrid Flash와 Hybrid Cache의 공식 상한은 셸프를 가득 채운 이상적인 순차 조건의 값으로 해석했습니다.
 
-| 구성 | SMB 읽기 추정 | SMB 쓰기 추정 |
-|---|---|---|
-| All-Flash | 25~50GB/s = 200~400Gb/s | 15~25GB/s = 120~200Gb/s |
-| Hybrid Flash, HDD 100~200대(vdev 10~20개) | 8~20GB/s = 64~160Gb/s | 5~12GB/s = 40~96Gb/s |
-| Hybrid Cache, HDD 60~100대 | 4~10GB/s = 32~80Gb/s | 3~6GB/s = 24~48Gb/s |
+| 구성 | 공식 대역폭 | 공식 쓰기 | SMB 읽기 추정 | SMB 쓰기 추정 |
+|---|---|---|---|---|
+| All-Flash | 60GB/s = 480Gb/s | 30GB/s = 240Gb/s | 25~50GB/s = 200~400Gb/s | 15~25GB/s = 120~200Gb/s |
+| Hybrid Flash, HDD 100~200대(vdev 10~20개) | 30GB/s = 240Gb/s | 16GB/s = 128Gb/s | 8~20GB/s = 64~160Gb/s | 5~12GB/s = 40~96Gb/s |
+| Hybrid Cache, HDD 60~100대 | 15GB/s = 120Gb/s | 8GB/s = 64Gb/s | 4~10GB/s = 32~80Gb/s | 3~6GB/s = 24~48Gb/s |
 
 400GbE 두 포트의 합계 800Gb/s는 All-Flash 공식 상한 480Gb/s보다 넉넉합니다. 이 구성의 병목은 NIC보다 ZFS, CPU, Samba 쪽에 있다고 봤습니다. 단일 헤드가 SMB로 40GB/s 이상을 실제로 내는지는 도입 전 PoC에서 재야 합니다.
 
