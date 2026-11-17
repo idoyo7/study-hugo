@@ -1,7 +1,7 @@
 ---
 title: "스토리지"
 date: 2026-10-04
-lastmod: 2026-10-21
+lastmod: 2026-11-18
 weight: 30
 comments: false
 cascade:
@@ -22,6 +22,7 @@ linkTitle: "블록 스토리지"
 - [06 Linux NVMe/TCP 운영]({{< relref "/data/block-storage/06-linux-nvme-tcp-operations/index.md" >}})
 - [07 FC·TCP·RDMA 전송 비교]({{< relref "/data/block-storage/07-fc-tcp-rdma-transports/index.md" >}})
 - [08 Kubernetes NVMe-oF와 Mayastor]({{< relref "/data/block-storage/08-kubernetes-nvmeof-mayastor/index.md" >}})
+- [09 Mayastor·LINSTOR·SupremeRAID 최대 성능]({{< relref "/data/block-storage/09-mayastor-linstor-supremeraid/index.md" >}})
 - [부록 A NVMe HDD]({{< relref "/data/block-storage/a1-nvme-hdd/index.md" >}})
 - [부록 B NFS]({{< relref "/data/block-storage/a2-nfs/index.md" >}})
 
@@ -29,7 +30,7 @@ NVMe SSD가 많이 꽂힌 스토리지 서버의 용량을 여러 호스트와 V
 
 01은 iSCSI와 NVMe-oF를 전송과 타깃·백엔드 쪽에서 비교합니다. 호스트 I/O 경로와 큐 구조, 쓰기 데이터 흐름, 타깃이 내보내는 가상 NVMe controller와 namespace, 커널·SPDK 타깃 구현과 Ceph RBD·Kubernetes 스토리지까지 다룹니다. 02는 NVMe 용량을 VM에 나누는 방식(virtio·vhost·vfio-user·직접 할당·DPU 에뮬레이션)을 게스트 인터페이스와 요청 처리 주체로 비교합니다.
 
-04는 2026년 기준으로 엔터프라이즈 어레이 벤더가 호스트에 내놓는 전송과 NVMe/TCP·RDMA의 격차를, 05는 Kubernetes CSI와 Linux 노드의 NVMe-oF 지원 수준, 클라우드 블록 볼륨의 기반 기술, 오프로드 하드웨어를 다룹니다. 06은 Linux 호스트에서 NVMe/TCP를 FC SAN처럼 운영하는 데 필요한 요소를, 07은 FC·TCP·RDMA 세 전송을 전송 자체만 놓고 비교하며, 08은 Kubernetes에서 NVMe-oF를 쓰는 길을 Mayastor를 중심으로 살펴봅니다.
+04는 2026년 기준으로 엔터프라이즈 어레이 벤더가 호스트에 내놓는 전송과 NVMe/TCP·RDMA의 격차를, 05는 Kubernetes CSI와 Linux 노드의 NVMe-oF 지원 수준, 클라우드 블록 볼륨의 기반 기술, 오프로드 하드웨어를 다룹니다. 06은 Linux 호스트에서 NVMe/TCP를 FC SAN처럼 운영하는 데 필요한 요소를, 07은 FC·TCP·RDMA 세 전송을 전송 자체만 놓고 비교하며, 08은 Kubernetes에서 NVMe-oF를 쓰는 길을 Mayastor를 중심으로 살펴봅니다. 09는 Mayastor, LINSTOR·Piraeus, Graid SupremeRAID의 복제 방식과 공개된 최대 성능 수치를 측정 조건과 함께 비교합니다.
 
 비교 근거는 장치·커널·블록 크기·큐 깊이가 서로 다른 논문과 벤치마크에 흩어져 있습니다. 수치마다 측정 조건을 같이 적었고, 조건이 다른 값은 같은 차트나 표 행에 올리지 않았습니다. 확인하지 못한 항목은 `?`로 남겼습니다.
 
@@ -47,6 +48,7 @@ iSCSI와 NVMe-oF의 비교는 01, VM 디스크 전달 방식은 02부터 읽으�
 | [06 Linux NVMe/TCP 운영]({{< relref "/data/block-storage/06-linux-nvme-tcp-operations/index.md" >}}) | hostnqn·자동 연결, CDC·nvme-stas 디스커버리, 네이티브 멀티패스·ANA·iopolicy, 타임아웃과 장애 동작, DH-HMAC-CHAP·TLS, 홈랩 nvmet 타깃, FC 운영 개념 대응표 |
 | [07 FC·TCP·RDMA 전송 비교]({{< relref "/data/block-storage/07-fc-tcp-rdma-transports/index.md" >}}) | 세 전송의 동작 원리와 네트워크 특성, FC가 안정적이라는 말의 범위, 접근성, 자료별 공개 측정(IOPS·지연·CPU), 보안·디스커버리·부팅, 어디에 무엇이 맞는가 |
 | [08 Kubernetes NVMe-oF와 Mayastor]({{< relref "/data/block-storage/08-kubernetes-nvmeof-mayastor/index.md" >}}) | Mayastor 데이터 경로와 요구 자원, 기능 상태, 공개 IOPS 측정의 조건, 프로덕션 사례와 상용 지원, Longhorn V2·LINSTOR·Ceph 등 대안 비교, 선택 기준과 홈랩 구성 |
+| [09 Mayastor·LINSTOR·SupremeRAID 최대 성능]({{< relref "/data/block-storage/09-mayastor-linstor-supremeraid/index.md" >}}) | 세 제품의 쓰기 경로와 장애 뒤 사본 판정, 볼륨 하나와 클러스터 합계로 나눈 공개 IOPS·스루풋, Graid의 1억 IOPS 발표 조건, 노드 안 RAID와 노드 간 복제의 조합 |
 | [부록 A NVMe HDD]({{< relref "/data/block-storage/a1-nvme-hdd/index.md" >}}) | HDD를 NVMe로 붙이는 두 경로, 규격·제품 상태, 기구 시간 대비 프로토콜 오버헤드, 큐와 액추에이터 |
 | [부록 B NFS]({{< relref "/data/block-storage/a2-nfs/index.md" >}}) | NFS를 iSCSI·NVMe-oF와 한 표에 놓을 수 있는 전송 구조, 놓을 수 없는 쓰기 의미와 캐시, 2004년 실측과 최근 자료의 한계, VM 디스크·볼륨으로 쓸 때, NFS가 맞는 경우 |
 

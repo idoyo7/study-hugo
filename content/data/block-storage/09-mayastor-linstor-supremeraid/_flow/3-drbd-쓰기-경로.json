@@ -1,0 +1,21 @@
+{
+  "caption": "Pod는 같은 노드의 DRBD 장치에 네트워크 없이 쓰고, DRBD는 로컬 디스크와 모든 피어에 함께 보낸 뒤 Protocol C에서는 전부 기록돼야 응답합니다.",
+  "groups": [
+    { "id": "na", "label": "노드 A", "members": ["pod", "drbd", "lv1"] },
+    { "id": "nb", "label": "노드 B", "members": ["p2"] },
+    { "id": "nc", "label": "노드 C", "members": ["p3"] }
+  ],
+  "nodes": [
+    { "id": "pod", "col": 0, "row": 1, "label": "Pod", "sub": "파일시스템", "kind": "src" },
+    { "id": "drbd", "col": 1, "row": 1, "label": "DRBD 장치", "sub": "커널 모듈", "kind": "proc" },
+    { "id": "lv1", "col": 1, "row": 2, "label": "LVM 볼륨", "sub": "로컬 사본", "kind": "store" },
+    { "id": "p2", "col": 2, "row": 0, "label": "DRBD 피어", "sub": "LVM 볼륨", "kind": "store" },
+    { "id": "p3", "col": 2, "row": 2, "label": "DRBD 피어", "sub": "LVM 볼륨", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "pod", "to": "drbd", "label": "블록 I/O" },
+    { "from": "drbd", "to": "lv1", "label": "로컬 쓰기" },
+    { "from": "drbd", "to": "p2", "label": "DRBD", "cross": true },
+    { "from": "drbd", "to": "p3", "label": "DRBD", "cross": true }
+  ]
+}

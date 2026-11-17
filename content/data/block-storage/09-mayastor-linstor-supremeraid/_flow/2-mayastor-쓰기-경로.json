@@ -1,0 +1,21 @@
+{
+  "caption": "Pod의 쓰기는 같은 노드에서도 NVMe/TCP로 nexus에 들어가고, nexus는 살아 있는 replica 전부에 보낸 뒤 모두 끝나야 응답합니다.",
+  "groups": [
+    { "id": "na", "label": "노드 A", "members": ["pod", "nexus", "r1"] },
+    { "id": "nb", "label": "노드 B", "members": ["r2"] },
+    { "id": "nc", "label": "노드 C", "members": ["r3"] }
+  ],
+  "nodes": [
+    { "id": "pod", "col": 0, "row": 1, "label": "Pod", "sub": "커널 nvme-tcp", "kind": "src" },
+    { "id": "nexus", "col": 1, "row": 1, "label": "nexus", "sub": "io-engine 폴링 코어", "kind": "proc" },
+    { "id": "r1", "col": 1, "row": 2, "label": "replica 1", "sub": "로컬 lvol", "kind": "store" },
+    { "id": "r2", "col": 2, "row": 0, "label": "replica 2", "sub": "lvol", "kind": "store" },
+    { "id": "r3", "col": 2, "row": 2, "label": "replica 3", "sub": "lvol", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "pod", "to": "nexus", "label": "NVMe/TCP" },
+    { "from": "nexus", "to": "r1", "label": "로컬 쓰기" },
+    { "from": "nexus", "to": "r2", "label": "NVMe-oF", "cross": true },
+    { "from": "nexus", "to": "r3", "label": "NVMe-oF", "cross": true }
+  ]
+}

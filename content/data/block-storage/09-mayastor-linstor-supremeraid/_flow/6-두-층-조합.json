@@ -1,0 +1,25 @@
+{
+  "caption": "노드 안 RAID 위에 노드 간 복제를 올리면 드라이브 고장은 노드 안 리빌드로, 노드 고장은 다른 노드의 사본으로 받습니다. 이 조합의 성능을 잰 공개 자료는 찾지 못했습니다.",
+  "font": 1.2,
+  "groups": [
+    { "id": "na", "label": "노드 A", "members": ["ra", "va", "sa"] },
+    { "id": "nb", "label": "노드 B", "members": ["rb", "vb", "sb"] }
+  ],
+  "nodes": [
+    { "id": "vol", "col": 0, "row": 0, "label": "복제 볼륨", "sub": "nexus·DRBD", "kind": "src" },
+    { "id": "ra", "col": 1, "row": 0, "label": "사본 A", "kind": "proc" },
+    { "id": "va", "col": 2, "row": 0, "label": "RAID 장치", "sub": "노드 안 패리티", "kind": "proc" },
+    { "id": "sa", "col": 3, "row": 0, "label": "NVMe SSD", "kind": "store" },
+    { "id": "rb", "col": 1, "row": 2, "label": "사본 B", "kind": "proc" },
+    { "id": "vb", "col": 2, "row": 2, "label": "RAID 장치", "sub": "노드 안 패리티", "kind": "proc" },
+    { "id": "sb", "col": 3, "row": 2, "label": "NVMe SSD", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "vol", "to": "ra", "label": "쓰기" },
+    { "from": "vol", "to": "rb", "label": "복제", "cross": true },
+    { "from": "ra", "to": "va", "label": "쓰기" },
+    { "from": "va", "to": "sa", "label": "분산" },
+    { "from": "rb", "to": "vb", "label": "쓰기" },
+    { "from": "vb", "to": "sb", "label": "분산" }
+  ]
+}

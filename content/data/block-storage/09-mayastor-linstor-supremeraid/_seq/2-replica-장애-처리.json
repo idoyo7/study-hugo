@@ -1,0 +1,19 @@
+{
+  "caption": "replica 하나가 실패하면 nexus는 그 사실을 etcd에 먼저 기록하고, 그 뒤에 남은 replica로 쓰기를 끝내 응답합니다.",
+  "participants": [
+    { "id": "app", "label": "Pod" },
+    { "id": "nx", "label": "nexus" },
+    { "id": "rb", "label": "replica 2" },
+    { "id": "etcd", "label": "etcd" }
+  ],
+  "steps": [
+    { "msg": ["app", "nx"], "label": "1. 쓰기" },
+    { "msg": ["nx", "rb"], "label": "2. 복제 쓰기" },
+    { "msg": ["rb", "nx"], "label": "3. 오류·타임아웃", "dashed": true },
+    { "note": ["nx"], "lines": ["재제출 정지"] },
+    { "msg": ["nx", "etcd"], "label": "4. replica 2 unhealthy 기록" },
+    { "msg": ["etcd", "nx"], "label": "5. 기록 완료", "dashed": true },
+    { "note": ["nx", "rb"], "lines": ["replica 2 분리", "남은 replica로 재제출"] },
+    { "msg": ["nx", "app"], "label": "6. 완료 응답", "dashed": true }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "caption": "SupremeRAID는 노드 한 대 안에서 SSD를 RAID로 묶습니다. 읽기는 SSD와 호스트 메모리 사이를 바로 오가고 패리티 계산만 GPU 카드가 맡습니다.",
+  "groups": [
+    { "id": "n", "label": "노드 한 대", "members": ["app", "vd", "gpu", "ssd"] }
+  ],
+  "nodes": [
+    { "id": "app", "col": 0, "row": 1, "label": "앱", "kind": "src" },
+    { "id": "gpu", "col": 1, "row": 0, "label": "GPU 카드", "sub": "패리티 계산", "kind": "query" },
+    { "id": "vd", "col": 1, "row": 1, "label": "가상 드라이브", "sub": "graid 커널 모듈", "kind": "proc" },
+    { "id": "ssd", "col": 2, "row": 1, "label": "NVMe SSD 묶음", "sub": "RAID 5·6·10", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "app", "to": "vd", "label": "블록 I/O" },
+    { "from": "vd", "to": "ssd", "label": "읽기·쓰기" },
+    { "from": "vd", "to": "gpu", "label": "쓰기 패리티" }
+  ]
+}

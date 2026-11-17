@@ -2,6 +2,13 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-18 — 블록 스토리지에 Mayastor·LINSTOR·SupremeRAID 최대 성능 비교 추가
+
+- `content/data/block-storage/09-mayastor-linstor-supremeraid/`를 새로 만들고 스토리지 색인에서 잇습니다. OpenEBS Mayastor 2.12.2, LINSTOR 1.35.3·DRBD 9.3.4(piraeus-operator 2.12.1), Graid SupremeRAID 드라이버 2.0.1의 쓰기 경로와 장애 뒤 사본 판정 방식을 설명하고, 공개된 IOPS·스루풋을 볼륨 하나·클러스터 합계·서버 한 대로 나눠 측정 조건과 함께 실었습니다. Graid의 2026-07-15 "1억 IOPS" 발표는 GPU가 직접 내는 512바이트 I/O 경로의 벤더 수치라는 점과 공개되지 않은 조건을 따로 적었습니다.
+- 근거는 2026-11-17에 릴리스 노트·공식 문서·소스(Mayastor io-engine과 control-plane v2.12.2, piraeus-operator, linstor-csi)·벤더 자료·제3자 측정으로 확인했고, 직접 측정한 값은 없습니다. 조사 보고서 세 편은 로컬 `_workspace/research-2026-11-17-nvmeof-maxperf/`에 있습니다.
+- 도식은 flow 4장(Mayastor·DRBD 쓰기 경로, SupremeRAID 노드 내부, 노드 안 RAID와 노드 간 복제의 조합)과 seq 1장(replica 실패 때 etcd 기록과 응답의 순서)입니다.
+- Claude 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`) 전면 재작성(조사 보고서를 사실 확인용으로 함께 제공) → URL·인라인 코드·shortcode·표 행·수치 기계 대조와 문장 대조 순으로 만들었습니다. 재작성본이 본문에서 대표 수치를 접힌 표로만 내려 보낸 Mayastor·LINSTOR 절에는 조건을 붙인 대표 수치 표를 직접 더했습니다. 실행 기록은 `_workspace/structure-2026-11-17-nvmeof-maxperf/`에 있습니다.
+
 ## 2026-11-17 — Cloudflare 2025~2026년 LLM·에이전트 글 30편 추가
 
 - 2025~2026년 Cloudflare AI 글 가운데 LLM 서빙·추론 인프라, 에이전트 실행 기반, MCP 연동, 사내 AI 엔지니어링(코드 리뷰·표준 검사·소프트웨어 팩토리), AIOps·보안 자동화를 다룬 엔지니어링 글 30편을 골랐습니다. AI 크롤러·콘텐츠 정책, 봇 판별, 제품 출시 공지, 인수 소식, 보안 제품 홍보 글은 뺐습니다.
