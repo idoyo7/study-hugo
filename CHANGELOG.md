@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-19 — ZFS 미디어 NAS에 OpenZFS 해설 04편 추가
+
+- `content/data/media-nas/04-openzfs/`를 새로 만들었습니다(공개 URL `/media-nas/04-openzfs/`). 블록 트리와 copy-on-write에서 스냅샷, 증분 send, 무결성, RAIDZ 공간 계산이 어떻게 나오는지와 feature flag·vdev 제거 제약, Sun에서 2.4.4까지의 계보를 다룹니다. 도식은 flow 2장과 lane 1장입니다.
+- 근거는 2026-11-19에 OpenZFS 2.3.9·2.4.4 소스와 man 페이지, 릴리스 노트, GitHub 이슈로 확인했습니다. Claude 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`, 조사 보고서 두 건을 사실 확인용으로 첨부) 전면 재작성 → 기계 대조와 문장 단위 대조(사실 오류 0) → Astra 보정 1회 순서로 만들었습니다.
+- 02편의 "풀은 80%를 넘기면 느려진다"는 문장을 고쳤습니다. 현재 OpenZFS 문서의 권고는 빈 공간 10% 이상이고 80% 기준은 공식 문서에서 찾지 못했습니다. 03편 도입부에 04편 링크를 넣었습니다.
+
 ## 2026-11-18 — 데이터·스토리지에 ZFS 미디어 NAS 분류 추가
 
 - `content/data/media-nas/`를 새로 만들었습니다(공개 URL `/media-nas/`). 01은 TrueNAS V-Series의 All-Flash·Hybrid Flash·Hybrid Cache 구성별 공식 상한을 Gb/s로 환산하고 SMB 편집 워크로드의 추정 범위, 편집자 수와 코덱별 최소 요구를 다룹니다. 02는 1PB를 플래시 200TB와 HDD 800TB로 나눌 때 풀 두 개와 단일 풀 special vdev 방식, 드라이브 수와 가용 용량을 다룹니다. 데이터·스토리지 색인에 링크를 더했습니다.

@@ -1,0 +1,14 @@
+{
+  "caption": "10폭 RAIDZ2에서 1MiB 블록은 할당 공간의 약 80%가 데이터이지만, 4KiB 블록은 33%만 데이터입니다. 할당 공식으로 계산한 값입니다.",
+  "font": 1.1,
+  "note": "ashift=12. 막대는 할당된 공간 가운데 데이터가 차지하는 비율",
+  "axis": { "kind": "linear", "max": 100, "unit": "%", "ticks": [0, 20, 40, 60, 80, 100] },
+  "lanes": [
+    { "label": "1MiB 블록", "sub": "데이터 256 + 패리티 64 + 패딩 1섹터", "segments": [{ "start": 0, "end": 79.8, "label": "79.8%", "kind": "proc" }] },
+    { "label": "128KiB 블록", "sub": "데이터 32 + 패리티 8 + 패딩 2섹터", "segments": [{ "start": 0, "end": 76, "label": "76%", "kind": "proc" }] },
+    { "label": "4KiB 블록", "sub": "데이터 1 + 패리티 2섹터", "segments": [{ "start": 0, "end": 33, "label": "33%", "kind": "query" }] }
+  ],
+  "markers": [
+    { "at": 80, "label": "명목 효율 8/10", "kind": "query" }
+  ]
+}

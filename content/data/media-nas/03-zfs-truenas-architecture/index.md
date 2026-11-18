@@ -12,7 +12,7 @@ url: "/media-nas/03-zfs-truenas-architecture/"
 
 HDD 풀이 영상 편집을 받아낼 수 있는 이유는 ZFS가 디스크 앞에 메모리 계층을 두기 때문입니다. 쓰기는 메모리에 모았다가 묶어서 디스크에 내리고, 읽기는 메모리 캐시부터 찾습니다.
 
-[01]({{< relref "/data/media-nas/01-truenas-performance-range/index.md" >}})과 [02]({{< relref "/data/media-nas/02-1pb-flash-hdd-split/index.md" >}})에서 쓴 ARC, SLOG, L2ARC, special vdev도 이 경로 안에 있습니다. 기준은 TrueNAS 25.10.8과 그 안의 OpenZFS 2.3.9입니다. 기본값은 man 페이지와 소스에서 확인했습니다.
+[01]({{< relref "/data/media-nas/01-truenas-performance-range/index.md" >}})과 [02]({{< relref "/data/media-nas/02-1pb-flash-hdd-split/index.md" >}})에서 쓴 ARC, SLOG, L2ARC, special vdev도 이 경로 안에 있습니다. 기준은 TrueNAS 25.10.8과 그 안의 OpenZFS 2.3.9입니다. 기본값은 man 페이지와 소스에서 확인했습니다. 디스크에 블록이 놓이는 구조와 스냅샷, RAIDZ의 공간 계산은 [04]({{< relref "/data/media-nas/04-openzfs/index.md" >}})에서 다룹니다.
 
 ## 쓰기 버퍼와 ARC 아래의 ZFS 풀 {#layers}
 

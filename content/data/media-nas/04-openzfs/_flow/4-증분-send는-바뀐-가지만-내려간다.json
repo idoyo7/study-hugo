@@ -1,0 +1,19 @@
+{
+  "caption": "증분 send는 기준 스냅샷 이후에 태어난 블록만 따라 내려가므로, 바뀌지 않은 가지는 읽지 않고 건너뜁니다. 그림의 txg 값은 설명을 위한 예시입니다.",
+  "font": 1.2,
+  "nodes": [
+    { "id": "root", "col": 0, "row": 0, "label": "스냅샷 @b", "sub": "기준 @a는 txg 100", "kind": "src" },
+    { "id": "x", "col": 1, "row": 0, "label": "간접 블록 X", "sub": "birth 90", "kind": "proc" },
+    { "id": "y", "col": 1, "row": 1, "label": "간접 블록 Y", "sub": "birth 120", "kind": "proc" },
+    { "id": "y1", "col": 2, "row": 1, "label": "데이터 블록", "sub": "birth 80", "kind": "store" },
+    { "id": "y2", "col": 2, "row": 2, "label": "데이터 블록", "sub": "birth 120", "kind": "store" },
+    { "id": "s", "col": 3, "row": 2, "label": "send 스트림", "kind": "sink" }
+  ],
+  "edges": [
+    { "from": "root", "to": "x", "label": "건너뜀", "dashed": true },
+    { "from": "root", "to": "y", "label": "내려감" },
+    { "from": "y", "to": "y1", "label": "건너뜀", "dashed": true },
+    { "from": "y", "to": "y2", "label": "읽음" },
+    { "from": "y2", "to": "s", "label": "전송" }
+  ]
+}

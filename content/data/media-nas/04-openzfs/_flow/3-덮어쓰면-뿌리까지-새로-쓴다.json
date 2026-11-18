@@ -1,0 +1,20 @@
+{
+  "caption": "덮어쓴 블록 B는 새 자리에 기록되고 뿌리까지의 경로가 새로 쓰이며, 바뀌지 않은 블록 A는 옛 트리와 새 트리가 함께 가리킵니다.",
+  "nodes": [
+    { "id": "ubo", "col": 0, "row": 0, "label": "이전 uberblock", "sub": "txg 100", "kind": "query" },
+    { "id": "ubn", "col": 0, "row": 2, "label": "새 uberblock", "sub": "txg 101", "kind": "src" },
+    { "id": "io", "col": 1, "row": 0, "label": "이전 간접 블록", "kind": "proc" },
+    { "id": "in", "col": 1, "row": 2, "label": "새 간접 블록", "kind": "proc" },
+    { "id": "bo", "col": 2, "row": 0, "label": "블록 B", "sub": "옛 내용", "kind": "store" },
+    { "id": "a", "col": 2, "row": 1, "label": "블록 A", "sub": "바뀌지 않음", "kind": "store" },
+    { "id": "bn", "col": 2, "row": 2, "label": "블록 B′", "sub": "새 내용", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "ubo", "to": "io", "label": "옛 경로", "dashed": true },
+    { "from": "io", "to": "bo", "label": "포인터", "dashed": true },
+    { "from": "io", "to": "a", "label": "포인터", "dashed": true },
+    { "from": "ubn", "to": "in", "label": "새 경로" },
+    { "from": "in", "to": "a", "label": "포인터" },
+    { "from": "in", "to": "bn", "label": "포인터" }
+  ]
+}
