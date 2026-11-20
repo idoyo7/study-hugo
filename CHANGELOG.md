@@ -2,6 +2,12 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-20 — OpenZFS 04편을 솔루션 소개로 바꾸고 내부 동작 글을 05편으로 이동
+
+- 11-19에 올린 OpenZFS 글은 블록 트리와 copy-on-write 같은 내부 동작 해설이었습니다. 원한 것은 솔루션 관점의 소개여서 `04-openzfs`를 새로 썼습니다. OpenZFS가 해 주는 일, 이론 한계와 실용 권고, 공개된 운영 규모(ORNL Orion, TrueNAS V-Series, AWS FSx for OpenZFS 등), 기반 제품과 서비스, 사용 사례, 맞지 않는 경우를 표 중심으로 다룹니다. 도식은 flow 1장입니다.
+- 내부 동작 글은 지우지 않고 `05-openzfs-internals`(공개 URL `/media-nas/05-openzfs-internals/`)로 옮겼습니다. `/media-nas/04-openzfs/`는 이제 새 글을 가리킵니다. 02·03편의 링크를 05편으로 고쳤습니다.
+- 근거는 2026-11-20에 OpenZFS 2.4.4 소스 상수와 공식 문서, TrueNAS·Proxmox·AWS·QNAP 문서, ORNL·LLNL 공개 자료로 확인했습니다. Claude 초안 → Astra(`gpt-6-astra`, xhigh, 조사 보고서 첨부) 재작성 → 기계 대조와 직접 읽기 순서로 만들었고 독립 검증은 붙이지 않았습니다.
+
 ## 2026-11-19 — ZFS 미디어 NAS에 OpenZFS 해설 04편 추가
 
 - `content/data/media-nas/04-openzfs/`를 새로 만들었습니다(공개 URL `/media-nas/04-openzfs/`). 블록 트리와 copy-on-write에서 스냅샷, 증분 send, 무결성, RAIDZ 공간 계산이 어떻게 나오는지와 feature flag·vdev 제거 제약, Sun에서 2.4.4까지의 계보를 다룹니다. 도식은 flow 2장과 lane 1장입니다.

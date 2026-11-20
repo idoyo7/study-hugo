@@ -1,0 +1,20 @@
+{
+  "caption": "OpenZFS는 파일 공유와 VM 디스크, 병렬 파일시스템의 저장소를 한 풀에서 내주고, 아래로는 미러·RAIDZ·dRAID vdev에 나눠 기록합니다.",
+  "nodes": [
+    { "id": "fs", "col": 0, "row": 0, "label": "파일 공유", "sub": "SMB·NFS", "kind": "src" },
+    { "id": "vm", "col": 0, "row": 1, "label": "VM 디스크", "sub": "iSCSI·가상화 호스트", "kind": "src" },
+    { "id": "hpc", "col": 0, "row": 2, "label": "병렬 파일시스템", "sub": "Lustre", "kind": "src" },
+    { "id": "pool", "col": 1, "row": 1, "label": "OpenZFS 풀", "sub": "체크섬·압축·스냅샷", "kind": "proc" },
+    { "id": "mir", "col": 2, "row": 0, "label": "미러 vdev", "kind": "store" },
+    { "id": "rz", "col": 2, "row": 1, "label": "RAIDZ vdev", "sub": "패리티 1~3", "kind": "store" },
+    { "id": "dr", "col": 2, "row": 2, "label": "dRAID vdev", "sub": "분산 스페어", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "fs", "to": "pool", "label": "데이터셋" },
+    { "from": "vm", "to": "pool", "label": "zvol" },
+    { "from": "hpc", "to": "pool", "label": "OSD" },
+    { "from": "pool", "to": "mir", "label": "기록" },
+    { "from": "pool", "to": "rz", "label": "기록" },
+    { "from": "pool", "to": "dr", "label": "기록" }
+  ]
+}
