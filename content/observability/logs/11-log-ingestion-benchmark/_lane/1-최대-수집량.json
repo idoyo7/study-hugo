@@ -1,0 +1,14 @@
+{
+  "caption": "VictoriaMetrics가 2026년 10월 8 vCPU 단일 노드에서 잰 시스템별 최대 수집량입니다. 세 번 실행한 중앙값이며, SigNoz는 초당 2만 줄에서 수집기가 죽어 그 앞 단계만 셌습니다.",
+  "font": 1.1,
+  "note": "필드 30~40개, 한 줄 약 930바이트 JSON. 각 시스템이 선호하는 형식으로 전송",
+  "axis": { "kind": "linear", "max": 160, "unit": "천 줄/s", "ticks": [0, 40, 80, 120, 160] },
+  "lanes": [
+    { "label": "Loki", "sub": "3.7.8", "segments": [{ "start": 0, "end": 139, "label": "13.9만", "kind": "src" }] },
+    { "label": "VictoriaLogs", "sub": "v1.53.0", "segments": [{ "start": 0, "end": 120, "label": "12만", "kind": "proc" }] },
+    { "label": "Elasticsearch", "sub": "9.5.5", "segments": [{ "start": 0, "end": 48, "label": "4.8만", "kind": "store" }] },
+    { "label": "ClickStack", "sub": "2.39.1", "segments": [{ "start": 0, "end": 46, "label": "4.6만", "kind": "query" }] },
+    { "label": "OpenSearch", "sub": "3.9.0", "segments": [{ "start": 0, "end": 28, "label": "2.8만", "kind": "store" }] },
+    { "label": "SigNoz", "sub": "v0.145.0", "segments": [{ "start": 0, "end": 10, "label": "1만", "kind": "query" }] }
+  ]
+}

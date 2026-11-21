@@ -2,6 +2,13 @@
 
 문서 구조와 공통 동작이 바뀐 작업을 기록합니다. 개별 글의 수정 내역은 Git 이력을 확인합니다.
 
+## 2026-11-21 — 로깅에 여섯 로그 스택 수집 벤치마크 요약 추가
+
+- promkr 뉴스레터 2026년 11월호(2026-11-21 발행)의 로그 스택 비교 항목만 골라 `content/observability/logs/11-log-ingestion-benchmark/`(공개 URL `/logging/11-log-ingestion-benchmark/`)에 정리하고 로깅 색인에서 잇습니다. 뉴스레터 11월호 전체의 호별 문서는 만들지 않았습니다.
+- 뉴스레터가 가리킨 원문은 VictoriaMetrics 블로그의 「VictoriaLogs vs Loki, Elasticsearch, OpenSearch, SigNoz and ClickStack on structured log ingestion」(Cuong Le, 2026-10-29)입니다. 원문 전문과 재현 저장소 `VictoriaMetrics/logs-benchmark`의 결과 표·README를 읽어 보강했습니다. 버전, 장비, 워크로드, 전송 형식, 세 번 실행의 범위, 압축비, 줄당 디스크 쓰기, 저장소가 스스로 밝힌 공정성 한계(내구성 기준, 전송 형식, 스택 크기, OpenSearch 인덱싱)가 저장소에서 온 내용입니다.
+- 구성은 저장 방식 표 → 시험 조건 표 → 측정 결과(최대 수집량 lane 도식 한 장, 표 둘) → 시스템별로 결과가 달라진 이유(쿼리 시간 표 둘) → 장점·단점 표 → 수치를 읽을 때 감안할 조건 → 이 사이트의 관련 글입니다. 측정자가 VictoriaLogs 개발사이고 직접 재현한 결과가 아니라는 점을 도입과 감안할 조건에 적었습니다.
+- Claude 초안 → Astra(`gpt-6-astra`, xhigh, `--sandbox read-only`, 영어 원문과 저장소 문서 첨부, 절 순서·제목·표·수치 고정) 재작성 → frontmatter·수치·표 행·URL·relref 기계 대조와 산문 대조 순으로 만들었습니다. 수치는 더해지거나 빠진 것이 없었습니다. Loki의 비용을 "수집 단계에서 줄인 작업의 영향"으로 바꿔 쓴 한 문장은 원문대로 직접 고쳤습니다. 실행 기록과 원문 사본은 로컬 `_workspace/structure-2026-11-21-log-ingest-benchmark/`에 있습니다.
+
 ## 2026-11-20 — OpenZFS 04편을 솔루션 소개로 바꾸고 내부 동작 글을 05편으로 이동
 
 - 11-19에 올린 OpenZFS 글은 블록 트리와 copy-on-write 같은 내부 동작 해설이었습니다. 원한 것은 솔루션 관점의 소개여서 `04-openzfs`를 새로 썼습니다. OpenZFS가 해 주는 일, 이론 한계와 실용 권고, 공개된 운영 규모(ORNL Orion, TrueNAS V-Series, AWS FSx for OpenZFS 등), 기반 제품과 서비스, 사용 사례, 맞지 않는 경우를 표 중심으로 다룹니다. 도식은 flow 1장입니다.

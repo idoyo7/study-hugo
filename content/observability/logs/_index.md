@@ -1,7 +1,7 @@
 ---
 title: "로깅"
 date: 2026-07-12
-lastmod: 2026-10-04
+lastmod: 2026-11-21
 weight: 20
 cascade:
   type: docs
@@ -17,6 +17,7 @@ linkTitle: "로그"
 - [Vector · ClickHouse 파이프라인]({{< relref "/observability/logs/09-vector-clickhouse-pipeline/index.md" >}})
 - [저장소 비교·선택]({{< relref "/observability/logs/comparison/_index.md" >}})
 - [로그 스택 통합 비교]({{< relref "/observability/logs/10-log-stack-comparison/index.md" >}})
+- [로그 스택 수집 벤치마크]({{< relref "/observability/logs/11-log-ingestion-benchmark/index.md" >}})
 - [VictoriaLogs 스토리지 내부 구조]({{< relref "/observability/logs/victorialogs-internals/_index.md" >}})
 
 로그·메트릭·RUM을 여러 저장소에 흩뿌려 놓은 MSA 팀이 "이거랑 저거만 있으면 다 될 것 같은" 최소 조합을 찾으며 검토한 솔루션을 정리한 챕터입니다. Elasticsearch(OpenSearch) 기반 EFK 말고 애플리케이션 로깅을 내재화하는 다른 길이 있는지, 솔루션마다 성격은 어떻고 우리 케이스에서는 무엇을 골랐는지 다룹니다.
@@ -71,5 +72,6 @@ linkTitle: "로그"
 | [우리 케이스 · 권장안]({{< relref "/observability/logs/comparison/08-recommendation.md" >}}) | 최소 조합 아키텍처, 인건비 게이트, 저후회 시퀀싱, 하지 말 것, 결론 |
 | [Vector · ClickHouse 파이프라인]({{< relref "/observability/logs/09-vector-clickhouse-pipeline/index.md" >}}) | 수집 경로(Fluent Bit·Firehose)를 Vector로 바꾸는 네 가지 방법, ClickHouse 적재 구성과 이중 적재 이행 |
 | [로그 스택 통합 비교]({{< relref "/observability/logs/10-log-stack-comparison/index.md" >}}) | OpenSearch·Loki·VictoriaLogs·ClickHouse를 앱 로그와 Istio 액세스 로그 기준으로 같은 축에 놓고 조건별 선택 기준을 정리(2026-10-22 기준) |
+| [로그 스택 수집 벤치마크]({{< relref "/observability/logs/11-log-ingestion-benchmark/index.md" >}}) | VictoriaMetrics가 2026년 10월 공개한 VictoriaLogs·Loki·Elasticsearch·OpenSearch·SigNoz·ClickStack 단일 노드 수집 벤치마크 요약. 최대 수집량·CPU·메모리·디스크 수치, 결과가 달라진 이유, 수치를 읽을 때 감안할 조건 |
 
 > **근거 표기 범례**: `✓` 확인됨(1차 출처 검증) · `≈` 추정 · `Ⓥ` 벤더 주장 · `?` 미확인 · `Ⓑ` 퍼블릭 벤치마크 · `Σ` 종합 판단. `⁽ ⁾`는 부가 설명, `✓/≈`처럼 병기하면 혼재를 뜻합니다.
